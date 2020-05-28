@@ -26,7 +26,6 @@ import java.util.Collections;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.search.SortField;
@@ -35,7 +34,6 @@ import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.fielddata.AtomicNumericFieldData;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
@@ -97,25 +95,6 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
         return numericType;
     }
 
-    @Override
-    public AtomicNumericFieldData loadDirect(LeafReaderContext context) throws Exception {
-        return load(context);
-    }
-
-    @Override
-    public AtomicNumericFieldData load(LeafReaderContext context) {
-        final LeafReader reader = context.reader();
-        final String field = fieldName;
-
-        switch (numericType) {
-            case FLOAT:
-                return new SortedNumericFloatFieldData(reader, field);
-            case DOUBLE:
-                return new SortedNumericDoubleFieldData(reader, field);
-            default:
-                return new SortedNumericLongFieldData(reader, field);
-        }
-    }
 
     /**
      * FieldData implementation for integral types.

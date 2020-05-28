@@ -41,7 +41,6 @@ import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.store.IndexStore;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -322,9 +321,8 @@ public final class IndexModule {
             BigArrays bigArrays,
             ThreadPool threadPool,
             IndicesQueryCache indicesQueryCache,
-            MapperRegistry mapperRegistry,
-            IndicesFieldDataCache indicesFieldDataCache)
-        throws IOException {
+            MapperRegistry mapperRegistry) throws IOException {
+
         final IndexEventListener eventListener = freeze();
         IndexSearcherWrapperFactory searcherWrapperFactory = indexSearcherWrapper.get() == null
             ? (shard) -> null : indexSearcherWrapper.get();
@@ -356,7 +354,6 @@ public final class IndexModule {
             eventListener,
             searcherWrapperFactory,
             mapperRegistry,
-            indicesFieldDataCache,
             indexOperationListeners
         );
     }

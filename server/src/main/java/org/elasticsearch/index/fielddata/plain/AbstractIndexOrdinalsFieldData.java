@@ -28,7 +28,6 @@ import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldData<AtomicOrdinalsFieldData> {
@@ -38,10 +37,13 @@ public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldD
     private final int minSegmentSize;
     protected final CircuitBreakerService breakerService;
 
-    protected AbstractIndexOrdinalsFieldData(IndexSettings indexSettings, String fieldName,
-            IndexFieldDataCache cache, CircuitBreakerService breakerService,
-            double minFrequency, double maxFrequency, int minSegmentSize) {
-        super(indexSettings, fieldName, cache);
+    protected AbstractIndexOrdinalsFieldData(IndexSettings indexSettings,
+                                             String fieldName,
+                                             CircuitBreakerService breakerService,
+                                             double minFrequency,
+                                             double maxFrequency,
+                                             int minSegmentSize) {
+        super(indexSettings, fieldName);
         this.breakerService = breakerService;
         this.minFrequency = minFrequency;
         this.maxFrequency = maxFrequency;

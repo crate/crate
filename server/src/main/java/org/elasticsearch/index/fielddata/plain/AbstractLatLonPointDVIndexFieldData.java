@@ -22,14 +22,10 @@ package org.elasticsearch.index.fielddata.plain;
 import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.fielddata.AtomicGeoPointFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -37,8 +33,8 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.search.MultiValueMode;
 
-public abstract class AbstractLatLonPointDVIndexFieldData extends DocValuesIndexFieldData
-    implements IndexGeoPointFieldData {
+public abstract class AbstractLatLonPointDVIndexFieldData extends DocValuesIndexFieldData implements IndexGeoPointFieldData {
+
     AbstractLatLonPointDVIndexFieldData(Index index, String fieldName) {
         super(index, fieldName);
     }
@@ -51,21 +47,6 @@ public abstract class AbstractLatLonPointDVIndexFieldData extends DocValuesIndex
     public static class LatLonPointDVIndexFieldData extends AbstractLatLonPointDVIndexFieldData {
         public LatLonPointDVIndexFieldData(Index index, String fieldName) {
             super(index, fieldName);
-        }
-
-        @Override
-        public AtomicGeoPointFieldData load(LeafReaderContext context) {
-            LeafReader reader = context.reader();
-            FieldInfo info = reader.getFieldInfos().fieldInfo(fieldName);
-            if (info != null) {
-                checkCompatible(info);
-            }
-            return new LatLonPointDVAtomicFieldData(reader, fieldName);
-        }
-
-        @Override
-        public AtomicGeoPointFieldData loadDirect(LeafReaderContext context) throws Exception {
-            return load(context);
         }
 
         /** helper: checks a fieldinfo and throws exception if its definitely not a LatLonDocValuesField */
@@ -82,8 +63,10 @@ public abstract class AbstractLatLonPointDVIndexFieldData extends DocValuesIndex
 
     public static class Builder implements IndexFieldData.Builder {
         @Override
-        public IndexFieldData<?> build(IndexSettings indexSettings, MappedFieldType fieldType, IndexFieldDataCache cache,
-                                       CircuitBreakerService breakerService, MapperService mapperService) {
+        public IndexFieldData<?> build(IndexSettings indexSettings,
+                                       MappedFieldType fieldType,
+                                       CircuitBreakerService breakerService,
+                                       MapperService mapperService) {
             // ignore breaker
             return new LatLonPointDVIndexFieldData(indexSettings.getIndex(), fieldType.name());
         }
