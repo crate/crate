@@ -122,7 +122,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             Version.CURRENT,
             new InputRow(Collections.singletonList(inExpr)),
             new MatchAllDocsQuery(),
-            new CollectorContext(mappedFieldType -> null),
+            new CollectorContext(),
             AggregateMode.ITER_FINAL
         );
     }

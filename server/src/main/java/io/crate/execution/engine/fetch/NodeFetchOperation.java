@@ -93,7 +93,6 @@ public class NodeFetchOperation {
                 exprs,
                 streamers,
                 fetchTask.searcher(readerId),
-                indexService.fieldData(),
                 ramAccounting,
                 readerId
             );

@@ -21,27 +21,26 @@
 
 package io.crate.expression.reference.doc;
 
+import java.util.stream.StreamSupport;
+
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.elasticsearch.Version;
+import org.junit.After;
+import org.junit.Before;
+
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.Version;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.junit.After;
-import org.junit.Before;
-
-import java.util.stream.StreamSupport;
 
 public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     private final String createTableStatement;
     protected CollectorContext ctx;
-    private IndexFieldDataService ifd;
     LeafReaderContext readerContext;
     private IndexEnv indexEnv;
 
@@ -68,12 +67,11 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
             Version.CURRENT,
             createTempDir()
         );
-        ifd = indexEnv.indexService().fieldData();
         IndexWriter writer = indexEnv.writer();
         insertValues(writer);
         DirectoryReader directoryReader = DirectoryReader.open(writer, true, true);
         readerContext = directoryReader.leaves().get(0);
-        ctx = new CollectorContext(ifd::getForField);
+        ctx = new CollectorContext();
     }
 
     @After

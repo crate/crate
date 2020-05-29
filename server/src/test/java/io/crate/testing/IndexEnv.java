@@ -52,7 +52,6 @@ import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.InternalEngineFactory;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
 import org.elasticsearch.index.mapper.Mapper;
@@ -79,7 +78,6 @@ public final class IndexEnv implements AutoCloseable {
     private final NodeEnvironment nodeEnvironment;
     private final IndexCache indexCache;
     private final IndexService indexService;
-    private final IndexFieldDataService indexFieldDataService;
     private final IndexWriter writer;
 
     public IndexEnv(ThreadPool threadPool,
@@ -149,10 +147,9 @@ public final class IndexEnv implements AutoCloseable {
             new IndicesQueryCache(Settings.EMPTY),
             mapperRegistry
         );
-        indexFieldDataService = indexService.fieldData();
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
         writer = new IndexWriter(new ByteBuffersDirectory(), conf);
-        queryShardContext.set(new QueryShardContext(idxSettings, indexFieldDataService::getForField, mapperService));
+        queryShardContext.set(new QueryShardContext(idxSettings, mapperService));
     }
 
     @Override

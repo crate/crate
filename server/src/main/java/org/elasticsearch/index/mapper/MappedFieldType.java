@@ -19,6 +19,12 @@
 
 package org.elasticsearch.index.mapper;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
@@ -30,18 +36,12 @@ import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.ElasticsearchParseException;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
 import org.joda.time.DateTimeZone;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * This defines the core properties and functions to operate on a field.
@@ -83,17 +83,6 @@ public abstract class MappedFieldType extends FieldType {
 
     @Override
     public abstract MappedFieldType clone();
-
-    /** Return a fielddata builder for this field
-     *  @throws IllegalArgumentException if the fielddata is not supported on this type.
-     *  An IllegalArgumentException is needed in order to return an http error 400
-     *  when this error occurs in a request. see: {@link org.elasticsearch.ExceptionsHelper#status}
-     *
-     * @param fullyQualifiedIndexName the name of the index this field-data is build for
-     * */
-    public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
-        throw new IllegalArgumentException("Fielddata is not supported on field [" + name() + "] of type [" + typeName() + "]");
-    }
 
     @Override
     public boolean equals(Object o) {

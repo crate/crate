@@ -60,7 +60,6 @@ import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.engine.EngineFactory;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexEventListener;
@@ -87,7 +86,6 @@ import io.crate.common.unit.TimeValue;
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
 
     private final IndexEventListener eventListener;
-    private final IndexFieldDataService indexFieldData;
     private final NodeEnvironment nodeEnv;
     private final ShardStoreDeleter shardStoreDeleter;
     private final IndexStore indexStore;
@@ -141,7 +139,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             // we parse all percolator queries as they would be parsed on shard 0
             this::newQueryShardContext
         );
-        this.indexFieldData = new IndexFieldDataService(indexSettings, circuitBreakerService, mapperService);
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
@@ -232,7 +229,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             } finally {
                 IOUtils.close(
                         indexCache,
-                        indexFieldData,
                         mapperService,
                         refreshTask,
                         fsyncTask,
@@ -438,7 +434,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
      * Creates a new QueryShardContext
      */
     public QueryShardContext newQueryShardContext() {
-        return new QueryShardContext(indexSettings, indexFieldData::getForField, mapperService());
+        return new QueryShardContext(indexSettings, mapperService());
     }
 
     /**
@@ -458,10 +454,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     @Override
     public boolean updateMapping(final IndexMetaData currentIndexMetaData, final IndexMetaData newIndexMetaData) throws IOException {
         return mapperService().updateMapping(currentIndexMetaData, newIndexMetaData);
-    }
-
-    public IndexFieldDataService fieldData() {
-        return indexFieldData;
     }
 
     private class StoreCloseListener implements Store.OnClose {

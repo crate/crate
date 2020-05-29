@@ -22,6 +22,43 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.execution.dsl.projection.Projections.shardProjections;
+import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.formatSource;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.ObjectArray;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.BatchIterator;
@@ -52,43 +89,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
-
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedSetDocValues;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.ObjectArray;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import static io.crate.execution.dsl.projection.Projections.shardProjections;
-import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.formatSource;
-import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.getCollectorContext;
 
 final class GroupByOptimizedIterator {
 
@@ -164,9 +164,7 @@ final class GroupByOptimizedIterator {
 
             RamAccounting ramAccounting = collectTask.getRamAccounting();
 
-            CollectorContext collectorContext = getCollectorContext(
-                sharedShardContext.readerId(), queryShardContext::getForField);
-
+            CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId());
             InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
             LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(

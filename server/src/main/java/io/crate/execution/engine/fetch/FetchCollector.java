@@ -22,8 +22,16 @@
 
 package io.crate.execution.engine.fetch;
 
+import java.io.IOException;
+import java.util.List;
+
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
+
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.ReaderUtil;
+import org.elasticsearch.index.engine.Engine;
+
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.exceptions.Exceptions;
@@ -31,13 +39,6 @@ import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.ReaderUtil;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
-
-import java.io.IOException;
-import java.util.List;
 
 class FetchCollector {
 
@@ -50,7 +51,6 @@ class FetchCollector {
     FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
                    Streamer<?>[] streamers,
                    Engine.Searcher searcher,
-                   IndexFieldDataService indexFieldDataService,
                    RamAccounting ramAccounting,
                    int readerId) {
         // use toArray to avoid iterator allocations in docIds loop
@@ -58,7 +58,7 @@ class FetchCollector {
         this.streamers = streamers;
         this.readerContexts = searcher.searcher().getIndexReader().leaves();
         this.ramAccounting = ramAccounting;
-        CollectorContext collectorContext = new CollectorContext(indexFieldDataService::getForField, readerId);
+        CollectorContext collectorContext = new CollectorContext(readerId);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

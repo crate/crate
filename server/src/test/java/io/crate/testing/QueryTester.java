@@ -164,7 +164,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(indexEnv.queryShardContext()::getForField),
+                new CollectorContext(),
                 Collections.singletonList(input),
                 ctx.expressions()
             );

@@ -19,6 +19,18 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FloatPoint;
@@ -38,7 +50,6 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.Explicit;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Numbers;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.settings.Setting;
@@ -47,20 +58,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
-import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexNumericFieldData.NumericType;
-import org.elasticsearch.index.fielddata.plain.DocValuesIndexFieldData;
 import org.elasticsearch.index.query.QueryShardContext;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 
 /** A {@link FieldMapper} for numeric types: byte, short, int, long, float and double. */
 public class NumberFieldMapper extends FieldMapper {
@@ -180,7 +178,7 @@ public class NumberFieldMapper extends FieldMapper {
     }
 
     public enum NumberType {
-        FLOAT("float", NumericType.FLOAT) {
+        FLOAT("float") {
             @Override
             public Float parse(Object value, boolean coerce) {
                 if (value instanceof Number) {
@@ -262,7 +260,7 @@ public class NumberFieldMapper extends FieldMapper {
                 return fields;
             }
         },
-        DOUBLE("double", NumericType.DOUBLE) {
+        DOUBLE("double") {
             @Override
             public Double parse(Object value, boolean coerce) {
                 return objectToDouble(value);
@@ -338,7 +336,7 @@ public class NumberFieldMapper extends FieldMapper {
                 return fields;
             }
         },
-        BYTE("byte", NumericType.BYTE) {
+        BYTE("byte") {
             @Override
             public Byte parse(Object value, boolean coerce) {
                 double doubleValue = objectToDouble(value);
@@ -399,7 +397,7 @@ public class NumberFieldMapper extends FieldMapper {
                 return value.byteValue();
             }
         },
-        SHORT("short", NumericType.SHORT) {
+        SHORT("short") {
             @Override
             public Short parse(Object value, boolean coerce) {
                 double doubleValue = objectToDouble(value);
@@ -456,7 +454,7 @@ public class NumberFieldMapper extends FieldMapper {
                 return value.shortValue();
             }
         },
-        INTEGER("integer", NumericType.INT) {
+        INTEGER("integer") {
             @Override
             public Integer parse(Object value, boolean coerce) {
                 double doubleValue = objectToDouble(value);
@@ -572,7 +570,7 @@ public class NumberFieldMapper extends FieldMapper {
                 return fields;
             }
         },
-        LONG("long", NumericType.LONG) {
+        LONG("long") {
             @Override
             public Long parse(Object value, boolean coerce) {
                 if (value instanceof Long) {
@@ -693,21 +691,14 @@ public class NumberFieldMapper extends FieldMapper {
         };
 
         private final String name;
-        private final NumericType numericType;
 
-        NumberType(String name, NumericType numericType) {
+        NumberType(String name) {
             this.name = name;
-            this.numericType = numericType;
         }
 
         /** Get the associated type name. */
         public final String typeName() {
             return name;
-        }
-
-        /** Get the associated numeric type */
-        final NumericType numericType() {
-            return numericType;
         }
 
         public abstract Query termQuery(String field, Object value);
@@ -850,12 +841,6 @@ public class NumberFieldMapper extends FieldMapper {
                 query = new BoostQuery(query, boost());
             }
             return query;
-        }
-
-        @Override
-        public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
-            failIfNoDocValues();
-            return new DocValuesIndexFieldData.Builder().numericType(type.numericType());
         }
 
         @Override
