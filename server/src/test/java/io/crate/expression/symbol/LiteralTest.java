@@ -116,7 +116,7 @@ public class LiteralTest extends CrateUnitTest {
             intLiteral.cast(DataTypes.LONG),
             isFunction(
                 ImplicitCastFunction.NAME,
-                List.of(intLiteral.valueType(), DataTypes.LONG)
+                List.of(intLiteral.valueType(), DataTypes.STRING)
             )
         );
     }

@@ -330,7 +330,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             symbol2.arguments().get(1),
             isFunction(
                 ImplicitCastFunction.NAME,
-                List.of(DataTypes.INTEGER, DataTypes.LONG)
+                List.of(DataTypes.INTEGER, DataTypes.STRING)
             )
         );
     }
@@ -343,7 +343,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             symbol.arguments().get(0),
             isFunction(
                 ImplicitCastFunction.NAME,
-                List.of(DataTypes.INTEGER, DataTypes.LONG)
+                List.of(DataTypes.INTEGER, DataTypes.STRING)
             )
         );
         assertThat(symbol.arguments().get(1).valueType(), is(DataTypes.LONG));

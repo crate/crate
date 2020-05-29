@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.List;
 import java.util.Set;
@@ -49,40 +50,51 @@ public class CastFunctionResolver {
             throw new ConversionException(sourceType, targetType);
         }
 
-        // Currently, it is not possible to resolve a function based on
-        // its return type. For instance, it is not possible to generate
-        // an object cast function with the object return type which inner
-        // types have to be considered as well. Therefore, to bypass this
-        // limitation we encode the return type info as the second function
-        // argument.
-        var info = FunctionInfo.of(
-            castFuncNameFrom(modes),
-            List.of(sourceType, targetType),
-            targetType);
-        return new Function(
-            info,
-            createSignature(info),
-            // a literal with a NULL value is passed as an argument to match the method signature
-            List.of(sourceSymbol, Literal.of(targetType, null)),
-            null);
-    }
-
-    private static String castFuncNameFrom(Set<CastMode> modes) {
-        if (modes.contains(CastMode.TRY)) {
-            return TryCastFunction.NAME;
-        } else if (modes.contains(CastMode.EXPLICIT)) {
-            return ExplicitCastFunction.NAME;
+        if (modes.contains(CastMode.TRY) || modes.contains(CastMode.EXPLICIT)) {
+            // Currently, it is not possible to resolve a function based on
+            // its return type. For instance, it is not possible to generate
+            // an object cast function with the object return type which inner
+            // types have to be considered as well. Therefore, to bypass this
+            // limitation we encode the return type info as the second function
+            // argument.
+            var info = FunctionInfo.of(
+                modes.contains(CastMode.TRY)
+                    ? TryCastFunction.NAME
+                    : ExplicitCastFunction.NAME,
+                List.of(sourceType, targetType),
+                targetType);
+            return new Function(
+                info,
+                Signature
+                    .scalar(
+                        info.ident().fqnName(),
+                        parseTypeSignature("E"),
+                        parseTypeSignature("V"),
+                        parseTypeSignature("V")
+                    ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
+                // a literal with a NULL value is passed as an argument
+                // to match the method signature
+                List.of(sourceSymbol, Literal.of(targetType, null))
+            );
         } else {
-            return ImplicitCastFunction.NAME;
+            var info = FunctionInfo.of(
+                ImplicitCastFunction.NAME,
+                List.of(sourceType, DataTypes.STRING),
+                targetType);
+            return new Function(
+                info,
+                Signature
+                    .scalar(
+                        info.ident().fqnName(),
+                        parseTypeSignature("E"),
+                        DataTypes.STRING.getTypeSignature(),
+                        DataTypes.UNDEFINED.getTypeSignature())
+                    .withTypeVariableConstraints(typeVariable("E")),
+                List.of(
+                    sourceSymbol,
+                    Literal.of(targetType.getTypeSignature().toString())
+                )
+            );
         }
-    }
-
-    static Signature createSignature(FunctionInfo functionInfo) {
-        return Signature.scalar(
-            functionInfo.ident().fqnName(),
-            parseTypeSignature("E"),
-            parseTypeSignature("V"),
-            parseTypeSignature("V")
-        ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
     }
 }

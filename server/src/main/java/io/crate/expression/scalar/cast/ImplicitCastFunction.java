@@ -31,9 +31,10 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
+
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -44,35 +45,35 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
 
     public static void register(ScalarFunctionModule module) {
         module.register(
-            Signature
-                .scalar(
-                    NAME,
-                    parseTypeSignature("E"),
-                    parseTypeSignature("V"),
-                    parseTypeSignature("V"))
-                .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
-            (signature, args) -> new ImplicitCastFunction(
-                FunctionInfo.of(NAME, args, args.get(1)),
-                signature)
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("E"),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.UNDEFINED.getTypeSignature()
+            ).withTypeVariableConstraints(typeVariable("E")),
+            (signature, args) ->
+                new ImplicitCastFunction(
+                    FunctionInfo.of(NAME, args, args.get(1)),
+                    signature)
         );
     }
 
-    private final DataType<?> returnType;
     private final FunctionInfo info;
     private final Signature signature;
 
     private ImplicitCastFunction(FunctionInfo info, Signature signature) {
         this.info = info;
         this.signature = signature;
-        this.returnType = info.returnType();
     }
 
     @Override
     public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+        var targetTypeSignature = parseTypeSignature((String) args[1].value());
+        var targetType = targetTypeSignature.createType();
         try {
-            return returnType.implicitCast(args[0].value());
+            return targetType.implicitCast(args[0].value());
         } catch (ClassCastException | IllegalArgumentException e) {
-            throw new ConversionException(args[0].value(), returnType);
+            throw new ConversionException(args[0].value(), targetType);
         }
     }
 
@@ -91,16 +92,20 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     public Symbol normalizeSymbol(io.crate.expression.symbol.Function symbol,
                                   TransactionContext txnCtx) {
         Symbol argument = symbol.arguments().get(0);
-        if (argument.valueType().equals(returnType)) {
+
+        var targetTypeAsString = (String) ((Input<?>) symbol.arguments().get(1)).value();
+        var targetType = parseTypeSignature(targetTypeAsString).createType();
+
+        if (argument.valueType().equals(targetType)) {
             return argument;
         }
 
         if (argument instanceof Input) {
             Object value = ((Input<?>) argument).value();
             try {
-                return Literal.ofUnchecked(returnType, returnType.implicitCast(value));
+                return Literal.ofUnchecked(targetType, targetType.implicitCast(value));
             } catch (ClassCastException | IllegalArgumentException e) {
-                throw new ConversionException(argument, returnType);
+                throw new ConversionException(argument, targetType);
             }
         }
         return symbol;

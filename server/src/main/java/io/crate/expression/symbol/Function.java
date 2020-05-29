@@ -355,18 +355,20 @@ public class Function extends Symbol implements Cloneable {
 
     private void printCastFunction(StringBuilder builder, Style style) {
         var name = info.ident().name();
-        if (name.equalsIgnoreCase(ImplicitCastFunction.NAME)) {
-            name = ExplicitCastFunction.NAME;
-        }
-        builder.append(name)
-            .append("(");
-        builder.append(arguments().get(0).toString(style));
-
-        DataType<?> targetType = info.returnType();
+        var targetType = info.returnType();
         builder
-            .append(" AS ")
-            .append(targetType.getTypeSignature().toString())
-            .append(")");
+            .append(name)
+            .append("(")
+            .append(arguments().get(0).toString(style));
+        if (name.equalsIgnoreCase(ImplicitCastFunction.NAME)) {
+            builder
+                .append(", ")
+                .append(arguments.get(1).toString(style));
+        } else {
+            builder.append(" AS ")
+                .append(targetType.getTypeSignature().toString());
+        }
+        builder.append(")");
     }
 
     private void printExtract(StringBuilder builder, Style style) {

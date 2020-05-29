@@ -206,7 +206,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         // instead of a Collect plan, this must result in a CountPlan through optimization
         assertThat(plan, isPlan(
             "MultiPhase\n" +
-            "  └ Collect[doc.t1 | [a, x, i] | (x > cast((SELECT 1 FROM (doc.t1)) AS integer))]\n" +
+            "  └ Collect[doc.t1 | [a, x, i] | (x > _cast((SELECT 1 FROM (doc.t1)), 'integer'))]\n" +
             "  └ Limit[2;0]\n" +
             "    └ MultiPhase\n" +
             "      └ Collect[doc.t1 | [1] | (x > cast((SELECT count(*) FROM (doc.t2)) AS integer))]\n" +
