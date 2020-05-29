@@ -26,12 +26,12 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.search.SortedSetSortField;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
+import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.search.MultiValueMode;
 
-public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData implements IndexOrdinalsFieldData {
+public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData implements IndexFieldData {
 
     private final IndexSettings indexSettings;
     private final CircuitBreakerService breakerService;
