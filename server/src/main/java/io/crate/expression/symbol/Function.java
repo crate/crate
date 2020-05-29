@@ -36,6 +36,9 @@ import io.crate.expression.scalar.SubscriptRecordFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.cast.CastMode;
+import io.crate.expression.scalar.cast.ExplicitCastFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
+import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
@@ -48,7 +51,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -61,8 +63,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import static io.crate.expression.scalar.cast.CastFunction.CAST_NAME;
-import static io.crate.expression.scalar.cast.CastFunction.TRY_CAST_NAME;
 import static java.util.Objects.requireNonNull;
 
 public class Function extends Symbol implements Cloneable {
@@ -310,8 +310,9 @@ public class Function extends Symbol implements Cloneable {
             default:
                 if (name.startsWith(AnyOperator.OPERATOR_PREFIX)) {
                     printAnyOperator(builder, style);
-                } else if (name.equalsIgnoreCase(CAST_NAME) ||
-                           name.equalsIgnoreCase(TRY_CAST_NAME)) {
+                } else if (name.equalsIgnoreCase(ImplicitCastFunction.NAME) ||
+                           name.equalsIgnoreCase(ExplicitCastFunction.NAME) ||
+                           name.equalsIgnoreCase(TryCastFunction.NAME)) {
                     printCastFunction(builder, style);
                 } else if (name.startsWith(Operator.PREFIX)) {
                     printOperator(builder, style, null);
@@ -353,23 +354,18 @@ public class Function extends Symbol implements Cloneable {
     }
 
     private void printCastFunction(StringBuilder builder, Style style) {
-        final String asTypeName;
-        DataType<?> dataType = info.returnType();
-        if (DataTypes.isArray(dataType)) {
-            ArrayType<?> arrayType = ((ArrayType<?>) dataType);
-            asTypeName = " AS "
-                         + ArrayType.NAME
-                         + "("
-                         + arrayType.innerType().getName()
-                         + ")";
-        } else {
-            asTypeName = " AS " + dataType.getName();
+        var name = info.ident().name();
+        if (name.equalsIgnoreCase(ImplicitCastFunction.NAME)) {
+            name = ExplicitCastFunction.NAME;
         }
-        builder.append(info.ident().name())
+        builder.append(name)
             .append("(");
         builder.append(arguments().get(0).toString(style));
+
+        DataType<?> targetType = info.returnType();
         builder
-            .append(asTypeName)
+            .append(" AS ")
+            .append(targetType.getTypeSignature().toString())
             .append(")");
     }
 

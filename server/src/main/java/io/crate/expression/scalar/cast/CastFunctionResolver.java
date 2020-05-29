@@ -29,12 +29,9 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
-import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
-import static io.crate.expression.scalar.cast.CastFunction.CAST_NAME;
-import static io.crate.expression.scalar.cast.CastFunction.TRY_CAST_NAME;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
@@ -43,9 +40,8 @@ public class CastFunctionResolver {
     public static Symbol generateCastFunction(Symbol sourceSymbol,
                                               DataType<?> targetType,
                                               CastMode... castModes) {
-        var modes = EnumSet.copyOf(Arrays.asList(castModes));
-        assert modes.contains(CastMode.EXPLICIT) &&
-               modes.contains(CastMode.IMPLICIT)
+        var modes = Set.of(castModes);
+        assert !modes.containsAll(List.of(CastMode.EXPLICIT, CastMode.IMPLICIT))
             : "explicit and implicit cast modes are mutually exclusive";
 
         DataType<?> sourceType = sourceSymbol.valueType();
@@ -60,18 +56,25 @@ public class CastFunctionResolver {
         // limitation we encode the return type info as the second function
         // argument.
         var info = FunctionInfo.of(
-            modes.contains(CastMode.TRY)
-                ? TRY_CAST_NAME
-                : CAST_NAME,
+            castFuncNameFrom(modes),
             List.of(sourceType, targetType),
-            targetType
-        );
+            targetType);
         return new Function(
             info,
             createSignature(info),
             // a literal with a NULL value is passed as an argument to match the method signature
             List.of(sourceSymbol, Literal.of(targetType, null)),
             null);
+    }
+
+    private static String castFuncNameFrom(Set<CastMode> modes) {
+        if (modes.contains(CastMode.TRY)) {
+            return TryCastFunction.NAME;
+        } else if (modes.contains(CastMode.EXPLICIT)) {
+            return ExplicitCastFunction.NAME;
+        } else {
+            return ImplicitCastFunction.NAME;
+        }
     }
 
     static Signature createSignature(FunctionInfo functionInfo) {
