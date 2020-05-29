@@ -52,6 +52,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
+
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
@@ -68,7 +70,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
@@ -81,7 +82,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -148,13 +148,12 @@ final class GroupByOptimizedIterator {
         Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
 
         try {
-            QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+            final QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
             IndexSearcher indexSearcher = searcher.searcher();
 
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
             docCtx.add(collectPhase.toCollect().stream()::iterator);
-            IndexOrdinalsFieldData keyIndexFieldData = queryShardContext.getForField(keyFieldType);
 
             InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
             ctxForAggregations.add(groupProjection.values());
@@ -183,8 +182,7 @@ final class GroupByOptimizedIterator {
             return getIterator(
                 bigArrays,
                 indexSearcher,
-                leaf -> keyIndexFieldData.load(leaf).getOrdinalsValues(),
-                keyIndexFieldData.getFieldName(),
+                keyRef.column().fqn(),
                 aggregations,
                 expressions,
                 aggExpressions,
@@ -203,7 +201,6 @@ final class GroupByOptimizedIterator {
 
     static BatchIterator<Row> getIterator(BigArrays bigArrays,
                                           IndexSearcher indexSearcher,
-                                          Function<LeafReaderContext, SortedSetDocValues> ordinalsFunction,
                                           String keyColumnName,
                                           List<AggregationContext> aggregations,
                                           List<? extends LuceneCollectorExpression<?>> expressions,
@@ -220,9 +217,8 @@ final class GroupByOptimizedIterator {
         }
 
         AtomicReference<Throwable> killed = new AtomicReference<>();
-        AtomicBoolean closed = new AtomicBoolean();
         return CollectingBatchIterator.newInstance(
-            () -> closed.set(true),
+            () -> killed.set(BatchIterator.CLOSED),
             killed::set,
             () -> {
                 try {
@@ -231,7 +227,6 @@ final class GroupByOptimizedIterator {
                             applyAggregatesGroupedByKey(
                                 bigArrays,
                                 indexSearcher,
-                                ordinalsFunction,
                                 keyColumnName,
                                 aggregations,
                                 expressions,
@@ -241,8 +236,7 @@ final class GroupByOptimizedIterator {
                                 minNodeVersion,
                                 inputRow,
                                 query,
-                                killed,
-                                closed
+                                killed
                             ),
                             ramAccounting,
                             aggregations,
@@ -284,7 +278,6 @@ final class GroupByOptimizedIterator {
 
     private static Map<BytesRef, Object[]> applyAggregatesGroupedByKey(BigArrays bigArrays,
                                                                        IndexSearcher indexSearcher,
-                                                                       Function<LeafReaderContext, SortedSetDocValues> ordinalsFunction,
                                                                        String keyColumnName,
                                                                        List<AggregationContext> aggregations,
                                                                        List<? extends LuceneCollectorExpression<?>> expressions,
@@ -294,15 +287,14 @@ final class GroupByOptimizedIterator {
                                                                        Version minNodeVersion,
                                                                        InputRow inputRow,
                                                                        Query query,
-                                                                       AtomicReference<Throwable> killed,
-                                                                       AtomicBoolean closed) throws IOException {
+                                                                       AtomicReference<Throwable> killed) throws IOException {
         final HashMap<BytesRef, Object[]> statesByKey = new HashMap<>();
-        final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE, 1f);
+        final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
         Object[] nullStates = null;
 
         for (LeafReaderContext leaf: leaves) {
-            raiseIfClosedOrKilled(killed, closed);
+            raiseIfClosedOrKilled(killed);
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
                 continue;
@@ -310,12 +302,12 @@ final class GroupByOptimizedIterator {
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                 expressions.get(i).setNextReader(leaf);
             }
-            SortedSetDocValues values = ordinalsFunction.apply(leaf);
+            SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
                 DocIdSetIterator docs = scorer.iterator();
                 Bits liveDocs = leaf.reader().getLiveDocs();
                 for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                    raiseIfClosedOrKilled(killed, closed);
+                    raiseIfClosedOrKilled(killed);
                     if (docDeleted(liveDocs, doc)) {
                         continue;
                     }
@@ -345,7 +337,7 @@ final class GroupByOptimizedIterator {
                     }
                 }
                 for (long ord = 0; ord < statesByOrd.size(); ord++) {
-                    raiseIfClosedOrKilled(killed, closed);
+                    raiseIfClosedOrKilled(killed);
                     Object[] states = statesByOrd.get(ord);
                     if (states == null) {
                         continue;
@@ -468,13 +460,10 @@ final class GroupByOptimizedIterator {
         return groupProjection;
     }
 
-    private static void raiseIfClosedOrKilled(AtomicReference<Throwable> killed, AtomicBoolean closed) {
+    private static void raiseIfClosedOrKilled(AtomicReference<Throwable> killed) {
         Throwable killedException = killed.get();
         if (killedException != null) {
             Exceptions.rethrowUnchecked(killedException);
-        }
-        if (closed.get()) {
-            throw new IllegalStateException("BatchIterator is closed");
         }
     }
 }

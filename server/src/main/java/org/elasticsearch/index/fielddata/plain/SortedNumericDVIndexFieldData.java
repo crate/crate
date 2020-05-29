@@ -19,7 +19,10 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
-import org.apache.lucene.document.HalfFloatPoint;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.LeafReader;
@@ -38,14 +41,9 @@ import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.NumericDoubleValues;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
-import org.elasticsearch.index.fielddata.fieldcomparator.DoubleValuesComparatorSource;
-import org.elasticsearch.index.fielddata.fieldcomparator.FloatValuesComparatorSource;
-import org.elasticsearch.index.fielddata.fieldcomparator.LongValuesComparatorSource;
 import org.elasticsearch.search.MultiValueMode;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
+import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 
 /**
  * FieldData backed by {@link LeafReader#getSortedNumericDocValues(String)}
@@ -64,41 +62,33 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
 
     @Override
     public SortField sortField(NullValueOrder nullValueOrder, MultiValueMode sortMode, boolean reverse) {
-        final XFieldComparatorSource source;
-        switch (numericType) {
-            case HALF_FLOAT:
-            case FLOAT:
-                source = new FloatValuesComparatorSource(this, nullValueOrder, sortMode);
-                break;
-
-            case DOUBLE:
-                source = new DoubleValuesComparatorSource(this, nullValueOrder, sortMode);
-                break;
-
-            default:
-                assert !numericType.isFloatingPoint();
-                source = new LongValuesComparatorSource(this, nullValueOrder, sortMode);
-                break;
-        }
-
         final SortField sortField;
         final SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX ?
             SortedNumericSelector.Type.MAX : SortedNumericSelector.Type.MIN;
+
+        SortField.Type reducedType;
         switch (numericType) {
             case FLOAT:
+                reducedType = SortField.Type.FLOAT;
                 sortField = new SortedNumericSortField(fieldName, SortField.Type.FLOAT, reverse, selectorType);
                 break;
 
             case DOUBLE:
+                reducedType = SortField.Type.DOUBLE;
                 sortField = new SortedNumericSortField(fieldName, SortField.Type.DOUBLE, reverse, selectorType);
                 break;
 
             default:
                 assert !numericType.isFloatingPoint();
+                reducedType = SortField.Type.LONG;
                 sortField = new SortedNumericSortField(fieldName, SortField.Type.LONG, reverse, selectorType);
                 break;
         }
-        sortField.setMissingValue(source.missingObject(nullValueOrder, reverse));
+        sortField.setMissingValue(NullSentinelValues.nullSentinelForReducedType(
+            reducedType,
+            nullValueOrder,
+            reverse
+        ));
         return sortField;
     }
 
@@ -118,8 +108,6 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
         final String field = fieldName;
 
         switch (numericType) {
-            case HALF_FLOAT:
-                return new SortedNumericHalfFloatFieldData(reader, field);
             case FLOAT:
                 return new SortedNumericFloatFieldData(reader, field);
             case DOUBLE:
@@ -162,98 +150,6 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
         @Override
         public Collection<Accountable> getChildResources() {
             return Collections.emptyList();
-        }
-    }
-
-    /**
-     * FieldData implementation for 16-bit float values.
-     * <p>
-     * Order of values within a document is consistent with
-     * {@link Float#compareTo(Float)}, hence the following reversible
-     * transformation is applied at both index and search:
-     * {@code bits ^ (bits >> 15) & 0x7fff}
-     * <p>
-     * Although the API is multi-valued, most codecs in Lucene specialize
-     * for the case where documents have at most one value. In this case
-     * {@link FieldData#unwrapSingleton(SortedNumericDoubleValues)} will return
-     * the underlying single-valued NumericDoubleValues representation.
-     */
-    static final class SortedNumericHalfFloatFieldData extends AtomicDoubleFieldData {
-        final LeafReader reader;
-        final String field;
-
-        SortedNumericHalfFloatFieldData(LeafReader reader, String field) {
-            super(0L);
-            this.reader = reader;
-            this.field = field;
-        }
-
-        @Override
-        public SortedNumericDoubleValues getDoubleValues() {
-            try {
-                SortedNumericDocValues raw = DocValues.getSortedNumeric(reader, field);
-
-                NumericDocValues single = DocValues.unwrapSingleton(raw);
-                if (single != null) {
-                    return FieldData.singleton(new SingleHalfFloatValues(single));
-                } else {
-                    return new MultiHalfFloatValues(raw);
-                }
-            } catch (IOException e) {
-                throw new IllegalStateException("Cannot load doc values", e);
-            }
-        }
-
-        @Override
-        public Collection<Accountable> getChildResources() {
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * Wraps a NumericDocValues and exposes a single 16-bit float per document.
-     */
-    static final class SingleHalfFloatValues extends NumericDoubleValues {
-        final NumericDocValues in;
-
-        SingleHalfFloatValues(NumericDocValues in) {
-            this.in = in;
-        }
-
-        @Override
-        public double doubleValue() throws IOException {
-            return HalfFloatPoint.sortableShortToHalfFloat((short) in.longValue());
-        }
-
-        @Override
-        public boolean advanceExact(int doc) throws IOException {
-            return in.advanceExact(doc);
-        }
-    }
-
-    /**
-     * Wraps a SortedNumericDocValues and exposes multiple 16-bit floats per document.
-     */
-    static final class MultiHalfFloatValues extends SortedNumericDoubleValues {
-        final SortedNumericDocValues in;
-
-        MultiHalfFloatValues(SortedNumericDocValues in) {
-            this.in = in;
-        }
-
-        @Override
-        public boolean advanceExact(int target) throws IOException {
-            return in.advanceExact(target);
-        }
-
-        @Override
-        public double nextValue() throws IOException {
-            return HalfFloatPoint.sortableShortToHalfFloat((short) in.nextValue());
-        }
-
-        @Override
-        public int docValueCount() {
-            return in.docValueCount();
         }
     }
 
