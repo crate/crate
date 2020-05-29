@@ -74,6 +74,8 @@ public class AzureRepository extends BlobStoreRepository {
 
         static final Setting<SecureString> KEY_SETTING = Setting.maskedString("key");
 
+        public static final Setting<String> CLIENT_NAME = Setting.simpleString("client", Property.NodeScope);
+
         static final Setting<String> CONTAINER_SETTING = new Setting<>(
                 "container",
                 "crate-snapshots",
@@ -215,7 +217,7 @@ public class AzureRepository extends BlobStoreRepository {
     }
 
     @Override
-    protected BlobPath basePath() {
+    public BlobPath basePath() {
         return basePath;
     }
 

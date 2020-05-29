@@ -31,18 +31,23 @@ import org.elasticsearch.repositories.azure.AzureRepository.Repository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class AzureBlobStore implements BlobStore {
 
     private final AzureStorageService service;
 
+    private final String clientName;
     private final String container;
     private final LocationMode locationMode;
 
     public AzureBlobStore(RepositoryMetaData metadata, AzureStorageService service) {
         this.service = service;
         this.container = Repository.CONTAINER_SETTING.get(metadata.settings());
+        this.clientName = Repository.CLIENT_NAME.get(metadata.settings());
         this.locationMode = Repository.LOCATION_MODE_SETTING.get(metadata.settings());
 
         AzureStorageSettings repositorySettings = AzureStorageSettings
@@ -92,6 +97,11 @@ public class AzureBlobStore implements BlobStore {
 
     public void deleteBlob(String blob) throws URISyntaxException, StorageException {
         service.deleteBlob(container, blob);
+    }
+
+    public Map<String, BlobContainer> children(BlobPath path) throws URISyntaxException, StorageException {
+        return Collections.unmodifiableMap(service.children(clientName, container, path).stream().collect(
+            Collectors.toMap(Function.identity(), name -> new AzureBlobContainer(path.add(name), this))));
     }
 
     public InputStream getInputStream(String blob) throws URISyntaxException, StorageException, IOException {
