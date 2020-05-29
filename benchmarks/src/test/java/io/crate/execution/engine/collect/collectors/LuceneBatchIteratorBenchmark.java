@@ -69,7 +69,7 @@ public class LuceneBatchIteratorBenchmark {
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
         IntegerColumnReference columnReference = new IntegerColumnReference(columnName);
         columnRefs = Collections.singletonList(columnReference);
-        collectorContext = new CollectorContext(mappedFieldType -> null);
+        collectorContext = new CollectorContext();
     }
 
     @Benchmark

@@ -73,7 +73,7 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
                 new MatchAllDocsQuery(),
                 null,
                 false,
-                new CollectorContext(mappedFieldType -> null),
+                new CollectorContext(),
                 columnRefs,
                 columnRefs
             )

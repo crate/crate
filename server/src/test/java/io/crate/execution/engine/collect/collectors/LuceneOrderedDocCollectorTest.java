@@ -392,7 +392,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             doDocScores,
             2,
             RamAccounting.NO_ACCOUNTING,
-            new CollectorContext(mappedFieldType -> null),
+            new CollectorContext(),
             f -> null,
             new Sort(SortField.FIELD_SCORE),
             columnReferences,

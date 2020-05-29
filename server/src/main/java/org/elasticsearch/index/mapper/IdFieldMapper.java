@@ -34,7 +34,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.query.QueryShardContext;
 
 /**
@@ -125,11 +124,6 @@ public class IdFieldMapper extends MetadataFieldMapper {
                 bytesRefs[i] = Uid.encodeId(idObject.toString());
             }
             return new TermInSetQuery(name(), bytesRefs);
-        }
-
-        @Override
-        public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
-            throw new IllegalArgumentException("Fielddata access on the _id field is disallowed");
         }
     }
 

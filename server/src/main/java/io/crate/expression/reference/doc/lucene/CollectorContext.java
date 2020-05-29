@@ -21,34 +21,22 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.mapper.MappedFieldType;
-
-import java.util.function.Function;
-
 public class CollectorContext {
 
-    private final Function<MappedFieldType, IndexFieldData> fieldDataGetter;
     private final int jobSearchContextId;
 
     private SourceLookup sourceLookup;
 
-    public CollectorContext(Function<MappedFieldType, IndexFieldData> fieldDataGetter) {
-        this(fieldDataGetter, -1);
+    public CollectorContext() {
+        this(-1);
     }
 
-    public CollectorContext(Function<MappedFieldType, IndexFieldData> fieldDataGetter,
-                            int jobSearchContextId) {
-        this.fieldDataGetter = fieldDataGetter;
+    public CollectorContext(int jobSearchContextId) {
         this.jobSearchContextId = jobSearchContextId;
     }
 
     public int jobSearchContextId() {
         return jobSearchContextId;
-    }
-
-    public IndexFieldData getFieldData(MappedFieldType fieldType) {
-        return fieldDataGetter.apply(fieldType);
     }
 
     public SourceLookup sourceLookup() {

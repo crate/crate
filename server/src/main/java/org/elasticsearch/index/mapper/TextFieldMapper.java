@@ -52,7 +52,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.query.QueryShardContext;
 
 /** A {@link FieldMapper} for full-text fields. */
@@ -660,11 +659,6 @@ public class TextFieldMapper extends FieldMapper {
                 }
             }
             return false;
-        }
-
-        @Override
-        public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
-            throw new IllegalArgumentException("Fielddata is disabled on analyzed text fields");
         }
     }
 

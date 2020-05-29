@@ -21,6 +21,35 @@
 
 package io.crate.lucene;
 
+import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
+import static io.crate.metadata.DocReferences.inverseSourceLookup;
+import static java.util.Map.entry;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.Query;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.cache.IndexCache;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.query.QueryShardContext;
+
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioninigValidationException;
@@ -67,33 +96,6 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.Query;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.QueryShardContext;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
-import static io.crate.metadata.DocReferences.inverseSourceLookup;
-import static java.util.Map.entry;
 
 
 @Singleton
@@ -468,7 +470,7 @@ public class LuceneQueryBuilder {
         @SuppressWarnings("unchecked")
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-        final CollectorContext collectorContext = new CollectorContext(context.queryShardContext::getForField);
+        final CollectorContext collectorContext = new CollectorContext();
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }
