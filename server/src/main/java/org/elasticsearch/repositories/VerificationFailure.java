@@ -24,7 +24,7 @@ public class VerificationFailure {
     private final String nodeId;
     private final Exception cause;
 
-    public VerificationFailure(String nodeId, Exception cause) {
+    VerificationFailure(String nodeId, Exception cause) {
         this.nodeId = nodeId;
         this.cause = cause;
     }
