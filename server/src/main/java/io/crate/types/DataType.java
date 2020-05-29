@@ -83,6 +83,28 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     public abstract Streamer<T> streamer();
 
+    /**
+     * Must be used only in the cast functions.
+     *
+     * @param value The value to cast to the target {@link DataType}.
+     * @return The value casted the target {@link DataType}.
+     */
+    public T implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return value(value);
+    }
+
+    /**
+     * Must be used only in the cast functions. The explicit cast
+     * falls back to the implicit cast if it is not overwritten by
+     * a data type subclass.
+     *
+     * @param value The value to cast to the target {@link DataType}.
+     * @return The value casted the target {@link DataType}.
+     */
+    public T explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return implicitCast(value);
+    }
+
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
 
     public TypeSignature getTypeSignature() {

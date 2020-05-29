@@ -72,7 +72,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertNormalize(
             "cast(name as bigint)",
             isFunction(
-                CastFunction.CAST_NAME,
+                ExplicitCastFunction.NAME,
                 List.of(DataTypes.STRING, DataTypes.LONG)
             )
         );
@@ -230,7 +230,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
 
         var signature = CastFunctionResolver.createSignature(
             FunctionInfo.of(
-                CastFunction.CAST_NAME,
+                ExplicitCastFunction.NAME,
                 List.of(DataTypes.UNTYPED_OBJECT, returnType),
                 returnType
             )

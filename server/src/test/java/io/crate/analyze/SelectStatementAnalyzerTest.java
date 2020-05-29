@@ -42,7 +42,8 @@ import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
-import io.crate.expression.scalar.cast.CastFunction;
+import io.crate.expression.scalar.cast.ExplicitCastFunction;
+import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.scalar.geo.DistanceFunction;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
@@ -1400,7 +1401,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(
             relation.outputs().get(0),
             isFunction(
-                CastFunction.CAST_NAME,
+                ExplicitCastFunction.NAME,
                 List.of(DataTypes.LONG, DataTypes.STRING)
             )
         );
@@ -1412,8 +1413,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(
             relation.outputs().get(0),
             isFunction(
-                CastFunction.CAST_NAME,
-                List.of(new ArrayType<>(DataTypes.LONG), DataTypes.STRING_ARRAY)
+                ExplicitCastFunction.NAME,
+                List.of(DataTypes.BIGINT_ARRAY, DataTypes.STRING_ARRAY)
             )
         );
     }
@@ -1424,7 +1425,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(
             relation.outputs().get(0),
             isFunction(
-                CastFunction.TRY_CAST_NAME,
+                TryCastFunction.NAME,
                 List.of(DataTypes.LONG, DataTypes.STRING)
             )
         );
@@ -1439,7 +1440,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(
             relation.outputs().get(0),
             isFunction(
-                CastFunction.TRY_CAST_NAME,
+                TryCastFunction.NAME,
                 List.of(DataTypes.BIGINT_ARRAY, DataTypes.BOOLEAN_ARRAY)
             )
         );
@@ -1529,7 +1530,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(
             argument,
             isFunction(
-                CastFunction.CAST_NAME,
+                ExplicitCastFunction.NAME,
                 List.of(DataTypes.STRING, DataTypes.TIMESTAMPZ)
             )
         );

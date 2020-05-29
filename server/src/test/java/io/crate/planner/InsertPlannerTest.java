@@ -35,7 +35,7 @@ import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
-import io.crate.expression.scalar.cast.CastFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
@@ -362,7 +362,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             contains(
                 isInputColumn(0),
                 isFunction(
-                    CastFunction.CAST_NAME,
+                    ImplicitCastFunction.NAME,
                     List.of(DataTypes.LONG, DataTypes.STRING)
                 )
             )
@@ -432,7 +432,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projections.get(0).outputs(),
             contains(
                 isFunction(
-                    CastFunction.CAST_NAME,
+                    ImplicitCastFunction.NAME,
                     List.of(DataTypes.INTEGER, DataTypes.LONG)
                 ),
                 isInputColumn(1)
