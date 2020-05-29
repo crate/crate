@@ -22,6 +22,20 @@
 
 package io.crate.execution.engine.sort;
 
+import java.util.Comparator;
+import java.util.List;
+
+import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.FieldComparatorSource;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.SortedNumericSelector;
+import org.apache.lucene.search.SortedNumericSortField;
+import org.apache.lucene.search.SortedSetSelector;
+import org.apache.lucene.search.SortedSetSortField;
+import org.elasticsearch.index.fielddata.NullValueOrder;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.search.MultiValueMode;
+
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
@@ -38,17 +52,18 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.types.BooleanType;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.search.FieldComparator;
-import org.apache.lucene.search.FieldComparatorSource;
-import org.apache.lucene.search.SortField;
-import org.elasticsearch.index.fielddata.NullValueOrder;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.search.MultiValueMode;
-
-import java.util.Comparator;
-import java.util.List;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.GeoPointType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 
 public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbolContext, SortField> {
 
@@ -118,7 +133,6 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             return customSortField(symbol.toString(), symbol, context);
         }
 
-        MultiValueMode sortMode = context.reverseFlag ? MultiValueMode.MAX : MultiValueMode.MIN;
         MappedFieldType fieldType = fieldTypeLookup.get(columnIdent.fqn());
         if (fieldType == null) {
             FieldComparatorSource fieldComparatorSource = new NullFieldComparatorSource(NullSentinelValues.nullSentinelForScoreDoc(
@@ -133,8 +147,80 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         } else if (symbol.valueType().equals(DataTypes.IP)) {
             return customSortField(symbol.toString(), symbol, context);
         } else {
-            return context.context.getFieldData(fieldType)
-                .sortField(NullValueOrder.fromFlag(context.nullFirst), sortMode, context.reverseFlag);
+            return mappedSortField(
+                symbol,
+                fieldType,
+                context.reverseFlag,
+                NullValueOrder.fromFlag(context.nullFirst)
+            );
+        }
+    }
+
+    private static SortField mappedSortField(Reference symbol,
+                                             MappedFieldType fieldType,
+                                             boolean reverse,
+                                             NullValueOrder nullValueOrder) {
+        String fieldName = symbol.column().fqn();
+        MultiValueMode sortMode = reverse ? MultiValueMode.MAX : MultiValueMode.MIN;
+        switch (symbol.valueType().id()) {
+            case StringType.ID: {
+                SortField sortField = new SortedSetSortField(
+                    fieldName,
+                    reverse,
+                    sortMode == MultiValueMode.MAX
+                        ? SortedSetSelector.Type.MAX
+                        : SortedSetSelector.Type.MIN
+                );
+                sortField.setMissingValue(
+                    nullValueOrder == NullValueOrder.LAST ^ reverse
+                        ? SortedSetSortField.STRING_LAST
+                        : SortedSetSortField.STRING_FIRST
+                );
+                return sortField;
+            }
+            case BooleanType.ID:
+            case ByteType.ID:
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+            case TimestampType.ID_WITHOUT_TZ:
+            case TimestampType.ID_WITH_TZ: {
+                SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX
+                    ? SortedNumericSelector.Type.MAX
+                    : SortedNumericSelector.Type.MIN;
+                var reducedType = SortField.Type.LONG;
+                var sortField = new SortedNumericSortField(fieldName, SortField.Type.LONG, reverse, selectorType);
+                sortField.setMissingValue(
+                        NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
+                return sortField;
+            }
+
+            case FloatType.ID: {
+                SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX
+                    ? SortedNumericSelector.Type.MAX
+                    : SortedNumericSelector.Type.MIN;
+                var reducedType = SortField.Type.FLOAT;
+                var sortField = new SortedNumericSortField(fieldName, SortField.Type.FLOAT, reverse, selectorType);
+                sortField.setMissingValue(
+                        NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
+                return sortField;
+            }
+            case DoubleType.ID: {
+                SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX
+                    ? SortedNumericSelector.Type.MAX
+                    : SortedNumericSelector.Type.MIN;
+                var reducedType = SortField.Type.DOUBLE;
+                var sortField = new SortedNumericSortField(fieldName, SortField.Type.DOUBLE, reverse, selectorType);
+                sortField.setMissingValue(
+                        NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
+                return sortField;
+            }
+            case GeoPointType.ID:
+                throw new IllegalArgumentException(
+                        "can't sort on geo_point field without using specific sorting feature, like geo_distance");
+
+            default:
+                throw new UnsupportedOperationException("Cannot order on " + symbol + "::" + symbol.valueType());
         }
     }
 
