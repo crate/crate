@@ -228,9 +228,9 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                   "   \"day2\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\") INDEX OFF,\n" +
                   "   \"day3\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
                   "   \"day4\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
-                  "   \"col1\" BIGINT GENERATED ALWAYS AS CAST(\"ts\" AS bigint) + 1,\n" +
-                  "   \"col2\" TEXT GENERATED ALWAYS AS CAST((CAST(\"ts\" AS bigint) + 1) AS text),\n" +
-                  "   \"col3\" TEXT GENERATED ALWAYS AS CAST((CAST(\"ts\" AS bigint) + 1) AS text),\n" +
+                  "   \"col1\" BIGINT GENERATED ALWAYS AS _cast(\"ts\", 'bigint') + 1,\n" +
+                  "   \"col2\" TEXT GENERATED ALWAYS AS _cast((_cast(\"ts\", 'bigint') + 1), 'text'),\n" +
+                  "   \"col3\" TEXT GENERATED ALWAYS AS _cast((_cast(\"ts\", 'bigint') + 1), 'text'),\n" +
                   "   \"name\" TEXT GENERATED ALWAYS AS concat(\"user\"['name'], 'foo'),\n" +
                   "   \"ts\" TIMESTAMP WITH TIME ZONE,\n" +
                   "   \"user\" OBJECT(DYNAMIC) AS (\n" +

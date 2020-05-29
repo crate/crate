@@ -470,12 +470,12 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       ")")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("test");
-        CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
+        CreateTable<?> node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                      "   \"col1\" TEXT,\n" +
                      "   \"col2\" INTEGER DEFAULT 2,\n" +
                      "   \"col3\" TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp(3),\n" +
-                     "   \"col4\" TIMESTAMP WITHOUT TIME ZONE DEFAULT CAST(current_timestamp(3) AS timestamp without time zone)\n" +
+                     "   \"col4\" TIMESTAMP WITHOUT TIME ZONE DEFAULT _cast(current_timestamp(3), 'timestamp without time zone')\n" +
                      ")\n" +
                      "CLUSTERED INTO 4 SHARDS\n" +
                      "WITH (\n" +

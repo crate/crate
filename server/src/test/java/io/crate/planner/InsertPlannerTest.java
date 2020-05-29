@@ -433,7 +433,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             contains(
                 isFunction(
                     ImplicitCastFunction.NAME,
-                    List.of(DataTypes.INTEGER, DataTypes.LONG)
+                    List.of(DataTypes.INTEGER, DataTypes.STRING)
                 ),
                 isInputColumn(1)
             )
