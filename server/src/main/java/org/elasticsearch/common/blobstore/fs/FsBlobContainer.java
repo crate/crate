@@ -20,6 +20,7 @@
 package org.elasticsearch.common.blobstore.fs;
 
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetaData;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
@@ -66,6 +67,20 @@ public class FsBlobContainer extends AbstractBlobContainer {
         super(blobPath);
         this.blobStore = blobStore;
         this.path = path;
+    }
+
+    @Override
+    public Map<String, BlobContainer> children() throws IOException {
+        Map<String, BlobContainer> builder = new HashMap<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
+            for (Path file : stream) {
+                if (Files.isDirectory(file)) {
+                    final String name = file.getFileName().toString();
+                    builder.put(name, new FsBlobContainer(blobStore, path().add(name), file));
+                }
+            }
+        }
+        return unmodifiableMap(builder);
     }
 
     @Override

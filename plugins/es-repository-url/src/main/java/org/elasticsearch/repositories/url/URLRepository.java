@@ -116,12 +116,12 @@ public class URLRepository extends BlobStoreRepository {
 
     // only use for testing
     @Override
-    protected BlobStore getBlobStore() {
+    public BlobStore getBlobStore() {
         return super.getBlobStore();
     }
 
     @Override
-    protected BlobPath basePath() {
+    public BlobPath basePath() {
         return basePath;
     }
 

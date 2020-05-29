@@ -305,8 +305,16 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }
     }
 
-    // for test purposes only
-    protected BlobStore getBlobStore() {
+
+    public ThreadPool threadPool() {
+        return threadPool;
+    }
+
+    /**
+     * Maintains single lazy instance of {@link BlobStore}.
+     * Public for testing.
+     */
+    public BlobStore getBlobStore() {
         return blobStore.get();
     }
 
@@ -333,7 +341,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     /**
      * maintains single lazy instance of {@link BlobStore}
      */
-    protected BlobStore blobStore() {
+    public BlobStore blobStore() {
         assertSnapshotOrGenericThread();
 
         BlobStore store = blobStore.get();
@@ -366,7 +374,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     /**
      * Returns base path of the repository
      */
-    protected abstract BlobPath basePath();
+    public abstract BlobPath basePath();
 
     /**
      * Returns true if metadata and snapshot files should be compressed
