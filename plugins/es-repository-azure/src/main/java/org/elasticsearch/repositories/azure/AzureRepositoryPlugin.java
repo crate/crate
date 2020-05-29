@@ -19,13 +19,17 @@
 
 package org.elasticsearch.repositories.azure;
 
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.threadpool.ExecutorBuilder;
+import org.elasticsearch.threadpool.ScalingExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.repositories.TypeSettings;
@@ -39,6 +43,7 @@ import java.util.Map;
  */
 public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
+    public static final String REPOSITORY_THREAD_POOL_NAME = "repository_azure";
     private final AzureStorageService azureStoreService;
 
     public AzureRepositoryPlugin() {
@@ -71,6 +76,15 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
                 }
             }
         );
+    }
+
+    @Override
+    public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
+        return Collections.singletonList(executorBuilder());
+    }
+
+    public static ExecutorBuilder<?> executorBuilder() {
+        return new ScalingExecutorBuilder(REPOSITORY_THREAD_POOL_NAME, 0, 32, TimeValue.timeValueSeconds(30L));
     }
 
     @Override
