@@ -1596,7 +1596,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testWhereNotNull() throws Exception {
         execute("create table t (b boolean, i int) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into t (b, i) values (true, 1), (false, 2), (null, null)");
         execute("refresh table t");
 
