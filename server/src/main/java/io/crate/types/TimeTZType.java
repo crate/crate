@@ -139,6 +139,9 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
         if (value == null) {
             return null;
         }
+        if (value instanceof TimeTZ) {
+            return (TimeTZ) value;
+        }
         if (value instanceof Long || value instanceof Integer) {
             return timeTZOf(
                 TimeTZType.class.getSimpleName(),
