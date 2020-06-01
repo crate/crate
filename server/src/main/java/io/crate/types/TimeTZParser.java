@@ -1,0 +1,225 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
+package io.crate.types;
+
+import javax.annotation.Nonnull;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.EnumMap;
+import java.util.Locale;
+
+/**
+ * Represents time as microseconds from midnight, ignoring the time
+ * zone and storing the value as UTC <b>long</b>.
+ * <p>
+ * There are 1000_000 microseconds in one second:
+ *
+ * <pre>
+ *     (24 * 3600 + 59 * 60 + 59) * 1000_000L > Integer.MAX_VALUE
+ * </pre>
+ * <p>
+ * Thus the range for time values is 0 .. 86400000000 (max number
+ * of micros in a day), where both extremes are equivalent to
+ * '00:00:00.000000' and '24:00:00.000000' respectively.
+ *
+ * <p>
+ * <p>
+ * Accepts three kinds of literal:
+ * <ol>
+ *    <li>text:
+ *      <ul>
+ *        <li>'hh[:]mm[:]ss': e.g. '232121', equivalent to '23:12:21'</li>
+ *        <li>'hh[:]mm': e.g. '2312', equivalent to '23:12:00'</li>
+ *        <li>'hh': e.g. '23', equivalent to '23:00:00'</li>
+ *      </ul>
+ *    </li>
+ *
+ *    <li>text high precision:
+ * <p>
+ *      Expects up to six digits after the floating point (number of
+ *      micro seconds), and it will right pad with zeroes, or truncate,
+ *      if this is not the case. For instance the examples below are
+ *      all padded to 999000 micro seconds.
+ *      <ul>
+ *        <li>'hh[:]mm[:]ss.ffffff': e.g. '231221.999', equivalent to '23:12:21.999000'</li>
+ *        <li>'hh[:]mm.ffffff': e.g. '2312.999', equivalent to '23:12:00.999000'</li>
+ *        <li>'hh.ffffff': e.g. '23.999', equivalent to '23:00:00.999000'</li>
+ *      </ul>
+ *    </li>
+ *
+ *    <li>All ISO-8601 extended local time format.</li>
+ * </ol>
+ */
+public final class TimeTZParser {
+
+    public static final long MAX_MICROS = 24 * 60 * 60 * 1000_000L;
+
+    public static TimeTZ timeTZOf(String source, long value) {
+        return new TimeTZ(checkRange(source, value, MAX_MICROS),0);
+    }
+
+    private enum State {
+        HH(24),
+        MM(59),
+        SS(59),
+        MICRO(999999) {
+            @Override
+            long validate(String value, int start, int end) {
+                String s = value.substring(start, Math.min(start + 6, end));
+                try {
+                    int v = Integer.parseInt(s);
+                    for (int i = 0; i < 6 - s.length(); i++) {
+                        v *= 10;
+                    }
+                    return checkRange(name(), v, 999999);
+                } catch (NumberFormatException e) {
+                    throw exceptionForInvalidLiteral(value);
+                }
+            }
+        },
+        ZID_HH(14),
+        ZID_MM(59);
+
+
+        private int max;
+
+        State(int max) {
+            this.max = max;
+        }
+
+        State next() {
+            State[] st = values();
+            return st[(ordinal() + 1) % st.length];
+        }
+
+        long validate(String value, int start, int end) {
+            try {
+                return checkRange(name(), Integer.valueOf(value.substring(start, end)), max);
+            } catch (NumberFormatException e) {
+                throw exceptionForInvalidLiteral(value);
+            }
+        }
+    }
+
+    static TimeTZ parseTime(@Nonnull String format) {
+        EnumMap<State, Long> values = new EnumMap<>(State.class);
+        int i = 0;
+        int start = 0;
+        int colonCount = 0;
+        State state = State.HH;
+        long tzSign = 1;
+        for (; i < format.length(); i++) {
+            char c = format.charAt(i);
+            if (Character.isDigit(c)) {
+                if (i - start != 2 || state == State.MICRO) {
+                    continue;
+                } else {
+                    values.put(state, state.validate(format, start, i));
+                    state = state.next();
+                    if (state == State.MICRO) {
+                        // missing point
+                        throw exceptionForInvalidLiteral(format);
+                    }
+                    start = i;
+                }
+            } else if (c == ':') {
+                colonCount++;
+                if (state == State.SS && colonCount == 1) {
+                    throw exceptionForInvalidLiteral(format);
+                }
+                values.put(state, state.validate(format, start, i));
+                state = state.next();
+                start = i + 1;
+            } else if (c == '.') {
+                if (i - start != 2) {
+                    throw exceptionForInvalidLiteral(format);
+                }
+                values.put(state, state.validate(format, start, i));
+                state = State.MICRO;
+                start = i + 1;
+            } else if (c == '+' || c == '-') {
+                if (i - start != 2 && state != State.MICRO) {
+                    throw exceptionForInvalidLiteral(format);
+                }
+                values.put(state, state.validate(format, start, i));
+                tzSign = c == '+' ? 1L : -1L;
+                state = State.ZID_HH;
+                start = i + 1;
+                colonCount = 0;
+            } else {
+                throw exceptionForInvalidLiteral(format);
+            }
+        }
+        if (state != State.MICRO && format.length() - start != 2) {
+            throw exceptionForInvalidLiteral(format);
+        }
+        values.put(state, state.validate(format, start, i));
+        long hh = values.get(State.HH);
+        long mm = values.getOrDefault(State.MM, 0L);
+        long ss = values.getOrDefault(State.SS, 0L);
+        long micros = values.getOrDefault(State.MICRO, 0L);
+        long tzHH = values.getOrDefault(State.ZID_HH, 0L);
+        long tzMM = values.getOrDefault(State.ZID_MM, 0L);
+        return new TimeTZ(
+            checkRange(
+                format,
+                (((hh * 60 + mm) * 60) + ss) * 1000_000L + micros,
+                MAX_MICROS),
+            (int) (tzSign * (tzHH * 60 + tzMM) * 60));
+    }
+
+    static IllegalArgumentException exceptionForInvalidLiteral(Object literal) {
+        throw new IllegalArgumentException(String.format(
+            Locale.ENGLISH,
+            "value [%s] is not a valid literal for %s",
+            literal, TimeTZType.class.getSimpleName()));
+    }
+
+    static long checkRange(String name, long value, long max) {
+        if (value < 0 || value > max) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "value [%d] is out of range for '%s' [0, %d]",
+                value, name, max));
+        }
+        return value;
+    }
+
+    static String formatTime(@Nonnull TimeTZ time) {
+        String localTime = LocalTime
+            .ofNanoOfDay(time.getTime() * 1000L)
+            .format(DateTimeFormatter.ISO_TIME);
+        int secondsFromUTC = time.getSecondsFromUTC();
+        if (secondsFromUTC != 0) {
+            char sign = secondsFromUTC >= 0 ? '+' : '-';
+            secondsFromUTC = Math.abs(secondsFromUTC);
+            int mm = secondsFromUTC / 60;
+            int hh = mm / 60;
+            mm = mm % 60;
+            return time.getSecondsFromUTC() == 0 ? localTime :
+                String.format(
+                    Locale.ENGLISH,"%s%c%02d:%02d",
+                    localTime, sign, hh, mm);
+        }
+        return localTime;
+    }
+}

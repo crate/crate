@@ -32,8 +32,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
-import java.util.EnumMap;
 import java.util.Locale;
+
+import static io.crate.types.TimeTZParser.timeTZOf;
+import static io.crate.types.TimeTZParser.exceptionForInvalidLiteral;
 
 /**
  * Represents time as microseconds from midnight, ignoring the time
@@ -77,12 +79,12 @@ import java.util.Locale;
  *    <li>All ISO-8601 extended local time format.</li>
  * </ol>
  */
-public final class TimeTZType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
+public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType, Streamer<TimeTZ> {
 
     public static final int ID = 19;
+    public static final int TYPE_LEN = 12;
     public static final String NAME = "time with time zone";
     public static final TimeTZType INSTANCE = new TimeTZType();
-    public static final long MAX_MICROS = 24 * 60 * 60 * 1000_000L;
 
 
     @Override
@@ -101,171 +103,76 @@ public final class TimeTZType extends DataType<Long> implements FixedWidthType, 
     }
 
     @Override
-    public Streamer<Long> streamer() {
+    public Streamer<TimeTZ> streamer() {
         return this;
     }
 
     @Override
-    public int compare(Long val1, Long val2) {
-        return Long.compare(val1, val2);
+    public int compare(TimeTZ val1, TimeTZ val2) {
+        return val1.compareTo(val2);
     }
 
     @Override
-    public Long readValueFrom(StreamInput in) throws IOException {
-        return in.readBoolean() ? null : in.readLong();
+    public TimeTZ readValueFrom(StreamInput in) throws IOException {
+        if (in.readBoolean()) {
+            return null;
+        }
+        return new TimeTZ(in.readLong(), in.readInt());
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Long val) throws IOException {
-        out.writeBoolean(val == null);
-        if (val != null) {
-            out.writeLong(val);
+    public void writeValueTo(StreamOutput out, TimeTZ tz) throws IOException {
+        out.writeBoolean(tz == null);
+        if (tz != null) {
+            out.writeLong(tz.getTime());
+            out.writeInt(tz.getSecondsFromUTC());
         }
     }
 
     @Override
     public int fixedSize() {
-        return LongType.LONG_SIZE;
+        return TYPE_LEN;
     }
 
     @Override
-    public Long value(Object value) throws ClassCastException {
+    public TimeTZ value(Object value) {
         if (value == null) {
             return null;
         }
         if (value instanceof Long || value instanceof Integer) {
-            return checkRange(
+            return timeTZOf(
                 TimeTZType.class.getSimpleName(),
-                ((Number) value).longValue(),
-                MAX_MICROS);
+                ((Number) value).longValue());
         }
         if (value instanceof String) {
             try {
                 try {
                     return parseTime((String) value);
                 } catch (IllegalArgumentException e0) {
-                    return Long.valueOf((String) value);
+                    return timeTZOf(
+                        TimeTZType.class.getSimpleName(),
+                        Long.valueOf((String) value));
                 }
             } catch (NumberFormatException e1) {
-                return LocalTime
-                    .parse((String) value, TIME_PARSER)
-                    .getLong(ChronoField.MICRO_OF_DAY);
+
+
+
+                return new TimeTZ(
+                    LocalTime
+                        .parse((String) value, TIME_PARSER)
+                        .getLong(ChronoField.MICRO_OF_DAY),
+                    0);
             }
         }
         throw exceptionForInvalidLiteral(value);
     }
 
-    public static String formatTime(@Nonnull Long time) {
-        return LocalTime
-            .ofNanoOfDay(time * 1000L)
-            .format(DateTimeFormatter.ISO_LOCAL_TIME);
+    public static String formatTime(@Nonnull TimeTZ time) {
+        return TimeTZParser.formatTime(time);
     }
 
-    private enum State {
-        HH(24),
-        MM(59),
-        SS(59),
-        MICRO(999999) {
-            @Override
-            long validate(String value, int start, int end) {
-                String s = value.substring(start, Math.min(start + 6, end));
-                try {
-                    int v = Integer.parseInt(s);
-                    for (int i = 0; i < 6 - s.length(); i++) {
-                        v *= 10;
-                    }
-                    return checkRange(name(), v, 999999);
-                } catch (NumberFormatException e) {
-                    throw exceptionForInvalidLiteral(value);
-                }
-            }
-        };
-
-        private int max;
-
-        State(int max) {
-            this.max = max;
-        }
-
-        State next() {
-            State[] st = values();
-            return st[(ordinal() + 1) % st.length];
-        }
-
-        long validate(String value, int start, int end) {
-            try {
-                return checkRange(name(), Integer.valueOf(value.substring(start, end)), max);
-            } catch (NumberFormatException e) {
-                throw exceptionForInvalidLiteral(value);
-            }
-        }
-    }
-
-    public static long parseTime(@Nonnull String format) {
-        EnumMap<State, Long> values = new EnumMap<>(State.class);
-        int i = 0;
-        int start = 0;
-        int colonCount = 0;
-        State state = State.HH;
-        for (; i < format.length(); i++) {
-            char c = format.charAt(i);
-            if (Character.isDigit(c)) {
-                if (i - start != 2) {
-                    continue;
-                } else {
-                    values.put(state, state.validate(format, start, i));
-                    state = state.next();
-                    start = i;
-                }
-            } else if (c == ':') {
-                values.put(state, state.validate(format, start, i));
-                state = state.next();
-                start = i + 1;
-                colonCount++;
-            } else if (c == '.') {
-                if (i - start != 2) {
-                    throw exceptionForInvalidLiteral(format);
-                }
-                values.put(state, state.validate(format, start, i));
-                state = State.MICRO;
-                start = i + 1;
-                break;
-            } else {
-                throw exceptionForInvalidLiteral(format);
-            }
-        }
-        if (state != State.MICRO && format.length() - start != 2) {
-            throw exceptionForInvalidLiteral(format);
-        }
-        if (colonCount == 1 && values.get(State.SS) != null) {
-            throw exceptionForInvalidLiteral(format);
-        }
-        values.put(state, state.validate(format, start, format.length()));
-        long hh = values.get(State.HH);
-        long mm = values.getOrDefault(State.MM, 0L);
-        long ss = values.getOrDefault(State.SS, 0L);
-        long micros = values.getOrDefault(State.MICRO, 0L);
-        return checkRange(
-            format,
-            (((hh * 60 + mm) * 60) + ss) * 1000_000L + micros,
-            MAX_MICROS);
-    }
-
-    private static IllegalArgumentException exceptionForInvalidLiteral(Object literal) {
-        throw new IllegalArgumentException(String.format(
-            Locale.ENGLISH,
-            "value [%s] is not a valid literal for %s",
-            literal, TimeTZType.class.getSimpleName()));
-    }
-
-    private static long checkRange(String name, long value, long max) {
-        if (value < 0 || value > max) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "value [%d] is out of range for '%s' [0, %d]",
-                value, name, max));
-        }
-        return value;
+    public static TimeTZ parseTime(@Nonnull String time) {
+        return TimeTZParser.parseTime(time);
     }
 
     private static final DateTimeFormatter TIME_PARSER = new DateTimeFormatterBuilder()

@@ -22,24 +22,24 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.crate.types.TimeTZ;
 import io.netty.buffer.ByteBuf;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-import static io.crate.types.TimeTZType.parseTime;
 import static io.crate.types.TimeTZType.formatTime;
+import static io.crate.types.TimeTZType.parseTime;
 import static io.crate.types.TimeTZType.NAME;
+import static io.crate.types.TimeTZType.TYPE_LEN;
 
 
-final class TimeTZType extends PGType<Long> {
+final class TimeTZType extends PGType<TimeTZ> {
 
-    public static final PGType<Long> INSTANCE = new TimeTZType();
-
+    public static final PGType<TimeTZ> INSTANCE = new TimeTZType();
     private static final int OID = 1266;
     private static final int TYPE_MOD = -1;
-    private static final int TYPE_LEN = 8;
 
 
     TimeTZType() {
@@ -62,28 +62,29 @@ final class TimeTZType extends PGType<Long> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Long value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull TimeTZ value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeLong(value);
+        buffer.writeLong(value.getTime());
+        buffer.writeInt(value.getSecondsFromUTC());
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    public Long readBinaryValue(ByteBuf buffer, int valueLength) {
+    public TimeTZ readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : String.format(
             Locale.ENGLISH,
-            "valueLength must be %d because time is a 32 bit int. Actual length: %d",
+            "valueLength must be %d because timetz is a 12 byte structure. Actual length: %d",
             TYPE_LEN, valueLength);
-        return buffer.readLong();
+        return new TimeTZ(buffer.readLong(), buffer.readInt());
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull Long time) {
+    byte[] encodeAsUTF8Text(@Nonnull TimeTZ time) {
         return formatTime(time).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    Long decodeUTF8Text(byte[] bytes) {
+    TimeTZ decodeUTF8Text(byte[] bytes) {
         return parseTime(new String(bytes, StandardCharsets.UTF_8));
     }
 }

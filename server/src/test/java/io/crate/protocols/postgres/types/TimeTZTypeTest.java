@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.crate.types.TimeTZ;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import org.junit.Test;
 import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.Matchers.is;
+
 
 public class TimeTZTypeTest extends BasePGTypeTest<Long> {
 
@@ -40,11 +42,11 @@ public class TimeTZTypeTest extends BasePGTypeTest<Long> {
     public void testBinaryRoundTrip() {
         ByteBuf buffer = Unpooled.buffer();
         try {
-            long value = 53005278000L;
+            TimeTZ value = new TimeTZ(53005278000L, 0);
             int written = pgType.writeAsBinary(buffer, value);
             int length = buffer.readInt();
             assertThat(written - 4, is(length));
-            long readValue = (long) pgType.readBinaryValue(buffer, length);
+            TimeTZ readValue = (TimeTZ) pgType.readBinaryValue(buffer, length);
             assertThat(readValue, is(value));
         } finally {
             buffer.release();
@@ -53,18 +55,13 @@ public class TimeTZTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimeTZType.INSTANCE.encodeAsUTF8Text(53005278000L), StandardCharsets.UTF_8),
-            is("14:43:25.278"));
+        assertThat(TimeTZType.INSTANCE.encodeAsUTF8Text(new TimeTZ(53005278000L, -7320)),
+            is("14:43:25.278-02:02".getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
     public void testDecodeAsUTF8Text() {
-        assertThat(TimeTZType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes()), is(14400123456L));
-    }
-
-    @Test
-    public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
-        expectedException.expect(IllegalArgumentException.class);
-        TimeTZType.INSTANCE.decodeUTF8Text("00:0000.0000000001".getBytes(StandardCharsets.UTF_8));
+        assertThat(TimeTZType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes()),
+                   is(new TimeTZ(14400123456L, 10800)));
     }
 }
