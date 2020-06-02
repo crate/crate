@@ -19,19 +19,20 @@
 
 package org.elasticsearch.common.settings;
 
+import io.crate.common.collections.Tuple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ExceptionsHelper;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.regex.Regex;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -377,7 +378,7 @@ public abstract class AbstractScopedSettings {
      */
     void validate(
             final String key, final Settings settings, final boolean validateDependencies, final boolean validateInternalOrPrivateIndex) {
-        Setting setting = getRaw(key);
+        Setting<?> setting = getRaw(key);
         if (setting == null) {
             LevenshteinDistance ld = new LevenshteinDistance();
             List<Tuple<Float, String>> scoredKeys = new ArrayList<>();
@@ -414,6 +415,7 @@ public abstract class AbstractScopedSettings {
                     }
                 }
             }
+
             // the only time that validateInternalOrPrivateIndex should be true is if this call is coming via the update settings API
             if (validateInternalOrPrivateIndex) {
                 if (setting.isInternalIndex()) {
@@ -425,7 +427,20 @@ public abstract class AbstractScopedSettings {
                 }
             }
         }
-        setting.get(settings);
+        Iterator<? extends Setting<?>> validationDependencies = setting.getValidationDependencies();
+        if (validationDependencies.hasNext()) {
+            Settings previousSettings = this.lastSettingsApplied;
+            Settings.Builder settingsInclDependencies = Settings.builder().put(settings);
+            while (validationDependencies.hasNext()) {
+                Setting<?> dependency = validationDependencies.next();
+                if (!settings.hasValue(dependency.getKey()) && previousSettings.hasValue(dependency.getKey())) {
+                    settingsInclDependencies.copy(dependency.getKey(), previousSettings);
+                }
+            }
+            setting.get(settingsInclDependencies.build());
+        } else {
+            setting.get(settings);
+        }
     }
 
     /**
