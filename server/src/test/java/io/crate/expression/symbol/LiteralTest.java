@@ -21,7 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.expression.scalar.cast.CastFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
@@ -115,8 +115,8 @@ public class LiteralTest extends CrateUnitTest {
         assertThat(
             intLiteral.cast(DataTypes.LONG),
             isFunction(
-                CastFunction.CAST_NAME,
-                List.of(intLiteral.valueType(), DataTypes.LONG)
+                ImplicitCastFunction.NAME,
+                List.of(intLiteral.valueType(), DataTypes.STRING)
             )
         );
     }

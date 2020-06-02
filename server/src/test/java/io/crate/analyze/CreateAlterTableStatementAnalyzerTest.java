@@ -29,7 +29,6 @@ import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -1028,7 +1027,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
         assertThat(
             generatedColumnsMapping.get("day"),
-            is("cast((cast(ts AS bigint) + 1) AS timestamp with time zone)"));
+            is("_cast((_cast(ts, 'bigint') + 1), 'timestamp with time zone')"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> dayMapping = (Map<String, Object>) mappingProperties.get("day");
@@ -1136,7 +1135,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         assertThat(mapToSortedString(mappingProperties),
-                   is("id={default_expr=cast(3.5 AS integer), position=1, type=integer}"));
+                   is("id={default_expr=_cast(3.5, 'integer'), position=1, type=integer}"));
     }
 
     @Test
@@ -1171,8 +1170,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "   s geo_shape default 'LINESTRING (0 0, 1 1)')");
 
         assertThat(mapToSortedString(analysis.mappingProperties()), is(
-            "p={default_expr=cast([0, 0] AS geo_point), position=1, type=geo_point}, " +
-            "s={default_expr=cast('LINESTRING (0 0, 1 1)' AS geo_shape), position=2, type=geo_shape}"));
+            "p={default_expr=_cast([0, 0], 'geo_point'), position=1, type=geo_point}, " +
+            "s={default_expr=_cast('LINESTRING (0 0, 1 1)', 'geo_shape'), position=2, type=geo_shape}"));
     }
 
     @Test

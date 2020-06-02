@@ -21,13 +21,10 @@
 
 package io.crate.planner.node;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Literal;
@@ -43,6 +40,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -55,16 +54,16 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        ImmutableList<Symbol> toCollect = ImmutableList.<Symbol>of(Literal.of(DataTypes.STRING, null));
+        List<Symbol> toCollect = List.of(Literal.of(DataTypes.STRING, null));
         UUID jobId = UUID.randomUUID();
         RoutedCollectPhase cn = new RoutedCollectPhase(
             jobId,
             0,
             "cn",
-            new Routing(ImmutableMap.of()),
+            new Routing(Map.of()),
             RowGranularity.DOC,
             toCollect,
-            ImmutableList.<Projection>of(),
+            List.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_MODULO
         );
@@ -86,7 +85,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeDoesNotRemoveOrderBy() throws Exception {
-        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER, false, false);
+        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER);
         RoutedCollectPhase collect = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,
@@ -108,7 +107,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
 
     @Test
     public void testNormalizePreservesNodePageSizeHint() throws Exception {
-        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER, false, false);
+        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER);
         RoutedCollectPhase collect = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,

@@ -28,7 +28,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.geo.GeoJSONUtils;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -41,11 +41,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -72,7 +74,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertNormalize(
             "cast(name as bigint)",
             isFunction(
-                CastFunction.CAST_NAME,
+                ExplicitCastFunction.NAME,
                 List.of(DataTypes.STRING, DataTypes.LONG)
             )
         );
@@ -228,13 +230,12 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
             .setInnerType("field", DataTypes.STRING)
             .build();
 
-        var signature = CastFunctionResolver.createSignature(
-            FunctionInfo.of(
-                CastFunction.CAST_NAME,
-                List.of(DataTypes.UNTYPED_OBJECT, returnType),
-                returnType
-            )
-        );
+        var signature = Signature.scalar(
+            ExplicitCastFunction.NAME,
+            parseTypeSignature("E"),
+            parseTypeSignature("V"),
+            parseTypeSignature("V")
+        ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
         var functionImpl = functions.getQualified(
             signature,
             List.of(DataTypes.UNTYPED_OBJECT, returnType)

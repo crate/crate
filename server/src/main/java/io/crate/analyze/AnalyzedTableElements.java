@@ -394,12 +394,8 @@ public class AnalyzedTableElements<T> {
                 );
             }
 
-            Symbol castFunction = CastFunctionResolver.generateCastFunction(
-                function,
-                columnDataType,
-                false,
-                false
-            );
+            Symbol castFunction = CastFunctionResolver
+                .generateCastFunction(function, columnDataType);
             formattedExpression = castFunction.toString(Style.UNQUALIFIED);
         } else {
             if (valueType instanceof ArrayType) {

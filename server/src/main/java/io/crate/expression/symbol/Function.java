@@ -35,6 +35,10 @@ import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.scalar.SubscriptRecordFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.scalar.cast.CastMode;
+import io.crate.expression.scalar.cast.ExplicitCastFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
+import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
@@ -47,7 +51,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -60,8 +63,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import static io.crate.expression.scalar.cast.CastFunction.CAST_NAME;
-import static io.crate.expression.scalar.cast.CastFunction.TRY_CAST_NAME;
 import static java.util.Objects.requireNonNull;
 
 public class Function extends Symbol implements Cloneable {
@@ -166,7 +167,7 @@ public class Function extends Symbol implements Cloneable {
     }
 
     @Override
-    public Symbol cast(DataType<?> targetType, boolean tryCast, boolean explicitCast) {
+    public Symbol cast(DataType<?> targetType, CastMode... modes) {
         if (targetType instanceof ArrayType && info.ident().name().equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
@@ -175,18 +176,18 @@ public class Function extends Symbol implements Cloneable {
              * or
              *      some_array = array_cat([?, ?], [1, 2])
              */
-            return castArrayElements(targetType, tryCast, explicitCast);
+            return castArrayElements(targetType, modes);
         } else {
-            return super.cast(targetType, tryCast, explicitCast);
+            return super.cast(targetType, modes);
         }
     }
 
-    private Symbol castArrayElements(DataType<?> newDataType, boolean tryCast, boolean explicitCast) {
+    private Symbol castArrayElements(DataType<?> newDataType, CastMode... modes) {
         DataType<?> innerType = ((ArrayType<?>) newDataType).innerType();
         ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
             try {
-                newArgs.add(arg.cast(innerType, tryCast, explicitCast));
+                newArgs.add(arg.cast(innerType, modes));
             } catch (ConversionException e) {
                 throw new ConversionException(info.returnType(), newDataType);
             }
@@ -309,8 +310,9 @@ public class Function extends Symbol implements Cloneable {
             default:
                 if (name.startsWith(AnyOperator.OPERATOR_PREFIX)) {
                     printAnyOperator(builder, style);
-                } else if (name.equalsIgnoreCase(CAST_NAME) ||
-                           name.equalsIgnoreCase(TRY_CAST_NAME)) {
+                } else if (name.equalsIgnoreCase(ImplicitCastFunction.NAME) ||
+                           name.equalsIgnoreCase(ExplicitCastFunction.NAME) ||
+                           name.equalsIgnoreCase(TryCastFunction.NAME)) {
                     printCastFunction(builder, style);
                 } else if (name.startsWith(Operator.PREFIX)) {
                     printOperator(builder, style, null);
@@ -352,24 +354,21 @@ public class Function extends Symbol implements Cloneable {
     }
 
     private void printCastFunction(StringBuilder builder, Style style) {
-        final String asTypeName;
-        DataType<?> dataType = info.returnType();
-        if (DataTypes.isArray(dataType)) {
-            ArrayType<?> arrayType = ((ArrayType<?>) dataType);
-            asTypeName = " AS "
-                         + ArrayType.NAME
-                         + "("
-                         + arrayType.innerType().getName()
-                         + ")";
-        } else {
-            asTypeName = " AS " + dataType.getName();
-        }
-        builder.append(info.ident().name())
-            .append("(");
-        builder.append(arguments().get(0).toString(style));
+        var name = info.ident().name();
+        var targetType = info.returnType();
         builder
-            .append(asTypeName)
-            .append(")");
+            .append(name)
+            .append("(")
+            .append(arguments().get(0).toString(style));
+        if (name.equalsIgnoreCase(ImplicitCastFunction.NAME)) {
+            builder
+                .append(", ")
+                .append(arguments.get(1).toString(style));
+        } else {
+            builder.append(" AS ")
+                .append(targetType.getTypeSignature().toString());
+        }
+        builder.append(")");
     }
 
     private void printExtract(StringBuilder builder, Style style) {

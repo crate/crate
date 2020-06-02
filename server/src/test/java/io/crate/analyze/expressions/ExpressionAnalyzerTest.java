@@ -39,7 +39,7 @@ import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.any.AnyOperators;
-import io.crate.expression.scalar.cast.CastFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -329,8 +329,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             symbol2.arguments().get(1),
             isFunction(
-                CastFunction.CAST_NAME,
-                List.of(DataTypes.INTEGER, DataTypes.LONG)
+                ImplicitCastFunction.NAME,
+                List.of(DataTypes.INTEGER, DataTypes.STRING)
             )
         );
     }
@@ -342,8 +342,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             symbol.arguments().get(0),
             isFunction(
-                CastFunction.CAST_NAME,
-                List.of(DataTypes.INTEGER, DataTypes.LONG)
+                ImplicitCastFunction.NAME,
+                List.of(DataTypes.INTEGER, DataTypes.STRING)
             )
         );
         assertThat(symbol.arguments().get(1).valueType(), is(DataTypes.LONG));

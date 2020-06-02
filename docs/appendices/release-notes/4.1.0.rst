@@ -67,8 +67,8 @@ Resiliency improvements
 
 - Some ``ALTER TABLE`` operations now internally invoke a single cluster state
   update instead of multiple cluster state updates. This change improves
-  resiliency because is no longer a window where the cluster state could be
-  inconsistent.
+  resiliency because there is no longer a window where the cluster state could
+  be inconsistent.
 
 - Changed the default garbage collector from Concurrent Mark Sweep to G1GC.
   This should lead to shorter GC pauses.
@@ -154,7 +154,7 @@ Functions and operators
 
 - Added the :ref:`PG_TYPEOF <pg_typeof>` system function.
 
-- Added the :ref:`INTERVAL <interval_data_type>` datatype and extended
+- Added the :ref:`INTERVAL <interval_data_type>` data type and extended
   :ref:`table-functions-generate-series` to work with timestamps and the new
   :ref:`INTERVAL <interval_data_type>` type.
 
@@ -175,9 +175,10 @@ Functions and operators
   insensitive complement to ``LIKE``.
 
 - Added support for CIDR notation comparisons through special purpose
-  operator ``<<`` associated with type ip.
-  Statements like ``192.168.0.0 << 192.168.0.1/24`` are true,
-  ``select ip from ips_table where ip << 192.168.0.1/24`` returns
+  operator ``<<`` associated with type IP.
+
+  Statements like ``192.168.0.0 << 192.168.0.1/24`` evaluate as true,
+  meaning ``SELECT ip FROM ips_table WHERE ip << 192.168.0.1/24`` returns
   matching :ref:`ip <ip-type>` addresses.
 
 
@@ -196,7 +197,7 @@ New statements and clauses
   :ref:`window functions <window-function-call>` that are
   :ref:`aggregates <aggregation>`.
 
-- Added support for using :ref:`ref-values` as top-level relation.
+- Added support for using :ref:`ref-values` as a top-level relation.
 
 
 Observability improvements
@@ -206,9 +207,11 @@ Observability improvements
   table.
 
 - Improved the error messages that were returned if a relation or schema is not
-  found. They now may include suggestions for similarly named tables. This
-  should make typos more apparent and can help users figure out that they were
-  missing double quotes in case the table names contain upper case letters.
+  found.
+
+  The error messages may now include suggestions for similarly named tables,
+  which should make typos more apparent and help users figure out they are
+  missing double quotes (e.g., when a table name contains upper case letters).
 
 - Added a ``seq_no_stats`` and a ``translog_stats`` column to the
   :ref:`sys.shards <sys-shards>` table.
@@ -218,7 +221,7 @@ Observability improvements
 
 - Added a ``node`` column to :ref:`sys.jobs_log <sys-logs>`.
 
-- Statements containing limits, filters, window functions or table functions
+- Statements containing limits, filters, window functions, or table functions
   will now be labelled accordingly in :ref:`sys-jobs-metrics`.
 
 
@@ -226,28 +229,29 @@ Others
 ------
 
 - Changed the default for :ref:`sql_ref_write_wait_for_active_shards` from
-  ``ALL`` to ``1``. This will improve the out of box experience as it allows a
-  subset of nodes to become unavailable without blocking write operations. See
-  the documentation for more details about the implications.
+  ``ALL`` to ``1``. This update improves the out of the box experience by
+  allowing a subset of nodes to become unavailable without blocking write
+  operations. See the documentation linked above for more details about the
+  implications.
 
 - Added ``phonetic`` token filter with following encoders: ``metaphone``,
   ``double_metaphone``, ``soundex``, ``refined_soundex``, ``caverphone1``,
   ``caverphone2``, ``cologne``, ``nysiis``, ``koelnerphonetik``,
-  ``haasephonetik``, ``beider_morse``, ``daitch_mokotoff``.
+  ``haasephonetik``, ``beider_morse``, and ``daitch_mokotoff``.
 
 - Removed a restriction for predicates in the ``WHERE`` clause involving
-  partitioned by columns which could result in a failure response with the
-  message ``logical conjunction of the conditions in the WHERE clause which
+  ``PARTITIONED BY`` columns, which could result in a failure response with the
+  message: ``logical conjunction of the conditions in the WHERE clause which
   involve partitioned columns led to a query that can't be executed``.
 
-- Support implicit object creation in update statements. E.g. ``UPDATE t SET
-  obj['x'] = 10`` will now implicitly set ``obj`` to ``{obj: {x: 10}}`` on rows
-  where ``obj`` was ``null``.
+- Support implicit object creation in update statements. For example,
+  ``UPDATE t SET obj['x'] = 10`` will now implicitly set ``obj`` to
+  ``{obj: {x: 10}}`` on rows where ``obj`` was ``null``.
 
 - Added the :ref:`table_parameter.codec` parameter to :ref:`ref-create-table`
   to control the compression algorithm used to store data.
 
 - The ``node`` argument of the :ref:`REROUTE <alter_table_reroute>` commands of
-  :ref:`ref-alter-table` can now either be the id or the name of a node.
+  :ref:`ref-alter-table` can now either be the ID or the name of a node.
 
 - Added support for the PostgreSQL array string literal notation.

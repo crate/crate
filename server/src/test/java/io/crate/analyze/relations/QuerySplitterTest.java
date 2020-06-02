@@ -69,7 +69,7 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         Symbol symbol = asSymbol("t1.a = 10 and t1.x = t2.y and (false)");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
         assertThat(split.size(), is(2));
-        assertThat(split.get(Set.of(tr1)), isSQL("(doc.t1.a = cast(10 AS text))"));
+        assertThat(split.get(Set.of(tr1)), isSQL("(doc.t1.a = _cast(10, 'text'))"));
         assertThat(split.get(Set.of(tr1, tr2)), isSQL("((doc.t1.x = doc.t2.y) AND false)"));
     }
 

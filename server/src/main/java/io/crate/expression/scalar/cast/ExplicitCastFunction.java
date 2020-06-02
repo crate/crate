@@ -25,10 +25,8 @@ package io.crate.expression.scalar.cast;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -36,77 +34,45 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
-import java.util.function.BiFunction;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
-public class CastFunction extends Scalar<Object, Object> {
+public class ExplicitCastFunction extends Scalar<Object, Object> {
 
-    public static final String CAST_NAME = "cast";
-    public static final String TRY_CAST_NAME = "try_cast";
+    public static final String NAME = "cast";
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature
                 .scalar(
-                    CAST_NAME,
+                    NAME,
                     parseTypeSignature("E"),
                     parseTypeSignature("V"),
                     parseTypeSignature("V"))
                 .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
-            (signature, args) -> new CastFunction(
-                new FunctionInfo(new FunctionIdent(CAST_NAME, args), args.get(1)),
-                signature,
-                (argument, returnType) -> {
-                    throw new ConversionException(argument, returnType);
-                },
-                (argument, returnType) -> {
-                    throw new ConversionException(argument, returnType);
-                }
-            )
-        );
-        module.register(
-            Signature
-                .scalar(TRY_CAST_NAME,
-                        parseTypeSignature("E"),
-                        parseTypeSignature("V"),
-                        parseTypeSignature("V"))
-                .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
-            (signature, args) -> new CastFunction(
-                new FunctionInfo(new FunctionIdent(TRY_CAST_NAME, args), args.get(1)),
-                signature,
-                (argument, returnType) -> Literal.NULL,
-                (argument, returnType) -> null
-            )
+            (signature, args) -> new ExplicitCastFunction(
+                FunctionInfo.of(NAME, args, args.get(1)),
+                signature)
         );
     }
-
 
     private final DataType<?> returnType;
     private final FunctionInfo info;
     private final Signature signature;
-    private final BiFunction<Symbol, DataType<?>, Symbol> onNormalizeException;
-    private final BiFunction<Object, DataType<?>, Object> onEvaluateException;
 
-    private CastFunction(FunctionInfo info,
-                         Signature signature,
-                         BiFunction<Symbol, DataType<?>, Symbol> onNormalizeException,
-                         BiFunction<Object, DataType<?>, Object> onEvaluateException) {
+    private ExplicitCastFunction(FunctionInfo info, Signature signature) {
         this.info = info;
         this.signature = signature;
         this.returnType = info.returnType();
-        this.onNormalizeException = onNormalizeException;
-        this.onEvaluateException = onEvaluateException;
     }
 
     @Override
     public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
-        Object value = args[0].value();
         try {
-            return returnType.value(value);
+            return returnType.explicitCast(args[0].value());
         } catch (ClassCastException | IllegalArgumentException e) {
-            return onEvaluateException.apply(value, returnType);
+            throw new ConversionException(args[0].value(), returnType);
         }
     }
 
@@ -122,7 +88,8 @@ public class CastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(io.crate.expression.symbol.Function symbol,
+                                  TransactionContext txnCtx) {
         Symbol argument = symbol.arguments().get(0);
         if (argument.valueType().equals(returnType)) {
             return argument;
@@ -131,9 +98,9 @@ public class CastFunction extends Scalar<Object, Object> {
         if (argument instanceof Input) {
             Object value = ((Input<?>) argument).value();
             try {
-                return Literal.ofUnchecked(returnType, returnType.value(value));
+                return Literal.ofUnchecked(returnType, returnType.explicitCast(value));
             } catch (ClassCastException | IllegalArgumentException e) {
-                return onNormalizeException.apply(argument, returnType);
+                throw new ConversionException(argument, returnType);
             }
         }
         return symbol;
