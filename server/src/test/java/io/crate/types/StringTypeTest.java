@@ -22,8 +22,11 @@
 package io.crate.types;
 
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -80,6 +83,30 @@ public class StringTypeTest extends CrateUnitTest {
     public void test_implicit_cast_text_with_length_ignores_length_limit() {
         assertThat(StringType.of(1).implicitCast("abcde"), is("abcde"));
         assertThat(StringType.of(2).implicitCast("a    "), is("a    "));
+    }
+
+    @Test
+    public void test_text_type_with_length_serialization_roundtrip_before_4_2_0() throws IOException {
+        var actualType = StringType.of(1);
+
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_4_1_0);
+        DataTypes.toStream(actualType, out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_4_1_0);
+        assertThat(DataTypes.fromStream(in), is(StringType.INSTANCE));
+    }
+
+    @Test
+    public void test_text_type_with_length_serialization_roundtrip() throws IOException {
+        var actualType = StringType.of(1);
+
+        var out = new BytesStreamOutput();
+        DataTypes.toStream(actualType, out);
+
+        var in = out.bytes().streamInput();
+        assertThat(DataTypes.fromStream(in), is(actualType));
     }
 
     @Test
