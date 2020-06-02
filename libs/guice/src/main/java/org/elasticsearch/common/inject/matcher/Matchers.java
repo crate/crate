@@ -16,8 +16,6 @@
 
 package org.elasticsearch.common.inject.matcher;
 
-import io.crate.common.SuppressForbidden;
-
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -329,10 +327,8 @@ public class Matchers {
             return "inPackage(" + targetPackage.getName() + ")";
         }
 
-        @SuppressForbidden(reason = "ClassLoader.getDefinedPackage not available yet")
         public Object readResolve() {
-            // TODO minJava >= 9 : use ClassLoader.getDefinedPackage and remove @SuppressForbidden
-            return inPackage(Package.getPackage(packageName));
+            return inPackage(this.getClass().getClassLoader().getDefinedPackage(packageName));
         }
     }
 

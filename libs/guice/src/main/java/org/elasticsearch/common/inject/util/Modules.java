@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.unmodifiableSet;
-import static org.elasticsearch.common.util.set.Sets.newHashSet;
 
 /**
  * Static utility methods for creating and working with instances of {@link Module}.
@@ -103,7 +102,8 @@ public final class Modules {
      * Returns a new module that installs all of {@code modules}.
      */
     public static Module combine(Iterable<? extends Module> modules) {
-        final Set<? extends Module> modulesSet = newHashSet(modules);
+        final Set<Module> modulesSet = new HashSet<>();
+        modules.forEach(modulesSet::add);
         return new Module() {
             @Override
             public void configure(Binder binder) {
@@ -135,7 +135,8 @@ public final class Modules {
         private final Set<Module> baseModules;
 
         private RealOverriddenModuleBuilder(Iterable<? extends Module> baseModules) {
-            HashSet<? extends Module> modules = newHashSet(baseModules);
+            HashSet<Module> modules = new HashSet<>();
+            baseModules.forEach(modules::add);
             this.baseModules = unmodifiableSet(modules);
         }
 

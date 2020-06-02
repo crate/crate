@@ -16,8 +16,6 @@
 
 package org.elasticsearch.common.inject.internal;
 
-import io.crate.common.unit.TimeValue;
-
 import java.util.logging.Logger;
 
 /**
@@ -28,6 +26,7 @@ import java.util.logging.Logger;
 public class Stopwatch {
 
     private static final Logger LOGGER = Logger.getLogger(Stopwatch.class.getName());
+    private static final long NSEC_PER_MSEC = 1000000L;
 
     private long startNS = System.nanoTime();
 
@@ -36,8 +35,9 @@ public class Stopwatch {
      */
     public long reset() {
         long nowNS = System.nanoTime();
+        long deltaNS = nowNS - startNS;
         try {
-            return TimeValue.nsecToMSec(nowNS - startNS);
+            return deltaNS / NSEC_PER_MSEC;
         } finally {
             startNS = nowNS;
         }

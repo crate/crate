@@ -16,7 +16,6 @@
 
 package org.elasticsearch.common.inject.internal;
 
-import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.common.inject.ConfigurationException;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.Key;
@@ -457,7 +456,7 @@ public final class Errors {
         }
 
         List<Message> result = new ArrayList<>(root.errors);
-        CollectionUtil.timSort(result, new Comparator<Message>() {
+        result.sort(new Comparator<Message>() {
             @Override
             public int compare(Message a, Message b) {
                 return a.getSource().compareTo(b.getSource());
