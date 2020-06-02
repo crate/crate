@@ -325,4 +325,60 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { obj });
         assertThat(source, is(Map.of("obj", Map.of("x", 10))));
     }
+
+    @Test
+    public void test_generate_value_text_type_with_length_exceeding_whitespaces_trimmed() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (str varchar(2) as 'ab ')")
+            .build();
+        DocTableInfo t = e.resolveTableInfo("tbl");
+        InsertSourceGen sourceGen = InsertSourceGen.of(
+            txnCtx,
+            e.functions(),
+            t,
+            t.concreteIndices()[0],
+            GeneratedColumns.Validation.VALUE_MATCH,
+            List.of()
+        );
+        var source = sourceGen.generateSourceAndCheckConstraints(new Object[]{});
+        assertThat(source, is(Map.of("str", "ab")));
+    }
+
+    @Test
+    public void test_generate_value_that_exceeds_text_type_with_length_throws_exception() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (str varchar(1) default 'ab')")
+            .build();
+        DocTableInfo t = e.resolveTableInfo("tbl");
+        InsertSourceGen sourceGen = InsertSourceGen.of(
+            txnCtx,
+            e.functions(),
+            t,
+            t.concreteIndices()[0],
+            GeneratedColumns.Validation.VALUE_MATCH,
+            List.of()
+        );
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("'ab' is too long for the text type of length: 1");
+        sourceGen.generateSourceAndCheckConstraints(new Object[]{});
+    }
+
+    @Test
+    public void test_default_value_that_exceeds_text_type_with_length_throws_exception() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (str varchar(1) as 'ab ')")
+            .build();
+        DocTableInfo t = e.resolveTableInfo("tbl");
+        InsertSourceGen sourceGen = InsertSourceGen.of(
+            txnCtx,
+            e.functions(),
+            t,
+            t.concreteIndices()[0],
+            GeneratedColumns.Validation.VALUE_MATCH,
+            List.of()
+        );
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("'ab ' is too long for the text type of length: 1");
+        sourceGen.generateSourceAndCheckConstraints(new Object[]{});
+    }
 }

@@ -105,6 +105,16 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return implicitCast(value);
     }
 
+    /**
+     * To prepare a value of the same {@link DataType<T>} for insertion.
+     *
+     * @param value The value of the {@link DataType<T>}.
+     * @return The prepared for insertion value of the {@link DataType<T>}.
+     */
+    public T valueForInsert(Object value) {
+        return (T) value;
+    }
+
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
 
     public TypeSignature getTypeSignature() {

@@ -28,11 +28,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
@@ -41,18 +36,13 @@ import static org.hamcrest.Matchers.is;
 
 public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-
-    @Before
-    public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table generated_based_on_default (x int default 1, y as x + 1)")
-            .build();
-    }
 
     @Test
     public void test_generated_based_on_default() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table generated_based_on_default (x int default 1, y as x + 1)")
+            .build();
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
         GeneratedColsFromRawInsertSource insertSource = new GeneratedColsFromRawInsertSource(
             txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
@@ -63,11 +53,52 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
 
     @Test
     public void test_value_is_not_overwritten_by_default() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table generated_based_on_default (x int default 1, y as x + 1)")
+            .build();
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
         GeneratedColsFromRawInsertSource insertSource = new GeneratedColsFromRawInsertSource(
             txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
         Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"x\":2}"});
         assertThat(Maps.getByPath(map, "x"), is(2));
         assertThat(Maps.getByPath(map, "y"), is(3));
+    }
+
+    @Test
+    public void test_generate_value_text_type_with_length_exceeding_whitespaces_trimmed() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x varchar(2) as 'ab  ')")
+            .build();
+        DocTableInfo t = e.resolveTableInfo("t");
+        var insertSource = new GeneratedColsFromRawInsertSource(
+            txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
+        Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
+        assertThat(Maps.getByPath(map, "x"), is("ab"));
+    }
+
+    @Test
+    public void test_generate_value_that_exceeds_text_type_with_length_throws_exception() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x varchar(2) as 'abc')")
+            .build();
+        DocTableInfo t = e.resolveTableInfo("t");
+        var insertSource = new GeneratedColsFromRawInsertSource(
+            txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("'abc' is too long for the text type of length: 2");
+        insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
+    }
+
+    @Test
+    public void test_default_value_that_exceeds_text_type_with_length_throws_exception() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x varchar(2) as 'abc')")
+            .build();
+        DocTableInfo t = e.resolveTableInfo("t");
+        var insertSource = new GeneratedColsFromRawInsertSource(
+            txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("'abc' is too long for the text type of length: 2");
+        insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
     }
 }
