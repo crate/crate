@@ -32,7 +32,6 @@ import io.crate.types.IntegerType;
 import io.crate.types.IntervalType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import io.crate.types.TimeTZType;
 import io.crate.types.TimestampType;
 
 import java.util.List;

@@ -47,7 +47,6 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
-import io.crate.types.TimeTZType;
 import io.crate.types.TimestampType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;

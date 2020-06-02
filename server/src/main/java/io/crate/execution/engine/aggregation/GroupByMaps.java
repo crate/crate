@@ -30,7 +30,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import io.crate.types.TimeTZType;
 import io.crate.types.TimestampType;
 import io.netty.util.collection.ByteObjectHashMap;
 import io.netty.util.collection.IntObjectHashMap;
