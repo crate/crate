@@ -31,6 +31,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
+import io.crate.types.StringType;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
@@ -140,6 +141,9 @@ public class PGTypes {
 
             case RowType.ID:
                 return new RecordType(Lists2.map(((RowType) type).fieldTypes(), PGTypes::get));
+
+            case StringType.ID:
+                return VarCharType.INSTANCE;
 
             default: {
                 PGType pgType = CRATE_TO_PG_TYPES.get(type);

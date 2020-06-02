@@ -42,7 +42,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -95,17 +94,18 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     }
 
     @Override
-    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException {
+    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) {
         row.firstCells(values);
         row.secondCells(defaultValues);
 
         HashMap<String, Object> source = new HashMap<>();
         for (int i = 0; i < targets.size(); i++) {
             Reference target = targets.get(i);
-            Object value = row.get(i);
-
-            ColumnIdent column = target.column();
-            Maps.mergeInto(source, column.name(), column.path(), value, Map::putIfAbsent);
+            Object valueForInsert = target
+                .valueType()
+                .valueForInsert(row.get(i));
+            var column = target.column();
+            Maps.mergeInto(source, column.name(), column.path(), valueForInsert, Map::putIfAbsent);
         }
         for (int i = 0; i < partitionedByColumns.size(); i++) {
             var pCol = partitionedByColumns.get(i);
@@ -119,8 +119,13 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         generatedColumns.setNextRow(row);
         generatedColumns.validateValues(source);
         for (var entry : generatedColumns.generatedToInject()) {
-            ColumnIdent column = entry.getKey().column();
-            Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
+            var reference = entry.getKey();
+            var value = entry.getValue().value();
+            var valueForInsert = reference
+                .valueType()
+                .valueForInsert(value);
+            var column = reference.column();
+            Maps.mergeInto(source, column.name(), column.path(), valueForInsert);
         }
         checks.validate(source);
         return source;

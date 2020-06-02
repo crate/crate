@@ -110,6 +110,30 @@ public class StringTypeTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_value_for_insert_text_with_length_on_literals_of_length_lte_length() {
+        assertThat(StringType.of(4).valueForInsert("abcd"), is("abcd"));
+        assertThat(StringType.of(3).valueForInsert("a"), is("a"));
+    }
+
+    @Test
+    public void test_value_for_insert_text_without_length_does_not_change_input_value() {
+        assertThat(StringType.INSTANCE.valueForInsert("abcd"), is("abcd"));
+    }
+
+    @Test
+    public void test_value_for_insert_text_with_length_trims_exceeding_chars_if_they_are_whitespaces() {
+        assertThat(StringType.of(2).valueForInsert("a    "), is("a "));
+        assertThat(StringType.of(2).valueForInsert("ab  "), is("ab"));
+    }
+
+    @Test
+    public void test_value_for_insert_text_with_length_for_literal_exceeding_length_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("'abcd' is too long for the text type of length: 3");
+        StringType.of(3).valueForInsert("abcd");
+    }
+
+    @Test
     public void test_create_text_type_with_negative_length_limit_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("The text type length must be at least 1, received: -1");
