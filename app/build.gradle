@@ -21,6 +21,7 @@ configurations {
 }
 
 evaluationDependsOn(':server')
+evaluationDependsOn(':libs:guice')
 evaluationDependsOn(':libs:sql-parser')
 evaluationDependsOn(':libs:dex')
 evaluationDependsOn(':libs:shared')
@@ -65,6 +66,7 @@ dependencies {
     compileNotTransitive project(':libs:pgwire')
     compileNotTransitive project(':libs:dex')
     compileNotTransitive project(':libs:shared')
+    compileNotTransitive project(':libs:guice')
     compileNotTransitive project(':libs:es-x-content')
     compileNotTransitive project(':libs:es-plugin-classloader')
     compileNotTransitive project(':plugins:dns-discovery')

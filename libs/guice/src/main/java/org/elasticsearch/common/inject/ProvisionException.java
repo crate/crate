@@ -21,11 +21,10 @@ import org.elasticsearch.common.inject.spi.Message;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
-import static java.util.Collections.unmodifiableSet;
-import static org.elasticsearch.common.util.set.Sets.newHashSet;
 
 /**
  * Indicates that there was a runtime failure while providing an instance.
@@ -41,7 +40,8 @@ public final class ProvisionException extends RuntimeException {
      * Creates a ConfigurationException containing {@code messages}.
      */
     public ProvisionException(Iterable<Message> messages) {
-        this.messages = unmodifiableSet(newHashSet(messages));
+        this.messages = new HashSet<Message>();
+        messages.forEach(this.messages::add);
         if (this.messages.isEmpty()) {
             throw new IllegalArgumentException();
         }

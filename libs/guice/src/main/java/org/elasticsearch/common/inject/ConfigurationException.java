@@ -20,11 +20,11 @@ import org.elasticsearch.common.inject.internal.Errors;
 import org.elasticsearch.common.inject.spi.Message;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
 import static java.util.Collections.unmodifiableSet;
-import static org.elasticsearch.common.util.set.Sets.newHashSet;
 
 /**
  * Thrown when a programming error such as a misplaced annotation, illegal binding, or unsupported
@@ -41,7 +41,9 @@ public final class ConfigurationException extends RuntimeException {
      * Creates a ConfigurationException containing {@code messages}.
      */
     public ConfigurationException(Iterable<Message> messages) {
-        this.messages = unmodifiableSet(newHashSet(messages));
+        HashSet<Message> uniqueMessages = new HashSet<>();
+        messages.forEach(uniqueMessages::add);
+        this.messages = unmodifiableSet(uniqueMessages);
         initCause(Errors.getOnlyCause(this.messages));
     }
 
