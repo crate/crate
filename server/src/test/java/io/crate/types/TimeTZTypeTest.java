@@ -6,7 +6,6 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 
 import static io.crate.types.TimeTZParser.MAX_MICROS;
-import static io.crate.types.TimeTZParser.parseTime;
 
 public class TimeTZTypeTest extends CrateUnitTest {
 
@@ -24,15 +23,11 @@ public class TimeTZTypeTest extends CrateUnitTest {
     }
 
     @Test
-    public void test_value_long() {
-        assertThat(TimeTZType.INSTANCE.value(0), is(parseTime("00")));
-        assertThat(TimeTZType.INSTANCE.value(MAX_MICROS), is(parseTime("24")));
-    }
-
-    @Test
     public void test_value_ISO_formats_with_time_zone() {
-        assertThat(TimeTZType.INSTANCE.value("01:00:00Z"), isTZ(3600000000L));
-        assertThat(TimeTZType.INSTANCE.value("01:00:00+00"), isTZ(3600000000L));
+        assertThat(TimeTZType.INSTANCE.value("01:00:00     UTC"), isTZ(3600000000L));
+        assertThat(TimeTZType.INSTANCE.value("01:00:00     GMT"), isTZ(3600000000L));
+        assertThat(TimeTZType.INSTANCE.value("01:00:00  Z"), isTZ(3600000000L));
+        assertThat(TimeTZType.INSTANCE.value("01:00:00 +00"), isTZ(3600000000L));
         assertThat(TimeTZType.INSTANCE.value("04:00:00-03:00"), isTZ(14400000000L, -10800));
         assertThat(TimeTZType.INSTANCE.value("04:00:00+0300"), isTZ(14400000000L, 10800));
         assertThat(TimeTZType.INSTANCE.value("04:00:00+03:00"), isTZ(14400000000L, 10800));

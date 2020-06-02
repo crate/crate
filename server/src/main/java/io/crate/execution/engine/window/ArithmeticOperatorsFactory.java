@@ -54,7 +54,6 @@ class ArithmeticOperatorsFactory {
     static BiFunction getAddFunction(DataType fstArgDataType, DataType sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
-            case TimeTZType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
@@ -84,7 +83,6 @@ class ArithmeticOperatorsFactory {
     static BiFunction getSubtractFunction(DataType fstArgDataType, DataType sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
-            case TimeTZType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {

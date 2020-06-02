@@ -22,14 +22,17 @@
 package io.crate.types;
 
 import javax.annotation.Nonnull;
+import java.time.DateTimeException;
+import java.time.Instant;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.Locale;
 
 /**
- * Represents time as microseconds from midnight, ignoring the time
- * zone and storing the value as UTC <b>long</b>.
+ * Represents time with time zone as microseconds from midnight,
+ * and zone as signed seconds from UTC.
  * <p>
  * There are 1000_000 microseconds in one second:
  *
@@ -43,7 +46,7 @@ import java.util.Locale;
  *
  * <p>
  * <p>
- * Accepts three kinds of literal:
+ * Accepts three kinds of literal (with time zone offset suffix):
  * <ol>
  *    <li>text:
  *      <ul>
@@ -68,13 +71,20 @@ import java.util.Locale;
  *
  *    <li>All ISO-8601 extended local time format.</li>
  * </ol>
+ *
+ * Time zone offset suffix:
+ * <p>
+ * The above formats accept a suffix (-|+)HH[[:]MM[[:]SS]] (and all ISO-8601
+ * compliant) to define the time zone. If the time zone is not defined,
+ * then <b>UTC is implicit</>.
  */
 public final class TimeTZParser {
 
     public static final long MAX_MICROS = 24 * 60 * 60 * 1000_000L;
+    static final int LOCAL_TZ_SECONDS_FROM_UTC = 0;
 
     public static TimeTZ timeTZOf(String source, long value) {
-        return new TimeTZ(checkRange(source, value, MAX_MICROS),0);
+        return new TimeTZ(checkRange(source, value, MAX_MICROS), LOCAL_TZ_SECONDS_FROM_UTC);
     }
 
     private enum State {
@@ -97,8 +107,8 @@ public final class TimeTZParser {
             }
         },
         ZID_HH(14),
-        ZID_MM(59);
-
+        ZID_MM(59),
+        ZID_SS(59);
 
         private int max;
 
@@ -120,13 +130,15 @@ public final class TimeTZParser {
         }
     }
 
-    static TimeTZ parseTime(@Nonnull String format) {
+    private static EnumMap<State, Long> parse(@Nonnull String format,
+                                              State initialState,
+                                              int startOffset,
+                                              boolean expectingMicros) {
         EnumMap<State, Long> values = new EnumMap<>(State.class);
-        int i = 0;
-        int start = 0;
         int colonCount = 0;
-        State state = State.HH;
-        long tzSign = 1;
+        State state = initialState;
+        int i = startOffset;
+        int start = startOffset;
         for (; i < format.length(); i++) {
             char c = format.charAt(i);
             if (Character.isDigit(c)) {
@@ -136,7 +148,7 @@ public final class TimeTZParser {
                     values.put(state, state.validate(format, start, i));
                     state = state.next();
                     if (state == State.MICRO) {
-                        // missing point
+                        // missing compulsory '.'
                         throw exceptionForInvalidLiteral(format);
                     }
                     start = i;
@@ -150,41 +162,84 @@ public final class TimeTZParser {
                 state = state.next();
                 start = i + 1;
             } else if (c == '.') {
-                if (i - start != 2) {
+                if (i - start != 2 || !expectingMicros) {
                     throw exceptionForInvalidLiteral(format);
                 }
                 values.put(state, state.validate(format, start, i));
                 state = State.MICRO;
                 start = i + 1;
-            } else if (c == '+' || c == '-') {
-                if (i - start != 2 && state != State.MICRO) {
+            } else if (c == '+' || c == '-' || c == ' ' || Character.isLetter(c)) {
+                if (!expectingMicros) {
                     throw exceptionForInvalidLiteral(format);
                 }
-                values.put(state, state.validate(format, start, i));
-                tzSign = c == '+' ? 1L : -1L;
-                state = State.ZID_HH;
-                start = i + 1;
-                colonCount = 0;
+                break;
             } else {
                 throw exceptionForInvalidLiteral(format);
             }
         }
-        if (state != State.MICRO && format.length() - start != 2) {
+        if (state != State.MICRO && i - start != 2) {
+            throw exceptionForInvalidLiteral(format);
+        }
+        if (state == State.MICRO && !expectingMicros) {
             throw exceptionForInvalidLiteral(format);
         }
         values.put(state, state.validate(format, start, i));
-        long hh = values.get(State.HH);
-        long mm = values.getOrDefault(State.MM, 0L);
-        long ss = values.getOrDefault(State.SS, 0L);
-        long micros = values.getOrDefault(State.MICRO, 0L);
-        long tzHH = values.getOrDefault(State.ZID_HH, 0L);
-        long tzMM = values.getOrDefault(State.ZID_MM, 0L);
-        return new TimeTZ(
-            checkRange(
-                format,
-                (((hh * 60 + mm) * 60) + ss) * 1000_000L + micros,
-                MAX_MICROS),
-            (int) (tzSign * (tzHH * 60 + tzMM) * 60));
+        return values;
+    }
+
+    private static int findZoneStart(@Nonnull String format) {
+        int startOffset = 0;
+        while (startOffset < format.length()) {
+            char c = format.charAt(startOffset);
+            if (c == '+' || c == '-' || Character.isLetter(c)) {
+                return startOffset;
+            }
+            startOffset++;
+        }
+        return -1;
+    }
+
+    private static long parseJustTime(@Nonnull String format) {
+        EnumMap<State, Long> time = parse(format, State.HH, 0, true);
+        long hh = time.get(State.HH);
+        long mm = time.getOrDefault(State.MM, 0L);
+        long ss = time.getOrDefault(State.SS, 0L);
+        long micros = time.getOrDefault(State.MICRO, 0L);
+        return checkRange(
+            format,
+            (((hh * 60 + mm) * 60) + ss) * 1000_000L + micros,
+            MAX_MICROS);
+    }
+
+    private static int parseJustZone(@Nonnull String format) {
+        int zoneSecondsFromUTC = LOCAL_TZ_SECONDS_FROM_UTC;
+        int zoneStart = findZoneStart(format);
+        if (-1 != zoneStart) {
+            char c = format.charAt(zoneStart);
+            if (Character.isLetter(c)) {
+                try {
+                    zoneSecondsFromUTC = ZoneId
+                        .of(format.substring(zoneStart).strip())
+                        .getRules()
+                        .getOffset(Instant.EPOCH)
+                        .getTotalSeconds();
+                } catch (DateTimeException e) {
+                    throw exceptionForInvalidLiteral(format);
+                }
+            } else {
+                EnumMap<State, Long> zone = parse(format, State.ZID_HH, zoneStart + 1, false);
+                long zoneHH = zone.getOrDefault(State.ZID_HH, 0L);
+                long zoneMM = zone.getOrDefault(State.ZID_MM, 0L);
+                long zoneSS = zone.getOrDefault(State.ZID_SS, 0L);
+                long zoneSign = '+' == c ? 1L : -1L;
+                zoneSecondsFromUTC = (int) (zoneSign * (zoneHH * 60 + zoneMM) * 60 + zoneSS);
+            }
+        }
+        return zoneSecondsFromUTC;
+    }
+
+    static TimeTZ parse(@Nonnull String format) {
+        return new TimeTZ(parseJustTime(format), parseJustZone(format));
     }
 
     static IllegalArgumentException exceptionForInvalidLiteral(Object literal) {
@@ -215,10 +270,20 @@ public final class TimeTZParser {
             int mm = secondsFromUTC / 60;
             int hh = mm / 60;
             mm = mm % 60;
-            return time.getSecondsFromUTC() == 0 ? localTime :
+            int ss = secondsFromUTC % 60;
+            return mm != 0 ?
+                ss != 0 ?
+                    String.format(
+                        Locale.ENGLISH,"%s%c%02d:%02d:%02d",
+                        localTime, sign, hh, mm, ss)
+                    :
+                    String.format(
+                        Locale.ENGLISH,"%s%c%02d:%02d",
+                        localTime, sign, hh, mm)
+                :
                 String.format(
-                    Locale.ENGLISH,"%s%c%02d:%02d",
-                    localTime, sign, hh, mm);
+                    Locale.ENGLISH,"%s%c%02d",
+                    localTime, sign, hh);
         }
         return localTime;
     }
