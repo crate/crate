@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
@@ -65,7 +66,7 @@ public class MessagesTest extends CrateUnitTest {
                         throw new IllegalArgumentException("Dummy");
                     }
                 },
-                Collections.singletonList(DataTypes.INTEGER),
+                Collections.singletonList(PGTypes.get(DataTypes.INTEGER)),
                 null
             );
             fail("sendDataRow should raise an exception");
@@ -80,7 +81,7 @@ public class MessagesTest extends CrateUnitTest {
         Messages.sendDataRow(
             channel,
             new RowN($(10, null)),
-            Arrays.asList(DataTypes.INTEGER, DataTypes.STRING), null
+            Arrays.asList(PGTypes.get(DataTypes.INTEGER), PGTypes.get(DataTypes.STRING)), null
         );
         channel.flush();
         ByteBuf buffer = channel.readOutbound();

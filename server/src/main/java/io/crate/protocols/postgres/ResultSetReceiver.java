@@ -22,22 +22,23 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.data.Row;
-import io.crate.types.DataType;
-import io.netty.channel.Channel;
+import java.util.List;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
-import java.util.function.Function;
+
+import io.crate.action.sql.BaseResultReceiver;
+import io.crate.data.Row;
+import io.crate.protocols.postgres.types.PGType;
+import io.netty.channel.Channel;
 
 class ResultSetReceiver extends BaseResultReceiver {
 
     private final String query;
     private final Channel channel;
     private final Function<Throwable, Exception> wrapError;
-    private final List<? extends DataType> columnTypes;
+    private final List<PGType<?>> columnTypes;
 
     @Nullable
     private final FormatCodes.FormatCode[] formatCodes;
@@ -47,7 +48,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     ResultSetReceiver(String query,
                       Channel channel,
                       Function<Throwable, Exception> wrapError,
-                      List<? extends DataType> columnTypes,
+                      List<PGType<?>> columnTypes,
                       @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
