@@ -37,39 +37,6 @@ public enum FieldData {
     ;
 
     /**
-     * Return a {@link SortedBinaryDocValues} that doesn't contain any value.
-     */
-    public static SortedBinaryDocValues emptySortedBinary() {
-        return singleton(DocValues.emptyBinary());
-    }
-
-    /**
-     * Return a {@link NumericDoubleValues} that doesn't contain any value.
-     */
-    public static NumericDoubleValues emptyNumericDouble() {
-        return new NumericDoubleValues() {
-            @Override
-            public boolean advanceExact(int doc) throws IOException {
-                return false;
-            }
-
-            @Override
-            public double doubleValue() throws IOException {
-                throw new UnsupportedOperationException();
-            }
-
-        };
-    }
-
-    /**
-     * Return a {@link SortedNumericDoubleValues} that doesn't contain any value.
-     */
-    public static SortedNumericDoubleValues emptySortedNumericDoubles() {
-        return singleton(emptyNumericDouble());
-    }
-
-
-    /**
      * Given a {@link SortedNumericDocValues}, return a {@link SortedNumericDoubleValues}
      * instance that will translate long values to doubles using
      * {@link org.apache.lucene.util.NumericUtils#sortableLongToDouble(long)}.
@@ -84,30 +51,6 @@ public enum FieldData {
     }
 
     /**
-     * Wrap the provided {@link SortedNumericDocValues} instance to cast all values to doubles.
-     */
-    public static SortedNumericDoubleValues castToDouble(final SortedNumericDocValues values) {
-        final NumericDocValues singleton = DocValues.unwrapSingleton(values);
-        if (singleton != null) {
-            return singleton(new DoubleCastedValues(singleton));
-        } else {
-            return new SortedDoubleCastedValues(values);
-        }
-    }
-
-    /**
-     * Wrap the provided {@link SortedNumericDoubleValues} instance to cast all values to longs.
-     */
-    public static SortedNumericDocValues castToLong(final SortedNumericDoubleValues values) {
-        final NumericDoubleValues singleton = unwrapSingleton(values);
-        if (singleton != null) {
-            return DocValues.singleton(new LongCastedValues(singleton));
-        } else {
-            return new SortedLongCastedValues(values);
-        }
-    }
-
-    /**
      * Returns a multi-valued view over the provided {@link NumericDoubleValues}.
      */
     public static SortedNumericDoubleValues singleton(NumericDoubleValues values) {
@@ -115,34 +58,10 @@ public enum FieldData {
     }
 
     /**
-     * Returns a single-valued view of the {@link SortedNumericDoubleValues},
-     * if it was previously wrapped with {@link DocValues#singleton(NumericDocValues)},
-     * or null.
-     */
-    public static NumericDoubleValues unwrapSingleton(SortedNumericDoubleValues values) {
-        if (values instanceof SingletonSortedNumericDoubleValues) {
-            return ((SingletonSortedNumericDoubleValues) values).getNumericDoubleValues();
-        }
-        return null;
-    }
-
-    /**
      * Returns a multi-valued view over the provided {@link BinaryDocValues}.
      */
     public static SortedBinaryDocValues singleton(BinaryDocValues values) {
         return new SingletonSortedBinaryDocValues(values);
-    }
-
-    /**
-     * Returns a single-valued view of the {@link SortedBinaryDocValues},
-     * if it was previously wrapped with {@link #singleton(BinaryDocValues)},
-     * or null.
-     */
-    public static BinaryDocValues unwrapSingleton(SortedBinaryDocValues values) {
-        if (values instanceof SingletonSortedBinaryDocValues) {
-            return ((SingletonSortedBinaryDocValues) values).getBinaryDocValues();
-        }
-        return null;
     }
 
     /**
@@ -286,160 +205,5 @@ public enum FieldData {
         /** Fill the list of charsquences with the list of values for the current document. */
         void get(List<CharSequence> values) throws IOException;
 
-    }
-
-    private static class DoubleCastedValues extends NumericDoubleValues {
-
-        private final NumericDocValues values;
-
-        DoubleCastedValues(NumericDocValues values) {
-            this.values = values;
-        }
-
-        @Override
-        public double doubleValue() throws IOException {
-            return values.longValue();
-        }
-
-        @Override
-        public boolean advanceExact(int doc) throws IOException {
-            return values.advanceExact(doc);
-        }
-
-    }
-
-    private static class SortedDoubleCastedValues extends SortedNumericDoubleValues {
-
-        private final SortedNumericDocValues values;
-
-        SortedDoubleCastedValues(SortedNumericDocValues in) {
-            this.values = in;
-        }
-
-        @Override
-        public boolean advanceExact(int target) throws IOException {
-            return values.advanceExact(target);
-        }
-
-        @Override
-        public double nextValue() throws IOException {
-            return values.nextValue();
-        }
-
-        @Override
-        public int docValueCount() {
-            return values.docValueCount();
-        }
-
-    }
-
-    private static class LongCastedValues extends AbstractNumericDocValues {
-
-        private final NumericDoubleValues values;
-        private int docID = -1;
-
-        LongCastedValues(NumericDoubleValues values) {
-            this.values = values;
-        }
-
-        @Override
-        public boolean advanceExact(int target) throws IOException {
-            docID = target;
-            return values.advanceExact(target);
-        }
-
-        @Override
-        public long longValue() throws IOException {
-            return (long) values.doubleValue();
-        }
-
-        @Override
-        public int docID() {
-            return docID;
-        }
-    }
-
-    private static class SortedLongCastedValues extends AbstractSortedNumericDocValues {
-
-        private final SortedNumericDoubleValues values;
-
-        SortedLongCastedValues(SortedNumericDoubleValues in) {
-            this.values = in;
-        }
-
-        @Override
-        public boolean advanceExact(int target) throws IOException {
-            return values.advanceExact(target);
-        }
-
-        @Override
-        public int docValueCount() {
-            return values.docValueCount();
-        }
-
-        @Override
-        public long nextValue() throws IOException {
-            return (long) values.nextValue();
-        }
-
-    }
-
-    /**
-     * Return a {@link NumericDocValues} instance that has a value for every
-     * document, returns the same value as {@code values} if there is a value
-     * for the current document and {@code missing} otherwise.
-     */
-    public static NumericDocValues replaceMissing(NumericDocValues values, long missing) {
-        return new AbstractNumericDocValues() {
-
-            private long value;
-
-            @Override
-            public int docID() {
-                return values.docID();
-            }
-
-            @Override
-            public boolean advanceExact(int target) throws IOException {
-                if (values.advanceExact(target)) {
-                    value = values.longValue();
-                } else {
-                    value = missing;
-                }
-                return true;
-            }
-
-            @Override
-            public long longValue() throws IOException {
-                return value;
-            }
-        };
-    }
-
-    /**
-     * Return a {@link NumericDoubleValues} instance that has a value for every
-     * document, returns the same value as {@code values} if there is a value
-     * for the current document and {@code missing} otherwise.
-     */
-    public static NumericDoubleValues replaceMissing(NumericDoubleValues values, double missing) {
-        return new NumericDoubleValues() {
-
-            private double value;
-
-            @Override
-            public boolean advanceExact(int target) throws IOException {
-                if (values.advanceExact(target)) {
-                    value = values.doubleValue();
-                } else {
-                    value = missing;
-                }
-                return true;
-            }
-
-            @Override
-            public double doubleValue() throws IOException {
-                return value;
-            }
-        };
     }
 }
