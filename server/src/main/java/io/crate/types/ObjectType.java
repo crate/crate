@@ -31,13 +31,14 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 import static io.crate.types.DataTypes.ALLOWED_CONVERSIONS;
 import static io.crate.types.DataTypes.UNDEFINED;
@@ -123,13 +124,27 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    public Map<String, Object> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return convert(value, DataType::implicitCast);
+    }
+
+    @Override
+    public Map<String, Object> explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return convert(value, DataType::explicitCast);
+    }
+
+    @Override
     public Map<String, Object> value(Object value) {
+        return convert(value, DataType::value);
+    }
+
+    private Map<String, Object> convert(Object value,
+                                        BiFunction<DataType<?>, Object, Object> innerType) {
         if (value instanceof String) {
             value = mapFromJSONString((String) value);
         }
+        //noinspection unchecked
         Map<String, Object> map = (Map<String, Object>) value;
-
         if (map == null || innerTypes == null) {
             return map;
         }
@@ -137,8 +152,13 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         HashMap<String, Object> newMap = new HashMap<>(map);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey();
-            DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
-            newMap.put(key, innerType.value(entry.getValue()));
+            newMap.put(
+                key,
+                innerType.apply(
+                    innerTypes.getOrDefault(key, UndefinedType.INSTANCE),
+                    entry.getValue()
+                )
+            );
         }
         return newMap;
     }
