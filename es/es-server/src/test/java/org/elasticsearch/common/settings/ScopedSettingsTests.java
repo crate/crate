@@ -25,10 +25,12 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Setting.Validator;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.transport.TransportSettings;
@@ -40,6 +42,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -1039,4 +1042,26 @@ public class ScopedSettingsTests extends ESTestCase {
                 equalTo(oldSetting.get(settings).stream().map(s -> "new." + s).collect(Collectors.toList())));
     }
 
+    @Test
+    public void test_update_setting_with_dependency() throws Exception {
+        Setting<String> low = DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING;
+        Setting<String> high = DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING;
+        Setting<String> flood = DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING;
+
+        ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, Set.of(low, high, flood));
+        Settings.Builder target = Settings.builder();
+        clusterSettings.updateDynamicSettings(
+            Settings.builder().put(high.getKey(), "95%").build(),
+            target,
+            Settings.builder(),
+            "update high to 95%"
+        );
+        clusterSettings.applySettings(target.build());
+        clusterSettings.updateDynamicSettings(
+            Settings.builder().put(low.getKey(), "91%").build(),
+            Settings.builder(),
+            Settings.builder(),
+            "update low to 91%"
+        );
+    }
 }

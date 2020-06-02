@@ -57,6 +57,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that could prevent updating settings that depend on other
+  settings. For example ``"cluster.routing.allocation.disk.watermark.low"``
+
 - Fixed an issue that caused the ``ANALYZE`` statement to fail if there are
   tables with object arrays in the cluster.
 
