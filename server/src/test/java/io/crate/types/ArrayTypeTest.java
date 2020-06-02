@@ -51,22 +51,21 @@ public class ArrayTypeTest extends CrateUnitTest {
     @Test
     public void testArrayTypeSerialization() throws Exception {
         // nested string array: [ ["x"], ["y"] ]
-        ArrayType arrayType = new ArrayType<>(new ArrayType<>(StringType.INSTANCE));
+        ArrayType<?> arrayType = new ArrayType<>(new ArrayType<>(StringType.INSTANCE));
         BytesStreamOutput out = new BytesStreamOutput();
 
         DataTypes.toStream(arrayType, out);
 
         StreamInput in = out.bytes().streamInput();
 
-        DataType readType = DataTypes.fromStream(in);
+        DataType<?> readType = DataTypes.fromStream(in);
         assertThat(readType, instanceOf(ArrayType.class));
 
-        ArrayType readArrayType = (ArrayType) readType;
+        ArrayType<?> readArrayType = (ArrayType<?>) readType;
         assertThat(readArrayType.innerType(), instanceOf(ArrayType.class));
 
-        ArrayType readInnerArrayType = (ArrayType) readArrayType.innerType();
-        assertThat(readInnerArrayType.innerType(), instanceOf(StringType.class));
-        assertSame(readInnerArrayType.innerType(), StringType.INSTANCE);
+        ArrayType<?> readInnerArrayType = (ArrayType<?>) readArrayType.innerType();
+        assertThat(readInnerArrayType.innerType(), is(StringType.INSTANCE));
     }
 
     @Test
