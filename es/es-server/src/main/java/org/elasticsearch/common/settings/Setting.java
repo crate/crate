@@ -552,6 +552,10 @@ public class Setting<T> implements ToXContentObject {
         return Collections.emptySet();
     }
 
+    public Iterator<Setting<T>> getValidationDependencies() {
+        return validator.settings();
+    }
+
     /**
      * Build a new updater with a noop validator.
      */
