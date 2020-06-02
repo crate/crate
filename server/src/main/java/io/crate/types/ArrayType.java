@@ -26,12 +26,14 @@ import io.crate.protocols.postgres.parser.PgArrayParser;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * A type which contains a collection of elements of another type.
@@ -110,7 +112,22 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
+    public List<T> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return convert(value, innerType::implicitCast);
+    }
+
+    @Override
+    public List<T> explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return convert(value, innerType::explicitCast);
+    }
+
+    @Override
     public List<T> value(Object value) {
+        return convert(value, innerType::value);
+    }
+
+    @Nullable
+    private static <T> List<T> convert(@Nullable Object value, Function<Object, T> innerType) {
         if (value == null) {
             return null;
         }
@@ -119,19 +136,19 @@ public class ArrayType<T> extends DataType<List<T>> {
             Collection values = (Collection) value;
             result = new ArrayList<>(values.size());
             for (Object o : values) {
-                result.add(innerType.value(o));
+                result.add(innerType.apply(o));
             }
         } else if (value instanceof String) {
             //noinspection unchecked
             return (List<T>) PgArrayParser.parse(
                 ((String) value).getBytes(StandardCharsets.UTF_8),
-                bytes -> innerType.value(new String(bytes, StandardCharsets.UTF_8))
+                bytes -> innerType.apply(new String(bytes, StandardCharsets.UTF_8))
             );
         } else {
             Object[] values = (Object[]) value;
             result = new ArrayList<>(values.length);
             for (Object o : values) {
-                result.add(innerType.value(o));
+                result.add(innerType.apply(o));
             }
         }
         return result;
