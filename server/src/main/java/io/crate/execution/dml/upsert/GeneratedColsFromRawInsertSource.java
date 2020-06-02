@@ -36,14 +36,13 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
 
-    private final Map<ColumnIdent, Input<?>> generatedCols;
+    private final Map<Reference, Input<?>> generatedCols;
     private final List<CollectExpression<Map<String, Object>, ?>> expressions;
     private final Map<Reference, Object> defaults;
 
@@ -55,21 +54,26 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
         InputFactory.Context<CollectExpression<Map<String, Object>, ?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FromSourceRefResolver.WITHOUT_PARTITIONED_BY_REFS);
         this.generatedCols = new HashMap<>(generatedColumns.size());
-        generatedColumns.forEach(r -> generatedCols.put(r.column(), ctx.add(r.generatedExpression())));
+        generatedColumns.forEach(r -> generatedCols.put(r, ctx.add(r.generatedExpression())));
         expressions = ctx.expressions();
         defaults = buildDefaults(defaultExpressionColumns, txnCtx, functions);
     }
 
     @Override
-    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException {
+    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) {
         String rawSource = (String) values[0];
         Map<String, Object> source = XContentHelper.toMap(new BytesArray(rawSource), XContentType.JSON);
         mixinDefaults(source, defaults);
         for (int i = 0; i < expressions.size(); i++) {
             expressions.get(i).setNextRow(source);
         }
-        for (Map.Entry<ColumnIdent, Input<?>> entry : generatedCols.entrySet()) {
-            source.putIfAbsent(entry.getKey().fqn(), entry.getValue().value());
+        for (Map.Entry<Reference, Input<?>> entry : generatedCols.entrySet()) {
+            var reference = entry.getKey();
+            var value = entry.getValue().value();
+            var valueForInsert = reference
+                .valueType()
+                .valueForInsert(value);
+            source.putIfAbsent(reference.column().fqn(), valueForInsert);
         }
         return source;
     }

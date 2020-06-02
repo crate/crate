@@ -57,5 +57,4 @@ public interface InsertSourceGen {
         }
         return new InsertSourceFromCells(txnCtx, functions, table, indexName, validation, targets);
     }
-
 }
