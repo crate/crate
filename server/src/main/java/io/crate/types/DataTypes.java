@@ -141,7 +141,7 @@ public final class DataTypes {
             entry(NotSupportedType.ID, in -> NOT_SUPPORTED),
             entry(ByteType.ID, in -> BYTE),
             entry(BooleanType.ID, in -> BOOLEAN),
-            entry(StringType.ID, in -> STRING),
+            entry(StringType.ID, StringType::new),
             entry(IpType.ID, in -> IP),
             entry(DoubleType.ID, in -> DOUBLE),
             entry(FloatType.ID, in -> FLOAT),

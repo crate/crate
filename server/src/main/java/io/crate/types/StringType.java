@@ -24,6 +24,7 @@ package io.crate.types;
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -67,6 +68,14 @@ public class StringType extends DataType<String> implements Streamer<String> {
 
     private StringType(int lengthLimit) {
         this.lengthLimit = lengthLimit;
+    }
+
+    public StringType(StreamInput in) throws IOException {
+        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
+            lengthLimit = in.readInt();
+        } else {
+            lengthLimit = Integer.MAX_VALUE;
+        }
     }
 
     protected StringType() {
@@ -205,6 +214,13 @@ public class StringType extends DataType<String> implements Streamer<String> {
     @Override
     public void writeValueTo(StreamOutput out, String v) throws IOException {
         out.writeOptionalString(v);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
+            out.writeInt(lengthLimit);
+        }
     }
 
     @Override
