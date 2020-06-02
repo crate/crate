@@ -103,7 +103,7 @@ public class RepositoriesService implements ClusterStateApplier {
             registrationListener = listener;
         }
 
-        clusterService.submitStateUpdateTask(request.cause, new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, registrationListener) {
+        clusterService.submitStateUpdateTask(request.cause, new AckedClusterStateUpdateTask<>(request, registrationListener) {
             @Override
             protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
                 return new ClusterStateUpdateResponse(acknowledged);
@@ -171,7 +171,7 @@ public class RepositoriesService implements ClusterStateApplier {
      * @param listener unregister repository listener
      */
     public void unregisterRepository(final UnregisterRepositoryRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
-        clusterService.submitStateUpdateTask(request.cause, new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
+        clusterService.submitStateUpdateTask(request.cause, new AckedClusterStateUpdateTask<>(request, listener) {
 
             @Override
             protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
