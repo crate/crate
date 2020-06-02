@@ -27,7 +27,6 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
@@ -39,15 +38,12 @@ import io.crate.types.DataType;
  */
 public class DocInputFactory {
 
-    private final FieldTypeLookup fieldTypeLookup;
     private final ReferenceResolver<? extends LuceneCollectorExpression<?>> referenceResolver;
     private final InputFactory inputFactory;
 
     public DocInputFactory(Functions functions,
-                           FieldTypeLookup fieldTypeLookup,
                            ReferenceResolver<? extends LuceneCollectorExpression<?>> referenceResolver) {
         this.inputFactory = new InputFactory(functions);
-        this.fieldTypeLookup = fieldTypeLookup;
         this.referenceResolver = referenceResolver;
     }
 

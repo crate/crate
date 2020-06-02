@@ -164,7 +164,6 @@ public final class ReservoirSampler {
             FieldTypeLookup fieldTypeLookup = mapperService::fullName;
             var ctx = new DocInputFactory(
                 functions,
-                fieldTypeLookup,
                 new LuceneReferenceResolver(
                     indexService.index().getName(),
                     fieldTypeLookup,

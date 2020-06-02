@@ -178,7 +178,6 @@ public class LuceneQueryBuilder {
             FieldTypeLookup typeLookup = mapperService::fullName;
             this.docInputFactory = new DocInputFactory(
                 functions,
-                typeLookup,
                 new LuceneReferenceResolver(
                     indexName,
                     typeLookup,
