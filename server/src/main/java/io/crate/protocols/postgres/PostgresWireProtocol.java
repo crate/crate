@@ -634,7 +634,7 @@ public class PostgresWireProtocol {
                 query,
                 channel,
                 SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext())),
-                outputTypes,
+                Lists2.map(outputTypes, PGTypes::get),
                 session.getResultFormatCodes(portalName)
             );
         }
@@ -717,7 +717,7 @@ public class PostgresWireProtocol {
                     query,
                     channel,
                     wrapError,
-                    Lists2.map(fields, Symbol::valueType),
+                    Lists2.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
                 session.execute("", 0, resultSetReceiver);

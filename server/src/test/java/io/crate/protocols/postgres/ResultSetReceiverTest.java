@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.data.Row1;
+import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import io.netty.channel.Channel;
 import org.junit.Test;
@@ -43,7 +44,7 @@ public class ResultSetReceiverTest {
             "select * from t",
             channel,
             RuntimeException::new,
-            Collections.singletonList(DataTypes.INTEGER),
+            Collections.singletonList(PGTypes.get(DataTypes.INTEGER)),
             null
         );
         Row1 row1 = new Row1(1);

@@ -287,7 +287,8 @@ public class Messages {
      * ByteN
      * The value of the column, in the format indicated by the associated format code. n is the above length.
      */
-    static void sendDataRow(Channel channel, Row row, List<? extends DataType> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
+    @SuppressWarnings({"unchecked","rawtypes"})
+    static void sendDataRow(Channel channel, Row row, List<PGType<?>> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
         int length = 4 + 2;
         assert columnTypes.size() == row.numColumns()
             : "Number of columns in the row must match number of columnTypes. Row: " + row + " types: " + columnTypes;
@@ -298,11 +299,9 @@ public class Messages {
         buffer.writeShort(row.numColumns());
 
         for (int i = 0; i < row.numColumns(); i++) {
-            DataType<?> dataType = columnTypes.get(i);
-            PGType pgType;
+            PGType pgType = columnTypes.get(i);
             Object value;
             try {
-                pgType = PGTypes.get(dataType);
                 value = row.get(i);
             } catch (Exception e) {
                 buffer.release();
