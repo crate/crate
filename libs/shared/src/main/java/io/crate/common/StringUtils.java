@@ -23,10 +23,9 @@
 package io.crate.common;
 
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.annotation.Nullable;
 
 public final class StringUtils {
 
@@ -52,5 +51,21 @@ public final class StringUtils {
             return null;
         }
         return value.toString();
+    }
+
+    /**
+     * Checks if a string is blank within the specified range.
+     * {@code start} index is inclusive, {@code end} is exclusive.
+     *
+     * @return {@code false} if any character within the range is not
+     * an unicode space character, otherwise, {@code false}.
+     */
+    public static boolean isBlank(String string, int start, int end) {
+        for (int i = start; i < end; i++) {
+            if (!Character.isSpaceChar(string.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

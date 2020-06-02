@@ -1585,6 +1585,21 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThat(response.rows()[1][0], is(3));
         assertThat(response.rows()[1][1], is("new"));
+    }
 
+    @Test
+    public void test_insert_from_values_and_subquery_into_varchar_with_length_column() {
+        execute("CREATE TABLE t1 (str varchar(3)) CLUSTERED INTO 1 SHARDS");
+
+        execute("INSERT INTO t1 (str) VALUES ('abc'), ('abc   ')");
+        execute("INSERT INTO t1 (str) (SELECT UNNEST(['bcd', 'bcd   ']))");
+        execute("REFRESH TABLE t1");
+
+        assertThat(
+            printedTable(execute("SELECT * FROM t1").rows()),
+            is("abc\n" +
+               "abc\n" +
+               "bcd\n" +
+               "bcd\n"));
     }
 }

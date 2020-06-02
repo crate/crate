@@ -39,6 +39,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import static io.crate.common.StringUtils.isBlank;
+
 public class StringType extends DataType<String> implements Streamer<String> {
 
     public static final int ID = 4;
@@ -148,6 +150,29 @@ public class StringType extends DataType<String> implements Streamer<String> {
             return string;
         } else {
             return string.substring(0, lengthLimit);
+        }
+    }
+
+    @Override
+    public String valueForInsert(Object value) {
+        if (value == null) {
+            return null;
+        }
+        assert value instanceof String
+            : "valueForInsert must be called only on objects of String type";
+        var string = (String) value;
+        if (unbound() || string.length() <= lengthLimit) {
+            return string;
+        } else {
+            if (isBlank(string, lengthLimit, string.length())) {
+                return string.substring(0, lengthLimit);
+            } else {
+                if (string.length() > 20) {
+                    string = string.substring(0, 20) + "...";
+                }
+                throw new IllegalArgumentException(
+                    "'" + string + "' is too long for the text type of length: " + lengthLimit);
+            }
         }
     }
 
