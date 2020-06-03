@@ -157,7 +157,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFilterIsMovedBeneathOrder() {
-        LogicalPlan plan = plan("select * from (select * from t1 order by a) tt where a > 10");
+        LogicalPlan plan = plan("select * from (select * from t1 order by a) tt where a > '10'");
         assertThat(plan, isPlan(
             "Rename[a, x, i] AS tt\n" +
             "  └ OrderBy[a ASC]\n" +

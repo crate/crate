@@ -47,7 +47,7 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
     public void testFilterAndOuterJoinIsRewrittenToInnerJoinIfFilterEliminatesNullRow() {
         var plan = sqlExecutor.logicalPlan(
             "SELECT * FROM t1 LEFT JOIN t2 ON t1.x = t2.x " +
-            "WHERE t2.x = 10"
+            "WHERE t2.x = '10'"
         );
         var expectedPlan =
             "NestedLoopJoin[INNER | (x = x)]\n" +

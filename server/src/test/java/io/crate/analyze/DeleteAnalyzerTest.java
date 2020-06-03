@@ -82,7 +82,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWherePartitionedByColumn() throws Exception {
-        AnalyzedDeleteStatement delete = e.analyze("delete from parted where date = 1395874800000");
+        AnalyzedDeleteStatement delete = e.analyze("delete from parted where date = 1395874800000::timestamp");
         assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L)));
     }
 

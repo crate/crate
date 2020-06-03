@@ -66,6 +66,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 
@@ -332,7 +333,7 @@ public final class UpdatePlanner {
             tableInfo.rowGranularity(),
             List.of(idReference),
             singletonList(updateProjection),
-            where.queryOrFallback(),
+            Optimizer.optimizeCasts(where.queryOrFallback(), plannerCtx),
             DistributionInfo.DEFAULT_BROADCAST
         );
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, numOutPuts, maxRowsPerNode, null);

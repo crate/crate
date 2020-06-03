@@ -173,31 +173,6 @@ public class FuncParamsTest extends CrateUnitTest {
         assertThat(signature, is(list(DataTypes.LONG, new ArrayType(DataTypes.LONG))));
     }
 
-    @Test
-    public void testRespectCastableArgumentsWithInnerType() {
-        FuncArg castableArg = new Arg(DataTypes.LONG, true);
-        ArrayType integerArrayType = new ArrayType(DataTypes.INTEGER);
-        FuncArg nonCastableArg = new Arg(integerArrayType, false);
-        FuncParams params = FuncParams.builder(Param.ANY, Param.ANY_ARRAY.withInnerType(Param.ANY)).build();
-
-        List<DataType> signature = params.match(list(castableArg, nonCastableArg));
-        assertThat(signature, is(list(DataTypes.INTEGER, integerArrayType)));
-    }
-
-    @Test
-    public void testLosslessConversionResultingInDowncast() {
-        FuncArg highPrecedenceType = Literal.of(DataTypes.LONG, 5L);
-        FuncArg lowerPrecedenceType = new Arg(DataTypes.INTEGER, true);
-        FuncParams params = FuncParams.builder(Param.NUMERIC, Param.NUMERIC).build();
-
-        List<DataType> signature;
-        signature = params.match(list(highPrecedenceType, lowerPrecedenceType));
-        assertThat(signature, is(list(DataTypes.INTEGER, DataTypes.INTEGER)));
-
-        signature = params.match(list(lowerPrecedenceType, highPrecedenceType));
-        assertThat(signature, is(list(DataTypes.INTEGER, DataTypes.INTEGER)));
-    }
-
     private static class Arg implements FuncArg {
 
         private final DataType dataType;

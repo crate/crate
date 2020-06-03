@@ -63,6 +63,7 @@ import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -102,6 +103,7 @@ public final class DeletePlanner {
         if (table.isPartitioned() && query instanceof Input && DataTypes.BOOLEAN.value(((Input) query).value())) {
             return new DeleteAllPartitions(Lists2.map(table.partitions(), IndexParts::toIndexName));
         }
+
         return new Delete(tableRel, detailedQuery);
     }
 
@@ -186,7 +188,7 @@ public final class DeletePlanner {
             tableInfo.rowGranularity(),
             newArrayList(idReference),
             ImmutableList.of(deleteProjection),
-            where.queryOrFallback(),
+            Optimizer.optimizeCasts(where.queryOrFallback(), context),
             DistributionInfo.DEFAULT_BROADCAST
         );
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);

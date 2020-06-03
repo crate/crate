@@ -165,7 +165,7 @@ import static java.util.stream.Collectors.toList;
  */
 public class ExpressionAnalyzer {
 
-    private static final Map<ComparisonExpression.Type, ComparisonExpression.Type> SWAP_OPERATOR_TABLE = Map.of(
+    public static final Map<ComparisonExpression.Type, ComparisonExpression.Type> SWAP_OPERATOR_TABLE = Map.of(
         ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN,
         ComparisonExpression.Type.LESS_THAN, ComparisonExpression.Type.GREATER_THAN,
         ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ComparisonExpression.Type.LESS_THAN_OR_EQUAL,
