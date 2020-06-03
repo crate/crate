@@ -22,19 +22,18 @@
 
 package io.crate.execution.engine.collect;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-
+import io.crate.breaker.RamAccounting;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.execution.engine.aggregation.AggregationContext;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.expression.InputRow;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.memory.OnHeapMemoryManager;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.BatchIteratorTester;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -54,18 +53,18 @@ import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.execution.engine.aggregation.AggregationContext;
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.expression.InputRow;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.memory.OnHeapMemoryManager;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.BatchIteratorTester;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
 
@@ -186,11 +185,17 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
     }
 
     private Throwable stopOnInterrupting(Consumer<BatchIterator<Row>> interrupt) throws Exception {
-        CountDownLatch collectStarted = new CountDownLatch(1);
+        CountDownLatch waitForLoadNextBatch = new CountDownLatch(1);
+        CountDownLatch pauseOnDocumentCollecting = new CountDownLatch(1);
         CountDownLatch batchLoadingCompleted = new CountDownLatch(1);
 
         BatchIterator<Row> it = createBatchIterator(() -> {
-            collectStarted.countDown();
+            waitForLoadNextBatch.countDown();
+            try {
+                pauseOnDocumentCollecting.await(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         });
         AtomicReference<Throwable> exception = new AtomicReference<>();
         Thread t = new Thread(() -> {
@@ -206,8 +211,9 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             }
         });
         t.start();
-        collectStarted.await(5, TimeUnit.SECONDS);
+        waitForLoadNextBatch.await(5, TimeUnit.SECONDS);
         interrupt.accept(it);
+        pauseOnDocumentCollecting.countDown();
         batchLoadingCompleted.await(5, TimeUnit.SECONDS);
         return exception.get();
     }
