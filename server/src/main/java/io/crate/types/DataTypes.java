@@ -108,6 +108,12 @@ public final class DataTypes {
         TIMESTAMP
     );
 
+    private static final Set<Integer> PRIMITIVE_TYPE_IDS =
+        PRIMITIVE_TYPES.stream()
+            .map(DataType::id)
+            .collect(toSet());
+
+
     public static final Set<DataType> STORAGE_UNSUPPORTED = Set.of(
         INTERVAL
     );
@@ -120,6 +126,11 @@ public final class DataTypes {
         INTEGER,
         LONG
     );
+
+    private static final Set<Integer> NUMERIC_PRIMITIVE_TYPE_IDS =
+        NUMERIC_PRIMITIVE_TYPES.stream()
+            .map(DataType::id)
+            .collect(toSet());
 
     /**
      * Type registry mapping type ids to the according data type instance.
@@ -407,8 +418,20 @@ public final class DataTypes {
         return MAPPING_NAMES_TO_TYPES.get(name);
     }
 
-    public static boolean isPrimitive(DataType type) {
-        return PRIMITIVE_TYPES.contains(type);
+    /**
+     * Checks if the {@link DataType} is a primitive data type.
+     * The parameters of the data type are ignored.
+     */
+    public static boolean isPrimitive(DataType<?> type) {
+        return PRIMITIVE_TYPE_IDS.contains(type.id());
+    }
+
+    /**
+     * Checks if the {@link DataType} is a numeric primitive data type.
+     * The parameters of the data type are ignored.
+     */
+    public static boolean isNumericPrimitive(DataType<?> type) {
+        return NUMERIC_PRIMITIVE_TYPE_IDS.contains(type.id());
     }
 
     /**
@@ -434,26 +457,34 @@ public final class DataTypes {
         return streamer;
     }
 
-    public static boolean compareTypesById(DataType<?> left, DataType<?> right) {
+    /**
+     * Compares any two {@link DataType} by their IDs.
+     * The parameters of the data types, if they have any, are ignored.
+     */
+    public static boolean isSameType(DataType<?> left, DataType<?> right) {
         if (left.id() != right.id()) {
             return false;
         } else if (isArray(left)) {
-            return compareTypesById(
-                ((ArrayType) left).innerType(),
-                ((ArrayType) right).innerType());
+            return isSameType(
+                ((ArrayType<?>) left).innerType(),
+                ((ArrayType<?>) right).innerType());
         } else {
             return true;
         }
     }
 
-    public static boolean compareTypesById(List<DataType> left, List<DataType> right) {
+    /**
+     * Compares two {@link List<DataType>} by their IDs.
+     * The parameters of the data types, if they have any, are ignored.
+     */
+    public static boolean isSameType(List<DataType> left, List<DataType> right) {
         if (left.size() != right.size()) {
             return false;
         }
         assert left instanceof RandomAccess && right instanceof RandomAccess
             : "data type lists should support RandomAccess for fast lookups";
         for (int i = 0; i < left.size(); i++) {
-            if (!compareTypesById(left.get(i), right.get(i))) {
+            if (!isSameType(left.get(i), right.get(i))) {
                 return false;
             }
         }

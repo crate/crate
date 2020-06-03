@@ -304,10 +304,10 @@ public class AnalyzedColumnDefinition<T> {
         Settings storageSettings = GenericPropertiesConverter.genericPropertiesToSettings(definition.storageProperties);
         for (String property : storageSettings.names()) {
             if (property.equals(COLUMN_STORE_PROPERTY)) {
-                DataType dataType = definition.dataType();
+                DataType<?> dataType = definition.dataType();
                 boolean val = storageSettings.getAsBoolean(property, true);
                 if (val == false) {
-                    if (dataType != DataTypes.STRING) {
+                    if (!DataTypes.isSameType(dataType, DataTypes.STRING)) {
                         throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH, "Invalid storage option \"columnstore\" for data type \"%s\"",
                                           dataType.getName()));

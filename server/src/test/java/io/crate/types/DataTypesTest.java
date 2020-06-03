@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static io.crate.types.DataTypes.compareTypesById;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNot.not;
@@ -295,33 +294,33 @@ public class DataTypesTest extends CrateUnitTest {
     }
 
     @Test
-    public void test_compare_by_id_primitive_types() {
-        assertThat(compareTypesById(DataTypes.STRING, DataTypes.STRING), is(true));
-        assertThat(compareTypesById(DataTypes.INTEGER, DataTypes.DOUBLE), is(false));
+    public void test_is_same_type_on_primitive_types() {
+        assertThat(DataTypes.isSameType(DataTypes.STRING, DataTypes.STRING), is(true));
+        assertThat(DataTypes.isSameType(DataTypes.INTEGER, DataTypes.DOUBLE), is(false));
     }
 
     @Test
-    public void test_compare_by_id_complex_types() {
-        assertThat(compareTypesById(DataTypes.UNTYPED_OBJECT, DataTypes.BIGINT_ARRAY), is(false));
-        assertThat(compareTypesById(DataTypes.UNTYPED_OBJECT, DataTypes.GEO_POINT), is(false));
+    public void test_is_same_type_on_complex_types() {
+        assertThat(DataTypes.isSameType(DataTypes.UNTYPED_OBJECT, DataTypes.BIGINT_ARRAY), is(false));
+        assertThat(DataTypes.isSameType(DataTypes.UNTYPED_OBJECT, DataTypes.GEO_POINT), is(false));
     }
 
     @Test
-    public void test_compare_by_id_primitive_and_complex_types() {
-        assertThat(compareTypesById(DataTypes.STRING_ARRAY, DataTypes.STRING), is(false));
-        assertThat(compareTypesById(DataTypes.UNTYPED_OBJECT, DataTypes.DOUBLE), is(false));
+    public void test_is_same_type_on_primitive_and_complex_types() {
+        assertThat(DataTypes.isSameType(DataTypes.STRING_ARRAY, DataTypes.STRING), is(false));
+        assertThat(DataTypes.isSameType(DataTypes.UNTYPED_OBJECT, DataTypes.DOUBLE), is(false));
     }
 
     @Test
-    public void test_compare_by_id_array_types_of_the_same_dimension() {
-        assertThat(compareTypesById(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY), is(true));
-        assertThat(compareTypesById(DataTypes.STRING_ARRAY, DataTypes.BIGINT_ARRAY), is(false));
+    public void test_is_same_type_on_array_types_of_the_same_dimension() {
+        assertThat(DataTypes.isSameType(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY), is(true));
+        assertThat(DataTypes.isSameType(DataTypes.STRING_ARRAY, DataTypes.BIGINT_ARRAY), is(false));
     }
 
     @Test
-    public void test_compare_by_id_array_types_of_not_equal_dimension_and_same_inner_type() {
+    public void test_is_same_type_on_array_types_of_not_equal_dimension_and_same_inner_type() {
         assertThat(
-            compareTypesById(
+            DataTypes.isSameType(
                 new ArrayType<>(DataTypes.STRING_ARRAY),
                 DataTypes.STRING_ARRAY),
             is(false));
