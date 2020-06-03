@@ -364,7 +364,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByHavingOtherColumnInAggregate() throws Exception {
-        QueriedSelectRelation relation = analyze("select sum(floats), name from users group by name having max(bytes) = 4");
+        QueriedSelectRelation relation = analyze("select sum(floats), name from users group by name having max(bytes) = 4::char");
         assertThat(relation.having(), isFunction("op_="));
         Function havingFunction = (Function) relation.having();
         assertThat(havingFunction.arguments().size(), is(2));

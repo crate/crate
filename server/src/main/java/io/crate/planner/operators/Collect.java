@@ -43,6 +43,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RoutingProvider;
@@ -243,6 +244,7 @@ public class Collect implements LogicalPlan {
         } else if (where.hasSeqNoAndPrimaryTerm()) {
             throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
         }
+
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
         return new RoutedCollectPhase(
             plannerContext.jobId(),
@@ -258,7 +260,7 @@ public class Collect implements LogicalPlan {
                 ? Lists2.map(boundOutputs, DocReferences::toSourceLookup)
                 : boundOutputs,
             Collections.emptyList(),
-            where.queryOrFallback(),
+            Optimizer.optimizeCasts(where.queryOrFallback(), plannerContext),
             DistributionInfo.DEFAULT_BROADCAST
         );
     }

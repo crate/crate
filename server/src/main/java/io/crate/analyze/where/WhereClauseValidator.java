@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GteOperator;
+import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
@@ -43,6 +44,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.Stack;
 import java.util.function.Supplier;
+
+import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
 
 public final class WhereClauseValidator {
 
@@ -72,7 +75,7 @@ public final class WhereClauseValidator {
         private static final String SEQ_NO = "_seq_no";
         private static final String PRIMARY_TERM = "_primary_term";
         private static final Set<String> VERSIONING_ALLOWED_COMPARISONS = ImmutableSet.of(
-            EqOperator.NAME, AnyOperators.Names.NEQ);
+            EqOperator.NAME, AnyOperators.Type.NEQ.opName());
 
         private static final String SCORE_ERROR = String.format(Locale.ENGLISH,
                                                                 "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
@@ -121,6 +124,23 @@ public final class WhereClauseValidator {
             return false;
         }
 
+        private static boolean insideCastComparedWithLiteral(Context context, Set<String> requiredFunctionNames) {
+            var numFunctions = context.functions.size();
+            if (numFunctions < 2) {
+                return false;
+            }
+            var lastFunction = context.functions.get(numFunctions - 1);
+            var parentFunction = context.functions.get(numFunctions - 2);
+
+            if (CAST_FUNCTION_NAMES.contains(lastFunction.info().ident().name())
+                && parentFunction.info().ident().name().startsWith(Operator.PREFIX)
+                && requiredFunctionNames.contains(parentFunction.info().ident().name())) {
+                var rightArg = parentFunction.arguments().get(1);
+                return rightArg.symbolType().isValueSymbol();
+            }
+            return false;
+        }
+
         private void validateSysReference(Context context, String columnName) {
             if (columnName.equalsIgnoreCase(VERSION)) {
                 validateSysReference(context, VERSIONING_ALLOWED_COMPARISONS, VersioninigValidationException::versionInvalidUsage);
@@ -138,7 +158,8 @@ public final class WhereClauseValidator {
                 throw error.get();
             }
             Function function = context.functions.lastElement();
-            if (!requiredFunctionNames.contains(function.info().ident().name().toLowerCase(Locale.ENGLISH))
+            if ((!insideCastComparedWithLiteral(context, requiredFunctionNames)
+                && !requiredFunctionNames.contains(function.info().ident().name().toLowerCase(Locale.ENGLISH)))
                 || insideNotPredicate(context)) {
                 throw error.get();
             }

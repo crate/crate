@@ -38,6 +38,9 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CastFunctionResolver {
 
+    public static final List<String> CAST_FUNCTION_NAMES = List.of(
+        ExplicitCastFunction.NAME, ImplicitCastFunction.NAME, TryCastFunction.NAME);
+
     public static Symbol generateCastFunction(Symbol sourceSymbol,
                                               DataType<?> targetType,
                                               CastMode... castModes) {

@@ -51,7 +51,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSplitPointsCreationWithFunctionInAggregation() throws Exception {
-        QueriedSelectRelation relation = e.analyze("select sum(coalesce(x, 0::integer)) + 10 from t1");
+        QueriedSelectRelation relation = e.analyze("select sum(coalesce(x, 0)) + 10 from t1");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 

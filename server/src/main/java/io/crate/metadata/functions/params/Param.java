@@ -292,24 +292,13 @@ public final class Param {
             lowerPrecedenceArg = arg1;
         }
 
-        final DataType lowerPrecedenceType = lowerPrecedenceArg.valueType();
-        final DataType higherPrecedenceType = higherPrecedenceArg.valueType();
+        final DataType<?> lowerPrecedenceType = lowerPrecedenceArg.valueType();
+        final DataType<?> higherPrecedenceType = higherPrecedenceArg.valueType();
 
-        final boolean lowerPrecedenceCastable =
-            lowerPrecedenceArg.canBeCasted() && lowerPrecedenceType.isConvertableTo(higherPrecedenceType, false) &&
-            isTypeValid(higherPrecedenceType);
-        final boolean higherPrecedenceCastable =
-            higherPrecedenceArg.canBeCasted() && higherPrecedenceType.isConvertableTo(lowerPrecedenceType, false) &&
-            isTypeValid(lowerPrecedenceType);
-
-        // Check if one of the two arguments is a value symbol which can be converted easily, e.g. Literal
-        // We also allow downcasts in this case because we can check during analyzing the statement if
-        // the downcast succeeds.
-        if (lowerPrecedenceCastable && lowerPrecedenceArg.isValueSymbol()) {
-            return higherPrecedenceArg;
-        } else if (higherPrecedenceCastable && higherPrecedenceArg.isValueSymbol()) {
-            return lowerPrecedenceArg;
-        }
+        final boolean lowerPrecedenceCastable = lowerPrecedenceType.isConvertableTo(higherPrecedenceType, false)
+            && isTypeValid(higherPrecedenceType);
+        final boolean higherPrecedenceCastable = higherPrecedenceType.isConvertableTo(lowerPrecedenceType, false)
+            && isTypeValid(lowerPrecedenceType);
 
         if (lowerPrecedenceCastable) {
             return higherPrecedenceArg;
@@ -317,18 +306,10 @@ public final class Param {
             return lowerPrecedenceArg;
         }
 
-        // if neither the source, nor the target can be casted, yet either one *IS* convertible to the other, we will
-        // try to do the conversion (comparing two columns will never utilize the index anyway)
-        if (lowerPrecedenceType.isConvertableTo(higherPrecedenceType, false)) {
-            return higherPrecedenceArg;
-        } else if (higherPrecedenceType.isConvertableTo(lowerPrecedenceType, false)) {
-            return lowerPrecedenceArg;
-        }
-
         return null;
     }
 
-    private boolean isTypeValid(DataType dataType) {
+    private boolean isTypeValid(DataType<?> dataType) {
         return validTypes.isEmpty() || validTypes.contains(dataType);
     }
 

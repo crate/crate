@@ -214,10 +214,10 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast `'a'` of type `text` to type `char`");
+        expectedException.expectMessage("Cannot cast `[129]` of type `integer_array` to type `char_array`");
 
         setUpSimple();
-        execute("update t1 set byte_field=0 where byte_field in ('a')");
+        execute("update t1 set byte_field=0 where byte_field in (129)");
     }
 
     @Test

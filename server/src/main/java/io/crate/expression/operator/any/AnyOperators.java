@@ -22,42 +22,70 @@
 
 package io.crate.expression.operator.any;
 
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.sql.tree.ComparisonExpression;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
+import java.util.function.IntPredicate;
 
 import static io.crate.expression.operator.any.AnyOperator.OPERATOR_PREFIX;
-import static io.crate.expression.operator.any.AnyOperators.Names.EQ;
-import static io.crate.expression.operator.any.AnyOperators.Names.GT;
-import static io.crate.expression.operator.any.AnyOperators.Names.GTE;
-import static io.crate.expression.operator.any.AnyOperators.Names.LT;
-import static io.crate.expression.operator.any.AnyOperators.Names.LTE;
-import static io.crate.expression.operator.any.AnyOperators.Names.NEQ;
 
 public final class AnyOperators {
 
-    private AnyOperators() {
-    }
+    public static final List<String> OPERATOR_NAMES = Lists2.concat(
+        AnyOperators.Type.fullQualifiedNames(),
+        List.of(
+            LikeOperators.ANY_LIKE,
+            LikeOperators.ANY_ILIKE,
+            LikeOperators.ANY_NOT_LIKE,
+            LikeOperators.ANY_NOT_ILIKE
+        )
+    );
 
-    public static class Names {
-        public static final String EQ = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
-        public static final String GTE = OPERATOR_PREFIX + ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue();
-        public static final String GT = OPERATOR_PREFIX + ComparisonExpression.Type.GREATER_THAN.getValue();
-        public static final String LTE = OPERATOR_PREFIX + ComparisonExpression.Type.LESS_THAN_OR_EQUAL.getValue();
-        public static final String LT = OPERATOR_PREFIX + ComparisonExpression.Type.LESS_THAN.getValue();
-        public static final String NEQ = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
+    public enum Type {
+        EQ(ComparisonExpression.Type.EQUAL, result -> result == 0),
+        NEQ(ComparisonExpression.Type.NOT_EQUAL, result -> result != 0),
+        GTE(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, result -> result >= 0),
+        GT(ComparisonExpression.Type.GREATER_THAN, result -> result > 0),
+        LTE(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, result -> result <= 0),
+        LT(ComparisonExpression.Type.LESS_THAN, result -> result < 0);
+
+        final String opName;
+        final String opSymbol;
+        final IntPredicate cmp;
+
+        Type(ComparisonExpression.Type type, IntPredicate cmp) {
+            this.opName = OPERATOR_PREFIX + type.getValue();
+            this.opSymbol = type.getValue();
+            this.cmp = cmp;
+        }
+
+        public String opName() {
+            return opName;
+        }
+
+        public static List<String> fullQualifiedNames() {
+            return Lists2.map(Arrays.asList(values()), t -> t.opName);
+        }
+
+        @VisibleForTesting
+        public static List<String> operatorSymbols() {
+            return Lists2.map(Arrays.asList(values()), t -> t.opSymbol);
+        }
     }
 
     public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(EQ, new AnyOperator.AnyResolver(EQ, result -> result == 0));
-        module.registerDynamicOperatorFunction(GTE, new AnyOperator.AnyResolver(GTE, result -> result >= 0));
-        module.registerDynamicOperatorFunction(GT, new AnyOperator.AnyResolver(GT, result -> result > 0));
-        module.registerDynamicOperatorFunction(LTE, new AnyOperator.AnyResolver(LTE, result -> result <= 0));
-        module.registerDynamicOperatorFunction(LT, new AnyOperator.AnyResolver(LT, result -> result < 0));
-        module.registerDynamicOperatorFunction(NEQ, new AnyOperator.AnyResolver(NEQ, result -> result != 0));
+        for (var type : Type.values()) {
+            module.registerDynamicOperatorFunction(
+                type.opName,
+                new AnyOperator.AnyResolver(type.opName, type.cmp));
+        }
     }
 
     public static Iterable<?> collectionValueToIterable(Object collectionRef) throws IllegalArgumentException {
@@ -69,5 +97,8 @@ public final class AnyOperators {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "cannot cast %s to Iterable", collectionRef));
         }
+    }
+
+    private AnyOperators() {
     }
 }

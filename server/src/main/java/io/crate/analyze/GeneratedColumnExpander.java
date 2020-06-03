@@ -126,6 +126,7 @@ public final class GeneratedColumnExpander {
                 Symbol otherSide = null;
                 for (int i = 0; i < function.arguments().size(); i++) {
                     Symbol arg = function.arguments().get(i);
+                    arg = Symbols.unwrapReferenceFromCast(arg);
                     if (arg instanceof Reference) {
                         reference = (Reference) arg;
                     } else {

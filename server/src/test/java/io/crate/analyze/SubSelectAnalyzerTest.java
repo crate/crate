@@ -134,8 +134,8 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select * from " +
                                                  " (select a, i from t1 order by a limit 5) t1 " +
                                                  "left join" +
-                                                 " (select b, i from t2 where b > 10) t2 " +
-                                                 "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
+                                                 " (select b, i from t2 where b > '10') t2 " +
+                                                 "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                                  "limit 10");
         assertThat(relation,
                    isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10::bigint"));
@@ -152,8 +152,8 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select * from " +
                                                  " (select a, i from t1 order by a limit 5) t1 " +
                                                  "left join" +
-                                                 " (select b, i from t2 where b > 10) t2 " +
-                                                 "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
+                                                 " (select b, i from t2 where b > '10') t2 " +
+                                                 "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                                  "order by 2 limit 10");
         assertThat(relation,
             isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10::bigint"));
@@ -172,7 +172,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  "     select * from t1 order by a desc limit 5) a" +
                                                  "  order by a limit 10) t1 " +
                                                  "join" +
-                                                 " (select b, i from t2 where b > 10) t2 " +
+                                                 " (select b, i from t2 where b > '10') t2 " +
                                                  "on t1.i = t2.i " +
                                                  "order by 1 limit 10");
         assertThat(relation.outputs(), contains(isFunction("count")));
@@ -201,8 +201,8 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testJoinOnSubSelectsWithOrder() throws Exception {
         QueriedSelectRelation relation = analyze("select * from " +
                                                  " (select a, i from t1 order by a) t1, " +
-                                                 " (select b, i from t2 where b > 10) t2 " +
-                                                 "where t1.a > 50 and t2.b > 100 " +
+                                                 " (select b, i from t2 where b > '10') t2 " +
+                                                 "where t1.a > '50' and t2.b > '100' " +
                                                  "order by 2 limit 10");
         assertThat(relation.outputs(), contains(isField("a"), isField("i"), isField("b"), isField("i")));
         assertThat(relation.where(), isSQL("((t1.a > '50') AND (t2.b > '100'))"));
@@ -225,8 +225,8 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select * from " +
                                                  " (select max(a) ma, i from t1 group by i) t1 " +
                                                  "left join" +
-                                                 " (select max(b) mb, i from t2 group by i having i > 10) t2 " +
-                                                 "on t1.i = t2.i where t1.ma > 50 and t2.mb > 100");
+                                                 " (select max(b) mb, i from t2 group by i having i > 10::int) t2 " +
+                                                 "on t1.i = t2.i where t1.ma > '50' and t2.mb > '100'");
         assertThat(relation.outputs(), isSQL("t1.ma, t1.i, t2.mb, t2.i"));
         assertThat(relation.joinPairs().get(0).condition(), isSQL("(t1.i = t2.i)"));
         assertThat(relation.where(), isSQL("((t1.ma > '50') AND (t2.mb > '100'))"));
