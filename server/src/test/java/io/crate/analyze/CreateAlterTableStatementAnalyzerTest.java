@@ -158,7 +158,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void test_cannot_create_table_that_contains_a_column_definition_of_type_time () {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use the type `time with time zone` for column: ts");
+        expectedException.expectMessage("Cannot use the type `timetz` for column: ts");
         analyze("create table t (ts time with time zone)");
     }
 
