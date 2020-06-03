@@ -122,7 +122,7 @@ public class TimeTZParserTest extends CrateUnitTest {
     public void test_format_time() {
         assertThat(TimeTZType.formatTime(new TimeTZ(14400000000L, 0)), is("04:00:00"));
         assertThat(TimeTZType.formatTime(new TimeTZ(14400123000L, 0)), is("04:00:00.123"));
-        assertThat(TimeTZType.formatTime(new TimeTZ(14400123666L, 0)), is("04:00:00.123666"));
+        assertThat(TimeTZType.formatTime(new TimeTZ(14400123666L, 65)), is("04:00:00.123666+00:01:05"));
     }
 
     @Test
