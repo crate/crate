@@ -66,7 +66,7 @@ public final class TimeTZ implements Comparable<TimeTZ> {
 
     @Override
     public int compareTo(TimeTZ that) {
-         int micros = Long.compare(microsFromMidnight, that.microsFromMidnight);
-         return 0 == micros ? Long.compare(secondsFromUTC, that.secondsFromUTC) : micros;
+        int micros = Long.compare(microsFromMidnight, that.microsFromMidnight);
+        return 0 == micros ? Long.compare(secondsFromUTC, that.secondsFromUTC) : micros;
     }
 }
