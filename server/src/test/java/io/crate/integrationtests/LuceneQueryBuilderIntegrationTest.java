@@ -314,10 +314,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
 
     @Test
     public void testNullOperators() throws Exception {
-        DataType<?> type;
-        do {
-           type = randomType();
-        } while (type == DataTypes.INTERVAL);
+        DataType<?> type = randomType();
         execute("create table t1 (c " + type.getName() + ") with (number_of_replicas = 0)");
         Supplier dataGenerator = DataTypeTesting.getDataGenerator(type);
 
