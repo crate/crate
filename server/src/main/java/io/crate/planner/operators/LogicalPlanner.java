@@ -209,7 +209,7 @@ public class LogicalPlanner {
             OrderBy relationOrderBy = queriedRelation.orderBy();
             Symbol firstOutput = queriedRelation.outputs().get(0);
             if ((relationOrderBy == null || relationOrderBy.orderBySymbols().get(0).equals(firstOutput) == false)
-                && DataTypes.PRIMITIVE_TYPES.contains(firstOutput.valueType())) {
+                && DataTypes.isPrimitive(firstOutput.valueType())) {
 
                 return Order.create(planBuilder, new OrderBy(Collections.singletonList(firstOutput)));
             }

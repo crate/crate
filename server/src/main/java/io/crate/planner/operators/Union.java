@@ -105,7 +105,7 @@ public class Union implements LogicalPlan {
         ResultDescription leftResultDesc = left.resultDescription();
         ResultDescription rightResultDesc = right.resultDescription();
 
-        assert DataTypes.compareTypesById(leftResultDesc.streamOutputs(), rightResultDesc.streamOutputs())
+        assert DataTypes.isSameType(leftResultDesc.streamOutputs(), rightResultDesc.streamOutputs())
             : "Left and right must output the same types, got " +
               "lhs=" + leftResultDesc.streamOutputs() + ", rhs=" + rightResultDesc.streamOutputs();
 

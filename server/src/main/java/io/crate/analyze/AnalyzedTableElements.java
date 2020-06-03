@@ -542,7 +542,7 @@ public class AnalyzedTableElements<T> {
             }
             throw new ColumnUnknownException(partitionedByIdent.sqlFqn(), relationName);
         }
-        DataType columnType = columnDefinition.dataType();
+        DataType<?> columnType = columnDefinition.dataType();
         if (!DataTypes.isPrimitive(columnType)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                              "Cannot use column %s of type %s in PARTITIONED BY clause",

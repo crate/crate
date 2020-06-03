@@ -21,15 +21,6 @@
 
 package io.crate.metadata.information;
 
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.NUMERIC_PRIMITIVE_TYPES;
-import static io.crate.types.DataTypes.TIMESTAMPZ;
-import static io.crate.types.DataTypes.TIMESTAMP;
-
-import java.util.Map;
-
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -37,11 +28,20 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.types.ByteType;
+import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
+
+import java.util.Map;
+
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.TIMESTAMP;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 
 public class InformationColumnsTableInfo {
@@ -85,7 +85,7 @@ public class InformationColumnsTableInfo {
             .add("character_octet_length", INTEGER, ignored -> null)
             .add("numeric_precision", INTEGER, r -> PRECISION_BY_TYPE_ID.get(r.info.valueType().id()))
             .add("numeric_precision_radix", INTEGER, r -> {
-                if (NUMERIC_PRIMITIVE_TYPES.contains(r.info.valueType())) {
+                if (DataTypes.isNumericPrimitive(r.info.valueType())) {
                     return NUMERIC_PRECISION_RADIX;
                 }
                 return null;

@@ -99,10 +99,11 @@ public class FileCollectSource implements CollectSource {
                                                       Functions functions,
                                                       Symbol targetUri) {
         Object value = SymbolEvaluator.evaluate(txnCtx, functions, targetUri, Row.EMPTY, SubQueryResults.EMPTY);
-        if (targetUri.valueType() == DataTypes.STRING) {
+        if (DataTypes.isSameType(targetUri.valueType(), DataTypes.STRING)) {
             String uri = (String) value;
             return Collections.singletonList(uri);
-        } else if (targetUri.valueType() instanceof ArrayType && ((ArrayType) targetUri.valueType()).innerType() == DataTypes.STRING) {
+        } else if (DataTypes.isArray(targetUri.valueType()) &&
+                   DataTypes.isSameType(ArrayType.unnest(targetUri.valueType()), DataTypes.STRING)) {
             //noinspection unchecked
             return (List<String>) value;
         }

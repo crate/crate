@@ -67,7 +67,7 @@ public class SemanticSortValidator {
 
         @Override
         public Void visitFunction(Function symbol, SortContext context) {
-            if (!context.inFunction && !DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
+            if (!context.inFunction && !DataTypes.isPrimitive(symbol.valueType())) {
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH,
                                   "Cannot %s '%s': invalid return type '%s'.",
@@ -98,7 +98,7 @@ public class SemanticSortValidator {
         public Void visitSymbol(Symbol symbol, SortContext context) {
             // if we are in a function, we do not need to check the data type.
             // the function will do that for us.
-            if (!context.inFunction && !DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
+            if (!context.inFunction && !DataTypes.isPrimitive(symbol.valueType())) {
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH,
                                   "Cannot %s '%s': invalid data type '%s'.",
