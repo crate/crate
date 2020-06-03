@@ -30,7 +30,9 @@ import io.crate.metadata.Schemas;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class T3 {
 
