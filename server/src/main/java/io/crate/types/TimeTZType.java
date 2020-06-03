@@ -76,7 +76,7 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     public void writeValueTo(StreamOutput out, TimeTZ tz) throws IOException {
         out.writeBoolean(tz == null);
         if (tz != null) {
-            out.writeLong(tz.getTime());
+            out.writeLong(tz.getMicrosFromMidnight());
             out.writeInt(tz.getSecondsFromUTC());
         }
     }

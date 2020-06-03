@@ -64,7 +64,7 @@ final class TimeTZType extends PGType<TimeTZ> {
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull TimeTZ value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeLong(value.getTime());
+        buffer.writeLong(value.getMicrosFromMidnight());
         buffer.writeInt(value.getSecondsFromUTC());
         return INT32_BYTE_SIZE + TYPE_LEN;
     }

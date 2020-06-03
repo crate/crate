@@ -26,20 +26,16 @@ import java.util.Objects;
 
 public final class TimeTZ implements Comparable<TimeTZ> {
 
-    private final long time;
+    private final long microsFromMidnight;
     private final int secondsFromUTC;
 
-    public TimeTZ(long time) {
-        this(time, 0);
-    }
-
-    public TimeTZ(long time, int secondsFromUTC) {
-        this.time = time;
+    public TimeTZ(long microsFromMidnight, int secondsFromUTC) {
+        this.microsFromMidnight = microsFromMidnight;
         this.secondsFromUTC = secondsFromUTC;
     }
 
-    public long getTime() {
-        return time;
+    public long getMicrosFromMidnight() {
+        return microsFromMidnight;
     }
 
     public int getSecondsFromUTC() {
@@ -55,12 +51,12 @@ public final class TimeTZ implements Comparable<TimeTZ> {
             return false;
         }
         TimeTZ that = (TimeTZ) o;
-        return time == that.time && secondsFromUTC == that.secondsFromUTC;
+        return microsFromMidnight == that.microsFromMidnight && secondsFromUTC == that.secondsFromUTC;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(time, secondsFromUTC);
+        return Objects.hash(microsFromMidnight, secondsFromUTC);
     }
 
     @Override
@@ -70,6 +66,7 @@ public final class TimeTZ implements Comparable<TimeTZ> {
 
     @Override
     public int compareTo(TimeTZ that) {
-        return Long.compare(time, that.time);
+         int micros = Long.compare(microsFromMidnight, that.microsFromMidnight);
+         return 0 == micros ? Long.compare(secondsFromUTC, that.secondsFromUTC) : micros;
     }
 }

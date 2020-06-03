@@ -76,7 +76,8 @@ import java.util.Locale;
  * <p>
  * The above formats accept a suffix (-|+)HH[[:]MM[[:]SS]] (and all ISO-8601
  * compliant) to define the time zone. If the time zone is not defined,
- * then <b>UTC is implicit</>.
+ * then <b>UTC is implicit</>. Time zone values are limited to 14:59:59 in
+ * either direction as per postgres specification.
  */
 public final class TimeTZParser {
 
@@ -91,29 +92,21 @@ public final class TimeTZParser {
         HH(24),
         MM(59),
         SS(59),
-        MICRO(999999) {
-            @Override
-            long validate(String value, int start, int end) {
-                String s = value.substring(start, Math.min(start + 6, end));
-                try {
-                    int v = Integer.parseInt(s);
-                    for (int i = 0; i < 6 - s.length(); i++) {
-                        v *= 10;
-                    }
-                    return checkRange(name(), v, 999999);
-                } catch (NumberFormatException e) {
-                    throw exceptionForInvalidLiteral(value);
-                }
-            }
-        },
+        MICRO(999999, 6),
         ZID_HH(14),
         ZID_MM(59),
         ZID_SS(59);
 
-        private int max;
+        private int maxValue;
+        private int maxDigits;
 
-        State(int max) {
-            this.max = max;
+        State(int maxValue) {
+            this(maxValue, 2);
+        }
+
+        State(int maxValue, int maxDigits) {
+            this.maxValue = maxValue;
+            this.maxDigits = maxDigits;
         }
 
         State next() {
@@ -122,8 +115,13 @@ public final class TimeTZParser {
         }
 
         long validate(String value, int start, int end) {
+            String s = value.substring(start, Math.min(start + maxDigits, end));
             try {
-                return checkRange(name(), Integer.valueOf(value.substring(start, end)), max);
+                int v = Integer.parseInt(s);
+                for (int i = 0; i < maxDigits - s.length(); i++) {
+                    v *= 10;
+                }
+                return checkRange(name(), v, maxValue);
             } catch (NumberFormatException e) {
                 throw exceptionForInvalidLiteral(value);
             }
@@ -133,7 +131,7 @@ public final class TimeTZParser {
     private static EnumMap<State, Long> parse(@Nonnull String format,
                                               State initialState,
                                               int startOffset,
-                                              boolean expectingMicros) {
+                                              boolean microsEnabled) {
         EnumMap<State, Long> values = new EnumMap<>(State.class);
         int colonCount = 0;
         State state = initialState;
@@ -162,14 +160,14 @@ public final class TimeTZParser {
                 state = state.next();
                 start = i + 1;
             } else if (c == '.') {
-                if (i - start != 2 || !expectingMicros) {
+                if (i - start != 2 || !microsEnabled) {
                     throw exceptionForInvalidLiteral(format);
                 }
                 values.put(state, state.validate(format, start, i));
                 state = State.MICRO;
                 start = i + 1;
             } else if (c == '+' || c == '-' || c == ' ' || Character.isLetter(c)) {
-                if (!expectingMicros) {
+                if (!microsEnabled) {
                     throw exceptionForInvalidLiteral(format);
                 }
                 break;
@@ -180,7 +178,7 @@ public final class TimeTZParser {
         if (state != State.MICRO && i - start != 2) {
             throw exceptionForInvalidLiteral(format);
         }
-        if (state == State.MICRO && !expectingMicros) {
+        if (state == State.MICRO && !microsEnabled) {
             throw exceptionForInvalidLiteral(format);
         }
         values.put(state, state.validate(format, start, i));
@@ -192,6 +190,7 @@ public final class TimeTZParser {
         while (startOffset < format.length()) {
             char c = format.charAt(startOffset);
             if (c == '+' || c == '-' || Character.isLetter(c)) {
+                // will skip spaces in between time and zone
                 return startOffset;
             }
             startOffset++;
@@ -227,11 +226,11 @@ public final class TimeTZParser {
                     throw exceptionForInvalidLiteral(format);
                 }
             } else {
+                long zoneSign = '+' == c ? 1L : -1L;
                 EnumMap<State, Long> zone = parse(format, State.ZID_HH, zoneStart + 1, false);
                 long zoneHH = zone.getOrDefault(State.ZID_HH, 0L);
                 long zoneMM = zone.getOrDefault(State.ZID_MM, 0L);
                 long zoneSS = zone.getOrDefault(State.ZID_SS, 0L);
-                long zoneSign = '+' == c ? 1L : -1L;
                 zoneSecondsFromUTC = (int) (zoneSign * (zoneHH * 60 + zoneMM) * 60 + zoneSS);
             }
         }
@@ -261,7 +260,7 @@ public final class TimeTZParser {
 
     static String formatTime(@Nonnull TimeTZ time) {
         String localTime = LocalTime
-            .ofNanoOfDay(time.getTime() * 1000L)
+            .ofNanoOfDay(time.getMicrosFromMidnight() * 1000L)
             .format(DateTimeFormatter.ISO_TIME);
         int secondsFromUTC = time.getSecondsFromUTC();
         if (secondsFromUTC != 0) {
