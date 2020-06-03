@@ -1506,27 +1506,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_time_type_column_references() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-            .startObject()
-            .startObject(Constants.DEFAULT_MAPPING_TYPE)
-            .startObject("properties")
-            .startObject("t0")
-            .field("type", "time with time zone")
-            .endObject()
-            .startObject("t1")
-            .field("type", "timetz")
-            .endObject()
-            .endObject()
-            .endObject()
-            .endObject();
-        DocIndexMetaData md = newMeta(getIndexMetaData("test", builder), "test");
-        assertThat(md.columns().size(), is(2));
-        assertThat(md.references().get(new ColumnIdent("t0")).valueType(), is(DataTypes.TIMETZ));
-        assertThat(md.references().get(new ColumnIdent("t1")).valueType(), is(DataTypes.TIMETZ));
-    }
-
-    @Test
     public void test_resolve_inner_object_types() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
         .startObject()
