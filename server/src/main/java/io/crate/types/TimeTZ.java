@@ -61,7 +61,7 @@ public final class TimeTZ implements Comparable<TimeTZ> {
 
     @Override
     public String toString() {
-        return TimeTZType.formatTime(this);
+        return TimeTZParser.formatTime(this);
     }
 
     @Override
