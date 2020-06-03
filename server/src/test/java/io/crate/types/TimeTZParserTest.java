@@ -120,16 +120,16 @@ public class TimeTZParserTest extends CrateUnitTest {
 
     @Test
     public void test_format_time() {
-        assertThat(TimeTZType.formatTime(new TimeTZ(14400000000L, 0)), is("04:00:00"));
-        assertThat(TimeTZType.formatTime(new TimeTZ(14400123000L, 0)), is("04:00:00.123"));
-        assertThat(TimeTZType.formatTime(new TimeTZ(14400123666L, 65)), is("04:00:00.123666+00:01:05"));
+        assertThat(TimeTZParser.formatTime(new TimeTZ(14400000000L, 0)), is("04:00:00"));
+        assertThat(TimeTZParser.formatTime(new TimeTZ(14400123000L, 0)), is("04:00:00.123"));
+        assertThat(TimeTZParser.formatTime(new TimeTZ(14400123666L, 65)), is("04:00:00.123666+00:01:05"));
     }
 
     @Test
     public void test_format_time_with_tz() {
-        assertThat(TimeTZType.formatTime(new TimeTZ(14400123000L, 123)),
+        assertThat(TimeTZParser.formatTime(new TimeTZ(14400123000L, 123)),
                    is("04:00:00.123+00:02:03"));
-        assertThat(TimeTZType.formatTime(new TimeTZ(14400123666L, 14 * 3600 + 59 * 60)),
+        assertThat(TimeTZParser.formatTime(new TimeTZ(14400123666L, 14 * 3600 + 59 * 60)),
                    is("04:00:00.123666+14:59"));
     }
 }
