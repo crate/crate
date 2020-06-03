@@ -29,8 +29,8 @@ import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-import static io.crate.types.TimeTZType.formatTime;
-import static io.crate.types.TimeTZType.parseTime;
+import static io.crate.types.TimeTZParser.formatTime;
+import static io.crate.types.TimeTZParser.parse;
 import static io.crate.types.TimeTZType.NAME;
 import static io.crate.types.TimeTZType.TYPE_LEN;
 
@@ -85,6 +85,6 @@ final class TimeTZType extends PGType<TimeTZ> {
 
     @Override
     TimeTZ decodeUTF8Text(byte[] bytes) {
-        return parseTime(new String(bytes, StandardCharsets.UTF_8));
+        return parse(new String(bytes, StandardCharsets.UTF_8));
     }
 }

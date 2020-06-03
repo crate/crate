@@ -239,10 +239,6 @@ public final class TimeTZParser {
         return zoneSecondsFromUTC;
     }
 
-    static TimeTZ parse(@Nonnull String format) {
-        return new TimeTZ(parseJustTime(format), parseJustZone(format));
-    }
-
     static IllegalArgumentException exceptionForInvalidLiteral(Object literal) {
         throw new IllegalArgumentException(String.format(
             Locale.ENGLISH,
@@ -250,7 +246,7 @@ public final class TimeTZParser {
             literal, TimeTZType.class.getSimpleName()));
     }
 
-    static long checkRange(String name, long value, long max) {
+    private static long checkRange(String name, long value, long max) {
         if (value < 0 || value > max) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
@@ -260,7 +256,11 @@ public final class TimeTZParser {
         return value;
     }
 
-    static String formatTime(@Nonnull TimeTZ time) {
+    public static TimeTZ parse(@Nonnull String format) {
+        return new TimeTZ(parseJustTime(format), parseJustZone(format));
+    }
+
+    public static String formatTime(@Nonnull TimeTZ time) {
         String localTime = LocalTime
             .ofNanoOfDay(time.getMicrosFromMidnight() * 1000L)
             .format(DateTimeFormatter.ISO_TIME);

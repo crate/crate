@@ -25,7 +25,6 @@ import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 
 import static io.crate.types.TimeTZParser.timeTZOf;
@@ -96,7 +95,7 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
         }
         if (value instanceof String) {
             try {
-                return parseTime((String) value);
+                return TimeTZParser.parse((String) value);
             } catch (IllegalArgumentException e0) {
                 try {
                     return timeTZOf(
@@ -108,13 +107,5 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
             }
         }
         throw exceptionForInvalidLiteral(value);
-    }
-
-    public static String formatTime(@Nonnull TimeTZ time) {
-        return TimeTZParser.formatTime(time);
-    }
-
-    public static TimeTZ parseTime(@Nonnull String time) {
-        return TimeTZParser.parse(time);
     }
 }

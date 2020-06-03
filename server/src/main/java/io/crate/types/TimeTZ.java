@@ -23,7 +23,6 @@ package io.crate.types;
 
 import java.util.Objects;
 
-
 public final class TimeTZ implements Comparable<TimeTZ> {
 
     private final long microsFromMidnight;
