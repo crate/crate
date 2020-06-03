@@ -526,10 +526,10 @@ Layer Security (TLS).
 
 **ssl.resource_poll_interval**
   | *Runtime:* ``no``
-  | *Default:* ``10s``
+  | *Default:* ``5m``
 
   The frequency at which SSL files such as keystore and truststore are polled
-  for changes. Possible effective values are ``2s``, ``10s`` or ``30s``.
+  for changes.
 
 Cross-origin resource sharing (CORS)
 ====================================

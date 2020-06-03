@@ -85,6 +85,9 @@ Administration
   built. It means that ``CrateDB`` doesn't rely on ``JAVA_HOME`` of the host
   system any longer.
 
+- Increased the default interval to detect ``keystore`` or ``truststore``
+  changes to five minutes.
+
 
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------

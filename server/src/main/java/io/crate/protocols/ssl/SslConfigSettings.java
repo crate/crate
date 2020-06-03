@@ -22,7 +22,6 @@
 
 package io.crate.protocols.ssl;
 
-import com.sun.nio.file.SensitivityWatchEventModifier;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
@@ -82,7 +81,7 @@ public final class SslConfigSettings {
     public static final CrateSetting<TimeValue> SSL_RESOURCE_POLL_INTERVAL = CrateSetting.of(
         new Setting<>(
             SSL_RESOURCE_POLL_INTERVAL_NAME,
-            TimeValue.timeValueSeconds(SensitivityWatchEventModifier.MEDIUM.sensitivityValueInSeconds()).getStringRep(),
+            TimeValue.timeValueMinutes(5).getStringRep(),
             new SslResourcePollIntervalParser(LOGGER),
             Setting.Property.NodeScope),
         DataTypes.STRING);
