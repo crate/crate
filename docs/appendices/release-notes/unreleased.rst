@@ -202,6 +202,9 @@ Performance improvements
 Fixes
 =====
 
+- Fixed an issue that prevented CrateDB from detecting changes to the SSL
+  ``keystore`` or ``truststore`` if one the paths is a symlink.
+
 - Fixed an issue that could prevent updating settings that depend on other
   settings. For example ``"cluster.routing.allocation.disk.watermark.low"``
 
