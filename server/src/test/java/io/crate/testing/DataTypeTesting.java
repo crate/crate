@@ -44,8 +44,6 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
-import io.crate.types.TimeTZParser;
-import io.crate.types.TimeTZType;
 import io.crate.types.TimestampType;
 import org.joda.time.Period;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -104,9 +102,6 @@ public class DataTypeTesting {
 
             case IntegerType.ID:
                 return () -> (T) (Integer) random.nextInt();
-
-            case TimeTZType.ID:
-                return () -> (T) (Long) Math.min(Math.abs(random.nextLong()), TimeTZParser.MAX_MICROS);
 
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:

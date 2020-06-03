@@ -222,9 +222,6 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     public void test_try_cast_for_all_data_types() {
         for (DataType<?> dataType : DataTypes.PRIMITIVE_TYPES) {
             DataType<?> randomType = randomType();
-            if (dataType == DataTypes.TIMETZ && randomType == DataTypes.IP) {
-                continue;
-            }
             Literal<?> val = Literal.ofUnchecked(randomType, getDataGenerator(randomType).get());
             assertEvaluate(
                 "try_cast(" + val.toString(Style.QUALIFIED) + " as " + dataType.getName() + ")",
