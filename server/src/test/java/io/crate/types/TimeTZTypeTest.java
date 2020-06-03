@@ -24,6 +24,7 @@ public class TimeTZTypeTest extends CrateUnitTest {
 
     @Test
     public void test_value_ISO_formats_with_time_zone() {
+        assertThat(TimeTZType.INSTANCE.value("01:00:00     CET"), isTZ(3600000000L, 3600));
         assertThat(TimeTZType.INSTANCE.value("01:00:00     UTC"), isTZ(3600000000L));
         assertThat(TimeTZType.INSTANCE.value("01:00:00     GMT"), isTZ(3600000000L));
         assertThat(TimeTZType.INSTANCE.value("01:00:00  Z"), isTZ(3600000000L));

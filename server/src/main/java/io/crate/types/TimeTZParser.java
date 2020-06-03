@@ -84,6 +84,7 @@ public final class TimeTZParser {
     public static final long MAX_MICROS = 24 * 60 * 60 * 1000_000L;
     static final int LOCAL_TZ_SECONDS_FROM_UTC = 0;
 
+
     public static TimeTZ timeTZOf(String source, long value) {
         return new TimeTZ(checkRange(source, value, MAX_MICROS), LOCAL_TZ_SECONDS_FROM_UTC);
     }
@@ -217,8 +218,9 @@ public final class TimeTZParser {
             char c = format.charAt(zoneStart);
             if (Character.isLetter(c)) {
                 try {
+                    String zoneId = format.substring(zoneStart).strip();
                     zoneSecondsFromUTC = ZoneId
-                        .of(format.substring(zoneStart).strip())
+                        .of(zoneId)
                         .getRules()
                         .getOffset(Instant.EPOCH)
                         .getTotalSeconds();
