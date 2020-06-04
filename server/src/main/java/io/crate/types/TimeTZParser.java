@@ -119,7 +119,7 @@ public final class TimeTZParser {
                 }
             }
             return new TimeTZ(microsFromMidnight, zoneSecondsFromUTC);
-        } catch (DateTimeException e0 ) {
+        } catch (DateTimeException e0) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,"%s", e0.getMessage()));
         }
@@ -135,10 +135,10 @@ public final class TimeTZParser {
             .format(DateTimeFormatter.ISO_TIME);
         int secondsFromUTC = time.getSecondsFromUTC();
         if (secondsFromUTC != 0) {
-            return  String.format(
-                    Locale.ENGLISH,"%s%s",
-                    localTime,
-                    ZoneOffset.ofTotalSeconds(time.getSecondsFromUTC()));
+            return String.format(
+                Locale.ENGLISH,"%s%s",
+                localTime,
+                ZoneOffset.ofTotalSeconds(time.getSecondsFromUTC()));
         }
         return localTime;
     }
