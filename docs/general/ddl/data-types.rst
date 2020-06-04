@@ -462,13 +462,15 @@ The syntax for time string literals is as follows:
     time-only:    HH[[:][mm[:]ss]]
     fraction:     '.' digit+
     offset:       {+ | -} time-only | geo-region
-    geo-region:   As defined for `ISO 8601 time zone designators`_.
+    geo-region:   As defined by ISO 8601.
 
 
 Where `time-only` can contain optional seconds, or optional minutes and seconds,
 and can use `:` as a separator optionally.
 
 `fraction` accepts up to 6 digits, as precision is in micro seconds.
+
+Time zone syntax as defined by `ISO 8601 time zone designators`_.
 
 ::
 
