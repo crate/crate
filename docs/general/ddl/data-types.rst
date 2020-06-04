@@ -462,7 +462,7 @@ The syntax for time string literals is as follows:
     time-only:    HH[[:][mm[:]ss]]
     fraction:     '.' digit+
     offset:       {+ | -} time-only | geo-region
-    geo-region:   As defined for ISO8601_.
+    geo-region:   As defined for `ISO 8601 time zone designators`_.
 
 
 Where `time-only` can contain optional seconds, or optional minutes and seconds,
@@ -1380,5 +1380,5 @@ See the table below for a full list of aliases:
 .. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
-.. _ISO8601: https://en.wikipedia.org/wiki/ISO_8601
+.. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
 
