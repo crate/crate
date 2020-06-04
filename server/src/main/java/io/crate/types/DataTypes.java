@@ -92,7 +92,6 @@ public final class DataTypes {
     public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
         TIMESTAMPZ.getName(),
         TIMESTAMP.getName(),
-        TIMETZ.getName(),
         DOUBLE.getName()
     );
 
