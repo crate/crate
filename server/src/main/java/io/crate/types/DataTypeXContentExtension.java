@@ -63,6 +63,13 @@ public class DataTypeXContentExtension implements XContentBuilderExtension {
                     b.value(row.get(i));
                 }
                 b.endArray();
+            }),
+            Map.entry(TimeTZ.class, (b, v) -> {
+                TimeTZ timetz = (TimeTZ) v;
+                b.startArray();
+                b.value(timetz.getMicrosFromMidnight());
+                b.value(timetz.getSecondsFromUTC());
+                b.endArray();
             })
         );
     }
