@@ -183,10 +183,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                                 AverageState state,
                                 Input... args) {
         if (state != null) {
-            Number value = (Number) args[0].value();
-            if (value != null) {
+            Input input = args[0];
+            if (input.hasValue()) {
                 state.count++;
-                state.sum += value.doubleValue();
+                state.sum += input.getDouble();
             }
         }
         return state;

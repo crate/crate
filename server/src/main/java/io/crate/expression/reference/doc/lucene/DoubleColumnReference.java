@@ -62,6 +62,34 @@ public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
     }
 
     @Override
+    public double getDouble() {
+        try {
+            if (values.advanceExact(docId)) {
+                switch (values.docValueCount()) {
+                    case 1:
+                        return values.nextValue();
+
+                    default:
+                        throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+            } else {
+                throw new NullPointerException("No value for docId: " + docId);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    public boolean hasValue() {
+        try {
+            return values.advanceExact(docId) && values.docValueCount() == 1;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
     public void setNextDocId(int docId) {
         this.docId = docId;
     }

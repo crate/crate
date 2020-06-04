@@ -36,6 +36,7 @@ public class FloatColumnReference extends LuceneCollectorExpression<Float> {
     private final String columnName;
     private SortedNumericDocValues values;
     private int docId;
+    private boolean advanced;
 
     public FloatColumnReference(String columnName) {
         this.columnName = columnName;
@@ -44,7 +45,8 @@ public class FloatColumnReference extends LuceneCollectorExpression<Float> {
     @Override
     public Float value() {
         try {
-            if (values.advanceExact(docId)) {
+            if (advanced || values.advanceExact(docId)) {
+                advanced = true;
                 switch (values.docValueCount()) {
                     case 1:
                         return NumericUtils.sortableIntToFloat((int) values.nextValue());
@@ -61,9 +63,39 @@ public class FloatColumnReference extends LuceneCollectorExpression<Float> {
     }
 
     @Override
+    public boolean hasValue() {
+        try {
+            advanced = true;
+            return values.advanceExact(docId) && values.docValueCount() == 1;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    public double getDouble() {
+        try {
+            if (advanced || values.advanceExact(docId)) {
+                advanced = true;
+                switch (values.docValueCount()) {
+                    case 1:
+                        return (double) NumericUtils.sortableIntToFloat((int) values.nextValue());
+
+                    default:
+                        throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+            } else {
+                throw new NullPointerException("Value for docId " + docId + " is null");
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
     public void setNextDocId(int docId) {
         this.docId = docId;
-
+        this.advanced = false;
     }
 
     @Override

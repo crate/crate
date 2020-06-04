@@ -26,7 +26,7 @@ import io.crate.data.Row;
 public class InputCollectExpression implements CollectExpression<Row, Object> {
 
     private final int position;
-    private Object value;
+    private Row row = null;
 
     public InputCollectExpression(int position) {
         this.position = position;
@@ -36,12 +36,33 @@ public class InputCollectExpression implements CollectExpression<Row, Object> {
     public void setNextRow(Row row) {
         assert row.numColumns() > position
             : "Wanted to retrieve value for column at position=" + position + " from row=" + row + " but row has only " + row.numColumns() + " columns";
-        value = row.get(position);
+        this.row = row;
     }
 
     @Override
     public Object value() {
-        return value;
+        if (row == null) {
+            return null;
+        }
+        return row.get(position);
+    }
+
+    @Override
+    public double getDouble() {
+        return row.getDouble(position);
+    }
+
+    @Override
+    public long getLong() {
+        return row.getLong(position);
+    }
+
+    @Override
+    public boolean hasValue() {
+        if (row == null) {
+            return false;
+        }
+        return row.hasValue(position);
     }
 
     @Override
@@ -52,7 +73,7 @@ public class InputCollectExpression implements CollectExpression<Row, Object> {
         InputCollectExpression that = (InputCollectExpression) o;
 
         if (position != that.position) return false;
-        if (value != null ? !value.equals(that.value) : that.value != null) return false;
+        if (row != null ? !row.equals(that.row) : that.row != null) return false;
 
         return true;
     }
@@ -60,7 +81,7 @@ public class InputCollectExpression implements CollectExpression<Row, Object> {
     @Override
     public int hashCode() {
         int result = position;
-        result = 31 * result + (value != null ? value.hashCode() : 0);
+        result = 31 * result + (row != null ? row.hashCode() : 0);
         return result;
     }
 

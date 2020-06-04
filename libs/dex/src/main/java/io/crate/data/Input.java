@@ -25,4 +25,16 @@ package io.crate.data;
 public interface Input<T> {
 
     T value();
+
+    default boolean hasValue() {
+        return value() != null;
+    }
+
+    default long getLong() {
+        return ((Number) value()).longValue();
+    }
+
+    default double getDouble() {
+        return ((Number) value()).doubleValue();
+    }
 }

@@ -76,6 +76,14 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void test_foo() throws Exception {
+        execute("create table tbl (x float)");
+        execute("insert into tbl (x) values (1.3), (4.3)");
+        execute("refresh table tbl");
+        execute("select avg(x) from tbl");
+    }
+
+    @Test
     public void testSelectResultContainsColumnsInTheOrderOfTheSelectListInTheQuery() throws Exception {
         execute("create table test (id string primary key)");
         execute("insert into test (id) values ('id1')");

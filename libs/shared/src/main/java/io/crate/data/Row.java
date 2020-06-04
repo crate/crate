@@ -67,6 +67,19 @@ public interface Row {
      */
     Object get(int index);
 
+    default boolean hasValue(int index) {
+        return get(index) != null;
+    }
+
+    default long getLong(int index) {
+        return ((Number) get(index)).longValue();
+    }
+
+    default double getDouble(int index) {
+        return ((Number) get(index)).doubleValue();
+    }
+
+
     /**
      * Returns a materialized view of this row.
      */

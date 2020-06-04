@@ -47,6 +47,21 @@ public class InputRow implements Row {
     }
 
     @Override
+    public boolean hasValue(int index) {
+        return inputs.get(index).hasValue();
+    }
+
+    @Override
+    public double getDouble(int index) {
+        return inputs.get(index).getDouble();
+    }
+
+    @Override
+    public long getLong(int index) {
+        return inputs.get(index).getLong();
+    }
+
+    @Override
     public String toString() {
         return "InputRow{" +
                "inputs=" + inputs +
