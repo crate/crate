@@ -298,15 +298,19 @@ type ``ip`` and the right of ``text`` e.g. `'192.168.1.5' << '192.168.1/24'`.
 Date/Time types
 ===============
 
-+---------------------------------+---------+-------------------------+--------------------+
-| Name                            | Size    | Description             | Range              |
-+=================================+=========+=========================+====================+
-| ``timestamp with time zone``    | 8 bytes | time and date with time | ``292275054BC``    |
-|                                 |         | zone                    | to ``292278993AD`` |
-+---------------------------------+---------+-------------------------+--------------------+
-| ``timestamp without time zone`` | 8 bytes | time and date without   | ``292275054BC``    |
-|                                 |         | time zone               | to ``292278993AD`` |
-+---------------------------------+---------+-------------------------+--------------------+
++---------------------------------+----------+-------------------------+------------------------+
+| Name                            | Size     | Description             | Range                  |
++=================================+==========+=========================+========================+
+| ``timestamp with time zone``    | 8 bytes  | time and date with time | ``292275054BC``        |
+|                                 |          | zone                    | to ``292278993AD``     |
++---------------------------------+----------+-------------------------+------------------------+
+| ``timestamp without time zone`` | 8 bytes  | time and date without   | ``292275054BC``        |
+|                                 |          | time zone               | to ``292278993AD``     |
++---------------------------------+----------+-------------------------+------------------------+
+| ``time with time zone``         | 12 bytes | time with time zone     | ``00:00:00.000000``    |
+|                                 |          |                         | to ``23:59:59.999999`` |
+|                                 |          |                         | zone: -18:00 to 18:00  |
++---------------------------------+----------+-------------------------+------------------------+
 
 .. _timestamp_data_type:
 
@@ -434,6 +438,64 @@ In these expressions, the desired time zone is specified as a string
 
 The scalar function :ref:`TIMEZONE <scalar-timezone>` (zone, timestamp) is
 equivalent to the SQL-conforming construct timestamp AT TIME ZONE zone.
+
+.. _time-data-type:
+
+time with time zone
+-------------------
+
+The time type consist of time followed by an optional time zone.
+
+``timetz`` is a valid alias for `time with time zone`.
+
+Internally, time values are mapped to microseconds since midnight and seconds
+as a signed offset from UTC for the time zone, that is a `bigint` followed by
+an `integer`, or 12 bytes.
+
+The syntax for time string literals is as follows:
+
+.. code-block:: text
+
+    time-element [offset]
+
+    time-element: time-only [fraction]
+    time-only:    HH[[:][mm[:]ss]]
+    fraction:     '.' digit+
+    offset:       {+ | -} time-only | geo-region
+    geo-region:   As defined for ISO8601_.
+
+
+Where `time-only` can contain optional seconds, or optional minutes and seconds,
+and can use `:` as a separator optionally.
+
+`fraction` accepts up to 6 digits, as precision is in micro seconds.
+
+::
+
+    cr> select '13:59:59.999999'::timetz;
+    +------------------+
+    | 13:59:59.999999  |
+    +------------------+
+    | [50399999999, 0] |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select '13:59:59.999999 CET'::timetz;
+    +-----------------------+
+    | 13:59:59.999999+02:00 |
+    +-----------------------+
+    | [50399999999, 7200]   |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select '13:59:59.999999  Europe/Madrid'::timetz;
+    +-----------------------+
+    | 13:59:59.999999+02:00 |
+    +-----------------------+
+    | [50399999999, 7200]   |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
 
 .. _interval_data_type:
 
@@ -1318,4 +1380,5 @@ See the table below for a full list of aliases:
 .. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
+.. _ISO8601: https://en.wikipedia.org/wiki/ISO_8601
 
