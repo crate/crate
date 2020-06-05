@@ -446,7 +446,7 @@ time with time zone
 
 The time type consist of time followed by an optional time zone.
 
-``timetz`` is a valid alias for `time with time zone`.
+``timetz`` is an alias for `time with time zone`.
 
 Internally, time values are mapped to microseconds since midnight and seconds
 as a signed offset from UTC for the time zone, that is a `bigint` followed by
