@@ -469,6 +469,12 @@ and can use `:` as a separator optionally.
 
 Time zone syntax as defined by `ISO 8601 time zone designators`_.
 
+.. NOTE::
+
+    This type cannot be created in `CREATE TABLE` or `ALTER` statements, as
+    it is meant to be used as parameter and return type for time related
+    functions only.
+
 ::
 
     cr> select '13:59:59.999999'::timetz;
