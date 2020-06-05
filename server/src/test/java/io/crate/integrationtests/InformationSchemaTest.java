@@ -1231,5 +1231,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "match_option", "unique_constraint_catalog", "unique_constraint_name", "unique_constraint_schema",
                 "update_rule"));
     }
-
+    @Test
+    public void test_character_maximum_length_information_schema_columns() {
+        execute("CREATE TABLE t (col1 varchar, col2 varchar(1)) CLUSTERED INTO 1 SHARDS");
+        execute("SELECT column_name, character_maximum_length " +
+                "FROM information_schema.columns " +
+                "WHERE table_name = 't'");
+        assertThat(printedTable(response.rows()), is("col1| NULL\n" +
+                                                     "col2| 1\n"));
+    }
 }

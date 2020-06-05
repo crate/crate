@@ -378,9 +378,9 @@ infinite recursion of your mind, beware!)::
 +-------------------------------+-----------------------------------------------+---------------+
 | ``column_default``            | The default expression of the column          | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``character_maximum_length``  | Not implemented (always returns ``NULL``)     | ``INTEGER``   |
-|                               |                                               |               |
-|                               | Please refer to :ref:`data-type-text` type    |               |
+| ``character_maximum_length``  | If the data type is a :ref:`character type    | ``INTEGER``   |
+|                               | <character-data-types>` then return the       |               |
+|                               | declared length limit; otherwise ``NULL``.    |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``character_octet_length``    | Not implemented (always returns ``NULL``)     | ``INTEGER``   |
 |                               |                                               |               |
