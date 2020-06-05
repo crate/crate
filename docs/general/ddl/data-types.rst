@@ -448,7 +448,8 @@ The time type consist of time followed by an optional time zone.
 
 ``timetz`` is an alias for `time with time zone`.
 
-The syntax for time string literals is as follows:
+`time with time zone` literals can be constructed using a string literal
+and a cast. The syntax for string literal is as follows:
 
 .. code-block:: text
 
