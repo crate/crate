@@ -45,6 +45,7 @@ public class SysSnapshotsTableInfo {
             .add("name", STRING, SysSnapshot::name)
             .add("repository", STRING, SysSnapshot::repository)
             .add("concrete_indices", STRING_ARRAY, SysSnapshot::concreteIndices)
+            .add("tables", STRING_ARRAY, SysSnapshot::tables)
             .add("started", TIMESTAMPZ, SysSnapshot::started)
             .add("finished", TIMESTAMPZ, SysSnapshot::finished)
             .add("version", STRING, SysSnapshot::version)

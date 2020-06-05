@@ -22,6 +22,9 @@
 package io.crate.expression.reference.sys.snapshot;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
+import io.crate.metadata.RelationName;
 
 public class SysSnapshot {
 
@@ -83,5 +86,12 @@ public class SysSnapshot {
 
     public List<String> failures() {
         return snapshotShardFailures;
+    }
+
+    public List<String> tables() {
+        return concreteIndices.stream()
+            .map(RelationName::fqnFromIndexName)
+            .distinct()
+            .collect(Collectors.toList());
     }
 }
