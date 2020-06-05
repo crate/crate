@@ -34,7 +34,7 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
 
     public static final int ID = 19;
     public static final int TYPE_LEN = 12;
-    public static final String NAME = "timetz";
+    public static final String NAME = "time with time zone";
     public static final TimeTZType INSTANCE = new TimeTZType();
 
 

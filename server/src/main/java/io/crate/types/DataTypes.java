@@ -92,6 +92,7 @@ public final class DataTypes {
     public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
         TIMESTAMPZ.getName(),
         TIMESTAMP.getName(),
+        TIMETZ.getName(),
         DOUBLE.getName()
     );
 
@@ -350,7 +351,7 @@ public final class DataTypes {
         entry("string", STRING),
         entry("varchar", STRING),
         entry("character varying", STRING),
-        entry("time with time zone", TIMETZ),
+        entry("timetz", TIMETZ),
         entry("timestamptz", TIMESTAMPZ),
         // The usage of the `timestamp` data type as a data type with time
         // zone is deprecate, use `timestamp with time zone` or `timestamptz`

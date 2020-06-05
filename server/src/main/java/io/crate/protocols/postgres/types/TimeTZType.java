@@ -31,7 +31,6 @@ import java.util.Locale;
 
 import static io.crate.types.TimeTZParser.formatTime;
 import static io.crate.types.TimeTZParser.parse;
-import static io.crate.types.TimeTZType.NAME;
 import static io.crate.types.TimeTZType.TYPE_LEN;
 
 
@@ -39,11 +38,12 @@ final class TimeTZType extends PGType<TimeTZ> {
 
     public static final PGType<TimeTZ> INSTANCE = new TimeTZType();
     private static final int OID = 1266;
+    private static final String OID_TYPE_NAME = "timetz";
     private static final int TYPE_MOD = -1;
 
 
     TimeTZType() {
-        super(OID, TYPE_LEN, TYPE_MOD, NAME);
+        super(OID, TYPE_LEN, TYPE_MOD, OID_TYPE_NAME);
     }
 
     @Override
