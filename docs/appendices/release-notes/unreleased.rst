@@ -71,10 +71,6 @@ Deprecations
 Changes
 =======
 
-- Added new type :ref:`time with time zone <time-data-type>`, a.k.a `timetz`,
-  which is to be used as return type for time related functions such as the
-  future `current_time`.
-
 
 Administration
 --------------
@@ -99,6 +95,10 @@ Administration
 
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
+
+- Added new type :ref:`time with time zone <time-data-type>`, a.k.a `timetz`,
+  which is to be used as return type for time related functions such as the
+  future `current_time`.
 
 - Added the :ref:`varchar(n) and character varying(n) <data-type-varchar>`
   types, where ``n`` is an optional length limit.
