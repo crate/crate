@@ -1893,6 +1893,10 @@ repositories (see :ref:`snapshot-restore`).
 |                      | how they are represented         |                              |
 |                      | as ES index names.               |                              |
 +----------------------+----------------------------------+------------------------------+
+| ``tables``           | Contains the fully qualified     | ``ARRAY(TEXT)``              |
+|                      | names of all tables within the   |                              |
+|                      | snapshot.                        |                              |
++----------------------+----------------------------------+------------------------------+
 | ``started``          | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
 |                      | creation of the snapshot         |                              |
 |                      | started. Changes made after      |                              |

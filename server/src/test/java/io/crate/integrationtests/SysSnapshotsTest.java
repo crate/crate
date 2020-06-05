@@ -139,15 +139,17 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
     public void testQueryAllColumns() {
         execute("select * from sys.snapshots");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), arrayContaining("concrete_indices", "failures", "finished", "name", "repository", "started", "state", "version"));
+        assertThat(response.cols(), arrayContaining("concrete_indices", "failures", "finished", "name", "repository", "started", "state", "tables", "version"));
+        ArrayType<String> stringArray = new ArrayType<>(DataTypes.STRING);
         assertThat(response.columnTypes(), arrayContaining(
-            new ArrayType<>(DataTypes.STRING),
-            new ArrayType<>(DataTypes.STRING),
+            stringArray,
+            stringArray,
             TimestampType.INSTANCE_WITH_TZ,
             StringType.INSTANCE,
             StringType.INSTANCE,
             TimestampType.INSTANCE_WITH_TZ,
             StringType.INSTANCE,
+            stringArray,
             StringType.INSTANCE
         ));
         Object[] firstRow = response.rows()[0];
@@ -158,7 +160,8 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
         assertThat(firstRow[4], is(REPOSITORY_NAME));
         assertThat((Long) firstRow[5], greaterThanOrEqualTo(createdTime));
         assertThat(firstRow[6], is(SnapshotState.SUCCESS.name()));
-        assertThat(firstRow[7], is(Version.CURRENT.toString()));
+        assertThat((List<Object>) firstRow[7], Matchers.contains(getFqn("test_table")));
+        assertThat(firstRow[8], is(Version.CURRENT.toString()));
 
     }
 }

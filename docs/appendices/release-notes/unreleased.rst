@@ -88,6 +88,10 @@ Administration
 - Increased the default interval to detect ``keystore`` or ``truststore``
   changes to five minutes.
 
+- Added a ``tables`` column to the :ref:`sys.snapshots <sys-snapshots>` table
+  which lists the fully qualified name of all tables contained within the
+  snapshot.
+
 
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
