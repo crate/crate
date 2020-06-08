@@ -117,7 +117,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUnsupportedExpressionCurrentDate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unsupported expression current_time");
+        expectedException.expectMessage("Unsupported expression current_date");
         SessionContext sessionContext = SessionContext.systemSessionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, coordinatorTxnCtx, paramTypeHints,
@@ -128,7 +128,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
-        expressionAnalyzer.convert(SqlParser.createExpression("current_time"), expressionAnalysisContext);
+        expressionAnalyzer.convert(SqlParser.createExpression("current_date"), expressionAnalysisContext);
     }
 
     @Test

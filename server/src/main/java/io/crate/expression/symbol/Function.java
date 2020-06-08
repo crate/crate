@@ -41,6 +41,7 @@ import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
+import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.format.MatchPrinter;
 import io.crate.expression.symbol.format.Style;
@@ -302,6 +303,14 @@ public class Function extends Symbol implements Cloneable {
             case CurrentTimestampFunction.NAME:
                 if (arguments.isEmpty()) {
                     builder.append("CURRENT_TIMESTAMP");
+                } else {
+                    printFunctionWithParenthesis(builder, style);
+                }
+                break;
+
+            case CurrentTimeFunction.NAME:
+                if (arguments.isEmpty()) {
+                    builder.append("CURRENT_TIME");
                 } else {
                     printFunctionWithParenthesis(builder, style);
                 }

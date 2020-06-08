@@ -67,7 +67,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
     protected Map<RelationName, AnalyzedRelation> tableSources;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    protected TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private InputFactory inputFactory;
 
     protected static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
