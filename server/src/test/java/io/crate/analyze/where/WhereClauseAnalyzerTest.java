@@ -273,7 +273,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             ".partitioned.parted.04732cpp6ksjcc9i60o30c1g",
             ".partitioned.parted.04732cpp6ks3ed1o60o30c1g"
         ));
-        assertThat(whereClause.queryOrFallback(), isSQL("((doc.parted.date = 1395961200000) OR (doc.parted.id = 1))"));
+        assertThat(whereClause.queryOrFallback(), isSQL("((doc.parted.date = 1395961200000::bigint) OR (doc.parted.id = 1))"));
     }
 
     @Test

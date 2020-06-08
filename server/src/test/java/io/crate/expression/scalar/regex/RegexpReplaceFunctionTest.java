@@ -73,7 +73,7 @@ public class RegexpReplaceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbolWithInvalidArgumentType() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: regexp_replace(text, text, bigint_array)");
+        expectedException.expectMessage("unknown function: regexp_replace(text, text, integer_array)");
 
         assertNormalize("regexp_replace('foobar', '.*', [1,2])", isLiteral(""));
     }

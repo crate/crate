@@ -347,7 +347,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testObjectWithInvalidValueTypeAsNodeFiltersArgument() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("node_filters argument 'name' must be a String, not 20 (Long)");
+        expectedException.expectMessage("node_filters argument 'name' must be a String, not 20 (Integer)");
         analyze("COPY users FROM '/' WITH (node_filters={name=20})");
     }
 }

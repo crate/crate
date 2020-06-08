@@ -2711,11 +2711,11 @@ Example:
 ::
 
     cr> select pg_typeof([1, 2, 3]) as typeof;
-    +--------------+
-    | typeof       |
-    +--------------+
-    | bigint_array |
-    +--------------+
+    +---------------+
+    | typeof        |
+    +---------------+
+    | integer_array |
+    +---------------+
     SELECT 1 row in set (... sec)
 
 .. _version:

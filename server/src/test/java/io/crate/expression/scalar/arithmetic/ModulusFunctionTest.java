@@ -31,19 +31,19 @@ public class ModulusFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_modulus_scalar() {
-        assertNormalize("modulus(3, 2)", isLiteral(1L));
-        assertNormalize("modulus(3::int, 2::int)", isLiteral(1));
+        assertNormalize("modulus(3, 2)", isLiteral(1));
+        assertNormalize("modulus(3::bigint, 2::bigint)", isLiteral(1L));
         assertNormalize("modulus(3.5, 2)", isLiteral(1.5d));
         assertNormalize("modulus(3.5::real, 2)", isLiteral(1.5f));
     }
 
     @Test
     public void test_modulus_operator() {
-        assertNormalize("3 % 2", isLiteral(1L));
+        assertNormalize("3 % 2", isLiteral(1));
     }
 
     @Test
     public void test_mod_works_as_alias_for_modulus() {
-        assertNormalize("mod(3, 2)", isLiteral(1L));
+        assertNormalize("mod(3, 2)", isLiteral(1));
     }
 }

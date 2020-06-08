@@ -33,7 +33,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSetPlan() throws Exception {
         UpdateSettingsPlan plan = e.plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
 
-        assertThat(plan.settings(), contains(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024L)))));
+        assertThat(plan.settings(), contains(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024)))));
         assertThat(plan.isPersistent(), is(true));
 
         plan = e.plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");

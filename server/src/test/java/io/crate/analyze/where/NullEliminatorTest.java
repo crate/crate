@@ -67,20 +67,20 @@ public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
         assertReplaced("null and x = null", "(_cast(NULL, 'boolean') AND (x = _cast(NULL, 'integer')))");
         assertReplaced(
             "null or x = 1 or null",
-            "((_cast(NULL, 'boolean') OR (x = _cast(1, 'integer'))) OR _cast(NULL, 'boolean'))");
+            "((_cast(NULL, 'boolean') OR (x = 1)) OR _cast(NULL, 'boolean'))");
         assertReplaced(
             "not(null and x = 1)",
-            "(NOT (_cast(NULL, 'boolean') AND (x = _cast(1, 'integer'))))");
+            "(NOT (_cast(NULL, 'boolean') AND (x = 1)))");
         assertReplaced(
             "not(null or not(null and x = 1))",
-            "(NOT (_cast(NULL, 'boolean') OR (NOT (_cast(NULL, 'boolean') AND (x = _cast(1, 'integer'))))))");
+            "(NOT (_cast(NULL, 'boolean') OR (NOT (_cast(NULL, 'boolean') AND (x = 1)))))");
         assertReplaced(
             "not(null and x = 1) and not(null or x = 2)",
-            "((NOT (_cast(NULL, 'boolean') AND (x = _cast(1, 'integer')))) AND " +
-            "(NOT (_cast(NULL, 'boolean') OR (x = _cast(2, 'integer')))))");
+            "((NOT (_cast(NULL, 'boolean') AND (x = 1))) AND " +
+            "(NOT (_cast(NULL, 'boolean') OR (x = 2))))");
         assertReplaced(
             "null or coalesce(null or x = 1, true)",
-            "(_cast(NULL, 'boolean') OR coalesce((_cast(NULL, 'boolean') OR (x = _cast(1, 'integer'))), true))");
+            "(_cast(NULL, 'boolean') OR coalesce((_cast(NULL, 'boolean') OR (x = 1)), true))");
     }
 
     @Test

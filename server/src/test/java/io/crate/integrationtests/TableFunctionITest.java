@@ -77,7 +77,7 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGlobalAggregationFromUnnest() {
-        assertThat(execute("select max(col1) from unnest([1, 2, 3, 4])").rows()[0][0], is(4L));
+        assertThat(execute("select max(col1) from unnest([1, 2, 3, 4])").rows()[0][0], is(4));
     }
 
     @Test
@@ -114,7 +114,7 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
     @Test
     public void testAggregationOnResultOfTableFunctionWithinSubQuery() {
         execute("select max(x) from (select unnest([1, 2, 3, 4]) as x) as t");
-        assertThat(response.rows()[0][0], is(4L));
+        assertThat(response.rows()[0][0], is(4));
     }
 
     @Test

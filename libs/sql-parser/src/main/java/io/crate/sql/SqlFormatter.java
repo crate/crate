@@ -60,6 +60,7 @@ import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
 import io.crate.sql.tree.Insert;
+import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
@@ -675,7 +676,13 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitLongLiteral(LongLiteral node, Integer indent) {
-            builder.append(String.format(Locale.ENGLISH, "%d", node.getValue()));
+            builder.append(node.getValue());
+            return null;
+        }
+
+        @Override
+        protected Void visitIntegerLiteral(IntegerLiteral node, Integer indent) {
+            builder.append(node.getValue());
             return null;
         }
 

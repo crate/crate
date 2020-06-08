@@ -105,7 +105,7 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_function_arguments_must_have_array_types() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _values(bigint)");
+        expectedException.expectMessage("unknown function: _values(integer)");
         assertExecute("_values(200)", "");
     }
 }

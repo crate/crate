@@ -61,6 +61,12 @@ Breaking Changes
   execution is only available via the ``results`` array represented by a
   row count for each bulk operation.
 
+- Numeric literals fitting into the ``integer`` range will be detected now as
+  ``integer`` literals instead of ``bigint`` literals. Thus a statement like
+  ``select 1`` will return an ``integer`` column type. This shouldn't be an
+  issue for most clients as the ``HTTP`` endpoint uses ``JSON`` for
+  serialization and PostgreSQL clients usually use a typed ``getLong``.
+
 Deprecations
 ============
 

@@ -33,8 +33,8 @@ public class SubscriptObjectFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("subscript_obj({x=10}, 'x')", 10L);
-        assertEvaluate("subscript_obj(subscript_obj({x={y=10}}, 'x'), 'y')", 10L);
+        assertEvaluate("subscript_obj({x=10}, 'x')", 10);
+        assertEvaluate("subscript_obj(subscript_obj({x={y=10}}, 'x'), 'y')", 10);
     }
 
     @Test
@@ -62,11 +62,11 @@ public class SubscriptObjectFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testFunctionCanBeUsedAsIndexInSubscript() {
-        assertNormalize("{\"x\" = 10}['x' || '']", isLiteral(10L));
+        assertNormalize("{\"x\" = 10}['x' || '']", isLiteral(10));
     }
 
     @Test
     public void testSubscriptOnObjectWithPath() {
-        assertEvaluate("subscript_obj({x={y=10}}, 'x', 'y')", 10L);
+        assertEvaluate("subscript_obj({x={y=10}}, 'x', 'y')", 10);
     }
 }

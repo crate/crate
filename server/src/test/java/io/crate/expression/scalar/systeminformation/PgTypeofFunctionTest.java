@@ -39,7 +39,7 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_expressions() {
-        assertEvaluate("pg_typeof(1 + 1::short)", DataTypes.LONG.getName());
+        assertEvaluate("pg_typeof(1 + 1::short)", DataTypes.INTEGER.getName());
     }
 
     @Test
@@ -108,7 +108,7 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("pg_typeof(['Hello', 'World'])", DataTypes.STRING_ARRAY.getName());
         assertEvaluate("pg_typeof([1::smallint, 2::smallint])", DataTypes.SHORT_ARRAY.getName());
         assertEvaluate("pg_typeof([1::integer, 2::integer])", DataTypes.INTEGER_ARRAY.getName());
-        assertEvaluate("pg_typeof([1, 2])", DataTypes.BIGINT_ARRAY.getName());
+        assertEvaluate("pg_typeof([1, 2])", DataTypes.INTEGER_ARRAY.getName());
         assertEvaluate("pg_typeof([1.0::double precision, 2.0::double precision])",
                        DataTypes.DOUBLE_ARRAY.getName());
 
@@ -126,7 +126,7 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
                        Literal.of(List.of(1L, 2L), DataTypes.BIGINT_ARRAY));
         assertEvaluate("pg_typeof(double_array)",
                        DataTypes.DOUBLE_ARRAY.getName(),
-                       Literal.of(List.of((double) 1.0, (double) 2.0), DataTypes.DOUBLE_ARRAY));
+                       Literal.of(List.of(1.0, 2.0), DataTypes.DOUBLE_ARRAY));
     }
 }
 

@@ -474,27 +474,27 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(
             convert("ts_array[1] = 1129224512000").toString(),
             is("+ts_array:[1129224512000 TO 1129224512000] " +
-                "#(ts_array[1] = 1129224512000)")
+                "#(ts_array[1] = 1129224512000::bigint)")
         );
         assertThat(
             convert("ts_array[1] >= 1129224512000").toString(),
             is("+ts_array:[1129224512000 TO 9223372036854775807] " +
-                "#(ts_array[1] >= 1129224512000)")
+                "#(ts_array[1] >= 1129224512000::bigint)")
         );
         assertThat(
             convert("ts_array[1] > 1129224512000").toString(),
             is("+ts_array:[1129224512001 TO 9223372036854775807] " +
-                "#(ts_array[1] > 1129224512000)")
+                "#(ts_array[1] > 1129224512000::bigint)")
         );
         assertThat(
             convert("ts_array[1] <= 1129224512000").toString(),
             is("+ts_array:[-9223372036854775808 TO 1129224512000] " +
-                "#(ts_array[1] <= 1129224512000)")
+                "#(ts_array[1] <= 1129224512000::bigint)")
         );
         assertThat(
             convert("ts_array[1] < 1129224512000").toString(),
             is("+ts_array:[-9223372036854775808 TO 1129224511999] " +
-                "#(ts_array[1] < 1129224512000)")
+                "#(ts_array[1] < 1129224512000::bigint)")
         );
     }
 

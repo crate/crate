@@ -65,12 +65,12 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
                 "union all " +
                 "select * from unnest([4, 5, 6], ['4', '5', '6'])");
         assertThat(response.rows(), arrayContainingInAnyOrder(
-            new Object[] {1L, "1"},
-            new Object[] {2L, "2"},
-            new Object[] {3L, "3"},
-            new Object[] {4L, "4"},
-            new Object[] {5L, "5"},
-            new Object[] {6L, "6"}
+            new Object[] {1, "1"},
+            new Object[] {2, "2"},
+            new Object[] {3, "3"},
+            new Object[] {4, "4"},
+            new Object[] {5, "5"},
+            new Object[] {6, "6"}
         ));
     }
 
@@ -238,7 +238,7 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
     public void testUnionAllArrayAndObjectColumns() {
         execute("select * from (select t1.id, t1.text, t3.arr, t3.obj from t1 join t3 on arr is not null) a " +
                 "union all " +
-                "select id, text, [1,2], {custom = true} from t3 where arr is not null " +
+                "select id, text, [1::bigint, 2::bigint], {custom = true} from t3 where arr is not null " +
                 "order by id");
         assertThat(printedTable(response.rows()), is(
             "1| text| [1, 2, 3]| {temperature=42}\n" +

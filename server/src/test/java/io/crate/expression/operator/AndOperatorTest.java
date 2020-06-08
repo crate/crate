@@ -52,7 +52,7 @@ public class AndOperatorTest extends AbstractScalarFunctionsTest {
         List<Symbol> split = AndOperator.split(query);
         assertThat(split, contains(
             isSQL("((doc.users.a = 1) OR (doc.users.a = 2))"),
-            isSQL("(doc.users.x = 2)"),
+            isSQL("(doc.users.x = 2::bigint)"),
             isSQL("(doc.users.name = 'foo')")
         ));
     }

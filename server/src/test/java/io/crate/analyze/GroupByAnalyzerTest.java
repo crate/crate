@@ -168,7 +168,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select 58 as fiftyEight from foo.users group by fiftyEight;");
         assertThat(relation.groupBy().isEmpty(), is(false));
         List<Symbol> groupBySymbols = relation.groupBy();
-        assertThat(groupBySymbols.get(0), isAlias("fiftyeight", isLiteral(58L)));
+        assertThat(groupBySymbols.get(0), isAlias("fiftyeight", isLiteral(58)));
     }
 
     @Test
@@ -248,7 +248,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.isDistinct(), is(true));
         assertThat(relation,
             isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name " +
-                  "ORDER BY max(doc.users.id) LIMIT 5 OFFSET 10"));
+                  "ORDER BY max(doc.users.id) LIMIT 5::bigint OFFSET 10::bigint"));
     }
 
     @Test

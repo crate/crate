@@ -304,9 +304,9 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testStyles() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
         assertThat(nestedFn.toString(Style.QUALIFIED),
-            is("abs(sqrt(ln(_cast((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1), 'double precision'))))"));
+            is("abs(sqrt(ln(_cast((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))"));
         assertThat(nestedFn.toString(Style.UNQUALIFIED),
-            is("abs(sqrt(ln(_cast((((((((bar + cast(\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1), 'double precision'))))"));
+            is("abs(sqrt(ln(_cast((((((((bar + cast(\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))"));
     }
 
     @Test
@@ -315,7 +315,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         String printed = comparisonOperator.toString(Style.QUALIFIED);
         assertThat(
             printed,
-            is("((doc.formatter.bar = 1) AND (doc.formatter.foo = '2'))")
+            is("((doc.formatter.bar = 1::bigint) AND (doc.formatter.foo = '2'))")
         );
     }
 

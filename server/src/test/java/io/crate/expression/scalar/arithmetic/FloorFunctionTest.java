@@ -44,11 +44,11 @@ public class FloorFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateOnIntAndLong() throws Exception {
-        assertNormalize("floor(cast(20 as integer))", isLiteral(20));
+        assertNormalize("floor(20)", isLiteral(20));
         assertNormalize("floor(cast(null as integer))", isLiteral(null, DataTypes.INTEGER));
         assertNormalize("floor(42.9)", isLiteral(42L));
 
-        assertNormalize("floor(20)", isLiteral(20L));
+        assertNormalize("floor(20::bigint)", isLiteral(20L));
         assertNormalize("floor(cast(null as long))", isLiteral(null, DataTypes.LONG));
     }
 

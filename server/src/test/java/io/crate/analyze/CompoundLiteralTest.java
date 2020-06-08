@@ -84,7 +84,7 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
     public void testObjectConstructionWithExpressionsAsValues() throws Exception {
         Literal objectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{name = 1 + 2}"));
         assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
-        assertThat(objectLiteral.value(), is(Map.<String, Object>of("name", 3L)));
+        assertThat(objectLiteral.value(), is(Map.<String, Object>of("name", 3)));
 
         Literal nestedObjectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{a = {name = concat('foo', 'bar')}}"));
         @SuppressWarnings("unchecked") Map<String, Object> values = (Map<String, Object>) nestedObjectLiteral.value();
@@ -109,17 +109,17 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testArrayConstructionWithOnlyLiterals() throws Exception {
-        Literal emptyArray = (Literal) analyzeExpression("[]");
+        Literal<?> emptyArray = (Literal<?>) analyzeExpression("[]");
         assertThat((List<Object>) emptyArray.value(), Matchers.empty());
         assertThat(emptyArray.valueType(), is(new ArrayType<>(UndefinedType.INSTANCE)));
 
-        Literal singleArray = (Literal) analyzeExpression("[1]");
-        assertThat(singleArray.valueType(), is(new ArrayType<>(LongType.INSTANCE)));
-        assertThat(((List<Long>) singleArray.value()), contains(1L));
+        Literal<?> singleArray = (Literal<?>) analyzeExpression("[1]");
+        assertThat(singleArray.valueType(), is(new ArrayType<>(DataTypes.INTEGER)));
+        assertThat(((List<Long>) singleArray.value()), contains(1));
 
-        Literal multiArray = (Literal) analyzeExpression("[1, 2, 3]");
-        assertThat(multiArray.valueType(), is(new ArrayType<>(LongType.INSTANCE)));
-        assertThat(((List<Long>) multiArray.value()), contains(1L, 2L, 3L));
+        Literal<?> multiArray = (Literal<?>) analyzeExpression("[1, 2, 3]");
+        assertThat(multiArray.valueType(), is(new ArrayType<>(DataTypes.INTEGER)));
+        assertThat(((List<Long>) multiArray.value()), contains(1, 2, 3));
     }
 
     @Test
@@ -132,7 +132,7 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testArrayDifferentTypes() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'string'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'string'` of type `text` to type `integer`");
         analyzeExpression("[1, 'string']");
     }
 
@@ -140,7 +140,7 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
     public void testNestedArrayLiteral() throws Exception {
         Map<String, DataType<?>> expected = ImmutableMap.<String, DataType<?>>builder()
             .put("'string'", DataTypes.STRING)
-            .put("0", DataTypes.LONG)
+            .put("0", DataTypes.INTEGER)
             .put("1.8", DataTypes.DOUBLE)
             .put("TRUE", DataTypes.BOOLEAN)
             .build();

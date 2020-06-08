@@ -53,6 +53,11 @@ public class LiteralValueFormatter {
             formatArray(value, builder);
         } else if (value instanceof String || value instanceof Point || value instanceof Period) {
             builder.append(Literals.quoteStringLiteral(value.toString()));
+        } else if (value instanceof Long
+                   && ((Long) value <= Integer.MAX_VALUE
+                   || (Long) value >= Integer.MIN_VALUE)) {
+            builder.append(value.toString());
+            builder.append("::bigint");
         } else {
             builder.append(value.toString());
         }

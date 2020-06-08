@@ -49,10 +49,10 @@ public class CeilFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateOnIntAndLong() throws Exception {
-        assertNormalize("ceil(cast(20 as integer))", isLiteral(20));
+        assertNormalize("ceil(20)", isLiteral(20));
         assertNormalize("ceil(cast(null as integer))", isLiteral(null, DataTypes.INTEGER));
 
-        assertNormalize("ceil(20)", isLiteral(20L));
+        assertNormalize("ceil(20::bigint)", isLiteral(20L));
         assertNormalize("ceil(cast(null as long))", isLiteral(null, DataTypes.LONG));
     }
 

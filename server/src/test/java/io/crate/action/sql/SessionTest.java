@@ -136,10 +136,10 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.getParamType("S_1", 2), is(DataTypes.UNDEFINED));
 
         DescribeResult describe = session.describe('S', "S_1");
-        assertThat(describe.getParameters(), equalTo(new DataType[] { DataTypes.LONG, DataTypes.LONG }));
+        assertThat(describe.getParameters(), equalTo(new DataType[] { DataTypes.INTEGER, DataTypes.INTEGER }));
 
-        assertThat(session.getParamType("S_1", 0), is(DataTypes.LONG));
-        assertThat(session.getParamType("S_1", 1), is(DataTypes.LONG));
+        assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
+        assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
 
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Requested parameter index exceeds the number of parameters");

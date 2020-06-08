@@ -71,21 +71,21 @@ public class ArrayUpperFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_upper(bigint_array)");
+        expectedException.expectMessage("unknown function: array_upper(integer_array)");
         assertEvaluate("array_upper([1])", null);
     }
 
     @Test
     public void testThreeArguments() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_upper(bigint_array, bigint, bigint_array)");
+        expectedException.expectMessage("unknown function: array_upper(integer_array, integer, integer_array)");
         assertEvaluate("array_upper([1], 2, [3])", null);
     }
 
     @Test
     public void testSecondArgumentNotANumber() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_upper(bigint_array, bigint_array)");
+        expectedException.expectMessage("unknown function: array_upper(integer_array, integer_array)");
         assertEvaluate("array_upper([1], [2])", null);
     }
 

@@ -192,7 +192,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new QualifiedName("subscript"),
             ImmutableList.of(
                 new ArrayLiteral(ImmutableList.of(new StringLiteral("obj"))),
-                new LongLiteral("1")));
+                new LongLiteral(1)));
 
         Symbol symbol = expressionAnalyzer.convert(subscriptFunctionCall, expressionAnalysisContext);
         assertThat(symbol, isLiteral("obj"));
@@ -317,8 +317,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testIncompatibleLiteralThrowsException() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `2147483648` of type `bigint` to type `integer`");
-        executor.asSymbol("doc.t2.i = 1 + " + Integer.MAX_VALUE);
+        expectedException.expectMessage("Cannot cast `2.147483648E9` of type `double precision` to type `integer`");
+        executor.asSymbol("doc.t2.i = 1.0 + " + Integer.MAX_VALUE);
     }
 
     @Test
@@ -376,24 +376,24 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testParameterExpressionInAny() throws Exception {
         Symbol s = expressions.asSymbol("5 = ANY(?)");
-        assertThat(s, isFunction(AnyOperators.Names.EQ, isLiteral(5L), instanceOf(ParameterSymbol.class)));
+        assertThat(s, isFunction(AnyOperators.Names.EQ, isLiteral(5), instanceOf(ParameterSymbol.class)));
     }
 
     @Test
     public void testParameterExpressionInLikeAny() throws Exception {
         Symbol s = expressions.asSymbol("5 LIKE ANY(?)");
-        assertThat(s, isFunction(LikeOperators.ANY_LIKE, isLiteral(5L), instanceOf(ParameterSymbol.class)));
+        assertThat(s, isFunction(LikeOperators.ANY_LIKE, isLiteral(5), instanceOf(ParameterSymbol.class)));
     }
 
     @Test
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
-        expectedException.expectMessage("Cannot cast `xs` of type `integer_array` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `xs` of type `integer_array` to type `integer`");
         executor.analyze("select * from tarr where xs = ANY([10, 20])");
     }
 
     @Test
     public void testCallingUnknownFunctionWithExplicitSchemaRaisesNiceError() {
-        expectedException.expectMessage("unknown function: foo.bar(bigint)");
+        expectedException.expectMessage("unknown function: foo.bar(integer)");
         executor.analyze("select foo.bar(1)");
     }
 

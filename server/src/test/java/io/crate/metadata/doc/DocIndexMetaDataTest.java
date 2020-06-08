@@ -367,12 +367,12 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
         assertThat(integerIndexed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
-        assertThat(integerIndexed.defaultExpression(), isLiteral(1L));
+        assertThat(integerIndexed.defaultExpression(), isLiteral(1));
 
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
         assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NO));
-        assertThat(integerNotIndexed.defaultExpression(), isLiteral(1L));
+        assertThat(integerNotIndexed.defaultExpression(), isLiteral(1));
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
         assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NO));
@@ -1463,7 +1463,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     public void testArrayAsGeneratedColumn() throws Exception {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table t1 (x as ([10, 20]))");
         GeneratedReference generatedReference = md.generatedColumnReferences().get(0);
-        assertThat(generatedReference.valueType(), is(new ArrayType(DataTypes.LONG)));
+        assertThat(generatedReference.valueType(), is(new ArrayType<>(DataTypes.INTEGER)));
     }
 
     @Test

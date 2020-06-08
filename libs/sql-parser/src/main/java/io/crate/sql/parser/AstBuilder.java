@@ -105,6 +105,7 @@ import io.crate.sql.tree.InPredicate;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
 import io.crate.sql.tree.Insert;
+import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Intersect;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
@@ -1691,7 +1692,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-        return new LongLiteral(context.getText());
+        long value = Long.parseLong(context.getText());
+        if (value < Integer.MAX_VALUE + 1L) {
+            return new IntegerLiteral((int) value);
+        }
+        return new LongLiteral(value);
     }
 
     @Override
@@ -1759,7 +1764,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         StringLiteral name = (StringLiteral) visit(context.baseDataType());
         var parameters = new ArrayList<Integer>(context.integerLiteral().size());
         for (var param : context.integerLiteral()) {
-            parameters.add(Math.toIntExact(((LongLiteral) visit(param)).getValue()));
+            var literal = visit(param);
+            int val;
+            if (literal instanceof LongLiteral) {
+                val = Math.toIntExact(((LongLiteral) literal).getValue());
+            } else {
+                val = ((IntegerLiteral) literal).getValue();
+            }
+            parameters.add(val);
         }
         return new ColumnType<>(name.getValue(), parameters);
     }

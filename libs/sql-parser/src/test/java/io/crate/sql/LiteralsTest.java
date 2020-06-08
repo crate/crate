@@ -23,6 +23,8 @@
 package io.crate.sql;
 
 
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.IntegerLiteral;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -283,5 +285,11 @@ public class LiteralsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(Literals.ESCAPED_UNICODE_ERROR);
         Literals.replaceEscapedChars("\\U0000006G");
+    }
+
+    @Test
+    public void test_integer_literal() {
+        var literal = SqlParser.createExpression("2147483647");
+        assertThat(literal, is(new IntegerLiteral(Integer.MAX_VALUE)));
     }
 }

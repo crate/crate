@@ -39,7 +39,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testArgumentThatHasNoStringRepr() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: concat(text, bigint_array)");
+        expectedException.expectMessage("unknown function: concat(text, integer_array)");
         assertNormalize("concat('foo', [1])", null);
     }
 
@@ -76,18 +76,18 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTwoArrays() throws Exception {
-        assertNormalize("concat([1, 2], [2, 3])", isLiteral(List.of(1L, 2L, 2L, 3L)));
+        assertNormalize("concat([1, 2], [2, 3])", isLiteral(List.of(1, 2, 2, 3)));
     }
 
     @Test
     public void testArrayWithAUndefinedInnerType() throws Exception {
-        assertNormalize("concat([], [1, 2])", isLiteral(List.of(1L, 2L)));
+        assertNormalize("concat([], [1, 2])", isLiteral(List.of(1, 2)));
     }
 
     @Test
     public void testTwoArraysOfIncompatibleInnerTypes() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: concat(bigint_array, bigint_array_array)");
+        expectedException.expectMessage("unknown function: concat(integer_array, integer_array_array)");
         assertNormalize("concat([1, 2], [[1, 2]])", null);
     }
 
@@ -101,7 +101,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("concat([1], [2::integer, 3::integer])", List.of(1L, 2L, 3L));
+        assertEvaluate("concat([1::bigint], [2, 3])", List.of(1L, 2L, 3L));
     }
 
     @Test
