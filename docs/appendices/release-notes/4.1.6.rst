@@ -1,0 +1,47 @@
+.. _version_4.1.6:
+
+=============
+Version 4.1.6
+=============
+
+Released on 2020-06-08.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.1.6.
+
+    We recommend that you upgrade to the latest 4.0 release before moving to
+    4.1.6.
+
+    A rolling upgrade to 4.1.6 from 4.0.2+ is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.1.0` release notes for a full list of changes in the
+4.1 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that prevented CrateDB from detecting changes to the SSL
+  ``keystore`` or ``truststore`` if one the paths is a symlink.
+
+- Fixed an issue that could prevent updating settings that depend on other
+  settings. For example ``"cluster.routing.allocation.disk.watermark.low"``
+
+- Fixed an issue that caused the ``ANALYZE`` statement to fail if there are
+  tables with object arrays in the cluster.
+
+- Fixed a performance issue that can lead to queries like ``SELECT text_column
+  FROM tbl GROUP BY 1`` to run more than 150% faster.

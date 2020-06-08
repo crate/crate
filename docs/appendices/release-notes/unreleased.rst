@@ -209,14 +209,4 @@ Performance improvements
 Fixes
 =====
 
-- Fixed an issue that prevented CrateDB from detecting changes to the SSL
-  ``keystore`` or ``truststore`` if one the paths is a symlink.
-
-- Fixed an issue that could prevent updating settings that depend on other
-  settings. For example ``"cluster.routing.allocation.disk.watermark.low"``
-
-- Fixed an issue that caused the ``ANALYZE`` statement to fail if there are
-  tables with object arrays in the cluster.
-
-- Fixed a performance issue that can lead to queries like ``SELECT text_column
-  FROM tbl GROUP BY 1`` to run more than 150% faster.
+None
