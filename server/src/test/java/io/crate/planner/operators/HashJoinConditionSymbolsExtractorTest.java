@@ -73,7 +73,8 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
 
     @Test
     public void testExtractSymbolsWithDuplicates() {
-        Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t2.b and t1.i + 1 = t2.i and t2.y = t1.i + 1");
+        Symbol joinCondition = sqlExpressions.asSymbol(
+            "t1.a = t2.b and t1.i + 1::int = t2.i and t2.y = t1.i + 1::int");
         Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
         assertThat(symbolsPerRelation.get(tr1.relationName()), containsInAnyOrder(
             isReference("a"),
@@ -83,7 +84,8 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
 
     @Test
     public void testExtractRelationsOfFunctionsWithLiterals() {
-        Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t2.b and t1.i + 1 = t2.i and t2.y = 1 + t1.i");
+        Symbol joinCondition = sqlExpressions.asSymbol(
+            "t1.a = t2.b and t1.i + 1::int = t2.i and t2.y = 1::int + t1.i");
         Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
         assertThat(symbolsPerRelation.get(tr1.relationName()), containsInAnyOrder(
             isReference("a"),

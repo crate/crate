@@ -400,4 +400,21 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select (d - 10) from t order by (d - 10) nulls first limit 2");
         assertThat(response.rows()[0][0], is(nullValue()));
     }
+
+    @Test
+    public void test_floating_point_arithmetic() {
+        execute("create table t1 (i int, bi bigint, d double, f float)");
+        execute("insert into t1 (i, bi, d, f) values (1, 1, 1, 1)");
+        refresh();
+        execute("select " +
+                "    i / 3.0," +
+                "    bi / 3.0::float," +
+                "    d * 5::int," +
+                "    f * 5," +
+                "    1::int / 3.0," +
+                "    1 / 3.0 " +
+                "from t1");
+        assertThat(printedTable(response.rows()), is(
+            "0.3333333333333333| 0.33333334| 5.0| 5.0| 0.3333333333333333| 0.3333333333333333\n"));
+    }
 }

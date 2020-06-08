@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import org.hamcrest.Matchers;
@@ -69,8 +70,8 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testIndexExpressionIsNotInteger() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Base argument to subscript must be an object, not [Youri, Ruben]");
-        assertNormalize("subscript(['Youri', 'Ruben'], '1')", isLiteral("Ruben"));
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
+        assertNormalize("subscript(['Youri', 'Ruben'], 'foo')", isLiteral("Ruben"));
     }
 }

@@ -218,4 +218,6 @@ Performance improvements
 Fixes
 =====
 
-None
+- Fixed arithmetics containing a non-floating numeric column type and a
+  floatling literal which resulted wrongly in a non-floating return type.
+

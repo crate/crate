@@ -461,8 +461,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (id) values(1)");
         refresh();
         execute("select id, id_generated from t");
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[0][1], is(2));
+        assertThat(response.rows()[0][0], is(1));
+        assertThat(response.rows()[0][1], is(2));
     }
 
     @Test

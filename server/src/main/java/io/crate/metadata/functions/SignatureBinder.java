@@ -66,10 +66,6 @@ public class SignatureBinder {
     private final CoercionType coercionType;
     private final Map<String, TypeVariableConstraint> typeVariableConstraints;
 
-    public SignatureBinder(Signature declaredSignature, boolean allowCoercion) {
-        this(declaredSignature, allowCoercion ? CoercionType.FULL : CoercionType.NONE);
-    }
-
     public SignatureBinder(Signature declaredSignature, CoercionType coercionType) {
         this.declaredSignature = declaredSignature;
         this.coercionType = coercionType;
@@ -444,7 +440,9 @@ public class SignatureBinder {
                 return fromType.isConvertableTo(toTypeSignature.createType(), false);
             case PRECEDENCE_ONLY:
                 var toType = toTypeSignature.createType();
-                return fromType.equals(toType) || toType.precedes(fromType);
+                return fromType.equals(toType)
+                       || (fromType.isConvertableTo(toTypeSignature.createType(), false)
+                          && toType.precedes(fromType));
             case NONE:
             default:
                 return fromType.getTypeSignature().equals(toTypeSignature);
@@ -576,7 +574,7 @@ public class SignatureBinder {
         }
     }
 
-    private enum CoercionType {
+    public enum CoercionType {
         NONE,
         PRECEDENCE_ONLY,
         FULL

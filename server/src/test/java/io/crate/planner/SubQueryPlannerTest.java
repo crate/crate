@@ -97,7 +97,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNestedSimpleSelectContainsGroupProjectionWithFunction() throws Exception {
         Collect collect = e.plan("select c + 100, max(max) from " +
-                                 "    (select x + 10 as c, max(i) as max from t1 group by x + 10) t " +
+                                 "    (select x + 10::int as c, max(i) as max from t1 group by x + 10::int) t " +
                                  "group by c + 100 order by c + 100 " +
                                  "limit 100");
         CollectPhase collectPhase = collect.collectPhase();

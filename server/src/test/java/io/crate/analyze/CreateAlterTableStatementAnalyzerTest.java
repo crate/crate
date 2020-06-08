@@ -1027,7 +1027,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
         assertThat(
             generatedColumnsMapping.get("day"),
-            is("_cast((_cast(ts, 'bigint') + 1::bigint), 'timestamp with time zone')"));
+            is("(ts + 1::bigint)"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> dayMapping = (Map<String, Object>) mappingProperties.get("day");
