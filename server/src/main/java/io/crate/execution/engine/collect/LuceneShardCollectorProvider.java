@@ -21,7 +21,35 @@
 
 package io.crate.execution.engine.collect;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import com.carrotsearch.hppc.IntArrayList;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Weight;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.data.BatchIterator;
+import io.crate.data.CompositeBatchIterator;
+import io.crate.data.FlatMapBatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -29,10 +57,12 @@ import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
+import io.crate.execution.engine.collect.collectors.SegmentBatchIterator;
 import io.crate.execution.engine.sort.LuceneSortGenerator;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
+import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
@@ -46,20 +76,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
-import java.util.function.Supplier;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
@@ -134,18 +150,46 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 sharedShardContext.indexService().cache()
             );
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-            InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
-                docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
+            CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId());;
+            IndexSearcher indexSearcher = searcher.searcher();
+            boolean doScores = Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE);
+            if (doScores) {
+                // The `ScoreCollectorExpression` uses the `Scorer` to retrieve the score for a given row,
+                // and `Scorer` uses its internal state to determine the score, which would be in a wrong position
+                // for the SegmentBatchIterator case, because it iterates over docIds eagerly
+                InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
+                    docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
+                return new LuceneBatchIterator(
+                    indexSearcher,
+                    queryContext.query(),
+                    queryContext.minScore(),
+                    doScores,
+                    collectorContext,
+                    docCtx.topLevelInputs(),
+                    docCtx.expressions()
+                );
+            }
+            List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
+            ArrayList<BatchIterator<Row>> batchIterators = new ArrayList<>(leaves.size());
+            Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(queryContext.query()), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
 
-            return new LuceneBatchIterator(
-                searcher.searcher(),
-                queryContext.query(),
-                queryContext.minScore(),
-                Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
-                new CollectorContext(sharedShardContext.readerId()),
-                docCtx.topLevelInputs(),
-                docCtx.expressions()
+            for (var leaf : leaves) {
+                BatchIterator<IntArrayList> segmentIterator = new SegmentBatchIterator(weight::scorer, leaf);
+                InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
+                    docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
+                DocIdsToRows docIdsToRows = new DocIdsToRows(new InputRow(docCtx.topLevelInputs()), docCtx.expressions());
+                docIdsToRows.init(collectorContext, leaf);
+                batchIterators.add(new FlatMapBatchIterator<>(
+                    segmentIterator,
+                    docIdsToRows
+                ));
+            }
+            return CompositeBatchIterator.seqComposite(
+                batchIterators.toArray(new BatchIterator[0])
             );
+        } catch (IOException e) {
+            searcher.close();
+            throw new UncheckedIOException(e);
         } catch (Throwable t) {
             searcher.close();
             throw t;

@@ -22,12 +22,11 @@
 
 package io.crate.lucene;
 
-import io.crate.data.Input;
-import io.crate.expression.InputCondition;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.RefVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.function.IntPredicate;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -42,10 +41,9 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Set;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.SymbolVisitors;
 
 /**
  * Query implementation which filters docIds by evaluating {@code condition} on each docId to verify if it matches.
@@ -55,16 +53,12 @@ import java.util.Set;
 class GenericFunctionQuery extends Query {
 
     private final Function function;
-    private final LuceneCollectorExpression[] expressions;
-    private final Input<Boolean> condition;
+    private final java.util.function.Function<LeafReaderContext, IntPredicate> docIdMatches;
 
     GenericFunctionQuery(Function function,
-                         Collection<? extends LuceneCollectorExpression<?>> expressions,
-                         Input<Boolean> condition) {
+                         java.util.function.Function<LeafReaderContext, IntPredicate> docIdMatches) {
         this.function = function;
-        // inner loop iterates over expressions - call toArray to avoid iterator allocations
-        this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
-        this.condition = condition;
+        this.docIdMatches = docIdMatches;
     }
 
     @Override
@@ -119,16 +113,14 @@ class GenericFunctionQuery extends Query {
 
             @Override
             public Scorer scorer(LeafReaderContext context) throws IOException {
-                return new ConstantScoreScorer(this, 0f, scoreMode, getTwoPhaseIterator(context));
+                return new ConstantScoreScorer(
+                    this,
+                    0f,
+                    scoreMode,
+                    new FilteredTwoPhaseIterator(context.reader(), docIdMatches.apply(context))
+                );
             }
         };
-    }
-
-    private FilteredTwoPhaseIterator getTwoPhaseIterator(final LeafReaderContext context) throws IOException {
-        for (LuceneCollectorExpression expression : expressions) {
-            expression.setNextReader(context);
-        }
-        return new FilteredTwoPhaseIterator(context.reader(), condition, expressions);
     }
 
     @Override
@@ -138,24 +130,17 @@ class GenericFunctionQuery extends Query {
 
     private static class FilteredTwoPhaseIterator extends TwoPhaseIterator {
 
-        private final Input<Boolean> condition;
-        private final LuceneCollectorExpression[] expressions;
+        private final IntPredicate docIdMatches;
 
-        FilteredTwoPhaseIterator(LeafReader reader,
-                                 Input<Boolean> condition,
-                                 LuceneCollectorExpression[] expressions) {
+        FilteredTwoPhaseIterator(LeafReader reader, IntPredicate docIdMatches) {
             super(DocIdSetIterator.all(reader.maxDoc()));
-            this.condition = condition;
-            this.expressions = expressions;
+            this.docIdMatches = docIdMatches;
         }
 
         @Override
         public boolean matches() throws IOException {
             int doc = approximation.docID();
-            for (LuceneCollectorExpression expression : expressions) {
-                expression.setNextDocId(doc);
-            }
-            return InputCondition.matches(condition);
+            return docIdMatches.test(doc);
         }
 
         @Override
