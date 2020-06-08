@@ -54,16 +54,19 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "having max(x) > 10 " +
                                             "order by 1");
         assertThat(map.toString(),
-            is("{Collect={type=executionPlan, " +
-               "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=[x, a], " +
+                is("{Collect={" +
+                "collectPhase={COLLECT={" +
+                    "distribution={distributedByColumn=0, type=BROADCAST}, executionNodes=[n1], id=0, " +
 
-                   "projections=[" +
-                       "{keys=INPUT(1), type=HashAggregation, aggregations=max(INPUT(0))}, " +
-                       "{keys=INPUT(0), type=HashAggregation, aggregations=max(INPUT(1))}, " +
-                       "{filter=(INPUT(1) > 10), type=Filter}, " +
-                       "{outputs=INPUT(0), INPUT(1), offset=0, limit=-1, orderBy=[INPUT(0) ASC], type=OrderByTopN}], " +
-                    "routing={n1={t1=[0, 1, 2, 3]}}, where=true}}}}"));
+                    "projections=[" +
+                        "{keys=INPUT(1), type=HashAggregation, aggregations=max(INPUT(0))}, " +
+                        "{keys=INPUT(0), type=HashAggregation, aggregations=max(INPUT(1))}, " +
+                        "{filter=(INPUT(1) > 10), type=Filter}, " +
+                        "{outputs=INPUT(0), INPUT(1), offset=0, limit=-1, orderBy=[INPUT(0) ASC], type=OrderByTopN}], " +
+                    "routing={n1={t1=[0, 1, 2, 3]}}, " +
+                    "toCollect=[x, a], type=executionPhase, where=true}}, " +
+                    "type=executionPlan}}")
+        );
     }
 
     @Test
@@ -73,7 +76,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "where t1.x > 10 and t2.y < 10 " +
                                             "order by 1");
         String mapStr = map.toString();
-        assertThat(mapStr, containsString("joinPhase={NESTED_LOOP={type=executionPhase"));
+        assertThat(mapStr, containsString("{Join={joinPhase={NESTED_LOOP={distribution={distributed"));
     }
 
     @Test
@@ -82,7 +85,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "from t1 inner join t2 " +
                                             "on t1.x = t2.y " +
                                             "order by 1");
-        assertThat(map.toString(),containsString("joinPhase={HASH_JOIN={type=executionPhas"));
+        assertThat(map.toString(),containsString("{Join={joinPhase={HASH_JOIN={distribution={distributedBy"));
     }
 
     @Test
@@ -93,18 +96,28 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "order by 1 " +
                                             "limit 10");
         assertThat(map.toString(),
-            is("{UnionExecutionPlan={type=executionPlan, " +
-               "left={Collect={type=executionPlan, " +
-                   "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
-                       "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=[x], " +
-                       "routing={n1={t1=[0, 1, 2, 3]}}, where=true, orderBy=x ASC}}}}, " +
-               "right={Collect={type=executionPlan, " +
-                   "collectPhase={COLLECT={type=executionPhase, id=1, executionNodes=[n1], " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=[y], " +
-                   "routing={n1={t2=[0, 1, 2, 3]}}, where=true, orderBy=y ASC}}}}, " +
-               "mergePhase={MERGE={type=executionPhase, id=2, executionNodes=[n1], " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, " +
-                   "projections=[{outputs=INPUT(0), offset=0, limit=10, type=TopN}]}}}}"));
+            is("{UnionExecutionPlan={" +
+               "left={Collect={" +
+                    "collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +
+                    "executionNodes=[n1], id=0, orderBy=x ASC, " +
+                    "routing={n1={t1=[0, 1, 2, 3]}}, " +
+                    "toCollect=[x], " +
+                    "type=executionPhase, " +
+                    "where=true}}, " +
+                    "type=executionPlan}}, " +
+               "mergePhase={MERGE={" +
+                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
+                    "executionNodes=[n1], id=2, " +
+                    "projections=[{outputs=INPUT(0), offset=0, limit=10, type=TopN}], " +
+                    "type=executionPhase}}, " +
+               "right={Collect={" +
+                    "collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +
+                    "executionNodes=[n1], id=1, orderBy=y ASC, " +
+                    "routing={n1={t2=[0, 1, 2, 3]}}, " +
+                    "toCollect=[y], " +
+                    "type=executionPhase, where=true}}, " +
+                    "type=executionPlan}}, " +
+               "type=executionPlan}}"));
     }
 
     @Test
@@ -114,12 +127,12 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "where t1.x > 10");
         assertThat(map.toString(),
             is("{CountPlan={type=executionPlan}, " +
-               "countPhase={COUNT={type=executionPhase, id=0, executionNodes=[n1]}, " +
+               "countPhase={COUNT={executionNodes=[n1], id=0, type=executionPhase}, " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
                    "routing={n1={t1=[0, 1, 2, 3]}}, " +
                    "where=(x > 10)}, " +
-               "mergePhase={MERGE={type=executionPhase, id=1, executionNodes=[n1], " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, " +
-               "projections=[{type=MERGE_COUNT_AGGREGATION}]}}}"));
+               "mergePhase={MERGE={distribution={distributedByColumn=0, type=BROADCAST}, " +
+                    "executionNodes=[n1], id=1, " +
+                    "projections=[{type=MERGE_COUNT_AGGREGATION}], type=executionPhase}}}"));
     }
 }

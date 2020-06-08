@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.settings.NumberOfReplicasSetting;
 import io.crate.metadata.settings.Validators;
 import io.crate.metadata.table.ColumnPolicies;
@@ -48,6 +48,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Container for the supported settings that can be used in the `WITH` clause of `CREATE TABLE` statements
@@ -120,15 +121,16 @@ public class TableParameters {
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
         = SUPPORTED_SETTINGS
             .stream()
-            .collect(ImmutableMap.toImmutableMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
+            .collect(Collectors.toMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
     private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NUMBER_OF_REPLICAS);
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
-        = ImmutableMap.<String, Setting<?>>builder()
-            .putAll(SUPPORTED_SETTINGS_DEFAULT)
-            .put(stripIndexPrefix(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING)
-            .build();
+        = MapBuilder.newMapBuilder(SUPPORTED_SETTINGS_DEFAULT)
+            .put(
+                stripIndexPrefix(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()),
+                IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING
+            ).immutableMap();
 
     private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
 
@@ -195,7 +197,7 @@ public class TableParameters {
     }
 
     public static Map<String, Object> tableParametersFromIndexMetadata(Settings settings) {
-        ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+        MapBuilder<String, Object> builder = MapBuilder.newMapBuilder();
         for (Setting<?> setting : SUPPORTED_SETTINGS) {
             boolean shouldBeExcluded = EXCLUDED_SETTING_FOR_METADATA_IMPORT.contains(setting);
             if (shouldBeExcluded == false) {
@@ -206,10 +208,10 @@ public class TableParameters {
                 }
             }
         }
-        return builder.build();
+        return builder.immutableMap();
     }
 
-    private static void flattenAffixSetting(ImmutableMap.Builder<String, Object> builder,
+    private static void flattenAffixSetting(MapBuilder<String, Object> builder,
                                             Settings settings,
                                             Setting.AffixSetting<?> setting) {
         String prefix = setting.getKey();

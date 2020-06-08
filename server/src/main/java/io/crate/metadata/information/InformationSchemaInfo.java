@@ -21,8 +21,7 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
+import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
@@ -31,17 +30,18 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Collections;
+import java.util.Map;
 
 @Singleton
 public class InformationSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "information_schema";
 
-    private final ImmutableMap<String, TableInfo> tableInfoMap;
+    private final Map<String, TableInfo> tableInfoMap;
 
     @Inject
     public InformationSchemaInfo() {
-        tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
+        tableInfoMap = MapBuilder.<String, TableInfo>treeMapBuilder()
             .put(InformationTablesTableInfo.NAME, InformationTablesTableInfo.create())
             .put(InformationViewsTableInfo.NAME, InformationViewsTableInfo.create())
             .put(InformationColumnsTableInfo.NAME, InformationColumnsTableInfo.create())
@@ -53,7 +53,7 @@ public class InformationSchemaInfo implements SchemaInfo {
             .put(InformationSchemataTableInfo.NAME, InformationSchemataTableInfo.create())
             .put(InformationSqlFeaturesTableInfo.NAME, InformationSqlFeaturesTableInfo.create())
             .put(InformationCharacterSetsTable.NAME, InformationCharacterSetsTable.create())
-            .build();
+            .immutableMap();
     }
 
     @Override

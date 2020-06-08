@@ -23,7 +23,6 @@
 package io.crate.analyze.where;
 
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GteOperator;
@@ -69,12 +68,12 @@ public final class WhereClauseValidator {
         }
 
         private static final String SCORE = "_score";
-        private static final Set<String> SCORE_ALLOWED_COMPARISONS = ImmutableSet.of(GteOperator.NAME);
+        private static final Set<String> SCORE_ALLOWED_COMPARISONS = Set.of(GteOperator.NAME);
 
         private static final String VERSION = "_version";
         private static final String SEQ_NO = "_seq_no";
         private static final String PRIMARY_TERM = "_primary_term";
-        private static final Set<String> VERSIONING_ALLOWED_COMPARISONS = ImmutableSet.of(
+        private static final Set<String> VERSIONING_ALLOWED_COMPARISONS = Set.of(
             EqOperator.NAME, AnyOperators.Type.NEQ.opName());
 
         private static final String SCORE_ERROR = String.format(Locale.ENGLISH,

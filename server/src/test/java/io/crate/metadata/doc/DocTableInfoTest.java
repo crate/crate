@@ -1,7 +1,6 @@
 package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -20,6 +19,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 
 public class DocTableInfoTest extends CrateUnitTest {
 
@@ -41,9 +41,9 @@ public class DocTableInfoTest extends CrateUnitTest {
             ImmutableList.of(),
             ImmutableList.of(),
             ImmutableList.of(),
-            ImmutableMap.of(),
-            ImmutableMap.of(),
-            ImmutableMap.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(),
             ImmutableList.of(),
             ImmutableList.of(),
             null,
@@ -87,9 +87,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             null
         );
 
-        ImmutableMap<ColumnIdent, Reference> references = ImmutableMap.<ColumnIdent, Reference>builder()
-            .put(new ColumnIdent("foobar"), strictParent)
-            .build();
+        Map<ColumnIdent, Reference> references = Map.of(new ColumnIdent("foobar"), strictParent);
 
         DocTableInfo info = new DocTableInfo(
             dummy,
@@ -97,9 +95,9 @@ public class DocTableInfoTest extends CrateUnitTest {
             ImmutableList.of(),
             ImmutableList.of(),
             ImmutableList.of(),
-            ImmutableMap.of(),
+            Map.of(),
             references,
-            ImmutableMap.of(),
+            Map.of(),
             ImmutableList.of(),
             ImmutableList.of(),
             null,

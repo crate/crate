@@ -22,7 +22,6 @@
 
 package io.crate.expression.symbol;
 
-import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 
 import java.util.Map;
@@ -38,7 +37,7 @@ public class MappingSymbolVisitorTest {
         Symbol t = Literal.BOOLEAN_TRUE;
         Symbol one = Literal.of(1);
 
-        Map<Symbol, ? extends Symbol> fieldMap = ImmutableMap.of(f, t);
+        Map<Symbol, ? extends Symbol> fieldMap = Map.of(f, t);
 
         assertThat(MappingSymbolVisitor.copy().process(f, fieldMap), is(t));
         assertThat(MappingSymbolVisitor.copy().process(one, fieldMap), is(one));

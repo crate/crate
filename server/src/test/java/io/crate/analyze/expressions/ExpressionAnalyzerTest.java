@@ -23,7 +23,6 @@ package io.crate.analyze.expressions;
 
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
@@ -87,7 +86,7 @@ import static org.hamcrest.Matchers.sameInstance;
  */
 public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private ImmutableMap<RelationName, AnalyzedRelation> dummySources;
+    private Map<RelationName, AnalyzedRelation> dummySources;
     private CoordinatorTxnCtx coordinatorTxnCtx;
     private ExpressionAnalysisContext context;
     private ParamTypeHints paramTypeHints;
@@ -99,7 +98,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws Exception {
         paramTypeHints = ParamTypeHints.EMPTY;
         DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
-        dummySources = ImmutableMap.of(dummyRelation.relationName(), dummyRelation);
+        dummySources = Map.of(dummyRelation.relationName(), dummyRelation);
         coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         context = new ExpressionAnalysisContext();
         functions = getFunctions();
@@ -203,7 +202,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         RelationName a1 = new RelationName(null, "a1");
         RelationName a2 = new RelationName(null, "a2");
-        Map<RelationName, AnalyzedRelation> sources = ImmutableMap.of(
+        Map<RelationName, AnalyzedRelation> sources = Map.of(
             a1, new AliasedAnalyzedRelation(relation, a1),
             a2, new AliasedAnalyzedRelation(relation, a2)
         );

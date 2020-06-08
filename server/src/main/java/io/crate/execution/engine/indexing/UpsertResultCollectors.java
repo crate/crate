@@ -23,7 +23,6 @@
 package io.crate.execution.engine.indexing;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -32,6 +31,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -47,7 +47,7 @@ final class UpsertResultCollectors {
     }
 
     static UpsertResultCollector newSummaryCollector(DiscoveryNode localNode) {
-        return new SummaryCollector(ImmutableMap.of(
+        return new SummaryCollector(Map.of(
             "id", localNode.getId(),
             "name", localNode.getName()
         ));
@@ -133,11 +133,11 @@ final class UpsertResultCollectors {
 
     private static class SummaryCollector implements UpsertResultCollector {
 
-        private final ImmutableMap<String, String> nodeInfo;
+        private final Map<String, String> nodeInfo;
 
         private final Object lock = new Object();
 
-        SummaryCollector(ImmutableMap<String, String> nodeInfo) {
+        SummaryCollector(Map<String, String> nodeInfo) {
             this.nodeInfo = nodeInfo;
         }
 

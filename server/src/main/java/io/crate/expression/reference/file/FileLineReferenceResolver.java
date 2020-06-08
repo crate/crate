@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.file;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
@@ -34,7 +33,7 @@ public final class FileLineReferenceResolver {
     // need to create a new instance here so that each collector will have its own instance.
     // otherwise multiple collectors would share the same state.
     private static final Map<String, Supplier<LineCollectorExpression<?>>> EXPRESSION_BUILDER =
-        ImmutableMap.of(
+        Map.of(
             SourceLineExpression.COLUMN_NAME, SourceLineExpression::new,
             SourceAsMapLineExpression.COLUMN_NAME, SourceAsMapLineExpression::new,
             SourceUriExpression.COLUMN_NAME, SourceUriExpression::new,

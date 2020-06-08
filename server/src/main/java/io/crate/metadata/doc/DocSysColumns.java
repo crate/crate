@@ -22,7 +22,6 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
@@ -74,23 +73,23 @@ public class DocSysColumns {
     public static final ColumnIdent FETCHID = new ColumnIdent(Names.FETCHID);
     public static final ColumnIdent DOCID = new ColumnIdent(Names.DOCID);
 
-    public static final ImmutableMap<ColumnIdent, DataType<?>> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType<?>>builder()
-        .put(DOC, DataTypes.UNTYPED_OBJECT)
-        .put(FETCHID, DataTypes.LONG)
-        .put(ID, DataTypes.STRING)
-        .put(RAW, DataTypes.STRING)
-        .put(SCORE, DataTypes.FLOAT)
-        .put(UID, DataTypes.STRING)
-        .put(VERSION, DataTypes.LONG)
-        .put(DOCID, DataTypes.INTEGER)
-        .put(SEQ_NO, DataTypes.LONG)
-        .put(PRIMARY_TERM, DataTypes.LONG)
-        .build();
+    public static final Map<ColumnIdent, DataType<?>> COLUMN_IDENTS = Map.of(
+        DOC, DataTypes.UNTYPED_OBJECT,
+        FETCHID, DataTypes.LONG,
+        ID, DataTypes.STRING,
+        RAW, DataTypes.STRING,
+        SCORE, DataTypes.FLOAT,
+        UID, DataTypes.STRING,
+        VERSION, DataTypes.LONG,
+        DOCID, DataTypes.INTEGER,
+        SEQ_NO, DataTypes.LONG,
+        PRIMARY_TERM, DataTypes.LONG
+    );
 
-    private static final ImmutableMap<ColumnIdent, String> LUCENE_COLUMN_NAMES = ImmutableMap.<ColumnIdent, String>builder()
-        .put(RAW, "_source")
-        .put(ID, UID.name())
-        .build();
+    private static final Map<ColumnIdent, String> LUCENE_COLUMN_NAMES = Map.of(
+        RAW, "_source",
+        ID, UID.name()
+    );
 
     private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType) {
         return new Reference(new ReferenceIdent(table, column),

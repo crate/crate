@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.sys;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
@@ -94,12 +93,12 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         schemas = new Schemas(
-            ImmutableMap.of("sys", new SysSchemaInfo(this.clusterService, crateSettings, new CeLicenseService())),
+            Map.of("sys", new SysSchemaInfo(this.clusterService, crateSettings, new CeLicenseService())),
             clusterService,
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), (ident, state) -> null , functions, udfService)
         );
         resolver = new ShardReferenceResolver(schemas, new ShardRowContext(indexShard, clusterService));
-        sysShards = (SystemTable<ShardRowContext>) schemas.getTableInfo(SysShardsTableInfo.IDENT);
+        sysShards = schemas.getTableInfo(SysShardsTableInfo.IDENT);
     }
 
     private IndexShard mockIndexShard() {

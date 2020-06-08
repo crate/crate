@@ -93,10 +93,6 @@ public class FetchTask extends AbstractTask {
         return toFetch;
     }
 
-    AtomicBoolean isKilled() {
-        return isKilled;
-    }
-
     @Override
     public void innerPrepare() {
         HashMap<String, RelationName> index2TableIdent = new HashMap<>();

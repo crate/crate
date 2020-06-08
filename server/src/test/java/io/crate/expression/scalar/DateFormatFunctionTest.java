@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataTypes;
@@ -147,62 +146,61 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testMySQLCompatibilityForWeeks() throws Exception {
-        Map<String, Map<String, String>> dateToInputOutputMap = ImmutableMap.<String, Map<String, String>>builder()
-            .put("1970-01-30", ImmutableMap.<String, String>builder()
-                .put("%u", "05")
-                .put("%U", "04")
-                .put("%v", "05")
-                .put("%V", "04")
-                .put("%x", "1970")
-                .put("%X", "1970")
-                .build())
-            .put("1996-01-01", ImmutableMap.of(
+        Map<String, Map<String, String>> dateToInputOutputMap = Map.of(
+            "1970-01-30", Map.of(
+                "%u", "05",
+                "%U", "04",
+                "%v", "05",
+                "%V", "04",
+                "%x", "1970",
+                "%X", "1970"
+            ),
+            "1996-01-01", Map.of(
                 "%X %V", "1995 53",
                 "%x %v", "1996 01",
                 "%u", "01",
                 "%U", "00"
-            ))
-            .put("2000-01-01", ImmutableMap.<String, String>builder()
-                .put("%u", "00")
-                .put("%U", "00")
-                .put("%v", "52")
-                .put("%V", "52")
-                .put("%x", "1999")
-                .put("%X", "1999")
-                .build())
-            .put("2004-01-01", ImmutableMap.<String, String>builder()
-                .put("%u", "01")
-                .put("%U", "00")
-                .put("%v", "01")
-                .put("%V", "52")
-                .put("%x", "2004")
-                .put("%X", "2003")
-                .build())
-            .put("2008-02-20", ImmutableMap.<String, String>builder()
-                .put("%u", "08")
-                .put("%U", "07")
-                .put("%v", "08")
-                .put("%V", "07")
-                .put("%x", "2008")
-                .put("%X", "2008")
-                .build())
-            .put("2008-12-31", ImmutableMap.<String, String>builder()
-                .put("%u", "53")
-                .put("%U", "52")
-                .put("%v", "01")
-                .put("%V", "52")
-                .put("%x", "2009")
-                .put("%X", "2008")
-                .build())
-            .put("2009-01-01", ImmutableMap.<String, String>builder()
-                .put("%u", "01")
-                .put("%U", "00")
-                .put("%v", "01")
-                .put("%V", "52")
-                .put("%x", "2009")
-                .put("%X", "2008")
-                .build())
-            .build();
+            ),
+            "2000-01-01", Map.of(
+                "%u", "00",
+                "%U", "00",
+                "%v", "52",
+                "%V", "52",
+                "%x", "1999",
+                "%X", "1999"
+            ),
+            "2004-01-01", Map.of(
+                "%u", "01",
+                "%U", "00",
+                "%v", "01",
+                "%V", "52",
+                "%x", "2004",
+                "%X", "2003"
+            ),
+            "2008-02-20", Map.of(
+                "%u", "08",
+                "%U", "07",
+                "%v", "08",
+                "%V", "07",
+                "%x", "2008",
+                "%X", "2008"),
+            "2008-12-31", Map.of(
+                "%u", "53",
+                "%U", "52",
+                "%v", "01",
+                "%V", "52",
+                "%x", "2009",
+                "%X", "2008"
+            ),
+            "2009-01-01", Map.of(
+                "%u", "01",
+                "%U", "00",
+                "%v", "01",
+                "%V", "52",
+                "%x", "2009",
+                "%X", "2008"
+            )
+        );
         for (Map.Entry<String, Map<String, String>> entry : dateToInputOutputMap.entrySet()) {
             for (Map.Entry<String, String> ioEntry : entry.getValue().entrySet()) {
                 Symbol result = sqlExpressions.normalize(sqlExpressions.asSymbol(String.format(Locale.ENGLISH,

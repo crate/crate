@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import io.crate.Constants;
@@ -35,6 +34,7 @@ import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.Booleans;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -104,7 +104,7 @@ public class DocIndexMetadata {
     private final ImmutableList<ColumnIdent> partitionedBy;
     private final Set<Operation> supportedOperations;
     private Collection<Reference> columns;
-    private ImmutableMap<ColumnIdent, IndexReference> indices;
+    private Map<ColumnIdent, IndexReference> indices;
     private List<Reference> partitionedByColumns;
     private ImmutableList<GeneratedReference> generatedColumnReferences;
     private Map<ColumnIdent, Reference> references;
@@ -138,10 +138,10 @@ public class DocIndexMetadata {
         this.tableParameters = metadata.getSettings();
 
         Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");
-        indicesMap = Maps.getOrDefault(metaMap, "indices", ImmutableMap.of());
+        indicesMap = Maps.getOrDefault(metaMap, "indices", Map.of());
         List<List<String>> partitionedByList = Maps.getOrDefault(metaMap, "partitioned_by", List.of());
         this.partitionedBy = getPartitionedBy(partitionedByList);
-        generatedColumns = Maps.getOrDefault(metaMap, "generated_columns", ImmutableMap.of());
+        generatedColumns = Maps.getOrDefault(metaMap, "generated_columns", Map.of());
         IndexMetadata.State state = isClosed(metadata, mappingMap, !partitionedByList.isEmpty()) ?
             IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN;
         supportedOperations = Operation.buildFromIndexSettingsAndState(metadata.getSettings(), state);
@@ -160,7 +160,7 @@ public class DocIndexMetadata {
     private static Map<String, Object> getMappingMap(IndexMetadata metadata) {
         MappingMetadata mappingMetadata = metadata.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
         if (mappingMetadata == null) {
-            return ImmutableMap.of();
+            return Map.of();
         }
         return mappingMetadata.sourceAsMap();
     }
@@ -532,12 +532,12 @@ public class DocIndexMetadata {
         internalExtractColumnDefinitions(null, propertiesMap);
     }
 
-    private ImmutableMap<ColumnIdent, IndexReference> createIndexDefinitions() {
-        ImmutableMap.Builder<ColumnIdent, IndexReference> builder = ImmutableMap.builder();
+    private Map<ColumnIdent, IndexReference> createIndexDefinitions() {
+        MapBuilder<ColumnIdent, IndexReference> builder = MapBuilder.newMapBuilder();
         for (Map.Entry<ColumnIdent, IndexReference.Builder> entry : indicesBuilder.entrySet()) {
             builder.put(entry.getKey(), entry.getValue().build());
         }
-        indices = builder.build();
+        indices = builder.immutableMap();
         return indices;
     }
 
@@ -629,7 +629,7 @@ public class DocIndexMetadata {
         return columns;
     }
 
-    public ImmutableMap<ColumnIdent, IndexReference> indices() {
+    public Map<ColumnIdent, IndexReference> indices() {
         return indices;
     }
 
@@ -681,8 +681,8 @@ public class DocIndexMetadata {
         return tableParameters;
     }
 
-    private ImmutableMap<ColumnIdent, String> getAnalyzers(ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
-        ImmutableMap.Builder<ColumnIdent, String> builder = ImmutableMap.builder();
+    private Map<ColumnIdent, String> getAnalyzers(ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
+        MapBuilder<ColumnIdent, String> builder = MapBuilder.newMapBuilder();
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
             DataType columnDataType = getColumnDataType(columnProperties);
@@ -700,13 +700,13 @@ public class DocIndexMetadata {
                 builder.put(newIdent, analyzer);
             }
         }
-        return builder.build();
+        return builder.map();
     }
 
-    ImmutableMap<ColumnIdent, String> analyzers() {
+    Map<ColumnIdent, String> analyzers() {
         Map<String, Object> propertiesMap = Maps.get(mappingMap, "properties");
         if (propertiesMap == null) {
-            return ImmutableMap.of();
+            return Map.of();
         } else {
             return getAnalyzers(null, propertiesMap);
         }

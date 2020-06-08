@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -66,7 +65,7 @@ public class RoutingTest extends CrateUnitTest {
     @Test
     public void testStreamingWithoutLocations() throws Exception {
         BytesStreamOutput out = new BytesStreamOutput();
-        Routing routing1 = new Routing(ImmutableMap.of());
+        Routing routing1 = new Routing(Map.of());
         routing1.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
@@ -77,7 +76,7 @@ public class RoutingTest extends CrateUnitTest {
 
     @Test
     public void testRoutingForRandomMasterOrDataNode() throws IOException {
-        Map<String, String> attr = ImmutableMap.of();
+        Map<String, String> attr = Map.of();
         Set<DiscoveryNode.Role> master_and_data = ImmutableSet.of(DiscoveryNode.Role.MASTER, DiscoveryNode.Role.DATA);
         DiscoveryNode local = new DiscoveryNode("client_node_1", buildNewFakeTransportAddress(), attr, ImmutableSet.of(), null);
         DiscoveryNodes nodes = new DiscoveryNodes.Builder()
@@ -101,7 +100,7 @@ public class RoutingTest extends CrateUnitTest {
     @Test
     public void testRoutingForRandomMasterOrDataNodePrefersLocal() throws Exception {
         Set<DiscoveryNode.Role> data = ImmutableSet.of(DiscoveryNode.Role.DATA);
-        Map<String, String> attr = ImmutableMap.of();
+        Map<String, String> attr = Map.of();
         DiscoveryNode local = new DiscoveryNode("local_data", buildNewFakeTransportAddress(), attr, data, null);
         DiscoveryNodes nodes = new DiscoveryNodes.Builder()
             .add(local)

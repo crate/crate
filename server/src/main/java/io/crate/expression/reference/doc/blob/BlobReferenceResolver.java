@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.doc.blob;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.Reference;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -38,7 +37,7 @@ public class BlobReferenceResolver implements ReferenceResolver<CollectExpressio
     private static final String LAST_MODIFIED = "last_modified";
 
     private static final Map<String, ExpressionBuilder> EXPRESSION_BUILDER =
-        ImmutableMap.of(
+        Map.of(
             DIGEST, () -> NestableCollectExpression.forFunction(File::getName),
             LAST_MODIFIED, () -> NestableCollectExpression.forFunction(File::lastModified)
         );

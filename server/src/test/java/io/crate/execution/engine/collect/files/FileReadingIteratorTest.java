@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.files;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -84,7 +83,7 @@ public class FileReadingIteratorTest extends CrateUnitTest {
         fileUri = tempFilePath.toUri().toString();
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
-            Collections.singletonList(fileUri), null, JSON
+            Collections.singletonList(fileUri), JSON
         );
 
         List<Object[]> expectedResult = Arrays.asList(
@@ -106,7 +105,7 @@ public class FileReadingIteratorTest extends CrateUnitTest {
         fileUri = tempFilePath.toUri().toString();
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
-            Collections.singletonList(fileUri), null, CSV
+            Collections.singletonList(fileUri), CSV
         );
 
         List<Object[]> expectedResult = Arrays.asList(
@@ -127,7 +126,7 @@ public class FileReadingIteratorTest extends CrateUnitTest {
         fileUri = tempFilePath.toUri().toString();
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
-            Collections.singletonList(fileUri), null, JSON
+            Collections.singletonList(fileUri), JSON
         );
 
         List<Object[]> expectedResult = Arrays.asList(
@@ -149,7 +148,7 @@ public class FileReadingIteratorTest extends CrateUnitTest {
         fileUri = tempFilePath.toUri().toString();
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
-            Collections.singletonList(fileUri), null, JSON
+            Collections.singletonList(fileUri), JSON
         );
 
         List<Object[]> expectedResult = Arrays.asList(
@@ -159,7 +158,8 @@ public class FileReadingIteratorTest extends CrateUnitTest {
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
-    private BatchIterator<Row> createBatchIterator(Collection<String> fileUris, String compression, FileUriCollectPhase.InputFormat format) {
+    private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,
+                                                   FileUriCollectPhase.InputFormat format) {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
@@ -169,9 +169,8 @@ public class FileReadingIteratorTest extends CrateUnitTest {
             fileUris,
             inputs,
             ctx.expressions(),
-            compression,
-            ImmutableMap.of(
-                LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
+            null,
+            Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
             false,
             1,
             0,

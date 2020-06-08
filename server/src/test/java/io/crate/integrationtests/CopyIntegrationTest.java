@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
@@ -631,7 +630,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         String r1 = "{\"a\": 1}";
         String r2 = "{\"a\": 2}";
         String r3 = "{\"a\": 3}";
-        return tmpFileWithLines(ImmutableList.of(r1, r2, r3));
+        return tmpFileWithLines(List.of(r1, r2, r3));
     }
 
     private static Path tmpFileWithLines(Iterable<String> lines) throws IOException {

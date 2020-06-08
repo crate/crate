@@ -21,7 +21,6 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -122,7 +121,7 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
     @Test
     public void testEmpty() throws Exception {
         AcknowledgedResponse response = action.execute(
-            new CreatePartitionsRequest(ImmutableList.<String>of(), UUID.randomUUID())).actionGet();
+            new CreatePartitionsRequest(List.of(), UUID.randomUUID())).actionGet();
         assertThat(response.isAcknowledged(), is(true));
     }
 

@@ -21,30 +21,8 @@
 
 package io.crate.metadata.sys;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.STRING;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.ImmutableMap;
-
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.GroupShardsIterator;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.index.seqno.SeqNoStats;
-import org.elasticsearch.index.shard.ShardId;
-
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.User;
@@ -61,6 +39,26 @@ import io.crate.metadata.SystemTable;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.GroupShardsIterator;
+import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.seqno.SeqNoStats;
+import org.elasticsearch.index.shard.ShardId;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.STRING;
+import static java.util.Map.entry;
 
 public class SysShardsTableInfo {
 
@@ -69,7 +67,6 @@ public class SysShardsTableInfo {
     public static class Columns {
         /**
          * Implementations have to be registered in
-         *  - {@link #expressions()}
          *  - {@link #unassignedShardsExpressions()}
          */
 
@@ -97,26 +94,26 @@ public class SysShardsTableInfo {
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>>builder()
-            .put(Columns.SCHEMA_NAME, () -> forFunction(UnassignedShard::schemaName))
-            .put(Columns.TABLE_NAME, () -> forFunction(UnassignedShard::tableName))
-            .put(Columns.PARTITION_IDENT, () -> forFunction(UnassignedShard::partitionIdent))
-            .put(Columns.ID, () -> forFunction(UnassignedShard::id))
-            .put(Columns.NUM_DOCS, () -> constant(0L))
-            .put(Columns.PRIMARY, () -> forFunction(UnassignedShard::primary))
-            .put(Columns.RELOCATING_NODE, () -> constant(null))
-            .put(Columns.SIZE, () -> constant(0L))
-            .put(Columns.STATE, () -> forFunction(UnassignedShard::state))
-            .put(Columns.ROUTING_STATE, () -> forFunction(UnassignedShard::state))
-            .put(Columns.ORPHAN_PARTITION, () -> forFunction(UnassignedShard::orphanedPartition))
-            .put(Columns.RECOVERY, NestedNullObjectExpression::new)
-            .put(Columns.PATH, () -> constant(null))
-            .put(Columns.BLOB_PATH, () -> constant(null))
-            .put(Columns.MIN_LUCENE_VERSION, () -> constant(null))
-            .put(Columns.NODE, NestedNullObjectExpression::new)
-            .put(Columns.SEQ_NO_STATS, NestedNullObjectExpression::new)
-            .put(Columns.TRANSLOG_STATS, NestedNullObjectExpression::new)
-            .build();
+        return Map.ofEntries(
+            entry(Columns.SCHEMA_NAME, () -> forFunction(UnassignedShard::schemaName)),
+            entry(Columns.TABLE_NAME, () -> forFunction(UnassignedShard::tableName)),
+            entry(Columns.PARTITION_IDENT, () -> forFunction(UnassignedShard::partitionIdent)),
+            entry(Columns.ID, () -> forFunction(UnassignedShard::id)),
+            entry(Columns.NUM_DOCS, () -> constant(0L)),
+            entry(Columns.PRIMARY, () -> forFunction(UnassignedShard::primary)),
+            entry(Columns.RELOCATING_NODE, () -> constant(null)),
+            entry(Columns.SIZE, () -> constant(0L)),
+            entry(Columns.STATE, () -> forFunction(UnassignedShard::state)),
+            entry(Columns.ROUTING_STATE, () -> forFunction(UnassignedShard::state)),
+            entry(Columns.ORPHAN_PARTITION, () -> forFunction(UnassignedShard::orphanedPartition)),
+            entry(Columns.RECOVERY, NestedNullObjectExpression::new),
+            entry(Columns.PATH, () -> constant(null)),
+            entry(Columns.BLOB_PATH, () -> constant(null)),
+            entry(Columns.MIN_LUCENE_VERSION, () -> constant(null)),
+            entry(Columns.NODE, NestedNullObjectExpression::new),
+            entry(Columns.SEQ_NO_STATS, NestedNullObjectExpression::new),
+            entry(Columns.TRANSLOG_STATS, NestedNullObjectExpression::new)
+        );
     }
 
     public static SystemTable<ShardRowContext> create() {
@@ -197,11 +194,7 @@ public class SysShardsTableInfo {
             node = shardRouting.currentNodeId();
             id = shardRouting.id();
         }
-        Map<String, IntIndexedContainer> nodeMap = routing.get(node);
-        if (nodeMap == null) {
-            nodeMap = new TreeMap<>();
-            routing.put(node, nodeMap);
-        }
+        Map<String, IntIndexedContainer> nodeMap = routing.computeIfAbsent(node, k -> new TreeMap<>());
 
         IntIndexedContainer shards = nodeMap.get(index);
         if (shards == null) {

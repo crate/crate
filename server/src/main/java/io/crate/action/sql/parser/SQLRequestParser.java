@@ -21,7 +21,6 @@
 
 package io.crate.action.sql.parser;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.SQLParseException;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -32,6 +31,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Parser for SQL statements in JSON and other XContent formats
@@ -50,10 +50,10 @@ public final class SQLRequestParser {
         static final String BULK_ARGS = "bulk_args";
     }
 
-    private static final ImmutableMap<String, SQLParseElement> ELEMENT_PARSERS = ImmutableMap.of(
-        Fields.STMT, (SQLParseElement) new SQLStmtParseElement(),
-        Fields.ARGS, (SQLParseElement) new SQLArgsParseElement(),
-        Fields.BULK_ARGS, (SQLParseElement) new SQLBulkArgsParseElement()
+    private static final Map<String, SQLParseElement> ELEMENT_PARSERS = Map.of(
+        Fields.STMT, new SQLStmtParseElement(),
+        Fields.ARGS, new SQLArgsParseElement(),
+        Fields.BULK_ARGS, new SQLBulkArgsParseElement()
     );
 
     private SQLRequestParser() {

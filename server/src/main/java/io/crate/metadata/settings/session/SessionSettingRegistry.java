@@ -28,8 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.google.common.collect.ImmutableMap;
 
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -50,7 +50,7 @@ public class SessionSettingRegistry {
 
     @Inject
     public SessionSettingRegistry(Set<SessionSettingProvider> sessionSettingProviders) {
-        var builder = ImmutableMap.<String, SessionSetting<?>>builder()
+        var builder = MapBuilder.<String, SessionSetting<?>>treeMapBuilder()
             .put(SEARCH_PATH_KEY,
                  new SessionSetting<>(
                      SEARCH_PATH_KEY,
@@ -120,7 +120,7 @@ public class SessionSettingRegistry {
                 builder.put(setting.name(), setting);
             }
         }
-        this.settings = builder.build();
+        this.settings = builder.immutableMap();
     }
 
     public Map<String, SessionSetting<?>> settings() {
