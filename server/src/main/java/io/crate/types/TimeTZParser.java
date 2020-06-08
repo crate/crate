@@ -49,8 +49,8 @@ import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
  *     (24 * 3600 + 59 * 60 + 59) * 1000_000L > Integer.MAX_VALUE
  * </pre>
  * <p>
- * Thus the range for time values is 0 .. 86400000000 (max number
- * of micros in a day).
+ * Thus the range for time values is 0 .. 86400000000 - 1 (max number
+ * of micros in a day - highest value 23:59:59.999999).
  *
  * <p>
  * <p>
@@ -84,8 +84,8 @@ import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
  * <p>
  * The above formats accept a suffix (-|+)HH[[:]MM[[:]SS]] (and all ISO-8601
  * compliant) to define the time zone. If the time zone is not defined,
- * then <b>UTC is implicit</>. Time zone values are limited to 14:59:59 in
- * either direction as per postgres specification.
+ * then <b>UTC is implicit</>. Time zone values are limited to 18:00 in
+ * either direction.
  */
 public final class TimeTZParser {
 
