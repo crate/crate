@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -49,6 +48,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
@@ -73,7 +73,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             UUID.randomUUID(),
             1,
             "collect",
-            new Routing(ImmutableMap.of()),
+            new Routing(Map.of()),
             RowGranularity.SHARD,
             Collections.singletonList(shardId),
             ImmutableList.of(),
@@ -108,7 +108,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             UUID.randomUUID(),
             1,
             "collect",
-            new Routing(ImmutableMap.of()),
+            new Routing(Map.of()),
             RowGranularity.SHARD,
             ImmutableList.of(),
             ImmutableList.of(),

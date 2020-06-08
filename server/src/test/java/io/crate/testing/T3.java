@@ -22,17 +22,15 @@
 
 package io.crate.testing;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class T3 {
 
@@ -81,7 +79,7 @@ public class T3 {
     public static final RelationName T4 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t4");
     public static final RelationName T5 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t5");
 
-    private static final Map<RelationName, String> RELATION_DEFINITIONS = ImmutableMap.of(
+    private static final Map<RelationName, String> RELATION_DEFINITIONS = Map.of(
         T1, T1_DEFINITION,
         T2, T2_DEFINITION,
         T3, T3_DEFINITION,
@@ -108,12 +106,12 @@ public class T3 {
         SQLExecutor executor = executorBuilder.build();
         Schemas schemas = executor.schemas();
 
-        ImmutableMap.Builder<RelationName, AnalyzedRelation> builder = ImmutableMap.builder();
+        MapBuilder<RelationName, AnalyzedRelation> builder = MapBuilder.newMapBuilder();
         for (RelationName relationName : relations) {
             builder.put(
                 relationName,
                 new DocTableRelation(schemas.getTableInfo(relationName)));
         }
-        return builder.build();
+        return builder.immutableMap();
     }
 }

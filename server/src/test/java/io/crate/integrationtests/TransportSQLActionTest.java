@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.UseJdbc;
@@ -1323,7 +1322,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
         assertThat(response.rowCount(), is(1L));
-        execute("select * from t where within(p, ?)", $(ImmutableMap.of(
+        execute("select * from t where within(p, ?)", $(Map.of(
             "type", "Polygon",
             "coordinates", new double[][][]{
                 {

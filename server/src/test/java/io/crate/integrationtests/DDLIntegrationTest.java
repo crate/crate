@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -41,9 +40,10 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.printedTable;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
@@ -618,7 +618,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("INSERT INTO t (attributes) values ([{name='Trillian', is_nice=True}])");
         refresh();
         execute("select attributes from t");
-        assertThat(((List<Object>)response.rows()[0][0]).get(0), is(ImmutableMap.of("name", "Trillian", "is_nice", true)));
+        assertThat(((List<Object>)response.rows()[0][0]).get(0), is(Map.of("name", "Trillian", "is_nice", true)));
     }
 
     @Test

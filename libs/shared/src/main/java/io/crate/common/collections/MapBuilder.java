@@ -63,4 +63,8 @@ public final class MapBuilder<K, V> {
     public Map<K, V> immutableMap() {
         return Collections.unmodifiableMap(map);
     }
+
+    public void putAll(Map<K, V> value) {
+        map.putAll(value);
+    }
 }

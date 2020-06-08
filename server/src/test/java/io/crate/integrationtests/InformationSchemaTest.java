@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
@@ -863,9 +862,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(3, response.rowCount());
 
-        Object[] row1 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04132", ImmutableMap.of("par", 1), "1", 5, "0-1", "1"};
-        Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04134", ImmutableMap.of("par", 2), "2", 5, "0-1", "1"};
-        Object[] row3 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04136", ImmutableMap.of("par", 3), "3", 5, "0-1", "1"};
+        Object[] row1 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04132", Map.of("par", 1), "1", 5, "0-1", "1"};
+        Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04134", Map.of("par", 2), "2", 5, "0-1", "1"};
+        Object[] row3 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04136", Map.of("par", 3), "3", 5, "0-1", "1"};
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);
@@ -968,11 +967,11 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(5, response.rowCount());
 
-        Object[] row1 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08132132c5p0", ImmutableMap.of("par", 1, "par_str", "bar"), 5, "0-1"};
-        Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08132136dtng", ImmutableMap.of("par", 1, "par_str", "foo"), 5, "0-1"};
-        Object[] row3 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08134132c5p0", ImmutableMap.of("par", 2, "par_str", "bar"), 5, "0-1"};
-        Object[] row4 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08134136dtng", ImmutableMap.of("par", 2, "par_str", "foo"), 5, "0-1"};
-        Object[] row5 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "081341b1edi6c", ImmutableMap.of("par", 2, "par_str", "asdf"), 4, "0-1"};
+        Object[] row1 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08132132c5p0", Map.of("par", 1, "par_str", "bar"), 5, "0-1"};
+        Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08132136dtng", Map.of("par", 1, "par_str", "foo"), 5, "0-1"};
+        Object[] row3 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08134132c5p0", Map.of("par", 2, "par_str", "bar"), 5, "0-1"};
+        Object[] row4 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08134136dtng", Map.of("par", 2, "par_str", "foo"), 5, "0-1"};
+        Object[] row5 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "081341b1edi6c", Map.of("par", 2, "par_str", "asdf"), 4, "0-1"};
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);

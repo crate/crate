@@ -22,7 +22,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
@@ -91,7 +90,7 @@ public class RelationAnalysisContext {
 
     List<JoinPair> joinPairs() {
         if (joinPairs == null) {
-            return ImmutableList.of();
+            return List.of();
         }
         return joinPairs;
     }

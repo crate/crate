@@ -61,7 +61,6 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
-@SuppressWarnings("unchecked")
 public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());

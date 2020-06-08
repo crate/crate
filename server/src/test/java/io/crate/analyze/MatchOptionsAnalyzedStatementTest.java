@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
@@ -64,13 +63,13 @@ public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
     public void testZeroTermsQueryMustBeAString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid value for option 'zero_terms_query': 12.6");
-        MatchOptionsAnalysis.validate(ImmutableMap.of("zero_terms_query", 12.6));
+        MatchOptionsAnalysis.validate(Map.of("zero_terms_query", 12.6));
     }
 
     @Test
     public void testUnknownOption() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("unknown match option 'oh'");
-        MatchOptionsAnalysis.validate(ImmutableMap.of("oh", 1));
+        MatchOptionsAnalysis.validate(Map.of("oh", 1));
     }
 }

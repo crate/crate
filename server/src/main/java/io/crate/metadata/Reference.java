@@ -34,12 +34,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.Objects;
 
 public class Reference extends Symbol {
-
-    public static final Comparator<Reference> COMPARE_BY_COLUMN_IDENT = Comparator.comparing(Reference::column);
 
     public enum IndexType {
         ANALYZED,

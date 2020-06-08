@@ -22,7 +22,6 @@
 
 package io.crate.metadata.view;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -43,12 +42,11 @@ import static org.hamcrest.core.IsNull.nullValue;
 public class ViewsMetadataTest extends CrateUnitTest {
 
     public static ViewsMetadata createMetadata() {
-        Map<String, ViewMetadata> map = ImmutableMap.<String, ViewMetadata>builder()
-            .put("doc.my_view",
-                new ViewMetadata("SELECT x, y FROM t1 WHERE z = 'a'", "user_a"))
-            .put("my_schema.other_view",
-                new ViewMetadata("SELECT a, b FROM t2 WHERE c = 1", "user_b"))
-            .build();
+        Map<String, ViewMetadata> map = Map.of(
+            "doc.my_view",
+            new ViewMetadata("SELECT x, y FROM t1 WHERE z = 'a'", "user_a"),
+            "my_schema.other_view",
+            new ViewMetadata("SELECT a, b FROM t2 WHERE c = 1", "user_b"));
         return new ViewsMetadata(map);
     }
 

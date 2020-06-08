@@ -21,7 +21,7 @@
 
 package io.crate.metadata.shard;
 
-import com.google.common.collect.ImmutableMap;
+import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.engine.collect.NestableCollectExpression;
@@ -65,7 +65,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
                 "Unable to load PARTITIONED BY columns from partition %s", index.getName()), e);
         }
         RelationName relationName = partitionName.relationName();
-        ImmutableMap.Builder<ColumnIdent, NestableInput> builder = ImmutableMap.builder();
+        MapBuilder<ColumnIdent, NestableInput> builder = MapBuilder.newMapBuilder();
         try {
             DocTableInfo info = schemas.getTableInfo(relationName);
             assert info.isPartitioned() : "table must be partitioned";
@@ -85,7 +85,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
         } catch (ResourceUnknownException e) {
             LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, relationName.fqn());
         }
-        return new MapBackedRefResolver(builder.build());
+        return new MapBackedRefResolver(builder.immutableMap());
     }
 
     private final ShardRowContext shardRowContext;

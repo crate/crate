@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.reference.sys.check.SysCheck.Severity;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -51,7 +50,7 @@ public class SysChecksTest extends CrateUnitTest {
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
             mock(Schemas.class));
 
-        when(docSchemaInfo.getTables()).thenReturn(ImmutableList.of(docTableInfo, docTableInfo));
+        when(docSchemaInfo.getTables()).thenReturn(List.of(docTableInfo, docTableInfo));
         when(docTableInfo.isPartitioned()).thenReturn(true);
 
         List<PartitionName> partitionsFirst = buildPartitions(500);
@@ -63,13 +62,12 @@ public class SysChecksTest extends CrateUnitTest {
         assertThat(numberOfPartitionsSysCheck.validateDocTablesPartitioning(docSchemaInfo), is(true));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testNumberOfPartitionsWrongPartitioning() {
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(mock(Schemas.class));
         List<PartitionName> partitions = buildPartitions(1001);
 
-        when(docSchemaInfo.getTables()).thenReturn(ImmutableList.of(docTableInfo));
+        when(docSchemaInfo.getTables()).thenReturn(List.of(docTableInfo));
         when(docTableInfo.isPartitioned()).thenReturn(true);
         when(docTableInfo.partitions()).thenReturn(partitions);
 

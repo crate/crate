@@ -22,8 +22,6 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.data.Input;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
@@ -43,6 +41,9 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import javax.script.ScriptException;
+
+import java.util.List;
+import java.util.Map;
 
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -98,17 +99,17 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
             }
         });
         docSchemaInfo = new DocSchemaInfo("doc", clusterService, functions, udfService,
-            (ident, state) -> null, new TestingDocTableInfoFactory(ImmutableMap.of()));
+            (ident, state) -> null, new TestingDocTableInfoFactory(Map.of()));
     }
 
     @Test
     public void testInvalidFunction() throws Exception {
         UserDefinedFunctionMetadata invalid = new UserDefinedFunctionMetadata(
-            "my_schema", "invalid", ImmutableList.of(), DataTypes.INTEGER,
+            "my_schema", "invalid", List.of(), DataTypes.INTEGER,
             "burlesque", "this is not valid burlesque code"
         );
         UserDefinedFunctionMetadata valid = new UserDefinedFunctionMetadata(
-            "my_schema", "valid", ImmutableList.of(), DataTypes.INTEGER,
+            "my_schema", "valid", List.of(), DataTypes.INTEGER,
             "burlesque", "\"Hello, World!\"Q"
         );
         UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(invalid, valid);
@@ -116,10 +117,10 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
         udfService.updateImplementations("my_schema", metadata.functionsMetadata().stream());
 
-        assertThat(functions.get("my_schema", "valid", ImmutableList.of(), pathWithPGCatalogAndDoc()), Matchers.notNullValue());
+        assertThat(functions.get("my_schema", "valid", List.of(), pathWithPGCatalogAndDoc()), Matchers.notNullValue());
 
         expectedException.expectMessage("Unknown function: my_schema.invalid()");
-        functions.get("my_schema", "invalid", ImmutableList.of(), pathWithPGCatalogAndDoc());
+        functions.get("my_schema", "invalid", List.of(), pathWithPGCatalogAndDoc());
     }
 
     @Test

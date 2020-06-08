@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import org.junit.Before;
@@ -39,14 +38,14 @@ import static org.hamcrest.core.Is.is;
 
 public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
 
-    private static final Map GEO_SHAPE1 = ImmutableMap.of(
+    private static final Map<String, Object> GEO_SHAPE1 = Map.of(
         "coordinates", new double[][]{
             {0, 0},
             {1, 1}
         },
         "type", "LineString"
     );
-    private static final Map GEO_SHAPE2 = ImmutableMap.of(
+    private static final Map<String, Object> GEO_SHAPE2 = Map.of(
         "coordinates", new double[][]{
             {2, 2},
             {3, 3}

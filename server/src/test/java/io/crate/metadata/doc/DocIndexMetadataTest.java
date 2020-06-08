@@ -304,14 +304,13 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stringAnalyzedBWC.indexType(), is(Reference.IndexType.ANALYZED));
         assertThat(stringAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
-        List<Reference> references = List.copyOf(md.references().values());
-        List<String> fqns = Lists2.map(references, r -> r.column().fqn());
-        assertThat(fqns, Matchers.is(
-            List.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
+        assertThat(
+            Lists2.map(md.references().values(), r -> r.column().fqn()),
+            containsInAnyOrder("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
                 "_primary_term", "integerIndexed", "integerIndexedBWC", "integerNotIndexed", "integerNotIndexedBWC",
                 "person", "person.birthday", "person.first_name",
                 "stringAnalyzed", "stringAnalyzedBWC", "stringNotAnalyzed", "stringNotAnalyzedBWC",
-                "stringNotIndexed", "stringNotIndexedBWC")));
+                "stringNotIndexed", "stringNotIndexedBWC"));
     }
 
     @Test
@@ -386,12 +385,13 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.ANALYZED));
         assertThat(stringAnalyzed.defaultExpression(), isLiteral("default"));
 
-        List<Reference> references = List.copyOf(md.references().values());
-        List<String> fqns = Lists2.map(references, r -> r.column().fqn());
-        assertThat(fqns, Matchers.is(
-            List.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
-                "_primary_term", "birthday", "integerIndexed", "integerNotIndexed",
-                "stringAnalyzed", "stringNotAnalyzed", "stringNotIndexed")));
+        assertThat(
+            Lists2.map(md.references().values(), r -> r.column().fqn()),
+            containsInAnyOrder(
+                "_raw", "_doc", "_seq_no", "_version", "_id", "_uid",
+                "_score", "_fetchid", "_primary_term", "_docid",
+                "birthday", "integerIndexed", "integerNotIndexed",
+                "stringAnalyzed", "stringNotAnalyzed", "stringNotIndexed"));
     }
 
     @Test

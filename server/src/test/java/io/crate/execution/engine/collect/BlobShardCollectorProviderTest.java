@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.v2.BlobIndicesService;
@@ -47,6 +46,7 @@ import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
@@ -75,7 +75,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
             UUID.randomUUID(),
             1,
             "collect",
-            new Routing(ImmutableMap.of()),
+            new Routing(Map.of()),
             RowGranularity.SHARD,
             ImmutableList.of(),
             ImmutableList.of(),

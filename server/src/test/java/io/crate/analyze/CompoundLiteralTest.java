@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
@@ -33,7 +32,6 @@ import io.crate.testing.T3;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 import org.hamcrest.Matchers;
@@ -58,7 +56,6 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
         expressions = new SqlExpressions(T3.sources(clusterService));
     }
 
-    @SuppressWarnings("ConstantConditions")
     @Test
     public void testObjectConstruction() throws Exception {
         Symbol s = expressions.asSymbol("{}");
@@ -138,16 +135,16 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedArrayLiteral() throws Exception {
-        Map<String, DataType<?>> expected = ImmutableMap.<String, DataType<?>>builder()
-            .put("'string'", DataTypes.STRING)
-            .put("0", DataTypes.INTEGER)
-            .put("1.8", DataTypes.DOUBLE)
-            .put("TRUE", DataTypes.BOOLEAN)
-            .build();
+        Map<String, DataType<?>> expected = Map.of(
+            "'string'", DataTypes.STRING,
+            "0", DataTypes.INTEGER,
+            "1.8", DataTypes.DOUBLE,
+            "TRUE", DataTypes.BOOLEAN
+        );
         for (Map.Entry<String, DataType<?>> entry : expected.entrySet()) {
             Symbol nestedArraySymbol = analyzeExpression("[[" + entry.getKey() + "]]");
             assertThat(nestedArraySymbol, Matchers.instanceOf(Literal.class));
-            Literal nestedArray = (Literal) nestedArraySymbol;
+            Literal<?> nestedArray = (Literal<?>) nestedArraySymbol;
             assertThat(nestedArray.valueType(), is(new ArrayType<>(new ArrayType<>(entry.getValue()))));
         }
     }

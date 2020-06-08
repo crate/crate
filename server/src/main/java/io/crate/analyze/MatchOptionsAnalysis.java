@@ -22,12 +22,13 @@
 package io.crate.analyze;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableMap;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
+
+import static java.util.Map.entry;
 
 public class MatchOptionsAnalysis {
 
@@ -36,25 +37,23 @@ public class MatchOptionsAnalysis {
     private static final Predicate<Object> IS_NUMBER = x -> x instanceof Number;
     private static final Predicate<Object> NUMBER_OR_STRING = IS_NUMBER.or(IS_STRING);
 
-    private static final Map<String, Predicate<Object>> ALLOWED_SETTINGS = ImmutableMap.<String, Predicate<Object>>builder()
-        .put("analyzer", IS_STRING)
-        .put("boost", POSITIVE_NUMBER)
-        .put("cutoff_frequency", POSITIVE_NUMBER)
-        .put("fuzziness", NUMBER_OR_STRING) // validated at ES QueryParser
-        .put("fuzzy_rewrite", IS_STRING)
-        .put("max_expansions", POSITIVE_NUMBER)
-        .put("minimum_should_match", NUMBER_OR_STRING)
-        .put("operator", Predicates.in(Arrays.<Object>asList(
-            "or",
-            "and",
-            "OR",
-            "AND")))
-        .put("prefix_length", POSITIVE_NUMBER)
-        .put("rewrite", IS_STRING)
-        .put("slop", POSITIVE_NUMBER)
-        .put("tie_breaker", IS_NUMBER)
-        .put("zero_terms_query", IS_STRING)
-        .build();
+    private static final Map<String, Predicate<Object>> ALLOWED_SETTINGS = Map.ofEntries(
+        entry("analyzer", IS_STRING),
+        entry("boost", POSITIVE_NUMBER),
+        entry("cutoff_frequency", POSITIVE_NUMBER),
+        entry("fuzziness", NUMBER_OR_STRING), // validated at ES QueryParser
+        entry("fuzzy_rewrite", IS_STRING),
+        entry("max_expansions", POSITIVE_NUMBER),
+        entry("minimum_should_match", NUMBER_OR_STRING),
+        entry(
+            "operator",
+            Predicates.in(List.of("or", "and", "OR", "AND"))),
+        entry("prefix_length", POSITIVE_NUMBER),
+        entry("rewrite", IS_STRING),
+        entry("slop", POSITIVE_NUMBER),
+        entry("tie_breaker", IS_NUMBER),
+        entry("zero_terms_query", IS_STRING)
+    );
 
     public static void validate(Map<String, Object> options) {
         for (Map.Entry<String, Object> e : options.entrySet()) {
