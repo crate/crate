@@ -58,7 +58,7 @@ public class SysClusterTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(
             printedTable(response.rows()),
-            is("Limit[2;0]\n" +
+            is("Limit[2::bigint;0]\n" +
                "  └ Collect[sys.cluster | [id, license, master_node, name, settings] | true]\n")
         );
     }

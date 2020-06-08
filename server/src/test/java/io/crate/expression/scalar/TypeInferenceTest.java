@@ -40,7 +40,7 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
         assertEvaluate("'1' = 1", true);
 
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
         assertEvaluate("'foo' = 1", true);
     }
 
@@ -66,7 +66,7 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
         assertEvaluate("case 1 when 1.0 then 'foo' else 'bar' end", "foo");
 
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
         assertEvaluate("case 1 when 'foo' then 'foo' else 'bar' end", "bar");
     }
 

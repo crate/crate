@@ -53,7 +53,7 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_error_is_raised_if_the_types_of_the_rows_are_not_compatible() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
         e.analyze("VALUES (1), ('foo')");
     }
 
@@ -69,7 +69,7 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_nulls_in_column_values_must_not_fail_type_validation() {
         AnalyzedRelation relation = e.analyze("VALUES (1), (null), (2), (null)");
-        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.LONG)));
+        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.INTEGER)));
     }
 
     @Test

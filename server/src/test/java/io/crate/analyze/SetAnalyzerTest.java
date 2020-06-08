@@ -57,14 +57,14 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(
             analysis.settings().get(0),
-            is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(1L)))));
+            is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(1)))));
 
         analysis = analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=2");
         assertThat(analysis.isPersistent(), is(false));
         assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(
             analysis.settings().get(0),
-            is(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(2L)))));
+            is(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(2)))));
 
 
         analysis = analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size=0");
@@ -77,11 +77,11 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(
             analysis.settings().get(1),
-            is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(0L)))));
+            is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(0)))));
 
         assertThat(
             analysis.settings().get(2),
-            is(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(0L)))));
+            is(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(0)))));
     }
 
     @Test
@@ -91,7 +91,7 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(
             analysis.settings().get(0),
-            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(2L)))));
+            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(2)))));
 
 
         analysis = analyze("SET LOCAL something TO DEFAULT");
@@ -121,14 +121,14 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(
             analysis.settings().get(0),
-            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(2L)))));
+            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(2)))));
 
         analysis = analyze("SET SESSION something = 1,2,3");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
 
         assertThat(
             analysis.settings().get(0),
-            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(1L), Literal.of(2L), Literal.of(3L)))));
+            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(1), Literal.of(2), Literal.of(3)))));
     }
 
     @Test
@@ -138,7 +138,7 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(
             analysis.settings().get(0),
-            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(2L)))));
+            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(2)))));
 
         analysis = analyze("SET something = DEFAULT");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
@@ -162,7 +162,7 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(
             analysis.settings().get(0),
-            is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(1L)))));
+            is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(1)))));
     }
 //
     @Test

@@ -33,8 +33,8 @@ public class RoundFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testRound() throws Exception {
         assertEvaluate("round(42.2)", 42L);
-        assertEvaluate("round(42)", 42L);
-        assertEvaluate("round(cast(42 as integer))", 42);
+        assertEvaluate("round(42)", 42);
+        assertEvaluate("round(42::bigint)", 42L);
         assertEvaluate("round(cast(42.2 as float))", 42);
         assertEvaluate("round(null)", null);
 

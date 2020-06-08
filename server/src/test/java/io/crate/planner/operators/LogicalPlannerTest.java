@@ -132,7 +132,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSimpleSelectQAFAndLimit() throws Exception {
         LogicalPlan plan = plan("select a from t1 order by a limit 10 offset 5");
         assertThat(plan, isPlan(
-            "Limit[10;5]\n" +
+            "Limit[10::bigint;5::bigint]\n" +
             "  └ OrderBy[a ASC]\n" +
             "    └ Collect[doc.t1 | [a] | true]"
         ));
@@ -144,11 +144,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "   select a, x from t1 order by a limit 3) tt " +
                                 "order by x desc limit 1");
         assertThat(plan, isPlan(
-            "Limit[1;0]\n" +
+            "Limit[1::bigint;0]\n" +
             "  └ Rename[a, x] AS tt\n" +
             "    └ OrderBy[x DESC]\n" +
             "      └ Fetch[a, x]\n" +
-            "        └ Limit[3;0]\n" +
+            "        └ Limit[3::bigint;0]\n" +
             "          └ OrderBy[a ASC]\n" +
             "            └ Collect[doc.t1 | [_fetchid, a] | true]"));
     }
@@ -160,7 +160,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "HashAggregate[sum(x)]\n" +
             "  └ Rename[x] AS tt\n" +
             "    └ Fetch[x]\n" +
-            "      └ Limit[10;0]\n" +
+            "      └ Limit[10::bigint;0]\n" +
             "        └ Collect[doc.t1 | [_fetchid] | true]"));
     }
 
@@ -206,12 +206,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         // instead of a Collect plan, this must result in a CountPlan through optimization
         assertThat(plan, isPlan(
             "MultiPhase\n" +
-            "  └ Collect[doc.t1 | [a, x, i] | (x > _cast((SELECT 1 FROM (doc.t1)), 'integer'))]\n" +
-            "  └ Limit[2;0]\n" +
+            "  └ Collect[doc.t1 | [a, x, i] | (x > (SELECT 1 FROM (doc.t1)))]\n" +
+            "  └ Limit[2::bigint;0::bigint]\n" +
             "    └ MultiPhase\n" +
             "      └ Collect[doc.t1 | [1] | (x > cast((SELECT count(*) FROM (doc.t2)) AS integer))]\n" +
-            "      └ Limit[2;0]\n" +
-            "        └ Limit[1;0]\n" +
+            "      └ Limit[2::bigint;0::bigint]\n" +
+            "        └ Limit[1::bigint;0]\n" +
             "          └ Count[doc.t2 | true]"
         ));
     }
@@ -231,7 +231,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    │    └ Count[doc.t1 | true]\n" +
             "    └ Rename[i] AS t2\n" +
             "      └ Fetch[i]\n" +
-            "        └ Limit[1;0]\n" +
+            "        └ Limit[1::bigint;0]\n" +
             "          └ Collect[doc.t2 | [_fetchid] | true]"));
     }
 
@@ -245,7 +245,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "order by t1.x " +
                                 "limit 10");
         assertThat(plan, isPlan(
-            "Limit[10;0]\n" +
+            "Limit[10::bigint;0]\n" +
             "  └ OrderBy[x ASC]\n" +
             "    └ HashJoin[(x = y)]\n" +
             "      ├ Collect[doc.t1 | [x, a] | true]\n" +
@@ -274,7 +274,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.dependencies().entrySet().size(), is(1));
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
         assertThat(subPlan, isPlan(
-            "Limit[10;0]\n" +
+            "Limit[10::bigint;0]\n" +
             "  └ OrderBy[x DESC]\n" +
             "    └ Collect[doc.t1 | [x] | true]"));
     }
@@ -287,7 +287,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(subPlan, isPlan(
             "Eval[x]\n" +
             "  └ OrderBy[x ASC]\n" +
-            "    └ Limit[10;0]\n" +
+            "    └ Limit[10::bigint;0]\n" +
             "      └ OrderBy[a DESC]\n" +
             "        └ Collect[doc.t1 | [x, a] | true]"));
     }
@@ -309,12 +309,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
                                 "limit 10");
         assertThat(plan, isPlan(
-            "Limit[10;0]\n" +
+            "Limit[10::bigint;0]\n" +
             "  └ HashJoin[(i = i)]\n" +
             "    ├ Rename[a, i] AS t1\n" +
             "    │  └ Filter[(a > '50')]\n" +
             "    │    └ Fetch[a, i]\n" +
-            "    │      └ Limit[5;0]\n" +
+            "    │      └ Limit[5::bigint;0]\n" +
             "    │        └ OrderBy[a ASC]\n" +
             "    │          └ Collect[doc.t1 | [_fetchid, a] | true]\n" +
             "    └ Rename[b, i] AS t2\n" +
@@ -341,7 +341,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("select name from users u where id = 1");
         assertThat(plan, isPlan(
             "Rename[name] AS u\n" +
-            "  └ Get[doc.users | name | DocKeys{1}]"));
+            "  └ Get[doc.users | name | DocKeys{1::bigint}]"));
     }
 
     @Test
@@ -354,7 +354,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             plan,
             isPlan(
-                "TopNDistinct[20 | [name, other_id]]\n" +
+                "TopNDistinct[20::bigint | [name, other_id]]\n" +
                 "  └ Rename[name, other_id] AS u\n" +
                 "    └ Collect[doc.users | [name, other_id] | true]"
             )
@@ -375,7 +375,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             plan,
             isPlan(
                 "Fetch[a, x, i, b, y, i]\n" +
-                "  └ Limit[3;0]\n" +
+                "  └ Limit[3::bigint;0]\n" +
                 "    └ NestedLoopJoin[CROSS]\n" +
                 "      ├ Collect[doc.t1 | [_fetchid] | true]\n" +
                 "      └ Collect[doc.t2 | [_fetchid] | true]"
@@ -390,7 +390,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             plan,
             isPlan(
                 "Fetch[a, x, i, b, y, i]\n" +
-                "  └ Limit[3;0]\n" +
+                "  └ Limit[3::bigint;0]\n" +
                 "    └ HashJoin[(a = b)]\n" +
                 "      ├ Collect[doc.t1 | [_fetchid, a] | true]\n" +
                 "      └ Collect[doc.t2 | [_fetchid, b] | true]"

@@ -226,7 +226,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             ClientMessages.sendParseMessage(buffer,
                 "S1",
                 "select ? in (1, 2, 3)",
-                new int[] { PGTypes.get(DataTypes.LONG).oid() });
+                new int[] { PGTypes.get(DataTypes.INTEGER).oid() });
                 ClientMessages.sendBindMessage(buffer,
                     "P1",
                     "S1",
@@ -302,7 +302,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 assertThat(response.readByte(), is((byte) 't'));
                 assertThat(response.readInt(), is(10));
                 assertThat(response.readShort(), is((short) 1));
-                assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).oid()));
+                assertThat(response.readInt(), is(PGTypes.get(DataTypes.INTEGER).oid()));
             } finally {
                 response.release();
             }

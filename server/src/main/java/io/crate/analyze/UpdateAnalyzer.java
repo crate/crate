@@ -48,6 +48,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Update;
@@ -213,12 +214,21 @@ public final class UpdateAnalyzer {
             return super.visitSubscriptExpression(node, childOfSubscript);
         }
 
-        @Override
-        protected Void visitLongLiteral(LongLiteral node, Boolean childOfSubscript) {
+        private Void validateLiteral(Boolean childOfSubscript) {
             if (childOfSubscript) {
                 throw new IllegalArgumentException("Updating a single element of an array is not supported");
             }
             return null;
+        }
+
+        @Override
+        protected Void visitLongLiteral(LongLiteral node, Boolean childOfSubscript) {
+            return validateLiteral(childOfSubscript);
+        }
+
+        @Override
+        protected Void visitIntegerLiteral(IntegerLiteral node, Boolean childOfSubscript) {
+            return validateLiteral(childOfSubscript);
         }
     }
 }

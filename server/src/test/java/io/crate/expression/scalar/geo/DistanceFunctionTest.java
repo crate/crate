@@ -44,7 +44,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testResolveWithInvalidType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: distance(bigint, text)");
+        expectedException.expectMessage("unknown function: distance(integer, text)");
         assertNormalize("distance(1, 'POINT (11 21)')", null);
     }
 

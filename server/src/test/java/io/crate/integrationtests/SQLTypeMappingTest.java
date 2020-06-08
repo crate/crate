@@ -205,7 +205,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereClause() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast `129` of type `bigint` to type `char`");
+        expectedException.expectMessage("Cannot cast `129` of type `integer` to type `char`");
 
         setUpSimple();
         execute("delete from t1 where byte_field=129");

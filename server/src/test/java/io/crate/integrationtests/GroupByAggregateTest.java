@@ -1285,7 +1285,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("explain select distinct id from m.tbl limit 2");
         assertThat(
             printedTable(response.rows()),
-            is("TopNDistinct[2 | [id]]\n" +
+            is("TopNDistinct[2::bigint | [id]]\n" +
                "  └ Collect[m.tbl | [id] | true]\n")
         );
         execute("select distinct id from m.tbl limit 2");

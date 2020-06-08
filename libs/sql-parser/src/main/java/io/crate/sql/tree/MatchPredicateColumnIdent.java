@@ -33,6 +33,7 @@ public class MatchPredicateColumnIdent extends Expression {
         this.ident = ident;
         if (boost != null) {
             if (!(boost instanceof LongLiteral ||
+                  boost instanceof IntegerLiteral ||
                   boost instanceof DoubleLiteral ||
                   boost instanceof ParameterExpression)) {
                 throw new IllegalArgumentException("'boost' value must be a numeric literal or a parameter expression");

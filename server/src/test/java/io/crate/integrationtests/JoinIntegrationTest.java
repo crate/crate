@@ -21,27 +21,6 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printRows;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.Is.is;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
-import org.junit.Test;
-
 import io.crate.data.CollectionBucket;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
@@ -51,6 +30,26 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import static io.crate.testing.TestingHelpers.printRows;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class JoinIntegrationTest extends SQLTransportIntegrationTest {
@@ -401,7 +400,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("explain select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
         assertThat(printedTable(response.rows()), is(
             "Fetch[x, y, x, y]\n" +
-            "  └ Limit[3;0]\n" +
+            "  └ Limit[3::bigint;0]\n" +
             "    └ OrderBy[x ASC x ASC]\n" +
             "      └ NestedLoopJoin[CROSS]\n" +
             "        ├ Rename[t1._fetchid, x] AS t1\n" +

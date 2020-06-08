@@ -27,6 +27,7 @@ import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.NegativeExpression;
 import io.crate.sql.tree.ObjectLiteral;
@@ -115,6 +116,12 @@ public final class SubscriptValidator {
 
         private static final SubscriptIndexVisitor INSTANCE = new SubscriptIndexVisitor();
 
+        private static void raiseInvalidIndexValue() {
+            throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
+                              MAX_VALUE));
+        }
+
         @Override
         public Void visitParameterExpression(ParameterExpression node, SubscriptContext context) {
             throw new UnsupportedOperationException("Parameter substitution is not supported in subscript index");
@@ -127,15 +134,25 @@ public final class SubscriptValidator {
             return null;
         }
 
+
         @Override
         protected Void visitLongLiteral(LongLiteral node, SubscriptContext context) {
             validateNestedArrayAccess(context);
             long value = node.getValue();
 
             if (value < 1 || value > MAX_VALUE) {
-                throw new UnsupportedOperationException(
-                    String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
-                        MAX_VALUE));
+                raiseInvalidIndexValue();
+            }
+            context.index(new Cast(node, new ColumnType<>("integer")));
+            return null;
+        }
+
+
+        @Override
+        protected Void visitIntegerLiteral(IntegerLiteral node, SubscriptContext context) {
+            validateNestedArrayAccess(context);
+            if (node.getValue() < 1) {
+                raiseInvalidIndexValue();
             }
             context.index(new Cast(node, new ColumnType<>("integer")));
             return null;

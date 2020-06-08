@@ -38,7 +38,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeWithValueSymbols() throws Exception {
-        assertNormalize("array_cat([10, 20], [10, 30])", isLiteral(Arrays.asList(10L, 20L, 10L, 30L)));
+        assertNormalize("array_cat([10, 20], [10, 30])", isLiteral(Arrays.asList(10, 20, 10, 30)));
     }
 
     @Test
@@ -48,7 +48,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullArguments() throws Exception {
-        assertNormalize("array_cat([1, 2, 3], null)", isLiteral(Arrays.asList(1L, 2L, 3L)));
+        assertNormalize("array_cat([1, 2, 3], null)", isLiteral(Arrays.asList(1, 2, 3)));
     }
 
     @Test
@@ -61,14 +61,14 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_cat(bigint_array)");
+        expectedException.expectMessage("unknown function: array_cat(integer_array)");
         assertEvaluate("array_cat([1])", null);
     }
 
     @Test
     public void testThreeArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_cat(bigint_array, bigint_array, bigint_array)");
+        expectedException.expectMessage("unknown function: array_cat(integer_array, integer_array, integer_array)");
         assertEvaluate("array_cat([1], [2], [3])", null);
     }
 

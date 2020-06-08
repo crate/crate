@@ -46,6 +46,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
+import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
 import io.crate.sql.tree.IsNullPredicate;
@@ -243,6 +244,11 @@ public final class ExpressionFormatter {
         @Override
         protected String visitLongLiteral(LongLiteral node, @Nullable List<Expression> parameters) {
             return Long.toString(node.getValue());
+        }
+
+        @Override
+        protected String visitIntegerLiteral(IntegerLiteral node, @Nullable List<Expression> parameters) {
+            return Integer.toString(node.getValue());
         }
 
         @Override

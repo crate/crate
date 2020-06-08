@@ -1027,7 +1027,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
         assertThat(
             generatedColumnsMapping.get("day"),
-            is("_cast((_cast(ts, 'bigint') + 1), 'timestamp with time zone')"));
+            is("_cast((_cast(ts, 'bigint') + 1::bigint), 'timestamp with time zone')"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> dayMapping = (Map<String, Object>) mappingProperties.get("day");
@@ -1294,13 +1294,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testGeneratedColumnInsideObjectIsProcessed() {
         BoundCreateTable stmt = analyze("create table t (obj object as (c as 1 + 1))");
         AnalyzedColumnDefinition<Object> obj = stmt.analyzedTableElements().columns().get(0);
-        AnalyzedColumnDefinition c = obj.children().get(0);
+        AnalyzedColumnDefinition<?> c = obj.children().get(0);
 
-        assertThat(c.dataType(), is(DataTypes.LONG));
+        assertThat(c.dataType(), is(DataTypes.INTEGER));
         assertThat(c.formattedGeneratedExpression(), is("2"));
         assertThat(AnalyzedTableElements.toMapping(stmt.analyzedTableElements()).toString(),
                    is("{_meta={generated_columns={obj.c=2}}, " +
-                      "properties={obj={dynamic=true, position=1, type=object, properties={c={type=long}}}}}"));
+                      "properties={obj={dynamic=true, position=1, type=object, properties={c={type=integer}}}}}"));
     }
 
     @Test

@@ -396,13 +396,13 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     public void testArithmeticFunctions() throws Exception {
         execute("select ((2 * 4 - 2 + 1) / 2) % 3 from sys.cluster");
         assertThat(response.cols()[0], is("0"));
-        assertThat(response.rows()[0][0], is(0L));
+        assertThat(response.rows()[0][0], is(0));
 
         execute("select ((2 * 4.0 - 2 + 1) / 2) % 3 from sys.cluster");
         assertThat(response.rows()[0][0], is(0.5));
 
         execute("select ? + 2 from sys.cluster", $(1));
-        assertThat(response.rows()[0][0], is(3L));
+        assertThat(response.rows()[0][0], is(3));
 
         if (!Constants.WINDOWS) {
             response = execute("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");

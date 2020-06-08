@@ -138,11 +138,11 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
                                                  "limit 10");
         assertThat(relation,
-                   isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10"));
+                   isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10::bigint"));
         assertThat(relation.joinPairs().get(0).condition(),
                    isSQL("(t1.i = t2.i)"));
         assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation(),
-                   isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
+                   isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint"));
         assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation(),
                    isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')"));
     }
@@ -156,11 +156,11 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
                                                  "order by 2 limit 10");
         assertThat(relation,
-            isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10"));
+            isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10::bigint"));
         assertThat(relation.joinPairs().get(0).condition(),
             isSQL("(t1.i = t2.i)"));
         assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation(),
-            isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
+            isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint"));
         assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation(),
             isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')"));
     }

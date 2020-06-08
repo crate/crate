@@ -378,7 +378,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select id from users group by id having id > 0");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.where(), isSQL("(doc.users.id > 0)"));
+        assertThat(collectPhase.where(), isSQL("(doc.users.id > 0::bigint)"));
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class)
         ));

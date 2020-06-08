@@ -41,8 +41,10 @@ public abstract class Literal
         } else if (value instanceof Number) {
             if (value instanceof Float || value instanceof Double) {
                 literal = new DoubleLiteral(value.toString());
-            } else if (value instanceof Short || value instanceof Integer || value instanceof Long) {
-                literal = new LongLiteral(value.toString());
+            } else if (value instanceof Short || value instanceof Integer) {
+                literal = new IntegerLiteral(((Number) value).intValue());
+            } else if (value instanceof Long) {
+                literal = new LongLiteral((Long) value);
             }
         } else if (value instanceof Boolean) {
             literal = (Boolean) value ? BooleanLiteral.TRUE_LITERAL : BooleanLiteral.FALSE_LITERAL;

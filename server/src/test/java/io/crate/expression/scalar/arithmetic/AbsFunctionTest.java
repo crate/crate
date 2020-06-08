@@ -33,9 +33,9 @@ public class AbsFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testAbs() throws Exception {
-        assertEvaluate("abs(-2)", 2L);
+        assertEvaluate("abs(-2)", 2);
         assertEvaluate("abs(-2.0)", 2.0);
-        assertEvaluate("abs(cast(-2 as integer))", 2);
+        assertEvaluate("abs(cast(-2 as bigint))", 2L);
         assertEvaluate("abs(cast(-2.0 as float))", 2.0f);
         assertEvaluate("abs(null)", null);
     }

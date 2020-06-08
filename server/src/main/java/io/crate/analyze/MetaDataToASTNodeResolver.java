@@ -246,7 +246,7 @@ public class MetaDataToASTNodeResolver {
             Expression clusteredBy = clusteredByColumn == null || clusteredByColumn.isSystemColumn()
                 ? null
                 : expressionFromColumn(clusteredByColumn);
-            Expression numShards = new LongLiteral(Integer.toString(tableInfo.numberOfShards()));
+            Expression numShards = new LongLiteral(tableInfo.numberOfShards());
             return Optional.of(new ClusteredBy<>(Optional.ofNullable(clusteredBy), Optional.of(numShards)));
         }
 

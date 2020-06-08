@@ -37,21 +37,21 @@ public class ArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testTypeValidation() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
         assertEvaluate("ARRAY[1, 'foo']", null);
     }
 
     @Test
     public void testEvaluateArrayWithExpr() {
-        assertEvaluate("ARRAY[1 + 2]", List.of(3L));
-        assertEvaluate("[1 + 1]", List.of(2L));
+        assertEvaluate("ARRAY[1 + 2]", List.of(3));
+        assertEvaluate("[1 + 1]", List.of(2));
     }
 
     @Test
     public void testEvaluateNestedArrays() {
         assertEvaluate("ARRAY[[]]", List.of(List.of()));
         assertEvaluate("[ARRAY[]]", List.of(List.of()));
-        assertEvaluate("[[1 + 1], ARRAY[1 + 2]]", List.of(List.of(2L), List.of(3L)));
+        assertEvaluate("[[1 + 1], ARRAY[1 + 2]]", List.of(List.of(2), List.of(3)));
     }
 
     public void testEvaluateArrayOnColumnIdents() {
@@ -64,8 +64,8 @@ public class ArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeArrays() {
-        assertNormalize("ARRAY[1 + 2]", isLiteral(List.of(3L)));
-        assertNormalize("[ARRAY[1 + 2]]", isLiteral(List.of(List.of(3L))));
+        assertNormalize("ARRAY[1 + 2]", isLiteral(List.of(3)));
+        assertNormalize("[ARRAY[1 + 2]]", isLiteral(List.of(List.of(3))));
         assertNormalize("[[null is null], ARRAY[4 is not null], [false]]",
             isLiteral(List.of(List.of(true), List.of(true), List.of(false))));
     }
