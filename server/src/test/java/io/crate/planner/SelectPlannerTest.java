@@ -750,8 +750,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testAggregationCanBeUsedAsArgumentToTableFunction() {
         LogicalPlan plan = e.logicalPlan("select count(name), generate_series(1, count(name)) from users");
         assertThat(plan, isPlan(
-            "Eval[count(name), generate_series(1, _cast(count(name), 'integer'))]\n" +
-            "  └ ProjectSet[generate_series(1, _cast(count(name), 'integer')), count(name)]\n" +
+            "Eval[count(name), generate_series(1::bigint, count(name))]\n" +
+            "  └ ProjectSet[generate_series(1::bigint, count(name)), count(name)]\n" +
             "    └ HashAggregate[count(name)]\n" +
             "      └ Collect[doc.users | [name] | true]"));
     }

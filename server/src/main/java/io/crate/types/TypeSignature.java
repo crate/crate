@@ -246,6 +246,15 @@ public class TypeSignature implements Writeable {
             return false;
         }
         TypeSignature that = (TypeSignature) o;
+        return equalsIgnoringObjectParameterSizeDifference(that);
+    }
+
+    private boolean equalsIgnoringObjectParameterSizeDifference(TypeSignature that) {
+        if (baseTypeName.equals(ObjectType.NAME) && that.baseTypeName.equals(ObjectType.NAME)) {
+            if (parameters.size() != that.parameters.size()) {
+                return true;
+            }
+        }
         return baseTypeName.equals(that.baseTypeName) &&
                parameters.equals(that.parameters);
     }

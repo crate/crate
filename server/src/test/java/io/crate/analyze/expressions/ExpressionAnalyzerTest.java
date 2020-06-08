@@ -330,7 +330,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             symbol2.arguments().get(1),
             isFunction(
                 ImplicitCastFunction.NAME,
-                List.of(DataTypes.INTEGER, DataTypes.STRING)
+                List.of(DataTypes.DOUBLE, DataTypes.STRING)
             )
         );
     }

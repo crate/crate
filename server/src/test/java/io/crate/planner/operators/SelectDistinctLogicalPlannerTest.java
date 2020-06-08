@@ -44,7 +44,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
     @Test
     public void testOrderByCanContainScalarThatIsNotInDistinctOutputs() {
         LogicalPlan logicalPlan = e.logicalPlan(
-            "select distinct id from users order by id + 10");
+            "select distinct id from users order by id + 10::int");
         assertThat(logicalPlan, isPlan(
             "Eval[id]\n" +
             "  └ OrderBy[(id + 10) ASC]\n" +

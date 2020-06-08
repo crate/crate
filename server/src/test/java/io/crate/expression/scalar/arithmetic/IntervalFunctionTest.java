@@ -58,7 +58,7 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_unsupported_arithmetic_operator_on_interval_types() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("* is not supported on expressions of type interval");
+        expectedException.expectMessage("unknown function: multiply(undefined, interval)");
         assertEvaluate("null * interval '1 second'", Matchers.nullValue());
     }
 
@@ -74,8 +74,8 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_unallowed_operations() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `cast('1 second' AS interval)` of type `interval` to any of the types");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("subtract(interval, timestamp with time zone)");
         assertEvaluate("interval '1 second' - '86401000'::timestamp", Matchers.is(86400000L));
     }
 }
