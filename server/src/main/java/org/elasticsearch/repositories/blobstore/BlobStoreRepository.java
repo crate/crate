@@ -314,7 +314,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * Maintains single lazy instance of {@link BlobStore}.
      * Public for testing.
      */
-    public BlobStore getBlobStore() {
+    protected BlobStore getBlobStore() {
         return blobStore.get();
     }
 

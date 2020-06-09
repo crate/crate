@@ -160,7 +160,7 @@ public class S3Repository extends BlobStoreRepository {
 
     // only use for testing
     @Override
-    public BlobStore getBlobStore() {
+    protected BlobStore getBlobStore() {
         return super.getBlobStore();
     }
 

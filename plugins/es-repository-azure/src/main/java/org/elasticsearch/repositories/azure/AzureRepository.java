@@ -199,7 +199,7 @@ public class AzureRepository extends BlobStoreRepository {
 
     @VisibleForTesting
     @Override
-    public BlobStore getBlobStore() {
+    protected BlobStore getBlobStore() {
         return super.getBlobStore();
     }
 
