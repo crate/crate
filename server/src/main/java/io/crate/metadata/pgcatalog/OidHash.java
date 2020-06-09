@@ -67,4 +67,8 @@ public final class OidHash {
         BytesRef b = new BytesRef(Type.PROC.toString() + functionName.schema() + functionName.name());
         return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
     }
+
+    public static int functionOid(String functionName) {
+        return functionOid(new FunctionName(null, functionName));
+    }
 }

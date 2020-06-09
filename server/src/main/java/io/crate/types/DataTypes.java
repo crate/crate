@@ -41,6 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Map.entry;
@@ -86,6 +87,8 @@ public final class DataTypes {
     public static final IntervalType INTERVAL = IntervalType.INSTANCE;
 
     public static final ObjectType UNTYPED_OBJECT = ObjectType.UNTYPED;
+
+    public static final RegprocType REGPROC = RegprocType.INSTANCE;
 
     public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
         TIMESTAMPZ.getName(),
@@ -156,8 +159,10 @@ public final class DataTypes {
             entry(GeoShapeType.ID, in -> GEO_SHAPE),
             entry(ArrayType.ID, ArrayType::new),
             entry(IntervalType.ID, in -> INTERVAL),
-            entry(RowType.ID, RowType::new))
-        );
+            entry(RowType.ID, RowType::new),
+            entry(RegprocType.ID, in -> REGPROC)
+        )
+    );
 
     private static final Set<Integer> NUMBER_CONVERSIONS = Stream.concat(
         Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, IP),
@@ -169,13 +174,17 @@ public final class DataTypes {
     static final Map<Integer, Set<Integer>> ALLOWED_CONVERSIONS = Map.ofEntries(
         entry(BYTE.id(), NUMBER_CONVERSIONS),
         entry(SHORT.id(), NUMBER_CONVERSIONS),
-        entry(INTEGER.id(), NUMBER_CONVERSIONS),
+        entry(INTEGER.id(), Stream.concat(
+            NUMBER_CONVERSIONS.stream(),
+            Stream.of(RegprocType.ID))
+            .collect(Collectors.toUnmodifiableSet())),
+        entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id())),
         entry(LONG.id(), NUMBER_CONVERSIONS),
         entry(FLOAT.id(), NUMBER_CONVERSIONS),
         entry(DOUBLE.id(), NUMBER_CONVERSIONS),
         entry(BOOLEAN.id(), Set.of(STRING.id())),
         entry(STRING.id(), Stream.concat(
-            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID),
+            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID, RegprocType.ID),
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
         entry(IP.id(), Set.of(STRING.id())),
@@ -332,12 +341,12 @@ public final class DataTypes {
         entry(ObjectType.NAME, UNTYPED_OBJECT),
         entry(GEO_POINT.getName(), GEO_POINT),
         entry(GEO_SHAPE.getName(), GEO_SHAPE),
+        entry(REGPROC.getName(), REGPROC),
         entry("int2", SHORT),
         entry("int", INTEGER),
         entry("int4", INTEGER),
         entry("int8", LONG),
         entry("name", STRING),
-        entry("regproc", STRING),
         entry("long", LONG),
         entry("byte", BYTE),
         entry("short", SHORT),
