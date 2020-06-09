@@ -28,6 +28,7 @@ import io.crate.types.FixedWidthType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IpType;
 import io.crate.types.ObjectType;
+import io.crate.types.RegprocType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
 import io.crate.types.UndefinedType;
@@ -60,6 +61,9 @@ public class SizeEstimatorFactory {
 
             case RowType.ID:
                 return (SizeEstimator<T>) new RecordSizeEstimator(Lists2.map(((RowType) type).fieldTypes(), SizeEstimatorFactory::create));
+
+            case RegprocType.ID:
+                return (SizeEstimator<T>) RegprocSizeEstimator.INSTANCE;
 
             default:
                 if (type instanceof FixedWidthType) {
