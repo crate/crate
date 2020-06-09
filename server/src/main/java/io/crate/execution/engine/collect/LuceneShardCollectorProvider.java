@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -52,7 +53,9 @@ import io.crate.data.FlatMapBatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
@@ -201,6 +204,19 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         TransactionContext transactionContext,
         RoutedCollectPhase collectPhase) {
 
+        Collection<? extends Projection> shardProjections = Projections.shardProjections(collectPhase.projections());
+        if (shardProjections.size() == 1) {
+            Projection projection = shardProjections.iterator().next();
+            if (false && projection instanceof AggregationProjection) {
+                AggregationProjection aggregationProjection = (AggregationProjection) projection;
+                Aggregators aggregators = new Aggregators(
+                    docInputFactory,
+                    collectPhase.toCollect(),
+                    aggregationProjection
+                );
+                return aggregators::createBatchIterator;
+            }
+        }
         return (leaf, source) -> {
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
                 docInputFactory.extractImplementations(transactionContext, collectPhase);
