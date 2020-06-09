@@ -22,8 +22,6 @@
 
 package io.crate.protocols.postgres.types;
 
-
-import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -61,31 +59,38 @@ class RegprocType extends PGType<Regproc> {
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Regproc value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeBytes(value.name().getBytes());
-        return value.name().length() + TYPE_LEN;
-    }
-
-    @Override
-    public int writeAsText(ByteBuf buffer, @Nonnull Regproc value) {
-        return writeAsBinary(buffer, value);
+        buffer.writeInt(value.oid());
+        return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
     public Regproc readBinaryValue(ByteBuf buffer, int valueLength) {
-        byte[] utf8 = new byte[valueLength];
-        buffer.readBytes(utf8);
-        var name = new String(utf8, StandardCharsets.UTF_8);
-        return Regproc.of(OidHash.functionOid(name), name);
+        var oid = buffer.readInt();
+        return Regproc.of(oid, String.valueOf(oid));
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull Regproc value) {
+    public int writeAsText(ByteBuf buffer, @Nonnull Regproc value) {
+        byte[] bytes = value.name().getBytes(StandardCharsets.UTF_8);
+        buffer.writeInt(bytes.length);
+        buffer.writeBytes(bytes);
+        return INT32_BYTE_SIZE + bytes.length;
+    }
+
+    @Override
+    public Regproc readTextValue(ByteBuf buffer, int valueLength) {
+        byte[] utf8 = new byte[valueLength];
+        buffer.readBytes(utf8);
+        return Regproc.of(new String(utf8, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    protected byte[] encodeAsUTF8Text(@Nonnull Regproc value) {
         return value.name().getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     Regproc decodeUTF8Text(byte[] bytes) {
-        var name = new String(bytes, StandardCharsets.UTF_8);
-        return Regproc.of(OidHash.functionOid(name), name);
+        return Regproc.of(new String(bytes, StandardCharsets.UTF_8));
     }
 }
