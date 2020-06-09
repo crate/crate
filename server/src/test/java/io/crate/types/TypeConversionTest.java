@@ -82,12 +82,7 @@ public class TypeConversionTest extends CrateUnitTest {
     }
 
     private Iterable<Integer> integers(final int lower, final int upper, int num) {
-        return new Repeater<>(new Callable<Integer>() {
-            @Override
-            public Integer call() throws Exception {
-                return randomIntBetween(lower, upper);
-            }
-        }, num);
+        return new Repeater<>(() -> randomIntBetween(lower, upper), num);
     }
 
     @Test
@@ -98,47 +93,47 @@ public class TypeConversionTest extends CrateUnitTest {
                 if (t.equals(DataTypes.IP)) {
                     byteVal = (byte) Math.abs(byteVal == Byte.MIN_VALUE ? byteVal >> 1 : byteVal);
                 }
-                t.value(byteVal);
+                t.implicitCast(byteVal);
             }
         }
 
-        for (Integer shortVal : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
+        for (Integer shortVal : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
                 var t = DataTypes.fromId(id);
                 shortVal = t.equals(DataTypes.IP) ? Math.abs(shortVal) : shortVal;
-                t.value(shortVal.shortValue());
+                t.implicitCast(shortVal.shortValue());
             }
         }
 
-        for (Integer intValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
+        for (Integer intValue : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
                 var t = DataTypes.fromId(id);
                 intValue = t.equals(DataTypes.IP) ? Math.abs(intValue) : intValue;
-                t.value(intValue);
+                t.implicitCast(intValue);
             }
         }
 
-        for (Integer longValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
+        for (Integer longValue : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
                 var t = DataTypes.fromId(id);
                 longValue = t.equals(DataTypes.IP) ? Math.abs(longValue) : longValue;
-                t.value(longValue.longValue());
+                t.implicitCast(longValue.longValue());
             }
         }
 
-        for (Integer floatValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
+        for (Integer floatValue : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
                 var t = DataTypes.fromId(id);
                 floatValue = t.equals(DataTypes.IP) ? Math.abs(floatValue) : floatValue;
-                t.value(floatValue.floatValue());
+                t.implicitCast(floatValue.floatValue());
             }
         }
 
-        for (Integer doubleValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
+        for (Integer doubleValue : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
                 var t = DataTypes.fromId(id);
                 doubleValue = t.equals(DataTypes.IP) ? Math.abs(doubleValue) : doubleValue;
-                t.value(doubleValue.doubleValue());
+                t.implicitCast(doubleValue.doubleValue());
             }
         }
     }

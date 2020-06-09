@@ -19,6 +19,7 @@
 
 package org.elasticsearch.common.xcontent;
 
+import io.crate.types.Regproc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.time.DateFormatter;
@@ -93,7 +94,6 @@ public class XContentElasticsearchExtension implements XContentBuilderExtension 
         writers.put(Year.class, (b, v) -> b.value(v.toString()));
         writers.put(Duration.class, (b, v) -> b.value(v.toString()));
         writers.put(Period.class, (b, v) -> b.value(v.toString()));
-
         writers.put(BytesReference.class, (b, v) -> {
             if (v == null) {
                 b.nullValue();
@@ -102,7 +102,6 @@ public class XContentElasticsearchExtension implements XContentBuilderExtension 
                 b.value(bytes.bytes, bytes.offset, bytes.length);
             }
         });
-
         writers.put(BytesRef.class, (b, v) -> {
             if (v == null) {
                 b.nullValue();
@@ -111,6 +110,7 @@ public class XContentElasticsearchExtension implements XContentBuilderExtension 
                 b.value(bytes.bytes, bytes.offset, bytes.length);
             }
         });
+        writers.put(Regproc.class, (b, v) -> b.value(((Regproc) v).name()));
         return writers;
     }
 
