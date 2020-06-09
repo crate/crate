@@ -97,4 +97,9 @@ public class EvalProjection extends Projection {
             .put("outputs", Lists2.joinOn(", ", outputs, Symbol::toString))
             .map();
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return false;
+    }
 }

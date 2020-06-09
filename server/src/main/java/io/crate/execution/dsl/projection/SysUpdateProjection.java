@@ -169,4 +169,9 @@ public class SysUpdateProjection extends Projection {
     public RowGranularity requiredGranularity() {
         return RowGranularity.NODE;
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

@@ -74,4 +74,9 @@ public final class MergeCountProjection extends Projection {
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitMergeCountProjection(this, context);
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

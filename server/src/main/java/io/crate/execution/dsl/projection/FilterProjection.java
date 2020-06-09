@@ -115,4 +115,9 @@ public class FilterProjection extends Projection {
             .put("filter", query.toString())
             .map();
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return false;
+    }
 }

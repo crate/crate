@@ -85,4 +85,9 @@ public abstract class DMLProjection extends Projection {
     public RowGranularity requiredGranularity() {
         return RowGranularity.SHARD;
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

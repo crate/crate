@@ -163,4 +163,9 @@ public class WindowAggProjection extends Projection {
             .put("windowFunctions", Lists2.joinOn(", ", windowFunctions, Symbol::toString))
             .map();
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

@@ -100,4 +100,9 @@ public final class ProjectSetProjection extends Projection {
         result = 31 * result + standaloneWithInputs.hashCode();
         return result;
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return false;
+    }
 }

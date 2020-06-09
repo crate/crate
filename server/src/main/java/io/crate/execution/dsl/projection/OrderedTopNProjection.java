@@ -177,4 +177,9 @@ public class OrderedTopNProjection extends Projection {
                 new StringBuilder("["), orderBy, reverseFlags, nullsFirst, Symbol::toString).append("]").toString())
             .map();
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

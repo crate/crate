@@ -221,4 +221,9 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         out.writeVInt(bulkActions);
         out.writeBoolean(autoCreateIndices);
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

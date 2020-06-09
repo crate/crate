@@ -125,4 +125,8 @@ public class TopNProjection extends Projection {
                '}';
     }
 
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

@@ -28,6 +28,7 @@ import java.util.concurrent.CompletionStage;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Scorer;
@@ -45,16 +46,19 @@ public class SegmentBatchIterator implements BatchIterator<IntArrayList> {
     private final IntArrayList docIds;
     private final LeafReaderContext leaf;
     private final Bits liveDocs;
+
     private DocIdSetIterator iterator;
     private volatile Throwable killed;
 
 
     public SegmentBatchIterator(CheckedFunction<LeafReaderContext, Scorer, IOException> getScorer,
                                 LeafReaderContext leaf) throws IOException {
+        final Scorer scorer = getScorer.apply(leaf);
+        final LeafReader reader = leaf.reader();
+
         this.leaf = leaf;
         this.getScorer = getScorer;
-        this.liveDocs = leaf.reader().getLiveDocs();
-        Scorer scorer = getScorer.apply(leaf);
+        this.liveDocs = reader.getLiveDocs();
         this.iterator = scorer == null ? DocIdSetIterator.empty() : scorer.iterator();
         this.docIds = new IntArrayList(BLOCK_SIZE);
     }

@@ -54,6 +54,12 @@ public abstract class Projection {
         T newInstance(StreamInput in) throws IOException;
     }
 
+    /**
+     * Indices whether the projection consumes the full source before it
+     * can yield a single row
+     */
+    public abstract boolean isPipelineBreaker();
+
     public abstract ProjectionType projectionType();
 
     public abstract <C, R> R accept(ProjectionVisitor<C, R> visitor, C context);

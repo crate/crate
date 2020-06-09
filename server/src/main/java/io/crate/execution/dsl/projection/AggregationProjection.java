@@ -130,4 +130,9 @@ public class AggregationProjection extends Projection {
             .put("aggregations", '[' + Lists2.joinOn(", ", aggregations, Aggregation::toString) + ']')
             .map();
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

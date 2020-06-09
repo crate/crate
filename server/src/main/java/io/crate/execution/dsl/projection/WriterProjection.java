@@ -270,4 +270,9 @@ public class WriterProjection extends Projection {
         }
         return this;
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

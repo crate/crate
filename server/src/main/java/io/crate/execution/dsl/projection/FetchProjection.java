@@ -189,4 +189,9 @@ public class FetchProjection extends Projection {
         }
         return streamersByReaderByNode;
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return false;
+    }
 }

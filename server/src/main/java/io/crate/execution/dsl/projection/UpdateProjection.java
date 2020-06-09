@@ -209,4 +209,9 @@ public class UpdateProjection extends Projection {
             }
         }
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

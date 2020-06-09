@@ -105,4 +105,9 @@ public class TopNDistinctProjection extends Projection {
         result = 31 * result + granularity.hashCode();
         return result;
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return false;
+    }
 }

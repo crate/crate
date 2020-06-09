@@ -153,4 +153,9 @@ public class GroupProjection extends Projection {
             .put("aggregations", Lists2.joinOn(", ", values, Symbol::toString))
             .map();
     }
+
+    @Override
+    public boolean isPipelineBreaker() {
+        return true;
+    }
 }

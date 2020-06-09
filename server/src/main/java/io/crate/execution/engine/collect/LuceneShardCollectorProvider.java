@@ -25,11 +25,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,6 +52,7 @@ import io.crate.data.FlatMapBatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
@@ -73,6 +73,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -153,7 +154,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId());;
             IndexSearcher indexSearcher = searcher.searcher();
             boolean doScores = Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE);
-            if (doScores) {
+            if (doScores || collectPhase.projections().stream().noneMatch(Projection::isPipelineBreaker)) {
                 // The `ScoreCollectorExpression` uses the `Scorer` to retrieve the score for a given row,
                 // and `Scorer` uses its internal state to determine the score, which would be in a wrong position
                 // for the SegmentBatchIterator case, because it iterates over docIds eagerly
@@ -169,24 +170,23 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                     docCtx.expressions()
                 );
             }
+            Weight weight = indexSearcher.createWeight(
+                indexSearcher.rewrite(queryContext.query()),
+                ScoreMode.COMPLETE_NO_SCORES,
+                1.0f
+            );
+            var createSegmentProjector = getSegmentProjector(
+                collectorContext,
+                collectTask.txnCtx(),
+                collectPhase
+            );
             List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
             ArrayList<BatchIterator<Row>> batchIterators = new ArrayList<>(leaves.size());
-            Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(queryContext.query()), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
-
             for (var leaf : leaves) {
-                BatchIterator<IntArrayList> segmentIterator = new SegmentBatchIterator(weight::scorer, leaf);
-                InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
-                    docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
-                DocIdsToRows docIdsToRows = new DocIdsToRows(new InputRow(docCtx.topLevelInputs()), docCtx.expressions());
-                docIdsToRows.init(collectorContext, leaf);
-                batchIterators.add(new FlatMapBatchIterator<>(
-                    segmentIterator,
-                    docIdsToRows
-                ));
+                var segmentIterator = new SegmentBatchIterator(weight::scorer, leaf);
+                batchIterators.add(createSegmentProjector.apply(leaf, segmentIterator));
             }
-            return CompositeBatchIterator.seqComposite(
-                batchIterators.toArray(new BatchIterator[0])
-            );
+            return CompositeBatchIterator.seqComposite(batchIterators.toArray(new BatchIterator[0]));
         } catch (IOException e) {
             searcher.close();
             throw new UncheckedIOException(e);
@@ -194,6 +194,24 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher.close();
             throw t;
         }
+    }
+
+    private BiFunction<LeafReaderContext, SegmentBatchIterator, BatchIterator<Row>> getSegmentProjector(
+        CollectorContext collectorContext,
+        TransactionContext transactionContext,
+        RoutedCollectPhase collectPhase) {
+
+        return (leaf, source) -> {
+            InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
+                docInputFactory.extractImplementations(transactionContext, collectPhase);
+            DocIdsToRows docIdsToRows = new DocIdsToRows(new InputRow(docCtx.topLevelInputs()), docCtx.expressions());
+            try {
+                docIdsToRows.init(collectorContext, leaf);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return new FlatMapBatchIterator<>(source, docIdsToRows);
+        };
     }
 
     @Nullable
