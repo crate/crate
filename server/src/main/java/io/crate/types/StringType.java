@@ -207,6 +207,8 @@ public class StringType extends DataType<String> implements Streamer<String> {
                 String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", Arrays.toString((Object[]) value)));
         } else if (value instanceof TimeValue) {
             return ((TimeValue) value).getStringRep();
+        } else if (value instanceof Regproc) {
+            return ((Regproc) value).name();
         } else {
             return value.toString();
         }
