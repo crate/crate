@@ -26,12 +26,16 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import io.crate.exceptions.InvalidArgumentException;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -39,6 +43,9 @@ import static org.hamcrest.Matchers.not;
 public class AwsS3ServiceImplTests extends ESTestCase {
 
     private S3Service service;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void beforeTest() {
@@ -107,6 +114,14 @@ public class AwsS3ServiceImplTests extends ESTestCase {
         assertThat(defaultCredentialsProvider, instanceOf(AWSStaticCredentialsProvider.class));
         assertThat(defaultCredentialsProvider.getCredentials().getAWSAccessKeyId(), is(awsAccessKey));
         assertThat(defaultCredentialsProvider.getCredentials().getAWSSecretKey(), is(awsSecretKey));
+    }
+
+    @Test
+    public void test_no_credentials_are_not_provided() {
+        final S3ClientSettings clientSettings = S3ClientSettings.getClientSettings(Settings.builder().build());
+        expectedException.expect(InvalidArgumentException.class);
+        expectedException.expectMessage(containsString("Cannot find required credentials to create a repository of type s3"));
+        S3Service.buildCredentials(logger, clientSettings);
     }
 
     @Test
