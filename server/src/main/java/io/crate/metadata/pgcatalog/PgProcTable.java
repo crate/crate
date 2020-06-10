@@ -45,6 +45,7 @@ import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.FLOAT;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.REGPROC;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
@@ -72,7 +73,7 @@ public class PgProcTable {
                     return 0;
                 }
             })
-            .add("protransform", STRING, x -> null)
+            .add("protransform", REGPROC, x -> null)
             .add("proisagg", BOOLEAN, x -> x.signature.getKind() == AGGREGATE)
             .add("proiswindow", BOOLEAN, x -> x.signature.getKind() == WINDOW)
             .add("prosecdef", BOOLEAN, x -> null)
