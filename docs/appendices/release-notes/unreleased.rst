@@ -102,6 +102,9 @@ Administration
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
 
+- Added the :ref:`oid_regproc` alias data type that is used to reference
+  functions in the :ref:`postgres_pg_catalog` tables.
+
 - Added the :ref:`varchar(n) and character varying(n) <data-type-varchar>`
   types, where ``n`` is an optional length limit.
 
