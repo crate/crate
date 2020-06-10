@@ -42,6 +42,7 @@ import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
@@ -892,7 +893,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[name]\n" +
-            "TopNDistinct[1 | [name]\n" +
+            "TopNDistinct[1;0 | [name]\n" +
             "Collect[doc.users | [name] | All]\n"
         ));
     }
@@ -903,9 +904,36 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[id, name]\n" +
-            "TopNDistinct[1 | [id, name]\n" +
+            "TopNDistinct[1;0 | [id, name]\n" +
             "Collect[doc.users | [id, name] | All]\n"
         ));
+    }
+
+    @Test
+    public void test_distinct_with_limit_and_offset_keeps_offset() throws Exception {
+        String stmt = "select id, name from users group by id, name limit 1 offset 3";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[id, name]\n" +
+            "TopNDistinct[1;3 | [id, name]\n" +
+            "Collect[doc.users | [id, name] | All]\n"));
+
+        Merge merge = e.plan(stmt);
+        List<Projection> collectProjections = ((Collect) merge.subPlan()).collectPhase().projections();;
+        assertThat(
+            collectProjections,
+            contains(
+                instanceOf(TopNDistinctProjection.class)
+            )
+        );
+        List<Projection> mergeProjections = merge.mergePhase().projections();
+        assertThat(
+            mergeProjections,
+            contains(
+                instanceOf(TopNDistinctProjection.class),
+                instanceOf(TopNProjection.class)
+            )
+        );
     }
 
     @Test

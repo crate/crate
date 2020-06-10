@@ -24,7 +24,7 @@ package io.crate.data;
 
 import java.util.Arrays;
 
-public class RowN implements Row {
+public class RowN extends Row {
 
     private final int size;
     private Object[] cells;
@@ -64,27 +64,5 @@ public class RowN implements Row {
     @Override
     public String toString() {
         return "RowN{" + Arrays.toString(cells) + '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        RowN rowN = (RowN) o;
-        if (size != rowN.size) {
-            return false;
-        }
-        return Arrays.equals(cells, rowN.cells);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = size;
-        result = 31 * result + Arrays.hashCode(cells);
-        return result;
     }
 }

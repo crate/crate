@@ -404,7 +404,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             plan,
             isPlan(
-                "TopNDistinct[20 | [name, other_id]\n" +
+                "TopNDistinct[20;0 | [name, other_id]\n" +
                 "Boundary[_fetchid, name, other_id]\n" +
                 "Boundary[_fetchid, name, other_id]\n" +
                 "Collect[doc.users | [_fetchid, name, other_id] | All]\n"
@@ -560,6 +560,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 var topNDistinct = (TopNDistinct) plan;
                 startLine("TopNDistinct[");
                 sb.append(symbolPrinter.printUnqualified(topNDistinct.limit()));
+                sb.append(";");
+                sb.append(symbolPrinter.printUnqualified(topNDistinct.offset()));
                 sb.append(" | [");
                 addSymbolsList(topNDistinct.outputs());
                 sb.append("]\n");

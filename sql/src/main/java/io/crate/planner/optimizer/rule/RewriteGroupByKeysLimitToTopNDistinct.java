@@ -159,10 +159,10 @@ public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> 
     }
 
     @Override
-    public LogicalPlan apply(Limit limit, Captures captures, TableStats tableStats, TransactionContext txnCtx) {
-        // In SELECT DISTINCT x, y FROM tbl OFFSET 30 LIMIT 20;
-        // We can ignore a OFFSET because `tbl` is not required to have a
-        // stable sorting order.
+    public LogicalPlan apply(Limit limit,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
         if (!eagerTerminateIsLikely(limit, groupBy)) {
             return null;
@@ -170,6 +170,7 @@ public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> 
         return new TopNDistinct(
             groupBy.source(),
             limit.limit(),
+            limit.offset(),
             groupBy.outputs()
         );
     }

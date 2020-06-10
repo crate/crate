@@ -1301,6 +1301,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void test_select_distinct_with_limit_and_offset_applies_limit_and_offset_on_distinct_resultset() throws Exception {
+        execute("create table tbl (x int)");
+        execute("insert into tbl (x) values (1), (1), (2), (3)");
+        execute("refresh table tbl");
+
+        execute("select distinct x from tbl limit 1 offset 3");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
     public void test_group_by_on_subscript_on_object_of_sub_relation() {
         execute("create table tbl (obj object as (x int))");
         execute("insert into tbl (obj) values ({x=10})");

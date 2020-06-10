@@ -74,6 +74,9 @@ public class Limit extends ForwardingLogicalPlan {
         return limit;
     }
 
+    public Symbol offset() {
+        return offset;
+    }
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,

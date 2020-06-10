@@ -29,7 +29,7 @@ import java.util.Arrays;
  * <p>
  * The only difference is that size is always derived from the backing array and not changeable.
  */
-public class ArrayRow implements Row {
+public class ArrayRow extends Row {
 
     private Object[] cells;
 
@@ -59,23 +59,5 @@ public class ArrayRow implements Row {
         return "ArrayRow{" +
                "cells=" + Arrays.toString(cells) +
                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        ArrayRow arrayRow = (ArrayRow) o;
-        return Arrays.equals(cells, arrayRow.cells);
-    }
-
-    @Override
-    public int hashCode() {
-        return Arrays.hashCode(cells);
     }
 }
