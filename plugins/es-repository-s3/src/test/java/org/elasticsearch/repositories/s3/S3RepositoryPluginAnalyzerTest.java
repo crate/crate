@@ -24,6 +24,7 @@ package org.elasticsearch.repositories.s3;
 import static org.hamcrest.Matchers.is;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
@@ -77,7 +78,7 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
         e = SQLExecutor.builder(clusterService).build();
         plannerContext = e.getPlannerContext(clusterService.state());
         repositoryParamValidator = new RepositoryParamValidator(
-            Map.of("s3", new TypeSettings(S3Repository.mandatorySettings(), S3Repository.optionalSettings()))
+            Map.of("s3", new TypeSettings(List.of(), S3Repository.optionalSettings()))
         );
     }
 
@@ -168,14 +169,6 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
                 Matchers.hasEntry("readonly", "false")
             )
         );
-    }
-
-    @Test
-    public void testCreateS3RepoWithMissingMandatorySettings() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The following required parameters are missing to" +
-                                        " create a repository of type \"s3\": [secret_key]");
-        analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (access_key='test')");
     }
 
     private static Settings toSettings(GenericProperties<Expression> genericProperties) {
