@@ -155,7 +155,7 @@ following tables:
 Some clients require the ``pg_catalog.pg_type`` in order to be able to stream
 arrays or other non-primitive types.
 
-For compatibility reasons, there is a trimmed down `pg_type <pgsql_pg_type_>`__
+For compatibil  ity reasons, there is a trimmed down `pg_type <pgsql_pg_type_>`__
 table available in CrateDB::
 
     cr> SELECT oid, typname, typarray, typelem, typlen, typtype, typcategory
@@ -205,6 +205,23 @@ table available in CrateDB::
    This is just a snapshot of the table.
    Check table :ref:`information_schema.columns <information_schema_columns>`
    to get information for all supported columns.
+
+.. _postgres_pg_oid:
+
+Object Identifier Types
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Object identifiers are used internally by PostgreSQL for various system
+tables. The ``oid`` type is currently mapped to the CrateDB internal the
+four-byte :ref:`integer <data-type-numeric>` data type.
+
+The ``oid`` type might have the following type aliases:
+
++-------------+-------------+-----------------+---------+
+| Name        | Reference   | Description     | Example |
++=============+=============+=================+=========+
+| ``regproc`` | ``pg_proc`` | a function name | ``sum`` |
++-------------+-------------+-----------------+---------+
 
 Show transaction isolation
 --------------------------
