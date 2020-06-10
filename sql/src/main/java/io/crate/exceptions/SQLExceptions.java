@@ -42,6 +42,7 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.repositories.RepositoryMissingException;
+import org.elasticsearch.repositories.blobstore.InvalidArgumentException;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
@@ -225,6 +226,9 @@ public class SQLExceptions {
         } else if (unwrappedError instanceof SnapshotCreationException) {
             SnapshotCreationException creationException = (SnapshotCreationException) unwrappedError;
             return new SnapshotAlreadyExistsException(creationException.getRepositoryName(), creationException.getSnapshotName());
+        } else if (unwrappedError instanceof InvalidArgumentException) {
+            var invalidArgument = (InvalidArgumentException) unwrappedError;
+            return new SQLParseException(invalidArgument.getMessage());
         }
         return unwrappedError;
     }

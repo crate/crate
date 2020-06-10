@@ -69,12 +69,10 @@ public class S3Repository extends BlobStoreRepository {
 
     static final String TYPE = "s3";
 
-    public static List<Setting<?>> mandatorySettings() {
-        return List.of(ACCESS_KEY_SETTING, SECRET_KEY_SETTING);
-    }
-
     public static List<Setting<?>> optionalSettings() {
-        return List.of(BASE_PATH_SETTING,
+        return List.of(ACCESS_KEY_SETTING,
+                       SECRET_KEY_SETTING,
+                       BASE_PATH_SETTING,
                        BUCKET_SETTING,
                        BUFFER_SIZE_SETTING,
                        CANNED_ACL_SETTING,

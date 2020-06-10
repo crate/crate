@@ -21,7 +21,6 @@ package org.elasticsearch.repositories.s3;
 
 import com.amazonaws.util.json.Jackson;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -33,11 +32,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-
-import static org.elasticsearch.repositories.s3.S3RepositorySettings.ACCESS_KEY_SETTING;
-import static org.elasticsearch.repositories.s3.S3RepositorySettings.SECRET_KEY_SETTING;
 
 /**
  * A plugin to add a repository type that writes to and from the AWS S3.
@@ -70,11 +65,6 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
                                           final NamedXContentRegistry registry,
                                           final ThreadPool threadpool) {
         return new S3Repository(metadata, settings, registry, service, threadpool);
-    }
-
-    @Override
-    public List<Setting<?>> getSettings() {
-        return List.of(ACCESS_KEY_SETTING, SECRET_KEY_SETTING);
     }
 
     @Override
