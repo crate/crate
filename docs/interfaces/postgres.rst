@@ -206,6 +206,34 @@ table available in CrateDB::
    Check table :ref:`information_schema.columns <information_schema_columns>`
    to get information for all supported columns.
 
+.. _postgres_pg_oid:
+
+Object Identifier Types
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Object identifiers are used internally by PostgreSQL for various system
+tables. The ``oid`` type is currently mapped to the :ref:`integer
+<data-type-numeric>` data type.
+
+The ``oid`` type might have the following type aliases:
+
++-------------+-------------+-----------------+---------+
+| Name        | Reference   | Description     | Example |
++=============+=============+=================+=========+
+| ``regproc`` | ``pg_proc`` | a function name | ``sum`` |
++-------------+-------------+-----------------+---------+
+
+.. NOTE::
+
+   Currently, casting a string or integer literal to the ``regproc`` type
+   wouldn't result in a function lookup.  Instead, casting the string
+   literal to the ``regproc`` type results in an object of the ``regproc``
+   type that has a name that corresponds to the string literal and the ``oid``
+   hash of the literal as ``oid`` and casting an integer literal to the
+   ``regproc`` type results in an object of the ``regproc`` type that has a
+   name that corresponds to the string representation of the literal and the
+   literal value as ``oid``.
+
 Show transaction isolation
 --------------------------
 
