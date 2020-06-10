@@ -1285,7 +1285,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("explain select distinct id from m.tbl limit 2");
         assertThat(
             printedTable(response.rows()),
-            is("TopNDistinct[2::bigint | [id]]\n" +
+            is("TopNDistinct[2::bigint;0 | [id]]\n" +
                "  └ Collect[m.tbl | [id] | true]\n")
         );
         execute("select distinct id from m.tbl limit 2");
@@ -1293,6 +1293,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         Object firstId = response.rows()[0][0];
         Object secondId = response.rows()[1][0];
         assertThat(firstId, not(is(secondId)));
+    }
+
+    @Test
+    public void test_select_distinct_with_limit_and_offset_applies_limit_and_offset_on_distinct_resultset() throws Exception {
+        execute("create table tbl (x int)");
+        execute("insert into tbl (x) values (1), (1), (2), (3)");
+        execute("refresh table tbl");
+
+        execute("select distinct x from tbl limit 1 offset 3");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test

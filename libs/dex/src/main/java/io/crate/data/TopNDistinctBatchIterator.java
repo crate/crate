@@ -67,8 +67,12 @@ public final class TopNDistinctBatchIterator<T> implements BatchIterator<T> {
             if (items.contains(source.currentElement())) {
                 continue;
             }
-            boolean added = items.add(memoizeItem.apply(source.currentElement()));
-            assert added : ".add must return true if .contains was false";
+            T materializedItem = memoizeItem.apply(source.currentElement());
+            boolean added = items.add(materializedItem);
+            assert added : ".add must return true if .contains was false. source.currentElement() ("
+                + source.currentElement()
+                + " has a different hashCode/equals implementation than "
+                + materializedItem;
             return true;
         }
         return false;
