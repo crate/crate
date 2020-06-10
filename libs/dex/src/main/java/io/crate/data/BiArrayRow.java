@@ -22,12 +22,10 @@
 
 package io.crate.data;
 
-import java.util.Arrays;
-
 /**
  * A {@link ArrayRow} variant which uses 2 backing arrays which can be changed.
  */
-public class BiArrayRow implements Row {
+public class BiArrayRow extends Row {
 
     private Object[] firstCells;
     private Object[] secondCells;
@@ -60,28 +58,5 @@ public class BiArrayRow implements Row {
         System.arraycopy(firstCells, 0, copy, 0, firstCells.length);
         System.arraycopy(secondCells, 0, copy, firstCells.length, secondCells.length);
         return copy;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        BiArrayRow that = (BiArrayRow) o;
-        if (!Arrays.equals(firstCells, that.firstCells)) {
-            return false;
-        }
-        return Arrays.equals(secondCells, that.secondCells);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Arrays.hashCode(firstCells);
-        result = 31 * result + Arrays.hashCode(secondCells);
-        return result;
     }
 }

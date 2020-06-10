@@ -218,6 +218,8 @@ Performance improvements
 Fixes
 =====
 
+- Fixed an issue that caused the ``OFFSET`` clause to be ignored in ``SELECT
+  DISTINCT`` queries.
+
 - Fixed arithmetics containing a non-floating numeric column type and a
   floatling literal which resulted wrongly in a non-floating return type.
-

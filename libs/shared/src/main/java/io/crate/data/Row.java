@@ -22,6 +22,8 @@
 
 package io.crate.data;
 
+import java.util.Objects;
+
 /**
  * Represents a row.
  *
@@ -33,9 +35,9 @@ package io.crate.data;
  * If data from a Row must be buffered, it's therefore necessary to use {@link #materialize()}
  * or access the column values directly via {@link #get(int)}
  */
-public interface Row {
+public abstract class Row {
 
-    Row EMPTY = new Row() {
+    public static final Row EMPTY = new Row() {
 
         private final Object[] EMPTY_CELLS = new Object[0];
 
@@ -55,7 +57,7 @@ public interface Row {
         }
     };
 
-    int numColumns();
+    public abstract int numColumns();
 
     /**
      * Returns the element at the specified column
@@ -65,16 +67,56 @@ public interface Row {
      * @throws IndexOutOfBoundsException if the index is out of range
      *                                   (<tt>index &lt; 0 || index &gt;= size()</tt>)
      */
-    Object get(int index);
+    public abstract Object get(int index);
 
     /**
-     * Returns a materialized view of this row.
+     * Returns a materialized copy of this row.
      */
-    default Object[] materialize() {
+    public Object[] materialize() {
         Object[] result = new Object[numColumns()];
         for (int i = 0; i < result.length; i++) {
             result[i] = get(i);
         }
         return result;
+    }
+
+
+    // We need all Row implementations to compare based on their values.
+    // This is necessary for a "peek" → "materialize" pattern like it is used in
+    // TopNDistinctBatchIterator to work.
+
+    @Override
+    public final int hashCode() {
+        int size = numColumns();
+        int result = size;
+        for (int i = 0; i < size; i++) {
+            Object element = get(i);
+            result = 31 * result + (element == null ? 0 : element.hashCode());
+        }
+        return result;
+    }
+
+    @Override
+    public final boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof Row)) {
+            return false;
+        }
+        Row o = (Row) obj;
+        int size = numColumns();
+        if (o.numColumns() != size) {
+            return false;
+        }
+        for (int i = 0; i < size; i++) {
+            if (!Objects.equals(get(i), o.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

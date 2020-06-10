@@ -66,7 +66,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private LogicalPlan plan(String statement) {
-        return assertMaxBytesAllocated(ByteSizeUnit.MB.toBytes(8), () -> sqlExecutor.logicalPlan(statement));
+        return assertMaxBytesAllocated(ByteSizeUnit.MB.toBytes(25), () -> sqlExecutor.logicalPlan(statement));
     }
 
     @Test
@@ -354,7 +354,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             plan,
             isPlan(
-                "TopNDistinct[20::bigint | [name, other_id]]\n" +
+                "TopNDistinct[20::bigint;0 | [name, other_id]]\n" +
                 "  └ Rename[name, other_id] AS u\n" +
                 "    └ Collect[doc.users | [name, other_id] | true]"
             )
