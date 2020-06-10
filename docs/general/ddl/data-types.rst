@@ -192,6 +192,8 @@ characters are allowed.
 .. NOTE::
    There is no difference in storage costs among all character data types.
 
+.. _data-type-numeric:
+
 Numeric types
 =============
 
@@ -1108,6 +1110,22 @@ Special character types
 +==========+========+==================+
 | ``char`` | 1 byte | single-byte type |
 +----------+--------+------------------+
+
+
+Object Identifier Types
+=======================
+
+.. _oid_regproc:
+
+Regproc
+-------
+
+The object identifier alias type that is used in the
+:ref:`postgres_pg_catalog` tables for referencing functions.
+For more information, see PostgreSQL :ref:`postgres_pg_oid`.
+
+Casting a column of the ``regproc`` alias data type to ``text`` or
+``integer`` results in a function name or its ``oid``, respectively.
 
 .. _type_conversion:
 

@@ -20,25 +20,29 @@
  * agreement.
  */
 
-package io.crate.metadata.pgcatalog;
+package io.crate.breaker;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.REGPROC;
+import io.crate.types.DataTypes;
+import io.crate.types.Regproc;
 
-public final class PgRangeTable {
+import javax.annotation.Nullable;
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_range");
+public final class RegprocSizeEstimator extends SizeEstimator<Regproc> {
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("rngtypid", INTEGER, ignored -> null)
-            .add("rngsubtype", INTEGER, ignored -> null)
-            .add("rngcollation", INTEGER, ignored -> null)
-            .add("rngsubopc", INTEGER, ignored -> null)
-            .add("rngcanonical", REGPROC, ignored -> null)
-            .add("rngsubdiff", REGPROC, ignored -> null)
-            .build();
+    public static final RegprocSizeEstimator INSTANCE = new RegprocSizeEstimator();
+
+    private final SizeEstimator<Integer> oidEstimator;
+
+    public RegprocSizeEstimator() {
+        this.oidEstimator = SizeEstimatorFactory.create(DataTypes.INTEGER);
+    }
+
+    @Override
+    public long estimateSize(@Nullable Regproc value) {
+        if (value == null) {
+            return 8;
+        }
+        return StringSizeEstimator.estimate(value.name()) +
+               oidEstimator.estimateSize(value.oid());
     }
 }

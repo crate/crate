@@ -25,10 +25,12 @@ package io.crate.metadata.pgcatalog;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.protocols.postgres.types.PGType;
+import io.crate.types.Regproc;
 
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.REGPROC;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 
@@ -61,21 +63,21 @@ public class PgTypeTable {
             .add("typtypmod", INTEGER, c -> -1)
             .add("typnamespace", INTEGER, c -> TYPE_NAMESPACE_OID)
             .add("typarray", INTEGER, PGType::typArray)
-            .add("typinput", STRING, t -> {
+            .add("typinput", REGPROC, t -> {
                 if (t.typArray() == 0) {
-                    return "array_in";
+                    return Regproc.of("array_in");
                 } else {
-                    return t.typName() + "_in";
+                    return Regproc.of(t.typName() + "_in");
                 }
             })
-            .add("typoutput", STRING, t -> {
+            .add("typoutput", REGPROC, t -> {
                 if (t.typArray() == 0) {
-                    return "array_out";
+                    return Regproc.of("array_out");
                 } else {
-                    return t.typName() + "_out";
+                    return Regproc.of(t.typName() + "_out");
                 }
             })
-            .add("typreceive", STRING, t -> t.typName() + "recv")
+            .add("typreceive", REGPROC, t -> Regproc.of(t.typName() + "recv"))
             .add("typnotnull", BOOLEAN, c -> false)
             .build();
     }

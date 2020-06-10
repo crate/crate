@@ -24,6 +24,7 @@ package io.crate.breaker;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.Regproc;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.junit.Test;
 
@@ -80,5 +81,12 @@ public class SizeEstimatorTest extends CrateUnitTest {
             sizeEstimator.estimateSize(List.of("", "")),
             // 16 bytes for the list memory overhead
             is(RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED * 2L + 16L));
+    }
+
+    @Test
+    public void test_regproc_type_estimate_size_for_value() {
+        var estimator = SizeEstimatorFactory.create(DataTypes.REGPROC);
+        assertThat(estimator.estimateSize(null), is(8L));
+        assertThat(estimator.estimateSize(Regproc.of("test")), is(64L));
     }
 }
