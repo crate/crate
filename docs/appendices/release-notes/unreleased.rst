@@ -57,6 +57,9 @@ None
 Fixes
 =====
 
+- Re-enabled the IAM role authentication for
+  :ref:`s3 repositories <ref-create-repository-types-s3>`
+
 - Changed the required privileges to execute ``RESET`` statements to include
   the ``AL`` privilege. Users with ``AL`` could change settings using ``SET
   GLOBAL`` already.
@@ -67,3 +70,4 @@ Fixes
 
 - Fixed an issue that caused the ``OFFSET`` clause to be ignored in ``SELECT
   DISTINCT`` queries.
+

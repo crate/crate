@@ -175,14 +175,6 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
-    public void testCreateS3RepoWithMissingMandatorySettings() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The following required parameters are missing to" +
-                                        " create a repository of type \"s3\": [secret_key]");
-        analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (access_key='test')");
-    }
-
-    @Test
     public void testCreateAzureRepositoryWithAllSettings() {
         PutRepositoryRequest request = analyze(
             e,

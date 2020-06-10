@@ -87,7 +87,7 @@ public class RepositorySettingsModule extends AbstractModule {
     };
 
     private static final TypeSettings S3_SETTINGS = new TypeSettings(
-        groupSettingsByKey(S3Repository.mandatorySettings()),
+        Map.of(),
         groupSettingsByKey(S3Repository.optionalSettings())
     );
 

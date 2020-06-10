@@ -20,6 +20,7 @@
 package org.elasticsearch.repositories.s3;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -33,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.repositories.blobstore.InvalidArgumentException;
 
 import java.io.Closeable;
 
@@ -123,7 +125,17 @@ class S3Service implements Closeable {
         final AWSCredentials credentials = clientSettings.credentials;
         if (credentials == null) {
             logger.debug("Using instance profile credentials");
-            return new EC2ContainerCredentialsProviderWrapper();
+            var ec2ContainerCredentialsProviderWrapper = new EC2ContainerCredentialsProviderWrapper();
+            try {
+                // Check if credentials are available
+                ec2ContainerCredentialsProviderWrapper.getCredentials();
+                return ec2ContainerCredentialsProviderWrapper;
+            } catch (SdkClientException e) {
+                throw new InvalidArgumentException(
+                    "Cannot find required credentials to create a repository of type s3. " +
+                    "Credentials must be provided either as repository options access_key and secret_key or AWS IAM roles."
+                );
+            }
         } else {
             logger.debug("Using basic key/secret credentials");
             return new AWSStaticCredentialsProvider(credentials);
