@@ -177,4 +177,13 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
             "-1602853722| format| -1861355723| 0.0| 2276| false| false| false| 1043| [1043, 2276]| [i, v]| format\n" +
             "-852341072| least| -1861355723| 0.0| 2276| false| false| false| 2276| [2276]| [v]| least\n"));
     }
+
+    @Test
+    public void test_select_field_of_type_regproc_from_pg_type_and_cast_it_to_text_and_int() {
+        execute(
+            "SELECT typname, typreceive, typreceive::int, typreceive::text " +
+            "FROM pg_type " +
+            "WHERE typname = 'bool'");
+        assertThat(printedTable(response.rows()), is("bool| boolrecv| 994071801| boolrecv\n"));
+    }
 }

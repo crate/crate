@@ -575,16 +575,16 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             "typdefault| text\n" +
             "typdelim| text\n" +
             "typelem| integer\n" +
-            "typinput| text\n" +
+            "typinput| regproc\n" +
             "typisdefined| boolean\n" +
             "typlen| smallint\n" +
             "typname| text\n" +
             "typnamespace| integer\n" +
             "typndims| integer\n" +
             "typnotnull| boolean\n" +
-            "typoutput| text\n" +
+            "typoutput| regproc\n" +
             "typowner| integer\n" +
-            "typreceive| text\n" +
+            "typreceive| regproc\n" +
             "typrelid| integer\n" +
             "typtype| text\n" +
             "typtypmod| integer\n")
