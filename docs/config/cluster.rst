@@ -1140,7 +1140,7 @@ Metadata gateway
   | *Runtime:*  ``no``
 
   The ``gateway.recover_after_time`` setting defines the time to wait before
-  starting starting the recovery once the number of nodes defined in
+  starting the recovery once the number of nodes defined in
   ``gateway.recover_after_nodes`` are started. The setting is relevant if
   ``gateway.recover_after_nodes`` is less than ``gateway.expected_nodes``.
 
