@@ -149,6 +149,9 @@ SQL Standard and PostgreSQL compatibility improvements
 Functions and operators
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+- Fixed arithmetics containing a non-floating numeric column type and a
+  floatling literal which resulted wrongly in a non-floating return type.
+
 - Replaced the ``Nashorn`` JavaScript engine with ``GraalVM`` for JavaScript
   :ref:`user-defined functions <sql_administration_udf>`. This change upgrades
   ``ECMAScript`` support from ``5.1`` to ``10.0``.
@@ -220,6 +223,3 @@ Fixes
 
 - Fixed an issue that caused the ``OFFSET`` clause to be ignored in ``SELECT
   DISTINCT`` queries.
-
-- Fixed arithmetics containing a non-floating numeric column type and a
-  floatling literal which resulted wrongly in a non-floating return type.
