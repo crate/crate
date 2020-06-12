@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -173,7 +174,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             return -1;
         }
         for (int i = 0; i < val1.size(); i++) {
-            int cmp = innerType.compare(val1.get(i), val2.get(i));
+            int cmp = Comparator.nullsFirst(innerType).compare(val1.get(i), val2.get(i));
             if (cmp != 0) {
                 return cmp;
             }
