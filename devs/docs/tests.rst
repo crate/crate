@@ -22,18 +22,18 @@ Filter tests::
 
 Extra options::
 
-    $ ./gradlew :sql:test -Dtests.seed=8352BE0120F826A9
+    $ ./gradlew :server:test -Dtests.seed=8352BE0120F826A9
 
-    $ ./gradlew :sql:test -Dtests.iters=20
+    $ ./gradlew :server:test -Dtests.iters=20
 
-    $ ./gradlew :sql:test -Dtests.nightly=true # defaults to "false"
+    $ ./gradlew :server:test -Dtests.nightly=true # defaults to "false"
 
-    $ ./gradlew :sql:test -Dtests.verbose=true # log result of all invoked tests
+    $ ./gradlew :server:test -Dtests.verbose=true # log result of all invoked tests
 
 
 More logging::
 
-    $ ./gradlew -PtestLogging -Dtests.loggers.levels=io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE :sql:test
+    $ ./gradlew -PtestLogging -Dtests.loggers.levels=io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE :server:test
 
 
 Or with code changes:
