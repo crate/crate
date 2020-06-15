@@ -105,4 +105,13 @@ public class ArrayTypeTest extends CrateUnitTest {
         in = out.bytes().streamInput();
         assertThat(streamer.readValueFrom(in), contains(nullValue()));
     }
+
+    @Test
+    public void test_compare_arrays_of_string_that_contain_nulls() {
+        int cmp = DataTypes.STRING_ARRAY.compare(
+            DataTypes.STRING_ARRAY.value("{'a', null}"),
+            DataTypes.STRING_ARRAY.value("{'a', 'b'}")
+        );
+        assertThat(cmp, is(-1));
+    }
 }
