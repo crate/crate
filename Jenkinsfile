@@ -21,23 +21,6 @@ pipeline {
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }
         }
-        stage('Java tests') {
-          agent { label 'large' }
-          environment {
-            CODECOV_TOKEN = credentials('cratedb-codecov-token')
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh './gradlew --no-daemon --parallel -PtestForks=8 test checkstyleMain forbiddenApisMain jacocoReport'
-            sh 'curl -s https://codecov.io/bash | bash'
-          }
-          post {
-            always {
-              junit '**/build/test-results/test/*.xml'
-            }
-          }
-        }
         stage('itest') {
           agent { label 'medium' }
           steps {
@@ -69,7 +52,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon hdfsTest s3Test monitoringTest gtest dnsDiscoveryTest sslTest'
+            sh './gradlew --no-daemon hdfsTest s3Test monitoringTest gtest dnsDiscoveryTest sslTest --debug'
           }
         }
       }
