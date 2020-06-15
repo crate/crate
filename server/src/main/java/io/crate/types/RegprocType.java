@@ -22,20 +22,15 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class IntegerType extends DataType<Integer> implements Streamer<Integer>, FixedWidthType {
+public class RegprocType extends DataType<Regproc> implements Streamer<Regproc> {
 
-    public static final IntegerType INSTANCE = new IntegerType();
-    public static final int ID = 9;
-    private static final int INTEGER_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Integer.class);
-
-    private IntegerType() {
-    }
+    public static final RegprocType INSTANCE = new RegprocType();
+    public static final int ID = 19;
 
     @Override
     public int id() {
@@ -44,58 +39,63 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
 
     @Override
     public Precedence precedence() {
-        return Precedence.INTEGER;
+        return Precedence.REGPROC;
     }
 
     @Override
     public String getName() {
-        return "integer";
+        return "regproc";
     }
 
     @Override
-    public Streamer<Integer> streamer() {
+    public Streamer<Regproc> streamer() {
         return this;
     }
 
     @Override
-    public Integer value(Object value) {
+    public Regproc implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Integer) {
-            return (Integer) value;
+        }
+        if (value instanceof Integer) {
+            return Regproc.of((int) value, value.toString());
         } else if (value instanceof String) {
-            return Integer.parseInt((String) value);
+            return Regproc.of((String) value);
         } else if (value instanceof Regproc) {
-            return ((Regproc) value).oid();
-        }
-
-        long longVal = ((Number) value).longValue();
-        if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {
-            throw new IllegalArgumentException("integer value out of range: " + longVal);
-        }
-        return ((Number) value).intValue();
-    }
-
-    @Override
-    public int compare(Integer val1, Integer val2) {
-        return Integer.compare(val1, val2);
-    }
-
-    @Override
-    public Integer readValueFrom(StreamInput in) throws IOException {
-        return in.readBoolean() ? null : in.readInt();
-    }
-
-    @Override
-    public void writeValueTo(StreamOutput out, Integer v) throws IOException {
-        out.writeBoolean(v == null);
-        if (v != null) {
-            out.writeInt(v);
+            return (Regproc) value;
+        } else {
+            throw new ClassCastException(
+                "Cannot cast value '" + value + "' to " + getName());
         }
     }
 
     @Override
-    public int fixedSize() {
-        return INTEGER_SIZE;
+    public Regproc valueForInsert(Object value) {
+        throw new UnsupportedOperationException(
+            getName() + " cannot be used in insert statements.");
+    }
+
+    @Override
+    public Regproc value(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return (Regproc) value;
+    }
+
+    @Override
+    public int compare(Regproc val1, Regproc val2) {
+        return Integer.compare(val1.oid(), val2.oid());
+    }
+
+    @Override
+    public Regproc readValueFrom(StreamInput in) throws IOException {
+        return Regproc.of(in.readInt(), in.readString());
+    }
+
+    @Override
+    public void writeValueTo(StreamOutput out, Regproc v) throws IOException {
+        out.writeInt(v.oid());
+        out.writeString(v.name());
     }
 }

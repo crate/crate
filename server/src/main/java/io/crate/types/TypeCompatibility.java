@@ -92,6 +92,9 @@ public final class TypeCompatibility {
         List<DataType<?>> toTypeParameters = toType.getTypeParameters();
 
         if (fromTypeParameters.size() != toTypeParameters.size()) {
+            if (fromType.id() == ObjectType.ID && toType.id() == ObjectType.ID) {
+                return fromTypeParameters.size() > toTypeParameters.size() ? fromType : toType;
+            }
             return null;
         }
 

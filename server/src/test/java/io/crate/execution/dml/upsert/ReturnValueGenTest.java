@@ -65,7 +65,7 @@ public class ReturnValueGenTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_by_id_returning_functions() throws Exception {
-        setupStatement("update test set message='updated' where id = 1 returning _docid + 1, UPPER(message)");
+        setupStatement("update test set message='updated' where id = 1 returning _docid + 1::int, UPPER(message)");
         Object[] objects = returnValues("1", Map.of("message", "updated"));
         assertThat(objects[0], is(2));
         assertThat(objects[1], is("UPDATED"));

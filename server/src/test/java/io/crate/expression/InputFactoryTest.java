@@ -41,6 +41,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -62,6 +63,21 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
     private SqlExpressions expressions;
     private InputFactory factory;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private Function add = new Function(
+        new FunctionInfo(
+            new FunctionIdent(ArithmeticFunctions.Names.ADD, List.of(DataTypes.INTEGER, DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            FunctionInfo.Type.SCALAR,
+            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
+        ),
+        Signature.scalar(
+            ArithmeticFunctions.Names.ADD,
+            DataTypes.INTEGER.getTypeSignature(),
+            DataTypes.INTEGER.getTypeSignature(),
+            DataTypes.INTEGER.getTypeSignature()
+        ),
+        List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10))
+    );
 
     @Before
     public void prepare() throws Exception {
@@ -97,12 +113,6 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         // select x, y * 2 ... group by x, y * 2
 
         // keys: [ in(0), in(1) + 10 ]
-        Function add = ArithmeticFunctions.of(
-            ArithmeticFunctions.Names.ADD,
-            new InputColumn(1, DataTypes.INTEGER),
-            Literal.of(10),
-            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
-        );
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), add);
 
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
@@ -112,19 +122,19 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
 
         // keyExpressions: [ in0, in1 ]
 
-        RowN row = new RowN(new Object[]{1L, 2L});
+        RowN row = new RowN(1L, 2L);
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
-        assertThat((Long) expressions.get(0).value(), is(1L));
-        assertThat((Long) expressions.get(1).value(), is(2L)); // raw input value
+        assertThat(expressions.get(0).value(), is(1L));
+        assertThat(expressions.get(1).value(), is(2L)); // raw input value
 
         // inputs: [ x, add ]
         List<Input<?>> inputs = ctx.topLevelInputs();
 
         assertThat(inputs.size(), is(2));
-        assertThat((Long) inputs.get(0).value(), is(1L));
-        assertThat((Integer) inputs.get(1).value(), is(12));  // + 10
+        assertThat(inputs.get(0).value(), is(1L));
+        assertThat(inputs.get(1).value(), is(12));  // + 10
     }
 
     @Test
@@ -132,11 +142,6 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         // select count(x), x, y * 2 ... group by x, y * 2
 
         // keys: [ in(0), in(1) + 10 ]
-        Function add = ArithmeticFunctions.of(
-            ArithmeticFunctions.Names.ADD,
-            new InputColumn(1, DataTypes.INTEGER),
-            Literal.of(10),
-            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), add);
 
         Function countX = (Function) expressions.asSymbol("count(x)");
@@ -167,16 +172,16 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         List<Input<?>> allInputs = ctx.topLevelInputs();
         assertThat(allInputs.size(), is(2)); // only 2 because count is no input
 
-        RowN row = new RowN(new Object[]{1L, 2L});
+        RowN row = new RowN(1L, 2L);
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
-        assertThat((Long) expressions.get(0).value(), is(1L));
-        assertThat((Long) expressions.get(1).value(), is(2L)); // raw input value
+        assertThat(expressions.get(0).value(), is(1L));
+        assertThat(expressions.get(1).value(), is(2L)); // raw input value
 
         assertThat(keyInputs.size(), is(2));
-        assertThat((Long) keyInputs.get(0).value(), is(1L));
-        assertThat((Integer) keyInputs.get(1).value(), is(12));  // 2 + 10
+        assertThat(keyInputs.get(0).value(), is(1L));
+        assertThat(keyInputs.get(1).value(), is(12));  // 2 + 10
     }
 
     @Test

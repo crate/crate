@@ -58,7 +58,8 @@ public class PGTypes {
         .put(DataTypes.UNDEFINED, VarCharType.INSTANCE)
         .put(DataTypes.GEO_SHAPE, JsonType.INSTANCE)
         .put(DataTypes.GEO_POINT, PointType.INSTANCE)
-        .put(DataTypes.INTERVAL,IntervalType.INSTANCE)
+        .put(DataTypes.INTERVAL, IntervalType.INSTANCE)
+        .put(DataTypes.REGPROC, RegprocType.INSTANCE)
         .put(new ArrayType<>(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.SHORT), PGArray.INT2_ARRAY)
         .put(new ArrayType<>(DataTypes.INTEGER), PGArray.INT4_ARRAY)
@@ -75,6 +76,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
         .put(new ArrayType<>(DataTypes.INTERVAL), PGArray.INTERVAL_ARRAY)
         .put(new ArrayType<>(RowType.EMPTY), PGArray.EMPTY_RECORD_ARRAY)
+        .put(new ArrayType<>(DataTypes.REGPROC), PGArray.REGPROC_ARRAY)
         .build();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();

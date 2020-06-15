@@ -22,8 +22,6 @@
 
 package io.crate.data;
 
-import java.util.Arrays;
-
 /**
  * An array backed row, which returns the inner array upon materialize.
  * <p>
@@ -31,7 +29,7 @@ import java.util.Arrays;
  * {@link #materialize()} (to optimize performance) therefore should be used
  * in special cases, since not copying the array returned can lead to data errors.
  */
-public class UnsafeArrayRow implements Row {
+public class UnsafeArrayRow extends Row {
 
     private Object[] cells;
 
@@ -58,23 +56,5 @@ public class UnsafeArrayRow implements Row {
     @Override
     public Object[] materialize() {
         return cells;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        UnsafeArrayRow that = (UnsafeArrayRow) o;
-        return Arrays.equals(cells, that.cells);
-    }
-
-    @Override
-    public int hashCode() {
-        return Arrays.hashCode(cells);
     }
 }

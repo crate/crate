@@ -89,7 +89,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSubSelectWithNestedAlias() throws Exception {
         QueriedSelectRelation relation = analyze(
-            "select tt.aa, (tt.xi + 1)" +
+            "select tt.aa, (tt.xi + 1::int)" +
             " from (select (x + i) as xi, concat(a, a) as aa, i from t1) as tt");
         assertThat(relation.outputs(), contains(
             isField("aa"),

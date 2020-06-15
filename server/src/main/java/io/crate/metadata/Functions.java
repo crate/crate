@@ -257,7 +257,7 @@ public class Functions {
             var exactCandidates = candidates.stream()
                 .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
                 .collect(Collectors.toList());
-            var match = matchFunctionCandidates(exactCandidates, arguments, false);
+            var match = matchFunctionCandidates(exactCandidates, arguments, SignatureBinder.CoercionType.NONE);
             if (match != null) {
                 return match;
             }
@@ -267,17 +267,27 @@ public class Functions {
             var genericCandidates = candidates.stream()
                 .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
                 .collect(Collectors.toList());
-            match = matchFunctionCandidates(genericCandidates, arguments, false);
+            match = matchFunctionCandidates(genericCandidates, arguments, SignatureBinder.CoercionType.NONE);
             if (match != null) {
                 return match;
             }
 
             @SuppressWarnings("ConstantConditions")
-            // Last, try all candidates which allow coercion.
+            // Third, try all candidates which allow coercion with precedence based coercion.
             var candidatesAllowingCoercion = candidates.stream()
                 .filter(function -> function.getSignature().getBindingInfo().isCoercionAllowed())
                 .collect(Collectors.toList());
-            return matchFunctionCandidates(candidatesAllowingCoercion, arguments, true);
+            match = matchFunctionCandidates(
+                candidatesAllowingCoercion,
+                arguments,
+                SignatureBinder.CoercionType.PRECEDENCE_ONLY
+            );
+            if (match != null) {
+                return match;
+            }
+
+            // Last, try all candidates which allow coercion with full coercion.
+            return matchFunctionCandidates(candidatesAllowingCoercion, arguments, SignatureBinder.CoercionType.FULL);
         }
         return null;
     }
@@ -285,10 +295,10 @@ public class Functions {
     @Nullable
     private static FunctionImplementation matchFunctionCandidates(List<FuncResolver> candidates,
                                                                   List<DataType> argumentTypes,
-                                                                  boolean allowCoercion) {
+                                                                  SignatureBinder.CoercionType coercionType) {
         List<ApplicableFunction> applicableFunctions = new ArrayList<>();
         for (FuncResolver candidate : candidates) {
-            Signature boundSignature = new SignatureBinder(candidate.getSignature(), allowCoercion)
+            Signature boundSignature = new SignatureBinder(candidate.getSignature(), coercionType)
                 .bind(Lists2.map(argumentTypes, DataType::getTypeSignature));
             if (boundSignature != null) {
                 applicableFunctions.add(
@@ -301,8 +311,7 @@ public class Functions {
             }
         }
 
-
-        if (allowCoercion) {
+        if (coercionType != SignatureBinder.CoercionType.NONE) {
             applicableFunctions = selectMostSpecificFunctions(applicableFunctions, argumentTypes);
             if (LOGGER.isDebugEnabled() && applicableFunctions.isEmpty()) {
                 LOGGER.debug("At least single function must be left after selecting most specific one");
@@ -487,7 +496,7 @@ public class Functions {
         }
 
         // Find most specific by type precedence
-        mostSpecificFunctions = selectMostSpecificFunctions(applicableFunctions, Functions::isMoreSpecificThan);
+        mostSpecificFunctions = selectMostSpecificFunctions(mostSpecificFunctions, Functions::isMoreSpecificThan);
         if (mostSpecificFunctions.size() <= 1) {
             return mostSpecificFunctions;
         }

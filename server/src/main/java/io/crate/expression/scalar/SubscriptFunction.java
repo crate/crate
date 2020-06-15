@@ -180,7 +180,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
 
     static Object lookupByNumericIndex(Object base, Object index) {
         List<?> values = (List<?>) base;
-        int idx = (Integer) index;
+        int idx = ((Number) index).intValue();
         try {
             return values.get(idx - 1); // SQL array indices start with 1
         } catch (IndexOutOfBoundsException e) {

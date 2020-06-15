@@ -115,17 +115,17 @@ public class FunctionsTest extends CrateUnitTest {
         register(
             Signature.scalar(
                 "foo",
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
+                DataTypes.FLOAT.getTypeSignature(),
+                DataTypes.FLOAT.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.FLOAT)
         );
 
         var impl = resolve("foo", List.of(Literal.of(1L)));
 
-        // integer is more specific than double
-        assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.INTEGER));
+        // float is more specific than double
+        assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.FLOAT));
     }
 
     @Test

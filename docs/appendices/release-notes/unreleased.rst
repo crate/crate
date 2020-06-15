@@ -102,6 +102,9 @@ Administration
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
 
+- Added the :ref:`oid_regproc` alias data type that is used to reference
+  functions in the :ref:`postgres_pg_catalog` tables.
+
 - Added the :ref:`varchar(n) and character varying(n) <data-type-varchar>`
   types, where ``n`` is an optional length limit.
 
@@ -145,6 +148,9 @@ SQL Standard and PostgreSQL compatibility improvements
 
 Functions and operators
 ~~~~~~~~~~~~~~~~~~~~~~~
+
+- Fixed arithmetics containing a non-floating numeric column type and a
+  floatling literal which resulted wrongly in a non-floating return type.
 
 - Replaced the ``Nashorn`` JavaScript engine with ``GraalVM`` for JavaScript
   :ref:`user-defined functions <sql_administration_udf>`. This change upgrades
@@ -215,4 +221,5 @@ Performance improvements
 Fixes
 =====
 
-None
+- Fixed an issue that caused the ``OFFSET`` clause to be ignored in ``SELECT
+  DISTINCT`` queries.

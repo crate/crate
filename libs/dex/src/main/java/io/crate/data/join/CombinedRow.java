@@ -24,7 +24,7 @@ package io.crate.data.join;
 
 import io.crate.data.Row;
 
-public class CombinedRow implements Row, ElementCombiner<Row, Row, Row> {
+public class CombinedRow extends Row implements ElementCombiner<Row, Row, Row> {
 
     private final int numCols;
     private final int leftNumCols;
@@ -85,37 +85,5 @@ public class CombinedRow implements Row, ElementCombiner<Row, Row, Row> {
                "lhs=" + left +
                ", rhs=" + right +
                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        CombinedRow that = (CombinedRow) o;
-
-        if (numCols != that.numCols) {
-            return false;
-        }
-        if (leftNumCols != that.leftNumCols) {
-            return false;
-        }
-        if (!left.equals(that.left)) {
-            return false;
-        }
-        return right.equals(that.right);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = numCols;
-        result = 31 * result + leftNumCols;
-        result = 31 * result + left.hashCode();
-        result = 31 * result + right.hashCode();
-        return result;
     }
 }

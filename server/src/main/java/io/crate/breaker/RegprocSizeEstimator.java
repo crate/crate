@@ -20,49 +20,29 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.breaker;
 
-import java.util.Arrays;
+import io.crate.types.DataTypes;
+import io.crate.types.Regproc;
 
-public class RowN extends Row {
+import javax.annotation.Nullable;
 
-    private final int size;
-    private Object[] cells;
+public final class RegprocSizeEstimator extends SizeEstimator<Regproc> {
 
-    public RowN(int size) {
-        this.size = size;
-    }
+    public static final RegprocSizeEstimator INSTANCE = new RegprocSizeEstimator();
 
-    public RowN(Object ... cells) {
-        this(cells.length);
-        this.cells = cells;
-    }
+    private final SizeEstimator<Integer> oidEstimator;
 
-    @Override
-    public int numColumns() {
-        return size;
-    }
-
-    public void cells(Object[] cells) {
-        assert cells != null : "cells must not be null";
-        this.cells = cells;
+    public RegprocSizeEstimator() {
+        this.oidEstimator = SizeEstimatorFactory.create(DataTypes.INTEGER);
     }
 
     @Override
-    public Object get(int index) {
-        assert cells != null : "cells must not be null";
-        return cells[index];
-    }
-
-    @Override
-    public Object[] materialize() {
-        Object[] result = new Object[size];
-        System.arraycopy(cells, 0, result, 0, size);
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "RowN{" + Arrays.toString(cells) + '}';
+    public long estimateSize(@Nullable Regproc value) {
+        if (value == null) {
+            return 8;
+        }
+        return StringSizeEstimator.estimate(value.name()) +
+               oidEstimator.estimateSize(value.oid());
     }
 }

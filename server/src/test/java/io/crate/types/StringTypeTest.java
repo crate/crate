@@ -34,13 +34,20 @@ import static org.hamcrest.CoreMatchers.is;
 public class StringTypeTest extends CrateUnitTest {
 
     @Test
-    public void test_convert_boolean_to_text() {
+    public void test_implicit_cast_boolean_to_text() {
         assertThat(DataTypes.STRING.implicitCast(true), is("t"));
         assertThat(DataTypes.STRING.implicitCast(false), is("f"));
     }
 
     @Test
-    public void test_convert_long_to_text() {
+    public void test_implicit_cast_regproc_to_text() {
+        assertThat(
+            DataTypes.STRING.implicitCast(Regproc.of("func")),
+            is("func"));
+    }
+
+    @Test
+    public void test_implicit_cast_long_to_text() {
         assertThat(DataTypes.STRING.implicitCast(123L), is("123"));
     }
 

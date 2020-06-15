@@ -576,8 +576,9 @@ public class SignatureBinderTest extends CrateUnitTest {
 
         @Nullable
         private BoundVariables bindVariables() {
+            var coercionType = allowCoercion ? SignatureBinder.CoercionType.FULL : SignatureBinder.CoercionType.NONE;
             assertNotNull(argumentTypes);
-            SignatureBinder signatureBinder = new SignatureBinder(function, allowCoercion);
+            SignatureBinder signatureBinder = new SignatureBinder(function,  coercionType);
             return signatureBinder.bindVariables(argumentTypes);
         }
     }

@@ -304,7 +304,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "SELECT" +
             "  * " +
             "FROM " +
-            "  (SELECT x, generate_series(1, x) FROM t1) tt " +
+            "  (SELECT x, generate_series(1::int, x) FROM t1) tt " +
             "WHERE x > 1"
         );
         var expectedPlan =
@@ -321,7 +321,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "SELECT" +
             "  * " +
             "FROM " +
-            "  (SELECT x, generate_series(1, x) AS y FROM t1) tt " +
+            "  (SELECT x, generate_series(1::int, x) AS y FROM t1) tt " +
             "WHERE x > 1 AND y > 2"
         );
         var expectedPlan =
