@@ -57,5 +57,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused a ``NullPointerException`` if the :ref:`ANALYZE
+  <analyze>` statement was executed on tables with primitive array type columns
+  that contain ``NULL`` values.
+
 - Fixed an issue that caused the ``OFFSET`` clause to be ignored in ``SELECT
   DISTINCT`` queries.
