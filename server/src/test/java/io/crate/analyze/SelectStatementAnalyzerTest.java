@@ -63,6 +63,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TimeTZ;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
@@ -1908,6 +1909,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testCastTimestampWithoutTimeZoneFromStringLiteralUsingSQLStandardFormat()  {
         AnalyzedRelation relation = analyze("select timestamp without time zone '2018-12-12 00:00:00'");
         assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMESTAMP));
+    }
+
+    @Test
+    public void test_cast_time_from_string_literal()  {
+        AnalyzedRelation relation = analyze("select time with time zone '23:59:59.999+02'");
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMETZ));
+        assertThat(relation.outputs().get(0).toString(), is("23:59:59.999+02:00"));
+
+        relation = analyze("select '23:59:59.999+02'::timetz");
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMETZ));
+        assertThat(relation.outputs().get(0).toString(), is(new TimeTZ(86399999000L, 7200).toString()));
     }
 
     @Test

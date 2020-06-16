@@ -232,45 +232,70 @@ Example of JSON representation of a column list of (String, Integer[])::
 
 IDs of all currently available data types:
 
-===== ===================
-ID    Data Type
-===== ===================
-0     Null
------ -------------------
-1     Not Supported
------ -------------------
-2     Char
------ -------------------
-3     Boolean
------ -------------------
-4     Text
------ -------------------
-5     Ip
------ -------------------
-6     Double Precision
------ -------------------
-7     Real
------ -------------------
-8     Smallint
------ -------------------
-9     Integer
------ -------------------
-10    Bigint
------ -------------------
-11    Timestamp
------ -------------------
-12    Object
------ -------------------
-13    GeoPoint (Double[])
------ -------------------
-14    GeoShape
------ -------------------
-15    Unchecked Object
------ -------------------
-19    Regproc
------ -------------------
-100   Array
-===== ===================
+.. list-table::
+   :widths: 8 30 62
+   :header-rows: 1
+
+   * - ID
+     - Data Type
+     - Format
+   * - 0
+     - Null
+     - null
+   * - 1
+     - Not Supported
+     -
+   * - 2
+     - :ref:`char <data-type-special>`
+     - single byte
+   * - 3
+     - :ref:`boolean <data-type-boolean>`
+     - `true` or `false`
+   * - 4
+     - :ref:`text <data-type-text>`
+     - all unicode characters allowed
+   * - 5
+     - :ref:`ip <ip-type>`
+     - '0:0:0:0:0:ffff:c0a8:64', '192.169.0.55'
+   * - 6
+     - :ref:`double precision <data-type-numeric>`
+     - 15 decimal digits precision
+   * - 7
+     - real
+     - 6 decimal digits precision
+   * - 8
+     - smallint
+     - range -32768 to 32767
+   * - 9
+     - integer
+     - range -2^31 to 2^31-1
+   * - 10
+     - bigint
+     - range -2^63 to 2^63-1
+   * - 11
+     - :ref:`timestamp <timestamp_data_type>`
+     - ``bigint`` e.g. 1591808274761
+   * - 12
+     - :ref:`object(dynamic|strict|ignored) <object_data_type>`
+     - '{"key": "value"}', { key = 'value'}
+   * - 13
+     - :ref:`geo_point <geo_point_data_type>`
+     - [lon_value::``double``, lat_value::``double``] e.g. [28.979999972507358,-57.33000000938773]
+   * - 14
+     - :ref:`geo_shape <geo_shape_data_type>`
+     - object[] e.g. [{"coordinates":[[[100.0,0.0],[101.0,0.0],[101.0,1.0]]],"type":"Polygon"}]
+   * - 15
+     - Unchecked Object
+     -
+   * - 19
+     - :ref:`regproc <oid_regproc>`
+     -
+   * - 20
+     - :ref:`time with time zone <time-data-type>`
+     - [``bigint``, ``integer``] e.g. [70652987666, 0]
+   * - 100
+     - :ref:`array <data-type-array>`
+     - [``integer``, ``integer``] e.g. [100, 9] for a ``array(integer)``
 
 .. _bulk_operations:
 
