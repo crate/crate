@@ -127,7 +127,7 @@ cluster and coordinate operations:
 * The status and location of primary and replica shards
 
 When the master node updates the cluster state it will publish the new state to all
-nodes in the cluster and and wait for all nodes to respond before processing
+nodes in the cluster and wait for all nodes to respond before processing
 the next update.
 
 .. _shared_nothing_master_node_election:
@@ -154,11 +154,11 @@ network partition (when some nodes become unavailable) the cluster
 can elect a master node.
 
 If the quorum is smaller than half the expected nodes in the cluster, and the
-cluster is split in half by a network partion, neither partion will be able to
+cluster is split in half by a network partition, neither partition will be able to
 elect a new master node.
 
 If the quorum is exactly half the expected nodes in the cluster, and the
-cluster is split in half, both sides of the partion will be able to elect a
+cluster is split in half, both sides of the partition will be able to elect a
 master node. This is known as a `split-brain` scenario, and can lead to data
 loss because the master nodes may disagree with each other when the full
 cluster is restored.
