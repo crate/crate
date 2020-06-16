@@ -42,6 +42,8 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.optimizer.symbol.Optimizer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -78,6 +80,7 @@ public final class QueryTester implements AutoCloseable {
         private final DocTableInfo table;
         private final SQLExecutor sqlExecutor;
         private final SqlExpressions expressions;
+        private final PlannerContext plannerContext;
         private final DocTableRelation docTableRelation;
         private final IndexEnv indexEnv;
         private final LuceneQueryBuilder queryBuilder;
@@ -91,6 +94,7 @@ public final class QueryTester implements AutoCloseable {
                 .builder(clusterService)
                 .addTable(createTableStmt)
                 .build();
+            plannerContext = sqlExecutor.getPlannerContext(clusterService.state());
 
             DocSchemaInfo docSchema = findDocSchema(sqlExecutor.schemas());
             table = (DocTableInfo) docSchema.getTables().iterator().next();
@@ -184,7 +188,7 @@ public final class QueryTester implements AutoCloseable {
                             return Literal.ofUnchecked(parameterSymbol.valueType(), parameterSymbol.valueType().value(param));
                         }
                     }, null);
-                    return expressions.normalize(boundSymbol);
+                    return Optimizer.optimizeCasts(expressions.normalize(boundSymbol), plannerContext);
                 },
                 symbol -> queryBuilder.convert(
                     symbol,

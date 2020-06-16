@@ -21,7 +21,6 @@
 
 package io.crate.analyze.where;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.QueriedSelectRelation;
@@ -44,7 +43,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -52,6 +50,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -177,7 +176,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateWherePartitionedByColumn() throws Exception {
-        AnalyzedUpdateStatement update = analyzeUpdate("update parted set id = 2 where date = 1395874800000");
+        AnalyzedUpdateStatement update = analyzeUpdate("update parted set id = 2 where date = 1395874800000::timestamp");
         assertThat(update.query(), isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L)));
     }
 
@@ -188,12 +187,12 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         String partition3 = new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName();
 
         WhereClause whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000");
-        assertEquals(ImmutableList.of(partition1), whereClause.partitions());
+        assertEquals(List.of(partition1), whereClause.partitions());
         assertThat(whereClause.queryOrFallback(), isLiteral(true));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 " +
                                          "and substr(name, 0, 4) = 'this'");
-        assertEquals(ImmutableList.of(partition1), whereClause.partitions());
+        assertEquals(List.of(partition1), whereClause.partitions());
         assertThat(whereClause.hasQuery(), is(true));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date >= 1395874800000");
@@ -201,11 +200,11 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(whereClause.queryOrFallback(), isLiteral(true));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date < 1395874800000");
-        assertEquals(ImmutableList.of(), whereClause.partitions());
+        assertEquals(List.of(), whereClause.partitions());
         assertThat(whereClause.queryOrFallback(), isLiteral(false));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 and date = 1395961200000");
-        assertEquals(ImmutableList.of(), whereClause.partitions());
+        assertEquals(List.of(), whereClause.partitions());
         assertThat(whereClause.queryOrFallback(), isLiteral(false));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 or date = 1395961200000");
@@ -213,7 +212,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(whereClause.queryOrFallback(), isLiteral(true));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date < 1395874800000 or date > 1395874800000");
-        assertEquals(ImmutableList.of(partition2), whereClause.partitions());
+        assertEquals(List.of(partition2), whereClause.partitions());
         assertThat(whereClause.queryOrFallback(), isLiteral(true));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date in (1395874800000, 1395961200000)");
@@ -241,7 +240,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(whereClause.queryOrFallback(), isLiteral(true));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395961200000 and id = 1");
-        assertEquals(ImmutableList.of(partition2), whereClause.partitions());
+        assertEquals(List.of(partition2), whereClause.partitions());
         assertThat(whereClause.queryOrFallback(), isFunction("op_="));
 
         whereClause = analyzeSelectWhere("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
@@ -249,11 +248,11 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(whereClause.queryOrFallback(), isFunction("op_="));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 and id is null");
-        assertEquals(ImmutableList.of(partition1), whereClause.partitions());
+        assertEquals(List.of(partition1), whereClause.partitions());
         assertThat(whereClause.queryOrFallback(), isFunction("op_isnull"));
 
         whereClause = analyzeSelectWhere("select id, name from parted where date is null and id = 1");
-        assertEquals(ImmutableList.of(partition3), whereClause.partitions());
+        assertEquals(List.of(partition3), whereClause.partitions());
         assertThat(whereClause.queryOrFallback(), isFunction("op_="));
 
         whereClause = analyzeSelectWhere("select id, name from parted where 1395874700000 < date and date < 1395961200001");
@@ -267,7 +266,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_where_on_date_with_null_partition_or_id_can_match_all_partitions() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select id, name from parted where date = 1395961200000 or id = 1");
+        WhereClause whereClause = analyzeSelectWhere(
+            "select id, name from parted where date = 1395961200000::timestamp or id = 1");
         assertThat(whereClause.partitions(), containsInAnyOrder(
             ".partitioned.parted.0400",
             ".partitioned.parted.04732cpp6ksjcc9i60o30c1g",
@@ -296,38 +296,20 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         String s = sb.toString();
 
         WhereClause whereClause = analyzeSelectWhere(s);
-        assertThat(whereClause.query(), isFunction(AnyOperators.Names.EQ,
-            ImmutableList.of(DataTypes.INTEGER, new ArrayType<>(DataTypes.INTEGER))));
-    }
-
-    @Test
-    public void testAnyEqConvertableArrayTypeLiterals() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select * from users where name = any([1, 2, 3])");
-        assertThat(whereClause.query(), isFunction(AnyOperators.Names.EQ, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
-    }
-
-    @Test
-    public void testAnyLikeConvertableArrayTypeLiterals() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select * from users where name like any([1, 2, 3])");
-        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
-    }
-
-    @Test
-    public void testAnyILikeConvertableArrayTypeLiterals() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select * from users where name ilike any([1, 2, 3])");
-        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_ILIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(), isFunction(AnyOperators.Type.EQ.opName(),
+                                                   List.of(DataTypes.INTEGER, new ArrayType<>(DataTypes.INTEGER))));
     }
 
     @Test
     public void testAnyLikeArrayLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name like any(['a', 'b', 'c'])");
-        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_LIKE, List.of(DataTypes.STRING, new ArrayType<>(DataTypes.STRING))));
     }
 
     @Test
     public void testAnyILikeArrayLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name ilike any(['a', 'b', 'c'])");
-        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_ILIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_ILIKE, List.of(DataTypes.STRING, new ArrayType<>(DataTypes.STRING))));
     }
 
     @Test

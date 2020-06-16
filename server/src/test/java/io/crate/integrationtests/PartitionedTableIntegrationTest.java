@@ -542,7 +542,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into stuff (id, type, content) values(?, ?, ?)",
             new Object[]{3, 126, "Now panic"});
         ensureYellow();
-        refresh();
 
         execute("select id, type, content from stuff where id=2 and type=126");
         assertThat(response.rowCount(), is(1L));

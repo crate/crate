@@ -311,7 +311,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFormatOperatorWithStaticInstance() throws Exception {
-        Symbol comparisonOperator = sqlExpressions.asSymbol("bar = 1 and foo = 2");
+        Symbol comparisonOperator = sqlExpressions.asSymbol("bar = 1 and foo = '2'");
         String printed = comparisonOperator.toString(Style.QUALIFIED);
         assertThat(
             printed,

@@ -41,6 +41,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
+
 public class Symbols {
 
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
@@ -168,6 +170,14 @@ public class Symbols {
             }
         }
         return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);
+    }
+
+    public static Symbol unwrapReferenceFromCast(Symbol symbol) {
+        if (symbol instanceof Function
+            && CAST_FUNCTION_NAMES.contains(((Function) symbol).info().ident().name())) {
+            return ((Function) symbol).arguments().get(0);
+        }
+        return symbol;
     }
 
     private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {

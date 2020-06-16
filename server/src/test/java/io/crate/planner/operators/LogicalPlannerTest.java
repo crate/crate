@@ -305,8 +305,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("select * from " +
                                 " (select a, i from t1 order by a limit 5) t1 " +
                                 "inner join" +
-                                " (select b, i from t2 where b > 10) t2 " +
-                                "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
+                                " (select b, i from t2 where b > '10') t2 " +
+                                "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                 "limit 10");
         assertThat(plan, isPlan(
             "Limit[10::bigint;0]\n" +

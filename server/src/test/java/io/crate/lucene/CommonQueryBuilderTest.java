@@ -45,15 +45,12 @@ import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
-import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Map;
 
-import static io.crate.lucene.LikeQuery.convertSqlLikeToLuceneWildcard;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
@@ -103,6 +100,18 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void testWhereRefEqLiteral() throws Exception {
+        Query query = convert("10 = x");
+        assertThat(query.toString(), is("x:[10 TO 10]"));
+    }
+
+    @Test
+    public void testWhereLiteralEqReference() throws Exception {
+        Query query = convert("x = 10");
+        assertThat(query.toString(), is("x:[10 TO 10]"));
+    }
+
+    @Test
     public void testLteQuery() throws Exception {
         Query query = convert("x <= 10");
         assertThat(query.toString(), is("x:[-2147483648 TO 10]"));
@@ -149,6 +158,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testGteQuery() throws Exception {
         Query query = convert("x >= 10");
         assertThat(query.toString(), is("x:[10 TO 2147483647]"));
+    }
+
+    @Test
+    public void testGtQuery() throws Exception {
+        Query query = convert("x > 10");
+        assertThat(query.toString(), is("x:[11 TO 2147483647]"));
     }
 
     @Test
@@ -264,81 +279,11 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void testLikeAnyOnArrayLiteral() throws Exception {
-        Query likeQuery = convert("name like any (['a', 'b', 'c'])");
-        assertThat(likeQuery, instanceOf(BooleanQuery.class));
-        BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
-        assertThat(likeBQuery.clauses().size(), is(3));
-        for (int i = 0; i < 2; i++) {
-            // like --> ConstantScoreQuery with regexp-filter
-            Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
-            assertThat(filteredQuery, instanceOf(WildcardQuery.class));
-        }
-    }
-
-    @Test
-    public void testILikeAnyOnArrayLiteral() throws Exception {
-        Query likeQuery = convert("name ilike any (['A', 'B', 'B'])");
-        assertThat(likeQuery, instanceOf(BooleanQuery.class));
-        BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
-        assertThat(likeBQuery.clauses().size(), is(3));
-        for (int i = 0; i < 2; i++) {
-            Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
-            assertThat(filteredQuery, instanceOf(CrateRegexQuery.class));
-        }
-    }
-
-    @Test
-    public void testNotLikeAnyOnArrayLiteral() throws Exception {
-        Query notLikeQuery = convert("name not like any (['a', 'b', 'c'])");
-        assertThat(notLikeQuery, instanceOf(BooleanQuery.class));
-        BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
-        assertThat(notLikeBQuery.clauses(), hasSize(2));
-        BooleanClause clause = notLikeBQuery.clauses().get(1);
-        assertThat(clause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
-        assertThat(((BooleanQuery) clause.getQuery()).clauses(), hasSize(3));
-        for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
-            assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
-            assertThat(innerClause.getQuery(), instanceOf(WildcardQuery.class));
-        }
-    }
-
-    @Test
-    public void testNotILikeAnyOnArrayLiteral() throws Exception {
-        Query notLikeQuery = convert("name not ilike any (['A', 'B', 'C'])");
-        assertThat(notLikeQuery, instanceOf(BooleanQuery.class));
-        BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
-        assertThat(notLikeBQuery.clauses(), hasSize(2));
-        BooleanClause clause = notLikeBQuery.clauses().get(1);
-        assertThat(clause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
-        assertThat(((BooleanQuery) clause.getQuery()).clauses(), hasSize(3));
-        for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
-            assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
-            assertThat(innerClause.getQuery(), instanceOf(CrateRegexQuery.class));
-        }
-    }
-
-    @Test
     public void testLessThanAnyOnArrayLiteral() throws Exception {
         Query ltQuery2 = convert("name < any (['a', 'b', 'c'])");
         assertThat(ltQuery2, instanceOf(BooleanQuery.class));
         BooleanQuery ltBQuery = (BooleanQuery) ltQuery2;
         assertThat(ltBQuery.toString(), is("(name:{* TO a} name:{* TO b} name:{* TO c})~1"));
-    }
-
-    @Test
-    public void testSqlLikeToLuceneWildcard() throws Exception {
-        assertThat(convertSqlLikeToLuceneWildcard("%\\\\%"), is("*\\\\*"));
-        assertThat(convertSqlLikeToLuceneWildcard("%\\\\_"), is("*\\\\?"));
-        assertThat(convertSqlLikeToLuceneWildcard("%\\%"), is("*%"));
-
-        assertThat(convertSqlLikeToLuceneWildcard("%me"), is("*me"));
-        assertThat(convertSqlLikeToLuceneWildcard("\\%me"), is("%me"));
-        assertThat(convertSqlLikeToLuceneWildcard("*me"), is("\\*me"));
-
-        assertThat(convertSqlLikeToLuceneWildcard("_me"), is("?me"));
-        assertThat(convertSqlLikeToLuceneWildcard("\\_me"), is("_me"));
-        assertThat(convertSqlLikeToLuceneWildcard("?me"), is("\\?me"));
     }
 
 
@@ -365,12 +310,6 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
         assertThat(existsClause.getQuery(), instanceOf(TermRangeQuery.class));
         assertThat(intersectsClause.getQuery(), instanceOf(IntersectsPrefixTreeQuery.class));
-    }
-
-    @Test
-    public void testLikeWithBothSidesReferences() throws Exception {
-        Query query = convert("name ilike name");
-        assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 
     @Test

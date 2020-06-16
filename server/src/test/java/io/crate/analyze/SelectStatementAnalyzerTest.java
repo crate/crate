@@ -431,7 +431,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testWhereInSelect() throws Exception {
         QueriedSelectRelation relation = analyze("select load from sys.nodes where load['1'] in (1.0, 2.0, 4.0, 8.0, 16.0)");
         Function whereClause = (Function) relation.where();
-        assertThat(whereClause.info().ident().name(), is(AnyOperators.Names.EQ));
+        assertThat(whereClause.info().ident().name(), is(AnyOperators.Type.EQ.opName()));
     }
 
     @Test
@@ -855,7 +855,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation relation = analyze(
             "select * from users where 5 = ANY (friends['id'])");
         Function anyFunction = (Function) relation.where();
-        assertThat(anyFunction.info().ident().name(), is(AnyOperators.Names.EQ));
+        assertThat(anyFunction.info().ident().name(), is(AnyOperators.Type.EQ.opName()));
         assertThat(anyFunction.arguments().get(1), isReference("friends['id']", new ArrayType<>(DataTypes.LONG)));
         assertThat(anyFunction.arguments().get(0), isLiteral(5L));
     }
@@ -1218,7 +1218,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Function havingFunction = (Function) relation.having();
 
         // assert that the in was converted to or
-        assertThat(havingFunction.info().ident().name(), is(AnyOperators.Names.EQ));
+        assertThat(havingFunction.info().ident().name(), is(AnyOperators.Type.EQ.opName()));
     }
 
     @Test

@@ -1596,7 +1596,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("REFRESH TABLE t1");
 
         assertThat(
-            printedTable(execute("SELECT * FROM t1").rows()),
+            printedTable(execute("SELECT * FROM t1 ORDER BY str").rows()),
             is("abc\n" +
                "abc\n" +
                "bcd\n" +
