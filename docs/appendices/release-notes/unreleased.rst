@@ -57,6 +57,10 @@ None
 Fixes
 =====
 
+- Changed the required privileges to execute ``RESET`` statements to include
+  the ``AL`` privilege. Users with ``AL`` could change settings using ``SET
+  GLOBAL`` already.
+
 - Fixed an issue that caused a ``NullPointerException`` if the :ref:`ANALYZE
   <analyze>` statement was executed on tables with primitive array type columns
   that contain ``NULL`` values.
