@@ -535,7 +535,13 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitResetAnalyzedStatement(AnalyzedResetStatement resetAnalyzedStatement, User user) {
-            throwRequiresSuperUserPermission(user.name());
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
             return null;
         }
 
