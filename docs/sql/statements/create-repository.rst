@@ -196,13 +196,17 @@ A repository that stores its snapshot inside an HDFS file-system.
 ``s3``
 ------
 
-A repository that stores its snapshot on the Amazon S3 service.
+A repository that stores its snapshot on the Amazon S3 service. When used in
+conjunction with Amazon IAM Roles, ``access_key`` and ``secret_key`` must be
+undefined and these credentials will then be loaded from the Amazon Container
+(e.g. EC2).
+
 
 .. rubric:: Parameters
 
 **access_key**
   | *Type:*    ``text``
-  | *Required:* ``true``
+  | *Required:* ``false``
 
   Access key used for authentication against AWS. Note that this setting is
   masked and thus will not be visible when querying the ``sys.repositories``
@@ -210,7 +214,7 @@ A repository that stores its snapshot on the Amazon S3 service.
 
 **secret_key**
   | *Type:*    ``text``
-  | *Required:* ``true``
+  | *Required:* ``false``
 
   Secret key used for authentication against AWS. Note that this setting is
   masked and thus will not be visible when querying the ``sys.repositories``
