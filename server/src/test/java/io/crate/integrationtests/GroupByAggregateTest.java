@@ -1313,4 +1313,24 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select obj['x'] from (select obj from tbl) as t group by obj['x']");
         assertThat(printedTable(response.rows()), Is.is("10\n"));
     }
+
+    @Test
+    public void test_select_same_aggregate_multiple_times() throws Exception {
+        execute("create table doc.tbl (name text, x int)");
+        execute("insert into doc.tbl (name, x) values ('Apple', 1), ('Apple', 2), ('Apple', 3)");
+        execute("refresh table doc.tbl");
+
+
+        execute("explain select name, count(x), count(x) from doc.tbl group by name");
+        assertThat(
+            printedTable(response.rows()),
+            Is.is(
+                "Eval[name, count(x), count(x)]\n" +
+                "  └ GroupHashAggregate[name | count(x)]\n"+
+                "    └ Collect[doc.tbl | [x, name] | true]\n"
+            )
+        );
+        execute("select name, count(x), count(x) from doc.tbl group by name");
+        assertThat(printedTable(response.rows()), Is.is("Apple| 3| 3\n"));
+    }
 }
