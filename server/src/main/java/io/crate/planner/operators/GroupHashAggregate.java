@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
@@ -112,9 +113,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates, long numExpectedRows) {
         super(source);
         this.numExpectedRows = numExpectedRows;
-        this.outputs = Lists2.concat(groupKeys, aggregates);
+        this.aggregates = List.copyOf(new LinkedHashSet<>(aggregates));
+        this.outputs = Lists2.concat(groupKeys, this.aggregates);
         this.groupKeys = groupKeys;
-        this.aggregates = aggregates;
     }
 
     @Override
