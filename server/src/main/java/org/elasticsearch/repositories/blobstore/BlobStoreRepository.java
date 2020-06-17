@@ -19,6 +19,7 @@
 
 package org.elasticsearch.repositories.blobstore;
 
+import io.crate.exceptions.InvalidArgumentException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -354,7 +355,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     }
                     try {
                         store = createBlobStore();
-                    } catch (RepositoryException e) {
+                    } catch (RepositoryException | InvalidArgumentException e) {
                         throw e;
                     } catch (Exception e) {
                         throw new RepositoryException(metadata.name(), "cannot create blob store: " + e.getMessage() , e);
