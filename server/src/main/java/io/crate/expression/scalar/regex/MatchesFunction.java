@@ -94,7 +94,6 @@ public class MatchesFunction extends Scalar<List<String>, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

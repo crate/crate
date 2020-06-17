@@ -36,7 +36,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
 
@@ -106,7 +105,6 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

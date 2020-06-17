@@ -35,7 +35,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -106,7 +105,6 @@ public class VersionFunction extends Scalar<String, Void> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

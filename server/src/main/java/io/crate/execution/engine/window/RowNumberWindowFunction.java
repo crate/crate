@@ -30,7 +30,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class RowNumberWindowFunction implements WindowFunction {
@@ -71,7 +70,6 @@ public class RowNumberWindowFunction implements WindowFunction {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

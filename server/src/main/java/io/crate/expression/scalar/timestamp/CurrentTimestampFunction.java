@@ -31,7 +31,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
@@ -105,7 +104,6 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

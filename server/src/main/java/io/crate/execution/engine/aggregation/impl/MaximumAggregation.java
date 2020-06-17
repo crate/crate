@@ -25,10 +25,10 @@ import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -149,7 +149,6 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

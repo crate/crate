@@ -92,7 +92,6 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
         return functionInfo;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

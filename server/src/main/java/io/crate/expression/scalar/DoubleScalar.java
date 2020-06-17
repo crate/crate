@@ -64,7 +64,6 @@ public final class DoubleScalar extends Scalar<Double, Number> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

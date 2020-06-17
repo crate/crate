@@ -103,7 +103,6 @@ public class MatchPredicate implements FunctionImplementation {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

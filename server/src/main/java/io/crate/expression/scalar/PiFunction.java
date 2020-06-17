@@ -30,7 +30,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public final class PiFunction extends Scalar<Double, Object> {
@@ -66,7 +65,6 @@ public final class PiFunction extends Scalar<Double, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

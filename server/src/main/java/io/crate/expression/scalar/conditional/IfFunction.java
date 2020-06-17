@@ -25,12 +25,10 @@ package io.crate.expression.scalar.conditional;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import javax.annotation.Nullable;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -95,7 +93,6 @@ public class IfFunction extends Scalar<Object, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

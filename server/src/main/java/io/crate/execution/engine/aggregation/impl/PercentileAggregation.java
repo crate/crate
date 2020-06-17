@@ -97,7 +97,6 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

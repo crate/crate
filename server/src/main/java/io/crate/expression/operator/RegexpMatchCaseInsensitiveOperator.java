@@ -27,7 +27,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -81,7 +80,6 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

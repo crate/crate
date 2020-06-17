@@ -37,7 +37,6 @@ import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,7 +80,6 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

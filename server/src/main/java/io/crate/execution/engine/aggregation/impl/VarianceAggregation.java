@@ -203,7 +203,6 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

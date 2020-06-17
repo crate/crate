@@ -35,7 +35,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.TrimMode;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -160,7 +159,6 @@ public final class TrimFunctions {
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;
@@ -226,7 +224,6 @@ public final class TrimFunctions {
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;
@@ -273,7 +270,6 @@ public final class TrimFunctions {
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;

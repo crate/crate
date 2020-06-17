@@ -39,7 +39,6 @@ import io.crate.types.RowType;
 import org.joda.time.Period;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -249,7 +248,6 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;
@@ -282,7 +280,6 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;

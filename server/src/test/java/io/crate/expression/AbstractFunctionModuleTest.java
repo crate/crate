@@ -23,6 +23,7 @@
 package io.crate.expression;
 
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -36,6 +37,25 @@ public class AbstractFunctionModuleTest extends CrateUnitTest {
         }
     };
 
+    private static class DummyFunction implements FunctionImplementation {
+
+        private final Signature signature;
+
+        public DummyFunction(Signature signature) {
+            this.signature = signature;
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return null;
+        }
+
+        @Override
+        public Signature signature() {
+            return signature;
+        }
+    }
+
     @Test
     public void test_registering_function_with_same_signature_raises_an_error() {
         var signature = Signature.scalar(
@@ -44,11 +64,11 @@ public class AbstractFunctionModuleTest extends CrateUnitTest {
             DataTypes.INTEGER.getTypeSignature()
         );
 
-        module.register(signature, (s, args) -> () -> null);
+        module.register(signature, (s, args) -> new DummyFunction(s));
 
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("A function already exists for signature");
-        module.register(signature, (s, args) -> () -> null);
+        module.register(signature, (s, args) -> new DummyFunction(s));
     }
 
 
@@ -59,7 +79,7 @@ public class AbstractFunctionModuleTest extends CrateUnitTest {
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature()
         );
-        module.register(signature, (s, args) -> () -> null);
+        module.register(signature, (s, args) -> new DummyFunction(s));
 
         var signature2 = Signature.scalar(
             "foo",
@@ -69,6 +89,6 @@ public class AbstractFunctionModuleTest extends CrateUnitTest {
 
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("A function already exists for signature");
-        module.register(signature2, (s, args) -> () -> null);
+        module.register(signature2, (s, args) -> new DummyFunction(s));
     }
 }

@@ -83,7 +83,6 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

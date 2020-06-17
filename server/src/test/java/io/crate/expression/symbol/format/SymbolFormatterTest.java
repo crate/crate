@@ -24,17 +24,16 @@ package io.crate.expression.symbol.format;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.IllegalFormatConversionException;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
@@ -42,9 +41,18 @@ public class SymbolFormatterTest extends CrateUnitTest {
 
     @Test
     public void testFormat() throws Exception {
-        Function f = new Function(new FunctionInfo(
-            new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED)), DataTypes.DOUBLE),
-            Arrays.<Symbol>asList(Literal.of("bar"), Literal.of(3.4)));
+        Function f = new Function(
+            new FunctionInfo(
+                new FunctionIdent("foo", List.of(DataTypes.STRING, DataTypes.UNDEFINED)),
+                DataTypes.DOUBLE
+            ),
+            Signature.scalar(
+                "foo",
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.UNDEFINED.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            List.of(Literal.of("bar"), Literal.of(3.4)));
         assertThat(Symbols.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo('bar', 3.4)"));
     }
 

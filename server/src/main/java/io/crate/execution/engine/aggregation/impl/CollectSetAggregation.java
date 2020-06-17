@@ -92,7 +92,6 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

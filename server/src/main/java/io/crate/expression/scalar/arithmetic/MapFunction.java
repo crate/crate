@@ -33,7 +33,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +91,6 @@ public class MapFunction extends Scalar<Object, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

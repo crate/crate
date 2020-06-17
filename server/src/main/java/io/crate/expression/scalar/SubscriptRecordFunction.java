@@ -31,7 +31,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public final class SubscriptRecordFunction extends Scalar<Object, Object> {
@@ -71,7 +70,6 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

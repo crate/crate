@@ -31,7 +31,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public final class StringRepeatFunction extends Scalar<String, Object> {
@@ -83,7 +82,6 @@ public final class StringRepeatFunction extends Scalar<String, Object> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

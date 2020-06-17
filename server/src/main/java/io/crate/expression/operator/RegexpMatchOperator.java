@@ -29,7 +29,6 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.automaton.ByteRunAutomaton;
 import org.apache.lucene.util.automaton.RegExp;
 
-import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -90,7 +89,6 @@ public class RegexpMatchOperator extends Operator<String> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

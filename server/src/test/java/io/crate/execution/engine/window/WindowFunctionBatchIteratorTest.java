@@ -29,6 +29,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -73,6 +74,11 @@ public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
 
                 @Override
                 public FunctionInfo info() {
+                    return null;
+                }
+
+                @Override
+                public Signature signature() {
                     return null;
                 }
             }),

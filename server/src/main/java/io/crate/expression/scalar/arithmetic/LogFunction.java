@@ -30,8 +30,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-
 import static io.crate.metadata.functions.Signature.scalar;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
@@ -58,7 +56,6 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

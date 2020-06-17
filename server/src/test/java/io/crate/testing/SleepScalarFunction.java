@@ -26,6 +26,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;
@@ -40,9 +41,20 @@ public class SleepScalarFunction extends Scalar<Boolean, Long> {
         DataTypes.BOOLEAN,
         FunctionInfo.Type.SCALAR, FunctionInfo.NO_FEATURES);
 
+    private final static Signature SIGNATURE = Signature.scalar(
+        NAME,
+        DataTypes.LONG.getTypeSignature(),
+        DataTypes.BOOLEAN.getTypeSignature()
+    );
+
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Override
+    public Signature signature() {
+        return SIGNATURE;
     }
 
     @SafeVarargs

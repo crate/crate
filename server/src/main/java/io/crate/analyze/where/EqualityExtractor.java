@@ -40,6 +40,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -63,7 +64,11 @@ public class EqualityExtractor {
     private static final Function NULL_MARKER = new Function(
         new FunctionInfo(
             new FunctionIdent("null_marker", List.of()),
-            DataTypes.UNDEFINED), List.of());
+            DataTypes.UNDEFINED
+        ),
+        Signature.scalar("null_marker", DataTypes.UNDEFINED.getTypeSignature()),
+        List.of()
+    );
     private static final EqProxy NULL_MARKER_PROXY = new EqProxy(NULL_MARKER);
 
     private EvaluatingNormalizer normalizer;

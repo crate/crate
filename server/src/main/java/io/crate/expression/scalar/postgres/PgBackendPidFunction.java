@@ -36,7 +36,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 
 import static io.crate.metadata.functions.Signature.scalar;
@@ -77,7 +76,6 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

@@ -36,7 +36,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.locationtech.spatial4j.shape.Point;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
@@ -77,7 +76,6 @@ public class DistanceFunction extends Scalar<Double, Point> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

@@ -33,7 +33,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.RowType;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -89,7 +88,6 @@ public class ValuesFunction {
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;

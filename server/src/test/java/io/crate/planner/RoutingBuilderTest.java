@@ -42,7 +42,6 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -66,11 +65,16 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
     public void testAllocateRouting() {
         RoutingBuilder routingBuilder = new RoutingBuilder(clusterService.state(), routingProvider);
         WhereClause whereClause = new WhereClause(
-            new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME,
-                    Arrays.asList(DataTypes.INTEGER, DataTypes.INTEGER)),
-                DataTypes.BOOLEAN),
-                Arrays.asList(tableInfo.getReference(new ColumnIdent("id")), Literal.of(2))
+            new Function(
+                new FunctionInfo(
+                    new FunctionIdent(
+                        EqOperator.NAME,
+                        List.of(DataTypes.INTEGER, DataTypes.INTEGER)
+                    ),
+                    DataTypes.BOOLEAN
+                ),
+                EqOperator.SIGNATURE,
+                List.of(tableInfo.getReference(new ColumnIdent("id")), Literal.of(2))
             ));
 
         routingBuilder.allocateRouting(tableInfo, WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, null);

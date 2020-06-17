@@ -34,7 +34,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -72,7 +71,6 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

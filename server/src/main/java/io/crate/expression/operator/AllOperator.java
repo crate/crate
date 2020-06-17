@@ -31,7 +31,6 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.function.IntPredicate;
 
@@ -119,7 +118,6 @@ public final class AllOperator extends Operator<Object> {
         return functionInfo;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

@@ -79,7 +79,6 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
                         return info;
                     }
 
-                    @Nullable
                     @Override
                     public Signature signature() {
                         return signature;

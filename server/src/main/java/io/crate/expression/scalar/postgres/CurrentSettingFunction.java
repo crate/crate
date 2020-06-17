@@ -36,8 +36,6 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Provider;
 
-import javax.annotation.Nullable;
-
 import static io.crate.metadata.functions.Signature.scalar;
 
 public class CurrentSettingFunction extends Scalar<String, Object> {
@@ -92,7 +90,6 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

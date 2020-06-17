@@ -249,7 +249,6 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

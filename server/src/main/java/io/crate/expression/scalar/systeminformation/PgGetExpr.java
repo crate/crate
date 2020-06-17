@@ -33,7 +33,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 
 public class PgGetExpr extends Scalar<String, Object> {
@@ -71,7 +70,6 @@ public class PgGetExpr extends Scalar<String, Object> {
             DataTypes.STRING);
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

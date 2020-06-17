@@ -25,8 +25,8 @@ package io.crate.expression.scalar;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
@@ -76,7 +76,6 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

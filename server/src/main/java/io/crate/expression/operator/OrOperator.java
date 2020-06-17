@@ -31,8 +31,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-
 public class OrOperator extends Operator<Boolean> {
 
     public static final String NAME = "op_or";
@@ -59,7 +57,6 @@ public class OrOperator extends Operator<Boolean> {
         this.signature = signature;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

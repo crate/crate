@@ -30,7 +30,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
@@ -72,7 +71,6 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
         return functionInfo;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

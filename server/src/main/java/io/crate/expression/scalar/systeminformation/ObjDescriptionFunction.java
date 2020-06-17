@@ -34,7 +34,6 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public final class ObjDescriptionFunction extends Scalar<String, Object> {
@@ -77,7 +76,6 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

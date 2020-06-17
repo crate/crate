@@ -133,7 +133,6 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         this.signature = signature;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

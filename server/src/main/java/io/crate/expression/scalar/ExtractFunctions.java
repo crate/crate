@@ -33,7 +33,6 @@ import org.elasticsearch.common.joda.Joda;
 import org.joda.time.DateTimeField;
 import org.joda.time.chrono.ISOChronology;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -156,7 +155,6 @@ public class ExtractFunctions {
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;

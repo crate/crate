@@ -34,6 +34,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.testing.BatchIteratorTester;
@@ -396,6 +397,11 @@ public class WindowBatchIteratorTest {
                     new FunctionIdent("first_cell_value", Collections.emptyList()),
                     DataTypes.INTEGER);
             }
+
+            @Override
+            public Signature signature() {
+                return Signature.window("first_cell_value", DataTypes.INTEGER.getTypeSignature());
+            }
         };
     }
 
@@ -412,6 +418,11 @@ public class WindowBatchIteratorTest {
                     new FunctionIdent("a_frame_bounded_window_function", Collections.emptyList()),
                     DataTypes.INTEGER);
             }
+
+            @Override
+            public Signature signature() {
+                return Signature.window("a_frame_bounded_window_function", DataTypes.INTEGER.getTypeSignature());
+            }
         };
     }
 
@@ -427,6 +438,11 @@ public class WindowBatchIteratorTest {
                 return new FunctionInfo(
                     new FunctionIdent("row_number", Collections.emptyList()),
                     DataTypes.INTEGER);
+            }
+
+            @Override
+            public Signature signature() {
+                return Signature.window("row_number", DataTypes.INTEGER.getTypeSignature());
             }
         };
     }

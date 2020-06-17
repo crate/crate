@@ -36,7 +36,6 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -139,7 +138,6 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
         return this.info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

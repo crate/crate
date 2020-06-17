@@ -28,7 +28,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
-import javax.annotation.Nullable;
 import java.util.function.IntPredicate;
 
 import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
@@ -57,7 +56,6 @@ public final class AnyOperator extends Operator<Object> {
         return functionInfo;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

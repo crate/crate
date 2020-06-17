@@ -23,8 +23,10 @@ package io.crate.expression.symbol;
 
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -48,15 +50,25 @@ public class FunctionTest extends CrateUnitTest {
         List.of(DataTypes.BOOLEAN)
     );
 
+    private DataType<?> returnType = TestingHelpers.randomPrimitiveType();
+
+    private Signature signature = Signature.scalar(
+        functionIdent.fqnName(),
+        DataTypes.BOOLEAN.getTypeSignature(),
+        returnType.getTypeSignature()
+    );
+
+
     @Test
     public void test_serialization_without_filter() throws Exception {
         Function fn = new Function(
             new FunctionInfo(
                 functionIdent,
-                TestingHelpers.randomPrimitiveType(),
+                returnType,
                 FunctionInfo.Type.SCALAR,
                 randomFeatures()
             ),
+            signature,
             List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
         );
 
@@ -74,11 +86,11 @@ public class FunctionTest extends CrateUnitTest {
         Function fn = new Function(
             new FunctionInfo(
                 functionIdent,
-                TestingHelpers.randomPrimitiveType(),
+                returnType,
                 FunctionInfo.Type.SCALAR,
                 randomFeatures()
             ),
-            null,
+            signature,
             List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN)),
             Literal.of(true)
         );
@@ -98,10 +110,11 @@ public class FunctionTest extends CrateUnitTest {
         Function fn = new Function(
             new FunctionInfo(
                 functionIdent,
-                TestingHelpers.randomPrimitiveType(),
+                returnType,
                 FunctionInfo.Type.SCALAR,
                 randomFeatures()
             ),
+            signature,
             List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
         );
 
