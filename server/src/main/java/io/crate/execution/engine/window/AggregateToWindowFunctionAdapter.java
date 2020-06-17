@@ -34,6 +34,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import org.elasticsearch.Version;
 
 import javax.annotation.Nullable;
@@ -78,6 +79,11 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     @Override
     public FunctionInfo info() {
         return aggregationFunction.info();
+    }
+
+    @Override
+    public Signature signature() {
+        return aggregationFunction.signature();
     }
 
     @Override
