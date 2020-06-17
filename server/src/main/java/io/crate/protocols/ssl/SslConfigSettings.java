@@ -79,10 +79,9 @@ public final class SslConfigSettings {
         DataTypes.STRING);
 
     public static final CrateSetting<TimeValue> SSL_RESOURCE_POLL_INTERVAL = CrateSetting.of(
-        new Setting<>(
+        Setting.positiveTimeSetting(
             SSL_RESOURCE_POLL_INTERVAL_NAME,
-            TimeValue.timeValueMinutes(5).getStringRep(),
-            new SslResourcePollIntervalParser(LOGGER),
+            TimeValue.timeValueMinutes(5),
             Setting.Property.NodeScope),
         DataTypes.STRING);
 
