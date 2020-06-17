@@ -35,13 +35,11 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.index.engine.Engine.Searcher;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -356,28 +354,33 @@ public class DocValuesAggregates {
     private static Iterable<Row> getRow(Searcher searcher,
                                         Query query,
                                         List<Aggregator> aggregators) throws IOException {
-        IndexSearcher indexSearcher = searcher.searcher();
-        Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
-        List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
-        for (var leaf : leaves) {
-            Scorer scorer = weight.scorer(leaf);
-            if (scorer == null) {
-                continue;
+        searcher.searcher().search(query, new Collector() {
+
+            @Override
+            public ScoreMode scoreMode() {
+                return ScoreMode.COMPLETE_NO_SCORES;
             }
-            for (int i = 0; i < aggregators.size(); i++) {
-                aggregators.get(i).loadDocValues(leaf.reader());
-            }
-            DocIdSetIterator docs = scorer.iterator();
-            Bits liveDocs = leaf.reader().getLiveDocs();
-            for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                if (liveDocs != null && !liveDocs.get(doc)) {
-                    continue;
-                }
+
+            @Override
+            public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
                 for (int i = 0; i < aggregators.size(); i++) {
-                    aggregators.get(i).apply(doc);
+                    aggregators.get(i).loadDocValues(context.reader());
                 }
+                return new LeafCollector() {
+
+                    @Override
+                    public void setScorer(Scorable scorer) throws IOException {
+                    }
+
+                    @Override
+                    public void collect(int doc) throws IOException {
+                        for (int i = 0; i < aggregators.size(); i++) {
+                            aggregators.get(i).apply(doc);
+                        }
+                    }
+                };
             }
-        }
+        });
         Object[] cells = new Object[aggregators.size()];
         for (int i = 0; i < aggregators.size(); i++) {
             cells[i] = aggregators.get(i).partialResult();
