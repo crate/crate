@@ -22,6 +22,7 @@
 
 package io.crate.expression.tablefunctions;
 
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -29,8 +30,10 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
+import io.crate.types.TypeSignature;
 
 import java.util.List;
 import java.util.Locale;
@@ -71,6 +74,7 @@ public class TableFunctionFactory {
         private final Scalar<?, T> functionImplementation;
         private final RowType returnType;
         private final FunctionInfo info;
+        private final Signature signature;
 
         private ScalarTableFunctionImplementation(Scalar<?, T> functionImplementation) {
             this.functionImplementation = functionImplementation;
@@ -81,11 +85,23 @@ public class TableFunctionFactory {
                 info.returnType(),
                 FunctionInfo.Type.TABLE
             );
+            signature = Signature.table(
+                functionImplementation.signature().getName(),
+                Lists2.concat(
+                    functionImplementation.signature().getArgumentTypes(),
+                    functionImplementation.signature().getReturnType()
+                ).toArray(new TypeSignature[0])
+            );
         }
 
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Override
+        public Signature signature() {
+            return signature;
         }
 
         @Override

@@ -100,7 +100,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
     @Override
     public AggregationFunction<Map<Object, Long>, List<Object>> optimizeForExecutionAsWindowFunction() {
-        return new RemovableCumulativeCollectSet(info);
+        return new RemovableCumulativeCollectSet(info, signature);
     }
 
     @Override
@@ -178,11 +178,13 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         private final SizeEstimator<Object> innerTypeEstimator;
 
         private final FunctionInfo info;
+        private final Signature signature;
         private final DataType<?> partialType;
 
-        RemovableCumulativeCollectSet(FunctionInfo info) {
+        RemovableCumulativeCollectSet(FunctionInfo info, Signature signature) {
             this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType<?>) info.returnType()).innerType());
             this.info = info;
+            this.signature = signature;
             this.partialType = UncheckedObjectType.INSTANCE;
         }
 
@@ -286,6 +288,11 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Override
+        public Signature signature() {
+            return signature;
         }
     }
 }
