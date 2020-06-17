@@ -454,4 +454,19 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         Plan plan = e.logicalPlan("insert into users (id, name) values (42, 'Deep Thought')");
         assertThat(plan, instanceOf(InsertFromValues.class));
     }
+
+    @Test
+    public void test_insert_select_distinct() throws Exception {
+        Merge merge = e.plan("insert into users (id) (select distinct id from users)");
+        Collect collect = (Collect) merge.subPlan();
+        List<Projection> projections = collect.collectPhase().projections();
+        assertThat(
+            projections,
+            contains(
+                instanceOf(GroupProjection.class),
+                instanceOf(ColumnIndexWriterProjection.class)
+            )
+        );
+        assertThat(projections.get(0).requiredGranularity(), is(RowGranularity.SHARD));
+    }
 }
