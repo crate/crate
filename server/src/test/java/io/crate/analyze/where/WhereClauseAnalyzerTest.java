@@ -150,7 +150,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     new EvaluatingNormalizer(getFunctions(), RowGranularity.CLUSTER, null, docTableRelation),
                     queriedRelation.where(),
                     docTableRelation.tableInfo(),
-                    coordinatorTxnCtx
+                    coordinatorTxnCtx,
+                    e.functions()
                 );
                 return detailedQuery.toBoundWhereClause(
                     docTableRelation.tableInfo(),

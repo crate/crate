@@ -26,13 +26,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.FunctionCopyVisitor;
-import io.crate.expression.symbol.RefReplacer;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
@@ -44,15 +37,23 @@ import io.crate.expression.scalar.DateTruncFunction;
 import io.crate.expression.scalar.arithmetic.CeilFunction;
 import io.crate.expression.scalar.arithmetic.FloorFunction;
 import io.crate.expression.scalar.arithmetic.RoundFunction;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.FunctionCopyVisitor;
+import io.crate.expression.symbol.RefReplacer;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SearchPath;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -90,17 +91,23 @@ public final class GeneratedColumnExpander {
      *     output:  ts > $1 and day > date_trunc('day', ts)
      * </pre>
      */
-    public static Symbol maybeExpand(Symbol symbol, List<GeneratedReference> generatedCols, List<Reference> expansionCandidates) {
-        return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, generatedCols, expansionCandidates);
+    public static Symbol maybeExpand(Symbol symbol,
+                                     List<GeneratedReference> generatedCols,
+                                     List<Reference> expansionCandidates,
+                                     Functions functions) {
+        return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, generatedCols, expansionCandidates, functions);
     }
 
     private static class ComparisonReplaceVisitor extends FunctionCopyVisitor<ComparisonReplaceVisitor.Context> {
 
         static class Context {
             private final Multimap<Reference, GeneratedReference> referencedRefsToGeneratedColumn;
+            private final Functions functions;
 
-            public Context(Multimap<Reference, GeneratedReference> referencedRefsToGeneratedColumn) {
+            public Context(Multimap<Reference, GeneratedReference> referencedRefsToGeneratedColumn,
+                           Functions functions) {
                 this.referencedRefsToGeneratedColumn = referencedRefsToGeneratedColumn;
+                this.functions = functions;
             }
         }
 
@@ -108,13 +115,16 @@ public final class GeneratedColumnExpander {
             super();
         }
 
-        Symbol addComparisons(Symbol symbol, List<GeneratedReference> generatedCols, List<Reference> expansionCandidates) {
+        Symbol addComparisons(Symbol symbol,
+                              List<GeneratedReference> generatedCols,
+                              List<Reference> expansionCandidates,
+                              Functions functions) {
             Multimap<Reference, GeneratedReference> referencedSingleReferences =
                 extractGeneratedReferences(generatedCols, expansionCandidates);
             if (referencedSingleReferences.isEmpty()) {
                 return symbol;
             } else {
-                Context ctx = new Context(referencedSingleReferences);
+                Context ctx = new Context(referencedSingleReferences, functions);
                 return symbol.accept(this, ctx);
             }
         }
@@ -148,7 +158,12 @@ public final class GeneratedColumnExpander {
             List<Function> comparisonsToAdd = new ArrayList<>(genColInfos.size());
             comparisonsToAdd.add(function);
             for (GeneratedReference genColInfo : genColInfos) {
-                Function comparison = createAdditionalComparison(function, genColInfo, comparedAgainst);
+                Function comparison = createAdditionalComparison(
+                    function,
+                    genColInfo,
+                    comparedAgainst,
+                    context.functions
+                );
                 if (comparison != null) {
                     comparisonsToAdd.add(comparison);
                 }
@@ -159,7 +174,8 @@ public final class GeneratedColumnExpander {
         @Nullable
         private Function createAdditionalComparison(Function function,
                                                     GeneratedReference generatedReference,
-                                                    Symbol comparedAgainst) {
+                                                    Symbol comparedAgainst,
+                                                    Functions functions) {
             if (generatedReference != null &&
                 generatedReference.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
 
@@ -180,9 +196,18 @@ public final class GeneratedColumnExpander {
 
                 Symbol wrapped = wrapInGenerationExpression(comparedAgainst, generatedReference);
                 FunctionInfo comparisonFunctionInfo = new FunctionInfo(new FunctionIdent(operatorName,
-                    Arrays.asList(generatedReference.valueType(), wrapped.valueType())), DataTypes.BOOLEAN);
-                return new Function(comparisonFunctionInfo, Arrays.asList(generatedReference, wrapped));
-
+                    List.of(generatedReference.valueType(), wrapped.valueType())), DataTypes.BOOLEAN);
+                var funcImpl = functions.get(
+                    null,
+                    operatorName,
+                    List.of(generatedReference, wrapped),
+                    SearchPath.pathWithPGCatalogAndDoc()
+                );
+                return new Function(
+                    comparisonFunctionInfo,
+                    funcImpl.signature(),
+                    List.of(generatedReference, wrapped)
+                );
             }
             return null;
         }

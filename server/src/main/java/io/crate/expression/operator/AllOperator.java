@@ -23,55 +23,75 @@
 package io.crate.expression.operator;
 
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.List;
 import java.util.function.IntPredicate;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class AllOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "_all_";
-    private final FunctionInfo functionInfo;
-    private final IntPredicate cmp;
-    private final DataType leftType;
 
-    public static class Names {
-        public static final String EQ = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
-        public static final String GTE = OPERATOR_PREFIX + ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue();
-        public static final String GT = OPERATOR_PREFIX + ComparisonExpression.Type.GREATER_THAN.getValue();
-        public static final String LTE = OPERATOR_PREFIX + ComparisonExpression.Type.LESS_THAN_OR_EQUAL.getValue();
-        public static final String LT = OPERATOR_PREFIX + ComparisonExpression.Type.LESS_THAN.getValue();
-        public static final String NEQ = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
+    private enum Type {
+        EQ(ComparisonExpression.Type.EQUAL, result -> result == 0),
+        NEQ(ComparisonExpression.Type.NOT_EQUAL, result -> result != 0),
+        GTE(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, result -> result >= 0),
+        GT(ComparisonExpression.Type.GREATER_THAN, result -> result > 0),
+        LTE(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, result -> result <= 0),
+        LT(ComparisonExpression.Type.LESS_THAN, result -> result < 0);
+
+        final String fullQualifiedName;
+        final IntPredicate cmp;
+
+        Type(ComparisonExpression.Type type, IntPredicate cmp) {
+            this.fullQualifiedName = OPERATOR_PREFIX + type.getValue();
+            this.cmp = cmp;
+        }
     }
 
     public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(Names.EQ, new AllResolver(Names.EQ, result -> result == 0));
-        module.registerDynamicOperatorFunction(Names.GTE, new AllResolver(Names.GTE, result -> result >= 0));
-        module.registerDynamicOperatorFunction(Names.GT, new AllResolver(Names.GT, result -> result > 0));
-        module.registerDynamicOperatorFunction(Names.LTE, new AllResolver(Names.LTE, result -> result <= 0));
-        module.registerDynamicOperatorFunction(Names.LT, new AllResolver(Names.LT, result -> result < 0));
-        module.registerDynamicOperatorFunction(Names.NEQ, new AllResolver(Names.NEQ, result -> result != 0));
+        for (var type : Type.values()) {
+            module.register(
+                Signature.scalar(
+                    type.fullQualifiedName,
+                    parseTypeSignature("E"),
+                    parseTypeSignature("array(E)"),
+                    Operator.RETURN_TYPE.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E")),
+                (signature, dataTypes) ->
+                    new AllOperator(
+                        new FunctionInfo(new FunctionIdent(signature.getName().name(), dataTypes), DataTypes.BOOLEAN),
+                        signature,
+                        type.cmp
+                    )
+            );
+        }
     }
 
-    public AllOperator(FunctionInfo functionInfo, IntPredicate cmp) {
+    private final FunctionInfo functionInfo;
+    private final Signature signature;
+    private final IntPredicate cmp;
+    private final DataType leftType;
+
+    public AllOperator(FunctionInfo functionInfo, Signature signature, IntPredicate cmp) {
         this.functionInfo = functionInfo;
+        this.signature = signature;
         this.cmp = cmp;
         this.leftType = functionInfo.ident().argumentTypes().get(0);
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         var leftValue = args[0].value();
         var rightValues = (Collection) args[1].value();
         if (leftValue == null || rightValues == null) {
@@ -99,30 +119,9 @@ public final class AllOperator extends Operator<Object> {
         return functionInfo;
     }
 
-    static class AllResolver extends BaseFunctionResolver {
-
-        private final String name;
-        private final IntPredicate cmpIsMatch;
-
-        protected AllResolver(String name, IntPredicate cmpIsMatch) {
-            super(FuncParams.builder(
-                Param.ANY,
-                Param.of(new ArrayType<>(DataTypes.UNDEFINED)).withInnerType(Param.ANY)
-            ).build());
-            this.name = name;
-            this.cmpIsMatch = cmpIsMatch;
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-            assert types.size() == 2 : "<val> <operator> ALL(<array>) expects 2 arguments";
-            assert types.get(1) instanceof ArrayType : "second argument to ALL must be an array";
-            assert types.get(0).equals(((ArrayType<?>) types.get(1)).innerType()) : "value argument to ALL must match the type of the array argument";
-
-            return new AllOperator(
-                new FunctionInfo(new FunctionIdent(name, types), DataTypes.BOOLEAN),
-                cmpIsMatch
-            );
-        }
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

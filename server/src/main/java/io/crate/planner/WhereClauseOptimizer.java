@@ -143,11 +143,14 @@ public final class WhereClauseOptimizer {
     public static DetailedQuery optimize(EvaluatingNormalizer normalizer,
                                          Symbol query,
                                          DocTableInfo table,
-                                         TransactionContext txnCtx) {
+                                         TransactionContext txnCtx,
+                                         Functions functions) {
         Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
             query,
             table.generatedColumns(),
-            Lists2.concat(table.partitionedByColumns(), Lists2.map(table.primaryKey(), table::getReference)));
+            Lists2.concat(table.partitionedByColumns(), Lists2.map(table.primaryKey(), table::getReference)),
+            functions
+        );
         if (!query.equals(queryGenColsProcessed)) {
             query = normalizer.normalize(queryGenColsProcessed, txnCtx);
         }

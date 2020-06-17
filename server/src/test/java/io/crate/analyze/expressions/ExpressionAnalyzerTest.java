@@ -369,7 +369,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
-        expectedException.expectMessage("Cannot cast `xs` of type `integer_array` to type `integer`");
+        expectedException.expectMessage("unknown function: any_=(integer_array, integer_array)");
         executor.analyze("select * from tarr where xs = ANY([10, 20])");
     }
 

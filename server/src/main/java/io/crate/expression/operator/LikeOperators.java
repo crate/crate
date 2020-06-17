@@ -24,8 +24,15 @@ package io.crate.expression.operator;
 
 import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyOperator;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 import java.util.regex.Pattern;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class LikeOperators {
     public static final String OP_LIKE = "op_like";
@@ -55,19 +62,81 @@ public class LikeOperators {
     private static final int CASE_SENSITIVE = Pattern.DOTALL;
     private static final int CASE_INSENSITIVE = Pattern.DOTALL | Pattern.CASE_INSENSITIVE;
 
-    public static void register(OperatorModule operatorModule) {
-        operatorModule.registerOperatorFunction(
-            LikeOperator.of(OP_LIKE, LikeOperators::matches, CASE_SENSITIVE));
-        operatorModule.registerOperatorFunction(
-            LikeOperator.of(OP_ILIKE, LikeOperators::matches, CASE_INSENSITIVE));
-        operatorModule.registerDynamicOperatorFunction(
-            ANY_LIKE, AnyLikeOperator.resolverFor(ANY_LIKE, LikeOperators::matches, CASE_SENSITIVE));
-        operatorModule.registerDynamicOperatorFunction(
-            ANY_NOT_LIKE, AnyLikeOperator.resolverFor(ANY_NOT_LIKE, TriPredicate.negate(LikeOperators::matches), CASE_SENSITIVE));
-        operatorModule.registerDynamicOperatorFunction(
-            ANY_ILIKE, AnyLikeOperator.resolverFor(ANY_ILIKE, LikeOperators::matches, CASE_INSENSITIVE));
-        operatorModule.registerDynamicOperatorFunction(
-            ANY_NOT_ILIKE, AnyLikeOperator.resolverFor(ANY_NOT_ILIKE, TriPredicate.negate(LikeOperators::matches), CASE_INSENSITIVE));
+    public static void register(OperatorModule module) {
+        module.register(
+            Signature.scalar(
+                OP_LIKE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ),
+            (signature, dataTypes) -> LikeOperator.of(signature, LikeOperators::matches, CASE_SENSITIVE)
+        );
+        module.register(
+            Signature.scalar(
+                OP_ILIKE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ),
+            (signature, dataTypes) -> LikeOperator.of(signature, LikeOperators::matches, CASE_INSENSITIVE)
+        );
+        module.register(
+            Signature.scalar(
+                ANY_LIKE,
+                parseTypeSignature("E"),
+                parseTypeSignature("array(E)"),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ).withTypeVariableConstraints(typeVariable("E")),
+            (signature, dataTypes) -> new AnyLikeOperator(
+                new FunctionInfo(new FunctionIdent(signature.getName().name(), dataTypes), DataTypes.BOOLEAN),
+                signature,
+                LikeOperators::matches,
+                CASE_SENSITIVE
+            )
+        );
+        module.register(
+            Signature.scalar(
+                ANY_NOT_LIKE,
+                parseTypeSignature("E"),
+                parseTypeSignature("array(E)"),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ).withTypeVariableConstraints(typeVariable("E")),
+            (signature, dataTypes) -> new AnyLikeOperator(
+                new FunctionInfo(new FunctionIdent(signature.getName().name(), dataTypes), DataTypes.BOOLEAN),
+                signature,
+                TriPredicate.negate(LikeOperators::matches),
+                CASE_SENSITIVE
+            )
+        );
+        module.register(
+            Signature.scalar(
+                ANY_ILIKE,
+                parseTypeSignature("E"),
+                parseTypeSignature("array(E)"),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ).withTypeVariableConstraints(typeVariable("E")),
+            (signature, dataTypes) -> new AnyLikeOperator(
+                new FunctionInfo(new FunctionIdent(signature.getName().name(), dataTypes), DataTypes.BOOLEAN),
+                signature,
+                LikeOperators::matches,
+                CASE_INSENSITIVE
+            )
+        );
+        module.register(
+            Signature.scalar(
+                ANY_NOT_ILIKE,
+                parseTypeSignature("E"),
+                parseTypeSignature("array(E)"),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ).withTypeVariableConstraints(typeVariable("E")),
+            (signature, dataTypes) -> new AnyLikeOperator(
+                new FunctionInfo(new FunctionIdent(signature.getName().name(), dataTypes), DataTypes.BOOLEAN),
+                signature,
+                TriPredicate.negate(LikeOperators::matches),
+                CASE_INSENSITIVE
+            )
+        );
     }
 
     static final Pattern makePattern(String pattern, int flags) {

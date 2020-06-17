@@ -21,75 +21,42 @@
 
 package io.crate.expression.operator;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.expression.symbol.Function;
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.TransactionContext;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataTypes;
 import org.junit.Test;
-
-import java.util.Arrays;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class RegexpMatchCaseInsensitiveOperatorTest extends CrateUnitTest {
-
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-
-    private static Symbol normalizeSymbol(String source, String pattern) {
-        RegexpMatchCaseInsensitiveOperator op = new RegexpMatchCaseInsensitiveOperator();
-        Function function = new Function(
-            op.info(),
-            Arrays.<Symbol>asList(Literal.of(source), Literal.of(pattern))
-        );
-        return op.normalizeSymbol(function, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
-    }
-
-    private Boolean regexpNormalize(String source, String pattern) {
-        return (Boolean) ((Literal) normalizeSymbol(source, pattern)).value();
-    }
+public class RegexpMatchCaseInsensitiveOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalize() throws Exception {
-        assertThat(regexpNormalize("", ""), is(true));
-        assertThat(regexpNormalize("abc", "a.c"), is(true));
-        assertThat(regexpNormalize("AbC", "a.c"), is(true));
-        assertThat(regexpNormalize("abbbbc", "a(b{1,4})c"), is(true));
-        assertThat(regexpNormalize("abc", "a~bc"), is(false));              // no PCRE syntax, should fail
-        assertThat(regexpNormalize("100 €", "<10-101> €|$"), is(false));    // no PCRE syntax, should fail
+        assertNormalize("'' ~* ''", is(Literal.of(true)));
+        assertNormalize("'abc' ~* 'a.c'", is(Literal.of(true)));
+        assertNormalize("'AbC' ~* 'a.c'", is(Literal.of(true)));
+        assertNormalize("'abbbbc' ~* 'a(b{1,4})c'", is(Literal.of(true)));
+        assertNormalize("'abc' ~* 'a~bc'", is(Literal.of(false)));           // no PCRE syntax, should fail
+        assertNormalize("'100 €' ~* '<10-101> €|$'", is(Literal.of(false))); // no PCRE syntax, should fail
     }
 
     @Test
     public void testNormalizeNull() throws Exception {
-        assertThat(regexpNormalize(null, "foo"), is(nullValue()));
-        assertThat(regexpNormalize("foo", null), is(nullValue()));
-        assertThat(regexpNormalize(null, null), is(nullValue()));
+        assertNormalize("null ~* 'foo'", is(Literal.of(DataTypes.BOOLEAN, null)));
+        assertNormalize("'foo' ~* null", is(Literal.of(DataTypes.BOOLEAN, null)));
+        assertNormalize("null ~* null", is(Literal.of(DataTypes.BOOLEAN, null)));
     }
 
     // evaluate
-
-    private Boolean regexpEvaluate(String source, String pattern) {
-        RegexpMatchCaseInsensitiveOperator op = new RegexpMatchCaseInsensitiveOperator();
-        return op.evaluate(txnCtx, Literal.of(source), Literal.of(pattern));
-    }
-
     @Test
     public void testEvaluate() throws Exception {
-        assertThat(regexpEvaluate("foo bar", "([A-Z][^ ]+ ?){2}"), is(true));   // case-insensitive matching should work
-        assertThat(regexpEvaluate("Foo Bar", "([A-Z][^ ]+ ?){2}"), is(true));
-        assertThat(regexpEvaluate("", ""), is(true));
+        // case-insensitive matching should work
+        assertEvaluate("'foo bar' ~* '([A-Z][^ ]+ ?){2}'", true);
+        assertEvaluate("'Foo Bar' ~* '([A-Z][^ ]+ ?){2}'", true);
+        assertEvaluate("'' ~* ''", true);
         // java.util.regex does not understand proprietary syntax of `dk.brics.automaton` (no PCRE, should fail)
-        assertThat(regexpEvaluate("1000 $", "(<1-9999>) $|€"), is(false));
-        assertThat(regexpEvaluate("10000 $", "(<1-9999>) $|€"), is(false));
-    }
-
-    @Test
-    public void testEvaluateNull() throws Exception {
-        assertThat(regexpEvaluate(null, "foo"), is(nullValue()));
-        assertThat(regexpEvaluate("foo", null), is(nullValue()));
-        assertThat(regexpEvaluate(null, null), is(nullValue()));
+        assertEvaluate("'1000 $' ~* '(<1-9999>) $|€'", false);
+        assertEvaluate("'10000 $' ~* '(<1-9999>) $|€'", false);
     }
 }

@@ -372,8 +372,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     public void testRangeQueryOnDocThrowsException() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `_doc` of type `object` to any of the types: [double precision, ");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: op_>(object, object)");
         convert("_doc > {\"name\"='foo'}");
     }
 

@@ -48,7 +48,7 @@ public class AndOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_get_conjunctions_of_predicate_with_2_ands() {
-        Symbol query = sqlExpressions.asSymbol("(a = 1 or a = 2) AND x = 2 AND name = 'foo'");
+        Symbol query = sqlExpressions.asSymbol("(a = 1::int or a = 2::int) AND x = 2::int AND name = 'foo'");
         List<Symbol> split = AndOperator.split(query);
         assertThat(split, contains(
             isSQL("((doc.users.a = 1) OR (doc.users.a = 2))"),
@@ -59,7 +59,7 @@ public class AndOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_get_conjunctions_of_predicate_without_any_ands() {
-        Symbol query = sqlExpressions.asSymbol("a = 1");
+        Symbol query = sqlExpressions.asSymbol("a = 1::int");
         List<Symbol> split = AndOperator.split(query);
         assertThat(split, contains(
             isSQL("(doc.users.a = 1)")
