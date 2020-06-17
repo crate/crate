@@ -57,6 +57,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that prevented an optimization for ``SELECT DISTINCT
+  <single_text_column> FROM <table>`` from working if used within a ``INSERT
+  INTO`` statement.
+
 - Re-enabled the IAM role authentication for
   :ref:`s3 repositories <ref-create-repository-types-s3>`
 
