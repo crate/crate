@@ -21,68 +21,26 @@
 
 package io.crate.types;
 
-import io.crate.common.collections.Lists2;
-import io.crate.test.integration.CrateUnitTest;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.LongAdder;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
-import static org.hamcrest.core.Is.is;
+import org.junit.Test;
+
+import io.crate.common.collections.Lists2;
+import io.crate.test.integration.CrateUnitTest;
 
 public class TypeConversionTest extends CrateUnitTest {
 
-    private static class Repeater<T> implements Iterable<T>, Iterator<T> {
-
-        private final LongAdder repeated;
-        private final Callable<T> repeatMe;
-
-        public Repeater(Callable<T> repeatMe, long times) {
-            this.repeated = new LongAdder();
-            this.repeated.add(times);
-            this.repeatMe = repeatMe;
-        }
-
-        @Override
-        public Iterator<T> iterator() {
-            return this;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return repeated.longValue() > 0;
-        }
-
-        @Override
-        public T next() {
-            repeated.decrement();
-            try {
-                return repeatMe.call();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void remove() {
-            // ignore
-        }
-    }
-
     private Iterable<Byte> bytes(int num) {
-        return new Repeater<>(new Callable<Byte>() {
-            @Override
-            public Byte call() throws Exception {
-                return randomByte();
-            }
-        }, num);
+        return () -> Stream.generate(() -> randomByte()).limit(num).iterator();
     }
 
     private Iterable<Integer> integers(final int lower, final int upper, int num) {
-        return new Repeater<>(() -> randomIntBetween(lower, upper), num);
+        return () -> IntStream.generate(() -> randomIntBetween(lower, upper)).limit(num).iterator();
     }
 
     @Test
@@ -100,40 +58,40 @@ public class TypeConversionTest extends CrateUnitTest {
         for (Integer shortVal : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
                 var t = DataTypes.fromId(id);
-                shortVal = t.equals(DataTypes.IP) ? Math.abs(shortVal) : shortVal;
-                t.implicitCast(shortVal.shortValue());
+                Integer val = t.equals(DataTypes.IP) ? Math.abs(shortVal) : shortVal;
+                t.implicitCast(val.shortValue());
             }
         }
 
         for (Integer intValue : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
                 var t = DataTypes.fromId(id);
-                intValue = t.equals(DataTypes.IP) ? Math.abs(intValue) : intValue;
-                t.implicitCast(intValue);
+                int val = t.equals(DataTypes.IP) ? Math.abs(intValue) : intValue;
+                t.implicitCast(val);
             }
         }
 
         for (Integer longValue : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
                 var t = DataTypes.fromId(id);
-                longValue = t.equals(DataTypes.IP) ? Math.abs(longValue) : longValue;
-                t.implicitCast(longValue.longValue());
+                Integer val = t.equals(DataTypes.IP) ? Math.abs(longValue) : longValue;
+                t.implicitCast(val.longValue());
             }
         }
 
         for (Integer floatValue : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
                 var t = DataTypes.fromId(id);
-                floatValue = t.equals(DataTypes.IP) ? Math.abs(floatValue) : floatValue;
-                t.implicitCast(floatValue.floatValue());
+                Integer val = t.equals(DataTypes.IP) ? Math.abs(floatValue) : floatValue;
+                t.implicitCast(val.floatValue());
             }
         }
 
         for (Integer doubleValue : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
                 var t = DataTypes.fromId(id);
-                doubleValue = t.equals(DataTypes.IP) ? Math.abs(doubleValue) : doubleValue;
-                t.implicitCast(doubleValue.doubleValue());
+                Integer val = t.equals(DataTypes.IP) ? Math.abs(doubleValue) : doubleValue;
+                t.implicitCast(val.doubleValue());
             }
         }
     }
@@ -238,6 +196,30 @@ public class TypeConversionTest extends CrateUnitTest {
         assertThat(TimestampType.INSTANCE_WITHOUT_TZ.isConvertableTo(DoubleType.INSTANCE, false),
             is(true));
 
+    }
+
+    @Test
+    public void test_time_to_double_conversion() {
+        assertThat(TimeTZType.INSTANCE.isConvertableTo(DoubleType.INSTANCE, false),
+                   is(false));
+        assertThat(DoubleType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false),
+                   is(false));
+    }
+
+    @Test
+    public void test_time_to_long_conversion() {
+        assertThat(TimeTZType.INSTANCE.isConvertableTo(LongType.INSTANCE, false),
+                   is(false));
+        assertThat(LongType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false),
+                   is(false));
+    }
+
+    @Test
+    public void test_time_to_string_conversion() {
+        assertThat(TimeTZType.INSTANCE.isConvertableTo(StringType.INSTANCE, false),
+                   is(false));
+        assertThat(StringType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false),
+                   is(true));
     }
 
     @Test
