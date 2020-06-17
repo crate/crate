@@ -48,6 +48,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -129,6 +130,7 @@ final class GroupByOptimizedIterator {
         if (keyRef == null) {
             return null; // group by on non-reference
         }
+        keyRef = (Reference) DocReferences.inverseSourceLookup(keyRef);
         MappedFieldType keyFieldType = fieldTypeLookup.get(keyRef.column().fqn());
         if (keyFieldType == null || !keyFieldType.hasDocValues()) {
             return null;
