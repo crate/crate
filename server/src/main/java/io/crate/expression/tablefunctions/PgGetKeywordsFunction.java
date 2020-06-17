@@ -35,7 +35,6 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.Identifiers;
 import io.crate.types.RowType;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
@@ -103,7 +102,6 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

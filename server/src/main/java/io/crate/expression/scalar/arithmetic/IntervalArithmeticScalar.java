@@ -32,7 +32,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.joda.time.Period;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -92,7 +91,6 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
         return this.info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

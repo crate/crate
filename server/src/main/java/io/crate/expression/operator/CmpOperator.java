@@ -28,7 +28,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntPredicate;
@@ -50,7 +49,6 @@ public final class CmpOperator extends Operator<Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

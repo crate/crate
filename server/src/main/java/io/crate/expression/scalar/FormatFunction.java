@@ -29,7 +29,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
@@ -91,7 +90,6 @@ public class FormatFunction extends Scalar<String, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

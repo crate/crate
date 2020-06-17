@@ -30,7 +30,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -125,7 +124,6 @@ public class NthValueFunctions implements WindowFunction {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

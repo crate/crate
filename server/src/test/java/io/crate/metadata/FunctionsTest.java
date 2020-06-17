@@ -22,12 +22,14 @@
 
 package io.crate.metadata;
 
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -62,6 +64,33 @@ public class FunctionsTest extends CrateUnitTest {
         return createFunctions().get(null, functionName, arguments, SearchPath.pathWithPGCatalogAndDoc());
     }
 
+    private static class DummyFunction implements FunctionImplementation {
+
+        private final Signature signature;
+        private final FunctionInfo info;
+
+        public DummyFunction(Signature signature) {
+            this.signature = signature;
+            this.info = new FunctionInfo(
+                new FunctionIdent(
+                    signature.getName(),
+                    Lists2.map(signature.getArgumentTypes(), TypeSignature::createType)
+                ),
+                signature.getReturnType().createType()
+            );
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return info;
+        }
+
+        @Override
+        public Signature signature() {
+            return signature;
+        }
+    }
+
     @Test
     public void test_function_name_doesnt_exists() {
         var functions = createFunctions();
@@ -80,7 +109,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.STRING.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.STRING)
+                new DummyFunction(signature)
         );
         var impl = resolve("foo", List.of(Literal.of("hoschi")));
         assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.STRING));
@@ -95,7 +124,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.STRING.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+                new DummyFunction(signature)
         );
         var impl = resolve("foo", List.of(Literal.of(1L)));
         assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.INTEGER));
@@ -110,7 +139,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.DOUBLE.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.DOUBLE)
+                new DummyFunction(signature)
         );
         register(
             Signature.scalar(
@@ -119,7 +148,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.FLOAT.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.FLOAT)
+                new DummyFunction(signature)
         );
 
         var impl = resolve("foo", List.of(Literal.of(1L)));
@@ -137,7 +166,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.INTEGER.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+                new DummyFunction(signature)
         );
         register(
             Signature.scalar(
@@ -146,7 +175,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.INTEGER.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+                new DummyFunction(signature)
         );
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
@@ -162,7 +191,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.INTEGER.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+                new DummyFunction(signature)
         );
         register(
             Signature.scalar(
@@ -171,7 +200,7 @@ public class FunctionsTest extends CrateUnitTest {
                 parseTypeSignature("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.UNDEFINED)
+                new DummyFunction(signature)
         );
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
@@ -190,7 +219,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.INTEGER.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+                new DummyFunction(signature)
         );
         register(
             Signature.scalar(
@@ -200,7 +229,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.INTEGER.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+                new DummyFunction(signature)
         );
         register(
             Signature.scalar(
@@ -210,7 +239,7 @@ public class FunctionsTest extends CrateUnitTest {
                 DataTypes.INTEGER.getTypeSignature()
             ),
             (signature, args) ->
-                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+                new DummyFunction(signature)
         );
 
         var impl = resolve("foo", List.of(Literal.of(1), Literal.of(1L)));

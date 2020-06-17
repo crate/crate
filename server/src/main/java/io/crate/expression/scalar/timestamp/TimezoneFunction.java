@@ -31,7 +31,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -98,7 +97,6 @@ public class TimezoneFunction extends Scalar<Long, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

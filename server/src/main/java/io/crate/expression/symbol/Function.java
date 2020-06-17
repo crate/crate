@@ -98,11 +98,6 @@ public class Function extends Symbol implements Cloneable {
         }
     }
 
-    @Deprecated
-    public Function(FunctionInfo info, List<Symbol> arguments) {
-        this(info, null, arguments);
-    }
-
     public Function(FunctionInfo info, Signature signature, List<Symbol> arguments) {
         this(info, signature, arguments, null);
     }

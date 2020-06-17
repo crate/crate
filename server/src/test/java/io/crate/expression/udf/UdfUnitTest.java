@@ -81,7 +81,6 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;

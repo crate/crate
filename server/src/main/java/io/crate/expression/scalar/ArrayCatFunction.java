@@ -31,7 +31,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,7 +81,6 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
         return functionInfo;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

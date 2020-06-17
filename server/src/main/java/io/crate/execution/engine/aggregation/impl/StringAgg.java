@@ -39,7 +39,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -249,7 +248,6 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

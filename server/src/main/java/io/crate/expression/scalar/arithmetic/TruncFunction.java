@@ -32,7 +32,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -95,7 +94,6 @@ public final class TruncFunction {
                 return info;
             }
 
-            @Nullable
             @Override
             public Signature signature() {
                 return signature;

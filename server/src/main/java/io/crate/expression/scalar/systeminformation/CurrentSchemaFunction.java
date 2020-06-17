@@ -74,7 +74,6 @@ public class CurrentSchemaFunction extends Scalar<String, Object> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

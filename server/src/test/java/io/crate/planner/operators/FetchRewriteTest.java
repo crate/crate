@@ -34,6 +34,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -56,16 +57,6 @@ import static org.hamcrest.Matchers.is;
 
 public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
 
-    public static Function of(String name, List<Symbol> arguments, DataType<?> returnType) {
-        return new Function(
-            new FunctionInfo(
-                new FunctionIdent(name, Symbols.typeView(arguments)),
-                returnType
-            ),
-            arguments
-        );
-    }
-
     @Test
     public void test_fetch_rewrite_on_eval_removes_eval_and_extends_replaced_outputs() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
@@ -76,7 +67,24 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         var x = e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
         var collect = new Collect(false, relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
-        var eval = new Eval(collect, List.of(of("add", List.of(x, x), DataTypes.INTEGER)));
+        var eval = new Eval(
+            collect,
+            List.of(
+                new Function(
+                    new FunctionInfo(
+                        new FunctionIdent("add", Symbols.typeView(List.of(x, x))),
+                        DataTypes.INTEGER
+                    ),
+                    Signature.scalar(
+                        "add",
+                        DataTypes.INTEGER.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature()
+                    ),
+                    List.of(x, x)
+                )
+            )
+        );
 
         FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
         assertThat(fetchRewrite, Matchers.notNullValue());

@@ -25,12 +25,11 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -66,7 +65,6 @@ public class LikeOperator extends Operator<String> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;
@@ -114,7 +112,6 @@ public class LikeOperator extends Operator<String> {
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;

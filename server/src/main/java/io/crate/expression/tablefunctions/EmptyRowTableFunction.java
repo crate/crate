@@ -31,7 +31,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -69,7 +68,6 @@ public class EmptyRowTableFunction {
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;

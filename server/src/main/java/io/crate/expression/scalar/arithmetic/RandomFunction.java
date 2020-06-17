@@ -33,7 +33,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Random;
 
@@ -75,7 +74,6 @@ public class RandomFunction extends Scalar<Double, Void> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

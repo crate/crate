@@ -45,6 +45,7 @@ public class FilterProjectionTest extends CrateUnitTest {
                 new FunctionIdent(EqOperator.NAME, List.of(DataTypes.INTEGER, DataTypes.INTEGER)),
                 DataTypes.BOOLEAN
             ),
+            EqOperator.SIGNATURE,
             List.of(
                 new InputColumn(0, DataTypes.INTEGER),
                 new InputColumn(1, DataTypes.INTEGER)

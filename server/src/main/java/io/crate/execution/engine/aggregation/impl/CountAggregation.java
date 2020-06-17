@@ -125,7 +125,6 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

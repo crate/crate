@@ -40,13 +40,8 @@ public interface FunctionImplementation {
     /**
      * Return the declared signature for this implementation.
      * This should be favoured over {@link #info()}.
-     *
-     * @return  NULL for functions using the old registry
      */
-    @Nullable
-    default Signature signature() {
-        return null;
-    }
+    Signature signature();
 
     /**
      * Normalize a symbol into a simplified form.

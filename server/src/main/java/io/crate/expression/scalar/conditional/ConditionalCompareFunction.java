@@ -28,7 +28,6 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 
-import javax.annotation.Nullable;
 import java.util.Comparator;
 
 abstract class ConditionalCompareFunction extends Scalar<Object, Object> implements Comparator<Object> {
@@ -46,7 +45,6 @@ abstract class ConditionalCompareFunction extends Scalar<Object, Object> impleme
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

@@ -32,7 +32,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.network.InetAddresses;
 
-import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -130,7 +129,6 @@ public final class CIDROperator {
             return INFO;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;

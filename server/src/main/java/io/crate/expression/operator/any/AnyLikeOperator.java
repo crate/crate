@@ -31,8 +31,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
-import javax.annotation.Nullable;
-
 import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
 public class AnyLikeOperator extends Operator<Object> {
@@ -61,7 +59,6 @@ public class AnyLikeOperator extends Operator<Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

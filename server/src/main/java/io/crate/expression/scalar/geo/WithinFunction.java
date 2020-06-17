@@ -38,7 +38,6 @@ import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.SpatialRelation;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -135,7 +134,6 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

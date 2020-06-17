@@ -30,7 +30,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 
 /**
@@ -83,7 +82,6 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
         return FUNCTION_INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

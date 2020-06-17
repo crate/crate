@@ -92,7 +92,6 @@ public class RegexpReplaceFunction extends Scalar<String, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

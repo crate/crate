@@ -22,8 +22,6 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import java.util.List;
-
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionIdent;
@@ -36,6 +34,8 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import java.util.List;
 
 public final class FormatTypeFunction extends Scalar<String, Object> {
 

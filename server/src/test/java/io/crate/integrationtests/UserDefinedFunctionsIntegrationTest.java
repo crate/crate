@@ -33,8 +33,8 @@ import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -42,7 +42,6 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import javax.script.ScriptException;
 import java.util.List;
 import java.util.Locale;
@@ -76,7 +75,6 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             return info;
         }
 
-        @Nullable
         @Override
         public Signature signature() {
             return signature;

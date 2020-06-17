@@ -164,7 +164,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

@@ -264,7 +264,6 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

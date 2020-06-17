@@ -157,7 +157,6 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

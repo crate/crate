@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import io.crate.common.collections.MapBuilder;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -33,7 +34,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimestampType;
-import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.Rounding;
 import org.joda.time.DateTimeZone;
@@ -121,7 +121,6 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

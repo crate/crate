@@ -28,7 +28,6 @@ import io.crate.types.DataType;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
@@ -85,7 +84,6 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;
@@ -120,6 +118,11 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
             // Return the functionInfo of the outer class, because the function
             // info is the same for every compiled function instance.
             return info;
+        }
+
+        @Override
+        public Signature signature() {
+            return signature;
         }
     }
 

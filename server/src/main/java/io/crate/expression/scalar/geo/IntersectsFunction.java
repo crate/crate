@@ -36,7 +36,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.locationtech.spatial4j.shape.Shape;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 import static io.crate.metadata.functions.Signature.scalar;
@@ -90,7 +89,6 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         return INFO;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;

@@ -80,7 +80,6 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
         return info;
     }
 
-    @Nullable
     @Override
     public Signature signature() {
         return signature;
