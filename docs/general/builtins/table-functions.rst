@@ -198,6 +198,149 @@ arrays within the same level.
     +---+
     SELECT 2 rows in set (... sec)
 
+.. _table-functions-regexp-matches:
+
+``regexp_matches(source, pattern [, flags])``
+=============================================
+
+Uses the regular expression ``pattern`` to match against the ``source`` string.
+
+The result rows have one column:
+
+.. list-table::
+    :header-rows: 1
+
+    * - Column name
+      - Description
+    * - groups
+      - ``array(text)``
+
+If ``pattern`` matches ``source``, an array of the matched regular expression
+groups is returned.
+
+If no regular expression group was used, the whole pattern is used as a group.
+
+A regular expression group is formed by a subexpression that is surrounded by
+parentheses. The position of a group is determined by the position of its
+opening parenthesis.
+
+For example when matching the pattern ``\b([A-Z])`` a match for the
+subexpression ``([A-Z])`` would create group No. 1. If you want to group items
+with parentheses, but without grouping, use ``(?...)``.
+
+For example matching the regular expression ``([Aa](.+)z)`` against
+``alcatraz``, results in these groups:
+
+ * group 1: ``alcatraz`` (from first to last parenthesis or whole pattern)
+ * group 2: ``lcatra`` (beginning at second parenthesis)
+
+The ``regexp_matches`` function will return all groups as a ``text`` array::
+
+    cr> select regexp_matches('alcatraz', '(a(.+)z)') as matched;
+    +------------------------+
+    | matched                |
+    +------------------------+
+    | ["alcatraz", "lcatra"] |
+    +------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select regexp_matches('alcatraz', 'traz') as matched;
+    +----------+
+    | matched  |
+    +----------+
+    | ["traz"] |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+Through array element access functionality, a group can be selected directly.
+See :ref:`sql_dql_object_arrays_select` for details.
+
+::
+
+    cr> select regexp_matches('alcatraz', '(a(.+)z)')[2] as second_group;
+    +--------------+
+    | second_group |
+    +--------------+
+    | lcatra       |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. _table-functions-regexp-matches-flags:
+
+Flags
+.....
+
+This function takes a number of flags as optional third parameter. These flags
+are given as a string containing any of the characters listed below. Order does
+not matter.
+
++-------+---------------------------------------------------------------------+
+| Flag  | Description                                                         |
++=======+=====================================================================+
+| ``i`` | enable case insensitive matching                                    |
++-------+---------------------------------------------------------------------+
+| ``u`` | enable unicode case folding when used together with ``i``           |
++-------+---------------------------------------------------------------------+
+| ``U`` | enable unicode support for character classes like ``\W``            |
++-------+---------------------------------------------------------------------+
+| ``s`` | make ``.`` match line terminators, too                              |
++-------+---------------------------------------------------------------------+
+| ``m`` | make ``^`` and ``$`` match on the beginning or end of a line        |
+|       | too.                                                                |
++-------+---------------------------------------------------------------------+
+| ``x`` | permit whitespace and line comments starting with ``#``             |
++-------+---------------------------------------------------------------------+
+| ``d`` | only ``\n`` is considered a line-terminator when using ``^``, ``$`` |
+|       | and ``.``                                                           |
++-------+---------------------------------------------------------------------+
+| ``g`` | keep matching until the end of ``source``, instead of stopping at   |
+|       | the first match.                                                    |
++-------+---------------------------------------------------------------------+
+
+
+Examples
+........
+
+In this example the ``pattern`` does not match anything in the ``source`` and the result
+is an empty table:
+
+::
+
+    cr> select regexp_matches('foobar', '^(a(.+)z)$') as matched;
+    +---------+
+    | matched |
+    +---------+
+    +---------+
+    SELECT 0 rows in set (... sec)
+
+In this example we find the term that follows two digits:
+
+::
+
+    cr> select regexp_matches('99 bottles of beer on the wall', '\d{2}\s(\w+).*', 'ixU')
+    ... as matched;
+    +-------------+
+    | matched     |
+    +-------------+
+    | ["bottles"] |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+This example shows the use of flag ``g``, splitting ``source`` into a set of arrays, each
+containing two entries:
+
+::
+
+    cr>  select regexp_matches('#abc #def #ghi #jkl', '(#[^\s]*) (#[^\s]*)', 'g') as matched;
+    +------------------+
+    | matched          |
+    +------------------+
+    | ["#abc", "#def"] |
+    | ["#ghi", "#jkl"] |
+    +------------------+
+    SELECT 2 rows in set (... sec)
 
 .. _pg_catalog.pg_get_keywords:
 

@@ -214,9 +214,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((String) response.rows()[2][0], is("cratebar"));
 
         execute("select regexp_matches(s, '^(bar).*') from regex_noindex order by i");
-        assertThat(response.rows()[0][0], nullValue());
-        assertThat((List<Object>) response.rows()[1][0], Matchers.contains("bar"));
-        assertThat(response.rows()[2][0], nullValue());
+        assertThat((List<Object>) response.rows()[0][0], Matchers.contains("bar"));
     }
 
     @Test
