@@ -42,6 +42,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Limit the output of COPY FROM RETURN SUMMARY in the presence of errors to
+  display up to 50 ``line_numbers`` to avoid buffer pressure at clients and
+  to improve readability.
+
 - The ``array_unique`` scalar function use a common element type based on the
   type precedence if given arrays have different element types instead of always
   casting to the element type of the first array argument.
