@@ -23,6 +23,7 @@ import io.crate.common.CheckedSupplier;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.CheckedConsumer;
 import io.crate.common.CheckedFunction;
+import org.elasticsearch.common.CheckedRunnable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -214,5 +215,36 @@ public interface ActionListener<Response> {
         } catch (Exception e) {
             listener.onFailure(e);
         }
+    }
+
+    /**
+     * Wraps a given listener and returns a new listener which executes the provided {@code runBefore}
+     * callback before the listener is notified via either {@code #onResponse} or {@code #onFailure}.
+     * If the callback throws an exception then it will be passed to the listener's {@code #onFailure} and its {@code #onResponse} will
+     * not be executed.
+     */
+    static <Response> ActionListener<Response> runBefore(ActionListener<Response> delegate, CheckedRunnable<?> runBefore) {
+        return new ActionListener<>() {
+            @Override
+            public void onResponse(Response response) {
+                try {
+                    runBefore.run();
+                } catch (Exception ex) {
+                    delegate.onFailure(ex);
+                    return;
+                }
+                delegate.onResponse(response);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                try {
+                    runBefore.run();
+                } catch (Exception ex) {
+                    e.addSuppressed(ex);
+                }
+                delegate.onFailure(e);
+            }
+        };
     }
 }
