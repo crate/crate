@@ -119,6 +119,16 @@ public class AzureBlobContainer extends AbstractBlobContainer {
         }
     }
 
+    public void delete() throws IOException {
+        var children = children();
+        if (!children.isEmpty()) {
+            // TODO: Upgrade to newer non-blocking Azure SDK 11 and execute delete requests in parallel that way
+            for (Map.Entry<String, BlobContainer> entry : children.entrySet()) {
+                entry.getValue().deleteBlobIgnoringIfNotExists(entry.getKey());
+            }
+        }
+    }
+
     @Override
     public Map<String, BlobMetadata> listBlobsByPrefix(@Nullable String prefix) throws IOException {
         logger.trace("listBlobsByPrefix({})", prefix);

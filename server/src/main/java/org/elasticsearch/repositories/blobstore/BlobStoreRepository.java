@@ -581,11 +581,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 try {
                     if (survivingIndexIds.contains(indexSnId) == false) {
                         LOGGER.debug("[{}] Found stale index [{}]. Cleaning it up", metadata.name(), indexSnId);
-                        BlobContainer blobContainer = indexEntry.getValue();
-                        for (var blobNames : blobContainer.listBlobs().keySet()) {
-                            deleteResult++;
-                            blobContainer.deleteBlobIgnoringIfNotExists(blobNames);
-                        }
+                        var blobContainer = indexEntry.getValue();
+                        deleteResult += blobContainer.listBlobs().keySet().size();
+                        blobContainer.delete();
                         LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
                     }
                 } catch (Exception e) {

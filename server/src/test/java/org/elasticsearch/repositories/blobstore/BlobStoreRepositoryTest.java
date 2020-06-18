@@ -55,6 +55,8 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 
 import static org.elasticsearch.repositories.RepositoryDataTests.generateRandomRepoData;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -84,6 +86,26 @@ public class BlobStoreRepositoryTest extends SQLTransportIntegrationTest {
         execute("CREATE REPOSITORY " + REPOSITORY_NAME + " TYPE \"fs\" with (location=?, compress=True)",
                 new Object[]{defaultRepositoryLocation.getAbsolutePath()});
         assertThat(response.rowCount(), is(1L));
+        deleteAndAssertEmpty(getRepository().basePath());
+    }
+
+    private void deleteAndAssertEmpty(BlobPath path) throws Exception {
+        final BlobStoreRepository repo = getRepository();
+        final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        repo.threadPool().generic().execute(new ActionRunnable<>(future) {
+            @Override
+            protected void doRun() throws Exception {
+                repo.blobStore().blobContainer(path).delete();
+                future.onResponse(null);
+            }
+        });
+        future.actionGet();
+        final BlobPath parent = path.parent();
+        if (parent == null) {
+            assertChildren(path, Collections.emptyList());
+        } else {
+            assertDeleted(parent, path.toArray()[path.toArray().length - 1]);
+        }
     }
 
     @Test
@@ -135,7 +157,20 @@ public class BlobStoreRepositoryTest extends SQLTransportIntegrationTest {
         }
     }
 
+    private void assertDeleted(BlobPath path, String name) throws Exception {
+        assertThat(listChildren(path), not(contains(name)));
+    }
+
     void assertChildren(BlobPath path, Collection<String> children) throws Exception {
+        Set<String> foundChildren = listChildren(path);
+        if (children.isEmpty()) {
+            assertThat(foundChildren, empty());
+        } else {
+            assertThat(foundChildren, containsInAnyOrder(children.toArray(Strings.EMPTY_ARRAY)));
+        }
+    }
+
+    private Set<String> listChildren(BlobPath path) throws Exception {
         final PlainActionFuture<Set<String>> future = PlainActionFuture.newFuture();
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
@@ -145,12 +180,7 @@ public class BlobStoreRepositoryTest extends SQLTransportIntegrationTest {
                 future.onResponse(blobStore.blobContainer(path).children().keySet());
             }
         });
-        Set<String> foundChildren = future.actionGet();
-        if (children.isEmpty()) {
-            assertThat(foundChildren, empty());
-        } else {
-            assertThat(foundChildren, containsInAnyOrder(children.toArray(Strings.EMPTY_ARRAY)));
-        }
+        return future.actionGet();
     }
 
     @Test
