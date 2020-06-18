@@ -23,7 +23,6 @@
 package io.crate.metadata;
 
 import io.crate.common.collections.Lists2;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.functions.BoundVariables;
@@ -56,24 +55,24 @@ public class Functions {
 
     private static final Logger LOGGER = Loggers.getLogger(Functions.class);
 
-    private final Map<FunctionName, List<FuncResolver>> udfFunctionImplementations = new ConcurrentHashMap<>();
-    private final Map<FunctionName, List<FuncResolver>> functionImplementations;
+    private final Map<FunctionName, List<FunctionProvider>> udfFunctionImplementations = new ConcurrentHashMap<>();
+    private final Map<FunctionName, List<FunctionProvider>> functionImplementations;
 
     @Inject
-    public Functions(Map<FunctionName, List<FuncResolver>> functionImplementationsBySignature) {
+    public Functions(Map<FunctionName, List<FunctionProvider>> functionImplementationsBySignature) {
         this.functionImplementations = functionImplementationsBySignature;
     }
 
-    public Map<FunctionName, List<FuncResolver>> functionResolvers() {
+    public Map<FunctionName, List<FunctionProvider>> functionResolvers() {
         return functionImplementations;
     }
 
-    public Map<FunctionName, List<FuncResolver>> udfFunctionResolvers() {
+    public Map<FunctionName, List<FunctionProvider>> udfFunctionResolvers() {
         return udfFunctionImplementations;
     }
 
     public void registerUdfFunctionImplementationsForSchema(
-        String schema, Map<FunctionName, List<FuncResolver>> functions) {
+        String schema, Map<FunctionName, List<FunctionProvider>> functions) {
         // remove deleted ones before re-registering all current ones for the given schema
         udfFunctionImplementations.entrySet()
             .removeIf(
@@ -120,7 +119,7 @@ public class Functions {
     @Nullable
     private FunctionImplementation get(Signature signature,
                                        List<DataType> actualArgumentTypes,
-                                       Function<FunctionName, List<FuncResolver>> lookupFunction) {
+                                       Function<FunctionName, List<FunctionProvider>> lookupFunction) {
         var candidates = lookupFunction.apply(signature.getName());
         if (candidates == null) {
             return null;
@@ -143,11 +142,11 @@ public class Functions {
      */
     @Nullable
     private FunctionImplementation getBuiltinByArgs(FunctionName functionName,
-                                                    List<? extends FuncArg> argumentsTypes,
+                                                    List<? extends Symbol> argumentsTypes,
                                                     SearchPath searchPath) {
         return resolveBuiltInFunctionBySignature(
             functionName,
-            Lists2.map(argumentsTypes, FuncArg::valueType),
+            Lists2.map(argumentsTypes, Symbol::valueType),
             searchPath
         );
     }
@@ -164,7 +163,7 @@ public class Functions {
     private static FunctionImplementation resolveFunctionBySignature(FunctionName name,
                                                                      List<DataType> arguments,
                                                                      SearchPath searchPath,
-                                                                     Function<FunctionName, List<FuncResolver>> lookupFunction) {
+                                                                     Function<FunctionName, List<FunctionProvider>> lookupFunction) {
         var candidates = lookupFunction.apply(name);
         if (candidates == null && name.schema() == null) {
             for (String pathSchema : searchPath) {
@@ -220,11 +219,11 @@ public class Functions {
     }
 
     @Nullable
-    private static FunctionImplementation matchFunctionCandidates(List<FuncResolver> candidates,
+    private static FunctionImplementation matchFunctionCandidates(List<FunctionProvider> candidates,
                                                                   List<DataType> argumentTypes,
                                                                   SignatureBinder.CoercionType coercionType) {
         List<ApplicableFunction> applicableFunctions = new ArrayList<>();
-        for (FuncResolver candidate : candidates) {
+        for (FunctionProvider candidate : candidates) {
             Signature boundSignature = new SignatureBinder(candidate.getSignature(), coercionType)
                 .bind(Lists2.map(argumentTypes, DataType::getTypeSignature));
             if (boundSignature != null) {
@@ -270,11 +269,11 @@ public class Functions {
      */
     @Nullable
     private FunctionImplementation resolveUserDefinedByArgs(FunctionName functionName,
-                                                            List<? extends FuncArg> argumentsTypes,
+                                                            List<? extends Symbol> argumentsTypes,
                                                             SearchPath searchPath) throws UnsupportedOperationException {
         return resolveFunctionBySignature(
             functionName,
-            Lists2.map(argumentsTypes, FuncArg::valueType),
+            Lists2.map(argumentsTypes, Symbol::valueType),
             searchPath,
             udfFunctionImplementations::get
         );
@@ -331,9 +330,9 @@ public class Functions {
 
     private static UnsupportedOperationException raiseUnknownFunction(@Nullable String suppliedSchema,
                                                                       String name,
-                                                                      List<? extends FuncArg> arguments) {
+                                                                      List<? extends Symbol> arguments) {
         StringJoiner joiner = new StringJoiner(", ");
-        for (FuncArg arg : arguments) {
+        for (var arg : arguments) {
             joiner.add(arg.valueType().toString());
         }
         String prefix = suppliedSchema == null ? "" : suppliedSchema + '.';

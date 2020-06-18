@@ -25,7 +25,7 @@ package io.crate.expression.udf;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.metadata.FuncResolver;
+import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
@@ -51,7 +51,7 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
     private Functions functions;
     private SqlExpressions sqlExpressions;
 
-    private Map<FunctionName, List<FuncResolver>> functionImplementations = new HashMap<>();
+    private Map<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
 
     @Before
     public void prepare() throws Exception {

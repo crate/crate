@@ -27,7 +27,7 @@ import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.FuncResolver;
+import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionInfo;
@@ -210,7 +210,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return new PgIndexTable.Entry(OidHash.relationOid(tableInfo), OidHash.primaryKeyOid(tableInfo), positions);
     }
 
-    private PgProcTable.Entry pgProc(FuncResolver resolver) {
+    private PgProcTable.Entry pgProc(FunctionProvider resolver) {
         return PgProcTable.Entry.of(resolver.getSignature());
     }
 
