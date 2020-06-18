@@ -143,19 +143,6 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
         return sb.toString();
     }
 
-    /**
-     * Literals always may be casted if required.
-     */
-    @Override
-    public boolean canBeCasted() {
-        return true;
-    }
-
-    @Override
-    public boolean isValueSymbol() {
-        return true;
-    }
-
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitLiteral(this, context);

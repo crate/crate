@@ -25,9 +25,6 @@ package io.crate.expression.scalar;
 import io.crate.exceptions.ConversionException;
 import org.junit.Test;
 
-/**
- * Additional tests to {@link io.crate.metadata.functions.params.FuncParamsTest}
- */
 public class TypeInferenceTest extends AbstractScalarFunctionsTest {
 
     @Test

@@ -21,27 +21,14 @@
 
 package io.crate.exceptions;
 
-import io.crate.expression.symbol.FuncArg;
+import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 
-import java.util.Collection;
 import java.util.Locale;
 
 public class ConversionException extends IllegalArgumentException {
 
-    public ConversionException(FuncArg source, Collection<DataType> targetTypeCandidates) {
-        super(String.format(
-            Locale.ENGLISH,
-            "Cannot cast `%s` of type `%s` to %s",
-            source,
-            source.valueType(),
-            targetTypeCandidates.size() > 1
-                ? "any of the types: " + targetTypeCandidates.toString()
-                : "type `" + targetTypeCandidates.iterator().next().getName() + "`"
-        ));
-    }
-
-    public ConversionException(FuncArg source, DataType<?> targetType) {
+    public ConversionException(Symbol source, DataType<?> targetType) {
         super(String.format(
             Locale.ENGLISH,
             "Cannot cast `%s` of type `%s` to %s",
