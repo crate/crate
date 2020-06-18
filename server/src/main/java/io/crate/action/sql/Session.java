@@ -119,7 +119,7 @@ public class Session implements AutoCloseable {
 
     @VisibleForTesting
     final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new HashMap<>();
-    private final ArrayList<CompletableFuture<?>> activeExecutions = new ArrayList<>();
+    private CompletableFuture<?> activeExecution = null;
 
     private final Analyzer analyzer;
     private final Planner planner;
@@ -401,32 +401,21 @@ public class Session implements AutoCloseable {
                 }
             );
         } else {
-            if (deferredExecutionsByStmt.isEmpty()) {
-                activeExecutions.add(singleExec(portal, resultReceiver, maxRows));
+            if (activeExecution == null) {
+                activeExecution = singleExec(portal, resultReceiver, maxRows);
             } else {
-                activeExecutions.add(
-                    triggerDeferredExecutions().thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows)));
+                activeExecution = activeExecution.thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows));
             }
         }
     }
 
     public CompletableFuture<?> sync() {
-        switch (activeExecutions.size()) {
-            case 0: {
-                return triggerDeferredExecutions();
-            }
-
-            case 1: {
-                var result = activeExecutions.get(0);
-                activeExecutions.clear();
-                return deferredExecutionsByStmt.isEmpty() ? result : result.thenCompose(ignored -> triggerDeferredExecutions());
-            }
-
-            default: {
-                var result = CompletableFutures.allAsList(activeExecutions);
-                activeExecutions.clear();
-                return deferredExecutionsByStmt.isEmpty() ? result : result.thenCompose(ignored -> triggerDeferredExecutions());
-            }
+        if (activeExecution == null) {
+            return triggerDeferredExecutions();
+        } else {
+            var result = activeExecution;
+            activeExecution = null;
+            return deferredExecutionsByStmt.isEmpty() ? result : result.thenCompose(ignored -> triggerDeferredExecutions());
         }
     }
 
