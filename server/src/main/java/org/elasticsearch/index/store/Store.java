@@ -1457,7 +1457,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
     /**
      * Marks an existing lucene index with a new history uuid and sets the given maxSeqNo as the local checkpoint
      * as well as the maximum sequence number.
-     * This is used to make sure no existing shard will recovery from this index using ops based recovery.
+     * This is used to make sure no existing shard will recover from this index using ops based recovery.
      * @see SequenceNumbers#LOCAL_CHECKPOINT_KEY
      * @see SequenceNumbers#MAX_SEQ_NO
      */
