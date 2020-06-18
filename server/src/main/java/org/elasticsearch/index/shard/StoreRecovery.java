@@ -464,7 +464,8 @@ final class StoreRecovery {
                 snapshotShardId = new ShardId(indexName, IndexMetaData.INDEX_UUID_NA_VALUE, shardId.id());
             }
             final IndexId indexId = repository.getRepositoryData().resolveIndexId(indexName);
-            repository.restoreShard(indexShard, restoreSource.snapshot().getSnapshotId(), restoreSource.version(), indexId, snapshotShardId, indexShard.recoveryState());
+            repository.restoreShard(indexShard.store(), restoreSource.snapshot().getSnapshotId(),
+                                    restoreSource.version(), indexId, snapshotShardId, indexShard.recoveryState());
             final Store store = indexShard.store();
             store.bootstrapNewHistory();
             final SegmentInfos segmentInfos = store.readLastCommittedSegmentsInfo();
