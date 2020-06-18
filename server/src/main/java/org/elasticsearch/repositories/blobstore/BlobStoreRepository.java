@@ -20,7 +20,6 @@
 package org.elasticsearch.repositories.blobstore;
 
 import io.crate.common.collections.Tuple;
-import io.crate.common.io.Streams;
 import io.crate.exceptions.InvalidArgumentException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,6 +50,7 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.compress.NotXContentException;
+import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
@@ -59,8 +59,8 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -93,6 +93,7 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
+import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -581,11 +582,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 try {
                     if (survivingIndexIds.contains(indexSnId) == false) {
                         LOGGER.debug("[{}] Found stale index [{}]. Cleaning it up", metadata.name(), indexSnId);
-                        BlobContainer blobContainer = indexEntry.getValue();
-                        for (var blobNames : blobContainer.listBlobs().keySet()) {
-                            deleteResult++;
-                            blobContainer.deleteBlobIgnoringIfNotExists(blobNames);
-                        }
+                        indexEntry.getValue().delete();
+                        //This is not the exact number of blobs, as the blob container could also have children.
+                        //However fetching the blobs before deletion is an expensive operation.
+                        //This is ok because currently the deletes are not used. BlobContainer.delete()
+                        //could return the number of blobs and the bytes deleted if we plan to use this
+                        //data somewhere.
+                        deleteResult++;
                         LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
                     }
                 } catch (Exception e) {
@@ -927,24 +930,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     private long listBlobsToGetLatestIndexId() throws IOException {
-        Map<String, BlobMetadata> blobs = blobContainer().listBlobsByPrefix(INDEX_FILE_PREFIX);
-        long latest = RepositoryData.EMPTY_REPO_GEN;
-        if (blobs.isEmpty()) {
-            // no snapshot index blobs have been written yet
-            return latest;
-        }
-        for (final BlobMetadata blobMetadata : blobs.values()) {
-            final String blobName = blobMetadata.name();
-            try {
-                final long curr = Long.parseLong(blobName.substring(INDEX_FILE_PREFIX.length()));
-                latest = Math.max(latest, curr);
-            } catch (NumberFormatException nfe) {
-                // the index- blob wasn't of the format index-N where N is a number,
-                // no idea what this blob is but it doesn't belong in the repository!
-                LOGGER.debug("[{}] Unknown blob in the repository: {}", metadata.name(), blobName);
-            }
-        }
-        return latest;
+        return latestGeneration(blobContainer().listBlobsByPrefix(INDEX_FILE_PREFIX).keySet());
     }
 
     private void writeAtomic(final String blobName, final BytesReference bytesRef, boolean failIfAlreadyExists) throws IOException {

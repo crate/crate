@@ -99,6 +99,10 @@ public class AzureBlobStore implements BlobStore {
         service.deleteBlob(container, blob);
     }
 
+    public void deleteBlobDirectory(String keyPath) throws URISyntaxException, StorageException, IOException {
+        service.deleteBlobDirectory(container, keyPath);
+    }
+
     public Map<String, BlobContainer> children(BlobPath path) throws URISyntaxException, StorageException {
         return Collections.unmodifiableMap(service.children(clientName, container, path).stream().collect(
             Collectors.toMap(Function.identity(), name -> new AzureBlobContainer(path.add(name), this))));
