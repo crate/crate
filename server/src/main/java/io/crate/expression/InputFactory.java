@@ -63,8 +63,8 @@ import java.util.Map;
  *
  * <p>
  *      Note:
- *      Symbols may either contain References OR InputColumn when using {@link #ctxForRefs(ReferenceResolver)} or
- *      {@link #ctxForInputColumns()}.
+ *      Symbols may either contain References OR InputColumn when using {@link #ctxForRefs(TransactionContext, ReferenceResolver)} or
+ *      {@link #ctxForInputColumns(TransactionContext)}.
  *
  *      This is due to the fact that References will result in a different kind of Expression class than InputColumns do.
  *      The expression class for references depends on the used ReferenceResolver.
@@ -201,14 +201,10 @@ public class InputFactory {
 
         @Override
         public Input<?> visitAggregation(Aggregation aggregation, Void context) {
-            var ident = aggregation.functionIdent();
-            var signature = aggregation.signature();
-            FunctionImplementation impl;
-            if (signature == null) {
-                impl = functions.getQualified(ident);
-            } else {
-                impl = functions.getQualified(signature, ident.argumentTypes());
-            }
+            FunctionImplementation impl = functions.getQualified(
+                aggregation,
+                txnCtx.sessionSettings().searchPath()
+            );
             assert impl != null : "Function implementation not found using full qualified lookup";
 
             //noinspection unchecked

@@ -52,10 +52,7 @@ public class CsvReaderBenchmark {
 
     @Setup
     public void create_temp_file_and_uri() throws IOException {
-        Functions functions = new Functions(
-            ImmutableMap.of(),
-            ImmutableMap.of()
-        );
+        Functions functions = new Functions(Map.of());
         inputFactory = new InputFactory(functions);
         tempFile = File.createTempFile("temp", null);
         fileUri = tempFile.toURI().getPath();

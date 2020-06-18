@@ -48,6 +48,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
@@ -68,10 +69,7 @@ public class FileReadingIteratorTest extends CrateUnitTest {
 
     @Before
     public void prepare() {
-        Functions functions = new Functions(
-            ImmutableMap.of(),
-            ImmutableMap.of()
-        );
+        Functions functions = new Functions(Map.of());
         inputFactory = new InputFactory(functions);
     }
 

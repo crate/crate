@@ -100,7 +100,7 @@ public abstract class ShardCollectorProvider {
         assert collectPhase.maxRowGranularity() == RowGranularity.DOC :
             "granularity must be DOC";
 
-        RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
+        RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, collectTask.txnCtx());
         BatchIterator<Row> fusedIterator = getProjectionFusedIterator(normalizedCollectNode, collectTask);
         if (fusedIterator != null) {
             return fusedIterator;

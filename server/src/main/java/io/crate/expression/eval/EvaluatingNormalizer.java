@@ -43,6 +43,7 @@ import io.crate.metadata.TransactionContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -199,14 +200,10 @@ public class EvaluatingNormalizer {
                 return function;
             }
             function = processAndMaybeCopy(function, context);
-            var ident = function.info().ident();
-            var signature = function.signature();
-            FunctionImplementation implementation;
-            if (signature == null) {
-                implementation = functions.getQualified(ident);
-            } else {
-                implementation = functions.getQualified(signature, ident.argumentTypes());
-            }
+            FunctionImplementation implementation = functions.getQualified(
+                function,
+                context.sessionSettings().searchPath()
+            );
             assert implementation != null : "Function implementation not found using full qualified lookup: " + function;
             return implementation.normalizeSymbol(function, context);
         }
@@ -224,7 +221,7 @@ public class EvaluatingNormalizer {
         }
     }
 
-    public Symbol normalize(@Nullable Symbol symbol, @Nullable TransactionContext txnCtx) {
+    public Symbol normalize(@Nullable Symbol symbol, @Nonnull TransactionContext txnCtx) {
         if (symbol == null) {
             return null;
         }

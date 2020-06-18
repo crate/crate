@@ -37,6 +37,7 @@ import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Tuple;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
@@ -60,7 +61,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -94,7 +94,6 @@ import io.crate.sql.tree.ValuesList;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -650,15 +649,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     "Symbol '%s' is not supported in FROM clause", node.name()));
         }
         Function function = (Function) symbol;
-        FunctionIdent ident = function.info().ident();
-        Signature signature = function.signature();
-
-        FunctionImplementation functionImplementation;
-        if (signature == null) {
-            functionImplementation = functions.getQualified(ident);
-        } else {
-            functionImplementation = functions.getQualified(signature, ident.argumentTypes());
-        }
+        FunctionImplementation functionImplementation = functions.getQualified(
+            function.signature(),
+            Symbols.typeView(function.arguments())
+        );
         assert functionImplementation != null : "Function implementation not found using full qualified lookup";
         TableFunctionImplementation<?> tableFunction = TableFunctionFactory.from(functionImplementation);
         TableFunctionRelation tableRelation = new TableFunctionRelation(tableFunction, function);

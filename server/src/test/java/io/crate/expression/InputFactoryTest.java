@@ -35,6 +35,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -196,8 +197,10 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         FunctionImplementation impl = (FunctionImplementation) f.get(expression);
         assertThat(impl.info(), is(function.info()));
 
-        FunctionIdent ident = function.info().ident();
-        FunctionImplementation uncompiled = expressions.functions().getQualified(ident);
+        FunctionImplementation uncompiled = expressions.functions().getQualified(
+            function.signature(),
+            Symbols.typeView(function.arguments())
+        );
         assertThat(uncompiled, not(sameInstance(impl)));
     }
 

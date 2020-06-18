@@ -78,8 +78,8 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateNullArguments() throws Exception {
-        assertEvaluate("array_difference([1], long_array)", List.of(1L), Literal.NULL);
-        assertEvaluate("array_difference(long_array, [1])", null, Literal.NULL);
+        assertEvaluate("array_difference([1], long_array)", List.of(1L), Literal.of(DataTypes.BIGINT_ARRAY, null));
+        assertEvaluate("array_difference(long_array, [1])", null, Literal.of(DataTypes.BIGINT_ARRAY, null));
     }
 
     @Test

@@ -111,7 +111,7 @@ public class ResetSettingsPlanTest extends CrateUnitTest {
     private Function<Symbol, Object> symbolEvaluator(Row row) {
         return x -> SymbolEvaluator.evaluate(
             TransactionContext.of(new SessionSettings("", SearchPath.createSearchPathFrom(""))),
-            new Functions(Map.of(), Map.of()),
+            new Functions(Map.of()),
             x,
             row,
             SubQueryResults.EMPTY);

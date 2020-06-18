@@ -26,8 +26,10 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -133,11 +135,11 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         try {
             execute("create function foo(long)" +
                 " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
-            assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "foo", ImmutableList.of(DataTypes.LONG));
+            assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "foo", List.of(DataTypes.LONG));
 
             execute("create function foo(string)" +
                 " returns string language dummy_lang as 'function foo(x) { return x; }'");
-            assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "foo", ImmutableList.of(DataTypes.STRING));
+            assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "foo", List.of(DataTypes.STRING));
 
             execute("select foo(str) from test order by id asc");
             assertThat(response.rows()[0][0], is("DUMMY EATS text"));
@@ -145,8 +147,8 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             execute("select foo(id) from test order by id asc");
             assertThat(response.rows()[0][0], is("DUMMY EATS bigint"));
         } finally {
-            dropFunction("foo", ImmutableList.of(DataTypes.LONG));
-            dropFunction("foo", ImmutableList.of(DataTypes.STRING));
+            dropFunction("foo", List.of(Literal.of(1L)));
+            dropFunction("foo", List.of(Literal.of("dummy")));
         }
     }
 
@@ -154,7 +156,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     public void testFunctionIsLookedUpInSearchPath() throws Exception {
         sqlExecutor.setSearchPath("firstschema", "secondschema");
         execute("create function secondschema.udf(integer) returns string language dummy_lang as '42'");
-        assertFunctionIsCreatedOnAll("secondschema", "udf", ImmutableList.of(DataTypes.INTEGER));
+        assertFunctionIsCreatedOnAll("secondschema", "udf", List.of(DataTypes.INTEGER));
 
         execute("select udf(1::integer)");
         assertThat(response.rows()[0][0], is("DUMMY EATS integer"));
@@ -163,7 +165,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     @Test
     public void testFunctionIsCreatedInThePgCatalogSchema() throws Exception {
         execute("create function pg_catalog.udf(integer) returns string language dummy_lang as '42'");
-        assertFunctionIsCreatedOnAll("pg_catalog", "udf", ImmutableList.of(DataTypes.INTEGER));
+        assertFunctionIsCreatedOnAll("pg_catalog", "udf", List.of(DataTypes.INTEGER));
 
         execute("select udf(1::integer)");
         assertThat(response.rows()[0][0], is("DUMMY EATS integer"));
@@ -172,21 +174,21 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     @Test
     public void testDropFunction() throws Exception {
         execute("create function custom(string) returns string language dummy_lang as 'DUMMY DUMMY DUMMY'");
-        assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "custom", ImmutableList.of(DataTypes.STRING));
+        assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "custom", List.of(DataTypes.STRING));
 
-        dropFunction("custom", ImmutableList.of(DataTypes.STRING));
-        assertFunctionIsDeletedOnAll(sqlExecutor.getCurrentSchema(), "custom", ImmutableList.of(DataTypes.STRING));
+        dropFunction("custom", List.of(Literal.of("foo")));
+        assertFunctionIsDeletedOnAll(sqlExecutor.getCurrentSchema(), "custom", List.of(Literal.of("foo")));
     }
 
     @Test
     public void testNewSchemaWithFunction() throws Exception {
         execute("create function new_schema.custom() returns integer language dummy_lang as 'function custom() {return 1;}'");
-        assertFunctionIsCreatedOnAll("new_schema", "custom", ImmutableList.of());
+        assertFunctionIsCreatedOnAll("new_schema", "custom", List.of());
         execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
         assertThat(response.rows()[0][0], is(1L));
 
         execute("drop function new_schema.custom()");
-        assertFunctionIsDeletedOnAll("new_schema", "custom", ImmutableList.of());
+        assertFunctionIsDeletedOnAll("new_schema", "custom", List.of());
         execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
         assertThat(response.rows()[0][0], is(0L));
     }
@@ -199,7 +201,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
                     "as 'function subtract_test(a, b, c) { return a - b - c; }'");
             assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(),
                 "subtract_test",
-                ImmutableList.of(DataTypes.LONG, DataTypes.LONG, DataTypes.LONG)
+                List.of(DataTypes.LONG, DataTypes.LONG, DataTypes.LONG)
             );
 
             execute("select routine_name, routine_body, data_type, routine_definition, routine_schema, specific_name" +
@@ -223,7 +225,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         // is created and dropped on the same schema. It proves that creating and dropping
         // functions doesn't affect already registered functions.
         execute("create function foo(long) returns string language dummy_lang as 'f doo()'");
-        assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "foo", ImmutableList.of(DataTypes.LONG));
+        assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "foo", List.of(DataTypes.LONG));
 
         final CountDownLatch latch = new CountDownLatch(50);
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
@@ -233,7 +235,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             while (latch.getCount() > 0) {
                 try {
                     execute("create function bar(long) returns long language dummy_lang as 'dummy'");
-                    assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "bar", ImmutableList.of(DataTypes.LONG));
+                    assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "bar", List.of(DataTypes.LONG));
                     execute("drop function bar(long)");
                 } catch (Exception e) {
                     lastThrowable.set(e);
@@ -259,10 +261,11 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
 
     }
 
-    private void dropFunction(String name, List<DataType> types) throws Exception {
+    private void dropFunction(String name, List<Symbol> arguments) throws Exception {
+        var types = Symbols.typeView(arguments);
         execute(String.format(Locale.ENGLISH, "drop function %s(\"%s\")",
             name, types.stream().map(DataType::getName).collect(Collectors.joining(", "))));
         assertThat(response.rowCount(), is(1L));
-        assertFunctionIsDeletedOnAll(sqlExecutor.getCurrentSchema(), name, types);
+        assertFunctionIsDeletedOnAll(sqlExecutor.getCurrentSchema(), name, arguments);
     }
 }
