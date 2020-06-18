@@ -22,7 +22,7 @@
 
 package io.crate.expression;
 
-import io.crate.metadata.FuncResolver;
+import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.functions.Signature;
@@ -39,11 +39,11 @@ import java.util.function.BiFunction;
 
 public abstract class AbstractFunctionModule<T extends FunctionImplementation> extends AbstractModule {
 
-    private HashMap<FunctionName, List<FuncResolver>> functionImplementations = new HashMap<>();
-    private MapBinder<FunctionName, List<FuncResolver>> implementationsBinder;
+    private HashMap<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
+    private MapBinder<FunctionName, List<FunctionProvider>> implementationsBinder;
 
     public void register(Signature signature, BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
-        List<FuncResolver> functions = functionImplementations.computeIfAbsent(
+        List<FunctionProvider> functions = functionImplementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());
         var duplicate = functions.stream().filter(fr -> fr.getSignature().equals(signature)).findFirst();
@@ -51,7 +51,7 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
             throw new IllegalStateException(
                 "A function already exists for signature = " + signature);
         }
-        functions.add(new FuncResolver(signature, factory));
+        functions.add(new FunctionProvider(signature, factory));
     }
 
     public abstract void configureFunctions();
@@ -63,8 +63,8 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
         implementationsBinder = MapBinder.newMapBinder(
             binder(),
             new TypeLiteral<FunctionName>() {},
-            new TypeLiteral<List<FuncResolver>>() {});
-        for (Map.Entry<FunctionName, List<FuncResolver>> entry : functionImplementations.entrySet()) {
+            new TypeLiteral<List<FunctionProvider>>() {});
+        for (Map.Entry<FunctionName, List<FunctionProvider>> entry : functionImplementations.entrySet()) {
             implementationsBinder.addBinding(entry.getKey()).toProvider(entry::getValue);
         }
 

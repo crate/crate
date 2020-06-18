@@ -48,14 +48,14 @@ import static org.hamcrest.Matchers.is;
 
 public class FunctionsTest extends CrateUnitTest {
 
-    private Map<FunctionName, List<FuncResolver>> implementations = new HashMap<>();
+    private Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
 
     private void register(Signature signature,
                           BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
-        List<FuncResolver> functions = implementations.computeIfAbsent(
+        List<FunctionProvider> functions = implementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());
-        functions.add(new FuncResolver(signature, factory));
+        functions.add(new FunctionProvider(signature, factory));
     }
 
     private Functions createFunctions() {

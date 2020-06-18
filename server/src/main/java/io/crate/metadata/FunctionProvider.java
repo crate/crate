@@ -28,13 +28,13 @@ import io.crate.types.DataType;
 import java.util.List;
 import java.util.function.BiFunction;
 
-public class FuncResolver {
+public class FunctionProvider {
 
     private final Signature signature;
     private final BiFunction<Signature, List<DataType>, FunctionImplementation> factory;
 
-    public FuncResolver(Signature signature,
-                        BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
+    public FunctionProvider(Signature signature,
+                            BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
         this.signature = signature;
         this.factory = factory;
     }
@@ -49,6 +49,6 @@ public class FuncResolver {
 
     @Override
     public String toString() {
-        return "FuncResolver{" + "signature=" + signature + '}';
+        return "FunctionProvider{" + "signature=" + signature + '}';
     }
 }

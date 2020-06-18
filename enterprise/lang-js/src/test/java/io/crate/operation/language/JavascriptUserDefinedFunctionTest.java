@@ -23,7 +23,7 @@ import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.FuncResolver;
+import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Schemas;
 import io.crate.types.DataType;
@@ -55,7 +55,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     private static final String JS = JavaScriptLanguage.NAME;
 
-    private Map<FunctionName, List<FuncResolver>> functionImplementations = new HashMap<>();
+    private Map<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
     private UserDefinedFunctionService udfService;
 
     @Override
