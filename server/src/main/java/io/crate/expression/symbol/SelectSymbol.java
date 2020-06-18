@@ -65,26 +65,6 @@ public class SelectSymbol extends Symbol {
     }
 
     @Override
-    public boolean canBeCasted() {
-        for (Symbol symbol : relation.outputs()) {
-            if (!symbol.canBeCasted()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public boolean isValueSymbol() {
-        for (Symbol symbol : relation.outputs()) {
-            if (!symbol.isValueSymbol()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitSelectSymbol(this, context);
     }

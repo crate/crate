@@ -27,10 +27,9 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.UndefinedType;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public abstract class Symbol implements FuncArg, Writeable {
+public abstract class Symbol implements Writeable {
 
     public static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL && symbol.valueType().equals(expectedType);
@@ -68,20 +67,4 @@ public abstract class Symbol implements FuncArg, Writeable {
     }
 
     public abstract String toString(Style style);
-
-    /**
-     * We only allow casting of
-     * {@link Literal},
-     * {@link Function},
-     * {@link ParameterSymbol},
-     * and Symbols whose type is undefined.
-     *
-     * The reasoning behind this is that we want to avoid
-     * query Lucene performance to drop due to casts. This
-     * is true for {@link ScopedSymbol}/{@link io.crate.metadata.Reference}.
-     */
-    @Override
-    public boolean canBeCasted() {
-        return valueType().id() == UndefinedType.INSTANCE.id();
-    }
 }

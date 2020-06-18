@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -37,8 +36,6 @@ public class MetaDataModule extends AbstractModule {
     }
 
     private void bindFunctions() {
-        MapBinder.newMapBinder(binder(), String.class, FunctionResolver.class);
-        MapBinder.newMapBinder(binder(), String.class, TableFunctionImplementation.class);
         bind(Functions.class).asEagerSingleton();
     }
 
