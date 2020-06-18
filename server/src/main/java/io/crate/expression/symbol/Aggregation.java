@@ -47,10 +47,6 @@ public class Aggregation extends Symbol {
     private final DataType<?> valueType;
     private final Symbol filter;
 
-    public Aggregation(FunctionInfo functionInfo, DataType<?> valueType, List<Symbol> inputs) {
-        this(functionInfo, null, valueType, inputs, Literal.BOOLEAN_TRUE);
-    }
-
     public Aggregation(FunctionInfo functionInfo, Signature signature, DataType<?> valueType, List<Symbol> inputs) {
         this(functionInfo, signature, valueType, inputs, Literal.BOOLEAN_TRUE);
     }
