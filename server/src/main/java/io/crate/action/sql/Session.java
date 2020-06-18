@@ -69,6 +69,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 /**
@@ -401,10 +404,25 @@ public class Session implements AutoCloseable {
                 }
             );
         } else {
-            if (activeExecution == null) {
-                activeExecution = singleExec(portal, resultReceiver, maxRows);
+            if (true) {
+                try {
+					singleExec(portal, resultReceiver, maxRows).get(50, TimeUnit.SECONDS);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ExecutionException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TimeoutException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
             } else {
-                activeExecution = activeExecution.thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows));
+                if (activeExecution == null) {
+                    activeExecution = singleExec(portal, resultReceiver, maxRows);
+                } else {
+                    activeExecution = activeExecution.thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows));
+                }
             }
         }
     }

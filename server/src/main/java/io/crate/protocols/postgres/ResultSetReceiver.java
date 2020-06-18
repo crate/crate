@@ -77,7 +77,8 @@ class ResultSetReceiver extends BaseResultReceiver {
         if (interrupted) {
             super.allFinished(true);
         } else {
-            Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(false));
+            Messages.sendCommandComplete(channel, query, rowCount);
+            super.allFinished(false);
         }
     }
 

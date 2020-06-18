@@ -42,6 +42,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.SortedSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Regular data packet is in the following format:
@@ -107,10 +110,19 @@ public class Messages {
         buffer.writeByte('C');
         buffer.writeInt(length);
         writeCString(buffer, commandTagBytes);
+        LOGGER.trace("sending commandComplete");
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentCommandComplete"));
         }
+        /*
+        try {
+			channelFuture.get(50, TimeUnit.SECONDS);
+		} catch (InterruptedException | ExecutionException | TimeoutException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        */
         return channelFuture;
     }
 
