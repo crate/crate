@@ -23,8 +23,10 @@
 package io.crate.metadata;
 
 import io.crate.common.collections.Lists2;
-import io.crate.expression.symbol.FuncArg;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
@@ -42,6 +44,7 @@ import java.util.function.BiFunction;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 
 public class FunctionsTest extends CrateUnitTest {
 
@@ -56,11 +59,11 @@ public class FunctionsTest extends CrateUnitTest {
     }
 
     private Functions createFunctions() {
-        return new Functions(Collections.emptyMap(), Collections.emptyMap(), implementations);
+        return new Functions(implementations);
     }
 
     private FunctionImplementation resolve(String functionName,
-                                           List<? extends FuncArg> arguments) {
+                                           List<? extends Symbol> arguments) {
         return createFunctions().get(null, functionName, arguments, SearchPath.pathWithPGCatalogAndDoc());
     }
 
@@ -244,5 +247,47 @@ public class FunctionsTest extends CrateUnitTest {
 
         var impl = resolve("foo", List.of(Literal.of(1), Literal.of(1L)));
         assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.INTEGER, DataTypes.INTEGER));
+    }
+
+    @Test
+    public void test_bwc_get_qualified_function_without_signature() {
+        var signature = Signature.scalar(
+            "foo",
+            DataTypes.STRING.getTypeSignature(),
+            DataTypes.INTEGER.getTypeSignature()
+        );
+        var dummyFunction = new DummyFunction(signature);
+
+        register(
+            signature,
+            (s, args) ->
+                dummyFunction
+        );
+
+        var func = new Function(dummyFunction.info, null, List.of(Literal.of("hoschi")));
+        var funcImpl = createFunctions().getQualified(func, SearchPath.pathWithPGCatalogAndDoc());
+
+        assertThat(funcImpl, is(dummyFunction));
+    }
+
+    @Test
+    public void test_bwc_get_qualified_aggregation_without_signature() {
+        var signature = Signature.scalar(
+            "foo",
+            DataTypes.STRING.getTypeSignature(),
+            DataTypes.INTEGER.getTypeSignature()
+        );
+        var dummyFunction = new DummyFunction(signature);
+
+        register(
+            signature,
+            (s, args) ->
+                dummyFunction
+        );
+
+        var agg = new Aggregation(dummyFunction.info, null, DataTypes.STRING, List.of(Literal.of("hoschi")));
+        var funcImpl = createFunctions().getQualified(agg, SearchPath.pathWithPGCatalogAndDoc());
+
+        assertThat(funcImpl, is(dummyFunction));
     }
 }

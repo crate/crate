@@ -22,12 +22,7 @@
 
 package io.crate.plugin;
 
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.functions.Signature;
 import io.crate.test.CauseMatcher;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
@@ -43,7 +38,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import static org.elasticsearch.client.Requests.clusterHealthRequest;
@@ -81,32 +75,6 @@ public class PluginLoaderTest extends ESIntegTestCase {
         Settings settings = corePlugin.settings;
 
         assertThat(settings.get("setting.for.crate"), is("foo"));
-    }
-
-    @Test
-    public void testLoadPluginRegisteringScalarFunction() throws Exception {
-        String node = startNodeWithPlugins("/io/crate/plugin/simple_plugin_registering_scalar_function");
-
-        PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
-        PluginLoaderPlugin corePlugin = getCratePlugin(pluginsService);
-
-        PluginLoader pluginLoader = corePlugin.pluginLoader;
-        assertThat(pluginLoader.plugins.size(), is(1));
-        assertThat(pluginLoader.plugins.get(0).getClass().getCanonicalName(), is("io.crate.plugin.ExamplePlugin"));
-
-        Functions functions = internalCluster().getInstance(Functions.class);
-        FunctionIdent isEven = new FunctionIdent("is_even", Collections.singletonList(DataTypes.LONG));
-        assertThat(functions.getQualified(isEven).info(),
-                   is(new FunctionInfo( isEven, DataTypes.BOOLEAN)));
-
-        // Also check that the built-in functions are not lost
-        var abs = Signature.scalar(
-            "abs",
-            DataTypes.LONG.getTypeSignature(),
-            DataTypes.LONG.getTypeSignature()
-        );
-        assertThat(functions.getQualified(abs, List.of(DataTypes.LONG)).signature(),
-                   is(abs));
     }
 
     @Test

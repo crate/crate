@@ -29,6 +29,7 @@ import io.crate.types.ObjectType;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 
 public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
 
@@ -52,10 +53,10 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("pg_typeof(is_awesome)", DataTypes.BOOLEAN.getName(), Literal.of(true));
 
         assertEvaluate("pg_typeof(58::char)", DataTypes.BYTE.getName());
-        assertEvaluate("pg_typeof(c)", DataTypes.BYTE.getName(), Literal.of(58));
+        assertEvaluate("pg_typeof(c)", DataTypes.BYTE.getName(), Literal.of(DataTypes.BYTE, (byte) 58));
 
         assertEvaluate("pg_typeof(10::smallint)", DataTypes.SHORT.getName());
-        assertEvaluate("pg_typeof(short_val)", DataTypes.SHORT.getName(), Literal.of(10));
+        assertEvaluate("pg_typeof(short_val)", DataTypes.SHORT.getName(), Literal.of(DataTypes.SHORT, (short) 10));
 
         assertEvaluate("pg_typeof(10::integer)", DataTypes.INTEGER.getName());
         assertEvaluate("pg_typeof(a)", DataTypes.INTEGER.getName(), Literal.of(10));
@@ -64,7 +65,7 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("pg_typeof(x)", DataTypes.LONG.getName(), Literal.of(8765134432441L));
 
         assertEvaluate("pg_typeof(42.0::real)", DataTypes.FLOAT.getName());
-        assertEvaluate("pg_typeof(float_val)", DataTypes.FLOAT.getName(), Literal.of(42.0));
+        assertEvaluate("pg_typeof(float_val)", DataTypes.FLOAT.getName(), Literal.of(42.0f));
 
         assertEvaluate("pg_typeof(42.0)", DataTypes.DOUBLE.getName());
         assertEvaluate("pg_typeof(double_val)", DataTypes.DOUBLE.getName(), Literal.of(42.0));
@@ -73,7 +74,7 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("pg_typeof(name)", DataTypes.STRING.getName(), Literal.of("name"));
 
         assertEvaluate("pg_typeof('120.0.0.1'::ip)", DataTypes.IP.getName());
-        assertEvaluate("pg_typeof(ip)", DataTypes.IP.getName(), Literal.of("127.0.0.1"));
+        assertEvaluate("pg_typeof(ip)", DataTypes.IP.getName(), Literal.of(DataTypes.IP, "127.0.0.1"));
 
         assertEvaluate("pg_typeof('1978-02-28T10:00:00+01'::timestamp with time zone)",
                        DataTypes.TIMESTAMPZ.getName());
@@ -88,7 +89,8 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_geographic_types() {
         assertEvaluate("pg_typeof([1.0, 2.0]::geo_point)", DataTypes.GEO_POINT.getName());
-        assertEvaluate("pg_typeof(geopoint)", DataTypes.GEO_POINT.getName(), Literal.of("[1.0, 2.0]"));
+        assertEvaluate("pg_typeof(geopoint)", DataTypes.GEO_POINT.getName(),
+                       Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value(List.of(1.0, 2.0))));
 
         assertEvaluate("pg_typeof(" +
                        "{type = 'Polygon', " +
@@ -96,14 +98,15 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
                        DataTypes.GEO_SHAPE.getName());
         assertEvaluate("pg_typeof(geoshape)",
                        DataTypes.GEO_SHAPE.getName(),
-                       Literal.of("{type = 'Polygon', coordinates = [[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]]}"));
+                       (Literal<?>) sqlExpressions.asSymbol("{type = 'Polygon', coordinates = [[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]]}::geo_shape")
+        );
     }
 
     @Test
     public void test_compound_types() {
         assertEvaluate("pg_typeof({})", ObjectType.NAME);
-        assertEvaluate("pg_typeof(obj)", ObjectType.NAME, Literal.of("{}"));
-        assertEvaluate("pg_typeof(obj_ignored)", ObjectType.NAME, Literal.of("{}"));
+        assertEvaluate("pg_typeof(obj)", ObjectType.NAME, Literal.of(Map.of()));
+        assertEvaluate("pg_typeof(obj_ignored)", ObjectType.NAME, Literal.of(Map.of()));
 
         assertEvaluate("pg_typeof(['Hello', 'World'])", DataTypes.STRING_ARRAY.getName());
         assertEvaluate("pg_typeof([1::smallint, 2::smallint])", DataTypes.SHORT_ARRAY.getName());

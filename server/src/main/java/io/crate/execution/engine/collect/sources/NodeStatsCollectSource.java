@@ -37,6 +37,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.RowGranularity;
@@ -109,7 +110,7 @@ public class NodeStatsCollectSource implements CollectSource {
             NodeStatsContext statsContext = new NodeStatsContext(nodeId, node.getName());
             nameExpr.setNextRow(statsContext);
             idExpr.setNextRow(statsContext);
-            Symbol normalized = normalizer.normalize(predicate, null);
+            Symbol normalized = normalizer.normalize(predicate, CoordinatorTxnCtx.systemTransactionContext());
             if (normalized.equals(predicate)) {
                 return nodes; // No local available sys nodes columns in where clause
             }

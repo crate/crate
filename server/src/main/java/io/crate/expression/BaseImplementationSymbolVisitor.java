@@ -31,7 +31,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.FunctionIdent;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
@@ -43,7 +43,7 @@ import java.util.Locale;
 
 public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?>> {
 
-    private final TransactionContext txnCtx;
+    protected final TransactionContext txnCtx;
     protected final Functions functions;
 
     public BaseImplementationSymbolVisitor(TransactionContext txnCtx, Functions functions) {
@@ -53,14 +53,11 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
 
     @Override
     public Input<?> visitFunction(Function function, C context) {
-        FunctionIdent ident = function.info().ident();
         Signature signature = function.signature();
-        FunctionImplementation functionImplementation;
-        if (signature == null) {
-            functionImplementation = functions.getQualified(ident);
-        } else {
-            functionImplementation = functions.getQualified(signature, ident.argumentTypes());
-        }
+        FunctionImplementation functionImplementation = functions.getQualified(
+            function,
+            txnCtx.sessionSettings().searchPath()
+        );
         assert functionImplementation != null : "Function implementation not found using full qualified lookup";
 
         if (functionImplementation instanceof Scalar<?, ?>) {
@@ -77,8 +74,8 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
                 String.format(
                     Locale.ENGLISH,
                     "Function %s(%s) is not a scalar function.",
-                    ident.name(),
-                    Joiner.on(", ").join(ident.argumentTypes())
+                    signature.getName(),
+                    Joiner.on(", ").join(Symbols.typeView(function.arguments()))
                 )
             );
         }

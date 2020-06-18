@@ -22,28 +22,23 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.FuncArg;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.functions.BoundVariables;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.SignatureBinder;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 import org.apache.logging.log4j.Logger;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,22 +56,12 @@ public class Functions {
 
     private static final Logger LOGGER = Loggers.getLogger(Functions.class);
 
-    private final Map<FunctionName, FunctionResolver> functionResolvers;
     private final Map<FunctionName, List<FuncResolver>> udfFunctionImplementations = new ConcurrentHashMap<>();
     private final Map<FunctionName, List<FuncResolver>> functionImplementations;
 
     @Inject
-    public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
-                     Map<FunctionName, FunctionResolver> functionResolvers,
-                     Map<FunctionName, List<FuncResolver>> functionImplementationsBySignature) {
-        this.functionResolvers = new HashMap<>(functionResolvers);
-        this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
+    public Functions(Map<FunctionName, List<FuncResolver>> functionImplementationsBySignature) {
         this.functionImplementations = functionImplementationsBySignature;
-    }
-
-    public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
-                     Map<FunctionName, FunctionResolver> functionResolvers) {
-        this(functionImplementations, functionResolvers, Collections.emptyMap());
     }
 
     public Map<FunctionName, List<FuncResolver>> functionResolvers() {
@@ -85,29 +70,6 @@ public class Functions {
 
     public Map<FunctionName, List<FuncResolver>> udfFunctionResolvers() {
         return udfFunctionImplementations;
-    }
-
-    private Map<FunctionName, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
-        Multimap<FunctionName, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
-        return signatures.keys().stream()
-            .distinct()
-            .collect(Collectors.toMap(name -> name, name -> new GeneratedFunctionResolver(signatures.get(name))));
-    }
-
-    /**
-     * Adds all provided {@link FunctionIdent} to a Multimap with the function
-     * name as key and all possible overloads as values.
-     * @param functionImplementations A map of all {@link FunctionIdent}.
-     * @return The MultiMap with the function name as key and a tuple of
-     *         FunctionIdent and FunctionImplementation as value.
-     */
-    private Multimap<FunctionName, Tuple<FunctionIdent, FunctionImplementation>> getSignatures(
-        Map<FunctionIdent, FunctionImplementation> functionImplementations) {
-        Multimap<FunctionName, Tuple<FunctionIdent, FunctionImplementation>> signatureMap = ArrayListMultimap.create();
-        for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functionImplementations.entrySet()) {
-            signatureMap.put(entry.getKey().fqnName(), new Tuple<>(entry.getKey(), entry.getValue()));
-        }
-        return signatureMap;
     }
 
     public void registerUdfFunctionImplementationsForSchema(
@@ -141,7 +103,7 @@ public class Functions {
      */
     public FunctionImplementation get(@Nullable String suppliedSchema,
                                       String functionName,
-                                      List<? extends FuncArg> arguments,
+                                      List<? extends Symbol> arguments,
                                       SearchPath searchPath) {
         FunctionName fqnName = new FunctionName(suppliedSchema, functionName);
         FunctionImplementation func = getBuiltinByArgs(fqnName, arguments, searchPath);
@@ -154,31 +116,6 @@ public class Functions {
         return func;
     }
 
-    @Nullable
-    private static FunctionImplementation resolveFunctionForArgumentTypes(List<? extends FuncArg> types,
-                                                                          FunctionResolver resolver) {
-        List<DataType> signature = resolver.getSignature(types);
-        if (signature != null) {
-            return resolver.getForTypes(signature);
-        }
-        return null;
-    }
-
-    /**
-     * Returns the built-in function implementation for the given function name and arguments.
-     *
-     * @param functionName The full qualified function name.
-     * @param dataTypes The function argument types.
-     * @return a function implementation or null if it was not found.
-     */
-    @Nullable
-    private FunctionImplementation getBuiltin(FunctionName functionName, List<DataType> dataTypes) {
-        FunctionResolver resolver = functionResolvers.get(functionName);
-        if (resolver == null) {
-            return null;
-        }
-        return resolver.getForTypes(dataTypes);
-    }
 
     @Nullable
     private FunctionImplementation get(Signature signature,
@@ -208,27 +145,17 @@ public class Functions {
     private FunctionImplementation getBuiltinByArgs(FunctionName functionName,
                                                     List<? extends FuncArg> argumentsTypes,
                                                     SearchPath searchPath) {
-        // V2
-        FunctionImplementation impl = resolveBuiltInFunctionBySignature(
+        return resolveBuiltInFunctionBySignature(
             functionName,
             Lists2.map(argumentsTypes, FuncArg::valueType),
             searchPath
         );
-        if (impl != null) {
-            return impl;
-        }
-
-        FunctionResolver resolver = lookupFunctionResolver(functionName, searchPath, functionResolvers::get);
-        if (resolver == null) {
-            return null;
-        }
-        return resolveFunctionForArgumentTypes(argumentsTypes, resolver);
     }
 
     @Nullable
     public FunctionImplementation resolveBuiltInFunctionBySignature(FunctionName name,
-                                                                     List<DataType> arguments,
-                                                                     SearchPath searchPath) {
+                                                                    List<DataType> arguments,
+                                                                    SearchPath searchPath) {
         return resolveFunctionBySignature(name, arguments, searchPath, functionImplementations::get);
     }
 
@@ -332,24 +259,6 @@ public class Functions {
 
 
     /**
-     * Returns the user-defined function implementation for the given function name and argTypes.
-     *
-     * @param functionName The full qualified function name.
-     * @param argTypes The function argTypes.
-     * @return a function implementation.
-     */
-    @Nullable
-    private FunctionImplementation getUserDefined(FunctionName functionName,
-                                                  List<DataType> argTypes) throws UnsupportedOperationException {
-        return resolveFunctionBySignature(
-            functionName,
-            argTypes,
-            SearchPath.pathWithPGCatalogAndDoc(),
-            udfFunctionImplementations::get
-        );
-    }
-
-    /**
      * Returns the user-defined function implementation for the given function name and arguments.
      * The types may be cast to match the built-in argument types.
      *
@@ -371,40 +280,36 @@ public class Functions {
         );
     }
 
-    @Nullable
-    private static FunctionResolver lookupFunctionResolver(FunctionName functionName,
-                                                           Iterable<String> searchPath,
-                                                           Function<FunctionName, FunctionResolver> lookupFunction) {
-        FunctionResolver functionResolver = lookupFunction.apply(functionName);
-        if (functionResolver == null && functionName.schema() == null) {
-            for (String pathSchema : searchPath) {
-                FunctionName searchPathfunctionName = new FunctionName(pathSchema, functionName.name());
-                functionResolver = lookupFunction.apply(searchPathfunctionName);
-                if (functionResolver != null) {
-                    break;
-                }
-            }
+    public FunctionImplementation getQualified(io.crate.expression.symbol.Function function,
+                                               SearchPath searchPath) {
+        var signature = function.signature();
+        if (signature != null) {
+            return getQualified(signature, Symbols.typeView(function.arguments()));
         }
-        return functionResolver;
+        // Fallback to full function resolving
+        // TODO: This is for BWC of older nodes, should be removed on the next major 5.0.
+        return get(
+            function.info().ident().fqnName().schema(),
+            function.info().ident().fqnName().name(),
+            function.arguments(),
+            searchPath
+            );
     }
 
-    /**
-     * @deprecated Superseded by {@link #getQualified(Signature, List)}.
-     *             This method gets removed once all functions use the signature based registry.
-     *
-     * Returns the function implementation for the given function ident.
-     * First look up function in built-ins then fallback to user-defined functions.
-     *
-     * @param ident The function ident.
-     * @return The function implementation.
-     * @throws UnsupportedOperationException if no implementation is found.
-     */
-    public FunctionImplementation getQualified(FunctionIdent ident) throws UnsupportedOperationException {
-        FunctionImplementation impl = getBuiltin(ident.fqnName(), ident.argumentTypes());
-        if (impl == null) {
-            impl = getUserDefined(ident.fqnName(), ident.argumentTypes());
+    public FunctionImplementation getQualified(io.crate.expression.symbol.Aggregation function,
+                                               SearchPath searchPath) {
+        var signature = function.signature();
+        if (signature != null) {
+            return getQualified(signature, Symbols.typeView(function.inputs()));
         }
-        return impl;
+        // Fallback to full function resolving
+        // TODO: This is for BWC of older nodes, should be removed on the next major 5.0.
+        return get(
+            function.functionIdent().fqnName().schema(),
+            function.functionIdent().fqnName().name(),
+            function.inputs(),
+            searchPath
+            );
     }
 
     /**
@@ -433,51 +338,6 @@ public class Functions {
         }
         String prefix = suppliedSchema == null ? "" : suppliedSchema + '.';
         throw new UnsupportedOperationException("unknown function: " + prefix + name + '(' + joiner.toString() + ')');
-    }
-
-    private static class GeneratedFunctionResolver implements FunctionResolver {
-
-        private final Map<Integer, FuncParams> allFuncParams;
-        private final Map<List<DataType>, FunctionImplementation> functions;
-
-        GeneratedFunctionResolver(Collection<Tuple<FunctionIdent, FunctionImplementation>> functionTuples) {
-            functions = new HashMap<>(functionTuples.size());
-
-            Map<Integer, FuncParams.Builder> funcParamsBuilders = new HashMap<>();
-
-            for (Tuple<FunctionIdent, FunctionImplementation> functionTuple : functionTuples) {
-                List<DataType> argumentTypes = functionTuple.v1().argumentTypes();
-                functions.put(argumentTypes, functionTuple.v2());
-
-                FuncParams.Builder funcParamsBuilder = funcParamsBuilders.get(argumentTypes.size());
-                if (funcParamsBuilder == null) {
-                    funcParamsBuilders.put(argumentTypes.size(), FuncParams.builder(argumentTypes));
-                } else {
-                    funcParamsBuilder.mergeWithTypes(argumentTypes);
-                }
-            }
-
-            allFuncParams = new HashMap<>(funcParamsBuilders.size());
-            funcParamsBuilders.forEach((numArgs, builder) -> allFuncParams.put(numArgs, builder.build()));
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return functions.get(dataTypes);
-        }
-
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
-            FuncParams funcParams = allFuncParams.get(funcArgs.size());
-            if (funcParams != null) {
-                List<DataType> sig = funcParams.match(funcArgs);
-                if (sig != null) {
-                    return sig;
-                }
-            }
-            return null;
-        }
     }
 
     private static List<ApplicableFunction> selectMostSpecificFunctions(List<ApplicableFunction> applicableFunctions,

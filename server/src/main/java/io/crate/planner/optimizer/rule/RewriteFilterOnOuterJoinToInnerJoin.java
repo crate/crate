@@ -169,7 +169,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                 if (rightQuery == null) {
                     newRhs = rhs;
                     newJoinIsInnerJoin = false;
-                } else if (couldMatchOnNull(rightQuery, normalizer)) {
+                } else if (couldMatchOnNull(rightQuery, normalizer, txnCtx)) {
                     newRhs = rhs;
                     newJoinIsInnerJoin = false;
                     splitQueries.put(rightName, rightQuery);
@@ -193,7 +193,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                 if (leftQuery == null) {
                     newLhs = lhs;
                     newJoinIsInnerJoin = false;
-                } else if (couldMatchOnNull(leftQuery, normalizer)) {
+                } else if (couldMatchOnNull(leftQuery, normalizer, txnCtx)) {
                     newLhs = lhs;
                     newJoinIsInnerJoin = false;
                     splitQueries.put(leftName, leftQuery);
@@ -216,7 +216,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                  * +------+------+
                  */
 
-                if (couldMatchOnNull(leftQuery, normalizer)) {
+                if (couldMatchOnNull(leftQuery, normalizer, txnCtx)) {
                     newLhs = lhs;
                 } else {
                     newLhs = getNewSource(leftQuery, lhs);
@@ -224,7 +224,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                         splitQueries.put(leftName, leftQuery);
                     }
                 }
-                if (couldMatchOnNull(rightQuery, normalizer)) {
+                if (couldMatchOnNull(rightQuery, normalizer, txnCtx)) {
                     newRhs = rhs;
                 } else {
                     newRhs = getNewSource(rightQuery, rhs);
@@ -275,7 +275,9 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         return splitQueries.isEmpty() ? newJoin : new Filter(newJoin, AndOperator.join(splitQueries.values()));
     }
 
-    private static boolean couldMatchOnNull(@Nullable Symbol query, EvaluatingNormalizer normalizer) {
+    private static boolean couldMatchOnNull(@Nullable Symbol query,
+                                            EvaluatingNormalizer normalizer,
+                                            TransactionContext txnCtx) {
         if (query == null) {
             return false;
         }
@@ -285,7 +287,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                     FieldReplacer.replaceFields(query, ignored -> Literal.NULL),
                     ignored -> Literal.NULL
                 ),
-                null)
+                txnCtx)
         );
     }
 }

@@ -36,8 +36,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
@@ -111,14 +111,11 @@ public class ProjectionBuilder {
                     throw new AssertionError("Invalid mode: " + mode.name());
             }
 
-            FunctionIdent ident = function.info().ident();
             Signature signature = function.signature();
-            AggregationFunction<?, ?> aggregationFunction;
-            if (signature == null) {
-                aggregationFunction = (AggregationFunction<?, ?>) this.functions.getQualified(ident);
-            } else {
-                aggregationFunction = (AggregationFunction<?, ?>) this.functions.getQualified(signature, ident.argumentTypes());
-            }
+            AggregationFunction<?, ?> aggregationFunction = (AggregationFunction<?, ?>) this.functions.getQualified(
+                signature,
+                Symbols.typeView(function.arguments())
+            );
             assert aggregationFunction != null :
                 "Aggregation function implementation not found using full qualified lookup: " + function;
 

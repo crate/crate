@@ -32,13 +32,14 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
@@ -239,12 +240,12 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      *
      * @return a normalized node, if no changes occurred returns this
      */
-    public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, CoordinatorTxnCtx coordinatorTxnCtx) {
+    public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, @Nonnull TransactionContext txnCtx) {
         RoutedCollectPhase result = this;
-        Function<Symbol, Symbol> normalize = s -> normalizer.normalize(s, coordinatorTxnCtx);
+        Function<Symbol, Symbol> normalize = s -> normalizer.normalize(s, txnCtx);
         List<Symbol> newToCollect = Lists2.map(toCollect, normalize);
         boolean changed = !newToCollect.equals(toCollect);
-        Symbol newWhereClause = normalizer.normalize(where, coordinatorTxnCtx);
+        Symbol newWhereClause = normalizer.normalize(where, txnCtx);
         OrderBy orderBy = this.orderBy;
         if (orderBy != null) {
             orderBy = orderBy.map(normalize);

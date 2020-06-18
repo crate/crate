@@ -42,6 +42,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -138,14 +139,10 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         var argsCtx = inputFactory.ctxForRefs(txnCtx, referenceResolver);
         argsCtx.add(windowFunctionSymbol.arguments());
 
-        var ident = windowFunctionSymbol.info().ident();
-        var signature = windowFunctionSymbol.signature();
-        FunctionImplementation impl;
-        if (signature == null) {
-            impl = functions.getQualified(ident);
-        } else {
-            impl = functions.getQualified(signature, ident.argumentTypes());
-        }
+        FunctionImplementation impl = functions.getQualified(
+            windowFunctionSymbol.signature(),
+            Symbols.typeView(windowFunctionSymbol.arguments())
+        );
 
         assert impl instanceof WindowFunction || impl instanceof AggregationFunction: "Got " + impl + " but expected a window function";
         WindowFunction windowFunctionImpl;

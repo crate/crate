@@ -173,7 +173,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                                    SharedShardContext sharedShardContext,
                                                    CollectTask collectTask,
                                                    boolean requiresRepeat) {
-        RoutedCollectPhase collectPhase = phase.normalize(shardNormalizer, null);
+        RoutedCollectPhase collectPhase = phase.normalize(shardNormalizer, collectTask.txnCtx());
 
         CollectorContext collectorContext;
         InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx;

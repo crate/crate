@@ -70,6 +70,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
@@ -117,10 +118,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        Functions functions = new Functions(
-            ImmutableMap.of(),
-            ImmutableMap.of()
-        );
+        Functions functions = new Functions(Map.of());
         inputFactory = new InputFactory(functions);
     }
 

@@ -23,10 +23,12 @@
 package io.crate.expression.tablefunctions;
 
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
@@ -34,6 +36,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
+import io.crate.types.TypeSignature;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 
@@ -58,16 +61,10 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
         Symbol functionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(expr));
 
         var function = (Function) functionSymbol;
-        var signature = function.signature();
-        TableFunctionImplementation<?> functionImplementation;
-        if (signature == null) {
-            functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
-                function.info().ident());
-        } else {
-            functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
-                signature,
-                function.info().ident().argumentTypes());
-        }
+        TableFunctionImplementation<?> functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+            function.signature(),
+            Symbols.typeView(function.arguments())
+        );
         return functionImplementation.evaluate(
             txnCtx,
             function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
