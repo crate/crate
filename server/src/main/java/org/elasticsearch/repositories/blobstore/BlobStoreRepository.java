@@ -27,8 +27,6 @@ import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.RateLimiter;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.ExceptionsHelper;
@@ -1132,17 +1130,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }
     }
 
-    /**
-     * Delete shard snapshot
-     *
-     * @param snapshotId snapshot id
-     * @param shardId    shard id
-     */
-    private void delete(SnapshotId snapshotId, IndexId indexId, ShardId shardId) {
-        Context context = new Context(snapshotId, indexId, shardId, shardId);
-        context.delete();
-    }
-
     @Override
     public String toString() {
         return "BlobStoreRepository[" +
@@ -1281,41 +1268,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }
 
         /**
-         * Generates blob name
-         *
-         * @param generation the blob number
-         * @return the blob name
-         */
-        protected String fileNameFromGeneration(long generation) {
-            return DATA_BLOB_PREFIX + Long.toString(generation, Character.MAX_RADIX);
-        }
-
-        /**
-         * Finds the next available blob number
-         *
-         * @param blobs list of blobs in the repository
-         * @return next available blob number
-         */
-        protected long findLatestFileNameGeneration(Map<String, BlobMetaData> blobs) {
-            long generation = -1;
-            for (String name : blobs.keySet()) {
-                if (!name.startsWith(DATA_BLOB_PREFIX)) {
-                    continue;
-                }
-                name = canonicalName(name);
-                try {
-                    long currentGen = Long.parseLong(name.substring(DATA_BLOB_PREFIX.length()), Character.MAX_RADIX);
-                    if (currentGen > generation) {
-                        generation = currentGen;
-                    }
-                } catch (NumberFormatException e) {
-                    LOGGER.warn("file [{}] does not conform to the '{}' schema", name, DATA_BLOB_PREFIX);
-                }
-            }
-            return generation;
-        }
-
-        /**
          * Loads all available snapshots in the repository
          *
          * @param blobs list of blobs in repository
@@ -1367,7 +1319,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             return new Tuple<>(new BlobStoreIndexShardSnapshots(snapshots), latest);
         }
     }
-
 
     /**
      * Loads all available snapshots in the repository
@@ -1459,49 +1410,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 inner.addSuppressed(e);
                 LOGGER.warn("store cannot be marked as corrupted", inner);
             }
-        }
-    }
-
-
-    /**
-     * This is a BWC layer to ensure we update the snapshots metadata with the corresponding hashes before we compare them.
-     * The new logic for StoreFileMetaData reads the entire {@code .si} and {@code segments.n} files to strengthen the
-     * comparison of the files on a per-segment / per-commit level.
-     */
-    private static void maybeRecalculateMetadataHash(final BlobContainer blobContainer, final BlobStoreIndexShardSnapshot.FileInfo fileInfo, Store.MetadataSnapshot snapshot) throws Exception {
-        final StoreFileMetaData metadata;
-        if (fileInfo != null && (metadata = snapshot.get(fileInfo.physicalName())) != null) {
-            if (metadata.hash().length > 0 && fileInfo.metadata().hash().length == 0) {
-                // we have a hash - check if our repo has a hash too otherwise we have
-                // to calculate it.
-                // we might have multiple parts even though the file is small... make sure we read all of it.
-                try (InputStream stream = new PartSliceStream(blobContainer, fileInfo)) {
-                    BytesRefBuilder builder = new BytesRefBuilder();
-                    Store.MetadataSnapshot.hashFile(builder, stream, fileInfo.length());
-                    BytesRef hash = fileInfo.metadata().hash(); // reset the file infos metadata hash
-                    assert hash.length == 0;
-                    hash.bytes = builder.bytes();
-                    hash.offset = 0;
-                    hash.length = builder.length();
-                }
-            }
-        }
-    }
-
-    private static final class PartSliceStream extends SlicedInputStream {
-
-        private final BlobContainer container;
-        private final BlobStoreIndexShardSnapshot.FileInfo info;
-
-        PartSliceStream(BlobContainer container, BlobStoreIndexShardSnapshot.FileInfo info) {
-            super(info.numberOfParts());
-            this.info = info;
-            this.container = container;
-        }
-
-        @Override
-        protected InputStream openSlice(long slice) throws IOException {
-            return container.readBlob(info.partName(slice));
         }
     }
 }
