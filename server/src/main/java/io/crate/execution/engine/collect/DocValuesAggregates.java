@@ -58,6 +58,7 @@ import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.aggregation.impl.AverageAggregation;
+import io.crate.execution.engine.aggregation.impl.AverageAggregation.AverageState;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
@@ -210,155 +211,177 @@ public class DocValuesAggregates {
 
     // TODO: integrate this into aggregation functions - maybe as a `createDocValuesAggregator()`
     // Or create a separate registry for optimized aggregation functions?
-    abstract static class Aggregator {
+    abstract static class Aggregator<T> {
+
+        public abstract T initialState();
 
         public abstract void loadDocValues(LeafReader reader) throws IOException;
 
-        public abstract void apply(int doc) throws IOException;
+        public abstract void apply(T state, int doc) throws IOException;
 
         // Aggregations are executed on shard level,
         // that means there is always a final reduce step necessary
         // → never return final value, but always partial result
-        public abstract Object partialResult();
+        public abstract Object partialResult(T state);
     }
 
-    static class SumLong extends Aggregator {
+    static class SumLongState {
+        private long sum = 0L;
+        private boolean hadValue = false;
+    }
+
+    static class SumLong extends Aggregator<SumLongState> {
 
         private final String columnName;
         private SortedNumericDocValues values;
-        private long sum = 0;
-        private boolean hadValue = false;
 
         SumLong(String columnName) {
             this.columnName = columnName;
         }
 
         @Override
+        public SumLongState initialState() {
+            return new SumLongState();
+        }
+
+        @Override
         public void loadDocValues(LeafReader reader) throws IOException {
             values = DocValues.getSortedNumeric(reader, columnName);
         }
 
         @Override
-        public void apply(int doc) throws IOException {
+        public void apply(SumLongState state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                sum += values.nextValue();
-                hadValue = true;
+                state.sum = Math.addExact(state.sum, values.nextValue());
+                state.hadValue = true;
             }
         }
 
         @Override
-        public Object partialResult() {
-            return hadValue ? sum : null;
+        public Object partialResult(SumLongState state) {
+            return state.hadValue ? state.sum : null;
         }
     }
 
-    static class SumDouble extends Aggregator {
+    static class SumDoubleState {
+
+        private double sum = 0.0;
+        private boolean hadValue = false;
+    }
+
+    static class SumDouble extends Aggregator<SumDoubleState> {
 
         private final String columnName;
         private SortedNumericDocValues values;
-        private double sum = 0.0;
-        private boolean hadValue = false;
 
         SumDouble(String columnName) {
             this.columnName = columnName;
         }
 
         @Override
+        public SumDoubleState initialState() {
+            return new SumDoubleState();
+        }
+
+        @Override
         public void loadDocValues(LeafReader reader) throws IOException {
             values = DocValues.getSortedNumeric(reader, columnName);
         }
 
         @Override
-        public void apply(int doc) throws IOException {
+        public void apply(SumDoubleState state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                sum += NumericUtils.sortableLongToDouble(values.nextValue());
-                hadValue = true;
+                state.sum += NumericUtils.sortableLongToDouble(values.nextValue());
+                state.hadValue = true;
             }
         }
 
         @Override
-        public Object partialResult() {
-            return hadValue ? sum : null;
+        public Object partialResult(SumDoubleState state) {
+            return state.hadValue ? state.sum : null;
         }
     }
 
-    static class AvgLong extends Aggregator {
+    static class AvgLong extends Aggregator<AverageAggregation.AverageState> {
 
         private final String columnName;
         private SortedNumericDocValues values;
-
-        private long sum = 0;
-        private long count = 0;
 
         public AvgLong(String columnName) {
             this.columnName = columnName;
         }
 
         @Override
+        public AverageState initialState() {
+            return new AverageAggregation.AverageState();
+        }
+
+        @Override
         public void loadDocValues(LeafReader reader) throws IOException {
             values = DocValues.getSortedNumeric(reader, columnName);
 
         }
 
         @Override
-        public void apply(int doc) throws IOException {
+        public void apply(AverageAggregation.AverageState state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                count++;
-                sum += values.nextValue();
+                state.count++;
+                state.sum += values.nextValue();
             }
         }
 
         @Override
-        public Object partialResult() {
-            AverageAggregation.AverageState averageState = new AverageAggregation.AverageState();
-            averageState.sum = sum;
-            averageState.count = count;
-            return averageState;
+        public Object partialResult(AverageAggregation.AverageState state) {
+            return state;
         }
     }
 
 
-    static class AvgDouble extends Aggregator {
+    static class AvgDouble extends Aggregator<AverageAggregation.AverageState> {
 
         private final String columnName;
         private SortedNumericDocValues values;
-
-        private double sum = 0.0;
-        private long count = 0;
 
         public AvgDouble(String columnName) {
             this.columnName = columnName;
         }
 
         @Override
+        public AverageState initialState() {
+            return new AverageAggregation.AverageState();
+        }
+
+        @Override
         public void loadDocValues(LeafReader reader) throws IOException {
             values = DocValues.getSortedNumeric(reader, columnName);
         }
 
         @Override
-        public void apply(int doc) throws IOException {
+        public void apply(AverageAggregation.AverageState state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                count++;
-                sum += NumericUtils.sortableLongToDouble(values.nextValue());
+                state.count++;
+                state.sum += NumericUtils.sortableLongToDouble(values.nextValue());
             }
         }
 
         @Override
-        public Object partialResult() {
-            AverageAggregation.AverageState averageState = new AverageAggregation.AverageState();
-            averageState.sum = sum;
-            averageState.count = count;
-            return averageState;
+        public Object partialResult(AverageAggregation.AverageState state) {
+            return state;
         }
     }
 
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static Iterable<Row> getRow(Searcher searcher,
                                         Query query,
                                         List<Aggregator> aggregators) throws IOException {
         IndexSearcher indexSearcher = searcher.searcher();
         Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
+        Object[] cells = new Object[aggregators.size()];
+        for (int i = 0; i < aggregators.size(); i++) {
+            cells[i] = aggregators.get(i).initialState();
+        }
         for (var leaf : leaves) {
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
@@ -374,13 +397,12 @@ public class DocValuesAggregates {
                     continue;
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
-                    aggregators.get(i).apply(doc);
+                    aggregators.get(i).apply(cells[i], doc);
                 }
             }
         }
-        Object[] cells = new Object[aggregators.size()];
         for (int i = 0; i < aggregators.size(); i++) {
-            cells[i] = aggregators.get(i).partialResult();
+            cells[i] = aggregators.get(i).partialResult(cells[i]);
         }
         return List.of(new RowN(cells));
     }
