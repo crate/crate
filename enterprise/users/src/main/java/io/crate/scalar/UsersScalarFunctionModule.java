@@ -18,21 +18,14 @@
 
 package io.crate.scalar;
 
-import io.crate.metadata.FunctionIdent;
+import io.crate.expression.AbstractFunctionModule;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.scalar.systeminformation.UserFunction;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-public class UsersScalarFunctionModule extends AbstractModule {
+public class UsersScalarFunctionModule extends AbstractFunctionModule<FunctionImplementation> {
 
     @Override
-    protected void configure() {
-        MapBinder<FunctionIdent, FunctionImplementation> functionBinder =
-            MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        UserFunction currentUserFunction = new UserFunction(UserFunction.CURRENT_USER_FUNCTION_NAME);
-        functionBinder.addBinding(currentUserFunction.info().ident()).toInstance(currentUserFunction);
-        UserFunction sessionUserFunction = new UserFunction(UserFunction.SESSION_USER_FUNCTION_NAME);
-        functionBinder.addBinding(sessionUserFunction.info().ident()).toInstance(sessionUserFunction);
+    public void configureFunctions() {
+        UserFunction.register(this);
     }
 }

@@ -27,6 +27,8 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
+import io.crate.scalar.UsersScalarFunctionModule;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -37,13 +39,32 @@ public class UserFunction extends Scalar<String, Object> {
     public static final String CURRENT_USER_FUNCTION_NAME = "current_user";
     public static final String SESSION_USER_FUNCTION_NAME = "session_user";
 
-    private final String name;
+    public static void register(UsersScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                CURRENT_USER_FUNCTION_NAME,
+                DataTypes.STRING.getTypeSignature()
+            ),
+            (signature, dataTypes) ->
+                new UserFunction(signature)
+        );
+        module.register(
+            Signature.scalar(
+                SESSION_USER_FUNCTION_NAME,
+                DataTypes.STRING.getTypeSignature()
+            ),
+            (signature, dataTypes) ->
+                new UserFunction(signature)
+        );
+    }
+
+    private final Signature signature;
     private final FunctionInfo functionInfo;
 
-    public UserFunction(String name) {
-        this.name = name;
+    public UserFunction(Signature signature) {
+        this.signature = signature;
         this.functionInfo = new FunctionInfo(
-            new FunctionIdent(name, ImmutableList.of()),
+            new FunctionIdent(signature.getName(), ImmutableList.of()),
             DataTypes.STRING,
             FunctionInfo.Type.SCALAR,
             Collections.emptySet());
@@ -52,6 +73,11 @@ public class UserFunction extends Scalar<String, Object> {
     @Override
     public FunctionInfo info() {
         return functionInfo;
+    }
+
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
