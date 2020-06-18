@@ -52,6 +52,7 @@ import java.io.InputStream;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +122,91 @@ class S3BlobContainer extends AbstractBlobContainer {
             throw new NoSuchFileException("Blob [" + blobName + "] does not exist");
         }
         deleteBlobIgnoringIfNotExists(blobName);
+    }
+
+    @Override
+    public void delete() throws IOException {
+        try (AmazonS3Reference clientReference = blobStore.clientReference()) {
+            ObjectListing prevListing = null;
+            while (true) {
+                ObjectListing list;
+                if (prevListing != null) {
+                    final ObjectListing finalPrevListing = prevListing;
+                    list = clientReference.client().listNextBatchOfObjects(finalPrevListing);
+                } else {
+                    final ListObjectsRequest listObjectsRequest = new ListObjectsRequest();
+                    listObjectsRequest.setBucketName(blobStore.bucket());
+                    listObjectsRequest.setPrefix(keyPath);
+                    list = clientReference.client().listObjects(listObjectsRequest);
+                }
+                final List<String> blobsToDelete =
+                    list.getObjectSummaries().stream().map(S3ObjectSummary::getKey).collect(Collectors.toList());
+                if (list.isTruncated()) {
+                    doDeleteBlobs(blobsToDelete, false);
+                    prevListing = list;
+                } else {
+                    final List<String> lastBlobsToDelete = new ArrayList<>(blobsToDelete);
+                    lastBlobsToDelete.add(keyPath);
+                    doDeleteBlobs(lastBlobsToDelete, false);
+                    break;
+                }
+            }
+        } catch (final AmazonClientException e) {
+            throw new IOException("Exception when deleting blob container [" + keyPath + "]", e);
+        }
+    }
+
+    private void doDeleteBlobs(List<String> blobNames, boolean relative) throws IOException {
+        if (blobNames.isEmpty()) {
+            return;
+        }
+        final Set<String> outstanding;
+        if (relative) {
+            outstanding = blobNames.stream().map(this::buildKey).collect(Collectors.toSet());
+        } else {
+            outstanding = new HashSet<>(blobNames);
+        }
+        try (AmazonS3Reference clientReference = blobStore.clientReference()) {
+            // S3 API only allows 1k blobs per delete so we split up the given blobs into requests of max. 1k deletes
+            final List<DeleteObjectsRequest> deleteRequests = new ArrayList<>();
+            final List<String> partition = new ArrayList<>();
+            for (String key : outstanding) {
+                partition.add(key);
+                if (partition.size() == MAX_BULK_DELETES) {
+                    deleteRequests.add(bulkDelete(blobStore.bucket(), partition));
+                    partition.clear();
+                }
+            }
+            if (partition.isEmpty() == false) {
+                deleteRequests.add(bulkDelete(blobStore.bucket(), partition));
+            }
+            AmazonClientException aex = null;
+            for (DeleteObjectsRequest deleteRequest : deleteRequests) {
+                List<String> keysInRequest =
+                    deleteRequest.getKeys().stream().map(DeleteObjectsRequest.KeyVersion::getKey).collect(Collectors.toList());
+                try {
+                    clientReference.client().deleteObjects(deleteRequest);
+                    outstanding.removeAll(keysInRequest);
+                } catch (MultiObjectDeleteException e) {
+                    // We are sending quiet mode requests so we can't use the deleted keys entry on the exception and instead
+                    // first remove all keys that were sent in the request and then add back those that ran into an exception.
+                    outstanding.removeAll(keysInRequest);
+                    outstanding.addAll(
+                        e.getErrors().stream().map(MultiObjectDeleteException.DeleteError::getKey).collect(Collectors.toSet()));
+                    aex = ExceptionsHelper.useOrSuppress(aex, e);
+                } catch (AmazonClientException e) {
+                    // The AWS client threw any unexpected exception and did not execute the request at all so we do not
+                    // remove any keys from the outstanding deletes set.
+                    aex = ExceptionsHelper.useOrSuppress(aex, e);
+                }
+            }
+            if (aex != null) {
+                throw aex;
+            }
+        } catch (Exception e) {
+            throw new IOException("Failed to delete blobs [" + outstanding + "]", e);
+        }
+        assert outstanding.isEmpty();
     }
 
     @Override

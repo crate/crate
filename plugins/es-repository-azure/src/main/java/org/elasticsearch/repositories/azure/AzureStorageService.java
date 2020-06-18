@@ -185,6 +185,21 @@ public class AzureStorageService {
         azureBlob.delete(DeleteSnapshotsOption.NONE, null, null, client.v2().get());
     }
 
+    void deleteBlobDirectory(String container, String path) throws URISyntaxException, StorageException, IOException {
+        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();
+        final CloudBlobContainer blobContainer = client.v1().getContainerReference(container);
+        for (final ListBlobItem blobItem : blobContainer.listBlobs(path, true)) {
+            // uri.getPath is of the form /container/keyPath.* and we want to strip off the /container/
+            // this requires 1 + container.length() + 1, with each 1 corresponding to one of the /
+            final String blobPath = blobItem.getUri().getPath().substring(1 + container.length() + 1);
+            try {
+                deleteBlob(container, blobPath);
+            } catch (URISyntaxException | StorageException e) {
+                throw new IOException("Deleting directory [" + path + "] failed");
+            }
+        }
+    }
+
     public InputStream getInputStream(String container, String blob)
         throws URISyntaxException, StorageException, IOException {
         final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();

@@ -13,6 +13,7 @@ from cr8.run_crate import CrateNode, wait_until
 from subprocess import Popen, PIPE, DEVNULL
 from testutils.paths import crate_path
 from urllib.request import urlretrieve
+from minio import Minio
 
 
 crate_node = CrateNode(
@@ -44,6 +45,9 @@ class MinioServer:
         'Darwin-x86_64': 'https://dl.min.io/server/minio/release/darwin-amd64/minio'
     }
 
+    MINIO_ACCESS_KEY = 'minio'
+    MINIO_SECRET_KEY = 'miniostorage'
+
     CACHE_ROOT = Path(os.environ.get('XDG_CACHE_HOME', os.path.join(os.path.expanduser('~'), '.cache')))
     CACHE_DIR = CACHE_ROOT / 'crate-tests'
 
@@ -67,8 +71,8 @@ class MinioServer:
     def run(self):
         cmd = [self.minio_path, 'server', str(self.data_dir)]
         env = os.environ.copy()
-        env['MINIO_ACCESS_KEY'] = 'minio'
-        env['MINIO_SECRET_KEY'] = 'miniostorage'
+        env['MINIO_ACCESS_KEY'] = MinioServer.MINIO_ACCESS_KEY
+        env['MINIO_SECRET_KEY'] = MinioServer.MINIO_SECRET_KEY
         self.process = Popen(
             cmd,
             stdin=DEVNULL,
@@ -103,6 +107,11 @@ class S3SnapshotIntegrationTest(unittest.TestCase):
         crate_node.stop()
 
     def test_copy_to_s3_copy_from_s3_roundtrip(self):
+        client = Minio('127.0.0.1:9000',
+                   access_key = MinioServer.MINIO_ACCESS_KEY,
+                   secret_key = MinioServer.MINIO_SECRET_KEY,
+                   secure = False)
+
         with MinioServer() as minio:
             t = threading.Thread(target=minio.run)
             t.daemon = True
@@ -135,3 +144,5 @@ class S3SnapshotIntegrationTest(unittest.TestCase):
                 c.execute('''SELECT COUNT(*) FROM sys.snapshots WHERE name = 's1' ''')
                 rowcount = c.fetchone()[0]
                 self.assertEqual(rowcount, 0)
+
+                [self.assertEqual(n.object_name.endswith('.dat'), False) for n in client.list_objects('backups')]

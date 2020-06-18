@@ -48,6 +48,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
@@ -555,11 +556,11 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertThat(response.rows()[0][1], is(1));
     }
 
-    private static void assertAllRepoSnapshotFilesAreDeleted(File location) {
+    private static void assertAllRepoSnapshotFilesAreDeleted(File location) throws IOException {
         //Make sure the file location does not consist of any .dat file
-        for (var file : location.listFiles()) {
-            assertThat(file.getName().endsWith(".dat"), is(false));
-        }
+        Files.walk(location.toPath())
+            .filter(Files::isRegularFile)
+            .forEach(x -> assertThat(x.getFileName().endsWith(".dat"), is(false)));
     }
 
     private RepositoryData getRepositoryData() throws Exception {

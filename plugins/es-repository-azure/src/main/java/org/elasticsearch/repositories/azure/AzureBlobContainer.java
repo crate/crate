@@ -120,6 +120,15 @@ public class AzureBlobContainer extends AbstractBlobContainer {
     }
 
     @Override
+    public void delete() throws IOException {
+        try {
+            blobStore.deleteBlobDirectory(keyPath);
+        } catch (URISyntaxException | StorageException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
     public Map<String, BlobMetadata> listBlobsByPrefix(@Nullable String prefix) throws IOException {
         logger.trace("listBlobsByPrefix({})", prefix);
 

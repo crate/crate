@@ -124,6 +124,11 @@ public class FsBlobContainer extends AbstractBlobContainer {
     }
 
     @Override
+    public void delete() throws IOException {
+        IOUtils.rm(path);
+    }
+
+    @Override
     public boolean blobExists(String blobName) {
         return Files.exists(path.resolve(blobName));
     }
