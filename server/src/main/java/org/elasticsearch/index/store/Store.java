@@ -1424,9 +1424,9 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
     /**
      * creates an empty lucene index and a corresponding empty translog. Any existing data will be deleted.
      */
-    public void createEmpty() throws IOException {
+    public void createEmpty(Version luceneVersion) throws IOException {
         metadataLock.writeLock().lock();
-        try (IndexWriter writer = newIndexWriter(IndexWriterConfig.OpenMode.CREATE, directory, null)) {
+        try (IndexWriter writer = newEmptyIndexWriter(directory, luceneVersion)) {
             final Map<String, String> map = new HashMap<>();
             map.put(Engine.HISTORY_UUID_KEY, UUIDs.randomBase64UUID());
             map.put(SequenceNumbers.LOCAL_CHECKPOINT_KEY, Long.toString(SequenceNumbers.NO_OPS_PERFORMED));
@@ -1447,29 +1447,28 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
         metadataLock.writeLock().lock();
         try {
             Map<String, String> userData = readLastCommittedSegmentsInfo().getUserData();
-            final SequenceNumbers.CommitInfo seqno = SequenceNumbers.loadSeqNoInfoFromLuceneCommit(userData.entrySet());
-            bootstrapNewHistory(seqno.maxSeqNo);
+            final long maxSeqNo = Long.parseLong(userData.get(SequenceNumbers.MAX_SEQ_NO));
+            final long localCheckpoint = Long.parseLong(userData.get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));
+            bootstrapNewHistory(localCheckpoint, maxSeqNo);
         } finally {
             metadataLock.writeLock().unlock();
         }
     }
 
     /**
-     * Marks an existing lucene index with a new history uuid and sets the given maxSeqNo as the local checkpoint
+     * Marks an existing lucene index with a new history uuid and sets the given local checkpoint
      * as well as the maximum sequence number.
-     * This is used to make sure no existing shard will recovery from this index using ops based recovery.
+     * This is used to make sure no existing shard will recover from this index using ops based recovery.
      * @see SequenceNumbers#LOCAL_CHECKPOINT_KEY
      * @see SequenceNumbers#MAX_SEQ_NO
      */
-    public void bootstrapNewHistory(long maxSeqNo) throws IOException {
+    public void bootstrapNewHistory(long localCheckpoint, long maxSeqNo) throws IOException {
         metadataLock.writeLock().lock();
-        try (IndexWriter writer = newIndexWriter(IndexWriterConfig.OpenMode.APPEND, directory, null)) {
-            final Map<String, String> userData = getUserData(writer);
+        try (IndexWriter writer = newAppendingIndexWriter(directory, null)) {
             final Map<String, String> map = new HashMap<>();
             map.put(Engine.HISTORY_UUID_KEY, UUIDs.randomBase64UUID());
+            map.put(SequenceNumbers.LOCAL_CHECKPOINT_KEY, Long.toString(localCheckpoint));
             map.put(SequenceNumbers.MAX_SEQ_NO, Long.toString(maxSeqNo));
-            map.put(SequenceNumbers.LOCAL_CHECKPOINT_KEY, Long.toString(maxSeqNo));
-            logger.debug("bootstrap a new history_uuid [{}], user_data [{}]", map, userData);
             updateCommitData(writer, map);
         } finally {
             metadataLock.writeLock().unlock();
@@ -1483,7 +1482,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
      */
     public void associateIndexWithNewTranslog(final String translogUUID) throws IOException {
         metadataLock.writeLock().lock();
-        try (IndexWriter writer = newIndexWriter(IndexWriterConfig.OpenMode.APPEND, directory, null)) {
+        try (IndexWriter writer = newAppendingIndexWriter(directory, null)) {
             if (translogUUID.equals(getUserData(writer).get(Translog.TRANSLOG_UUID_KEY))) {
                 throw new IllegalArgumentException("a new translog uuid can't be equal to existing one. got [" + translogUUID + "]");
             }
@@ -1526,40 +1525,19 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
             if (existingCommits.isEmpty()) {
                 throw new IllegalArgumentException("No index found to trim");
             }
-            final String translogUUID = existingCommits.get(existingCommits.size() - 1).getUserData().get(Translog.TRANSLOG_UUID_KEY);
+            final IndexCommit lastIndexCommitCommit = existingCommits.get(existingCommits.size() - 1);
+            final String translogUUID = lastIndexCommitCommit.getUserData().get(Translog.TRANSLOG_UUID_KEY);
             final IndexCommit startingIndexCommit;
-            // We may not have a safe commit if an index was create before v6.2; and if there is a snapshotted commit whose translog
-            // are not retained but max_seqno is at most the global checkpoint, we may mistakenly select it as a starting commit.
-            // To avoid this issue, we only select index commits whose translog are fully retained.
-            if (indexVersionCreated.before(org.elasticsearch.Version.ES_V_6_5_1)) {
-                if (minRetainedTranslogGen == -1L) {
-                    // An old checkpoint does not have min_translog_gen, then we can not determine whether a commit point has all
-                    // its required translog or not. In this case, we should start with the last commit until we have a new checkpoint.
-                    startingIndexCommit = existingCommits.get(existingCommits.size() - 1);
-                } else {
-                    final List<IndexCommit> recoverableCommits = new ArrayList<>();
-                    for (IndexCommit commit : existingCommits) {
-                        if (minRetainedTranslogGen <= Long.parseLong(commit.getUserData().get(Translog.TRANSLOG_GENERATION_KEY))) {
-                            recoverableCommits.add(commit);
-                        }
-                    }
-                    assert recoverableCommits.isEmpty() == false : "No commit point with translog found; " +
-                        "commits [" + existingCommits + "], minRetainedTranslogGen [" + minRetainedTranslogGen + "]";
-                    startingIndexCommit = CombinedDeletionPolicy.findSafeCommitPoint(recoverableCommits, lastSyncedGlobalCheckpoint);
-                }
-            } else {
-                // TODO: Asserts the starting commit is a safe commit once peer-recovery sets global checkpoint.
-                startingIndexCommit = CombinedDeletionPolicy.findSafeCommitPoint(existingCommits, lastSyncedGlobalCheckpoint);
-            }
+            // TODO: Asserts the starting commit is a safe commit once peer-recovery sets global checkpoint.
+            startingIndexCommit = CombinedDeletionPolicy.findSafeCommitPoint(existingCommits, lastSyncedGlobalCheckpoint);
 
             if (translogUUID.equals(startingIndexCommit.getUserData().get(Translog.TRANSLOG_UUID_KEY)) == false) {
                 throw new IllegalStateException("starting commit translog uuid ["
-                    + startingIndexCommit.getUserData().get(Translog.TRANSLOG_UUID_KEY) + "] is not equal to last commit's translog uuid ["
-                    + translogUUID + "]");
+                                                + startingIndexCommit.getUserData().get(Translog.TRANSLOG_UUID_KEY) + "] is not equal to last commit's translog uuid ["
+                                                + translogUUID + "]");
             }
-            logger.debug("starting index commit [{}]", startingIndexCommit.getUserData());
-            if (startingIndexCommit.equals(existingCommits.get(existingCommits.size() - 1)) == false) {
-                try (IndexWriter writer = newIndexWriter(IndexWriterConfig.OpenMode.APPEND, directory, startingIndexCommit)) {
+            if (startingIndexCommit.equals(lastIndexCommitCommit) == false) {
+                try (IndexWriter writer = newAppendingIndexWriter(directory, startingIndexCommit)) {
                     // this achieves two things:
                     // - by committing a new commit based on the starting commit, it make sure the starting commit will be opened
                     // - deletes any other commit (by lucene standard deletion policy)
@@ -1592,19 +1570,29 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
         return userData;
     }
 
-    private static IndexWriter newIndexWriter(final IndexWriterConfig.OpenMode openMode, final Directory dir, final IndexCommit commit)
-        throws IOException {
-        assert openMode == IndexWriterConfig.OpenMode.APPEND || commit == null : "can't specify create flag with a commit";
-        IndexWriterConfig iwc = new IndexWriterConfig(null)
+
+    private static IndexWriter newAppendingIndexWriter(final Directory dir, final IndexCommit commit) throws IOException {
+        IndexWriterConfig iwc = newIndexWriterConfig()
+            .setIndexCommit(commit)
+            .setOpenMode(IndexWriterConfig.OpenMode.APPEND);
+        return new IndexWriter(dir, iwc);
+    }
+
+    private static IndexWriter newEmptyIndexWriter(final Directory dir, final Version luceneVersion) throws IOException {
+        IndexWriterConfig iwc = newIndexWriterConfig()
+            .setOpenMode(IndexWriterConfig.OpenMode.CREATE)
+            .setIndexCreatedVersionMajor(luceneVersion.major);
+        return new IndexWriter(dir, iwc);
+    }
+
+    private static IndexWriterConfig newIndexWriterConfig() {
+        return new IndexWriterConfig(null)
             .setSoftDeletesField(Lucene.SOFT_DELETES_FIELD)
             .setCommitOnClose(false)
-            .setIndexCommit(commit)
             // we don't want merges to happen here - we call maybe merge on the engine
             // later once we stared it up otherwise we would need to wait for it here
             // we also don't specify a codec here and merges should use the engines for this index
-            .setMergePolicy(NoMergePolicy.INSTANCE)
-            .setOpenMode(openMode);
-        return new IndexWriter(dir, iwc);
+            .setMergePolicy(NoMergePolicy.INSTANCE);
     }
 
 }

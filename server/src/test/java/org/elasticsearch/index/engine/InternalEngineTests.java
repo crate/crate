@@ -2465,7 +2465,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             // create
             {
-                store.createEmpty();
+                store.createEmpty(Version.CURRENT.luceneVersion);
                 final String translogUUID =
                     Translog.createEmptyTranslog(config.getTranslogConfig().getTranslogPath(),
                                                  SequenceNumbers.NO_OPS_PERFORMED, shardId, primaryTerm.get());
@@ -2628,7 +2628,7 @@ public class InternalEngineTests extends EngineTestCase {
             final Path translogPath = createTempDir();
             final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
             final LongSupplier globalCheckpointSupplier = globalCheckpoint::get;
-            store.createEmpty();
+            store.createEmpty(Version.CURRENT.luceneVersion);
             final String translogUUID = Translog.createEmptyTranslog(translogPath, globalCheckpoint.get(), shardId, primaryTerm.get());
             store.associateIndexWithNewTranslog(translogUUID);
             try (InternalEngine engine =
@@ -4292,7 +4292,7 @@ public class InternalEngineTests extends EngineTestCase {
         final Path translogPath = createTempDir();
         store = createStore();
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
-        store.createEmpty();
+        store.createEmpty(Version.CURRENT.luceneVersion);
         final String translogUUID = Translog.createEmptyTranslog(translogPath, globalCheckpoint.get(), shardId, primaryTerm.get());
         store.associateIndexWithNewTranslog(translogUUID);
 
