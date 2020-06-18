@@ -22,7 +22,6 @@
 package io.crate.expression.scalar.regex;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
@@ -31,6 +30,22 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
 public class RegexpReplaceFunctionTest extends AbstractScalarFunctionsTest {
+
+    @Test
+    public void test_replace_no_match() throws Exception {
+        assertEvaluate("regexp_replace(name, 'crate', 'crate')", "foobarbequebaz", Literal.of("foobarbequebaz"));
+    }
+
+    @Test
+    public void test_replace() throws Exception {
+        assertEvaluate("regexp_replace(name, 'ba', 'Crate')", "fooCraterbequebaz", Literal.of("foobarbequebaz"));
+        assertEvaluate("regexp_replace(name, '(ba).*(ba)', 'First$1Second$2')", "fooFirstbaSecondbaz", Literal.of("foobarbequebaz"));
+    }
+
+    @Test
+    public void test_replace_global() throws Exception {
+        assertEvaluate("regexp_replace(name, 'ba', 'Crate', 'g')", "fooCraterbequeCratez", Literal.of("foobarbequebaz"));
+    }
 
     @Test
     public void testEvaluate() throws Exception {

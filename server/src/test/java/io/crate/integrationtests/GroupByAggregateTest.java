@@ -1166,11 +1166,12 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGroupByOnScalarOnArray() throws Exception {
-        execute("select regexp_matches(col1, '^\\s*(\\w+).*')[1], count(*) " +
+        execute("select string_to_array(col1, ' ')[2], count(*) " +
                 "from unnest([' select foo', 'insert into ', 'select 1']) " +
                 "group by 1 order by 2 desc");
-        assertThat(printedTable(response.rows()), is("select| 2\n" +
-                                                     "insert| 1\n"));
+        assertThat(printedTable(response.rows()), is("into| 1\n" +
+                                                     "1| 1\n" +
+                                                     "select| 1\n"));
     }
 
     @Test

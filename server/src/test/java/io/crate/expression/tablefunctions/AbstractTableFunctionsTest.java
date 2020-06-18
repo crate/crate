@@ -26,21 +26,35 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
+import io.crate.types.DataTypes;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
 
 public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
 
@@ -50,7 +64,17 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
 
     @Before
     public void prepareFunctions() {
-        sqlExpressions = new SqlExpressions(Map.of(new RelationName(null, "t"), mock(DocTableRelation.class)));
+
+        DocTableRelation relation = mock(DocTableRelation.class);
+        RelationName relationName = new RelationName(null, "t");
+        when(relation.getField(any(ColumnIdent.class), any(Operation.class)))
+            .thenReturn(new Reference(
+                new ReferenceIdent(relationName, "name"),
+                RowGranularity.NODE,
+                DataTypes.STRING,
+                0,
+                null));
+        sqlExpressions = new SqlExpressions(Map.of(relationName, relation));
         functions = sqlExpressions.getInstance(Functions.class);
     }
 
@@ -77,6 +101,17 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
         return functionImplementation.evaluate(
             txnCtx,
             function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
+    }
+
+    public void assertCompile(String functionExpression, java.util.function.Function<Scalar, Matcher<Scalar>> matcher) {
+        Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
+        functionSymbol = sqlExpressions.normalize(functionSymbol);
+        assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
+        Function function = (Function) functionSymbol;
+        Scalar scalar = (Scalar) functions.getQualified(function, txnCtx.sessionSettings().searchPath());
+        assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
+        Scalar compiled = scalar.compile(function.arguments());
+        assertThat(compiled, matcher.apply(scalar));
     }
 
     protected void assertExecute(String expr, String expected) {

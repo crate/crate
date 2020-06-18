@@ -55,7 +55,6 @@ import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.scalar.postgres.CurrentSettingFunction;
 import io.crate.expression.scalar.postgres.PgBackendPidFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
-import io.crate.expression.scalar.regex.MatchesFunction;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.AsciiFunction;
 import io.crate.expression.scalar.string.ChrFunction;
@@ -93,7 +92,6 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         CollectionAverageFunction.register(this);
         FormatFunction.register(this);
         SubstrFunction.register(this);
-        MatchesFunction.register(this);
         RegexpReplaceFunction.register(this);
 
         ArithmeticFunctions.register(this);

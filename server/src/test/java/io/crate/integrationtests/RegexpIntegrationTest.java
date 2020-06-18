@@ -31,25 +31,6 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     private Setup setup = new Setup(sqlExecutor);
 
     @Test
-    public void testRegexpMatchesIsNull() throws Exception {
-        execute("create table regex_test (i integer, s string) with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into regex_test(i, s) values (?, ?)", new Object[][]{
-            new Object[]{1, "foo is first"},
-            new Object[]{2, "bar is second"},
-            new Object[]{3, "foobar is great"},
-            new Object[]{4, "crate is greater"},
-            new Object[]{5, "foo"},
-            new Object[]{6, null}
-        });
-        refresh();
-        execute("select i from regex_test where regexp_matches(s, 'is') is not null");
-        assertThat(response.rowCount(), is(4L));
-        execute("select i from regex_test where regexp_matches(s, 'is') is null");
-        assertThat(response.rowCount(), is(2L));
-    }
-
-    @Test
     public void testRegexpReplaceIsNull() throws Exception {
         execute("create table regex_test (i integer, s string) with (number_of_replicas=0)");
         ensureYellow();
