@@ -22,26 +22,6 @@
 
 package io.crate.data.join;
 
-import static io.crate.data.SentinelRow.SENTINEL;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
-
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.infra.Blackhole;
-
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
@@ -57,12 +37,33 @@ import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.testing.RowGenerator;
 import io.crate.types.DataTypes;
-import io.crate.window.NthValueFunctions;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.infra.Blackhole;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
+
+import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+import static io.crate.window.NthValueFunctions.LAST_VALUE_NAME;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -90,7 +91,13 @@ public class RowsBatchIteratorBenchmark {
         Functions functions = new ModulesBuilder().add(new EnterpriseFunctionsModule())
             .createInjector().getInstance(Functions.class);
         lastValueIntFunction = (WindowFunction) functions.getQualified(
-            new FunctionIdent(NthValueFunctions.LAST_VALUE_NAME, Collections.singletonList(DataTypes.INTEGER)));
+            Signature.window(
+                LAST_VALUE_NAME,
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            List.of(DataTypes.INTEGER)
+        );
     }
 
     @Benchmark

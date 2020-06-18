@@ -38,6 +38,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -91,8 +92,14 @@ public class GroupingStringCollectorBenchmark {
         List<Input<?>> keyInputs = Collections.singletonList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
-        AggregationFunction minAgg = (AggregationFunction) functions.getQualified(
-                new FunctionIdent(MinimumAggregation.NAME, Collections.singletonList(DataTypes.STRING)));
+        MinimumAggregation minAgg = (MinimumAggregation) functions.getQualified(
+            Signature.aggregate(
+                MinimumAggregation.NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ),
+            List.of(DataTypes.STRING)
+        );
 
         return GroupingCollector.singleKey(
             collectExpressions,

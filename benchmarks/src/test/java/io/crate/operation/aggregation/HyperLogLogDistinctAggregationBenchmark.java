@@ -36,6 +36,7 @@ import io.crate.memory.OffHeapMemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -84,8 +85,14 @@ public class HyperLogLogDistinctAggregationBenchmark {
         Functions functions = new ModulesBuilder()
             .add(new EnterpriseFunctionsModule())
             .createInjector().getInstance(Functions.class);
-        HyperLogLogDistinctAggregation hllAggregation = ((HyperLogLogDistinctAggregation) functions.getQualified(
-            new FunctionIdent(HyperLogLogDistinctAggregation.NAME, Collections.singletonList(DataTypes.STRING))));
+        HyperLogLogDistinctAggregation hllAggregation = (HyperLogLogDistinctAggregation) functions.getQualified(
+            Signature.aggregate(
+                HyperLogLogDistinctAggregation.NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.LONG.getTypeSignature()
+            ),
+            List.of(DataTypes.STRING)
+        );
         onHeapMemoryManager = new OnHeapMemoryManager(bytes -> {});
         offHeapMemoryManager = new OffHeapMemoryManager();
         hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, onHeapMemoryManager::allocate);
