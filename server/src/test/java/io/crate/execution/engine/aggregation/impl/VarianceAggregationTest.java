@@ -103,7 +103,8 @@ public class VarianceAggregationTest extends AggregationTest {
     @Test
     public void testUnsupportedType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: variance(geo_point)");
+        expectedException.expectMessage("Unknown function: variance(INPUT(0))," +
+                                        " no overload found for matching argument types: (geo_point).");
         executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
     }
 }

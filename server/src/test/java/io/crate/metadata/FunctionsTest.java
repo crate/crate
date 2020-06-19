@@ -63,7 +63,7 @@ public class FunctionsTest extends CrateUnitTest {
     }
 
     private FunctionImplementation resolve(String functionName,
-                                           List<? extends Symbol> arguments) {
+                                           List<Symbol> arguments) {
         return createFunctions().get(null, functionName, arguments, SearchPath.pathWithPGCatalogAndDoc());
     }
 
@@ -99,7 +99,7 @@ public class FunctionsTest extends CrateUnitTest {
         var functions = createFunctions();
 
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: does_not_exists()");
+        expectedException.expectMessage("Unknown function: does_not_exists()");
         functions.get(null, "does_not_exists", Collections.emptyList(), SearchPath.pathWithPGCatalogAndDoc());
     }
 
@@ -289,5 +289,68 @@ public class FunctionsTest extends CrateUnitTest {
         var funcImpl = createFunctions().getQualified(agg, SearchPath.pathWithPGCatalogAndDoc());
 
         assertThat(funcImpl, is(dummyFunction));
+    }
+
+    @Test
+    public void test_unknown_function_with_no_arguments_and_candidates() {
+        expectedException.expectMessage("Unknown function: foo.bar()");
+        Functions.raiseUnknownFunction("foo", "bar", List.of(), List.of());
+    }
+
+    @Test
+    public void test_unknown_function_with_arguments_no_candidates() {
+        expectedException.expectMessage("Unknown function: foo.bar(1, 2)");
+        Functions.raiseUnknownFunction("foo", "bar", List.of(Literal.of(1), Literal.of(2)), List.of());
+    }
+
+    @Test
+    public void test_unknown_function_no_arguments_but_candidates() {
+        expectedException.expectMessage("Unknown function: foo.bar()." +
+                                        " Possible candidates: foo.bar(text):text, foo.bar(double precision):double precision");
+        Functions.raiseUnknownFunction(
+            "foo",
+            "bar",
+            List.of(),
+            List.of(
+                new FunctionProvider(
+                    Signature.scalar(new FunctionName("foo", "bar"),
+                                     DataTypes.STRING.getTypeSignature(),
+                                     DataTypes.STRING.getTypeSignature()),
+                    ((signature, dataTypes) -> null)
+                ),
+                new FunctionProvider(
+                    Signature.scalar(new FunctionName("foo", "bar"),
+                                     DataTypes.DOUBLE.getTypeSignature(),
+                                     DataTypes.DOUBLE.getTypeSignature()),
+                    ((signature, dataTypes) -> null)
+                )
+            )
+        );
+    }
+
+    @Test
+    public void test_unknown_function_with_arguments_and_candidates() {
+        expectedException.expectMessage("Unknown function: foo.bar(1, 2)," +
+                                        " no overload found for matching argument types: (integer, integer)." +
+                                        " Possible candidates: foo.bar(text):text, foo.bar(double precision):double precision");
+        Functions.raiseUnknownFunction(
+            "foo",
+            "bar",
+            List.of(Literal.of(1), Literal.of(2)),
+            List.of(
+                new FunctionProvider(
+                    Signature.scalar(new FunctionName("foo", "bar"),
+                                     DataTypes.STRING.getTypeSignature(),
+                                     DataTypes.STRING.getTypeSignature()),
+                    ((signature, dataTypes) -> null)
+                ),
+                new FunctionProvider(
+                    Signature.scalar(new FunctionName("foo", "bar"),
+                                     DataTypes.DOUBLE.getTypeSignature(),
+                                     DataTypes.DOUBLE.getTypeSignature()),
+                    ((signature, dataTypes) -> null)
+                )
+            )
+        );
     }
 }

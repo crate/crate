@@ -106,7 +106,8 @@ public class StdDevAggregationTest extends AggregationTest {
     @Test
     public void testUnsupportedType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: stddev(geo_point)");
+        expectedException.expectMessage("Unknown function: stddev(INPUT(0))," +
+                                        " no overload found for matching argument types: (geo_point).");
         executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
     }
 }

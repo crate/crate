@@ -59,28 +59,32 @@ public class ArrayLowerFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testZeroArguments() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_lower()");
+        expectedException.expectMessage("Unknown function: array_lower()." +
+                                        " Possible candidates: array_lower(array(E), integer):integer");
         assertEvaluate("array_lower()", null);
     }
 
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_lower(integer_array)");
+        expectedException.expectMessage("Unknown function: array_lower(_array(1))," +
+                                        " no overload found for matching argument types: (integer_array).");
         assertEvaluate("array_lower([1])", null);
     }
 
     @Test
     public void testThreeArguments() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_lower(integer_array, integer, integer_array)");
+        expectedException.expectMessage("Unknown function: array_lower(_array(1), 2, _array(3))," +
+                                        " no overload found for matching argument types: (integer_array, integer, integer_array).");
         assertEvaluate("array_lower([1], 2, [3])", null);
     }
 
     @Test
     public void testSecondArgumentNotANumber() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_lower(integer_array, integer_array)");
+        expectedException.expectMessage("Unknown function: array_lower(_array(1), _array(2))," +
+                                        " no overload found for matching argument types: (integer_array, integer_array).");
         assertEvaluate("array_lower([1], [2])", null);
     }
 

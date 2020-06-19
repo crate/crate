@@ -105,7 +105,8 @@ public class ArbitraryAggregationTest extends AggregationTest {
     @Test
     public void testUnsupportedType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: arbitrary(object)");
+        expectedException.expectMessage("Unknown function: arbitrary(INPUT(0))," +
+                                        " no overload found for matching argument types: (object).");
         executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});
     }
 }

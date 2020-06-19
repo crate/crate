@@ -42,7 +42,8 @@ public class PgBackendPidFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidType() throws Exception {
-        expectedException.expectMessage("unknown function: pg_backend_pid(undefined)");
+        expectedException.expectMessage("Unknown function: pg_backend_pid(NULL)," +
+                                        " no overload found for matching argument types: (undefined).");
         sqlExpressions.asSymbol("pg_backend_pid(null)");
     }
 

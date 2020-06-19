@@ -277,7 +277,6 @@ public class Function extends Symbol implements Cloneable {
                     printFunctionWithParenthesis(builder, style);
                 }
                 break;
-
             default:
                 if (name.startsWith(AnyOperator.OPERATOR_PREFIX)) {
                     printAnyOperator(builder, style);
@@ -390,13 +389,8 @@ public class Function extends Symbol implements Cloneable {
 
     private void printFunctionWithParenthesis(StringBuilder builder, Style style) {
         FunctionName functionName = info.ident().fqnName();
-        String schema = functionName.schema();
-        if (style == Style.QUALIFIED && schema != null) {
-            builder.append(schema).append(".");
-        }
-        builder
-            .append(functionName.name())
-            .append("(");
+        builder.append(functionName.toString(style));
+        builder.append("(");
         for (int i = 0; i < arguments.size(); i++) {
             Symbol argument = arguments.get(i);
             builder.append(argument.toString(style));

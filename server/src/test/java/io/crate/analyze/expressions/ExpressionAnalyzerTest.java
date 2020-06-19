@@ -33,7 +33,6 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.auth.user.User;
-import io.crate.exceptions.ConversionException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
@@ -369,13 +368,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
-        expectedException.expectMessage("unknown function: any_=(integer_array, integer_array)");
+        expectedException.expectMessage("Unknown function: (doc.tarr.xs = ANY(_array(10, 20)))," +
+                                        " no overload found for matching argument types: (integer_array, integer_array).");
         executor.analyze("select * from tarr where xs = ANY([10, 20])");
     }
 
     @Test
     public void testCallingUnknownFunctionWithExplicitSchemaRaisesNiceError() {
-        expectedException.expectMessage("unknown function: foo.bar(integer)");
+        expectedException.expectMessage("Unknown function: foo.bar(1)");
         executor.analyze("select foo.bar(1)");
     }
 

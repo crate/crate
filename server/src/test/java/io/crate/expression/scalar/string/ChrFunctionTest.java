@@ -61,7 +61,7 @@ public class ChrFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_empty_value_throws_exception() throws Exception {
-        expectedException.expectMessage("unknown function: chr()");
+        expectedException.expectMessage("Unknown function: chr(). Possible candidates: chr(integer):text");
         expectedException.expect(Exception.class);
         assertEvaluate("chr()", "");
     }

@@ -85,14 +85,16 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testZeroArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_difference()");
+        expectedException.expectMessage("Unknown function: array_difference()." +
+                                        " Possible candidates: array_difference(array(E), array(E)):array(E)");
         assertNormalize("array_difference()", null);
     }
 
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_difference(integer_array)");
+        expectedException.expectMessage("Unknown function: array_difference(_array(1))," +
+                                        " no overload found for matching argument types: (integer_array).");
         assertNormalize("array_difference([1])", null);
     }
 
