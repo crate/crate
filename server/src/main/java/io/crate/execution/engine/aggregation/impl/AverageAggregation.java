@@ -21,26 +21,42 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import java.io.IOException;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
 import io.crate.types.FixedWidthType;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.List;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
 
 public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageState, Double> {
 
@@ -81,8 +97,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
     public static class AverageState implements Comparable<AverageState> {
 
-        private double sum = 0;
-        private long count = 0;
+        public double sum = 0;
+        public long count = 0;
 
         public Double value() {
             if (count > 0) {
@@ -252,5 +268,91 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType> argumentTypes, List<MappedFieldType> fieldTypes) {
+        switch (argumentTypes.get(0).id()) {
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+                return new AvgLong(fieldTypes.get(0).name());
+
+            case FloatType.ID:
+            case DoubleType.ID:
+                return new AvgDouble(fieldTypes.get(0).name());
+
+            default:
+                return null;
+        }
+    }
+
+    static class AvgLong implements DocValueAggregator<AverageAggregation.AverageState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public AvgLong(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public AverageState initialState() {
+            return new AverageAggregation.AverageState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+
+        }
+
+        @Override
+        public void apply(AverageAggregation.AverageState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                state.count++;
+                state.sum += values.nextValue();
+            }
+        }
+
+        @Override
+        public Object partialResult(AverageAggregation.AverageState state) {
+            return state;
+        }
+    }
+
+
+    static class AvgDouble implements DocValueAggregator<AverageAggregation.AverageState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public AvgDouble(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public AverageState initialState() {
+            return new AverageAggregation.AverageState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(AverageAggregation.AverageState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                state.count++;
+                state.sum += NumericUtils.sortableLongToDouble(values.nextValue());
+            }
+        }
+
+        @Override
+        public Object partialResult(AverageAggregation.AverageState state) {
+            return state;
+        }
     }
 }

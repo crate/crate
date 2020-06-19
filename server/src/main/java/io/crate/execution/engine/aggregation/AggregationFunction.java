@@ -29,6 +29,9 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -110,5 +113,11 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
                                               Input[] stateToRemove) {
         throw new UnsupportedOperationException("Cannot remove state from the aggregated state as the function is " +
                                                 "not removable cumulative");
+    }
+
+    @Nullable
+    @SuppressWarnings("rawtypes")
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType> argumentTypes, List<MappedFieldType> fieldTypes) {
+        return null;
     }
 }
