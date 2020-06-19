@@ -98,7 +98,8 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testWhereClauseObjectArrayField() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: op_=(bigint_array, integer)");
+        expectedException.expectMessage("Unknown function: (doc.users.friends['id'] = 5)," +
+                                        " no overload found for matching argument types: (bigint_array, integer).");
         e.analyze("delete from users where friends['id'] = 5");
     }
 

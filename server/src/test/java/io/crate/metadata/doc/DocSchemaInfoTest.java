@@ -121,7 +121,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(functions.get("my_schema", "valid", ImmutableList.of(), pathWithPGCatalogAndDoc()), Matchers.notNullValue());
 
-        expectedException.expectMessage("unknown function: my_schema.invalid()");
+        expectedException.expectMessage("Unknown function: my_schema.invalid()");
         functions.get("my_schema", "invalid", ImmutableList.of(), pathWithPGCatalogAndDoc());
     }
 

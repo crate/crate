@@ -667,7 +667,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testNotTimestamp() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: op_not(timestamp with time zone)");
+        expectedException.expectMessage("Unknown function: (NOT doc.parted.date)," +
+                                        " no overload found for matching argument types: (timestamp with time zone).");
         analyze("select id, name from parted where not date");
     }
 
@@ -804,7 +805,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testArrayCompareInvalidArray() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: any_=(text, text)");
+        expectedException.expectMessage("Unknown function: ('George' = ANY(doc.users.name))," +
+                                        " no overload found for matching argument types: (text, text).");
         analyze("select * from users where 'George' = ANY (name)");
     }
 
@@ -847,7 +849,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // so its fields are selected as arrays,
         // ergo simple comparison does not work here
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: op_=(bigint_array, integer)");
+        expectedException.expectMessage("Unknown function: (doc.users.friends['id'] = 5)," +
+                                        " no overload found for matching argument types: (bigint_array, integer).");
         analyze("select * from users where 5 = friends['id']");
     }
 
@@ -985,7 +988,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testAnyLikeInvalidArray() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("any_like(text, text)");
+        expectedException.expectMessage("Unknown function: ('awesome' LIKE ANY(doc.users.name))," +
+                                        " no overload found for matching argument types: (text, text).");
         analyze("select * from users where 'awesome' LIKE ANY (name)");
     }
 
@@ -1276,14 +1280,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testRegexpMatchInvalidArg() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: op_~(real, text)");
+        expectedException.expectMessage("Unknown function: (doc.users.floats ~ 'foo')," +
+                                        " no overload found for matching argument types: (real, text).");
         analyze("select * from users where floats ~ 'foo'");
     }
 
     @Test
     public void testRegexpMatchCaseInsensitiveInvalidArg() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: op_~*(real, text)");
+        expectedException.expectMessage("Unknown function: (doc.users.floats ~* 'foo')," +
+                                        " no overload found for matching argument types: (real, text).");
         analyze("select * from users where floats ~* 'foo'");
     }
 
@@ -1720,7 +1726,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSelectStarFromUnnestWithInvalidArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: unnest(integer, text)");
+        expectedException.expectMessage("Unknown function: unnest(1, 'foo')," +
+                                        " no overload found for matching argument types: (integer, text).");
         analyze("select * from unnest(1, 'foo')");
     }
 

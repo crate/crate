@@ -148,7 +148,8 @@ public class PercentileAggregationTest extends AggregationTest {
     @Test
     public void testUnsupportedType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: percentile(geo_point, double precision)");
+        expectedException.expectMessage("Unknown function: percentile(INPUT(0), INPUT(0))," +
+                                        " no overload found for matching argument types: (geo_point, double precision).");
         execSingleFractionPercentile(DataTypes.GEO_POINT, new Object[][]{});
     }
 

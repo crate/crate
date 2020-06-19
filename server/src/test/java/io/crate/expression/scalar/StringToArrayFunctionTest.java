@@ -38,14 +38,15 @@ public class StringToArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testZeroArguments() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: string_to_array()");
+        expectedException.expectMessage("Unknown function: string_to_array()");
         assertEvaluate("string_to_array()", null);
     }
 
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: string_to_array(text)");
+        expectedException.expectMessage("Unknown function: string_to_array('xyz')," +
+                                        " no overload found for matching argument types: (text).");
         assertEvaluate("string_to_array('xyz')", null);
     }
 

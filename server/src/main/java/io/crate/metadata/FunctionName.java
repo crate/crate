@@ -23,6 +23,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ComparisonChain;
+import io.crate.expression.symbol.format.Style;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -94,5 +95,14 @@ public final class FunctionName implements Comparable<FunctionName>, Writeable {
                "schema='" + schema + '\'' +
                ", name='" + name + '\'' +
                '}';
+    }
+
+    public String toString(Style style) {
+        String s = "";
+        String schema = schema();
+        if (style != Style.UNQUALIFIED && schema != null) {
+            s = s + schema + ".";
+        }
+        return s + name();
     }
 }

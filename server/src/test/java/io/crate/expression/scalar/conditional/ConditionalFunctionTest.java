@@ -64,7 +64,8 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNullIfInvalidArgsLength() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: nullif(integer, integer, integer)");
+        expectedException.expectMessage("Unknown function: nullif(1, 2, 3)," +
+                                        " no overload found for matching argument types: (integer, integer, integer).");
         assertEvaluate("nullif(1, 2, 3)", null);
     }
 

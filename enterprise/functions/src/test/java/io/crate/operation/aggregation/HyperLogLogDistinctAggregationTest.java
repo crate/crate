@@ -20,6 +20,7 @@ package io.crate.operation.aggregation;
 
 import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
@@ -74,13 +75,13 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
         // Return type is fixed to Long
         FunctionImplementation func = functions.resolveBuiltInFunctionBySignature(
             new FunctionName(null, HyperLogLogDistinctAggregation.NAME),
-            List.of(DataTypes.INTEGER),
+            List.of(Literal.of(1)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
         assertEquals(DataTypes.LONG, func.info().returnType());
         func = functions.resolveBuiltInFunctionBySignature(
             new FunctionName(null, HyperLogLogDistinctAggregation.NAME),
-            List.of(DataTypes.INTEGER, DataTypes.INTEGER),
+            List.of(Literal.of(1), Literal.of(2)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
         assertEquals(DataTypes.LONG, func.info().returnType());

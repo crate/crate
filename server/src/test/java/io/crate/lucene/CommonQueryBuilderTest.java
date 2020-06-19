@@ -373,7 +373,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     public void testRangeQueryOnDocThrowsException() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: op_>(object, object)");
+        expectedException.expectMessage("Unknown function: (doc.users._doc > _map('name', 'foo'))," +
+                                        " no overload found for matching argument types: (object, object).");
         convert("_doc > {\"name\"='foo'}");
     }
 

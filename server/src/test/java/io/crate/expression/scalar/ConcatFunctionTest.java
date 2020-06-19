@@ -39,7 +39,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testArgumentThatHasNoStringRepr() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: concat(text, integer_array)");
+        expectedException.expectMessage("Unknown function: concat('foo', _array(1))," +
+                                        " no overload found for matching argument types: (text, integer_array).");
         assertNormalize("concat('foo', [1])", null);
     }
 
@@ -87,7 +88,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testTwoArraysOfIncompatibleInnerTypes() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: concat(integer_array, integer_array_array)");
+        expectedException.expectMessage("Unknown function: concat(_array(1, 2), _array(_array(1, 2)))," +
+                                        " no overload found for matching argument types: (integer_array, integer_array_array).");
         assertNormalize("concat([1, 2], [[1, 2]])", null);
     }
 

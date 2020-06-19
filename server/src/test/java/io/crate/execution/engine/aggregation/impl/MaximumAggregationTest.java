@@ -90,7 +90,8 @@ public class MaximumAggregationTest extends AggregationTest {
     @Test
     public void testUnsupportedType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: max(object)");
+        expectedException.expectMessage("Unknown function: max(INPUT(0))," +
+                                        " no overload found for matching argument types: (object).");
         executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});
     }
 }
