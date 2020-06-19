@@ -30,6 +30,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
@@ -94,6 +95,14 @@ public class InformationSchemaTableDefinitions {
             () -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
             InformationReferentialConstraintsTableInfo.create().expressions(),
             false));
+        tableDefinitions.put(
+            InformationConstraintColumnUsageTable.IDENT,
+            new StaticTableDefinition<Void>(
+                () -> completedFuture(List.of()),
+                InformationConstraintColumnUsageTable.create().expressions(),
+                false
+            )
+        );
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {
