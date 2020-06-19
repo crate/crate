@@ -609,10 +609,6 @@ public class PostgresWireProtocol {
      * | int32 maxRows (0 = unlimited)
      */
     private void handleExecute(ByteBuf buffer, Channel channel) {
-        if (false) {
-            Messages.sendCommandComplete(channel, "SELECT 1", 0);
-            return;
-        }
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         String query = session.getQuery(portalName);

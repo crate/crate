@@ -404,25 +404,10 @@ public class Session implements AutoCloseable {
                 }
             );
         } else {
-            if (true) {
-                try {
-					singleExec(portal, resultReceiver, maxRows).get(50, TimeUnit.SECONDS);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (ExecutionException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (TimeoutException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+            if (activeExecution == null) {
+                activeExecution = singleExec(portal, resultReceiver, maxRows);
             } else {
-                if (activeExecution == null) {
-                    activeExecution = singleExec(portal, resultReceiver, maxRows);
-                } else {
-                    activeExecution = activeExecution.thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows));
-                }
+                activeExecution = activeExecution.thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows));
             }
         }
     }
