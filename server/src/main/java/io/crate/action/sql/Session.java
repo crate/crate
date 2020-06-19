@@ -543,6 +543,7 @@ public class Session implements AutoCloseable {
     private CompletableFuture<?> singleExec(Portal portal, ResultReceiver<?> resultReceiver, int maxRows) {
         var activeConsumer = portal.activeConsumer();
         if (activeConsumer != null && activeConsumer.suspended()) {
+            LOGGER.trace("Resuming suspended consumer");
             activeConsumer.replaceResultReceiver(resultReceiver, maxRows);
             activeConsumer.resume();
             return resultReceiver.completionFuture();

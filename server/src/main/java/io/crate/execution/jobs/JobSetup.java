@@ -172,7 +172,7 @@ public class JobSetup {
         this.distributingConsumerFactory = distributingConsumerFactory;
         innerPreparer = new InnerPreparer();
         inputFactory = new InputFactory(functions);
-        searchTp = threadPool.executor(ThreadPool.Names.SEARCH);
+        searchTp = threadPool.executor(ThreadPool.Names.SAME);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,

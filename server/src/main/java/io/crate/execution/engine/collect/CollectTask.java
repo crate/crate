@@ -167,7 +167,8 @@ public class CollectTask extends AbstractTask {
     @Override
     protected void innerStart() {
         String threadPoolName = threadPoolName(collectPhase, batchIterator.hasLazyResultSet());
-        collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
+        consumer.accept(batchIterator, null);
+        // collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
     }
 
     public TransactionContext txnCtx() {
