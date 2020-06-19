@@ -38,6 +38,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.netty.util.collection.LongObjectHashMap;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -77,6 +78,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.testing.TestingHelpers.getFunctions;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -96,8 +98,14 @@ public class GroupingLongCollectorBenchmark {
         IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         Functions functions = new ModulesBuilder().add(new AggregationImplModule())
             .createInjector().getInstance(Functions.class);
-        AggregationFunction sumAgg = (AggregationFunction) functions.getQualified(
-            new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER)));
+        SumAggregation<?> sumAgg = ((SumAggregation<?>) getFunctions().getQualified(
+            Signature.aggregate(
+                SumAggregation.NAME,
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.LONG.getTypeSignature()
+            ),
+            List.of(DataTypes.INTEGER))
+        );
         var memoryManager = new OnHeapMemoryManager(bytes -> {});
         groupBySumCollector = createGroupBySumCollector(sumAgg, memoryManager);
 

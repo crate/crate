@@ -368,7 +368,8 @@ inserted records.
 | ``errors[ERROR_MSG]['count']``        | The number records failed with this error.     | ``BIGINT``    |
 +---------------------------------------+------------------------------------------------+---------------+
 | ``errors[ERROR_MSG]['line_numbers']`` | The line numbers of the source URI where the   | ``ARRAY``     |
-|                                       | error occurred.                                |               |
+|                                       | error occurred, limited to the first 50        |               |
+|                                       | errors, to avoid buffer pressure on clients.   |               |
 +---------------------------------------+------------------------------------------------+---------------+
 
 .. _AWS documentation: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html

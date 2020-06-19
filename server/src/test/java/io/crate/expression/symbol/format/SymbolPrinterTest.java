@@ -39,6 +39,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -137,8 +138,13 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             DataTypes.LONG,
             FunctionInfo.Type.AGGREGATE
         );
+        Signature signature = Signature.aggregate(
+            "agg",
+            DataTypes.INTEGER.getTypeSignature(),
+            DataTypes.LONG.getTypeSignature()
+        );
         Aggregation a = new Aggregation(
-            functionInfo, DataTypes.LONG, Collections.singletonList(Literal.of(-127)));
+            functionInfo, signature, DataTypes.LONG, Collections.singletonList(Literal.of(-127)));
 
         assertPrint(a, "agg(-127)");
     }
