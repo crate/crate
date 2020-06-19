@@ -186,6 +186,9 @@ public class CollectTask extends AbstractTask {
 
     @VisibleForTesting
     static String threadPoolName(CollectPhase phase, boolean involvedIO) {
+        if (true) {
+            return ThreadPool.Names.SAME;
+        }
         if (phase instanceof RoutedCollectPhase) {
             RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
             if (collectPhase.maxRowGranularity() == RowGranularity.NODE

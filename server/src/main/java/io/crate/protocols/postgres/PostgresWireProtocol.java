@@ -609,7 +609,7 @@ public class PostgresWireProtocol {
      * | int32 maxRows (0 = unlimited)
      */
     private void handleExecute(ByteBuf buffer, Channel channel) {
-        if (true) {
+        if (false) {
             Messages.sendCommandComplete(channel, "SELECT 1", 0);
             return;
         }
