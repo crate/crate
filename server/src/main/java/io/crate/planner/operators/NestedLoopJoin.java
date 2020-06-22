@@ -193,10 +193,11 @@ public class NestedLoopJoin implements LogicalPlan {
             configureExecution(left, right, plannerContext, isDistributed);
 
         List<Symbol> joinOutputs = Lists2.concat(leftLogicalPlan.outputs(), rightLogicalPlan.outputs());
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         Symbol joinInput = null;
         if (joinCondition != null) {
-            joinInput = InputColumns.create(joinCondition, joinOutputs);
+            joinInput = InputColumns.create(paramBinder.apply(joinCondition), joinOutputs);
         }
 
         NestedLoopPhase nlPhase = new NestedLoopPhase(

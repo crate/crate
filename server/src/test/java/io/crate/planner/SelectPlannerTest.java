@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
+import io.crate.data.RowN;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.dsl.phases.ExecutionPhase;
@@ -80,6 +81,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
@@ -969,5 +971,40 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    └ GroupHashAggregate[name | count(id)]\n" +
             "      └ Collect[doc.users | [id, name] | true]";
         assertThat(plan, isPlan(expectedPlan));
+    }
+
+
+    @Test
+    public void test_equi_join_with_scalar_using_parameter_placeholders() throws Exception {
+        String stmt = "SELECT u1.name FROM users u1 JOIN users u2 ON (u1.name || ?) = u2.name";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "Eval[name]\n" +
+            "  └ HashJoin[(name = concat(name, $1))]\n" +
+            "    ├ Rename[name] AS u1\n" +
+            "    │  └ Collect[doc.users | [name] | true]\n" +
+            "    └ Rename[name] AS u2\n" +
+            "      └ Collect[doc.users | [name] | true]";
+        assertThat(plan, isPlan(expectedPlan));
+
+        // this must not fail
+        e.plan(stmt, UUID.randomUUID(), 0, new RowN("foo"));
+    }
+
+    @Test
+    public void test_non_euqi_join_with_scalar_using_parameter_placeholders() throws Exception {
+        String stmt = "SELECT u1.name FROM users u1 JOIN users u2 ON (u1.name || ?) != u2.name";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "Eval[name]\n" +
+            "  └ NestedLoopJoin[INNER | (NOT (name = concat(name, $1)))]\n" +
+            "    ├ Rename[name] AS u1\n" +
+            "    │  └ Collect[doc.users | [name] | true]\n" +
+            "    └ Rename[name] AS u2\n" +
+            "      └ Collect[doc.users | [name] | true]";
+        assertThat(plan, isPlan(expectedPlan));
+
+        // this must not fail
+        e.plan(stmt, UUID.randomUUID(), 0, new RowN("foo"));
     }
 }

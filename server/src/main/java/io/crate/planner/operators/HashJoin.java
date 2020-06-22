@@ -138,6 +138,7 @@ public class HashJoin implements LogicalPlan {
             rightExecutionPlan = tmp;
         }
 
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         Tuple<List<Symbol>, List<Symbol>> hashSymbols =
             extractHashJoinSymbolsFromJoinSymbolsAndSplitPerSide(tablesSwitched);
 
@@ -168,8 +169,8 @@ public class HashJoin implements LogicalPlan {
         } else {
             if (isDistributed) {
                 // Run the join distributed by modulo distribution algorithm
-                leftOutputs = setModuloDistribution(hashSymbols.v1(), leftLogicalPlan.outputs(), leftExecutionPlan);
-                rightOutputs = setModuloDistribution(hashSymbols.v2(), rightLogicalPlan.outputs(), rightExecutionPlan);
+                leftOutputs = setModuloDistribution(Lists2.map(hashSymbols.v1(), paramBinder), leftLogicalPlan.outputs(), leftExecutionPlan);
+                rightOutputs = setModuloDistribution(Lists2.map(hashSymbols.v2(), paramBinder), rightLogicalPlan.outputs(), rightExecutionPlan);
             } else {
                 // Run the join non-distributed on the handler node
                 joinExecutionNodes = Collections.singletonList(plannerContext.handlerNode());
@@ -181,7 +182,6 @@ public class HashJoin implements LogicalPlan {
         }
 
         List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
-
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -192,9 +192,9 @@ public class HashJoin implements LogicalPlan {
             leftOutputs.size(),
             rightOutputs.size(),
             joinExecutionNodes,
-            InputColumns.create(joinCondition, joinOutputs),
-            InputColumns.create(hashSymbols.v1(), new InputColumns.SourceSymbols(leftOutputs)),
-            InputColumns.create(hashSymbols.v2(), new InputColumns.SourceSymbols(rightOutputs)),
+            InputColumns.create(paramBinder.apply(joinCondition), joinOutputs),
+            InputColumns.create(Lists2.map(hashSymbols.v1(), paramBinder), new InputColumns.SourceSymbols(leftOutputs)),
+            InputColumns.create(Lists2.map(hashSymbols.v2(), paramBinder), new InputColumns.SourceSymbols(rightOutputs)),
             Symbols.typeView(leftOutputs),
             leftLogicalPlan.estimatedRowSize(),
             leftLogicalPlan.numExpectedRows());
