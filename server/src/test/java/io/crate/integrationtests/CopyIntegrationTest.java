@@ -706,38 +706,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void test_copy_from_return_summary_with_failed_rows_line_numers_limitted_to_50() throws Exception {
-        execute("create table tmp_t1 (v integer)");
-        Path tmpDir = newTempDir(LifecycleScope.TEST);
-        Path target = Files.createDirectories(tmpDir.resolve("target"));
-        String fileName = "uzulo.json";
-
-        // two correct inserts
-        tmpFileWithLines(Arrays.asList(
-            "{\"v\": 100}",
-            "{\"v\": 200}"
-        ), fileName, target);
-
-        int numBrokenInserts = 60;
-        String [] brokenInserts = new String[numBrokenInserts];
-        for (int i=0; i < numBrokenInserts; i++) {
-            brokenInserts[i] = String.format("{ \"v\": %d, \"bob\": 42", i); // bob is unexpected
-        }
-        tmpFileWithLines(Arrays.asList(brokenInserts), fileName, target);
-
-        execute("copy tmp_t1 from ? return summary", new Object[]{target.toUri().toString() + "*"});
-
-        String result = printedTable(response.rows());
-        assertThat(result, containsString(
-            "0| 60| {mapping set to strict, dynamic introduction of [bob] within [default] is not allowed"));
-
-        for (Map<String, Object> mappingError: ((Map<String, Map<String, Object>>) response.rows()[1][4]).values()) {
-            assertThat(((List<Long>) mappingError.get("line_numbers")).size(), is(50));
-            break;
-        }
-    }
-
-    @Test
     public void testCopyFromReturnSummaryWithFailedRows() throws Exception {
         execute("create table t1 (id int primary key, ts timestamp with time zone)");
 
