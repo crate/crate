@@ -112,6 +112,7 @@ public class TableParameters {
      */
     static final Set<Setting> SETTINGS_NOT_INCLUDED_IN_DEFAULT = Set.of(
         IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
+        IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
         MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING
     );
