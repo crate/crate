@@ -33,6 +33,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotsService;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -262,26 +263,37 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         private final String nodeId;
         private final String reason;
 
-        public ShardSnapshotStatus(String nodeId) {
-            this(nodeId, ShardState.INIT);
+        @Nullable
+        private final String generation;
+
+        public ShardSnapshotStatus(String nodeId, String generation) {
+            this(nodeId, ShardState.INIT, generation);
         }
 
-        public ShardSnapshotStatus(String nodeId, ShardState state) {
-            this(nodeId, state, null);
+        public ShardSnapshotStatus(String nodeId, ShardState state, String generation) {
+            this(nodeId, state, null, generation);
         }
 
-        public ShardSnapshotStatus(String nodeId, ShardState state, String reason) {
+        public ShardSnapshotStatus(String nodeId, ShardState state, String reason, String generation) {
             this.nodeId = nodeId;
             this.state = state;
             this.reason = reason;
             // If the state is failed we have to have a reason for this failure
             assert state.failed() == false || reason != null;
+            this.generation = generation;
         }
 
         public ShardSnapshotStatus(StreamInput in) throws IOException {
             nodeId = in.readOptionalString();
             state = ShardState.fromValue(in.readByte());
+            if (in.getVersion().onOrAfter(SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION)) {
+                generation = in.readOptionalString();
+                assert generation != null || state != ShardState.SUCCESS : "Received null generation for shard state [" + state + "]";
+            } else {
+                generation = null;
+            }
             reason = in.readOptionalString();
+
         }
 
         public ShardState state() {
@@ -296,9 +308,17 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             return reason;
         }
 
+        @Nullable
+        public String generation() {
+            return generation;
+        }
+
         public void writeTo(StreamOutput out) throws IOException {
             out.writeOptionalString(nodeId);
             out.writeByte(state.value);
+            if (out.getVersion().onOrAfter(SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION)) {
+                out.writeOptionalString(generation);
+            }
             out.writeOptionalString(reason);
         }
 
@@ -307,8 +327,10 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             ShardSnapshotStatus status = (ShardSnapshotStatus) o;
-            return Objects.equals(nodeId, status.nodeId) && Objects.equals(reason, status.reason) && state == status.state;
-
+            return Objects.equals(nodeId, status.nodeId) &&
+                   Objects.equals(reason, status.reason) &&
+                   Objects.equals(generation, status.generation) &&
+                   state == status.state;
         }
 
         @Override
@@ -316,12 +338,13 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             int result = state != null ? state.hashCode() : 0;
             result = 31 * result + (nodeId != null ? nodeId.hashCode() : 0);
             result = 31 * result + (reason != null ? reason.hashCode() : 0);
+            result = 31 * result + (generation != null ? generation.hashCode() : 0);
             return result;
         }
 
         @Override
         public String toString() {
-            return "ShardSnapshotStatus[state=" + state + ", nodeId=" + nodeId + ", reason=" + reason + "]";
+            return "ShardSnapshotStatus[state=" + state + ", nodeId=" + nodeId + ", reason=" + reason + ", generation=" + generation + "]";
         }
     }
 
