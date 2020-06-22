@@ -1663,7 +1663,6 @@ How to reindex
     |    "translog.flush_threshold_size" = 536870912,     |
     |    "translog.sync_interval" = 5000,                 |
     |    "unassigned.node_left.delayed_timeout" = 60000,  |
-    |    "warmer.enabled" = true,                         |
     |    "write.wait_for_active_shards" = '1'             |
     | )                                                   |
     +-----------------------------------------------------+

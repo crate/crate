@@ -114,7 +114,6 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
-                     "   \"warmer.enabled\" = true,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
                      ")",
             SqlFormatter.formatSql(node));
@@ -166,7 +165,6 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
-                     "   \"warmer.enabled\" = true,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
                      ")",
             SqlFormatter.formatSql(node));
@@ -220,7 +218,6 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
-                     "   \"warmer.enabled\" = true,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
                      ")",
             SqlFormatter.formatSql(node));
@@ -270,7 +267,6 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
-                     "   \"warmer.enabled\" = true,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
                      ")",
                      SqlFormatter.formatSql(node));
@@ -323,7 +319,6 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
-                     "   \"warmer.enabled\" = true,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
                      ")",
             SqlFormatter.formatSql(node));
@@ -401,7 +396,6 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
-                     "   \"warmer.enabled\" = true,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
                      ")",
             SqlFormatter.formatSql(node));
@@ -451,7 +445,6 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
-                     "   \"warmer.enabled\" = true,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
                      ")",
             SqlFormatter.formatSql(node));
@@ -500,7 +493,6 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
-                     "   \"warmer.enabled\" = true,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
                      ")",
                      SqlFormatter.formatSql(node));
