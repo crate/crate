@@ -190,7 +190,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      */
     public List<SnapshotInfo> snapshots(final String repositoryName,
                                         final List<SnapshotId> snapshotIds,
-                                        final Set<SnapshotId> incompatibleSnapshotIds,
                                         final boolean ignoreUnavailable) {
         final Set<SnapshotInfo> snapshotSet = new HashSet<>();
         final Set<SnapshotId> snapshotIdsToIterate = new HashSet<>(snapshotIds);
@@ -205,13 +204,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         final Repository repository = repositoriesService.repository(repositoryName);
         for (SnapshotId snapshotId : snapshotIdsToIterate) {
             try {
-                if (incompatibleSnapshotIds.contains(snapshotId)) {
-                    // an incompatible snapshot - cannot read its snapshot metadata file, just return
-                    // a SnapshotInfo indicating its incompatible
-                    snapshotSet.add(SnapshotInfo.incompatible(snapshotId));
-                } else {
-                    snapshotSet.add(repository.getSnapshotInfo(snapshotId));
-                }
+                snapshotSet.add(repository.getSnapshotInfo(snapshotId));
             } catch (Exception ex) {
                 if (ignoreUnavailable) {
                     LOGGER.warn(() -> new ParameterizedMessage("failed to get snapshot [{}]", snapshotId), ex);
@@ -1136,26 +1129,12 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         // First, look for the snapshot in the repository
         final Repository repository = repositoriesService.repository(repositoryName);
         final RepositoryData repositoryData = repository.getRepositoryData();
-        final Optional<SnapshotId> incompatibleSnapshotId =
-            repositoryData.getIncompatibleSnapshotIds().stream().filter(s -> snapshotName.equals(s.getName())).findFirst();
-        if (incompatibleSnapshotId.isPresent()) {
-            throw new SnapshotException(repositoryName, snapshotName, "cannot delete incompatible snapshot");
-        }
         Optional<SnapshotId> matchedEntry = repositoryData.getSnapshotIds()
             .stream()
             .filter(s -> s.getName().equals(snapshotName))
             .findFirst();
         // if nothing found by the same name, then look in the cluster state for current in progress snapshots
         long repoGenId = repositoryData.getGenId();
-        if (matchedEntry.isPresent() == false) {
-            Optional<SnapshotsInProgress.Entry> matchedInProgress = currentSnapshots(repositoryName, Collections.emptyList()).stream()
-                .filter(s -> s.snapshot().getSnapshotId().getName().equals(snapshotName)).findFirst();
-            if (matchedInProgress.isPresent()) {
-                matchedEntry = matchedInProgress.map(s -> s.snapshot().getSnapshotId());
-                // Derive repository generation if a snapshot is in progress because it will increment the generation when it finishes
-                repoGenId = matchedInProgress.get().getRepositoryStateId() + 1L;
-            }
-        }
         if (matchedEntry.isPresent() == false) {
             throw new SnapshotMissingException(repositoryName, snapshotName);
         }
