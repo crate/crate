@@ -734,11 +734,15 @@ public class SQLExecutor {
     }
 
     public <T> T plan(String statement, UUID jobId, int fetchSize) {
-        AnalyzedStatement analyzedStatement = analyze(statement, ParamTypeHints.EMPTY);
-        return planInternal(analyzedStatement, jobId, fetchSize);
+        return plan(statement, jobId, fetchSize, Row.EMPTY);
     }
 
-    private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int fetchSize) {
+    public <T> T plan(String statement, UUID jobId, int fetchSize, Row params) {
+        AnalyzedStatement analyzedStatement = analyze(statement, ParamTypeHints.EMPTY);
+        return planInternal(analyzedStatement, jobId, fetchSize, params);
+    }
+
+    private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int fetchSize, Row params) {
         RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
@@ -758,7 +762,7 @@ public class SQLExecutor {
                 0,
                 null,
                 null,
-                Row.EMPTY,
+                params,
                 new SubQueryResults(emptyMap()) {
                     @Override
                     public Object getSafe(SelectSymbol key) {
