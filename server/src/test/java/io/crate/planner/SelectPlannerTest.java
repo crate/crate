@@ -958,4 +958,16 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(collect.collectPhase().projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
     }
+
+    @Test
+    public void test_order_by_on_aggregation_with_alias_in_select_list() throws Exception {
+        String stmt = "SELECT count(id) as cnt FROM users GROUP BY name ORDER BY count(id) DESC";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "Eval[count(id) AS cnt]\n" +
+            "  └ OrderBy[count(id) DESC]\n" +
+            "    └ GroupHashAggregate[name | count(id)]\n" +
+            "      └ Collect[doc.users | [id, name] | true]";
+        assertThat(plan, isPlan(expectedPlan));
+    }
 }

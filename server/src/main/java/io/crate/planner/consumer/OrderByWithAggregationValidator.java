@@ -67,9 +67,14 @@ public class OrderByWithAggregationValidator {
 
         @Override
         public Void visitFunction(Function symbol, ValidatorContext context) {
-            if (context.outputSymbols.contains(symbol)) {
-                return null;
-            } else if (context.isDistinct) {
+            for (var output : context.outputSymbols) {
+                if (output.equals(symbol)) {
+                    return null;
+                } else if (output instanceof AliasSymbol && ((AliasSymbol) output).symbol().equals(symbol)) {
+                    return null;
+                }
+            }
+            if (context.isDistinct) {
                 throw new UnsupportedOperationException(Symbols.format(INVALID_FIELD_IN_DISTINCT_TEMPLATE, symbol));
             }
             if (symbol.info().type() == FunctionInfo.Type.SCALAR) {
