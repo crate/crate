@@ -38,6 +38,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.protocols.postgres.Portal;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -47,7 +48,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Answers;
-import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,6 +62,10 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -144,6 +149,42 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Requested parameter index exceeds the number of parameters");
         assertThat(session.getParamType("S_1", 3), is(DataTypes.UNDEFINED));
+    }
+
+    @Test
+    public void test_select_query_executed_on_session_execute_method() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+        Session session = Mockito.spy(new Session(
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            mock(DependencyCarrier.class),
+            AccessControl.DISABLED,
+            SessionContext.systemSessionContext())
+        );
+
+        var activeExecutionFuture = CompletableFuture.completedFuture(null);
+        doReturn(activeExecutionFuture)
+            .when(session)
+            .singleExec(any(Portal.class), any(ResultReceiver.class), anyInt());
+
+        session.parse("S_1", "select name from sys.cluster;", List.of());
+        session.bind("Portal", "S_1", Collections.emptyList(), null);
+        session.describe('S', "S_1");
+        session.execute("Portal", 1, new BaseResultReceiver());
+
+        assertThat(session.portals.size(), is(1));
+        assertThat(session.preparedStatements.size(), is(1));
+        assertThat(session.deferredExecutionsByStmt.size(), is(0));
+        assertThat(session.activeExecution, is(activeExecutionFuture));
+
+        session.close();
+
+        assertThat(session.portals.size(), is(0));
+        assertThat(session.preparedStatements.size(), is(0));
+        assertThat(session.deferredExecutionsByStmt.size(), is(0));
+        assertThat(session.activeExecution, is(nullValue()));
     }
 
     @Test
@@ -300,17 +341,17 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.parse("S_2", "select id from sys.cluster", Collections.emptyList());
         session.bind("", "S_2", Collections.emptyList(), null);
         session.describe('S', "S_2");
-        session.execute("", 0, new BaseResultReceiver());
 
         assertThat(session.portals.size(), is(2));
         assertThat(session.preparedStatements.size(), is(2));
-        assertThat(session.deferredExecutionsByStmt.size(), is(1));
+        assertThat(session.deferredExecutionsByStmt.size(), is(0));
 
         session.close();
 
         assertThat(session.portals.size(), is(0));
         assertThat(session.preparedStatements.size(), is(0));
         assertThat(session.deferredExecutionsByStmt.size(), is(0));
+        assertThat(session.activeExecution, is(nullValue()));
     }
 
     @Test
@@ -399,7 +440,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         Planner planner = mock(Planner.class);
-        when(planner.plan(ArgumentMatchers.any(AnalyzedStatement.class), ArgumentMatchers.any(PlannerContext.class)))
+        when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
             .thenReturn(new Plan() {
                             @Override
                             public StatementType type() {
