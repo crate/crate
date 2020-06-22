@@ -55,7 +55,7 @@ public class SysSnapshotsTest extends CrateUnitTest {
         snapshots.put(s1.getUUID(), s1);
         snapshots.put(s2.getUUID(), s2);
         RepositoryData repositoryData = new RepositoryData(
-            1, snapshots, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList());
+            1, snapshots, Collections.emptyMap(), Collections.emptyMap());
 
         Repository r1 = mock(Repository.class);
         when(r1.getRepositoryData()).thenReturn(repositoryData);
