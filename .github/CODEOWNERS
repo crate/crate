@@ -1,3 +1,3 @@
-*.rst @crate/docs
-docs/ @crate/docs
+*.rst @crate/tech-writing
+docs/ @crate/tech-writing
 docs/appendices/release-notes/unreleased.rst
