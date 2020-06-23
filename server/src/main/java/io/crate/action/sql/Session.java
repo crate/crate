@@ -353,7 +353,8 @@ public class Session implements AutoCloseable {
         }
     }
 
-    public void execute(String portalName, int maxRows, ResultReceiver<?> resultReceiver) {
+    @Nullable
+    public CompletableFuture<?> execute(String portalName, int maxRows, ResultReceiver<?> resultReceiver) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
         }
@@ -413,7 +414,9 @@ public class Session implements AutoCloseable {
                 activeExecution = activeExecution
                     .thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows));
             }
+            return activeExecution;
         }
+        return null;
     }
 
     public CompletableFuture<?> sync() {
