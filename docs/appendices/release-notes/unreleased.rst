@@ -42,13 +42,26 @@ Unreleased Changes
 Breaking Changes
 ================
 
-- Limit the output of COPY FROM RETURN SUMMARY in the presence of errors to
-  display up to 50 ``line_numbers`` to avoid buffer pressure at clients and
-  to improve readability.
+- Changed the logic how the ``array_unique`` scalar infers the argument types.
+  Previously if the arguments had a different type it used the type of the
+  first argument. For example::
 
-- The ``array_unique`` scalar function use a common element type based on the
-  type precedence if given arrays have different element types instead of always
-  casting to the element type of the first array argument.
+    cr> select array_unique(['1'], [1.0, 2.0]);
+    +---------------------------------+
+    | array_unique(['1'], [1.0, 2.0]) |
+    +---------------------------------+
+    | ["1", "1.0", "2.0"]             |
+    +---------------------------------+
+
+  This logic has been changed to instead use a type precedence logic to be
+  consistent with how other functions behave::
+
+    cr> select array_unique(['1'], [1.0, 2.0]);
+    +------------+
+    | [1.0, 2.0] |
+    +------------+
+    | [1.0, 2.0] |
+    +------------+
 
 - Remap CrateDB :ref:`object_data_type` array data type from the PostgreSQL
   JSON to JSON array type. That might effect some drivers that use the
@@ -101,6 +114,10 @@ Administration
 - Added a ``tables`` column to the :ref:`sys.snapshots <sys-snapshots>` table
   which lists the fully qualified name of all tables contained within the
   snapshot.
+
+- Limit the output of COPY FROM RETURN SUMMARY in the presence of errors to
+  display up to 50 ``line_numbers`` to avoid buffer pressure at clients and
+  to improve readability.
 
 
 SQL Standard and PostgreSQL compatibility improvements
