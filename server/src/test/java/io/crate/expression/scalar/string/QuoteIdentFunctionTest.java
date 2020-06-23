@@ -37,7 +37,8 @@ public class QuoteIdentFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testZeroArguments() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: quote_ident()");
+        expectedException.expectMessage("Unknown function: quote_ident()." +
+                                        " Possible candidates: quote_ident(text):text");
         assertEvaluate("quote_ident()", null);
     }
 

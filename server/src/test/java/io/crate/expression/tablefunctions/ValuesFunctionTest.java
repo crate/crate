@@ -105,7 +105,8 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_function_arguments_must_have_array_types() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _values(integer)");
+        expectedException.expectMessage("Unknown function: _values(200)," +
+                                        " no overload found for matching argument types: (integer).");
         assertExecute("_values(200)", "");
     }
 }

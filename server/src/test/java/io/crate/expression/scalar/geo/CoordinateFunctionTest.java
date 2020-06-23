@@ -61,7 +61,8 @@ public class CoordinateFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testWithTooManyArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: latitude(text, text)");
+        expectedException.expectMessage("Unknown function: latitude('POINT (10 20)', 'foo')," +
+                                        " no overload found for matching argument types: (text, text).");
         assertNormalize("latitude('POINT (10 20)', 'foo')", null);
     }
 

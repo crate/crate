@@ -54,21 +54,24 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testZeroArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_cat()");
+        expectedException.expectMessage("Unknown function: array_cat()." +
+                                        " Possible candidates: array_cat(array(E), array(E)):array(E)");
         assertEvaluate("array_cat()", null);
     }
 
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_cat(integer_array)");
+        expectedException.expectMessage("Unknown function: array_cat(_array(1))," +
+                                        " no overload found for matching argument types: (integer_array).");
         assertEvaluate("array_cat([1])", null);
     }
 
     @Test
     public void testThreeArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_cat(integer_array, integer_array, integer_array)");
+        expectedException.expectMessage("Unknown function: array_cat(_array(1), _array(2), _array(3))," +
+                                        " no overload found for matching argument types: (integer_array, integer_array, integer_array).");
         assertEvaluate("array_cat([1], [2], [3])", null);
     }
 

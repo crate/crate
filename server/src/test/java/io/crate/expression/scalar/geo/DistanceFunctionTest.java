@@ -37,14 +37,16 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testResolveWithTooManyArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: distance(text, text, text)");
+        expectedException.expectMessage("Unknown function: distance('POINT (10 20)', 'POINT (11 21)', 'foo')," +
+                                        " no overload found for matching argument types: (text, text, text).");
         assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", null);
     }
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: distance(integer, text)");
+        expectedException.expectMessage("Unknown function: distance(1, 'POINT (11 21)')," +
+                                        " no overload found for matching argument types: (integer, text).");
         assertNormalize("distance(1, 'POINT (11 21)')", null);
     }
 

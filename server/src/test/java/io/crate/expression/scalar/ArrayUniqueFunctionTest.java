@@ -81,7 +81,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testZeroArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_unique()");
+        expectedException.expectMessage("Unknown function: array_unique().");
         assertEvaluate("array_unique()", null);
     }
 
@@ -112,7 +112,8 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testDifferentUnconvertableInnerTypes() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_unique(geo_point_array, boolean_array)");
+        expectedException.expectMessage("Unknown function: array_unique(_array(doc.users.geopoint), _array(true))," +
+                                        " no overload found for matching argument types: (geo_point_array, boolean_array).");
         assertEvaluate("array_unique([geopoint], [true])", null);
     }
 

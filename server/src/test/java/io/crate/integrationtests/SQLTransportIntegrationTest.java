@@ -623,7 +623,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                         assertThat(func.info().ident().argumentTypes(), not(equalTo(Symbols.typeView(arguments))));
                     }
                 } catch (UnsupportedOperationException e) {
-                    assertThat(e.getMessage().startsWith("unknown function"), is(true));
+                    assertThat(e.getMessage().startsWith("Unknown function"), is(true));
                 }
 
             }

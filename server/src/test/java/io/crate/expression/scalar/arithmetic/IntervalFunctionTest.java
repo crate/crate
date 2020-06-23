@@ -58,7 +58,8 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_unsupported_arithmetic_operator_on_interval_types() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: multiply(undefined, interval)");
+        expectedException.expectMessage("Unknown function: (NULL * cast('1 second' AS interval))," +
+                                        " no overload found for matching argument types: (undefined, interval).");
         assertEvaluate("null * interval '1 second'", Matchers.nullValue());
     }
 
@@ -75,7 +76,8 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_unallowed_operations() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("subtract(interval, timestamp with time zone)");
+        expectedException.expectMessage("Unknown function: (cast('1 second' AS interval) - cast('86401000' AS timestamp with time zone))," +
+                                        " no overload found for matching argument types: (interval, timestamp with time zone).");
         assertEvaluate("interval '1 second' - '86401000'::timestamp", Matchers.is(86400000L));
     }
 }
