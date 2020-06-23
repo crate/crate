@@ -22,17 +22,19 @@
 
 package io.crate.metadata.information;
 
-import io.crate.analyze.user.Privilege;
-import io.crate.metadata.RelationName;
-import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
-import io.crate.expression.reference.StaticTableDefinition;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.concurrent.CompletableFuture.completedFuture;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
+import io.crate.analyze.user.Privilege;
+import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
+import io.crate.expression.reference.StaticTableDefinition;
+import io.crate.metadata.RelationName;
 
 @Singleton
 public class InformationSchemaTableDefinitions {
@@ -93,6 +95,10 @@ public class InformationSchemaTableDefinitions {
         tableDefinitions.put(InformationReferentialConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
             InformationReferentialConstraintsTableInfo.create().expressions(),
+            false));
+        tableDefinitions.put(InformationCharacterSetsTable.IDENT, new StaticTableDefinition<Void>(
+            () -> completedFuture(Arrays.<Void>asList(new Void[] { null })),
+            InformationCharacterSetsTable.create().expressions(),
             false));
     }
 

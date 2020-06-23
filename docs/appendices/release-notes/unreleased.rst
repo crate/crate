@@ -143,6 +143,8 @@ SQL Standard and PostgreSQL compatibility improvements
 
 - Added the `pg_catalog.pg_enum <postgres_pg_catalog>`_ table.
 
+- Added the `information_schema.character_sets <character_sets>`_ table.
+
 - Added :ref:`postgres_pg_type` columns: ``typbyval``, ``typcategory``,
   ``typowner``, ``typisdefined``, ``typrelid``, ``typndims``,
   ``typcollation``, ``typinput``, ``typoutput``, and ``typndefault`` for improved
