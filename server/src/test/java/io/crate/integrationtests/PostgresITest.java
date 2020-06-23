@@ -30,6 +30,7 @@ import io.crate.types.DataTypes;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -638,6 +639,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @TestLogging("io.crate.protocols.postgres:TRACE")
     public void testSelectWithParameters() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);

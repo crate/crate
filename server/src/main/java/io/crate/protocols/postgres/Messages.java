@@ -107,6 +107,7 @@ public class Messages {
         buffer.writeByte('C');
         buffer.writeInt(length);
         writeCString(buffer, commandTagBytes);
+        LOGGER.trace("Sending commandComplete from Thread={}", Thread.currentThread().getName());
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentCommandComplete"));

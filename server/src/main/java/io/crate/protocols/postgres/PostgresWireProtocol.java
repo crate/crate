@@ -34,6 +34,7 @@ import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.protocols.postgres.types.PGType;
@@ -41,6 +42,7 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
@@ -56,9 +58,11 @@ import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
@@ -194,7 +198,9 @@ public class PostgresWireProtocol {
     private final Function<SessionContext, AccessControl> getAccessControl;
     private final Authentication authService;
     private final SslReqHandler sslReqHandler;
+    private final ArrayDeque<ByteBuf> delayedMessages = new ArrayDeque<ByteBuf>();
 
+    private ChannelHandlerContext currentCtx;
     private int msgLength;
     private byte msgType;
     private Session session;
@@ -288,12 +294,29 @@ public class PostgresWireProtocol {
 
     private class MessageHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
-        @Override
+		@Override
         public void channelRead0(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
-            final Channel channel = ctx.channel();
+            currentCtx = ctx;
+            Channel channel = ctx.channel();
+            if (channel.config().isAutoRead()) {
+                processMessage(buffer, channel);
+            } else {
+                delayedMessages.add(buffer);
+                if (channel.config().isAutoRead()) {
+                    ByteBuf buf;
+                    while ((buf = delayedMessages.poll()) != null) {
+                        processMessage(buf, channel);
+                        if (!channel.config().isAutoRead()) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
+        private void processMessage(ByteBuf buffer, Channel channel) {
             try {
-                dispatchState(buffer, channel);
+                processMessageUnsafe(buffer, channel);
             } catch (Throwable t) {
                 ignoreTillSync = true;
                 if (session != null) {
@@ -311,7 +334,7 @@ public class PostgresWireProtocol {
             }
         }
 
-        private void dispatchState(ByteBuf buffer, Channel channel) {
+        private void processMessageUnsafe(ByteBuf buffer, Channel channel) {
             switch (state) {
                 case STARTUP_HEADER:
                 case MSG_HEADER:
@@ -638,7 +661,27 @@ public class PostgresWireProtocol {
                 session.getResultFormatCodes(portalName)
             );
         }
-        session.execute(portalName, maxRows, resultReceiver);
+        CompletableFuture<?> execute = session.execute(portalName, maxRows, resultReceiver);
+        if (execute != null) {
+            System.out.println("Disabling autoRead");
+            channel.config().setAutoRead(false);
+            execute.handle((res, err) -> {
+                System.out.println("Enabling autoRead in thread=" + Thread.currentThread().getName() + ", delayed messages=" + delayedMessages.size());
+                channel.config().setAutoRead(true);
+
+                if (delayedMessages.size() > 0) {
+                    try {
+                        handler.channelRead0(currentCtx, Unpooled.EMPTY_BUFFER);
+                    } catch (Exception e) {
+                        Exceptions.rethrowRuntimeException(e);
+                    }
+                } else {
+                    channel.read();
+                }
+                return null;
+            });
+            Thread.yield();
+        }
     }
 
     private void handleSync(final Channel channel) {
