@@ -146,4 +146,15 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()),
             is("fo| [1, 2, 3]\n"));
     }
+
+    @Test
+    public void test_unnest_can_be_used_in_selectlist_on_children_of_object_arrays() throws Exception {
+        execute("create table test (a string, b string, c array(object as (d string, e string)))");
+        execute("insert into test (a, b, c) values ('x', 'y', [ { d = '1', e = '2' }, { d = '3', e = '4' } ])");
+        execute("refresh table test");
+        execute("select a, b, unnest(c['d']), unnest(c['e']) from test order by 1, 3");
+        assertThat(printedTable(response.rows()),
+            is("x| y| 1| 2\n" +
+               "x| y| 3| 4\n"));
+    }
 }
