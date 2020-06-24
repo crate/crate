@@ -35,6 +35,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.types.ObjectType;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -57,15 +58,9 @@ public class ProjectSet extends ForwardingLogicalPlan {
             allUsedColumns.addAll(columnsUsedInTableFunctions);
             LogicalPlan sourcePlan = source.build(tableStats, hints, allUsedColumns, params);
 
-            // Use sourcePlan.outputs() as standalone to simply pass along all source outputs as well;
-            // Parent operators will discard them if not required
-            // The reason to do this is that we've no good way to detect what is required. E.g.
-            // select tableFunction(agg), agg, x
-            //  -> agg is used as argument in tableFunction, but is also standalone,
-            //     so we can't simply discard any source outputs that are used as arguments for the table functions.
-            //  -> x might be converted to _fetch by the Collect operator,
-            //       so we don't necessarily "get" the outputs we would expect based on the select list.
-            return new ProjectSet(sourcePlan, tableFunctions, sourcePlan.outputs());
+            ArrayList<Symbol> standalone = new ArrayList<>(sourcePlan.outputs());
+            standalone.removeAll(tableFunctions);
+            return new ProjectSet(sourcePlan, tableFunctions, standalone);
         };
     }
 
@@ -93,6 +88,13 @@ public class ProjectSet extends ForwardingLogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
+        if (order != null) {
+            // ORDER BY is on table function which needs to be applied before the ORDER BY can be applied
+            //noinspection SuspiciousMethodCalls
+            if (order.orderBySymbols().stream().anyMatch(tableFunctions::contains)) {
+                order = null;
+            }
+        }
         ExecutionPlan sourcePlan = source.build(
             plannerContext,
             projectionBuilder,

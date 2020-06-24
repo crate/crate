@@ -57,6 +57,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused ``ORDER BY`` expressions referencing table
+  functions used in the ``SELECT`` list to fail.
+
 - Fixed an issue that prevented an optimization for ``SELECT DISTINCT
   <single_text_column> FROM <table>`` from working if used within a ``INSERT
   INTO`` statement.
