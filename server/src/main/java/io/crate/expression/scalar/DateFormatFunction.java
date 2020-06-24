@@ -45,7 +45,7 @@ public class DateFormatFunction extends Scalar<String, Object> {
     public static final String DEFAULT_FORMAT = "%Y-%m-%dT%H:%i:%s.%fZ";
 
     public static void register(ScalarFunctionModule module) {
-        BiFunction<Signature, List<DataType>, FunctionImplementation> functionFactory =
+        BiFunction<Signature, List<DataType<?>>, FunctionImplementation> functionFactory =
             (signature, args) ->
                 new DateFormatFunction(
                     new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING),

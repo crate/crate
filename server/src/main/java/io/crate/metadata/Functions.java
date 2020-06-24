@@ -119,7 +119,7 @@ public class Functions {
 
     @Nullable
     private FunctionImplementation get(Signature signature,
-                                       List<DataType> actualArgumentTypes,
+                                       List<DataType<?>> actualArgumentTypes,
                                        Function<FunctionName, List<FunctionProvider>> lookupFunction) {
         var candidates = lookupFunction.apply(signature.getName());
         if (candidates == null) {
@@ -326,7 +326,7 @@ public class Functions {
      * @throws UnsupportedOperationException if no implementation is found.
      */
     public FunctionImplementation getQualified(Signature signature,
-                                               List<DataType> actualArgumentTypes) throws UnsupportedOperationException {
+                                               List<DataType<?>> actualArgumentTypes) throws UnsupportedOperationException {
         FunctionImplementation impl = get(signature, actualArgumentTypes, functionImplementations::get);
         if (impl == null) {
             impl = get(signature, actualArgumentTypes, udfFunctionImplementations::get);
@@ -339,7 +339,7 @@ public class Functions {
                                              String name,
                                              List<Symbol> arguments,
                                              List<FunctionProvider> candidates) {
-        List<DataType> argumentTypes = Symbols.typeView(arguments);
+        List<DataType<?>> argumentTypes = Symbols.typeView(arguments);
         var function = new io.crate.expression.symbol.Function(
             new FunctionInfo(
                 new FunctionIdent(suppliedSchema, name, argumentTypes),
@@ -508,11 +508,11 @@ public class Functions {
 
         private final Signature declaredSignature;
         private final Signature boundSignature;
-        private final BiFunction<Signature, List<DataType>, FunctionImplementation> factory;
+        private final BiFunction<Signature, List<DataType<?>>, FunctionImplementation> factory;
 
         public ApplicableFunction(Signature declaredSignature,
                                   Signature boundSignature,
-                                  BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
+                                  BiFunction<Signature, List<DataType<?>>, FunctionImplementation> factory) {
             this.declaredSignature = declaredSignature;
             this.boundSignature = boundSignature;
             this.factory = factory;

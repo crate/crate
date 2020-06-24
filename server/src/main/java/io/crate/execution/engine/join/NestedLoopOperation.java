@@ -56,7 +56,7 @@ public class NestedLoopOperation implements CompletionListenable {
                                JoinType joinType,
                                CircuitBreaker circuitBreaker,
                                RamAccounting ramAccounting,
-                               List<DataType> leftSideColumnTypes,
+                               List<DataType<?>> leftSideColumnTypes,
                                long estimatedRowsSizeLeft,
                                long estimatedNumberOfRowsLeft,
                                boolean blockNestedLoop) {
@@ -109,7 +109,7 @@ public class NestedLoopOperation implements CompletionListenable {
                                                        Predicate<Row> joinCondition,
                                                        CircuitBreaker circuitBreaker,
                                                        RamAccounting ramAccounting,
-                                                       List<DataType> leftSideColumnTypes,
+                                                       List<DataType<?>> leftSideColumnTypes,
                                                        long estimatedRowsSizeLeft,
                                                        long estimatedNumberOfRowsLeft,
                                                        boolean blockNestedLoop) {
@@ -152,7 +152,7 @@ public class NestedLoopOperation implements CompletionListenable {
                                                                   CombinedRow combiner,
                                                                   CircuitBreaker circuitBreaker,
                                                                   RamAccounting ramAccounting,
-                                                                  List<DataType> leftSideColumnTypes,
+                                                                  List<DataType<?>> leftSideColumnTypes,
                                                                   long estimatedRowsSizeLeft,
                                                                   long estimatedNumberOfRowsLeft,
                                                                   boolean blockNestedLoop) {

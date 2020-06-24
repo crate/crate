@@ -63,7 +63,7 @@ public final class ColumnStats<T> implements Writeable {
 
     public ColumnStats(StreamInput in) throws IOException {
         //noinspection unchecked
-        this.type = DataTypes.fromStream(in);
+        this.type = (DataType<T>) DataTypes.fromStream(in);
 
         this.nullFraction = in.readDouble();
         this.averageSizeInBytes = in.readDouble();

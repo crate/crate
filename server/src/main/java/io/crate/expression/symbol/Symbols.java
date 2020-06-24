@@ -50,7 +50,7 @@ public class Symbols {
     public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
 
-    public static List<DataType> typeView(List<? extends Symbol> symbols) {
+    public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
         return LazyMapList.of(symbols, Symbol::valueType);
     }
 

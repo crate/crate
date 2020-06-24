@@ -31,7 +31,7 @@ import java.util.Locale;
 
 public class ArrayArgumentValidators {
 
-    public static void ensureInnerTypeIsNotUndefined(List<DataType> dataTypes, String functionName) {
+    public static void ensureInnerTypeIsNotUndefined(List<DataType<?>> dataTypes, String functionName) {
         DataType<?> innerType = ((ArrayType<?>) dataTypes.get(0)).innerType();
         if (innerType.equals(DataTypes.UNDEFINED)) {
             throw new IllegalArgumentException(String.format(
@@ -41,7 +41,7 @@ public class ArrayArgumentValidators {
         }
     }
 
-    public static void ensureBothInnerTypesAreNotUndefined(List<DataType> dataTypes, String functionName) {
+    public static void ensureBothInnerTypesAreNotUndefined(List<DataType<?>> dataTypes, String functionName) {
         DataType<?> innerType0 = ((ArrayType<?>) dataTypes.get(0)).innerType();
         DataType<?> innerType1 = ((ArrayType<?>) dataTypes.get(1)).innerType();
 
@@ -52,7 +52,7 @@ public class ArrayArgumentValidators {
         }
     }
 
-    public static void ensureSingleArgumentArrayInnerTypeIsNotUndefined(List<DataType> dataTypes) {
+    public static void ensureSingleArgumentArrayInnerTypeIsNotUndefined(List<DataType<?>> dataTypes) {
         DataType<?> innerType = ((ArrayType<?>) dataTypes.get(0)).innerType();
         if (innerType.equals(DataTypes.UNDEFINED)) {
             throw new IllegalArgumentException(

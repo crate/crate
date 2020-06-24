@@ -399,7 +399,7 @@ public class ExpressionAnalyzer {
      * @param targetTypes A list of {@link DataType}s to use as the new type of symbolsToCast.
      * @return A new list with the casted symbols.
      */
-    private static List<Symbol> cast(List<Symbol> symbolsToCast, List<DataType> targetTypes) {
+    private static List<Symbol> cast(List<Symbol> symbolsToCast, List<DataType<?>> targetTypes) {
         if (symbolsToCast.size() != targetTypes.size()) {
             throw new IllegalStateException("Given symbol list has to match the target type list.");
         }

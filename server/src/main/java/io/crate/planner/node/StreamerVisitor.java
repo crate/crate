@@ -52,7 +52,7 @@ public class StreamerVisitor {
 
     private static class ExecutionPhaseStreamerVisitor extends ExecutionPhaseVisitor<Void, Streamer<?>[]> {
 
-        private static final Streamer[] COUNT_STREAMERS = new Streamer[]{DataTypes.LONG};
+        private static final Streamer<?>[] COUNT_STREAMERS = new Streamer[]{DataTypes.LONG};
 
         @Override
         public Streamer<?>[] visitMergePhase(MergePhase phase, Void context) {

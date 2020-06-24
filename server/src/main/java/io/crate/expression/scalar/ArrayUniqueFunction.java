@@ -78,10 +78,10 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
         );
     }
 
-    private static FunctionInfo createInfo(List<DataType> types) {
-        ArrayType arrayType = (ArrayType) types.get(0);
+    private static FunctionInfo createInfo(List<DataType<?>> types) {
+        ArrayType<?> arrayType = (ArrayType<?>) types.get(0);
         if (arrayType.innerType().equals(DataTypes.UNDEFINED) && types.size() == 2) {
-            arrayType = (ArrayType) types.get(1);
+            arrayType = (ArrayType<?>) types.get(1);
         }
         return new FunctionInfo(new FunctionIdent(NAME, types), arrayType);
     }
@@ -93,7 +93,7 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
     private ArrayUniqueFunction(FunctionInfo functionInfo, Signature signature) {
         this.functionInfo = functionInfo;
         this.signature = signature;
-        this.elementType = ((ArrayType) functionInfo.returnType()).innerType();
+        this.elementType = ((ArrayType<?>) functionInfo.returnType()).innerType();
     }
 
     @Override

@@ -59,7 +59,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
         );
     }
 
-    private static FunctionInfo genInfo(List<DataType> argumentTypes) {
+    private static FunctionInfo genInfo(List<DataType<?>> argumentTypes) {
         return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.DOUBLE);
     }
 

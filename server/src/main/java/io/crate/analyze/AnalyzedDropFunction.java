@@ -35,9 +35,9 @@ public class AnalyzedDropFunction implements AnalyzedStatement {
     private final String schema;
     private final String name;
     private final boolean ifExists;
-    private final List<DataType> argumentTypes;
+    private final List<DataType<?>> argumentTypes;
 
-    AnalyzedDropFunction(String schema, String name, boolean ifExists, List<DataType> argumentTypes) {
+    AnalyzedDropFunction(String schema, String name, boolean ifExists, List<DataType<?>> argumentTypes) {
         this.schema = schema;
         this.name = name;
         this.ifExists = ifExists;
@@ -57,7 +57,7 @@ public class AnalyzedDropFunction implements AnalyzedStatement {
         return schema;
     }
 
-    public List<DataType> argumentTypes() {
+    public List<DataType<?>> argumentTypes() {
         return argumentTypes;
     }
 

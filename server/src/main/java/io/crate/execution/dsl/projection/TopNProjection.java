@@ -41,7 +41,7 @@ public class TopNProjection extends Projection {
     private final int offset;
     private final List<Symbol> outputs;
 
-    public TopNProjection(int limit, int offset, List<DataType> outputTypes) {
+    public TopNProjection(int limit, int offset, List<DataType<?>> outputTypes) {
         assert limit > TopN.NO_LIMIT : "limit of TopNProjection must not be negative/unlimited";
 
         this.limit = limit;

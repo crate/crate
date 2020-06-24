@@ -53,7 +53,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             (signature, argTypes) -> new IsNullPredicate<>(signature, generateInfo(argTypes)));
     }
 
-    public static FunctionInfo generateInfo(List<DataType> types) {
+    public static FunctionInfo generateInfo(List<DataType<?>> types) {
         return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.BOOLEAN);
     }
 

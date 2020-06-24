@@ -99,7 +99,7 @@ public final class DataTypes {
         DOUBLE.getName()
     );
 
-    public static final List<DataType> PRIMITIVE_TYPES = List.of(
+    public static final List<DataType<?>> PRIMITIVE_TYPES = List.of(
         BYTE,
         BOOLEAN,
         STRING,
@@ -120,11 +120,11 @@ public final class DataTypes {
             .collect(toSet());
 
 
-    public static final Set<DataType> STORAGE_UNSUPPORTED = Set.of(
+    public static final Set<DataType<?>> STORAGE_UNSUPPORTED = Set.of(
         INTERVAL, TIMETZ
     );
 
-    public static final List<DataType> NUMERIC_PRIMITIVE_TYPES = List.of(
+    public static final List<DataType<?>> NUMERIC_PRIMITIVE_TYPES = List.of(
         DOUBLE,
         FLOAT,
         BYTE,
@@ -205,7 +205,7 @@ public final class DataTypes {
      * Contains number conversions which are "safe" (= a conversion would not reduce the number of bytes
      * used to store the value)
      */
-    private static final Map<Integer, Set<DataType>> SAFE_CONVERSIONS = Map.of(
+    private static final Map<Integer, Set<DataType<?>>> SAFE_CONVERSIONS = Map.of(
         BYTE.id(), Set.of(SHORT, INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
         SHORT.id(), Set.of(INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
         INTEGER.id(), Set.of(LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
@@ -216,11 +216,11 @@ public final class DataTypes {
         return type.id() == ArrayType.ID;
     }
 
-    public static List<DataType> listFromStream(StreamInput in) throws IOException {
+    public static List<DataType<?>> listFromStream(StreamInput in) throws IOException {
         return in.readList(DataTypes::fromStream);
     }
 
-    public static DataType fromStream(StreamInput in) throws IOException {
+    public static DataType<?> fromStream(StreamInput in) throws IOException {
         int i = in.readVInt();
         try {
             return TYPE_REGISTRY.get(i).read(in);
@@ -230,14 +230,14 @@ public final class DataTypes {
         }
     }
 
-    public static void toStream(Collection<? extends DataType> types, StreamOutput out) throws IOException {
+    public static void toStream(Collection<? extends DataType<?>> types, StreamOutput out) throws IOException {
         out.writeVInt(types.size());
-        for (DataType type : types) {
+        for (DataType<?> type : types) {
             toStream(type, out);
         }
     }
 
-    public static void toStream(DataType type, StreamOutput out) throws IOException {
+    public static void toStream(DataType<?> type, StreamOutput out) throws IOException {
         out.writeVInt(type.id());
         type.writeTo(out);
     }
@@ -274,7 +274,7 @@ public final class DataTypes {
      * @return Returns the closest integral type for a numeric type or null
      */
     @Nullable
-    public static DataType getIntegralReturnType(DataType argumentType) {
+    public static DataType<?> getIntegralReturnType(DataType<?> argumentType) {
         switch (argumentType.id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -311,9 +311,9 @@ public final class DataTypes {
         return new ArrayType<>(highest);
     }
 
-    private static boolean safeConversionPossible(DataType type1, DataType type2) {
-        final DataType source;
-        final DataType target;
+    private static boolean safeConversionPossible(DataType<?> type1, DataType<?> type2) {
+        final DataType<?> source;
+        final DataType<?> target;
         if (type1.precedes(type2)) {
             source = type2;
             target = type1;
@@ -324,11 +324,11 @@ public final class DataTypes {
         if (source.id() == DataTypes.UNDEFINED.id()) {
             return true;
         }
-        Set<DataType> conversions = SAFE_CONVERSIONS.get(source.id());
+        Set<DataType<?>> conversions = SAFE_CONVERSIONS.get(source.id());
         return conversions != null && conversions.contains(target);
     }
 
-    private static final Map<String, DataType> TYPES_BY_NAME_OR_ALIAS = Map.ofEntries(
+    private static final Map<String, DataType<?>> TYPES_BY_NAME_OR_ALIAS = Map.ofEntries(
         entry(UNDEFINED.getName(), UNDEFINED),
         entry(BYTE.getName(), BYTE),
         entry(BOOLEAN.getName(), BOOLEAN),
@@ -401,7 +401,7 @@ public final class DataTypes {
         return TYPES_BY_NAME_OR_ALIAS.get(typeName);
     }
 
-    private static final Map<String, DataType> MAPPING_NAMES_TO_TYPES = Map.ofEntries(
+    private static final Map<String, DataType<?>> MAPPING_NAMES_TO_TYPES = Map.ofEntries(
         entry("date", DataTypes.TIMESTAMPZ),
         entry("string", DataTypes.STRING),
         entry("keyword", DataTypes.STRING),
@@ -445,7 +445,7 @@ public final class DataTypes {
     }
 
     @Nullable
-    public static DataType ofMappingName(String name) {
+    public static DataType<?> ofMappingName(String name) {
         return MAPPING_NAMES_TO_TYPES.get(name);
     }
 
@@ -478,10 +478,10 @@ public final class DataTypes {
         }
     }
 
-    public static Streamer[] getStreamers(Collection<? extends DataType> dataTypes) {
-        Streamer[] streamer = new Streamer[dataTypes.size()];
+    public static Streamer<?>[] getStreamers(Collection<? extends DataType<?>> dataTypes) {
+        Streamer<?>[] streamer = new Streamer[dataTypes.size()];
         int idx = 0;
-        for (DataType dataType : dataTypes) {
+        for (DataType<?> dataType : dataTypes) {
             streamer[idx] = dataType.streamer();
             idx++;
         }
@@ -508,7 +508,7 @@ public final class DataTypes {
      * Compares two {@link List<DataType>} by their IDs.
      * The parameters of the data types, if they have any, are ignored.
      */
-    public static boolean isSameType(List<DataType> left, List<DataType> right) {
+    public static boolean isSameType(List<DataType<?>> left, List<DataType<?>> right) {
         if (left.size() != right.size()) {
             return false;
         }
@@ -525,7 +525,7 @@ public final class DataTypes {
     /**
      * Returns the first data type that is not {@link UndefinedType}, or {@code UNDEFINED} if none found.
      */
-    public static DataType<?> tryFindNotNullType(List<DataType> dataTypes) {
+    public static DataType<?> tryFindNotNullType(List<DataType<?>> dataTypes) {
         return dataTypes.stream()
             .filter(t -> t != UNDEFINED)
             .findFirst().orElse(UNDEFINED);

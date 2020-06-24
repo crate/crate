@@ -164,7 +164,7 @@ public class Join implements ExecutionPlan, ResultDescription {
     }
 
     @Override
-    public List<DataType> streamOutputs() {
+    public List<DataType<?>> streamOutputs() {
         return joinPhase.outputTypes();
     }
 

@@ -46,7 +46,7 @@ import java.util.UUID;
  */
 public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
-    private final Collection<? extends DataType> inputTypes;
+    private final Collection<? extends DataType<?>> inputTypes;
     private final int numUpstreams;
     /** The number of different inputs, e.g. Union has inputs from two Collect phases */
     private final int numInputs;
@@ -80,7 +80,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                       int numUpstreams,
                       int numInputs,
                       Collection<String> executionNodes,
-                      Collection<? extends DataType> inputTypes,
+                      Collection<? extends DataType<?>> inputTypes,
                       List<Projection> projections,
                       DistributionInfo distributionInfo,
                       @Nullable PositionalOrderBy positionalOrderBy) {
@@ -130,7 +130,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         return numInputs;
     }
 
-    public Collection<? extends DataType> inputTypes() {
+    public Collection<? extends DataType<?>> inputTypes() {
         return inputTypes;
     }
 
@@ -152,7 +152,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
 
         int numCols = in.readVInt();
         if (numCols > 0) {
-            List<DataType> inputTypes = new ArrayList<>(numCols);
+            List<DataType<?>> inputTypes = new ArrayList<>(numCols);
             for (int i = 0; i < numCols; i++) {
                 inputTypes.add(DataTypes.fromStream(in));
             }
@@ -182,7 +182,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
 
         int numCols = inputTypes.size();
         out.writeVInt(numCols);
-        for (DataType inputType : inputTypes) {
+        for (DataType<?> inputType : inputTypes) {
             DataTypes.toStream(inputType, out);
         }
 

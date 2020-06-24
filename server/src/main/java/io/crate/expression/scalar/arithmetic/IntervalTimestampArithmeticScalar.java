@@ -102,7 +102,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
 
     public IntervalTimestampArithmeticScalar(String operator,
                                              String name,
-                                             List<DataType> argTypes,
+                                             List<DataType<?>> argTypes,
                                              DataType<?> returnType,
                                              Signature signature) {
         this.info = new FunctionInfo(new FunctionIdent(name, argTypes), returnType);

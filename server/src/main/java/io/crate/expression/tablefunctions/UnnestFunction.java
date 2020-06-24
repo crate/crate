@@ -73,7 +73,7 @@ public class UnnestFunction {
         private final RowType returnType;
         private final Signature signature;
 
-        private UnnestTableFunctionImplementation(Signature signature, List<DataType> argTypes) {
+        private UnnestTableFunctionImplementation(Signature signature, List<DataType<?>> argTypes) {
             this.signature = signature;
             ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {

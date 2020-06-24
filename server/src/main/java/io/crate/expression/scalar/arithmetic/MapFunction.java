@@ -74,7 +74,7 @@ public class MapFunction extends Scalar<Object, Object> {
         );
     }
 
-    public static FunctionInfo createInfo(List<DataType> dataTypes) {
+    public static FunctionInfo createInfo(List<DataType<?>> dataTypes) {
         return new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.UNTYPED_OBJECT);
     }
 

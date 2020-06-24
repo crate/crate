@@ -92,7 +92,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         }
     }
 
-    private static FunctionInfo info(List<DataType> types) {
+    private static FunctionInfo info(List<DataType<?>> types) {
         return new FunctionInfo(
             new FunctionIdent(NAME, types),
             DataTypes.TIMESTAMPZ, FunctionInfo.Type.SCALAR, FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);

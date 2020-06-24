@@ -38,22 +38,22 @@ import java.util.List;
 public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable {
 
     private final FunctionName fqnName;
-    private final List<DataType> argumentTypes;
+    private final List<DataType<?>> argumentTypes;
 
-    public FunctionIdent(FunctionName functionName, List<DataType> argumentTypes) {
+    public FunctionIdent(FunctionName functionName, List<DataType<?>> argumentTypes) {
         this.fqnName = functionName;
         this.argumentTypes = argumentTypes;
     }
 
-    public FunctionIdent(@Nullable String schema, String name, List<DataType> argumentTypes) {
+    public FunctionIdent(@Nullable String schema, String name, List<DataType<?>> argumentTypes) {
         this(new FunctionName(schema, name), argumentTypes);
     }
 
-    public FunctionIdent(String name, List<DataType> argumentTypes) {
+    public FunctionIdent(String name, List<DataType<?>> argumentTypes) {
         this(null, name, argumentTypes);
     }
 
-    public List<DataType> argumentTypes() {
+    public List<DataType<?>> argumentTypes() {
         return argumentTypes;
     }
 
@@ -96,7 +96,7 @@ public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable
     public int compareTo(FunctionIdent o) {
         return ComparisonChain.start()
             .compare(fqnName, o.fqnName)
-            .compare(argumentTypes, o.argumentTypes, Ordering.<DataType>natural().lexicographical())
+            .compare(argumentTypes, o.argumentTypes, Ordering.<DataType<?>>natural().lexicographical())
             .result();
     }
 
@@ -114,7 +114,7 @@ public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable
     public void writeTo(StreamOutput out) throws IOException {
         fqnName.writeTo(out);
         out.writeVInt(argumentTypes.size());
-        for (DataType argumentType : argumentTypes) {
+        for (DataType<?> argumentType : argumentTypes) {
             DataTypes.toStream(argumentType, out);
         }
     }

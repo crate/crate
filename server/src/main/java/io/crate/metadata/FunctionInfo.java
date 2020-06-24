@@ -51,7 +51,7 @@ public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
     private final Type type;
     private final Set<Feature> features;
 
-    public static FunctionInfo of(String name, List<DataType> argTypes, DataType<?> returnType) {
+    public static FunctionInfo of(String name, List<DataType<?>> argTypes, DataType<?> returnType) {
         return new FunctionInfo(new FunctionIdent(name, argTypes), returnType);
     }
 

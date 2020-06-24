@@ -83,11 +83,13 @@ public final class TruncFunction {
         );
     }
 
-    private static Scalar<Number, Number> createTruncWithMode(Signature signature, List<DataType> argumentTypes) {
+    private static Scalar<Number, Number> createTruncWithMode(Signature signature, List<DataType<?>> argumentTypes) {
         return new Scalar<>() {
 
-            FunctionInfo info = new FunctionInfo(new FunctionIdent(
-                NAME, argumentTypes), DataTypes.DOUBLE);
+            final FunctionInfo info = new FunctionInfo(
+                new FunctionIdent(NAME, argumentTypes),
+                DataTypes.DOUBLE
+            );
 
             @Override
             public FunctionInfo info() {

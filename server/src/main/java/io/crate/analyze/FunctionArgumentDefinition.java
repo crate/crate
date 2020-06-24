@@ -81,7 +81,7 @@ public class FunctionArgumentDefinition implements Writeable, ToXContent {
             .collect(Collectors.toList());
     }
 
-    public DataType type() {
+    public DataType<?> type() {
         return type;
     }
 

@@ -120,7 +120,7 @@ public class UserDefinedFunctionService {
 
     void dropFunction(final String schema,
                       final String name,
-                      final List<DataType> argumentTypes,
+                      final List<DataType<?>> argumentTypes,
                       final boolean ifExists,
                       final ActionListener<AcknowledgedResponse> listener,
                       final TimeValue timeout) {
@@ -185,7 +185,7 @@ public class UserDefinedFunctionService {
     UserDefinedFunctionsMetaData removeFunction(@Nullable UserDefinedFunctionsMetaData functions,
                                                 String schema,
                                                 String name,
-                                                List<DataType> argumentDataTypes,
+                                                List<DataType<?>> argumentDataTypes,
                                                 boolean ifExists) {
         if (!ifExists && (functions == null || !functions.contains(schema, name, argumentDataTypes))) {
             throw new UserDefinedFunctionUnknownException(schema, name, argumentDataTypes);

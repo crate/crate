@@ -42,7 +42,7 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_cat";
 
-    public static FunctionInfo createInfo(List<DataType> types, String name) {
+    public static FunctionInfo createInfo(List<DataType<?>> types, String name) {
         ensureBothInnerTypesAreNotUndefined(types, name);
         ArrayType<?> arrayType = (ArrayType<?>) types.get(0);
         if (arrayType.innerType().equals(DataTypes.UNDEFINED)) {

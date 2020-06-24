@@ -84,8 +84,9 @@ public class ArrayType<T> extends DataType<List<T>> {
         return streamer;
     }
 
+    @SuppressWarnings("unchecked")
     public ArrayType(StreamInput in) throws IOException {
-        innerType = DataTypes.fromStream(in);
+        innerType = (DataType<T>) DataTypes.fromStream(in);
     }
 
     @Override
