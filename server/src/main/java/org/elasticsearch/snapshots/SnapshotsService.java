@@ -70,11 +70,13 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.RepositoryMissingException;
+import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -284,7 +286,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         snapshotIndices,
                         System.currentTimeMillis(),
                         repositoryData.getGenId(),
-                        null);
+                        null,
+                        clusterService.state().nodes().getMinNodeVersion().onOrAfter(SHARD_GEN_IN_REPO_DATA_VERSION));
                     initializingSnapshots.add(newSnapshot.snapshot());
                     snapshots = new SnapshotsInProgress(newSnapshot);
                 } else {
@@ -552,31 +555,36 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         private void cleanupAfterError(Exception exception) {
             threadPool.generic().execute(() -> {
                 if (snapshotCreated) {
-                    repositoriesService.repository(snapshot.snapshot().getRepository()).finalizeSnapshot(
-                        snapshot.snapshot().getSnapshotId(),
-                        snapshot.indices(),
-                        snapshot.startTime(),
-                        ExceptionsHelper.stackTrace(exception),
-                        0,
-                        Collections.emptyList(),
-                        snapshot.getRepositoryStateId(),
-                        snapshot.includeGlobalState(),
-                        metaDataForSnapshot(snapshot, clusterService.state().metaData()),
-                        ActionListener.runAfter(ActionListener.wrap(
-                            ignored -> {},
-                            inner -> {
-                                inner.addSuppressed(exception);
-                                LOGGER.warn(
-                                    () -> new ParameterizedMessage("[{}] failed to finalize snapshot in repository", snapshot.snapshot()), inner);
-                            }),
-                            () -> userCreateSnapshotListener.onFailure(e)
-                        )
-                    );
+                    repositoriesService.repository(snapshot.snapshot().getRepository())
+                        .finalizeSnapshot(snapshot.snapshot().getSnapshotId(),
+                                          buildGenerations(snapshot),
+                                          snapshot.startTime(),
+                                          ExceptionsHelper.stackTrace(exception),
+                                          0,
+                                          Collections.emptyList(),
+                                          snapshot.getRepositoryStateId(),
+                                          snapshot.includeGlobalState(),
+                                          metaDataForSnapshot(snapshot, clusterService.state().metaData()),
+                                          snapshot.useShardGenerations(),
+                                          ActionListener.runAfter(ActionListener.wrap(ignored -> {
+                                          }, inner -> {
+                                              inner.addSuppressed(exception);
+                                              LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to finalize snapshot in repository",
+                                                                                         snapshot.snapshot()), inner);
+                                          }), () -> userCreateSnapshotListener.onFailure(e)));
                 } else {
                     userCreateSnapshotListener.onFailure(e);
                 }
             });
         }
+    }
+
+    private static ShardGenerations buildGenerations(SnapshotsInProgress.Entry snapshot) {
+        var builder = ShardGenerations.builder();
+        var indexLookup = new HashMap<String, IndexId>();
+        snapshot.indices().forEach(idx -> indexLookup.put(idx.getName(), idx));
+        snapshot.shards().forEach(c -> builder.put(indexLookup.get(c.key.getIndexName()), c.key.id(), c.value.generation()));
+        return builder.build();
     }
 
     private static SnapshotInfo inProgressSnapshot(SnapshotsInProgress.Entry entry) {
@@ -666,7 +674,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     ).forEach(entry -> endSnapshot(entry, event.state().metaData()));
                 }
                 if (newMaster) {
-                    finalizeSnapshotDeletionFromPreviousMaster(event);
+                    finalizeSnapshotDeletionFromPreviousMaster(event.state());
                 }
             }
         } catch (Exception e) {
@@ -685,12 +693,13 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * the old master's snapshot deletion will just respond with an error but in actuality, the
      * snapshot was deleted and a call to GET snapshots would reveal that the snapshot no longer exists.
      */
-    private void finalizeSnapshotDeletionFromPreviousMaster(ClusterChangedEvent event) {
-        SnapshotDeletionsInProgress deletionsInProgress = event.state().custom(SnapshotDeletionsInProgress.TYPE);
+    private void finalizeSnapshotDeletionFromPreviousMaster(ClusterState state) {
+        SnapshotDeletionsInProgress deletionsInProgress = state.custom(SnapshotDeletionsInProgress.TYPE);
         if (deletionsInProgress != null && deletionsInProgress.hasDeletionsInProgress()) {
             assert deletionsInProgress.getEntries().size() == 1 : "only one in-progress deletion allowed per cluster";
             SnapshotDeletionsInProgress.Entry entry = deletionsInProgress.getEntries().get(0);
-            deleteSnapshotFromRepository(entry.getSnapshot(), null, entry.getRepositoryStateId());
+            deleteSnapshotFromRepository(entry.getSnapshot(), null, entry.getRepositoryStateId(),
+                                         state.nodes().getMinNodeVersion());
         }
     }
 
@@ -933,7 +942,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 }
                 repository.finalizeSnapshot(
                     snapshot.getSnapshotId(),
-                    entry.indices(),
+                    buildGenerations(entry),
                     entry.startTime(),
                     failure,
                     entry.shards().size(),
@@ -941,6 +950,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     entry.getRepositoryStateId(),
                     entry.includeGlobalState(),
                     metaDataForSnapshot(entry, metaData),
+                    entry.useShardGenerations(),
                     ActionListener.wrap(snapshotInfo -> {
                         removeSnapshotFromClusterState(snapshot, snapshotInfo, null);
                         LOGGER.info("snapshot [{}] completed with state [{}]", snapshot, snapshotInfo.state());
@@ -1229,7 +1239,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     ));
                 } else {
                     LOGGER.debug("deleted snapshot is not running - deleting files");
-                    deleteSnapshotFromRepository(snapshot, listener, repositoryStateId);
+                    deleteSnapshotFromRepository(snapshot, listener, repositoryStateId, newState.nodes().getMinNodeVersion());
                 }
             }
         });
@@ -1268,15 +1278,18 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @param snapshot   snapshot
      * @param listener   listener
      * @param repositoryStateId the unique id representing the state of the repository at the time the deletion began
+     * @param version minimum ES version the repository should be readable by
      */
-    private void deleteSnapshotFromRepository(Snapshot snapshot, @Nullable ActionListener<Void> listener, long repositoryStateId) {
+    private void deleteSnapshotFromRepository(Snapshot snapshot, @Nullable ActionListener<Void> listener, long repositoryStateId,
+                                              Version version) {
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.wrap(listener, l -> {
             Repository repository = repositoriesService.repository(snapshot.getRepository());
-            repository.deleteSnapshot(snapshot.getSnapshotId(), repositoryStateId, ActionListener.wrap(v -> {
-                LOGGER.info("snapshot [{}] deleted", snapshot);
-                removeSnapshotDeletionFromClusterState(snapshot, null, l);
-                }, ex -> removeSnapshotDeletionFromClusterState(snapshot, ex, l)
-            ));
+            repository.deleteSnapshot(snapshot.getSnapshotId(), repositoryStateId, version.onOrAfter(SHARD_GEN_IN_REPO_DATA_VERSION),
+                                      ActionListener.wrap(v -> {
+                                                              LOGGER.info("snapshot [{}] deleted", snapshot);
+                                                              removeSnapshotDeletionFromClusterState(snapshot, null, l);
+                                                          }, ex -> removeSnapshotDeletionFromClusterState(snapshot, ex, l)
+                                      ));
         }));
     }
 
