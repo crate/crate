@@ -40,10 +40,10 @@ public class DropUserDefinedFunctionRequest extends MasterNodeRequest<DropUserDe
 
     private final String name;
     private final String schema;
-    private final List<DataType> argumentTypes;
+    private final List<DataType<?>> argumentTypes;
     private final boolean ifExists;
 
-    public DropUserDefinedFunctionRequest(String schema, String name, List<DataType> argumentTypes, boolean ifExists) {
+    public DropUserDefinedFunctionRequest(String schema, String name, List<DataType<?>> argumentTypes, boolean ifExists) {
         this.schema = schema;
         this.name = name;
         this.argumentTypes = argumentTypes;
@@ -58,7 +58,7 @@ public class DropUserDefinedFunctionRequest extends MasterNodeRequest<DropUserDe
         return name;
     }
 
-    public List<DataType> argumentTypes() {
+    public List<DataType<?>> argumentTypes() {
         return argumentTypes;
     }
 

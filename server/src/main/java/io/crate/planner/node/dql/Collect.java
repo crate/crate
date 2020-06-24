@@ -156,7 +156,7 @@ public class Collect implements ExecutionPlan, ResultDescription {
     }
 
     @Override
-    public List<DataType> streamOutputs() {
+    public List<DataType<?>> streamOutputs() {
         List<Projection> projections = collectPhase.projections();
         if (projections.isEmpty()) {
             return Symbols.typeView(collectPhase.toCollect());

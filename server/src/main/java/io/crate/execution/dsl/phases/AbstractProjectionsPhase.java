@@ -44,7 +44,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     private int executionPhaseId;
     private String name;
     protected List<Projection> projections = List.of();
-    protected List<DataType> outputTypes = List.of();
+    protected List<DataType<?>> outputTypes = List.of();
 
     protected AbstractProjectionsPhase(UUID jobId, int executionPhaseId, String name, List<Projection> projections) {
         this.jobId = jobId;
@@ -53,7 +53,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
         this.projections = projections;
     }
 
-    protected static List<DataType> extractOutputTypes(List<Symbol> outputs, List<Projection> projections) {
+    protected static List<DataType<?>> extractOutputTypes(List<Symbol> outputs, List<Projection> projections) {
         if (projections.isEmpty()) {
             return Symbols.typeView(outputs);
         } else {
@@ -101,7 +101,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
         }
     }
 
-    public List<DataType> outputTypes() {
+    public List<DataType<?>> outputTypes() {
         return outputTypes;
     }
 

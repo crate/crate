@@ -21,21 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import java.io.IOException;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.util.NumericUtils;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.mapper.MappedFieldType;
-
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
@@ -54,9 +39,19 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
-import io.crate.types.ShortType;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.List;
 
 public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageState, Double> {
 
@@ -271,8 +266,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
-    public DocValueAggregator<?> getDocValueAggregator(List<DataType> argumentTypes, List<MappedFieldType> fieldTypes) {
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes, List<MappedFieldType> fieldTypes) {
         switch (argumentTypes.get(0).id()) {
             case ShortType.ID:
             case IntegerType.ID:

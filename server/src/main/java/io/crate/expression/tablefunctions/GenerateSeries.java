@@ -169,7 +169,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     private final RowType returnType;
 
     private GenerateSeries(Signature signature,
-                           List<DataType> dataTypes,
+                           List<DataType<?>> dataTypes,
                            T defaultStep,
                            BinaryOperator<T> minus,
                            BinaryOperator<T> plus,
@@ -269,7 +269,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         private final RowType returnType;
         private final Signature signature;
 
-        public GenerateSeriesIntervals(Signature signature, List<DataType> types) {
+        public GenerateSeriesIntervals(Signature signature, List<DataType<?>> types) {
             this.signature = signature;
             info = new FunctionInfo(new FunctionIdent(NAME, types), types.get(0), FunctionInfo.Type.TABLE);
             returnType = new RowType(List.of((DataType<?>) types.get(0)));

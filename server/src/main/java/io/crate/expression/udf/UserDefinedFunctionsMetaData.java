@@ -75,7 +75,7 @@ public class UserDefinedFunctionsMetaData extends AbstractNamedDiffable<MetaData
         }
     }
 
-    public boolean contains(String schema, String name, List<DataType> types) {
+    public boolean contains(String schema, String name, List<DataType<?>> types) {
         for (UserDefinedFunctionMetaData function : functionsMetaData) {
             if (function.sameSignature(schema, name, types)) {
                 return true;
@@ -84,7 +84,7 @@ public class UserDefinedFunctionsMetaData extends AbstractNamedDiffable<MetaData
         return false;
     }
 
-    public void remove(String schema, String name, List<DataType> types) {
+    public void remove(String schema, String name, List<DataType<?>> types) {
         for (ListIterator<UserDefinedFunctionMetaData> iter = functionsMetaData.listIterator(); iter.hasNext(); ) {
             if (iter.next().sameSignature(schema, name, types)) {
                 iter.remove();

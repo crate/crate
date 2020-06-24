@@ -66,7 +66,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
         );
     }
 
-    private static FunctionInfo createInfo(List<DataType> types) {
+    private static FunctionInfo createInfo(List<DataType<?>> types) {
         ensureBothInnerTypesAreNotUndefined(types, NAME);
         ArrayType<?> arrayType = (ArrayType<?>) types.get(0);
         if (arrayType.innerType().equals(DataTypes.UNDEFINED)) {

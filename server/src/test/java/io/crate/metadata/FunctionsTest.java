@@ -51,7 +51,7 @@ public class FunctionsTest extends CrateUnitTest {
     private Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
 
     private void register(Signature signature,
-                          BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
+                          BiFunction<Signature, List<DataType<?>>, FunctionImplementation> factory) {
         List<FunctionProvider> functions = implementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());

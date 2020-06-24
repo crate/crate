@@ -38,7 +38,7 @@ import java.util.UUID;
 
 public class NestedLoopPhase extends JoinPhase {
 
-    public final List<DataType> leftSideColumnTypes;
+    public final List<DataType<?>> leftSideColumnTypes;
     public final long estimatedRowsSizeLeft;
     public final long estimatedNumberOfRowsLeft;
     public final boolean blockNestedLoop;
@@ -54,7 +54,7 @@ public class NestedLoopPhase extends JoinPhase {
                            Collection<String> executionNodes,
                            JoinType joinType,
                            @Nullable Symbol joinCondition,
-                           List<DataType> leftSideColumnTypes,
+                           List<DataType<?>> leftSideColumnTypes,
                            long estimatedRowsSizeLeft,
                            long estimatedNumberOfRowsLeft,
                            boolean blockNestedLoop) {

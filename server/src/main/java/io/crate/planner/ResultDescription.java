@@ -85,7 +85,7 @@ public interface ResultDescription {
      * This may be larger than {@link #numOutputs()} if the result contains columns which are only relevant for
      * sorting
      */
-    List<DataType> streamOutputs();
+    List<DataType<?>> streamOutputs();
 
     /**
      * Indicates if the operations so far are executed beneath/at shard-level

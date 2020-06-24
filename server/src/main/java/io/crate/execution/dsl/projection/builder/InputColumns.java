@@ -307,7 +307,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         List<String> path = column.path();
 
         List<Symbol> arguments = mapTail(rootIC, path, Literal::of);
-        List<DataType> argumentTypes = Symbols.typeView(arguments);
+        List<DataType<?>> argumentTypes = Symbols.typeView(arguments);
 
         return new Function(
             new FunctionInfo(

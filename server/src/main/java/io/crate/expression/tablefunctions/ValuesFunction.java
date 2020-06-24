@@ -64,7 +64,7 @@ public class ValuesFunction {
         private final Signature signature;
 
         private ValuesTableFunctionImplementation(Signature signature,
-                                                  List<DataType> argTypes) {
+                                                  List<DataType<?>> argTypes) {
             this.signature = signature;
             ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {

@@ -23,7 +23,6 @@
 package io.crate.execution.engine.distribution;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccounting;
@@ -36,11 +35,11 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.DataType;
 import io.crate.types.LongType;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -72,8 +71,8 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
             "collect",
             routing,
             RowGranularity.DOC,
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(),
+            List.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_MODULO
         );
@@ -84,8 +83,8 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
             1,
             1,
             downstreamExecutionNodes,
-            ImmutableList.<DataType>of(LongType.INSTANCE),
-            ImmutableList.of(),
+            List.of(LongType.INSTANCE),
+            List.of(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );

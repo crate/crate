@@ -128,7 +128,7 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
     }
 
     @Override
-    public List<DataType> outputTypes() {
+    public List<DataType<?>> outputTypes() {
         if (projections.isEmpty()) {
             return Symbols.typeView(toCollect);
         }

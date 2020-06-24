@@ -56,7 +56,7 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
     private final FunctionInfo info;
     private final Signature signature;
 
-    public ObjDescriptionFunction(Signature signature, List<DataType> argumentTypes) {
+    public ObjDescriptionFunction(Signature signature, List<DataType<?>> argumentTypes) {
         info = new FunctionInfo(
             new FunctionIdent(FQN, argumentTypes),
             DataTypes.STRING

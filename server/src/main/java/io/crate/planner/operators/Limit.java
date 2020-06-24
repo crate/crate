@@ -106,7 +106,7 @@ public class Limit extends ForwardingLogicalPlan {
 
         ExecutionPlan executionPlan = source.build(
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
-        List<DataType> sourceTypes = Symbols.typeView(source.outputs());
+        List<DataType<?>> sourceTypes = Symbols.typeView(source.outputs());
         ResultDescription resultDescription = executionPlan.resultDescription();
         if (resultDescription.hasRemainingLimitOrOffset()
             && (resultDescription.limit() != limit || resultDescription.offset() != offset)) {

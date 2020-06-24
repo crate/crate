@@ -57,7 +57,7 @@ public final class FormatTypeFunction extends Scalar<String, Object> {
     private final FunctionInfo info;
     private final Signature signature;
 
-    public FormatTypeFunction(Signature signature, List<DataType> argumentTypes) {
+    public FormatTypeFunction(Signature signature, List<DataType<?>> argumentTypes) {
         this.info = new FunctionInfo(new FunctionIdent(FQN, argumentTypes), DataTypes.STRING);
         this.signature = signature;
     }

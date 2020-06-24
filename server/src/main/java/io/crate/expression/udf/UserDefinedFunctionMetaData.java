@@ -47,8 +47,8 @@ public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
     private final String name;
     private final String schema;
     private final List<FunctionArgumentDefinition> arguments;
-    private final DataType returnType;
-    private final List<DataType> argumentTypes;
+    private final DataType<?> returnType;
+    private final List<DataType<?>> argumentTypes;
     private final String language;
     private final String definition;
     private final String specificName;
@@ -56,7 +56,7 @@ public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
     public UserDefinedFunctionMetaData(String schema,
                                        String name,
                                        List<FunctionArgumentDefinition> arguments,
-                                       DataType returnType,
+                                       DataType<?> returnType,
                                        String language,
                                        String definition) {
         this.schema = schema;
@@ -105,7 +105,7 @@ public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
         return name;
     }
 
-    public DataType returnType() {
+    public DataType<?> returnType() {
         return returnType;
     }
 
@@ -121,7 +121,7 @@ public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
         return arguments;
     }
 
-    public List<DataType> argumentTypes() {
+    public List<DataType<?>> argumentTypes() {
         return argumentTypes;
     }
 
@@ -129,7 +129,7 @@ public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
         return specificName;
     }
 
-    boolean sameSignature(String schema, String name, List<DataType> types) {
+    boolean sameSignature(String schema, String name, List<DataType<?>> types) {
         return this.schema().equals(schema) && this.name().equals(name) && this.argumentTypes().equals(types);
     }
 
@@ -159,7 +159,7 @@ public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
         String schema = null;
         String name = null;
         List<FunctionArgumentDefinition> arguments = new ArrayList<>();
-        DataType returnType = null;
+        DataType<?> returnType = null;
         String language = null;
         String definition = null;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
@@ -223,17 +223,17 @@ public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
 
     public static class DataTypeXContent {
 
-        public static XContentBuilder toXContent(DataType type, XContentBuilder builder, Params params) throws IOException {
+        public static XContentBuilder toXContent(DataType<?> type, XContentBuilder builder, Params params) throws IOException {
             builder.startObject().field("id", type.id());
             if (type instanceof ArrayType) {
                 builder.field("inner_type");
-                toXContent(((ArrayType) type).innerType(), builder, params);
+                toXContent(((ArrayType<?>) type).innerType(), builder, params);
             }
             builder.endObject();
             return builder;
         }
 
-        public static DataType fromXContent(XContentParser parser) throws IOException {
+        public static DataType<?> fromXContent(XContentParser parser) throws IOException {
             XContentParser.Token token = parser.currentToken();
             if (token != XContentParser.Token.START_OBJECT) {
                 throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
@@ -263,11 +263,11 @@ public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
         }
     }
 
-    static List<DataType> argumentTypesFrom(List<FunctionArgumentDefinition> arguments) {
+    static List<DataType<?>> argumentTypesFrom(List<FunctionArgumentDefinition> arguments) {
         return arguments.stream().map(FunctionArgumentDefinition::type).collect(toList());
     }
 
-    static String specificName(String name, List<DataType> types) {
+    static String specificName(String name, List<DataType<?>> types) {
         return String.format(Locale.ENGLISH, "%s(%s)", name,
             types.stream().map(DataType::getName).collect(Collectors.joining(", ")));
     }

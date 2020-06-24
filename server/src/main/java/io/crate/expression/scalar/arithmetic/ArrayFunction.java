@@ -59,7 +59,7 @@ public class ArrayFunction extends Scalar<Object, Object> {
         );
     }
 
-    public static FunctionInfo createInfo(List<DataType> argumentTypes) {
+    public static FunctionInfo createInfo(List<DataType<?>> argumentTypes) {
         DataType<?> innerType = argumentTypes.get(0);
         return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), new ArrayType<>(innerType));
     }

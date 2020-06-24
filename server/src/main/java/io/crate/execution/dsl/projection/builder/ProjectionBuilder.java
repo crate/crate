@@ -148,12 +148,12 @@ public class ProjectionBuilder {
     public static Projection topNOrEvalIfNeeded(Integer limit,
                                                 int offset,
                                                 int numOutputs,
-                                                List<DataType> inputTypes) {
+                                                List<DataType<?>> inputTypes) {
         if (limit == null) {
             limit = TopN.NO_LIMIT;
         }
         int numInputTypes = inputTypes.size();
-        List<DataType> strippedInputs = inputTypes;
+        List<DataType<?>> strippedInputs = inputTypes;
         if (numOutputs < numInputTypes) {
             strippedInputs = inputTypes.subList(0, numOutputs);
         }
