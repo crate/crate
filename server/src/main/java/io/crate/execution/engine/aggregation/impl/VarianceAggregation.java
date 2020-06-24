@@ -28,8 +28,6 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.statistics.Variance;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -51,7 +49,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         DataTypes.register(VarianceStateType.ID, in -> VarianceStateType.INSTANCE);
     }
 
-    private static final List<DataType> SUPPORTED_TYPES = Lists2.concat(
+    private static final List<DataType<?>> SUPPORTED_TYPES = Lists2.concat(
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
     public static void register(AggregationImplModule mod) {
@@ -60,16 +58,9 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()),
-                (signature, args) ->
-                    new VarianceAggregation(
-                        new FunctionInfo(
-                            new FunctionIdent(NAME, args),
-                            DataTypes.DOUBLE,
-                            FunctionInfo.Type.AGGREGATE
-                        ),
-                        signature
-                    )
+                    DataTypes.DOUBLE.getTypeSignature()
+                ),
+                VarianceAggregation::new
             );
         }
     }
@@ -125,12 +116,12 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public VarianceAggregation(FunctionInfo info, Signature signature) {
-        this.info = info;
+    public VarianceAggregation(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Nullable
@@ -199,12 +190,12 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

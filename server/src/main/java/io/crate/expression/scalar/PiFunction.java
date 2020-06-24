@@ -23,14 +23,10 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.util.List;
 
 public final class PiFunction extends Scalar<Double, Object> {
 
@@ -42,16 +38,16 @@ public final class PiFunction extends Scalar<Double, Object> {
                 NAME,
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            (signature, args) -> new PiFunction(signature)
+            PiFunction::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public PiFunction(Signature signature) {
+    public PiFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-        info = new FunctionInfo(new FunctionIdent(NAME, List.of()), DataTypes.DOUBLE);
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -61,12 +57,12 @@ public final class PiFunction extends Scalar<Double, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

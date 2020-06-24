@@ -28,8 +28,6 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -51,7 +49,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         DataTypes.register(StdDevStateType.ID, in -> StdDevStateType.INSTANCE);
     }
 
-    private static final List<DataType> SUPPORTED_TYPES = Lists2.concat(
+    private static final List<DataType<?>> SUPPORTED_TYPES = Lists2.concat(
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
     public static void register(AggregationImplModule mod) {
@@ -60,16 +58,9 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()),
-                (signature, args) ->
-                    new StandardDeviationAggregation(
-                        new FunctionInfo(
-                            new FunctionIdent(NAME, args),
-                            DataTypes.DOUBLE,
-                            FunctionInfo.Type.AGGREGATE
-                        ),
-                        signature
-                    )
+                    DataTypes.DOUBLE.getTypeSignature()
+                ),
+                StandardDeviationAggregation::new
             );
         }
     }
@@ -125,17 +116,22 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public StandardDeviationAggregation(FunctionInfo functionInfo, Signature signature) {
-        this.info = functionInfo;
+    public StandardDeviationAggregation(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Nullable
@@ -201,10 +197,5 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     @Override
     public DataType<?> partialType() {
         return StdDevStateType.INSTANCE;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 }

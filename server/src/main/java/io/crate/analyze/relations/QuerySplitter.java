@@ -113,7 +113,9 @@ public class QuerySplitter {
 
         @Override
         public Void visitFunction(Function function, Context ctx) {
-            if (!function.info().equals(AndOperator.INFO)) {
+            var signature = function.signature();
+            assert signature != null : "Expecting functions signature not to be null";
+            if (!signature.equals(AndOperator.SIGNATURE)) {
                 Set<RelationName> qualifiedNames = RelationNameCollector.collect(function);
                 Symbol prevQuery = ctx.parts.put(qualifiedNames, function);
                 if (prevQuery != null) {

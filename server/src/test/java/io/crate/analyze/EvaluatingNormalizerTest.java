@@ -71,9 +71,9 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         Reference load_1 = dummyLoadInfo;
         Literal<Double> d01 = Literal.of(0.08);
         Function load_eq_01 = new Function(
-            functionInfo(EqOperator.SIGNATURE, DataTypes.DOUBLE),
             EqOperator.SIGNATURE,
-            List.of(load_1, d01)
+            List.of(load_1, d01),
+            EqOperator.RETURN_TYPE
         );
 
         Symbol name_ref = new Reference(
@@ -87,36 +87,39 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         Symbol y_literal = Literal.of("y");
 
         Function name_eq_x = new Function(
-            functionInfo(EqOperator.SIGNATURE, DataTypes.STRING),
             EqOperator.SIGNATURE,
-            List.of(name_ref, x_literal)
+            List.of(name_ref, x_literal),
+            EqOperator.RETURN_TYPE
         );
 
         Function nameNeqX = new Function(
-            functionInfo(NotPredicate.SIGNATURE, DataTypes.BOOLEAN),
             NotPredicate.SIGNATURE,
-            Collections.singletonList(name_eq_x));
+            Collections.singletonList(name_eq_x),
+            NotPredicate.SIGNATURE.getReturnType().createType()
+        );
 
         Function name_eq_y = new Function(
-            functionInfo(EqOperator.SIGNATURE, DataTypes.STRING),
             EqOperator.SIGNATURE,
-            List.of(name_ref, y_literal));
+            List.of(name_ref, y_literal),
+            EqOperator.RETURN_TYPE
+        );
 
         Function nameNeqY = new Function(
-            functionInfo(NotPredicate.SIGNATURE, DataTypes.BOOLEAN),
             NotPredicate.SIGNATURE,
-            Collections.singletonList(name_eq_y));
+            Collections.singletonList(name_eq_y),
+            NotPredicate.SIGNATURE.getReturnType().createType()
+        );
 
         Function op_and = new Function(
-            functionInfo(AndOperator.SIGNATURE, DataTypes.BOOLEAN),
             AndOperator.SIGNATURE,
-            List.of(nameNeqX, nameNeqY)
+            List.of(nameNeqX, nameNeqY),
+            AndOperator.RETURN_TYPE
         );
 
         return new Function(
-            functionInfo(OrOperator.SIGNATURE, DataTypes.BOOLEAN),
             OrOperator.SIGNATURE,
-            List.of(load_eq_01, op_and)
+            List.of(load_eq_01, op_and),
+            OrOperator.RETURN_TYPE
         );
     }
 
@@ -139,9 +142,5 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         Function op_or = prepareFunctionTree();
         Symbol query = visitor.normalize(op_or, coordinatorTxnCtx);
         assertThat(query, instanceOf(Function.class));
-    }
-
-    private FunctionInfo functionInfo(Signature signature, DataType dataType) {
-        return functions.getQualified(signature, List.of(dataType, dataType)).info();
     }
 }

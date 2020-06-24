@@ -38,8 +38,6 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
@@ -170,7 +168,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             return replacement;
         }
         ArrayList<Symbol> replacedFunctionArgs = getProcessedArgs(symbol.arguments(), sourceSymbols);
-        return new Function(symbol.info(), symbol.signature(), replacedFunctionArgs);
+        return new Function(symbol.signature(), replacedFunctionArgs, symbol.valueType());
     }
 
     @Nullable
@@ -205,9 +203,9 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             filterWithReplacedArgs = null;
         }
         return new WindowFunction(
-            windowFunction.info(),
             windowFunction.signature(),
             replacedFunctionArgs,
+            windowFunction.valueType(),
             filterWithReplacedArgs,
             windowFunction.windowDefinition()
         );
@@ -310,12 +308,9 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         List<DataType<?>> argumentTypes = Symbols.typeView(arguments);
 
         return new Function(
-            new FunctionInfo(
-                new FunctionIdent(SubscriptObjectFunction.NAME, argumentTypes),
-                returnType
-            ),
             SubscriptObjectFunction.SIGNATURE,
-            arguments
+            arguments,
+            returnType
         );
     }
 

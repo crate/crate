@@ -44,13 +44,13 @@ import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.format.MatchPrinter;
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -62,8 +62,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import static java.util.Objects.requireNonNull;
 
 public class Function extends Symbol implements Cloneable {
 
@@ -77,6 +75,7 @@ public class Function extends Symbol implements Cloneable {
     );
 
     private final List<Symbol> arguments;
+    private final DataType<?> returnType;
     private final FunctionInfo info;
     @Nullable
     private final Signature signature;
@@ -93,24 +92,22 @@ public class Function extends Symbol implements Cloneable {
         arguments = List.copyOf(Symbols.listFromStream(in));
         if (in.getVersion().onOrAfter(Version.V_4_2_0) && in.readBoolean()) {
             signature = new Signature(in);
+            returnType = DataTypes.fromStream(in);
         } else {
             signature = null;
+            returnType = info.returnType();
         }
     }
 
-    public Function(FunctionInfo info, Signature signature, List<Symbol> arguments) {
-        this(info, signature, arguments, null);
+    public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType) {
+        this(signature, arguments, returnType, null);
     }
 
-    public Function(FunctionInfo info, Signature signature, List<Symbol> arguments, Symbol filter) {
-        requireNonNull(info, "function info is null");
-        if (arguments.size() != info.ident().argumentTypes().size()) {
-            throw new IllegalArgumentException(
-                "number of arguments must match the number of argumentTypes of the FunctionIdent");
-        }
-        this.info = info;
+    public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, Symbol filter) {
+        this.info = FunctionInfo.of(signature, Symbols.typeView(arguments), returnType);
         this.signature = signature;
         this.arguments = List.copyOf(arguments);
+        this.returnType = returnType;
         this.filter = filter;
     }
 
@@ -118,6 +115,9 @@ public class Function extends Symbol implements Cloneable {
         return arguments;
     }
 
+    /**
+     * @deprecated Use {{@link #signature()}} instead. Will be removed with next major version.
+     */
     public FunctionInfo info() {
         return info;
     }
@@ -134,12 +134,18 @@ public class Function extends Symbol implements Cloneable {
 
     @Override
     public DataType<?> valueType() {
-        return info.returnType();
+        return returnType;
     }
 
     @Override
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
-        if (targetType instanceof ArrayType && info.ident().name().equals(ArrayFunction.NAME)) {
+        String name;
+        if (signature != null) {
+            name = signature.getName().name();
+        } else {
+            name = info.ident().name();
+        }
+        if (targetType instanceof ArrayType && name.equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
              *
@@ -160,13 +166,13 @@ public class Function extends Symbol implements Cloneable {
             try {
                 newArgs.add(arg.cast(innerType, modes));
             } catch (ConversionException e) {
-                throw new ConversionException(info.returnType(), newDataType);
+                throw new ConversionException(returnType, newDataType);
             }
         }
         return new Function(
-            new FunctionInfo(new FunctionIdent(info.ident().name(), Symbols.typeView(newArgs)), newDataType),
             signature,
             newArgs,
+            newDataType,
             null
         );
     }
@@ -192,6 +198,7 @@ public class Function extends Symbol implements Cloneable {
             out.writeBoolean(signature != null);
             if (signature != null) {
                 signature.writeTo(out);
+                DataTypes.toStream(returnType, out);
             }
         }
     }

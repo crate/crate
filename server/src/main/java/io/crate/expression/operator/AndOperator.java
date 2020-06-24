@@ -26,7 +26,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -38,7 +37,6 @@ import java.util.List;
 public class AndOperator extends Operator<Boolean> {
 
     public static final String NAME = "op_and";
-    public static final FunctionInfo INFO = generateInfo(NAME, DataTypes.BOOLEAN);
     public static final Signature SIGNATURE = Signature.scalar(
         NAME,
         DataTypes.BOOLEAN.getTypeSignature(),
@@ -49,14 +47,16 @@ public class AndOperator extends Operator<Boolean> {
     public static void register(OperatorModule module) {
         module.register(
             SIGNATURE,
-            (signature, dataTypes) -> new AndOperator(signature)
+            AndOperator::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public AndOperator(Signature signature) {
+    public AndOperator(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -65,8 +65,8 @@ public class AndOperator extends Operator<Boolean> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return INFO;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -144,7 +144,7 @@ public class AndOperator extends Operator<Boolean> {
         assert second.valueType().equals(DataTypes.BOOLEAN) || second.valueType().equals(DataTypes.UNDEFINED) :
             "second symbol must have BOOLEAN return type to create AND function";
 
-        return new Function(INFO, SIGNATURE, List.of(first, second));
+        return new Function(SIGNATURE, List.of(first, second), Operator.RETURN_TYPE);
     }
 
     public static Symbol join(Iterable<? extends Symbol> symbols) {
@@ -157,7 +157,7 @@ public class AndOperator extends Operator<Boolean> {
         }
         Symbol first = symbols.next();
         while (symbols.hasNext()) {
-            first = new Function(INFO, SIGNATURE, List.of(first, symbols.next()));
+            first = new Function(SIGNATURE, List.of(first, symbols.next()), Operator.RETURN_TYPE);
         }
         return first;
     }
@@ -191,7 +191,9 @@ public class AndOperator extends Operator<Boolean> {
 
         @Override
         public Symbol visitFunction(Function func, List<Symbol> conjunctions) {
-            if (func.info().equals(INFO)) {
+            var signature = func.signature();
+            assert signature != null : "Expecting functions signature not to be null";
+            if (signature.equals(SIGNATURE)) {
                 for (Symbol argument : func.arguments()) {
                     Symbol result = argument.accept(this, conjunctions);
                     if (result != null) {

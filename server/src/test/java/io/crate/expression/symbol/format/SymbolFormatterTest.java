@@ -25,8 +25,6 @@ package io.crate.expression.symbol.format;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -42,17 +40,15 @@ public class SymbolFormatterTest extends CrateUnitTest {
     @Test
     public void testFormat() throws Exception {
         Function f = new Function(
-            new FunctionInfo(
-                new FunctionIdent("foo", List.of(DataTypes.STRING, DataTypes.UNDEFINED)),
-                DataTypes.DOUBLE
-            ),
             Signature.scalar(
                 "foo",
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.UNDEFINED.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            List.of(Literal.of("bar"), Literal.of(3.4)));
+            List.of(Literal.of("bar"), Literal.of(3.4)),
+            DataTypes.DOUBLE
+        );
         assertThat(Symbols.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo('bar', 3.4)"));
     }
 

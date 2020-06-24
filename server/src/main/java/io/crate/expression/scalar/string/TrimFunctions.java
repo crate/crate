@@ -27,8 +27,6 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -54,13 +52,10 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
+            (signature, boundSignature) ->
                 new OneCharTrimFunction(
-                    new FunctionInfo(
-                        new FunctionIdent(TRIM_NAME, argumentTypes),
-                        DataTypes.STRING
-                    ),
                     signature,
+                    boundSignature,
                     ' '
                 )
         );
@@ -73,14 +68,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
-                new TrimFunction(
-                    new FunctionInfo(
-                        new FunctionIdent(TRIM_NAME, argumentTypes),
-                        DataTypes.STRING
-                    ),
-                    signature
-                )
+            TrimFunction::new
         );
 
         // ltrim(text)
@@ -90,10 +78,10 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
+            (signature, boundSignature) ->
                 new SingleSideTrimFunction(
-                    new FunctionInfo(new FunctionIdent(LTRIM_NAME, argumentTypes), DataTypes.STRING),
                     signature,
+                    boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.LEADING)
                 )
         );
@@ -105,10 +93,10 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
+            (signature, boundSignature) ->
                 new SingleSideTrimFunction(
-                    new FunctionInfo(new FunctionIdent(LTRIM_NAME, argumentTypes), DataTypes.STRING),
                     signature,
+                    boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.LEADING)
                 )
         );
@@ -120,10 +108,10 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
+            (signature, boundSignature) ->
                 new SingleSideTrimFunction(
-                    new FunctionInfo(new FunctionIdent(RTRIM_NAME, argumentTypes), DataTypes.STRING),
                     signature,
+                    boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.TRAILING)
                 )
         );
@@ -135,10 +123,10 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
+            (signature, boundSignature) ->
                 new SingleSideTrimFunction(
-                    new FunctionInfo(new FunctionIdent(RTRIM_NAME, argumentTypes), DataTypes.STRING),
                     signature,
+                    boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.TRAILING)
                 )
         );
@@ -146,22 +134,22 @@ public final class TrimFunctions {
 
     private static class TrimFunction extends Scalar<String, String> {
 
-        private final FunctionInfo info;
         private final Signature signature;
+        private final Signature boundSignature;
 
-        TrimFunction(FunctionInfo info, Signature signature) {
-            this.info = info;
+        TrimFunction(Signature signature, Signature boundSignature) {
             this.signature = signature;
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
+            this.boundSignature = boundSignature;
         }
 
         @Override
         public Signature signature() {
             return signature;
+        }
+
+        @Override
+        public Signature boundSignature() {
+            return boundSignature;
         }
 
         @Override
@@ -184,7 +172,7 @@ public final class TrimFunctions {
 
             String charsToTrim = (String) ((Input) charsToTrimSymbol).value();
             if (charsToTrim.length() == 1) {
-                return new OneCharTrimFunction(info, signature, charsToTrim.charAt(0));
+                return new OneCharTrimFunction(signature, boundSignature, charsToTrim.charAt(0));
             }
             return this;
         }
@@ -209,24 +197,24 @@ public final class TrimFunctions {
 
     private static class OneCharTrimFunction extends Scalar<String, String> {
 
-        private final FunctionInfo info;
         private final Signature signature;
+        private final Signature boundSignature;
         private final char charToTrim;
 
-        OneCharTrimFunction(FunctionInfo info, Signature signature, char charToTrim) {
-            this.info = info;
+        OneCharTrimFunction(Signature signature, Signature boundSignature, char charToTrim) {
             this.signature = signature;
+            this.boundSignature = boundSignature;
             this.charToTrim = charToTrim;
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
         }
 
         @Override
         public Signature signature() {
             return signature;
+        }
+
+        @Override
+        public Signature boundSignature() {
+            return boundSignature;
         }
 
         @Override
@@ -253,26 +241,26 @@ public final class TrimFunctions {
 
     private static class SingleSideTrimFunction extends Scalar<String, String> {
 
-        private final FunctionInfo info;
         private final Signature signature;
+        private final Signature boundSignature;
         private final BiFunction<String, String, String> trimFunction;
 
-        SingleSideTrimFunction(FunctionInfo info,
-                               Signature signature,
+        SingleSideTrimFunction(Signature signature,
+                               Signature boundSignature,
                                BiFunction<String, String, String> function) {
-            this.info = info;
             this.signature = signature;
+            this.boundSignature = boundSignature;
             this.trimFunction = function;
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
         }
 
         @Override
         public Signature signature() {
             return signature;
+        }
+
+        @Override
+        public Signature boundSignature() {
+            return boundSignature;
         }
 
         @Override

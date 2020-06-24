@@ -33,15 +33,29 @@ import javax.annotation.Nullable;
 public interface FunctionImplementation {
 
     /**
+     * @deprecated Use {@link #signature()} instead. Will be removed with next major version.
+     *
      * Provides meta information about this function implementation.
      */
-    FunctionInfo info();
+    default FunctionInfo info() {
+        return FunctionInfo.of(boundSignature());
+    }
 
     /**
      * Return the declared signature for this implementation.
-     * This should be favoured over {@link #info()}.
+     * All function implementations are registered under their declared signature, thus function symbols must
+     * carry the declared signature in order to look up each implementation for execution.
      */
     Signature signature();
+
+    /**
+     * Return the bound signature for this implementation.
+     * This signature has all actual argument types bound, possible type variables of the declared signature are
+     * replaced.
+     *
+     * Bound argument and return types are required by function symbols.
+     */
+    Signature boundSignature();
 
     /**
      * Normalize a symbol into a simplified form.

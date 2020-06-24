@@ -86,7 +86,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      */
     public abstract TFinal terminatePartial(RamAccounting ramAccounting, TPartial state);
 
-    public abstract DataType partialType();
+    public abstract DataType<?> partialType();
 
     /**
      * Executing aggregations as window functions might require different runtime implementations in order to still be

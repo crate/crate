@@ -22,12 +22,10 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.Extract;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.joda.Joda;
 import org.joda.time.DateTimeField;
@@ -81,8 +79,8 @@ public class ExtractFunctions {
                         argType.getTypeSignature(),
                         parseTypeSignature("integer")
                     ),
-                    (signature, argumentTypes) ->
-                        new ExtractFunction(entry.getKey(), entry.getValue(), argType, signature)
+                    (signature, boundSignature) ->
+                        new ExtractFunction(signature, boundSignature, l -> entry.getValue().get(l))
                 );
             }
             // extract(epoch from ...) is different as is returns a `double precision`
@@ -92,8 +90,8 @@ public class ExtractFunctions {
                     argType.getTypeSignature(),
                     parseTypeSignature("double precision")
                 ),
-                (signature, argumentTypes) ->
-                    new ExtractFunction(EPOCH, argType, DataTypes.DOUBLE, signature, v -> (double) v / 1000)
+                (signature, boundSignature) ->
+                    new ExtractFunction(signature, boundSignature, v -> (double) v / 1000)
             );
         }
     }
@@ -129,35 +127,26 @@ public class ExtractFunctions {
 
     private static class ExtractFunction extends Scalar<Number, Long> {
 
-        private final FunctionInfo info;
         private final Signature signature;
+        private final Signature boundSignature;
         private final Function<Long, Number> evaluate;
 
-        ExtractFunction(Extract.Field field,
-                        DateTimeField dateTimeField,
-                        DataType<?> argumentType,
-                        Signature signature) {
-            this(field, argumentType, DataTypes.INTEGER, signature, dateTimeField::get);
-        }
-
-        ExtractFunction(Extract.Field field,
-                        DataType<?> argumentType,
-                        DataType<?> returnType,
-                        Signature signature,
+        ExtractFunction(Signature signature,
+                        Signature boundSignature,
                         Function<Long, Number> evaluate) {
-            info = FunctionInfo.of(functionNameFrom(field), List.of(argumentType), returnType);
             this.signature = signature;
+            this.boundSignature = boundSignature;
             this.evaluate = evaluate;
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
         }
 
         @Override
         public Signature signature() {
             return signature;
+        }
+
+        @Override
+        public Signature boundSignature() {
+            return boundSignature;
         }
 
         public Number evaluate(long value) {

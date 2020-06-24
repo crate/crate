@@ -52,7 +52,7 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
                 .with(collect -> collect.relation().tableInfo() instanceof DocTableInfo))
             .with(aggregate ->
                 aggregate.aggregates().size() == 1
-                && aggregate.aggregates().get(0).info().equals(CountAggregation.COUNT_STAR_FUNCTION));
+                && aggregate.aggregates().get(0).signature().equals(CountAggregation.COUNT_STAR_SIGNATURE));
     }
 
     @Override

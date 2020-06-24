@@ -183,6 +183,6 @@ public class SymbolMatchers {
 
     public static Matcher<Symbol> isAggregation(String name) {
         return both(Matchers.<Symbol>instanceOf(Aggregation.class))
-            .and(withFeature(s -> ((Aggregation) s).functionIdent().name(), "name", equalTo(name)));
+            .and(withFeature(s -> ((Aggregation) s).signature().getName().name(), "name", equalTo(name)));
     }
 }

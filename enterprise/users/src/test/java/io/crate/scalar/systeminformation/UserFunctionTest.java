@@ -58,6 +58,7 @@ public class UserFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testFormatFunctionsWithoutBrackets() {
         setupFunctionsFor(TEST_USER);
+        sqlExpressions.context().allowEagerNormalize(false);
         Symbol f = sqlExpressions.asSymbol("current_user");
         assertThat(f.toString(), is("CURRENT_USER"));
 

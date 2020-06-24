@@ -22,9 +22,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -35,7 +33,6 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.List;
-import java.util.function.BiFunction;
 
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
@@ -45,13 +42,6 @@ public class DateFormatFunction extends Scalar<String, Object> {
     public static final String DEFAULT_FORMAT = "%Y-%m-%dT%H:%i:%s.%fZ";
 
     public static void register(ScalarFunctionModule module) {
-        BiFunction<Signature, List<DataType<?>>, FunctionImplementation> functionFactory =
-            (signature, args) ->
-                new DateFormatFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING),
-                    signature
-                );
-
         List<DataType<?>> supportedTimestampTypes = List.of(
             DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
         for (DataType<?> dataType : supportedTimestampTypes) {
@@ -59,29 +49,29 @@ public class DateFormatFunction extends Scalar<String, Object> {
             module.register(
                 Signature.builder()
                     .name(NAME)
-                    .kind(FunctionInfo.Type.SCALAR)
+                    .kind(FunctionType.SCALAR)
                     .argumentTypes(parseTypeSignature(dataType.getName()))
                     .returnType(parseTypeSignature("text"))
                     .build(),
-                functionFactory
+                DateFormatFunction::new
             );
 
             // with format
             module.register(
                 Signature.builder()
                     .name(NAME)
-                    .kind(FunctionInfo.Type.SCALAR)
+                    .kind(FunctionType.SCALAR)
                     .argumentTypes(parseTypeSignature("text"), parseTypeSignature(dataType.getName()))
                     .returnType(parseTypeSignature("text"))
                     .build(),
-                functionFactory
+                DateFormatFunction::new
             );
 
             // time zone aware variant
             module.register(
                 Signature.builder()
                     .name(NAME)
-                    .kind(FunctionInfo.Type.SCALAR)
+                    .kind(FunctionType.SCALAR)
                     .argumentTypes(
                         parseTypeSignature("text"),
                         parseTypeSignature("text"),
@@ -89,17 +79,17 @@ public class DateFormatFunction extends Scalar<String, Object> {
                     )
                     .returnType(parseTypeSignature("text"))
                     .build(),
-                functionFactory
+                DateFormatFunction::new
             );
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public DateFormatFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    public DateFormatFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -135,12 +125,12 @@ public class DateFormatFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

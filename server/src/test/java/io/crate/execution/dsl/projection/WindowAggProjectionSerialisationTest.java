@@ -65,9 +65,19 @@ public class WindowAggProjectionSerialisationTest {
             new WindowDefinition(singletonList(Literal.of(2L)), null, null);
 
         WindowFunction firstWindowFunction = new WindowFunction(
-            sumFunctionImpl.info(), singletonList(Literal.of(1L)), null, partitionByOneWindowDef);
+            sumFunctionImpl.signature(),
+            singletonList(Literal.of(1L)),
+            sumFunctionImpl.boundSignature().getReturnType().createType(),
+            null,
+            partitionByOneWindowDef
+        );
         WindowFunction secondWindowFunction = new WindowFunction(
-            sumFunctionImpl.info(), singletonList(Literal.of(2L)), null, partitionByTwoWindowDef);
+            sumFunctionImpl.signature(),
+            singletonList(Literal.of(2L)),
+            sumFunctionImpl.boundSignature().getReturnType().createType(),
+            null,
+            partitionByTwoWindowDef
+        );
 
         ArrayList<WindowFunctionContext> windowFunctionContexts = new ArrayList<>(2);
         windowFunctionContexts.add(new WindowFunctionContext(
@@ -106,8 +116,9 @@ public class WindowAggProjectionSerialisationTest {
             new WindowDefinition(singletonList(Literal.of(1L)), null, null);
 
         WindowFunction windowFunction = new WindowFunction(
-            sumFunctionImpl.info(),
+            sumFunctionImpl.signature(),
             singletonList(Literal.of(2L)),
+            sumFunctionImpl.boundSignature().getReturnType().createType(),
             null,
             partitionByOneWindowDef);
 
@@ -145,7 +156,8 @@ public class WindowAggProjectionSerialisationTest {
                 SumAggregation.NAME,
                 DataTypes.FLOAT.getTypeSignature(),
                 DataTypes.FLOAT.getTypeSignature()),
-            List.of(DataTypes.FLOAT)
+            List.of(DataTypes.FLOAT),
+            DataTypes.FLOAT
         );
     }
 }

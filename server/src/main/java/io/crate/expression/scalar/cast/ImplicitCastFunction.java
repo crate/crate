@@ -27,7 +27,6 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -48,19 +47,16 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.UNDEFINED.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
-                new ImplicitCastFunction(
-                    FunctionInfo.of(NAME, args, args.get(1)),
-                    signature)
+            ImplicitCastFunction::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private ImplicitCastFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private ImplicitCastFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -75,13 +71,13 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

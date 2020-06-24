@@ -23,14 +23,11 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -53,13 +50,7 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
                 parseTypeSignature("array(E)"),
                 parseTypeSignature("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, argumentTypes) -> {
-                ensureSingleArgumentArrayInnerTypeIsNotUndefined(argumentTypes);
-                return new ArrayUniqueFunction(
-                    createInfo(argumentTypes),
-                    signature
-                );
-            }
+            ArrayUniqueFunction::new
         );
         module.register(
             Signature.scalar(
@@ -68,42 +59,34 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
                 parseTypeSignature("array(E)"),
                 parseTypeSignature("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, argumentTypes) -> {
-                ensureBothInnerTypesAreNotUndefined(argumentTypes, NAME);
-                return new ArrayUniqueFunction(
-                    createInfo(argumentTypes),
-                    signature
-                );
-            }
+            ArrayUniqueFunction::new
         );
     }
 
-    private static FunctionInfo createInfo(List<DataType<?>> types) {
-        ArrayType<?> arrayType = (ArrayType<?>) types.get(0);
-        if (arrayType.innerType().equals(DataTypes.UNDEFINED) && types.size() == 2) {
-            arrayType = (ArrayType<?>) types.get(1);
-        }
-        return new FunctionInfo(new FunctionIdent(NAME, types), arrayType);
-    }
-
-    private final FunctionInfo functionInfo;
     private final Signature signature;
+    private final Signature boundSignature;
     private final DataType<?> elementType;
 
-    private ArrayUniqueFunction(FunctionInfo functionInfo, Signature signature) {
-        this.functionInfo = functionInfo;
+    private ArrayUniqueFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-        this.elementType = ((ArrayType<?>) functionInfo.returnType()).innerType();
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return functionInfo;
+        this.boundSignature = boundSignature;
+        this.elementType = ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType();
+        var argumentTypes = boundSignature.getArgumentDataTypes();
+        if (argumentTypes.size() == 1) {
+            ensureSingleArgumentArrayInnerTypeIsNotUndefined(argumentTypes);
+        } else {
+            ensureBothInnerTypesAreNotUndefined(boundSignature.getArgumentDataTypes(), NAME);
+        }
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

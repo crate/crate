@@ -24,8 +24,6 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
@@ -50,13 +48,10 @@ public class NthValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new NthValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(FIRST_VALUE_NAME, args),
-                        args.get(0),
-                        FunctionInfo.Type.WINDOW),
                     signature,
+                    boundSignature,
                     (frame, inputs) -> 0
                 )
         );
@@ -67,13 +62,10 @@ public class NthValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new NthValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LAST_VALUE_NAME, args),
-                        args.get(0),
-                        FunctionInfo.Type.WINDOW),
                     signature,
+                    boundSignature,
                     (frame, inputs) -> frame.size() - 1
                 )
         );
@@ -85,13 +77,10 @@ public class NthValueFunctions implements WindowFunction {
                 DataTypes.INTEGER.getTypeSignature(),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new NthValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(NTH_VALUE, args),
-                        args.get(0),
-                        FunctionInfo.Type.WINDOW),
                     signature,
+                    boundSignature,
                     (frame, inputs) -> {
                         Number position = (Number) inputs[1].value();
                         if (position == null) {
@@ -104,29 +93,29 @@ public class NthValueFunctions implements WindowFunction {
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final BiFunction<WindowFrameState, Input[], Integer> frameIndexSupplier;
     private int seenFrameLowerBound = -1;
     private int seenFrameUpperBound = -1;
     private Object resultForCurrentFrame = null;
 
-    private NthValueFunctions(FunctionInfo info,
-                              Signature signature,
+    private NthValueFunctions(Signature signature,
+                              Signature boundSignature,
                               BiFunction<WindowFrameState, Input[], Integer> frameIndexSupplier) {
-        this.info = info;
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.frameIndexSupplier = frameIndexSupplier;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

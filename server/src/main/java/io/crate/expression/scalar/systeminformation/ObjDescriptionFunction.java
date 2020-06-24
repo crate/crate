@@ -24,17 +24,12 @@ package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import java.util.List;
 
 public final class ObjDescriptionFunction extends Scalar<String, Object> {
 
@@ -53,15 +48,12 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public ObjDescriptionFunction(Signature signature, List<DataType<?>> argumentTypes) {
-        info = new FunctionInfo(
-            new FunctionIdent(FQN, argumentTypes),
-            DataTypes.STRING
-        );
+    public ObjDescriptionFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @SafeVarargs
@@ -72,12 +64,12 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

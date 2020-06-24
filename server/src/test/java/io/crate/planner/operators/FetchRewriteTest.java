@@ -28,9 +28,6 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -39,7 +36,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -71,17 +67,14 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
             collect,
             List.of(
                 new Function(
-                    new FunctionInfo(
-                        new FunctionIdent("add", Symbols.typeView(List.of(x, x))),
-                        DataTypes.INTEGER
-                    ),
                     Signature.scalar(
                         "add",
                         DataTypes.INTEGER.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature()
                     ),
-                    List.of(x, x)
+                    List.of(x, x),
+                    DataTypes.INTEGER
                 )
             )
         );

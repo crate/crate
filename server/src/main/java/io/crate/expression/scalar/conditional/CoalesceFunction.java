@@ -24,7 +24,6 @@ package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -43,28 +42,28 @@ public class CoalesceFunction extends Scalar<Object, Object> {
                     parseTypeSignature("E"))
                 .withVariableArity()
                 .withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
-                new CoalesceFunction(FunctionInfo.of(NAME, args, args.get(0)), signature)
+            CoalesceFunction::new
         );
     }
 
     public static final String NAME = "coalesce";
-    private final FunctionInfo info;
+
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private CoalesceFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private CoalesceFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

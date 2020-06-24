@@ -23,6 +23,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -36,7 +37,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -161,9 +161,9 @@ public class UpdateSettingsPlanTest extends CrateUnitTest {
     @Test
     public void test_array_is_implicitly_converted_to_comma_separated_string() {
         var idsArray = new io.crate.expression.symbol.Function(
-            ArrayFunction.createInfo(List.of(DataTypes.STRING, DataTypes.STRING)),
             ArrayFunction.SIGNATURE,
-            List.of(Literal.of("id1"), Literal.of("id2"))
+            List.of(Literal.of("id1"), Literal.of("id2")),
+            DataTypes.STRING_ARRAY
         );
         Assignment<Symbol> assignment = new Assignment<>(Literal.of("cluster.routing.allocation.exclude._id"), idsArray);
         Settings settings = buildSettingsFrom(List.of(assignment), symbolEvaluator(Row.EMPTY));

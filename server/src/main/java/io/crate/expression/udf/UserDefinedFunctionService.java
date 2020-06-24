@@ -27,8 +27,8 @@ import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -222,7 +222,7 @@ public class UserDefinedFunctionService {
         var functionName = new FunctionName(udf.schema(), udf.name());
         var signature = Signature.builder()
             .name(functionName)
-            .kind(FunctionInfo.Type.SCALAR)
+            .kind(FunctionType.SCALAR)
             .argumentTypes(
                 Lists2.map(
                     udf.argumentTypes(),

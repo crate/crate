@@ -21,28 +21,15 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.List;
-
 public class MaximumAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType<?> dataType, Object[][] data) throws Exception {
         return executeAggregation("max", dataType, data);
-    }
-
-    @Test
-    public void testReturnType() throws Exception {
-        FunctionImplementation max = functions.getQualified(
-            Signature.aggregate("max", DataTypes.INTEGER.getTypeSignature(), DataTypes.INTEGER.getTypeSignature()),
-            List.of(DataTypes.INTEGER)
-        );
-        assertEquals(DataTypes.INTEGER, max.info().returnType());
     }
 
     @Test

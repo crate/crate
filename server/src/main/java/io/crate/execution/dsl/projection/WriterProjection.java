@@ -29,8 +29,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -79,14 +77,9 @@ public class WriterProjection extends Projection {
 
 
     public static final Symbol DIRECTORY_TO_FILENAME = new Function(
-        new FunctionInfo(
-            new FunctionIdent(
-                FormatFunction.NAME,
-                List.of(StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)
-            ),
-            StringType.INSTANCE),
         FormatFunction.SIGNATURE,
-        List.of(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
+        List.of(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF),
+        DataTypes.STRING
     );
 
     private final Symbol uri;

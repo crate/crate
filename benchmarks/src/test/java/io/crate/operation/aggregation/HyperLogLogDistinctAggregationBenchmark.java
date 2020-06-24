@@ -34,7 +34,6 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OffHeapMemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
@@ -91,7 +90,8 @@ public class HyperLogLogDistinctAggregationBenchmark {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature()
             ),
-            List.of(DataTypes.STRING)
+            List.of(DataTypes.STRING),
+            DataTypes.STRING
         );
         onHeapMemoryManager = new OnHeapMemoryManager(bytes -> {});
         offHeapMemoryManager = new OffHeapMemoryManager();

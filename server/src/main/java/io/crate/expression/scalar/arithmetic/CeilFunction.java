@@ -38,21 +38,18 @@ public final class CeilFunction {
     public static void register(ScalarFunctionModule module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
+            DataType<?> returnType = DataTypes.getIntegralReturnType(type);
+            assert returnType != null : "Could not get integral type of " + type;
             for (var name : List.of(CEIL, CEILING)) {
                 module.register(
-                    scalar(name, typeSignature, typeSignature),
-                    (signature, argumentTypes) -> {
-                        DataType<?> argType = argumentTypes.get(0);
-                        DataType<?> returnType = DataTypes.getIntegralReturnType(argType);
-                        assert returnType != null : "Could not get integral type of " + argType;
-                        return new UnaryScalar<>(
-                            name,
+                    scalar(name, typeSignature, returnType.getTypeSignature()),
+                    (signature, boundSignature) ->
+                        new UnaryScalar<>(
                             signature,
-                            argType,
-                            returnType,
+                            boundSignature,
+                            type,
                             x -> returnType.value(Math.ceil(((Number) x).doubleValue()))
-                        );
-                    }
+                        )
                 );
             }
         }

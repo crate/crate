@@ -25,8 +25,6 @@ package io.crate.expression.tablefunctions;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -54,24 +52,19 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
 
         module.register(
             Signature.table(
-                FUNCTION_NAME, RETURN_TYPE.getTypeSignature()),
-            (signature, argTypes) -> new PgGetKeywordsFunction(
-                signature,
-                new FunctionInfo(
-                    new FunctionIdent(FUNCTION_NAME, argTypes),
-                    RETURN_TYPE,
-                    FunctionInfo.Type.TABLE
-                )
-            )
+                FUNCTION_NAME,
+                RETURN_TYPE.getTypeSignature()
+            ),
+            PgGetKeywordsFunction::new
         );
     }
 
     private final Signature signature;
-    private final FunctionInfo info;
+    private final Signature boundSignature;
 
-    public PgGetKeywordsFunction(Signature signature, FunctionInfo info) {
+    public PgGetKeywordsFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-        this.info = info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -98,13 +91,13 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

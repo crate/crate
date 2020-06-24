@@ -28,11 +28,7 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionInfo.Type;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -55,34 +51,27 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
 
 
     public static void register(AggregationImplModule module) {
-        module.register(
-            SIGNATURE,
-            (signature, args) -> new ArrayAgg(signature, args.get(0))
-        );
+        module.register(SIGNATURE, ArrayAgg::new);
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final SizeEstimator<Object> sizeEstimator;
 
-    public ArrayAgg(Signature signature, DataType<?> argType) {
-        this.sizeEstimator = SizeEstimatorFactory.create(argType);
-        this.info = new FunctionInfo(
-            new FunctionIdent(NAME, List.of(argType)),
-            new ArrayType<>(argType),
-            Type.AGGREGATE
-        );
+    public ArrayAgg(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
+        this.sizeEstimator = SizeEstimatorFactory.create(boundSignature.getArgumentDataTypes().get(0));
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -117,6 +106,6 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
 
     @Override
     public DataType<?> partialType() {
-        return info().returnType();
+        return boundSignature.getReturnType().createType();
     }
 }

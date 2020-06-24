@@ -24,18 +24,13 @@ package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import java.util.List;
 
 public final class FormatTypeFunction extends Scalar<String, Object> {
 
@@ -54,22 +49,22 @@ public final class FormatTypeFunction extends Scalar<String, Object> {
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public FormatTypeFunction(Signature signature, List<DataType<?>> argumentTypes) {
-        this.info = new FunctionInfo(new FunctionIdent(FQN, argumentTypes), DataTypes.STRING);
+    public FormatTypeFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return this.info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return this.signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

@@ -177,13 +177,17 @@ public class TypeSignature implements Writeable {
             return new ArrayType<>(innerType);
         } else if (baseTypeName.equalsIgnoreCase(ObjectType.NAME)) {
             var builder = ObjectType.builder();
-            for (int i = 0; i < parameters.size() - 1;) {
-                var valTypeSignature = parameters.get(i + 1);
-                assert valTypeSignature instanceof ParameterTypeSignature
-                    : "the inner type signature must be named (must have ParameterTypeSignature type)";
-                var innerTypeName = ((ParameterTypeSignature) valTypeSignature).parameterName();
-                builder.setInnerType(innerTypeName, valTypeSignature.createType());
-                i += 2;
+            // Only build typed objects if we receive parameter key-value pairs which may not exist on generic
+            // object signatures with type information only, no key strings
+            if (parameters.size() > 1) {
+                for (int i = 0; i < parameters.size() - 1; ) {
+                    var valTypeSignature = parameters.get(i + 1);
+                    if (valTypeSignature instanceof ParameterTypeSignature) {
+                        var innerTypeName = ((ParameterTypeSignature) valTypeSignature).parameterName();
+                        builder.setInnerType(innerTypeName, valTypeSignature.createType());
+                    }
+                    i += 2;
+                }
             }
             return builder.build();
         } else if (baseTypeName.equalsIgnoreCase(RowType.NAME)) {
@@ -191,11 +195,13 @@ public class TypeSignature implements Writeable {
             ArrayList<DataType<?>> dataTypes = new ArrayList<>(parameters.size());
             for (int i = 0; i < parameters.size(); i++) {
                 var parameterTypeSignature = parameters.get(i);
-                assert parameterTypeSignature instanceof ParameterTypeSignature
-                    : "the inner type signature must be named (must have ParameterTypeSignature type)";
-
-                fields.add(((ParameterTypeSignature) parameterTypeSignature).parameterName());
-                dataTypes.add(parameterTypeSignature.createType());
+                if (parameterTypeSignature instanceof ParameterTypeSignature) {
+                    fields.add(((ParameterTypeSignature) parameterTypeSignature).parameterName());
+                    dataTypes.add(parameterTypeSignature.createType());
+                } else {
+                    // No named parameter found, row type is based on a signature without detailed field information
+                    return RowType.EMPTY;
+                }
             }
             return new RowType(dataTypes, fields);
         } else {

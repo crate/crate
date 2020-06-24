@@ -27,8 +27,6 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -61,35 +59,25 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),
-                    returnType.getTypeSignature()),
-                (signature, args) ->
-                    new CollectSetAggregation(
-                        new FunctionInfo(
-                            new FunctionIdent(NAME, args),
-                            returnType,
-                            FunctionInfo.Type.AGGREGATE
-                        ),
-                        signature
-                    )
+                    returnType.getTypeSignature()
+                ),
+                CollectSetAggregation::new
             );
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final DataType<?> partialReturnType;
     private final SizeEstimator<Object> innerTypeEstimator;
 
-    private CollectSetAggregation(FunctionInfo info, Signature signature) {
-        this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType<?>) info.returnType()).innerType());
-        this.info = info;
+    private CollectSetAggregation(Signature signature, Signature boundSignature) {
+        this.innerTypeEstimator = SizeEstimatorFactory.create(
+            ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType()
+        );
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.partialReturnType = UncheckedObjectType.INSTANCE;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
@@ -98,8 +86,13 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
+    public Signature boundSignature() {
+        return boundSignature;
+    }
+
+    @Override
     public AggregationFunction<Map<Object, Long>, List<Object>> optimizeForExecutionAsWindowFunction() {
-        return new RemovableCumulativeCollectSet(info, signature);
+        return new RemovableCumulativeCollectSet(signature, boundSignature);
     }
 
     @Override
@@ -176,14 +169,16 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
         private final SizeEstimator<Object> innerTypeEstimator;
 
-        private final FunctionInfo info;
         private final Signature signature;
+        private final Signature boundSignature;
         private final DataType<?> partialType;
 
-        RemovableCumulativeCollectSet(FunctionInfo info, Signature signature) {
-            this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType<?>) info.returnType()).innerType());
-            this.info = info;
+        RemovableCumulativeCollectSet(Signature signature, Signature boundSignature) {
+            this.innerTypeEstimator = SizeEstimatorFactory.create(
+                ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType()
+            );
             this.signature = signature;
+            this.boundSignature = boundSignature;
             this.partialType = UncheckedObjectType.INSTANCE;
         }
 
@@ -285,13 +280,13 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         }
 
         @Override
-        public FunctionInfo info() {
-            return info;
+        public Signature signature() {
+            return signature;
         }
 
         @Override
-        public Signature signature() {
-            return signature;
+        public Signature boundSignature() {
+            return boundSignature;
         }
     }
 }

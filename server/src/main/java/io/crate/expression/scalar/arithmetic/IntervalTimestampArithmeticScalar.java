@@ -24,8 +24,6 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -50,36 +48,30 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                     timestampType.getTypeSignature(),
                     timestampType.getTypeSignature()
                 ).withForbiddenCoercion(),
-                (signature, args) ->
+                (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
                         "+",
-                        ArithmeticFunctions.Names.ADD,
-                        args,
-                        args.get(1),
-                        signature
+                        signature,
+                        boundSignature
                     )
             );
             module.register(
                 signatureFor(timestampType, ArithmeticFunctions.Names.ADD),
-                (signature, args) ->
+                (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
                         "+",
-                        ArithmeticFunctions.Names.ADD,
-                        args,
-                        args.get(0),
-                        signature
+                        signature,
+                        boundSignature
                     )
             );
 
             module.register(
                 signatureFor(timestampType, ArithmeticFunctions.Names.SUBTRACT),
-                (signature, args) ->
+                (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
                         "-",
-                        ArithmeticFunctions.Names.SUBTRACT,
-                        args,
-                        args.get(0),
-                        signature
+                        signature,
+                        boundSignature
                     )
             );
         }
@@ -95,19 +87,17 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
     }
 
     private final BiFunction<DateTime, Period, DateTime> operation;
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final int periodIdx;
     private final int timestampIdx;
 
     public IntervalTimestampArithmeticScalar(String operator,
-                                             String name,
-                                             List<DataType<?>> argTypes,
-                                             DataType<?> returnType,
-                                             Signature signature) {
-        this.info = new FunctionInfo(new FunctionIdent(name, argTypes), returnType);
-        this.signature = signature;
-        var firstArgType = argTypes.get(0);
+                                             Signature declaredSignature,
+                                             Signature boundSignature) {
+        this.signature = declaredSignature;
+        this.boundSignature = boundSignature;
+        var firstArgType = boundSignature.getArgumentDataTypes().get(0);
         if (firstArgType.id() == IntervalType.ID) {
             periodIdx = 0;
             timestampIdx = 1;
@@ -134,13 +124,13 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
     }
 
     @Override
-    public FunctionInfo info() {
-        return this.info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

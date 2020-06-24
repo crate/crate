@@ -26,15 +26,10 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.BooleanType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import java.util.List;
 
 public abstract class Operator<I> extends Scalar<Boolean, I> {
 
@@ -51,9 +46,5 @@ public abstract class Operator<I> extends Scalar<Boolean, I> {
             }
         }
         return super.normalizeSymbol(function, txnCtx);
-    }
-
-    static FunctionInfo generateInfo(String name, DataType<?> type) {
-        return new FunctionInfo(new FunctionIdent(name, List.of(type, type)), RETURN_TYPE);
     }
 }

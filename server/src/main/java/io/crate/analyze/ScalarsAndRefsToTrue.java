@@ -96,7 +96,7 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<Void, Symbol> {
         if (allLiterals && !Operators.LOGICAL_OPERATORS.contains(functionName)) {
             return isNull ? Literal.NULL : Literal.BOOLEAN_TRUE;
         }
-        return new Function(symbol.info(), symbol.signature(), newArgs);
+        return new Function(symbol.signature(), newArgs, symbol.valueType());
     }
 
     @Override

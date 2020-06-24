@@ -24,8 +24,6 @@ package io.crate.expression.operator;
 
 import io.crate.common.collections.Tuple;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -36,7 +34,6 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Locale;
 
 public final class CIDROperator {
@@ -44,10 +41,6 @@ public final class CIDROperator {
     public static final String CONTAINED_WITHIN = Operator.PREFIX + "<<";
 
     private static final int IPV4_ADDRESS_LEN = 4;
-
-    private static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(CONTAINED_WITHIN, Arrays.asList(DataTypes.IP, DataTypes.STRING)),
-        DataTypes.BOOLEAN);
 
     public static void register(OperatorModule module) {
         module.register(
@@ -57,7 +50,7 @@ public final class CIDROperator {
                 DataTypes.STRING.getTypeSignature(),
                 Operator.RETURN_TYPE.getTypeSignature()
             ),
-            (signature, dataTypes) -> new ContainedWithinOperator(signature)
+            ContainedWithinOperator::new
         );
     }
 
@@ -105,9 +98,11 @@ public final class CIDROperator {
     public static class ContainedWithinOperator extends Scalar<Boolean, Object> {
 
         private final Signature signature;
+        private final Signature boundSignature;
 
-        public ContainedWithinOperator(Signature signature) {
+        public ContainedWithinOperator(Signature signature, Signature boundSignature) {
             this.signature = signature;
+            this.boundSignature = boundSignature;
         }
 
         @Override
@@ -125,13 +120,13 @@ public final class CIDROperator {
         }
 
         @Override
-        public FunctionInfo info() {
-            return INFO;
+        public Signature signature() {
+            return signature;
         }
 
         @Override
-        public Signature signature() {
-            return signature;
+        public Signature boundSignature() {
+            return boundSignature;
         }
     }
 }

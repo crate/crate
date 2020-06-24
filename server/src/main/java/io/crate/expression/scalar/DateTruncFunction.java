@@ -26,8 +26,6 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -42,8 +40,6 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class DateTruncFunction extends Scalar<Long, Object> {
 
@@ -69,61 +65,52 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             module.register(
                 Signature.scalar(
                     NAME,
-                    parseTypeSignature("text"),
+                    DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),
-                    parseTypeSignature("text")
-                ),
-                (signature, argumentTypes) ->
-                    new DateTruncFunction(info(argumentTypes), signature)
+                    DataTypes.TIMESTAMPZ.getTypeSignature()
+                ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
+                DateTruncFunction::new
             );
 
             // time zone aware variant
             module.register(
                 Signature.scalar(
                     NAME,
-                    parseTypeSignature("text"),
-                    parseTypeSignature("text"),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),
-                    parseTypeSignature("text")
-                ),
-                (signature, argumentTypes) ->
-                    new DateTruncFunction(info(argumentTypes), signature)
+                    DataTypes.TIMESTAMPZ.getTypeSignature()
+                ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
+                DateTruncFunction::new
             );
         }
     }
 
-    private static FunctionInfo info(List<DataType<?>> types) {
-        return new FunctionInfo(
-            new FunctionIdent(NAME, types),
-            DataTypes.TIMESTAMPZ, FunctionInfo.Type.SCALAR, FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
-    }
-
-
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     @Nullable
     private final Rounding tzRounding;
 
-    DateTruncFunction(FunctionInfo info, Signature signature) {
-        this(info, signature, null);
+    DateTruncFunction(Signature signature, Signature boundSignature) {
+        this(signature, boundSignature, null);
     }
 
-    private DateTruncFunction(FunctionInfo info,
-                              Signature signature,
+    private DateTruncFunction(Signature signature,
+                              Signature boundSignature,
                               @Nullable Rounding tzRounding) {
-        this.info = info;
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.tzRounding = tzRounding;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -145,7 +132,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             timeZone = (String) ((Input<?>) arguments.get(1)).value();
         }
 
-        return new DateTruncFunction(this.info, signature, rounding(interval, timeZone));
+        return new DateTruncFunction(signature, boundSignature, rounding(interval, timeZone));
     }
 
     @Override

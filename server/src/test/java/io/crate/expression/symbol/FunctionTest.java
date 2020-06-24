@@ -21,8 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
@@ -45,31 +44,21 @@ import static org.hamcrest.Matchers.nullValue;
 
 public class FunctionTest extends CrateUnitTest {
 
-    private FunctionIdent functionIdent = new FunctionIdent(
-        randomAsciiLettersOfLength(10),
-        List.of(DataTypes.BOOLEAN)
-    );
-
     private DataType<?> returnType = TestingHelpers.randomPrimitiveType();
 
     private Signature signature = Signature.scalar(
-        functionIdent.fqnName(),
+        randomAsciiLettersOfLength(10),
         DataTypes.BOOLEAN.getTypeSignature(),
         returnType.getTypeSignature()
-    );
+    ).withFeatures(randomFeatures());
 
 
     @Test
     public void test_serialization_without_filter() throws Exception {
         Function fn = new Function(
-            new FunctionInfo(
-                functionIdent,
-                returnType,
-                FunctionInfo.Type.SCALAR,
-                randomFeatures()
-            ),
             signature,
-            List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
+            List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN)),
+            returnType
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
@@ -84,14 +73,9 @@ public class FunctionTest extends CrateUnitTest {
     @Test
     public void test_serialization_with_filter() throws Exception {
         Function fn = new Function(
-            new FunctionInfo(
-                functionIdent,
-                returnType,
-                FunctionInfo.Type.SCALAR,
-                randomFeatures()
-            ),
             signature,
             List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN)),
+            returnType,
             Literal.of(true)
         );
 
@@ -108,14 +92,9 @@ public class FunctionTest extends CrateUnitTest {
     @Test
     public void test_serialization_before_version_4_1_0() throws Exception {
         Function fn = new Function(
-            new FunctionInfo(
-                functionIdent,
-                returnType,
-                FunctionInfo.Type.SCALAR,
-                randomFeatures()
-            ),
             signature,
-            List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
+            List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN)),
+            returnType
         );
 
         var output = new BytesStreamOutput();
@@ -130,9 +109,9 @@ public class FunctionTest extends CrateUnitTest {
         assertThat(fn, is(fn2));
     }
 
-    private static Set<FunctionInfo.Feature> randomFeatures() {
-        Set<FunctionInfo.Feature> features = EnumSet.noneOf(FunctionInfo.Feature.class);
-        for (FunctionInfo.Feature feature : FunctionInfo.Feature.values()) {
+    private static Set<Scalar.Feature> randomFeatures() {
+        Set<Scalar.Feature> features = EnumSet.noneOf(Scalar.Feature.class);
+        for (Scalar.Feature feature : Scalar.Feature.values()) {
             if (randomBoolean()) {
                 features.add(feature);
             }

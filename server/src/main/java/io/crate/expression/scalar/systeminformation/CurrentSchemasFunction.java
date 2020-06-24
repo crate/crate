@@ -22,11 +22,8 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -35,7 +32,6 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
@@ -43,37 +39,33 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
     public static final String NAME = "current_schemas";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(FQN, ImmutableList.of(DataTypes.BOOLEAN)),
-        DataTypes.STRING_ARRAY,
-        FunctionInfo.Type.SCALAR,
-        Collections.emptySet());
-
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 FQN,
                 DataTypes.BOOLEAN.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
-            (signature, args) -> new CurrentSchemasFunction(signature)
+                DataTypes.STRING_ARRAY.getTypeSignature()
+            ).withFeatures(NO_FEATURES),
+            CurrentSchemasFunction::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public CurrentSchemasFunction(Signature signature) {
+    public CurrentSchemasFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return INFO;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @SafeVarargs

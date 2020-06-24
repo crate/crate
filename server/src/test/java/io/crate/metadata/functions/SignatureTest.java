@@ -22,7 +22,7 @@
 
 package io.crate.metadata.functions;
 
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -46,7 +46,7 @@ public class SignatureTest {
 
         var signature = Signature.builder()
             .name("foo")
-            .kind(FunctionInfo.Type.SCALAR)
+            .kind(FunctionType.SCALAR)
             .argumentTypes(
                 parseTypeSignature("E"),
                 DataTypes.INTEGER.getTypeSignature(),

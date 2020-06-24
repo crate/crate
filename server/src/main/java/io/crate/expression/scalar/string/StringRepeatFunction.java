@@ -24,24 +24,12 @@ package io.crate.expression.scalar.string;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.List;
-
 public final class StringRepeatFunction extends Scalar<String, Object> {
-
-    private static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(
-            "repeat",
-            List.of(DataTypes.STRING, DataTypes.INTEGER)
-        ),
-        DataTypes.STRING
-    );
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -51,14 +39,16 @@ public final class StringRepeatFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) -> new StringRepeatFunction(signature)
+            StringRepeatFunction::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public StringRepeatFunction(Signature signature) {
+    public StringRepeatFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -78,12 +68,12 @@ public final class StringRepeatFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return INFO;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

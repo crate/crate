@@ -26,6 +26,7 @@ import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,7 +58,7 @@ public class RandomFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void normalizeReference() {
-        Function function = new Function(random.info(), random.signature(), Collections.emptyList());
+        Function function = new Function(random.signature(), Collections.emptyList(), DataTypes.DOUBLE);
         Function normalized = (Function) random.normalizeSymbol(function, txnCtx);
         assertThat(normalized, sameInstance(function));
     }

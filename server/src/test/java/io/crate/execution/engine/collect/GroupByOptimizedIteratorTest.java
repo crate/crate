@@ -92,7 +92,8 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         inExpr = new InputCollectExpression(0);
         CountAggregation aggregation = (CountAggregation) getFunctions().getQualified(
             CountAggregation.COUNT_STAR_SIGNATURE,
-            Collections.emptyList()
+            Collections.emptyList(),
+            CountAggregation.COUNT_STAR_SIGNATURE.getReturnType().createType()
         );
         aggregationContexts = List.of(new AggregationContext(aggregation, () -> true, List.of()));
     }

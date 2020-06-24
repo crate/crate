@@ -34,7 +34,6 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
-import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 
@@ -50,18 +49,20 @@ class ArithmeticOperatorsFactory {
     private static final BinaryOperator<Long> SUB_LONG_FUNCTION = (arg0, arg1) -> arg0 - arg1;
     private static final BinaryOperator<Float> SUB_FLOAT_FUNCTION = (arg0, arg1) -> arg0 - arg1;
 
-    static BiFunction getAddFunction(DataType fstArgDataType, DataType sndArgDataType) {
+    static BiFunction getAddFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
+                    var signature = IntervalTimestampArithmeticScalar.signatureFor(
+                        fstArgDataType,
+                        ArithmeticFunctions.Names.ADD
+                    );
                     return new IntervalTimestampArithmeticScalar(
                         "+",
-                        ArithmeticFunctions.Names.ADD,
-                        List.of(fstArgDataType, sndArgDataType),
-                        fstArgDataType,
-                        IntervalTimestampArithmeticScalar.signatureFor(fstArgDataType, ArithmeticFunctions.Names.ADD)
+                        signature,
+                        signature
                     );
                 }
                 return ADD_LONG_FUNCTION;
@@ -79,18 +80,20 @@ class ArithmeticOperatorsFactory {
         }
     }
 
-    static BiFunction getSubtractFunction(DataType fstArgDataType, DataType sndArgDataType) {
+    static BiFunction getSubtractFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
+                    var signature = IntervalTimestampArithmeticScalar.signatureFor(
+                        fstArgDataType,
+                        ArithmeticFunctions.Names.SUBTRACT
+                    );
                     return new IntervalTimestampArithmeticScalar(
                         "-",
-                        ArithmeticFunctions.Names.SUBTRACT,
-                        List.of(fstArgDataType, sndArgDataType),
-                        fstArgDataType,
-                        IntervalTimestampArithmeticScalar.signatureFor(fstArgDataType, ArithmeticFunctions.Names.SUBTRACT)
+                        signature,
+                        signature
                     );
                 }
                 return SUB_LONG_FUNCTION;

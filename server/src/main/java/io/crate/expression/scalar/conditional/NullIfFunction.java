@@ -24,13 +24,11 @@ package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.DataTypes.tryFindNotNullType;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class NullIfFunction extends Scalar<Object, Object> {
@@ -43,28 +41,27 @@ public class NullIfFunction extends Scalar<Object, Object> {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
-                new NullIfFunction(FunctionInfo.of(NAME, args, tryFindNotNullType(args)), signature)
+            NullIfFunction::new
         );
     }
 
     public static final String NAME = "nullif";
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private NullIfFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private NullIfFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

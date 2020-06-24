@@ -24,8 +24,6 @@ package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -48,34 +46,29 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature()
             )
                 .withTypeVariableConstraints(typeVariable("E")),
-            (signature, argumentTypes) ->
-                new PgTypeofFunction(
-                    new FunctionInfo(new FunctionIdent(FQNAME, argumentTypes),
-                                     DataTypes.STRING),
-                    signature
-                )
+            PgTypeofFunction::new
         );
 
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final String type;
 
-    private PgTypeofFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private PgTypeofFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-        type = this.info.ident().argumentTypes().get(0).getName();
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
+        type = boundSignature.getArgumentDataTypes().get(0).getName();
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @SafeVarargs

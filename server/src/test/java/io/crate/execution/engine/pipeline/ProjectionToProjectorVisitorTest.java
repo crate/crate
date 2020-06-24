@@ -38,7 +38,6 @@ import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
-import io.crate.execution.engine.aggregation.impl.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
@@ -54,8 +53,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
@@ -89,8 +86,6 @@ import static org.mockito.Mockito.mock;
 public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUnitTest {
 
     private ProjectionToProjectorVisitor visitor;
-    private FunctionInfo countInfo;
-    private FunctionInfo avgInfo;
     private Signature avgSignature;
     private Functions functions;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
@@ -115,12 +110,6 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         );
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
 
-        countInfo = new FunctionInfo(
-            new FunctionIdent(CountAggregation.NAME, Collections.singletonList(DataTypes.STRING)),
-            DataTypes.LONG);
-        avgInfo = new FunctionInfo(
-            new FunctionIdent(AverageAggregation.NAME, Collections.singletonList(DataTypes.INTEGER)),
-            DataTypes.DOUBLE);
         avgSignature = Signature.aggregate(
             "avg",
             DataTypes.INTEGER.getTypeSignature(),
@@ -174,14 +163,12 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
     public void testAggregationProjector() throws Exception {
         AggregationProjection projection = new AggregationProjection(Arrays.asList(
             new Aggregation(
-                avgInfo,
                 avgSignature,
-                avgInfo.returnType(),
+                avgSignature.getReturnType().createType(),
                 Collections.singletonList(new InputColumn(1))),
             new Aggregation(
-                countInfo,
                 CountAggregation.SIGNATURE,
-                countInfo.returnType(),
+                CountAggregation.SIGNATURE.getReturnType().createType(),
                 Collections.singletonList(new InputColumn(0)))
         ), RowGranularity.SHARD, AggregateMode.ITER_FINAL);
         Projector projector = visitor.create(
@@ -211,14 +198,12 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.STRING), new InputColumn(2, DataTypes.STRING));
         List<Aggregation> aggregations = Arrays.asList(
             new Aggregation(
-                avgInfo,
                 avgSignature,
-                avgInfo.returnType(),
+                avgSignature.getReturnType().createType(),
                 Collections.singletonList(new InputColumn(1))),
             new Aggregation(
-                countInfo,
                 CountAggregation.SIGNATURE,
-                countInfo.returnType(),
+                CountAggregation.SIGNATURE.getReturnType().createType(),
                 Collections.singletonList(new InputColumn(0)))
         );
         GroupProjection projection = new GroupProjection(
@@ -270,7 +255,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         List<Symbol> arguments = Arrays.asList(Literal.of(2), new InputColumn(1));
         EqOperator op =
             (EqOperator) functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
-        Function function = new Function(op.info(), op.signature(), arguments);
+        Function function = new Function(op.signature(), arguments, EqOperator.RETURN_TYPE);
         FilterProjection projection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));
 

@@ -24,16 +24,12 @@ package io.crate.expression.scalar.timestamp;
 import com.google.common.math.LongMath;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.math.RoundingMode;
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 
 public class CurrentTimestampFunction extends Scalar<Long, Integer> {
@@ -41,27 +37,23 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
     public static final String NAME = "current_timestamp";
     public static final int DEFAULT_PRECISION = 3;
 
-    public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, List.of(DataTypes.INTEGER)),
-        DataTypes.TIMESTAMPZ,
-        FunctionInfo.Type.SCALAR,
-        Collections.emptySet());
-
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ),
-            (signature, args) -> new CurrentTimestampFunction(signature)
+            ).withFeatures(NO_FEATURES),
+            CurrentTimestampFunction::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public CurrentTimestampFunction(Signature signature) {
+    public CurrentTimestampFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -100,12 +92,12 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return INFO;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

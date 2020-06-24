@@ -38,9 +38,9 @@ public class AggregationTest extends CrateUnitTest {
     @Test
     public void test_serialization_with_filter() throws Exception {
         Aggregation actual = new Aggregation(
-            CountAggregation.COUNT_STAR_FUNCTION,
             CountAggregation.COUNT_STAR_SIGNATURE,
-            CountAggregation.COUNT_STAR_FUNCTION.returnType(),
+            CountAggregation.COUNT_STAR_SIGNATURE.getReturnType().createType(),
+            CountAggregation.COUNT_STAR_SIGNATURE.getReturnType().createType(),
             List.of(),
             Literal.BOOLEAN_FALSE
         );
@@ -57,9 +57,8 @@ public class AggregationTest extends CrateUnitTest {
     @Test
     public void test_serialization_with_filter_before_version_4_1_0() throws Exception {
         Aggregation actual = new Aggregation(
-            CountAggregation.COUNT_STAR_FUNCTION,
             CountAggregation.COUNT_STAR_SIGNATURE,
-            CountAggregation.COUNT_STAR_FUNCTION.returnType(),
+            CountAggregation.COUNT_STAR_SIGNATURE.getReturnType().createType(),
             List.of()
         );
         BytesStreamOutput output = new BytesStreamOutput();

@@ -22,11 +22,10 @@
 
 package io.crate.expression;
 
-import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
@@ -42,7 +41,7 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
     private HashMap<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
     private MapBinder<FunctionName, List<FunctionProvider>> implementationsBinder;
 
-    public void register(Signature signature, BiFunction<Signature, List<DataType<?>>, FunctionImplementation> factory) {
+    public void register(Signature signature, BiFunction<Signature, Signature, FunctionImplementation> factory) {
         List<FunctionProvider> functions = functionImplementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());

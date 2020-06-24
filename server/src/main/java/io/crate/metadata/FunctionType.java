@@ -20,31 +20,11 @@
  * agreement.
  */
 
-package io.crate.expression.scalar.arithmetic;
+package io.crate.metadata;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.scalar.UnaryScalar;
-import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.Signature.scalar;
-
-public class ExpFunction {
-
-    public static final String NAME = "exp";
-
-    public static void register(ScalarFunctionModule module) {
-        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            var typeSignature = type.getTypeSignature();
-            module.register(
-                scalar(NAME, typeSignature, typeSignature),
-                (declaredSignature, boundSignature) ->
-                    new UnaryScalar<>(
-                        declaredSignature,
-                        boundSignature,
-                        type,
-                        x -> type.value(Math.exp(((Number) x).doubleValue()))
-                    )
-            );
-        }
-    }
+public enum FunctionType {
+    SCALAR,
+    AGGREGATE,
+    TABLE,
+    WINDOW
 }

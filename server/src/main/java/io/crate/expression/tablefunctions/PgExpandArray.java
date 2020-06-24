@@ -25,8 +25,6 @@ package io.crate.expression.tablefunctions;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -54,24 +52,21 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
                 parseTypeSignature("array(E)"),
                 parseTypeSignature("record(x E, n integer)")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, argTypes) -> new PgExpandArray(signature, (ArrayType<?>) argTypes.get(0))
+            PgExpandArray::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
     private final RowType resultType;
-    private final FunctionInfo info;
 
-    public PgExpandArray(Signature signature, ArrayType<?> argType) {
+    public PgExpandArray(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
+        ArrayType<?> argType = (ArrayType<?>) boundSignature.getArgumentDataTypes().get(0);
         resultType = new RowType(
             List.of(argType.innerType(), DataTypes.INTEGER),
             List.of("x", "n")
-        );
-        info = new FunctionInfo(
-            new FunctionIdent(FUNCTION_NAME, List.of(argType)),
-            resultType,
-            FunctionInfo.Type.TABLE
         );
     }
 
@@ -101,13 +96,13 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

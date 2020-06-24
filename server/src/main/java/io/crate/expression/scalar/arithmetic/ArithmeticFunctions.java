@@ -23,7 +23,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -46,56 +46,56 @@ public class ArithmeticFunctions {
 
     private enum Operations {
         ADD(
-            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT,
+            Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT,
             Math::addExact,
             Double::sum,
             Math::addExact,
             Float::sum
         ),
         SUBTRACT(
-            FunctionInfo.DETERMINISTIC_ONLY,
+            Scalar.DETERMINISTIC_ONLY,
             Math::subtractExact,
                 (arg0, arg1) -> arg0 - arg1,
             Math::subtractExact,
                 (arg0, arg1) -> arg0 - arg1
         ),
         MULTIPLY(
-            FunctionInfo.DETERMINISTIC_ONLY,
+            Scalar.DETERMINISTIC_ONLY,
             Math::multiplyExact,
                 (arg0, arg1) -> arg0 * arg1,
             Math::multiplyExact,
                 (arg0, arg1) -> arg0 * arg1
         ),
         DIVIDE(
-            FunctionInfo.DETERMINISTIC_ONLY,
+            Scalar.DETERMINISTIC_ONLY,
                 (arg0, arg1) -> arg0 / arg1,
                 (arg0, arg1) -> arg0 / arg1,
                 (arg0, arg1) -> arg0 / arg1,
                 (arg0, arg1) -> arg0 / arg1
         ),
         MODULUS(
-            FunctionInfo.DETERMINISTIC_ONLY,
+            Scalar.DETERMINISTIC_ONLY,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1
         ),
         MOD(
-            FunctionInfo.DETERMINISTIC_ONLY,
+            Scalar.DETERMINISTIC_ONLY,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1
         );
 
-        private final Set<FunctionInfo.Feature> features;
+        private final Set<Scalar.Feature> features;
 
         private final BinaryOperator<Integer> integerFunction;
         private final BinaryOperator<Double> doubleFunction;
         private final BinaryOperator<Long> longFunction;
         private final BinaryOperator<Float> floatFunction;
 
-        Operations(Set<FunctionInfo.Feature> features,
+        Operations(Set<Scalar.Feature> features,
                    BinaryOperator<Integer> integerFunction,
                    BinaryOperator<Double> doubleFunction,
                    BinaryOperator<Long> longFunction,
@@ -121,9 +121,9 @@ public class ArithmeticFunctions {
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature()
-                ),
-                (signature, args) ->
-                    new BinaryScalar<>(op.integerFunction, op.toString(), signature, DataTypes.INTEGER, op.features)
+                ).withFeatures(op.features),
+                (signature, boundSignature) ->
+                    new BinaryScalar<>(op.integerFunction, signature, boundSignature, DataTypes.INTEGER)
             );
             for (var type : List.of(DataTypes.LONG, DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
                 module.register(
@@ -132,9 +132,9 @@ public class ArithmeticFunctions {
                         type.getTypeSignature(),
                         type.getTypeSignature(),
                         type.getTypeSignature()
-                    ),
-                    (signature, args) ->
-                        new BinaryScalar<>(op.longFunction, op.toString(), signature, type, op.features)
+                    ).withFeatures(op.features),
+                    (signature, boundSignature) ->
+                        new BinaryScalar<>(op.longFunction, signature, boundSignature, type)
                 );
             }
             module.register(
@@ -143,9 +143,9 @@ public class ArithmeticFunctions {
                     DataTypes.FLOAT.getTypeSignature(),
                     DataTypes.FLOAT.getTypeSignature(),
                     DataTypes.FLOAT.getTypeSignature()
-                ),
-                (signature, args) ->
-                    new BinaryScalar<>(op.floatFunction, op.toString(), signature, DataTypes.FLOAT, op.features)
+                ).withFeatures(op.features),
+                (signature, boundSignature) ->
+                    new BinaryScalar<>(op.floatFunction, signature, boundSignature, DataTypes.FLOAT)
             );
             module.register(
                 Signature.scalar(
@@ -153,9 +153,9 @@ public class ArithmeticFunctions {
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()
-                ),
-                (signature, args) ->
-                    new BinaryScalar<>(op.doubleFunction, op.toString(), signature, DataTypes.DOUBLE, op.features)
+                ).withFeatures(op.features),
+                (signature, boundSignature) ->
+                    new BinaryScalar<>(op.doubleFunction, signature, boundSignature, DataTypes.DOUBLE)
             );
         }
 
@@ -165,9 +165,9 @@ public class ArithmeticFunctions {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
-            (signature, dataTypes) ->
-                new BinaryScalar<>(Math::pow, Names.POWER, signature, DataTypes.DOUBLE, FunctionInfo.DETERMINISTIC_ONLY)
+            ).withFeatures(Scalar.DETERMINISTIC_ONLY),
+            (signature, boundSignature) ->
+                new BinaryScalar<>(Math::pow, signature, boundSignature, DataTypes.DOUBLE)
         );
     }
 }

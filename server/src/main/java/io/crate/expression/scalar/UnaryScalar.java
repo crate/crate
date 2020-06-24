@@ -23,15 +23,11 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
-import javax.annotation.Nullable;
-import java.util.List;
 import java.util.function.Function;
 
 
@@ -42,38 +38,22 @@ import java.util.function.Function;
  */
 public class UnaryScalar<R, T> extends Scalar<R, T> {
 
-    private final FunctionInfo info;
     private final Function<T, R> func;
-    @Nullable
     private final Signature signature;
+    private final Signature boundSignature;
+    private final DataType<T> type;
 
-    public UnaryScalar(FunctionIdent functionIdent, DataType<?> returnType, Function<T, R> func) {
-        this(functionIdent, null, returnType, func);
-    }
 
-    public UnaryScalar(String name, DataType<?> argType, DataType<?> returnType, Function<T, R> func) {
-        this(new FunctionIdent(name, List.of(argType)), returnType, func);
-    }
-
-    public UnaryScalar(String name,
-                       Signature signature,
-                       DataType<?> argType, DataType<?> returnType,
+    public UnaryScalar(Signature signature,
+                       Signature boundSignature,
+                       DataType<T> type,
                        Function<T, R> func) {
-        this(new FunctionIdent(name, List.of(argType)), signature, returnType, func);
-    }
-
-    public UnaryScalar(FunctionIdent functionIdent,
-                       @Nullable Signature signature,
-                       DataType<?> returnType,
-                       Function<T, R> func) {
-        this.info = new FunctionInfo(functionIdent, returnType);
+        assert boundSignature.getArgumentDataTypes().get(0).id() == type.id() :
+            "The bound argument type of the signature must match the type argument";
         this.signature = signature;
+        this.boundSignature = boundSignature;
+        this.type = type;
         this.func = func;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
@@ -81,11 +61,16 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
         return signature;
     }
 
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
+    }
+
     @SafeVarargs
     @Override
     public final R evaluate(TransactionContext txnCtx, Input<T>... args) {
         assert args.length == 1 : "UnaryScalar expects exactly 1 argument, got: " + args.length;
-        T value = args[0].value();
+        T value = type.value(args[0].value());
         if (value == null) {
             return null;
         }

@@ -28,7 +28,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 
 import java.util.List;
-import java.util.function.Function;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
@@ -37,18 +36,27 @@ public final class CoordinateFunction {
     private static final List<DataType<?>> SUPPORTED_INPUT_TYPES =
         List.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
 
-    private static void register(ScalarFunctionModule module, String name, Function<Object, Double> func) {
-        for (DataType<?> inputType : SUPPORTED_INPUT_TYPES) {
+    public static void register(ScalarFunctionModule module) {
+        for (var inputType : SUPPORTED_INPUT_TYPES) {
             module.register(
-                scalar(name, inputType.getTypeSignature(), DataTypes.DOUBLE.getTypeSignature()),
-                (signature, args) -> new UnaryScalar<>(name, signature, inputType, DataTypes.DOUBLE, func)
+                scalar(
+                    "latitude",
+                    inputType.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                ),
+                (signature, boundSignature) ->
+                    new UnaryScalar<>(signature, boundSignature, inputType, CoordinateFunction::getLatitude)
+            );
+            module.register(
+                scalar(
+                    "longitude",
+                    inputType.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                ),
+                (signature, boundSignature) ->
+                    new UnaryScalar<>(signature, boundSignature, inputType, CoordinateFunction::getLongitude)
             );
         }
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        register(module, "latitude", CoordinateFunction::getLatitude);
-        register(module, "longitude", CoordinateFunction::getLongitude);
     }
 
 

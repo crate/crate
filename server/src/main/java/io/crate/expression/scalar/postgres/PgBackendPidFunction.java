@@ -27,16 +27,12 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-
-import java.util.Collections;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
@@ -45,24 +41,22 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
     public static final String NAME = "pg_backend_pid";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-
-    public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(FQN, Collections.emptyList()),
-        DataTypes.INTEGER,
-        FunctionInfo.Type.SCALAR,
-        FunctionInfo.NO_FEATURES);
-
     public static void register(ScalarFunctionModule module) {
         module.register(
-            scalar(FQN, DataTypes.INTEGER.getTypeSignature()),
-            (signature, args) -> new PgBackendPidFunction(signature)
+            scalar(
+                FQN,
+                DataTypes.INTEGER.getTypeSignature()
+            ).withFeatures(NO_FEATURES),
+            PgBackendPidFunction::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public PgBackendPidFunction(Signature signature) {
+    public PgBackendPidFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -72,13 +66,13 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return INFO;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

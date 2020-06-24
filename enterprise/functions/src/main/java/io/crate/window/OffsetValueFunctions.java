@@ -24,8 +24,6 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
@@ -65,23 +63,23 @@ public class OffsetValueFunctions implements WindowFunction {
     private static final String LEAD_NAME = "lead";
 
     private final OffsetDirection offsetDirection;
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private OffsetValueFunctions(FunctionInfo info, Signature signature, OffsetDirection offsetDirection) {
-        this.info = info;
+    private OffsetValueFunctions(Signature signature, Signature boundSignature, OffsetDirection offsetDirection) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.offsetDirection = offsetDirection;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -130,13 +128,10 @@ public class OffsetValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new OffsetValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LEAD_NAME, args),
-                        args.get(0),
-                        FunctionInfo.Type.WINDOW),
                     signature,
+                    boundSignature,
                     OffsetDirection.FORWARD
                 )
         );
@@ -147,13 +142,10 @@ public class OffsetValueFunctions implements WindowFunction {
                 DataTypes.INTEGER.getTypeSignature(),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new OffsetValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LEAD_NAME, args),
-                        args.get(0),
-                        FunctionInfo.Type.WINDOW),
                     signature,
+                    boundSignature,
                     OffsetDirection.FORWARD
                 )
         );
@@ -165,13 +157,10 @@ public class OffsetValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new OffsetValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LEAD_NAME, args),
-                        args.get(0),
-                        FunctionInfo.Type.WINDOW),
                     signature,
+                    boundSignature,
                     OffsetDirection.FORWARD
                 )
         );
@@ -182,13 +171,10 @@ public class OffsetValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new OffsetValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LAG_NAME, args),
-                        args.get(0),
-                        FunctionInfo.Type.WINDOW),
                     signature,
+                    boundSignature,
                     OffsetDirection.BACKWARD
                 )
         );
@@ -199,13 +185,10 @@ public class OffsetValueFunctions implements WindowFunction {
                 DataTypes.INTEGER.getTypeSignature(),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new OffsetValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LAG_NAME, args),
-                        args.get(0),
-                        FunctionInfo.Type.WINDOW),
                     signature,
+                    boundSignature,
                     OffsetDirection.BACKWARD
                 )
         );
@@ -217,13 +200,10 @@ public class OffsetValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new OffsetValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LAG_NAME, args),
-                        args.get(0),
-                        FunctionInfo.Type.WINDOW),
                     signature,
+                    boundSignature,
                     OffsetDirection.BACKWARD
                 )
         );

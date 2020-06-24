@@ -24,8 +24,6 @@ package io.crate.expression.tablefunctions;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -43,34 +41,28 @@ public class EmptyRowTableFunction {
     public static void register(TableFunctionModule module) {
         module.register(
             Signature.table(NAME, RowType.EMPTY.getTypeSignature()),
-            (signature, argTypes) -> new EmptyRowTableFunctionImplementation(
-                signature,
-                new FunctionInfo(
-                    new FunctionIdent(NAME, argTypes),
-                    RowType.EMPTY,
-                    FunctionInfo.Type.TABLE)
-            )
+            EmptyRowTableFunctionImplementation::new
         );
     }
 
     static class EmptyRowTableFunctionImplementation extends TableFunctionImplementation<Object> {
 
-        private final FunctionInfo info;
         private final Signature signature;
+        private final Signature boundSignature;
 
-        private EmptyRowTableFunctionImplementation(Signature signature, FunctionInfo info) {
-            this.info = info;
+        private EmptyRowTableFunctionImplementation(Signature signature, Signature boundSignature) {
             this.signature = signature;
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
+            this.boundSignature = boundSignature;
         }
 
         @Override
         public Signature signature() {
             return signature;
+        }
+
+        @Override
+        public Signature boundSignature() {
+            return boundSignature;
         }
 
         @Override

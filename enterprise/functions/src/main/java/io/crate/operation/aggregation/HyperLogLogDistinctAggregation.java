@@ -26,8 +26,6 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.BooleanType;
@@ -68,42 +66,31 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature()),
-                (signature, argTypes) -> {
-                    var info = new FunctionInfo(
-                        new FunctionIdent(NAME, argTypes),
-                        DataTypes.LONG,
-                        FunctionInfo.Type.AGGREGATE
-                    );
-                    return new HyperLogLogDistinctAggregation(signature, info, supportedType);
-                }
+                (signature, boundSignature) ->
+                    new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );
             mod.register(
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()),
-                (signature, argTypes) -> {
-                    var info = new FunctionInfo(
-                        new FunctionIdent(NAME, argTypes),
-                        DataTypes.LONG,
-                        FunctionInfo.Type.AGGREGATE
-                    );
-                    return new HyperLogLogDistinctAggregation(signature, info, supportedType);
-                }
+                    DataTypes.LONG.getTypeSignature()
+                ),
+                (signature, boundSignature) ->
+                    new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );
         }
     }
 
     private final Signature signature;
-    private final FunctionInfo info;
+    private final Signature boundSignature;
     private final DataType<?> dataType;
 
     private HyperLogLogDistinctAggregation(Signature signature,
-                                           FunctionInfo info,
+                                           Signature boundSignature,
                                            DataType<?> dataType) {
         this.signature = signature;
-        this.info = info;
+        this.boundSignature = boundSignature;
         this.dataType = dataType;
     }
 
@@ -160,13 +147,13 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     public static class HllState implements Comparable<HllState>, Writeable {
