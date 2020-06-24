@@ -126,6 +126,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     public void testDropSnapshot() throws Exception {
         String snapshotName = "my_snap_1";
         createTableAndSnapshot("my_table", snapshotName);
+        waitNoPendingTasksOnAll();
 
         execute("drop snapshot " + REPOSITORY_NAME + "." + snapshotName);
         assertThat(response.rowCount(), is(1L));
@@ -344,6 +345,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testRestoreSnapshotSinglePartition() throws Exception {
         createTableAndSnapshot("my_parted_table", SNAPSHOT_NAME, true);
+        waitNoPendingTasksOnAll();
 
         execute("delete from my_parted_table");
         waitNoPendingTasksOnAll();
@@ -416,6 +418,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createTable("my_table_1", false);
         createTable("my_table_2", false);
         createSnapshot(SNAPSHOT_NAME, "my_table_1", "my_table_2");
+        waitNoPendingTasksOnAll();
 
         execute("drop table my_table_1");
 

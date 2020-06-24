@@ -70,7 +70,7 @@ public final class ShardGenerations {
      * @param previous Previous {@code ShardGenerations}
      * @return Map of obsolete shard index generations in indices that are still tracked by this instance
      */
-    public Map<IndexId, Map<Integer, String>> obsoleteShardGenerations(ShardGenerations previous) {
+        public Map<IndexId, Map<Integer, String>> obsoleteShardGenerations(ShardGenerations previous) {
         final Map<IndexId, Map<Integer, String>> result = new HashMap<>();
         previous.shardGenerations.forEach(((indexId, oldGens) -> {
             final List<String> updatedGenerations = shardGenerations.get(indexId);

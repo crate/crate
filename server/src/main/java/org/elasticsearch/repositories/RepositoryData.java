@@ -21,7 +21,6 @@ package org.elasticsearch.repositories;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.ResourceNotFoundException;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -29,6 +28,7 @@ import org.elasticsearch.common.xcontent.XContentParserUtils;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,7 +56,7 @@ public final class RepositoryData {
      * An instance initialized for an empty repository.
      */
     public static final RepositoryData EMPTY = new RepositoryData(EMPTY_REPO_GEN,
-        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY);
+                                                                  Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY);
 
     /**
      * The generational id of the index file from which the repository data was read.
@@ -84,24 +84,25 @@ public final class RepositoryData {
      */
     private final ShardGenerations shardGenerations;
 
-    public RepositoryData(long genId,
-                          Map<String, SnapshotId> snapshotIds,
-                          Map<String, SnapshotState> snapshotStates,
-                          Map<IndexId, Set<SnapshotId>> indexSnapshots,
-                          ShardGenerations shardGenerations) {
+    public RepositoryData(long genId, Map<String, SnapshotId> snapshotIds, Map<String, SnapshotState> snapshotStates,
+                          Map<IndexId, Set<SnapshotId>> indexSnapshots, ShardGenerations shardGenerations) {
         this.genId = genId;
         this.snapshotIds = Collections.unmodifiableMap(snapshotIds);
         this.snapshotStates = Collections.unmodifiableMap(snapshotStates);
         this.indices = Collections.unmodifiableMap(indexSnapshots.keySet().stream()
-            .collect(Collectors.toMap(IndexId::getName, Function.identity())));
+                                                       .collect(Collectors.toMap(IndexId::getName, Function.identity())));
         this.indexSnapshots = Collections.unmodifiableMap(indexSnapshots);
         this.shardGenerations = Objects.requireNonNull(shardGenerations);
         assert indices.values().containsAll(shardGenerations.indices()) : "ShardGenerations contained indices "
-            + shardGenerations.indices() + " but snapshots only reference indices " + indices.values();
+                                                                          + shardGenerations.indices() + " but snapshots only reference indices " + indices.values();
     }
 
     protected RepositoryData copy() {
         return new RepositoryData(genId, snapshotIds, snapshotStates, indexSnapshots, shardGenerations);
+    }
+
+    public ShardGenerations shardGenerations() {
+        return shardGenerations;
     }
 
     /**
@@ -109,10 +110,6 @@ public final class RepositoryData {
      */
     public long getGenId() {
         return genId;
-    }
-
-    public ShardGenerations shardGenerations() {
-        return shardGenerations;
     }
 
     /**
@@ -149,6 +146,20 @@ public final class RepositoryData {
     }
 
     /**
+     * Returns the list of {@link IndexId} that have their snapshots updated but not removed (because they are still referenced by other
+     * snapshots) after removing the given snapshot from the repository.
+     *
+     * @param snapshotId SnapshotId to remove
+     * @return List of indices that are changed but not removed
+     */
+    public List<IndexId> indicesToUpdateAfterRemovingSnapshot(SnapshotId snapshotId) {
+        return indexSnapshots.entrySet().stream()
+            .filter(entry -> entry.getValue().size() > 1 && entry.getValue().contains(snapshotId))
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+    }
+
+    /**
      * Add a snapshot and its indices to the repository; returns a new instance.  If the snapshot
      * already exists in the repository data, this method throws an IllegalArgumentException.
      *
@@ -179,7 +190,25 @@ public final class RepositoryData {
     }
 
     /**
+     * Create a new instance with the given generation and all other fields equal to this instance.
+     *
+     * @param newGeneration New Generation
+     * @return New instance
+     */
+    public RepositoryData withGenId(long newGeneration) {
+        if (newGeneration == genId) {
+            return this;
+        }
+        return new RepositoryData(newGeneration, this.snapshotIds, this.snapshotStates, this.indexSnapshots, this.shardGenerations);
+    }
+
+    /**
      * Remove a snapshot and remove any indices that no longer exist in the repository due to the deletion of the snapshot.
+     *
+     * @param snapshotId              Snapshot Id
+     * @param updatedShardGenerations Shard generations that changed as a result of removing the snapshot.
+     *                                The {@code String[]} passed for each {@link IndexId} contains the new shard generation id for each
+     *                                changed shard indexed by its shardId
      */
     public RepositoryData removeSnapshot(final SnapshotId snapshotId, final ShardGenerations updatedShardGenerations) {
         Map<String, SnapshotId> newSnapshotIds = snapshotIds.values().stream()
@@ -209,7 +238,10 @@ public final class RepositoryData {
             indexSnapshots.put(indexId, set);
         }
 
-        return new RepositoryData(genId, newSnapshotIds, newSnapshotStates, indexSnapshots, this.shardGenerations);
+        return new RepositoryData(genId, newSnapshotIds, newSnapshotStates, indexSnapshots,
+                                  ShardGenerations.builder().putAll(shardGenerations).putAll(updatedShardGenerations)
+                                      .retainIndicesAndPruneDeletes(indexSnapshots.keySet()).build()
+        );
     }
 
     /**
@@ -231,7 +263,7 @@ public final class RepositoryData {
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        @SuppressWarnings("unchecked") RepositoryData that = (RepositoryData) obj;
+        RepositoryData that = (RepositoryData) obj;
         return snapshotIds.equals(that.snapshotIds)
                && snapshotStates.equals(that.snapshotStates)
                && indices.equals(that.indices)
@@ -249,29 +281,7 @@ public final class RepositoryData {
      * throwing an exception if the index could not be resolved.
      */
     public IndexId resolveIndexId(final String indexName) {
-        if (indices.containsKey(indexName)) {
-            return indices.get(indexName);
-        } else {
-            // on repositories created before 5.0, there was no indices information in the index
-            // blob, so if the repository hasn't been updated with new snapshots, no new index blob
-            // would have been written, so we only have old snapshots without the index information.
-            // in this case, the index id is just the index name
-            return new IndexId(indexName, indexName);
-        }
-    }
-
-    /**
-     * Returns the list of {@link IndexId} that have their snapshots updated but not removed (because they are still referenced by other
-     * snapshots) after removing the given snapshot from the repository.
-     *
-     * @param snapshotId SnapshotId to remove
-     * @return List of indices that are changed but not removed
-     */
-    public List<IndexId> indicesToUpdateAfterRemovingSnapshot(SnapshotId snapshotId) {
-        return indexSnapshots.entrySet().stream()
-            .filter(entry -> entry.getValue().size() > 1 && entry.getValue().contains(snapshotId))
-            .map(Map.Entry::getKey)
-            .collect(Collectors.toList());
+        return Objects.requireNonNull(indices.get(indexName), () -> "Tried to resolve unknown index [" + indexName + "]");
     }
 
     /**
@@ -442,7 +452,7 @@ public final class RepositoryData {
                                         // the list of snapshots. This can happen when multiple clusters in
                                         // different versions create or delete snapshot in the same repository.
                                         throw new ElasticsearchParseException("Detected a corrupted repository, index " + indexId
-                                            + " references an unknown snapshot uuid [" + uuid + "]");
+                                                                              + " references an unknown snapshot uuid [" + uuid + "]");
                                     }
                                 }
                             } else if (SHARD_GENERATIONS.equals(indexMetaFieldName)) {
@@ -469,4 +479,5 @@ public final class RepositoryData {
         }
         return new RepositoryData(genId, snapshots, snapshotStates, indexSnapshots, shardGenerations.build());
     }
+
 }

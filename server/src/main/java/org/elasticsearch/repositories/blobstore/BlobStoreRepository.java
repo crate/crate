@@ -578,19 +578,19 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         DeleteResult deleteResult = DeleteResult.ZERO;
         try {
             for (Map.Entry<String, BlobContainer> indexEntry : foundIndices.entrySet()) {
-//                final String indexSnId = indexEntry.getKey();
-//                try {
-//                    if (survivingIndexIds.contains(indexSnId) == false) {
-//                        LOGGER.debug("[{}] Found stale index [{}]. Cleaning it up", metadata.name(), indexSnId);
-//                        //TODO fix that, we need backport BlobContainer.delete before
-//                        // deleteResult = deleteResult.add(indexEntry.getValue().delete());
-//                        LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
-//                    }
-//                } catch (IOException e) {
-//                    LOGGER.warn(() -> new ParameterizedMessage(
-//                        "[{}] index {} is no longer part of any snapshots in the repository, " +
-//                        "but failed to clean up their index folders", metadata.name(), indexSnId), e);
-//                }
+                final String indexSnId = indexEntry.getKey();
+                try {
+                    if (survivingIndexIds.contains(indexSnId) == false) {
+                        LOGGER.debug("[{}] Found stale index [{}]. Cleaning it up", metadata.name(), indexSnId);
+                        //TODO fix that, we need backport BlobContainer.delete before
+                        deleteResult = deleteResult.add(new DeleteResult(1,1));
+                        LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
+                    }
+                } catch (Exception e) {
+                    LOGGER.warn(() -> new ParameterizedMessage(
+                        "[{}] index {} is no longer part of any snapshots in the repository, " +
+                        "but failed to clean up their index folders", metadata.name(), indexSnId), e);
+                }
             }
         } catch (Exception e) {
             // TODO: We shouldn't be blanket catching and suppressing all exceptions here and instead handle them safely upstream.
