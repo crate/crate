@@ -1,0 +1,57 @@
+.. _version_4.1.7:
+
+=============
+Version 4.1.7
+=============
+
+Released on 2020-06-24.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.1.7.
+
+    We recommend that you upgrade to the latest 4.0 release before moving to
+    4.1.7.
+
+    A rolling upgrade to 4.1.7 from 4.0.2+ is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.1.0` release notes for a full list of changes in the
+4.1 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that caused ``ORDER BY`` expressions referencing table
+  functions used in the ``SELECT`` list to fail.
+
+- Fixed an issue that prevented an optimization for ``SELECT DISTINCT
+  <single_text_column> FROM <table>`` from working if used within a ``INSERT
+  INTO`` statement.
+
+- Re-enabled the IAM role authentication for
+  :ref:`s3 repositories <ref-create-repository-types-s3>`
+
+- Changed the required privileges to execute ``RESET`` statements to include
+  the ``AL`` privilege. Users with ``AL`` could change settings using ``SET
+  GLOBAL`` already.
+
+- Fixed an issue that caused a ``NullPointerException`` if the :ref:`ANALYZE
+  <analyze>` statement was executed on tables with primitive array type columns
+  that contain ``NULL`` values.
+
+- Fixed an issue that caused the ``OFFSET`` clause to be ignored in ``SELECT
+  DISTINCT`` queries.
+
