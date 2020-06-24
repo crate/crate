@@ -165,17 +165,6 @@ public interface Repository extends LifecycleComponent {
     void deleteSnapshot(SnapshotId snapshotId, long repositoryStateId, ActionListener<Void> listener);
 
     /**
-     * Returns snapshot throttle time in nanoseconds
-     */
-    long getSnapshotThrottleTimeInNanos();
-
-    /**
-     * Returns restore throttle time in nanoseconds
-     */
-    long getRestoreThrottleTimeInNanos();
-
-
-    /**
      * Verifies repository on the master node and returns the verification token.
      * <p>
      * If the verification token is not null, it's passed to all data nodes for verification. If it's null - no
@@ -237,19 +226,7 @@ public interface Repository extends LifecycleComponent {
      * @param snapshotShardId shard id (in the snapshot)
      * @param recoveryState   recovery state
      */
-    public void restoreShard(Store store, SnapshotId snapshotId, Version version, IndexId indexId, ShardId snapshotShardId,
+    void restoreShard(Store store, SnapshotId snapshotId, Version version, IndexId indexId, ShardId snapshotShardId,
                              RecoveryState recoveryState);
-
-    /**
-     * Retrieve shard snapshot status for the stored snapshot
-     *
-     * @param snapshotId snapshot id
-     * @param version    version of elasticsearch that created this snapshot
-     * @param indexId    the snapshotted index id for the shard to get status for
-     * @param shardId    shard id
-     * @return snapshot status
-     */
-    IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId, Version version, IndexId indexId, ShardId shardId);
-
 
 }

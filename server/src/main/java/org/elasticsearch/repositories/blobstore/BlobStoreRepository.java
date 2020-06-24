@@ -632,16 +632,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }
     }
 
-    @Override
-    public long getSnapshotThrottleTimeInNanos() {
-        return snapshotRateLimitingTimeInNanos.count();
-    }
-
-    @Override
-    public long getRestoreThrottleTimeInNanos() {
-        return restoreRateLimitingTimeInNanos.count();
-    }
-
     protected void assertSnapshotOrGenericThread() {
         assert Thread.currentThread().getName().contains(ThreadPool.Names.SNAPSHOT)
             || Thread.currentThread().getName().contains(ThreadPool.Names.GENERIC)
@@ -1044,20 +1034,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             throw new IndexShardRestoreFailedException(shardId, "failed to restore snapshot [" + snapshotId + "]", e);
         }
     }
-
-    @Override
-    public IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId, Version version, IndexId indexId, ShardId shardId) {
-        BlobStoreIndexShardSnapshot snapshot = loadShardSnapshot(shardContainer(indexId, shardId), snapshotId);
-        return IndexShardSnapshotStatus.newDone(
-            snapshot.startTime(),
-            snapshot.time(),
-            snapshot.incrementalFileCount(),
-            snapshot.totalFileCount(),
-            snapshot.incrementalSize(),
-            snapshot.totalSize(),
-            null); // Not adding a real generation here as it doesn't matter to callers
-    }
-
 
     @Override
     public void verify(String seed, DiscoveryNode localNode) {
