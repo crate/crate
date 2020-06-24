@@ -37,8 +37,8 @@ public class RadiansDegreesFunctions {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            (signature, args) ->
-                new UnaryScalar<>("radians", signature, args.get(0), args.get(0), Math::toRadians));
+            (signature, boundSignature) ->
+                new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toRadians));
 
         module.register(
             scalar(
@@ -46,7 +46,7 @@ public class RadiansDegreesFunctions {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            (signature, args) ->
-                new UnaryScalar<>("degrees", signature, args.get(0), args.get(0), Math::toDegrees));
+            (signature, boundSignature) ->
+                new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toDegrees));
     }
 }

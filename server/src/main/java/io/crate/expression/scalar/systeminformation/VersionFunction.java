@@ -24,8 +24,6 @@ package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -35,7 +33,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 
-import java.util.Collections;
 import java.util.Locale;
 
 public class VersionFunction extends Scalar<String, Void> {
@@ -44,17 +41,13 @@ public class VersionFunction extends Scalar<String, Void> {
 
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    protected static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(FQN, Collections.emptyList()), DataTypes.STRING,
-        FunctionInfo.Type.SCALAR, FunctionInfo.NO_FEATURES);
-
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 FQN,
                 DataTypes.STRING.getTypeSignature()
-            ),
-            (signature, args) -> new VersionFunction(signature)
+            ).withFeatures(Scalar.NO_FEATURES),
+            VersionFunction::new
         );
 
     }
@@ -90,9 +83,11 @@ public class VersionFunction extends Scalar<String, Void> {
     private static final String VERSION = formatVersion();
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public VersionFunction(Signature signature) {
+    public VersionFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -101,12 +96,12 @@ public class VersionFunction extends Scalar<String, Void> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return INFO;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

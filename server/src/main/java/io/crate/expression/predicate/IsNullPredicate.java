@@ -25,15 +25,10 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import java.util.List;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -50,29 +45,26 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     public static void register(PredicateModule module) {
         module.register(
             SIGNATURE,
-            (signature, argTypes) -> new IsNullPredicate<>(signature, generateInfo(argTypes)));
-    }
-
-    public static FunctionInfo generateInfo(List<DataType<?>> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.BOOLEAN);
+            IsNullPredicate::new
+        );
     }
 
     private final Signature signature;
-    private final FunctionInfo info;
+    private final Signature boundSignature;
 
-    private IsNullPredicate(Signature signature, FunctionInfo info) {
+    private IsNullPredicate(Signature signature, Signature boundSignature) {
         this.signature = signature;
-        this.info = info;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

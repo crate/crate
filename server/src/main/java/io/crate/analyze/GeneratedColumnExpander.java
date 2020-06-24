@@ -44,13 +44,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
-import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -180,13 +178,27 @@ public final class GeneratedColumnExpander {
                 generatedReference.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
 
                 Function generatedFunction = (Function) generatedReference.generatedExpression();
-                String operatorName = function.info().ident().name();
+
+                String operatorName;
+                String generatedFunctionName;
+                java.util.function.Function<Scalar.Feature, Boolean> hasFeatures;
+                var signature = function.signature();
+                var generatedFunctionSignature = generatedFunction.signature();
+                if (signature != null && generatedFunctionSignature != null) {
+                    operatorName = signature.getName().name();
+                    generatedFunctionName = generatedFunctionSignature.getName().name();
+                    hasFeatures = generatedFunctionSignature::hasFeature;
+                } else {
+                    operatorName = function.info().ident().name();
+                    generatedFunctionName = generatedFunction.info().ident().name();
+                    hasFeatures = f ->  generatedFunction.info().hasFeature(f);
+                }
                 if (!operatorName.equals(EqOperator.NAME)) {
-                    if (!generatedFunction.info().hasFeature(FunctionInfo.Feature.COMPARISON_REPLACEMENT)) {
+                    if (!hasFeatures.apply(Scalar.Feature.COMPARISON_REPLACEMENT)) {
                         return null;
                     }
                     // rewrite operator
-                    if (ROUNDING_FUNCTIONS.contains(generatedFunction.info().ident().name())) {
+                    if (ROUNDING_FUNCTIONS.contains(generatedFunctionName)) {
                         String replacedOperatorName = ROUNDING_FUNCTION_MAPPING.get(operatorName);
                         if (replacedOperatorName != null) {
                             operatorName = replacedOperatorName;
@@ -195,8 +207,6 @@ public final class GeneratedColumnExpander {
                 }
 
                 Symbol wrapped = wrapInGenerationExpression(comparedAgainst, generatedReference);
-                FunctionInfo comparisonFunctionInfo = new FunctionInfo(new FunctionIdent(operatorName,
-                    List.of(generatedReference.valueType(), wrapped.valueType())), DataTypes.BOOLEAN);
                 var funcImpl = functions.get(
                     null,
                     operatorName,
@@ -204,9 +214,9 @@ public final class GeneratedColumnExpander {
                     SearchPath.pathWithPGCatalogAndDoc()
                 );
                 return new Function(
-                    comparisonFunctionInfo,
                     funcImpl.signature(),
-                    List.of(generatedReference, wrapped)
+                    List.of(generatedReference, wrapped),
+                    funcImpl.boundSignature().getReturnType().createType()
                 );
             }
             return null;

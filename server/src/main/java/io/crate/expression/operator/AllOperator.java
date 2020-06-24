@@ -23,13 +23,10 @@
 package io.crate.expression.operator;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import java.util.Collection;
 import java.util.function.IntPredicate;
@@ -67,28 +64,29 @@ public final class AllOperator extends Operator<Object> {
                     parseTypeSignature("array(E)"),
                     Operator.RETURN_TYPE.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E")),
-                (signature, dataTypes) ->
+                (signature, boundSignature) ->
                     new AllOperator(
-                        new FunctionInfo(new FunctionIdent(signature.getName().name(), dataTypes), DataTypes.BOOLEAN),
                         signature,
+                        boundSignature,
                         type.cmp
                     )
             );
         }
     }
 
-    private final FunctionInfo functionInfo;
     private final Signature signature;
+    private final Signature boundSignature;
     private final IntPredicate cmp;
     private final DataType leftType;
 
-    public AllOperator(FunctionInfo functionInfo, Signature signature, IntPredicate cmp) {
-        this.functionInfo = functionInfo;
+    public AllOperator(Signature signature, Signature boundSignature, IntPredicate cmp) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.cmp = cmp;
-        this.leftType = functionInfo.ident().argumentTypes().get(0);
+        this.leftType = boundSignature.getArgumentDataTypes().get(0);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         var leftValue = args[0].value();
@@ -114,12 +112,12 @@ public final class AllOperator extends Operator<Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return functionInfo;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

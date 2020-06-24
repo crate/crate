@@ -21,9 +21,7 @@
 
 package io.crate.expression.predicate;
 
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -32,7 +30,6 @@ import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -67,7 +64,7 @@ public class MatchPredicate implements FunctionImplementation {
     public static void register(PredicateModule module) {
         module.register(
             SIGNATURE,
-            (signature, dataTypes) -> new MatchPredicate(signature)
+            MatchPredicate::new
         );
     }
 
@@ -82,30 +79,22 @@ public class MatchPredicate implements FunctionImplementation {
 
     private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = Set.of("intersects", "disjoint", "within");
 
-    public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(
-            NAME,
-            List.of(
-                DataTypes.UNTYPED_OBJECT,
-                DataTypes.STRING,
-                DataTypes.STRING,
-                DataTypes.UNTYPED_OBJECT)),
-        DataTypes.BOOLEAN);
-
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private MatchPredicate(Signature signature) {
+    private MatchPredicate(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return INFO;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     private static String defaultMatchType(DataType<?> dataType) {

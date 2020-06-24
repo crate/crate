@@ -38,8 +38,8 @@ import io.crate.types.TypeSignature;
 import java.util.ArrayList;
 import java.util.Set;
 
-import static io.crate.metadata.FunctionInfo.Type.AGGREGATE;
-import static io.crate.metadata.FunctionInfo.Type.WINDOW;
+import static io.crate.metadata.FunctionType.AGGREGATE;
+import static io.crate.metadata.FunctionType.WINDOW;
 import static io.crate.metadata.pgcatalog.PgProcTable.Entry.pgTypeIdFrom;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.FLOAT;

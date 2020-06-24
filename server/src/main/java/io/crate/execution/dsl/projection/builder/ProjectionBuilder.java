@@ -36,12 +36,11 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.functions.Signature;
+import io.crate.metadata.SearchPath;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -61,9 +60,10 @@ public class ProjectionBuilder {
     public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
                                                        Collection<Function> aggregates,
                                                        AggregateMode mode,
-                                                       RowGranularity granularity) {
+                                                       RowGranularity granularity,
+                                                       SearchPath searchPath) {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
-        ArrayList<Aggregation> aggregations = getAggregations(aggregates, mode, sourceSymbols);
+        ArrayList<Aggregation> aggregations = getAggregations(aggregates, mode, sourceSymbols, searchPath);
         return new AggregationProjection(aggregations, granularity, mode);
     }
 
@@ -72,20 +72,22 @@ public class ProjectionBuilder {
         Collection<? extends Symbol> keys,
         Collection<Function> values,
         AggregateMode mode,
-        RowGranularity requiredGranularity) {
+        RowGranularity requiredGranularity,
+        SearchPath searchPath) {
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
-        ArrayList<Aggregation> aggregations = getAggregations(values, mode, sourceSymbols);
+        ArrayList<Aggregation> aggregations = getAggregations(values, mode, sourceSymbols, searchPath);
         return new GroupProjection(InputColumns.create(keys, sourceSymbols), aggregations, mode, requiredGranularity);
     }
 
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
                                                    AggregateMode mode,
-                                                   InputColumns.SourceSymbols sourceSymbols) {
+                                                   InputColumns.SourceSymbols sourceSymbols,
+                                                   SearchPath searchPath) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
-            assert function.info().type() == FunctionInfo.Type.AGGREGATE :
-                "function type must be " + FunctionInfo.Type.AGGREGATE;
+            assert function.info().type() == FunctionType.AGGREGATE :
+                    "function type must be " + FunctionType.AGGREGATE;
             List<Symbol> aggregationInputs;
             Symbol filterInput;
             switch (mode) {
@@ -111,17 +113,15 @@ public class ProjectionBuilder {
                     throw new AssertionError("Invalid mode: " + mode.name());
             }
 
-            Signature signature = function.signature();
             AggregationFunction<?, ?> aggregationFunction = (AggregationFunction<?, ?>) this.functions.getQualified(
-                signature,
-                Symbols.typeView(function.arguments())
+                function,
+                searchPath
             );
             assert aggregationFunction != null :
                 "Aggregation function implementation not found using full qualified lookup: " + function;
-
             Aggregation aggregation = new Aggregation(
-                function.info(),
-                signature,
+                aggregationFunction.signature(),
+                aggregationFunction.boundSignature().getReturnType().createType(),
                 mode.returnType(aggregationFunction),
                 aggregationInputs,
                 filterInput

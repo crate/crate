@@ -23,7 +23,6 @@
 package io.crate.expression;
 
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -46,12 +45,12 @@ public class AbstractFunctionModuleTest extends CrateUnitTest {
         }
 
         @Override
-        public FunctionInfo info() {
-            return null;
+        public Signature signature() {
+            return signature;
         }
 
         @Override
-        public Signature signature() {
+        public Signature boundSignature() {
             return signature;
         }
     }

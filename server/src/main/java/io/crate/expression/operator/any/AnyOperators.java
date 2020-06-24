@@ -27,11 +27,8 @@ import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OperatorModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
-import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -96,10 +93,10 @@ public final class AnyOperators {
                     parseTypeSignature("array(E)"),
                     Operator.RETURN_TYPE.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E")),
-                (signature, dataTypes) ->
+                (signature, boundSignature) ->
                     new AnyOperator(
-                        new FunctionInfo(new FunctionIdent(signature.getName().name(), dataTypes), DataTypes.BOOLEAN),
                         signature,
+                        boundSignature,
                         type.cmp
                     )
             );

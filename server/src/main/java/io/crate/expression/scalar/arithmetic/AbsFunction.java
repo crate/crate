@@ -37,12 +37,11 @@ public final class AbsFunction {
             var typeSignature = type.getTypeSignature();
             module.register(
                 scalar(NAME, typeSignature, typeSignature),
-                (signature, args) -> {
-                    DataType<?> argType = args.get(0);
+                (signature, boundSignature) -> {
+                    DataType<?> argType = boundSignature.getArgumentDataTypes().get(0);
                     return new UnaryScalar<>(
-                        NAME,
                         signature,
-                        argType,
+                        boundSignature,
                         argType,
                         x -> argType.value(Math.abs(((Number) x).doubleValue()))
                     );

@@ -23,10 +23,8 @@
 package io.crate.expression.udf;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -45,11 +43,7 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
         @Override
         public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData,
                                                    Signature signature) throws ScriptException {
-            FunctionInfo info = new FunctionInfo(
-                new FunctionIdent(metaData.schema(), metaData.name(), metaData.argumentTypes()),
-                metaData.returnType()
-            );
-            return new DummyFunction(info, signature);
+            return new DummyFunction(signature);
         }
 
         @Nullable
@@ -68,21 +62,19 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
 
         public static final Integer RESULT = -42;
 
-        private final FunctionInfo info;
         private final Signature signature;
 
-        DummyFunction(FunctionInfo info, Signature signature) {
-            this.info = info;
+        DummyFunction(Signature signature) {
             this.signature = signature;
         }
 
         @Override
-        public FunctionInfo info() {
-            return info;
+        public Signature signature() {
+            return signature;
         }
 
         @Override
-        public Signature signature() {
+        public Signature boundSignature() {
             return signature;
         }
 

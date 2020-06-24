@@ -64,13 +64,14 @@ public class AggregateCollectorBenchmark {
     @Setup
     public void setup() {
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
-        SumAggregation<?> sumAggregation = ((SumAggregation<?>) getFunctions().getQualified(
+        SumAggregation<?> sumAggregation = (SumAggregation<?>) getFunctions().getQualified(
             Signature.aggregate(
                 SumAggregation.NAME,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature()
             ),
-            List.of(DataTypes.INTEGER))
+            List.of(DataTypes.INTEGER),
+            DataTypes.INTEGER
         );
         var memoryManager = new OnHeapMemoryManager(bytes -> {});
         collector = new AggregateCollector(

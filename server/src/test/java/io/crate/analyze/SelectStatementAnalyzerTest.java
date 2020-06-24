@@ -55,6 +55,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.sql.parser.ParsingException;
@@ -179,7 +180,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.groupBy().isEmpty(), is(true));
         assertThat(relation.outputs().size(), is(1));
         Function col1 = (Function) relation.outputs().get(0);
-        assertThat(col1.info().type(), is(FunctionInfo.Type.AGGREGATE));
+        assertThat(col1.info().type(), is(FunctionType.AGGREGATE));
         assertThat(col1.info().ident().name(), is(AverageAggregation.NAME));
     }
 
@@ -231,7 +232,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         Function whereClause = (Function) relation.where();
         assertThat(whereClause.info().ident().name(), is(OrOperator.NAME));
-        assertThat(whereClause.info().type() == FunctionInfo.Type.AGGREGATE, is(false));
+        assertThat(whereClause.info().type() == FunctionType.AGGREGATE, is(false));
 
         Function left = (Function) whereClause.arguments().get(0);
         assertThat(left.info().ident().name(), is(EqOperator.NAME));
@@ -256,7 +257,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "or load['1'] = ? or name = ?");
         Function whereClause = (Function) relation.where();
         assertThat(whereClause.info().ident().name(), is(OrOperator.NAME));
-        assertThat(whereClause.info().type() == FunctionInfo.Type.AGGREGATE, is(false));
+        assertThat(whereClause.info().type() == FunctionType.AGGREGATE, is(false));
 
         Function function = (Function) whereClause.arguments().get(0);
         assertThat(function.info().ident().name(), is(OrOperator.NAME));
@@ -476,7 +477,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(symbol, isFunction("collect_set"));
 
         Function collectSet = (Function) symbol;
-        assertThat(collectSet.info().type(), equalTo(FunctionInfo.Type.AGGREGATE));
+        assertThat(collectSet.info().type(), equalTo(FunctionType.AGGREGATE));
 
         assertThat(collectSet.arguments().size(), is(1));
         assertThat(collectSet.arguments().get(0), isReference("load['1']"));

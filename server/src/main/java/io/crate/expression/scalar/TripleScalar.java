@@ -23,12 +23,10 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-
-import javax.annotation.Nullable;
+import io.crate.types.DataType;
 
 
 /**
@@ -38,26 +36,21 @@ import javax.annotation.Nullable;
  */
 public final class TripleScalar<R, T> extends Scalar<R, T> {
 
-    private final FunctionInfo info;
-    @Nullable
     private final Signature signature;
+    private final Signature boundSignature;
     private final ThreeParametersFunction<T, T, T, R> func;
+    private final DataType<T> type;
 
-    public TripleScalar(FunctionInfo info, ThreeParametersFunction<T, T, T, R> func) {
-        this(info, null, func);
-    }
-
-    public TripleScalar(FunctionInfo info,
-                        @Nullable Signature signature,
+    public TripleScalar(Signature signature,
+                        Signature boundSignature,
+                        DataType<T> type,
                         ThreeParametersFunction<T, T, T, R> func) {
-        this.info = info;
+        assert boundSignature.getArgumentDataTypes().stream().allMatch(t -> t.id() == type.id()) :
+            "All argument types of the bound signature must match the type argument";
         this.signature = signature;
+        this.boundSignature = boundSignature;
+        this.type = type;
         this.func = func;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
@@ -65,19 +58,24 @@ public final class TripleScalar<R, T> extends Scalar<R, T> {
         return signature;
     }
 
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
+    }
+
     @SafeVarargs
     @Override
     public final R evaluate(TransactionContext txnCtx, Input<T>... args) {
         assert args.length == 3 : "TripleScalar expects exactly 3 arguments, got: " + args.length;
-        T value1 = args[0].value();
+        T value1 = type.value(args[0].value());
         if (value1 == null) {
             return null;
         }
-        T value2 = args[1].value();
+        T value2 = type.value(args[1].value());
         if (value2 == null) {
             return null;
         }
-        T value3 = args[2].value();
+        T value3 = type.value(args[2].value());
         if (value3 == null) {
             return null;
         }

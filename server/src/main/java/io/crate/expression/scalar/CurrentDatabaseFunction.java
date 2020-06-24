@@ -24,8 +24,6 @@ package io.crate.expression.scalar;
 
 import io.crate.Constants;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -33,14 +31,9 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-import java.util.Collections;
-
 final class CurrentDatabaseFunction extends Scalar<String, Void> {
 
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, "current_database");
-
-    public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(FQN, Collections.emptyList()), DataTypes.STRING);
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -48,24 +41,26 @@ final class CurrentDatabaseFunction extends Scalar<String, Void> {
                 FQN,
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) -> new CurrentDatabaseFunction(signature)
+            CurrentDatabaseFunction::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public CurrentDatabaseFunction(Signature signature) {
+    public CurrentDatabaseFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return INFO;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

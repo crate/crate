@@ -33,8 +33,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -61,24 +59,22 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
 
     public static class DummyFunction<InputType> extends Scalar<String, InputType>  {
 
-        private final FunctionInfo info;
         private final Signature signature;
         private final UserDefinedFunctionMetaData metaData;
 
         private DummyFunction(UserDefinedFunctionMetaData metaData,
                               Signature signature) {
-            this.info = new FunctionInfo(new FunctionIdent(metaData.schema(), metaData.name(), metaData.argumentTypes()), DataTypes.STRING);
             this.signature = signature;
             this.metaData = metaData;
         }
 
         @Override
-        public FunctionInfo info() {
-            return info;
+        public Signature signature() {
+            return signature;
         }
 
         @Override
-        public Signature signature() {
+        public Signature boundSignature() {
             return signature;
         }
 

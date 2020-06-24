@@ -104,6 +104,7 @@ public class Functions {
     public FunctionImplementation get(@Nullable String suppliedSchema,
                                       String functionName,
                                       List<Symbol> arguments,
+
                                       SearchPath searchPath) {
         FunctionName fqnName = new FunctionName(suppliedSchema, functionName);
         FunctionImplementation func = getBuiltinByArgs(fqnName, arguments, searchPath);
@@ -120,6 +121,7 @@ public class Functions {
     @Nullable
     private FunctionImplementation get(Signature signature,
                                        List<DataType<?>> actualArgumentTypes,
+                                       DataType<?> actualReturnType,
                                        Function<FunctionName, List<FunctionProvider>> lookupFunction) {
         var candidates = lookupFunction.apply(signature.getName());
         if (candidates == null) {
@@ -127,7 +129,11 @@ public class Functions {
         }
         for (var candidate : candidates) {
             if (candidate.getSignature().equals(signature)) {
-                return candidate.getFactory().apply(signature, actualArgumentTypes);
+                var boundSignature = Signature.builder(signature)
+                    .argumentTypes(Lists2.map(actualArgumentTypes, DataType::getTypeSignature))
+                    .returnType(actualReturnType.getTypeSignature())
+                    .build();
+                return candidate.getFactory().apply(signature, boundSignature);
             }
         }
         return null;
@@ -289,7 +295,7 @@ public class Functions {
                                                SearchPath searchPath) {
         var signature = function.signature();
         if (signature != null) {
-            return getQualified(signature, Symbols.typeView(function.arguments()));
+            return getQualified(signature, Symbols.typeView(function.arguments()), function.valueType());
         }
         // Fallback to full function resolving
         // TODO: This is for BWC of older nodes, should be removed on the next major 5.0.
@@ -305,7 +311,7 @@ public class Functions {
                                                SearchPath searchPath) {
         var signature = function.signature();
         if (signature != null) {
-            return getQualified(signature, Symbols.typeView(function.inputs()));
+            return getQualified(signature, Symbols.typeView(function.inputs()), function.boundSignatureReturnType());
         }
         // Fallback to full function resolving
         // TODO: This is for BWC of older nodes, should be removed on the next major 5.0.
@@ -326,32 +332,30 @@ public class Functions {
      * @throws UnsupportedOperationException if no implementation is found.
      */
     public FunctionImplementation getQualified(Signature signature,
-                                               List<DataType<?>> actualArgumentTypes) throws UnsupportedOperationException {
-        FunctionImplementation impl = get(signature, actualArgumentTypes, functionImplementations::get);
+                                               List<DataType<?>> actualArgumentTypes,
+                                               DataType<?> actualReturnType) throws UnsupportedOperationException {
+        FunctionImplementation impl = get(signature, actualArgumentTypes, actualReturnType, functionImplementations::get);
         if (impl == null) {
-            impl = get(signature, actualArgumentTypes, udfFunctionImplementations::get);
+            impl = get(signature, actualArgumentTypes, actualReturnType, udfFunctionImplementations::get);
         }
         return impl;
     }
 
     @VisibleForTesting
     static void raiseUnknownFunction(@Nullable String suppliedSchema,
-                                             String name,
-                                             List<Symbol> arguments,
-                                             List<FunctionProvider> candidates) {
+                                     String name,
+                                     List<Symbol> arguments,
+                                     List<FunctionProvider> candidates) {
         List<DataType<?>> argumentTypes = Symbols.typeView(arguments);
         var function = new io.crate.expression.symbol.Function(
-            new FunctionInfo(
-                new FunctionIdent(suppliedSchema, name, argumentTypes),
-                DataTypes.UNDEFINED
-            ),
             Signature.builder()
                 .name(new FunctionName(suppliedSchema, name))
                 .argumentTypes(Lists2.map(argumentTypes, DataType::getTypeSignature))
                 .returnType(DataTypes.UNDEFINED.getTypeSignature())
-                .kind(FunctionInfo.Type.SCALAR)
+                .kind(FunctionType.SCALAR)
                 .build(),
-            arguments
+            arguments,
+            DataTypes.UNDEFINED
         );
 
         var message = "Unknown function: " + function.toString(Style.QUALIFIED);
@@ -508,11 +512,11 @@ public class Functions {
 
         private final Signature declaredSignature;
         private final Signature boundSignature;
-        private final BiFunction<Signature, List<DataType<?>>, FunctionImplementation> factory;
+        private final BiFunction<Signature, Signature, FunctionImplementation> factory;
 
         public ApplicableFunction(Signature declaredSignature,
                                   Signature boundSignature,
-                                  BiFunction<Signature, List<DataType<?>>, FunctionImplementation> factory) {
+                                  BiFunction<Signature, Signature, FunctionImplementation> factory) {
             this.declaredSignature = declaredSignature;
             this.boundSignature = boundSignature;
             this.factory = factory;
@@ -530,7 +534,7 @@ public class Functions {
         public FunctionImplementation get() {
             return factory.apply(
                 declaredSignature,
-                Lists2.map(boundSignature.getArgumentTypes(), TypeSignature::createType)
+                boundSignature
             );
         }
 

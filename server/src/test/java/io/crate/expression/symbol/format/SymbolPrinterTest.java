@@ -31,8 +31,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -133,18 +131,16 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFormatAggregation() throws Exception {
-        FunctionInfo functionInfo = new FunctionInfo(
-            new FunctionIdent("agg", Collections.singletonList(DataTypes.INTEGER)),
-            DataTypes.LONG,
-            FunctionInfo.Type.AGGREGATE
-        );
         Signature signature = Signature.aggregate(
             "agg",
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.LONG.getTypeSignature()
         );
         Aggregation a = new Aggregation(
-            functionInfo, signature, DataTypes.LONG, Collections.singletonList(Literal.of(-127)));
+            signature,
+            DataTypes.LONG,
+            Collections.singletonList(Literal.of(-127))
+        );
 
         assertPrint(a, "agg(-127)");
     }

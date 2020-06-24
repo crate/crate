@@ -24,14 +24,11 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +53,7 @@ public class MapFunction extends Scalar<Object, Object> {
     public static final Signature SIGNATURE =
         Signature.builder()
             .name(new FunctionName(null, NAME))
-            .kind(FunctionInfo.Type.SCALAR)
+            .kind(FunctionType.SCALAR)
             .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
             .argumentTypes(parseTypeSignature("text"), parseTypeSignature("V"))
             // This is not 100% correct because each variadic `V` is type independent, resulting in a return type
@@ -70,30 +67,26 @@ public class MapFunction extends Scalar<Object, Object> {
     public static void register(ScalarFunctionModule module) {
         module.register(
             SIGNATURE,
-            (signature, args) -> new MapFunction(createInfo(args), signature)
+            MapFunction::new
         );
     }
 
-    public static FunctionInfo createInfo(List<DataType<?>> dataTypes) {
-        return new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.UNTYPED_OBJECT);
-    }
-
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private MapFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private MapFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @SafeVarargs

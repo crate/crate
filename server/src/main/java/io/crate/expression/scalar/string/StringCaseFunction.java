@@ -38,11 +38,10 @@ public final class StringCaseFunction {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new UnaryScalar<String, String>(
-                    "upper",
+            (signature, boundSignature) ->
+                new UnaryScalar<>(
                     signature,
-                    DataTypes.STRING,
+                    boundSignature,
                     DataTypes.STRING,
                     val -> val.toUpperCase(Locale.ENGLISH)
                 )
@@ -53,11 +52,10 @@ public final class StringCaseFunction {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new UnaryScalar<String, String>(
-                    "lower",
+            (signature, boundSignature) ->
+                new UnaryScalar<>(
                     signature,
-                    DataTypes.STRING,
+                    boundSignature,
                     DataTypes.STRING,
                     val -> val.toLowerCase(Locale.ENGLISH)
                 )

@@ -39,19 +39,18 @@ public final class GeoHashFunction {
         List.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
 
     public static void register(ScalarFunctionModule module) {
-        for (DataType<?> inputType : SUPPORTED_INPUT_TYPES) {
+        for (var inputType : SUPPORTED_INPUT_TYPES) {
             module.register(
                 scalar(
                     "geohash",
                     inputType.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
                 ),
-                (signature, args) ->
+                (signature, boundSignature) ->
                     new UnaryScalar<>(
-                        "geohash",
                         signature,
+                        boundSignature,
                         inputType,
-                        DataTypes.STRING,
                         GeoHashFunction::getGeoHash
                     )
             );

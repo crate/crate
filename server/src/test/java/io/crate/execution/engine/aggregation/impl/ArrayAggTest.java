@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -50,8 +49,9 @@ public class ArrayAggTest extends AggregationTest {
     public void test_array_agg_return_type_is_array_of_argument_type() {
         DataType<?> returnType = functions.getQualified(
             ArrayAgg.SIGNATURE,
-            List.of(DataTypes.LONG)
-        ).info().returnType();
-        assertThat(returnType, Matchers.is(new ArrayType<>(DataTypes.LONG)));
+            List.of(DataTypes.LONG),
+            DataTypes.BIGINT_ARRAY
+        ).boundSignature().getReturnType().createType();
+        assertThat(returnType, Matchers.is(DataTypes.BIGINT_ARRAY));
     }
 }

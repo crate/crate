@@ -24,15 +24,12 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.joda.time.Period;
 
-import java.util.List;
 import java.util.function.BiFunction;
 
 public class IntervalArithmeticScalar extends Scalar<Period, Object> {
@@ -45,8 +42,8 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
             ),
-            (signature, args) ->
-                new IntervalArithmeticScalar("+", ArithmeticFunctions.Names.ADD, signature)
+            (signature, boundSignature) ->
+                new IntervalArithmeticScalar("+", signature, boundSignature)
         );
         module.register(
             Signature.scalar(
@@ -55,22 +52,18 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
             ),
-            (signature, args) ->
-                new IntervalArithmeticScalar("-", ArithmeticFunctions.Names.SUBTRACT, signature)
+            (signature, boundSignature) ->
+                new IntervalArithmeticScalar("-", signature, boundSignature)
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final BiFunction<Period, Period, Period> operation;
 
-    IntervalArithmeticScalar(String operator, String name, Signature signature) {
-        info = new FunctionInfo(
-            new FunctionIdent(
-                name,
-                List.of(DataTypes.INTERVAL, DataTypes.INTERVAL)),
-            DataTypes.INTERVAL);
+    IntervalArithmeticScalar(String operator, Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
 
         switch (operator) {
             case "+":
@@ -87,13 +80,13 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return this.info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

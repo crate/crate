@@ -22,14 +22,11 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,15 +39,6 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_cat";
 
-    public static FunctionInfo createInfo(List<DataType<?>> types, String name) {
-        ensureBothInnerTypesAreNotUndefined(types, name);
-        ArrayType<?> arrayType = (ArrayType<?>) types.get(0);
-        if (arrayType.innerType().equals(DataTypes.UNDEFINED)) {
-            arrayType = (ArrayType<?>) types.get(1);
-        }
-        return new FunctionInfo(new FunctionIdent(NAME, types), arrayType);
-    }
-
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
@@ -60,25 +48,17 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
                 parseTypeSignature("array(E)")
             )
                 .withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
-                new ArrayCatFunction(
-                    ArrayCatFunction.createInfo(args, NAME),
-                    signature
-                )
+            ArrayCatFunction::new
         );
     }
 
-    private final FunctionInfo functionInfo;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    ArrayCatFunction(FunctionInfo functionInfo, Signature signature) {
-        this.functionInfo = functionInfo;
+    ArrayCatFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return functionInfo;
+        this.boundSignature = boundSignature;
+        ensureBothInnerTypesAreNotUndefined(boundSignature.getArgumentDataTypes(), signature.getName().name());
     }
 
     @Override
@@ -86,10 +66,15 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
         return signature;
     }
 
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
+    }
+
     @SafeVarargs
     @Override
     public final List<Object> evaluate(TransactionContext txnCtx, Input<List<Object>>... args) {
-        DataType<?> innerType = ((ArrayType<?>) this.info().returnType()).innerType();
+        DataType<?> innerType = ((ArrayType<?>) this.boundSignature.getReturnType().createType()).innerType();
         ArrayList<Object> resultList = new ArrayList<>();
         for (Input<List<Object>> arg : args) {
             List<Object> values = arg.value();

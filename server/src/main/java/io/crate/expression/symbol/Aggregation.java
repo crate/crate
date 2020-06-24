@@ -41,18 +41,18 @@ import static java.util.Objects.requireNonNull;
 public class Aggregation extends Symbol {
 
     private final FunctionInfo functionInfo;
-    @Nullable
     private final Signature signature;
+    private final DataType<?> boundSignatureReturnType;
     private final List<Symbol> inputs;
     private final DataType<?> valueType;
     private final Symbol filter;
 
-    public Aggregation(FunctionInfo functionInfo, Signature signature, DataType<?> valueType, List<Symbol> inputs) {
-        this(functionInfo, signature, valueType, inputs, Literal.BOOLEAN_TRUE);
+    public Aggregation(Signature signature, DataType<?> valueType, List<Symbol> inputs) {
+        this(signature, valueType, valueType, inputs, Literal.BOOLEAN_TRUE);
     }
 
-    public Aggregation(FunctionInfo functionInfo,
-                       @Nullable Signature signature,
+    public Aggregation(Signature signature,
+                       DataType<?> boundSignatureReturnType,
                        DataType<?> valueType,
                        List<Symbol> inputs,
                        Symbol filter) {
@@ -60,8 +60,9 @@ public class Aggregation extends Symbol {
         requireNonNull(filter, "filter must not be null");
 
         this.valueType = valueType;
-        this.functionInfo = functionInfo;
+        this.functionInfo = FunctionInfo.of(signature, Symbols.typeView(inputs), valueType);
         this.signature = signature;
+        this.boundSignatureReturnType = boundSignatureReturnType;
         this.inputs = inputs;
         this.filter = filter;
     }
@@ -77,8 +78,10 @@ public class Aggregation extends Symbol {
         inputs = Symbols.listFromStream(in);
         if (in.getVersion().onOrAfter(Version.V_4_2_0) && in.readBoolean()) {
             signature = new Signature(in);
+            boundSignatureReturnType = DataTypes.fromStream(in);
         } else {
             signature = null;
+            boundSignatureReturnType = valueType;
         }
     }
 
@@ -97,6 +100,13 @@ public class Aggregation extends Symbol {
         return valueType;
     }
 
+    public DataType<?> boundSignatureReturnType() {
+        return boundSignatureReturnType;
+    }
+
+    /**
+     * @deprecated Use {{@link #signature()}} instead. Will be removed with next major version.
+     */
     public FunctionIdent functionIdent() {
         return functionInfo.ident();
     }
@@ -126,6 +136,7 @@ public class Aggregation extends Symbol {
             out.writeBoolean(signature != null);
             if (signature != null) {
                 signature.writeTo(out);
+                DataTypes.toStream(boundSignatureReturnType, out);
             }
         }
     }

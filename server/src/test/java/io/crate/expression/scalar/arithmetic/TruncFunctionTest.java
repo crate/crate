@@ -89,10 +89,10 @@ public class TruncFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateLong() throws Exception {
         Literal<Long> value = Literal.of(DataTypes.LONG, 246L);
-        assertEvaluate("trunc(age)", 246, value);
-        assertEvaluate("trunc(age, -2)", 200.0, value);
-        assertEvaluate("trunc(age, -1)", 240.0, value);
-        assertEvaluate("trunc(age, 0)", 246.0, value);
-        assertEvaluate("trunc(age, 1)",  246.0, value);
+        assertEvaluate("trunc(x)", 246L, value);
+        assertEvaluate("trunc(x, -2)", 200.0, value);
+        assertEvaluate("trunc(x, -1)", 240.0, value);
+        assertEvaluate("trunc(x, 0)", 246.0, value);
+        assertEvaluate("trunc(x, 1)",  246.0, value);
     }
 }

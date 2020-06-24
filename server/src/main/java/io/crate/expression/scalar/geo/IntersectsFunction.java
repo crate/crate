@@ -28,27 +28,17 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.locationtech.spatial4j.shape.Shape;
 
-import java.util.List;
-
 import static io.crate.metadata.functions.Signature.scalar;
 
 public class IntersectsFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "intersects";
-
-    private static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, List.of(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE)),
-        DataTypes.BOOLEAN
-    );
-
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -58,14 +48,16 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
             ),
-            (signature, args) -> new IntersectsFunction(signature)
+            IntersectsFunction::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public IntersectsFunction(Signature signature) {
+    public IntersectsFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -85,13 +77,13 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return INFO;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

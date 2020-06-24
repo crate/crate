@@ -178,7 +178,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             (EqOperator) functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
         List<Symbol> toCollect = Collections.singletonList(testDocLevelReference);
         WhereClause whereClause = new WhereClause(
-            new Function(op.info(), op.signature(), arguments)
+            new Function(op.signature(), arguments, EqOperator.RETURN_TYPE)
         );
         RoutedCollectPhase collectNode = getCollectNode(toCollect, whereClause);
 

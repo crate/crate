@@ -28,8 +28,6 @@ import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -50,11 +48,6 @@ import java.util.List;
 public final class StringAgg extends AggregationFunction<StringAgg.StringAggState, String> {
 
     private static final String NAME = "string_agg";
-    private static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, List.of(DataTypes.STRING, DataTypes.STRING)),
-        DataTypes.STRING,
-        FunctionInfo.Type.AGGREGATE
-    );
     public static final Signature SIGNATURE =
         Signature.aggregate(
             NAME,
@@ -73,7 +66,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     public static void register(AggregationImplModule mod) {
         mod.register(
             SIGNATURE,
-            (signature, args) -> new StringAgg(signature)
+            StringAgg::new
         );
     }
 
@@ -144,9 +137,11 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public StringAgg(Signature signature) {
+    public StringAgg(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -239,17 +234,17 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     @Override
-    public DataType partialType() {
+    public DataType<?> partialType() {
         return StringAggStateType.INSTANCE;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return INFO;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

@@ -24,23 +24,14 @@ package io.crate.expression.scalar.timestamp;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.List;
-
 public final class NowFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "now";
-    private static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(null, NAME, List.of()),
-        DataTypes.TIMESTAMPZ,
-        FunctionInfo.Type.SCALAR
-    );
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -48,14 +39,16 @@ public final class NowFunction extends Scalar<Long, Object> {
                 NAME,
                 DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
-            (signature, args) -> new NowFunction(signature)
+            NowFunction::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public NowFunction(Signature signature) {
+    public NowFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -65,12 +58,12 @@ public final class NowFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return INFO;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

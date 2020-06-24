@@ -40,6 +40,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -142,19 +143,20 @@ public class EvaluatingNormalizer {
                 }
 
                 Function function = new Function(
-                    io.crate.expression.predicate.MatchPredicate.INFO,
                     io.crate.expression.predicate.MatchPredicate.SIGNATURE,
                     List.of(
                         new Function(
-                            MapFunction.createInfo(Symbols.typeView(columnBoostMapArgs)),
                             MapFunction.SIGNATURE,
                             columnBoostMapArgs,
+                            DataTypes.UNTYPED_OBJECT,
                             null
                         ),
                         matchPredicate.queryTerm(),
                         Literal.of(matchPredicate.matchType()),
                         matchPredicate.options()
-                    ));
+                    ),
+                    DataTypes.BOOLEAN
+                );
                 return ((Symbol) function).accept(this, context);
             }
 
@@ -212,9 +214,9 @@ public class EvaluatingNormalizer {
         public Symbol visitWindowFunction(WindowFunction function, TransactionContext context) {
             Function normalizedFunction = (Function) normalizeFunction(function, context);
             return new WindowFunction(
-                normalizedFunction.info(),
                 normalizedFunction.signature(),
                 normalizedFunction.arguments(),
+                normalizedFunction.valueType(),
                 normalizedFunction.filter(),
                 function.windowDefinition().map(s -> s.accept(this, context))
             );

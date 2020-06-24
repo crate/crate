@@ -36,7 +36,6 @@ import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -98,7 +97,8 @@ public class GroupingStringCollectorBenchmark {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            List.of(DataTypes.STRING)
+            List.of(DataTypes.STRING),
+            DataTypes.STRING
         );
 
         return GroupingCollector.singleKey(

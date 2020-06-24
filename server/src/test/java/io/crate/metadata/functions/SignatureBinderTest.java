@@ -36,7 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.metadata.FunctionInfo.Type.SCALAR;
+import static io.crate.metadata.FunctionType.SCALAR;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
 import static io.crate.types.TypeSignature.parseTypeSignature;

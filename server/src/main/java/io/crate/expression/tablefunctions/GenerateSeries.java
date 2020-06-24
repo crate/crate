@@ -26,14 +26,11 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 import org.joda.time.Period;
@@ -72,10 +69,11 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 NAME,
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature(),
-                new RowType(List.of(DataTypes.LONG)).getTypeSignature()),
-            (signature, argTypes) -> new GenerateSeries<>(
+                DataTypes.LONG.getTypeSignature()
+            ),
+            (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
-                argTypes,
+                boundSignature,
                 1L,
                 (x, y) -> x - y,
                 Long::sum,
@@ -87,10 +85,11 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
-                new RowType(List.of(DataTypes.INTEGER)).getTypeSignature()),
-            (signature, argTypes) -> new GenerateSeries<>(
+                DataTypes.INTEGER.getTypeSignature()
+            ),
+            (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
-                argTypes,
+                boundSignature,
                 1,
                 (x, y) -> x - y,
                 Integer::sum,
@@ -105,10 +104,11 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature(),
-                new RowType(List.of(DataTypes.LONG)).getTypeSignature()),
-            (signature, argTypes) -> new GenerateSeries<>(
+                DataTypes.LONG.getTypeSignature()
+            ),
+            (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
-                argTypes,
+                boundSignature,
                 1L,
                 (x, y) -> x - y,
                 Long::sum,
@@ -121,10 +121,11 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
-                new RowType(List.of(DataTypes.INTEGER)).getTypeSignature()),
-            (signature, argTypes) -> new GenerateSeries<>(
+                DataTypes.INTEGER.getTypeSignature()
+            ),
+            (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
-                argTypes,
+                boundSignature,
                 1,
                 (x, y) -> x - y,
                 Integer::sum,
@@ -140,7 +141,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                     supportedType.getTypeSignature(),
                     supportedType.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature(),
-                    new RowType(List.of(supportedType)).getTypeSignature()),
+                    supportedType.getTypeSignature()
+                ),
                 GenerateSeriesIntervals::new
             );
             module.register(
@@ -148,10 +150,11 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                     NAME,
                     supportedType.getTypeSignature(),
                     supportedType.getTypeSignature(),
-                    new RowType(List.of(supportedType)).getTypeSignature()),
-                (signature, argTypes) -> {
+                    supportedType.getTypeSignature()
+                ),
+                (signature, boundSignature) -> {
                     throw new IllegalArgumentException(
-                        "generate_series(start, stop) has type `" + argTypes.get(0).getName() +
+                        "generate_series(start, stop) has type `" + boundSignature.getArgumentDataTypes().get(0).getName() +
                         "` for start, but requires long/int values for start and stop, " +
                         "or if used with timestamps, it requires a third argument for the step (interval)");
                 }
@@ -159,8 +162,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final T defaultStep;
     private final BinaryOperator<T> minus;
     private final BinaryOperator<T> plus;
@@ -169,23 +172,20 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     private final RowType returnType;
 
     private GenerateSeries(Signature signature,
-                           List<DataType<?>> dataTypes,
+                           Signature boundSignature,
                            T defaultStep,
                            BinaryOperator<T> minus,
                            BinaryOperator<T> plus,
                            BinaryOperator<T> divide,
                            Comparator<T> comparator) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.defaultStep = defaultStep;
         this.minus = minus;
         this.plus = plus;
         this.divide = divide;
         this.comparator = comparator;
-        this.returnType = new RowType(List.of((DataType<?>) dataTypes.get(0)));
-        this.info = new FunctionInfo(
-            new FunctionIdent(NAME, dataTypes),
-            dataTypes.get(0),
-            FunctionInfo.Type.TABLE);
+        this.returnType = new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)));
     }
 
     @Override
@@ -244,13 +244,13 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -265,24 +265,24 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
 
     private static class GenerateSeriesIntervals extends TableFunctionImplementation<Object> {
 
-        private final FunctionInfo info;
         private final RowType returnType;
         private final Signature signature;
+        private final Signature boundSignature;
 
-        public GenerateSeriesIntervals(Signature signature, List<DataType<?>> types) {
+        public GenerateSeriesIntervals(Signature signature, Signature boundSignature) {
             this.signature = signature;
-            info = new FunctionInfo(new FunctionIdent(NAME, types), types.get(0), FunctionInfo.Type.TABLE);
-            returnType = new RowType(List.of((DataType<?>) types.get(0)));
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
+            this.boundSignature = boundSignature;
+            returnType = new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)));
         }
 
         @Override
         public Signature signature() {
             return signature;
+        }
+
+        @Override
+        public Signature boundSignature() {
+            return boundSignature;
         }
 
         @Override

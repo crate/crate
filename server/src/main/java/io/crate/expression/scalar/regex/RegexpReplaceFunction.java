@@ -26,8 +26,6 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -49,11 +47,7 @@ public class RegexpReplaceFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new RegexpReplaceFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING),
-                    signature
-                )
+            RegexpReplaceFunction::new
         );
         module.register(
             Signature.scalar(
@@ -64,37 +58,33 @@ public class RegexpReplaceFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new RegexpReplaceFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING),
-                    signature
-                )
+            RegexpReplaceFunction::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     @Nullable
     private final RegexMatcher regexMatcher;
 
-    private RegexpReplaceFunction(FunctionInfo info, Signature signature) {
-        this(info, signature, null);
+    private RegexpReplaceFunction(Signature signature, Signature boundSignature) {
+        this(signature, boundSignature, null);
     }
 
-    private RegexpReplaceFunction(FunctionInfo info, Signature signature, RegexMatcher regexMatcher) {
-        this.info = info;
+    private RegexpReplaceFunction(Signature signature, Signature boundSignature, RegexMatcher regexMatcher) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.regexMatcher = regexMatcher;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -138,7 +128,7 @@ public class RegexpReplaceFunction extends Scalar<String, Object> {
                 Symbol flagsSymbol = arguments.get(3);
                 if (flagsSymbol instanceof Input) {
                     String flags = (String) ((Input) flagsSymbol).value();
-                    return new RegexpReplaceFunction(info, signature, new RegexMatcher(pattern, flags));
+                    return new RegexpReplaceFunction(signature, boundSignature, new RegexMatcher(pattern, flags));
                 }
             }
         }

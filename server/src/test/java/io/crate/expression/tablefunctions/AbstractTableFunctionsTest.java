@@ -23,12 +23,10 @@
 package io.crate.expression.tablefunctions;
 
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
@@ -36,7 +34,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
-import io.crate.types.TypeSignature;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 
@@ -49,7 +46,7 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
 
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    protected TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepareFunctions() throws Exception {
@@ -62,8 +59,8 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
 
         var function = (Function) functionSymbol;
         TableFunctionImplementation<?> functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
-            function.signature(),
-            Symbols.typeView(function.arguments())
+            function,
+            txnCtx.sessionSettings().searchPath()
         );
         return functionImplementation.evaluate(
             txnCtx,

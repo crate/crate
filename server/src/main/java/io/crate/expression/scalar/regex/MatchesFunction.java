@@ -27,8 +27,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -49,11 +47,7 @@ public class MatchesFunction extends Scalar<List<String>, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            (signature, args) ->
-                new MatchesFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING_ARRAY),
-                    signature
-                )
+            MatchesFunction::new
         );
         module.register(
             Signature.scalar(
@@ -63,40 +57,35 @@ public class MatchesFunction extends Scalar<List<String>, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            (signature, args) ->
-                new MatchesFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING_ARRAY),
-                    signature
-                )
+            MatchesFunction::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     @Nullable
     private final RegexMatcher regexMatcher;
 
-    private MatchesFunction(FunctionInfo info,
-                            Signature signature) {
-        this(info, signature, null);
+    private MatchesFunction(Signature signature, Signature boundSignature) {
+        this(signature, boundSignature, null);
     }
 
-    private MatchesFunction(FunctionInfo info,
-                            Signature signature,
+    private MatchesFunction(Signature signature,
+                            Signature boundSignature,
                             @Nullable RegexMatcher regexMatcher) {
-        this.info = info;
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.regexMatcher = regexMatcher;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     RegexMatcher regexMatcher() {
@@ -150,7 +139,7 @@ public class MatchesFunction extends Scalar<List<String>, Object> {
         }
 
         if (pattern != null) {
-            return new MatchesFunction(info, signature, new RegexMatcher(pattern, flags));
+            return new MatchesFunction(signature, boundSignature, new RegexMatcher(pattern, flags));
         }
         return this;
     }

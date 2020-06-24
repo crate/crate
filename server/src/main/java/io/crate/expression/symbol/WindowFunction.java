@@ -28,8 +28,8 @@ import io.crate.analyze.WindowDefinition;
 import io.crate.analyze.WindowFrameDefinition;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -38,8 +38,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-import static io.crate.metadata.FunctionInfo.Type.AGGREGATE;
-import static io.crate.metadata.FunctionInfo.Type.WINDOW;
+import static io.crate.metadata.FunctionType.AGGREGATE;
+import static io.crate.metadata.FunctionType.WINDOW;
 
 public class WindowFunction extends Function {
 
@@ -50,20 +50,13 @@ public class WindowFunction extends Function {
         windowDefinition = new WindowDefinition(in);
     }
 
-    public WindowFunction(FunctionInfo info,
+    public WindowFunction(Signature signature,
                           List<Symbol> arguments,
+                          DataType<?> returnType,
                           @Nullable Symbol filter,
                           WindowDefinition windowDefinition) {
-        this(info, null, arguments, filter, windowDefinition);
-    }
-
-    public WindowFunction(FunctionInfo info,
-                          Signature signature,
-                          List<Symbol> arguments,
-                          @Nullable Symbol filter,
-                          WindowDefinition windowDefinition) {
-        super(info, signature, arguments, filter);
-        assert info.type() == WINDOW || info.type() == AGGREGATE :
+        super(signature, arguments, returnType, filter);
+        assert signature.getKind() == WINDOW || signature.getKind() == AGGREGATE :
             "only window and aggregate functions are allowed to be modelled over a window";
         this.windowDefinition = windowDefinition;
     }

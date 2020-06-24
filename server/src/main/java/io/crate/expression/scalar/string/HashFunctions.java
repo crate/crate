@@ -49,8 +49,8 @@ public final class HashFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new UnaryScalar<>(name, signature, DataTypes.STRING, DataTypes.STRING, func)
+            (signature, boundSignature) ->
+                new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, func)
         );
     }
 

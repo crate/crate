@@ -25,12 +25,9 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
@@ -56,10 +53,6 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
 
     public static final String NAME = "subscript";
 
-    private final Signature signature;
-    private final FunctionInfo info;
-    private final BiFunction<Object, Object, Object> lookup;
-
     public static void register(ScalarFunctionModule module) {
         // subscript(array(object)), text) -> array(undefined)
         module.register(
@@ -68,10 +61,12 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 parseTypeSignature("array(object)"),
                 DataTypes.STRING.getTypeSignature(),
                 parseTypeSignature("array(undefined)")),
-            (signature, dataTypes) -> new SubscriptFunction(
-                signature,
-                FunctionInfo.of(NAME, dataTypes, new ArrayType<>(DataTypes.UNDEFINED)),
-                SubscriptFunction::lookupIntoListObjectsByName)
+            (signature, boundSignature) ->
+                new SubscriptFunction(
+                    signature,
+                    boundSignature,
+                    SubscriptFunction::lookupIntoListObjectsByName
+                )
         );
         // subscript(array(any)), integer) -> any
         module.register(
@@ -82,13 +77,13 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                     DataTypes.INTEGER.getTypeSignature(),
                     parseTypeSignature("E"))
                 .withTypeVariableConstraints(typeVariable("E")),
-            (signature, dataTypes) -> {
-                var returnType = ((ArrayType<?>) dataTypes.get(0)).innerType();
-                return new SubscriptFunction(
+            (signature, boundSignature) ->
+                new SubscriptFunction(
                     signature,
-                    FunctionInfo.of(NAME, dataTypes, returnType),
-                    SubscriptFunction::lookupByNumericIndex);
-            });
+                    boundSignature,
+                    SubscriptFunction::lookupByNumericIndex
+                )
+        );
         // subscript(object(text, element), text) -> undefined
         module.register(
             Signature.scalar(
@@ -96,10 +91,10 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.UNDEFINED.getTypeSignature()),
-            (signature, dataTypes) ->
+            (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
-                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.UNDEFINED),
+                    boundSignature,
                     SubscriptFunction::lookupByName
                 )
         );
@@ -116,31 +111,35 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 DataTypes.UNDEFINED.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.UNDEFINED.getTypeSignature()),
-            (signature, dataTypes) ->
+            (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
-                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.UNDEFINED),
+                    boundSignature,
                     SubscriptFunction::lookupByName
                 )
         );
     }
 
+    private final Signature signature;
+    private final Signature boundSignature;
+    private final BiFunction<Object, Object, Object> lookup;
+
     private SubscriptFunction(Signature signature,
-                              FunctionInfo info,
+                              Signature boundSignature,
                               BiFunction<Object, Object, Object> lookup) {
         this.signature = signature;
-        this.info = info;
+        this.boundSignature = boundSignature;
         this.lookup = lookup;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

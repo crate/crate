@@ -24,8 +24,6 @@ package io.crate.execution.dsl.projection;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -41,15 +39,12 @@ public class FilterProjectionTest extends CrateUnitTest {
     @Test
     public void testStreaming() throws Exception {
         var eqFunction =  new Function(
-            new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, List.of(DataTypes.INTEGER, DataTypes.INTEGER)),
-                DataTypes.BOOLEAN
-            ),
             EqOperator.SIGNATURE,
             List.of(
                 new InputColumn(0, DataTypes.INTEGER),
                 new InputColumn(1, DataTypes.INTEGER)
-            )
+            ),
+            EqOperator.RETURN_TYPE
         );
 
         FilterProjection p = new FilterProjection(

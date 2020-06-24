@@ -24,14 +24,11 @@ package io.crate.expression.scalar.string;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
@@ -45,8 +42,8 @@ public class StringLeftRightFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new StringLeftRightFunction("left", signature, StringLeftRightFunction::left)
+            (signature, boundSignature) ->
+                new StringLeftRightFunction(signature, boundSignature, StringLeftRightFunction::left)
         );
         module.register(
             Signature.scalar(
@@ -55,33 +52,31 @@ public class StringLeftRightFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new StringLeftRightFunction("right", signature, StringLeftRightFunction::right)
+            (signature, boundSignature) ->
+                new StringLeftRightFunction(signature, boundSignature, StringLeftRightFunction::right)
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final BiFunction<String, Integer, String> func;
 
-    private StringLeftRightFunction(String funcName,
-                                    Signature signature,
+    private StringLeftRightFunction(Signature signature,
+                                    Signature boundSignature,
                                     BiFunction<String, Integer, String> func) {
-        info = new FunctionInfo(new FunctionIdent(funcName,
-                                                  List.of(DataTypes.STRING, DataTypes.INTEGER)),
-                                DataTypes.STRING);
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.func = func;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

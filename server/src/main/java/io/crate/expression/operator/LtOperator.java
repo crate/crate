@@ -25,8 +25,6 @@ package io.crate.expression.operator;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import static io.crate.expression.operator.Operator.generateInfo;
-
 public final class LtOperator {
 
     public static final String NAME = "op_<";
@@ -40,11 +38,8 @@ public final class LtOperator {
                     supportedType.getTypeSignature(),
                     Operator.RETURN_TYPE.getTypeSignature()
                 ),
-                (signature, args) -> new CmpOperator(
-                    generateInfo(NAME, args.get(0)),
-                    signature,
-                    cmpResult -> cmpResult < 0
-                )
+                (signature, boundSignature) ->
+                    new CmpOperator(signature, boundSignature, cmpResult -> cmpResult < 0)
             );
         }
     }

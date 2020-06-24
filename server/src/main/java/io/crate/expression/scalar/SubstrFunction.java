@@ -23,8 +23,6 @@ package io.crate.expression.scalar;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -44,11 +42,7 @@ public class SubstrFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
-                new SubstrFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING),
-                    signature
-                )
+            SubstrFunction::new
         );
         module.register(
             Signature.scalar(
@@ -58,30 +52,26 @@ public class SubstrFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
-                new SubstrFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING),
-                    signature
-                )
+            SubstrFunction::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private SubstrFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private SubstrFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

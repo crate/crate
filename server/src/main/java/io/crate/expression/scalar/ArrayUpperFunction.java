@@ -23,8 +23,6 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -50,33 +48,28 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E")),
-                (signature, argumentTypes) -> {
-                    ensureInnerTypeIsNotUndefined(argumentTypes, name);
-                    return new ArrayUpperFunction(
-                        new FunctionInfo(new FunctionIdent(name, argumentTypes), DataTypes.INTEGER),
-                        signature
-                    );
-                }
+                ArrayUpperFunction::new
             );
         }
     }
 
-    private final FunctionInfo functionInfo;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private ArrayUpperFunction(FunctionInfo functionInfo, Signature signature) {
-        this.functionInfo = functionInfo;
+    private ArrayUpperFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return functionInfo;
+        this.boundSignature = boundSignature;
+        ensureInnerTypeIsNotUndefined(boundSignature.getArgumentDataTypes(), signature.getName().name());
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

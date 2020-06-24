@@ -24,6 +24,7 @@ package io.crate.analyze.where;
 import com.google.common.collect.Sets;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Function;
@@ -36,12 +37,9 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -62,12 +60,9 @@ import java.util.Set;
 public class EqualityExtractor {
 
     private static final Function NULL_MARKER = new Function(
-        new FunctionInfo(
-            new FunctionIdent("null_marker", List.of()),
-            DataTypes.UNDEFINED
-        ),
         Signature.scalar("null_marker", DataTypes.UNDEFINED.getTypeSignature()),
-        List.of()
+        List.of(),
+        DataTypes.UNDEFINED
     );
     private static final EqProxy NULL_MARKER_PROXY = new EqProxy(NULL_MARKER);
 
@@ -182,18 +177,11 @@ public class EqualityExtractor {
             Symbol left = origin.arguments().get(0);
             DataType<?> leftType = origin.info().ident().argumentTypes().get(0);
             DataType<?> rightType = ((ArrayType<?>) origin.info().ident().argumentTypes().get(1)).innerType();
-            FunctionInfo eqInfo = new FunctionInfo(
-                new FunctionIdent(
-                    EqOperator.NAME,
-                    List.of(leftType, rightType)
-                ),
-                DataTypes.BOOLEAN
-            );
             Literal<?> arrayLiteral = (Literal<?>) origin.arguments().get(1);
 
             proxies = new HashMap<>();
             for (Literal<?> arrayElem : Literal.explodeCollection(arrayLiteral)) {
-                Function f = new Function(eqInfo, EqOperator.SIGNATURE, Arrays.asList(left, arrayElem));
+                Function f = new Function(EqOperator.SIGNATURE, Arrays.asList(left, arrayElem), Operator.RETURN_TYPE);
                 EqProxy existingProxy = existingProxies.get(f);
                 if (existingProxy == null) {
                     existingProxy = new ChildEqProxy(f, this);
@@ -450,7 +438,7 @@ public class EqualityExtractor {
                 if (!context.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
                     return Literal.BOOLEAN_TRUE;
                 }
-                return new Function(function.info(), function.signature(), newArgs);
+                return new Function(function.signature(), newArgs, function.valueType());
             }
             context.seenUnknown = true;
             return Literal.BOOLEAN_TRUE;

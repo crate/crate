@@ -398,9 +398,9 @@ public class LuceneQueryBuilder {
                     Reference ref = (Reference) left;
                     if (ref.column().equals(DocSysColumns.UID)) {
                         return new Function(
-                            function.info(),
                             function.signature(),
-                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right)
+                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right),
+                            function.valueType()
                         );
                     } else {
                         String unsupportedMessage = context.unsupportedMessage(ref.column().name());

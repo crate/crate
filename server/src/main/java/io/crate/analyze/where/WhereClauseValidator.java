@@ -35,7 +35,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.ComparisonExpression;
@@ -96,7 +96,7 @@ public final class WhereClauseValidator {
         @Override
         public Symbol visitFunction(Function function, Context context) {
             context.functions.push(function);
-            if (function.info().type().equals(FunctionInfo.Type.TABLE)) {
+            if (function.info().type().equals(FunctionType.TABLE)) {
                 throw new UnsupportedOperationException("Table functions are not allowed in WHERE");
             }
             continueTraversal(function, context);

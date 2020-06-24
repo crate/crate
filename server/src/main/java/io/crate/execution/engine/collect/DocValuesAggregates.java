@@ -22,31 +22,6 @@
 
 package io.crate.execution.engine.collect;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
-
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Bits;
-import org.elasticsearch.index.engine.Engine.Searcher;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -64,13 +39,37 @@ import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.Bits;
+import org.elasticsearch.index.engine.Engine.Searcher;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 public class DocValuesAggregates {
 
@@ -91,7 +90,8 @@ public class DocValuesAggregates {
             functions,
             aggregateProjection,
             fieldTypeLookup,
-            phase.toCollect()
+            phase.toCollect(),
+            collectTask.txnCtx().sessionSettings().searchPath()
         );
         if (aggregators == null) {
             return null;
@@ -159,7 +159,8 @@ public class DocValuesAggregates {
     private static List<DocValueAggregator> createAggregators(Functions functions,
                                                               AggregationProjection aggregateProjection,
                                                               FieldTypeLookup fieldTypeLookup,
-                                                              List<Symbol> toCollect) {
+                                                              List<Symbol> toCollect,
+                                                              SearchPath searchPath) {
         List<Aggregation> aggregations = aggregateProjection.aggregations();
         ArrayList<DocValueAggregator> aggregator = new ArrayList<>(aggregations.size());
         Function<Symbol, MappedFieldType> resolveFieldType =
@@ -176,17 +177,13 @@ public class DocValuesAggregates {
                 return null;
             }
 
-            FunctionIdent functionIdent = aggregation.functionIdent();
-            FunctionImplementation func = functions.getQualified(
-                aggregation.signature(),
-                functionIdent.argumentTypes()
-            );
+            FunctionImplementation func = functions.getQualified(aggregation, searchPath);
             if (!(func instanceof AggregationFunction)) {
                 throw new IllegalStateException(
                     "Expected an aggregationFunction for " + aggregation + " got: " + func);
             }
             DocValueAggregator<?> docValueAggregator = ((AggregationFunction<?, ?>) func).getDocValueAggregator(
-                functionIdent.argumentTypes(),
+                Symbols.typeView(aggregation.inputs()),
                 fieldTypes
             );
             if (docValueAggregator == null) {

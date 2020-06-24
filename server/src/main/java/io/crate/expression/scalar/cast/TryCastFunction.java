@@ -26,7 +26,6 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -48,21 +47,18 @@ public class TryCastFunction extends Scalar<Object, Object> {
                     parseTypeSignature("V"),
                     parseTypeSignature("V"))
                 .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
-            (signature, args) -> new TryCastFunction(
-                FunctionInfo.of(NAME, args, args.get(1)),
-                signature
-            )
+            TryCastFunction::new
         );
     }
 
     private final DataType<?> returnType;
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private TryCastFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private TryCastFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-        this.returnType = info.returnType();
+        this.boundSignature = boundSignature;
+        this.returnType = boundSignature.getReturnType().createType();
     }
 
     @Override
@@ -75,13 +71,13 @@ public class TryCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

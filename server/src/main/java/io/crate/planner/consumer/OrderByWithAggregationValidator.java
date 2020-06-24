@@ -27,7 +27,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 
 import java.util.Collection;
@@ -77,7 +77,7 @@ public class OrderByWithAggregationValidator {
             if (context.isDistinct) {
                 throw new UnsupportedOperationException(Symbols.format(INVALID_FIELD_IN_DISTINCT_TEMPLATE, symbol));
             }
-            if (symbol.info().type() == FunctionInfo.Type.SCALAR) {
+            if (symbol.info().type() == FunctionType.SCALAR) {
                 for (Symbol arg : symbol.arguments()) {
                     arg.accept(this, context);
                 }

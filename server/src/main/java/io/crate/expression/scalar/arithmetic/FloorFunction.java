@@ -35,20 +35,17 @@ public final class FloorFunction {
     public static void register(ScalarFunctionModule module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
+            DataType<?> returnType = DataTypes.getIntegralReturnType(type);
+            assert returnType != null : "Could not get integral type of " + type;
             module.register(
-                scalar(NAME, typeSignature, typeSignature),
-                (signature, argumentTypes) -> {
-                    DataType<?> argType = argumentTypes.get(0);
-                    DataType<?> returnType = DataTypes.getIntegralReturnType(argType);
-                    assert returnType != null : "Could not get integral type of " + argType;
-                    return new UnaryScalar<>(
-                        NAME,
+                scalar(NAME, typeSignature, returnType.getTypeSignature()),
+                (signature, boundSignature) ->
+                    new UnaryScalar<>(
                         signature,
-                        argType,
-                        returnType,
+                        boundSignature,
+                        type,
                         x -> returnType.value(Math.floor(((Number) x).doubleValue()))
-                    );
-                }
+                    )
             );
         }
     }

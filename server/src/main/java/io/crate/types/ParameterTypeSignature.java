@@ -27,7 +27,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-final class ParameterTypeSignature extends TypeSignature {
+public final class ParameterTypeSignature extends TypeSignature {
 
     private final String parameterName;
 

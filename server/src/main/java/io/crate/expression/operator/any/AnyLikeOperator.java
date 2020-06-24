@@ -24,7 +24,6 @@ package io.crate.expression.operator.any;
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.TriPredicate;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
@@ -35,33 +34,33 @@ import static io.crate.expression.operator.any.AnyOperators.collectionValueToIte
 
 public class AnyLikeOperator extends Operator<Object> {
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final TriPredicate<String, String, Integer> matcher;
     private final int patternMatchingFlags;
 
-    public AnyLikeOperator(FunctionInfo info,
-                           Signature signature,
+    public AnyLikeOperator(Signature signature,
+                           Signature boundSignature,
                            TriPredicate<String, String, Integer> matcher,
                            int patternMatchingFlags) {
-        this.info = info;
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.matcher = matcher;
         this.patternMatchingFlags = patternMatchingFlags;
-        DataType<?> innerType = ((ArrayType<?>) info.ident().argumentTypes().get(1)).innerType();
+        DataType<?> innerType = ((ArrayType<?>) boundSignature.getArgumentDataTypes().get(1)).innerType();
         if (innerType.id() == ObjectType.ID) {
             throw new IllegalArgumentException("ANY on object arrays is not supported");
         }
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     private Boolean doEvaluate(Object left, Iterable<?> rightIterable) {

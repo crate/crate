@@ -26,8 +26,6 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -58,31 +56,26 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
     public static void register(ScalarFunctionModule module) {
         module.register(
             SIGNATURE,
-            (signature, dataTypes) -> new SubscriptObjectFunction(
-                signature,
-                new FunctionInfo(
-                    new FunctionIdent(NAME, dataTypes),
-                    DataTypes.UNDEFINED
-                )
-            ));
+            SubscriptObjectFunction::new
+        );
     }
 
     private final Signature signature;
-    private final FunctionInfo info;
+    private final Signature boundSignature;
 
-    private SubscriptObjectFunction(Signature signature, FunctionInfo info) {
+    private SubscriptObjectFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-        this.info = info;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -108,9 +101,9 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
             return returnType.equals(DataTypes.UNDEFINED)
                 ? func
                 : new Function(
-                    new FunctionInfo(func.info().ident(), returnType),
                     func.signature(),
-                    func.arguments()
+                    func.arguments(),
+                    returnType
             );
         }
     }

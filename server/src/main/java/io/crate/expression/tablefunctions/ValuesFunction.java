@@ -24,8 +24,6 @@ package io.crate.expression.tablefunctions;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -59,13 +57,15 @@ public class ValuesFunction {
 
     private static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
-        private final FunctionInfo info;
         private final RowType returnType;
         private final Signature signature;
+        private final Signature boundSignature;
 
         private ValuesTableFunctionImplementation(Signature signature,
-                                                  List<DataType<?>> argTypes) {
+                                                  Signature boundSignature) {
             this.signature = signature;
+            this.boundSignature = boundSignature;
+            var argTypes = boundSignature.getArgumentDataTypes();
             ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {
                 DataType<?> dataType = argTypes.get(i);
@@ -74,23 +74,16 @@ public class ValuesFunction {
                 fieldTypes.add(((ArrayType<?>) dataType).innerType());
             }
             returnType = new RowType(fieldTypes);
-            this.info = new FunctionInfo(
-                new FunctionIdent(NAME, argTypes),
-                returnType.numElements() == 1
-                    ? returnType.getFieldType(0)
-                    : returnType,
-                FunctionInfo.Type.TABLE
-            );
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
         }
 
         @Override
         public Signature signature() {
             return signature;
+        }
+
+        @Override
+        public Signature boundSignature() {
+            return boundSignature;
         }
 
         @Override

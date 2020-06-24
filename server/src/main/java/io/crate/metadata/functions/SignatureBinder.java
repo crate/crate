@@ -24,6 +24,7 @@ package io.crate.metadata.functions;
 
 import io.crate.common.collections.Lists2;
 import io.crate.types.DataType;
+import io.crate.types.ParameterTypeSignature;
 import io.crate.types.TypeSignature;
 import io.crate.types.UndefinedType;
 import org.apache.logging.log4j.Logger;
@@ -149,13 +150,23 @@ public class SignatureBinder {
             if (typeSignature.getParameters().isEmpty() == false) {
                 throw new IllegalStateException("Type parameters cannot have parameters");
             }
-            return boundVariables.getTypeVariable(baseType).getTypeSignature();
+            var boundTS = boundVariables.getTypeVariable(baseType).getTypeSignature();
+            if (typeSignature instanceof ParameterTypeSignature) {
+                return new ParameterTypeSignature(((ParameterTypeSignature) typeSignature).parameterName(), boundTS);
+            }
+            return boundTS;
         }
 
         List<TypeSignature> parameters = Lists2.map(
             typeSignature.getParameters(),
             typeSignatureParameter -> applyBoundVariables(typeSignatureParameter, boundVariables));
 
+        if (typeSignature instanceof ParameterTypeSignature) {
+            return new ParameterTypeSignature(
+                ((ParameterTypeSignature) typeSignature).parameterName(),
+                new TypeSignature(baseType, parameters)
+            );
+        }
         return new TypeSignature(baseType, parameters);
     }
 
@@ -168,7 +179,7 @@ public class SignatureBinder {
         if (variableArity) {
             int variableGroupCount = declaredBindingInfo.getVariableArityGroup().size();
             int variableArgumentCount = variableGroupCount > 0 ? variableGroupCount : 1;
-            if (actualTypeSignatures.size() < formalTypeSignatures.size() - variableArgumentCount) {
+            if (actualTypeSignatures.size() <= formalTypeSignatures.size() - variableArgumentCount) {
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace(
                         "Given signature size {} is not smaller than minimum variableArity of formal signature size {}",

@@ -24,16 +24,12 @@ package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-
-import java.util.Arrays;
 
 public class PgGetExpr extends Scalar<String, Object> {
 
@@ -48,14 +44,16 @@ public class PgGetExpr extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) -> new PgGetExpr(signature)
+            PgGetExpr::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public PgGetExpr(Signature signature) {
+    public PgGetExpr(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -64,14 +62,12 @@ public class PgGetExpr extends Scalar<String, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return new FunctionInfo(
-            new FunctionIdent(FQN, Arrays.asList(DataTypes.STRING, DataTypes.INTEGER)),
-            DataTypes.STRING);
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

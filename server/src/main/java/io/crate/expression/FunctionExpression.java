@@ -48,7 +48,7 @@ public final class FunctionExpression<ReturnType, InputType> implements Input<Re
     @Override
     public String toString() {
         return "FuncExpr{" +
-               scalar.info().ident().name() +
+               scalar.signature().getName() +
                ", args=" + Arrays.toString(arguments) + '}';
     }
 }
