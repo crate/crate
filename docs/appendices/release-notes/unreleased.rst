@@ -127,6 +127,9 @@ SQL Standard and PostgreSQL compatibility improvements
   which is to be used as return type for time related functions such as the
   future `current_time`.
 
+- Added the :ref:`oidvector_type` data type which is used in some
+  :ref:`postgres_pg_catalog` tables.
+
 - Added the :ref:`oid_regproc` alias data type that is used to reference
   functions in the :ref:`postgres_pg_catalog` tables.
 

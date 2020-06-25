@@ -24,10 +24,12 @@ package io.crate.breaker;
 import io.crate.common.collections.Lists2;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IpType;
 import io.crate.types.ObjectType;
+import io.crate.types.OidVectorType;
 import io.crate.types.RegprocType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
@@ -58,6 +60,9 @@ public class SizeEstimatorFactory {
             case ArrayType.ID:
                 var innerEstimator = create(((ArrayType<?>) type).innerType());
                 return (SizeEstimator<T>) ArraySizeEstimator.create(innerEstimator);
+
+            case OidVectorType.ID:
+                return (SizeEstimator<T>) ArraySizeEstimator.create(create(DataTypes.INTEGER));
 
             case RowType.ID:
                 return (SizeEstimator<T>) new RecordSizeEstimator(Lists2.map(((RowType) type).fieldTypes(), SizeEstimatorFactory::create));

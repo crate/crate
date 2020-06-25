@@ -86,6 +86,8 @@ public final class DataTypes {
     public static final ArrayType<Long> BIGINT_ARRAY = new ArrayType<>(LONG);
     public static final ArrayType<Boolean> BOOLEAN_ARRAY = new ArrayType<>(BOOLEAN);
 
+    public static final OidVectorType OIDVECTOR = new OidVectorType();
+
     public static final IntervalType INTERVAL = IntervalType.INSTANCE;
 
     public static final ObjectType UNTYPED_OBJECT = ObjectType.UNTYPED;
@@ -121,7 +123,9 @@ public final class DataTypes {
 
 
     public static final Set<DataType<?>> STORAGE_UNSUPPORTED = Set.of(
-        INTERVAL, TIMETZ
+        INTERVAL,
+        TIMETZ,
+        OIDVECTOR
     );
 
     public static final List<DataType<?>> NUMERIC_PRIMITIVE_TYPES = List.of(
@@ -164,7 +168,8 @@ public final class DataTypes {
             entry(ArrayType.ID, ArrayType::new),
             entry(IntervalType.ID, in -> INTERVAL),
             entry(RowType.ID, RowType::new),
-            entry(RegprocType.ID, in -> REGPROC)
+            entry(RegprocType.ID, in -> REGPROC),
+            entry(OidVectorType.ID, in -> OIDVECTOR)
         )
     );
 
@@ -347,6 +352,7 @@ public final class DataTypes {
         entry(GEO_POINT.getName(), GEO_POINT),
         entry(GEO_SHAPE.getName(), GEO_SHAPE),
         entry(REGPROC.getName(), REGPROC),
+        entry(OIDVECTOR.getName(), OIDVECTOR),
         entry("int2", SHORT),
         entry("int", INTEGER),
         entry("int4", INTEGER),
