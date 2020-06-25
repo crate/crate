@@ -25,6 +25,7 @@ package io.crate.metadata.pgcatalog;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.protocols.postgres.types.PGType;
+import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.Regproc;
 
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
@@ -67,18 +68,27 @@ public class PgTypeTable {
                 if (t.typArray() == 0) {
                     return Regproc.of("array_in");
                 } else {
-                    return Regproc.of(t.typName() + "_in");
+                    return regprocForMetaFunction(t, "_in");
                 }
             })
             .add("typoutput", REGPROC, t -> {
                 if (t.typArray() == 0) {
                     return Regproc.of("array_out");
                 } else {
-                    return Regproc.of(t.typName() + "_out");
+                    return regprocForMetaFunction(t, "_out");
                 }
             })
-            .add("typreceive", REGPROC, t -> Regproc.of(t.typName() + "recv"))
+            .add("typreceive", REGPROC, t -> regprocForMetaFunction(t, "recv"))
             .add("typnotnull", BOOLEAN, c -> false)
             .build();
+    }
+
+    private static Regproc regprocForMetaFunction(PGType<?> type,
+                                                  String suffix) {
+        if (PGTypes.fromOID(type.oid()) != null) {
+            return Regproc.of(type.typName() + suffix);
+        } else {
+            return Regproc.of(0, "0");
+        }
     }
 }
