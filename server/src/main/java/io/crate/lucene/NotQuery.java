@@ -94,7 +94,7 @@ final class NotQuery implements FunctionToQuery {
 
         @Override
         public Void visitFunction(Function function, SymbolToNotNullContext context) {
-            String functionName = function.info().ident().name();
+            String functionName = function.name();
             if (Ignore3vlFunction.NAME.equals(functionName)) {
                 return null;
             }
@@ -124,7 +124,7 @@ final class NotQuery implements FunctionToQuery {
         Symbol arg = input.arguments().get(0);
 
         // Optimize `NOT (<ref> IS NULL)`
-        if (arg instanceof Function && ((Function) arg).info().ident().name().equals(IsNullPredicate.NAME)) {
+        if (arg instanceof Function && ((Function) arg).name().equals(IsNullPredicate.NAME)) {
             Function innerFunction = (Function) arg;
             if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference) {
                 return ExistsQueryBuilder.newFilter(

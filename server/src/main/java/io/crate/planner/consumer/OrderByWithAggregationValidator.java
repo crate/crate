@@ -77,7 +77,7 @@ public class OrderByWithAggregationValidator {
             if (context.isDistinct) {
                 throw new UnsupportedOperationException(Symbols.format(INVALID_FIELD_IN_DISTINCT_TEMPLATE, symbol));
             }
-            if (symbol.info().type() == FunctionType.SCALAR) {
+            if (symbol.type() == FunctionType.SCALAR) {
                 for (Symbol arg : symbol.arguments()) {
                     arg.accept(this, context);
                 }

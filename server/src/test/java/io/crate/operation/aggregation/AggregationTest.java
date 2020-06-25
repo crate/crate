@@ -64,7 +64,7 @@ public abstract class AggregationTest extends CrateUnitTest {
         memoryManager = new OnHeapMemoryManager(RAM_ACCOUNTING::addBytes);
         evaluatingNormalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> f.info().isDeterministic()
+            Function::isDeterministic
         );
     }
 

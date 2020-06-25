@@ -46,7 +46,9 @@ import io.crate.expression.symbol.format.MatchPrinter;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -120,6 +122,56 @@ public class Function extends Symbol implements Cloneable {
      */
     public FunctionInfo info() {
         return info;
+    }
+
+    /**
+     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
+     */
+    public String name() {
+        if (signature != null) {
+            return signature.getName().name();
+        }
+        return info.ident().name();
+    }
+
+    /**
+     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
+     */
+    public boolean hasFeature(Scalar.Feature feature) {
+        if (signature != null) {
+            return signature.hasFeature(feature);
+        }
+        return info.hasFeature(feature);
+    }
+
+    /**
+     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
+     */
+    public boolean isDeterministic() {
+        if (signature != null) {
+            return signature.isDeterministic();
+        }
+        return info.isDeterministic();
+    }
+
+    /**
+     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
+     */
+    public FunctionName fqnName() {
+        if (signature != null) {
+            return signature.getName();
+        }
+        return info.ident().fqnName();
+    }
+
+    /**
+     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
+     */
+    public FunctionType type() {
+        if (signature != null) {
+            return signature.getKind();
+        }
+        return info.type();
     }
 
     @Nullable

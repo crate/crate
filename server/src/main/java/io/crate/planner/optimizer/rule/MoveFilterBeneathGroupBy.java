@@ -135,6 +135,6 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
     }
 
     private static boolean isAggregate(Symbol s) {
-        return s instanceof Function && ((Function) s).info().type() == FunctionType.AGGREGATE;
+        return s instanceof Function && ((Function) s).type() == FunctionType.AGGREGATE;
     }
 }

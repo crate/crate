@@ -91,7 +91,7 @@ public final class ArrayLengthQuery implements InnerFunctionToQuery {
     @Nullable
     @Override
     public Query apply(Function parent, Function arrayLength, LuceneQueryBuilder.Context context) {
-        String parentName = parent.info().ident().name();
+        String parentName = parent.name();
         if (!Operators.COMPARISON_OPERATORS.contains(parentName)) {
             return null;
         }

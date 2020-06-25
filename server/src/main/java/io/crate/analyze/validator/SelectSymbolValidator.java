@@ -43,14 +43,14 @@ public class SelectSymbolValidator {
 
         @Override
         public Void visitFunction(Function symbol, Void context) {
-            switch (symbol.info().type()) {
+            switch (symbol.type()) {
                 case SCALAR:
                 case AGGREGATE:
                 case TABLE:
                     break;
                 default:
                     throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "FunctionInfo.Type %s not handled", symbol.info().type()));
+                        "FunctionInfo.Type %s not handled", symbol.type()));
             }
             for (Symbol arg : symbol.arguments()) {
                 arg.accept(this, context);

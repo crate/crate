@@ -41,7 +41,7 @@ public class GroupBySymbolValidator {
 
         @Override
         public Void visitFunction(Function function, String errorMsgTemplate) {
-            switch (function.info().type()) {
+            switch (function.type()) {
                 case SCALAR:
                     for (Symbol argument : function.arguments()) {
                         argument.accept(this, errorMsgTemplate);
@@ -53,7 +53,7 @@ public class GroupBySymbolValidator {
                     throw new IllegalArgumentException("Table functions are not allowed in GROUP BY");
                 default:
                     throw new UnsupportedOperationException(
-                        String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.info().type()));
+                        String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.type()));
             }
             return null;
         }

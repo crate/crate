@@ -52,7 +52,7 @@ class DistanceQuery implements InnerFunctionToQuery {
      */
     @Override
     public Query apply(Function parent, Function inner, LuceneQueryBuilder.Context context) {
-        assert inner.info().ident().name().equals(DistanceFunction.NAME) :
+        assert inner.name().equals(DistanceFunction.NAME) :
             "function must be " + DistanceFunction.NAME;
 
         RefAndLiteral distanceRefLiteral = RefAndLiteral.of(inner);

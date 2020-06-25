@@ -105,6 +105,6 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
     }
 
     private static boolean isTableFunction(Symbol s) {
-        return s instanceof Function && ((Function) s).info().type() == FunctionType.TABLE;
+        return s instanceof Function && ((Function) s).type() == FunctionType.TABLE;
     }
 }

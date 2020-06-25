@@ -86,7 +86,7 @@ public class ProjectionBuilder {
                                                    SearchPath searchPath) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
-            assert function.info().type() == FunctionType.AGGREGATE :
+            assert function.type() == FunctionType.AGGREGATE :
                     "function type must be " + FunctionType.AGGREGATE;
             List<Symbol> aggregationInputs;
             Symbol filterInput;

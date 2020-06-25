@@ -175,8 +175,8 @@ public class EqualityExtractor {
 
         private void initProxies(Map<Function, EqProxy> existingProxies) {
             Symbol left = origin.arguments().get(0);
-            DataType<?> leftType = origin.info().ident().argumentTypes().get(0);
-            DataType<?> rightType = ((ArrayType<?>) origin.info().ident().argumentTypes().get(1)).innerType();
+            var signature = origin.signature();
+            assert signature != null : "Expecting non-null signature while analyzing";
             Literal<?> arrayLiteral = (Literal<?>) origin.arguments().get(1);
 
             proxies = new HashMap<>();
@@ -335,7 +335,7 @@ public class EqualityExtractor {
             }
 
             public EqProxy add(Function compared) {
-                if (compared.info().ident().name().equals(AnyOperators.Type.EQ.opName())) {
+                if (compared.name().equals(AnyOperators.Type.EQ.opName())) {
                     AnyEqProxy anyEqProxy = new AnyEqProxy(compared, proxies);
                     for (EqProxy proxiedProxy : anyEqProxy) {
                         if (!proxies.containsKey(proxiedProxy.origin())) {
@@ -400,7 +400,7 @@ public class EqualityExtractor {
 
         public Symbol visitFunction(Function function, Context context) {
 
-            String functionName = function.info().ident().name();
+            String functionName = function.name();
             List<Symbol> arguments = function.arguments();
             Symbol firstArg = arguments.get(0);
 

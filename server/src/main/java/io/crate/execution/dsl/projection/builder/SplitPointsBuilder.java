@@ -123,7 +123,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
 
     @Override
     public Void visitFunction(Function function, Context context) {
-        FunctionType type = function.info().type();
+        FunctionType type = function.type();
         switch (type) {
             case SCALAR:
                 return super.visitFunction(function, context);

@@ -52,12 +52,12 @@ public class MoveSubscriptOnReferenceCastToLiteralCastInsideOperators implements
         this.functionResolver = functionResolver;
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
-            .with(f -> COMPARISON_OPERATORS.contains(f.info().ident().name()))
+            .with(f -> COMPARISON_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType() == SymbolType.LITERAL)
             .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
-                .with(f -> CAST_FUNCTION_NAMES.contains(f.info().ident().name()))
+                .with(f -> CAST_FUNCTION_NAMES.contains(f.name()))
                 .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class)
-                    .with(f -> f.info().ident().name().equals(SubscriptFunction.NAME))
+                    .with(f -> f.name().equals(SubscriptFunction.NAME))
                     .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
                 )
             );
@@ -78,7 +78,7 @@ public class MoveSubscriptOnReferenceCastToLiteralCastInsideOperators implements
         DataType<?> targetType = subscript.valueType();
 
         return functionResolver.apply(
-            operator.info().ident().name(),
+            operator.name(),
             List.of(subscript, literal.cast(targetType))
         );
     }

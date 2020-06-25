@@ -83,7 +83,7 @@ public final class HashJoinConditionSymbolsExtractor {
 
         @Override
         public Void visitFunction(Function function, Context context) {
-            String functionName = function.info().ident().name();
+            String functionName = function.name();
             switch (functionName) {
                 case AndOperator.NAME:
                     return super.visitFunction(function, context);

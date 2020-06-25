@@ -58,7 +58,7 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
 
         if (DataTypes.isArray(left.valueType())) {
             throw new UnsupportedFeatureException(
-                "Cannot use " + function.info().ident().name() + " when the left side is an array");
+                "Cannot use " + function.name() + " when the left side is an array");
         }
         if (left.symbolType().isValueSymbol()) {
             // 1 = any (array_col) - simple eq

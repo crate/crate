@@ -67,7 +67,7 @@ class SubscriptQuery implements InnerFunctionToQuery {
     @Nullable
     @Override
     public Query apply(Function parent, Function inner, LuceneQueryBuilder.Context context) throws IOException {
-        assert inner.info().ident().name().equals(SubscriptFunction.NAME) :
+        assert inner.name().equals(SubscriptFunction.NAME) :
             "function must be " + SubscriptFunction.NAME;
 
         RefAndLiteral innerPair = RefAndLiteral.of(inner);
@@ -78,7 +78,7 @@ class SubscriptQuery implements InnerFunctionToQuery {
 
         if (DataTypes.isArray(innerPair.reference().valueType())) {
             PreFilterQueryBuilder preFilterQueryBuilder =
-                PRE_FILTER_QUERY_BUILDER_BY_OP.get(parent.info().ident().name());
+                PRE_FILTER_QUERY_BUILDER_BY_OP.get(parent.name());
             if (preFilterQueryBuilder == null) {
                 return null;
             }
