@@ -46,7 +46,7 @@ public final class EnsureNoMatchPredicate extends SymbolVisitor<String, Void> {
 
     @Override
     public Void visitFunction(Function symbol, String errorMsg) {
-        if (symbol.info().ident().name().equals(MatchPredicate.NAME)) {
+        if (symbol.name().equals(MatchPredicate.NAME)) {
             throw new UnsupportedFeatureException(errorMsg);
         }
         for (Symbol argument : symbol.arguments()) {

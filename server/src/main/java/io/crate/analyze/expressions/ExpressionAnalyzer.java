@@ -221,7 +221,7 @@ public class ExpressionAnalyzer {
         var symbol = expression.accept(innerAnalyzer, expressionAnalysisContext);
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.info().isDeterministic()
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
         );
         return normalizer.normalize(symbol, coordinatorTxnCtx);
     }

@@ -179,7 +179,7 @@ public class Symbols {
 
     public static Symbol unwrapReferenceFromCast(Symbol symbol) {
         if (symbol instanceof Function
-            && CAST_FUNCTION_NAMES.contains(((Function) symbol).info().ident().name())) {
+            && CAST_FUNCTION_NAMES.contains(((Function) symbol).name())) {
             return ((Function) symbol).arguments().get(0);
         }
         return symbol;

@@ -171,7 +171,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.info().isDeterministic()
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
         );
 
         return new QueriedSelectRelation(
@@ -353,7 +353,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.info().isDeterministic()
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
         );
 
         QueriedSelectRelation relation = new QueriedSelectRelation(
@@ -732,7 +732,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> f.info().isDeterministic()
+            f -> f.isDeterministic()
         );
 
         ArrayList<Symbol> arrays = new ArrayList<>(columns.size());

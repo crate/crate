@@ -406,7 +406,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                             "group by name having 1=0 or sum(bytes) in (42, 43, 44) and name not like 'Slartibart%'");
         Function andFunction = (Function) relation.having();
         assertThat(andFunction, is(notNullValue()));
-        assertThat(andFunction.info().ident().name(), is("op_and"));
+        assertThat(andFunction.signature().getName().name(), is("op_and"));
         assertThat(andFunction.arguments().size(), is(2));
 
         assertThat(andFunction.arguments().get(0), isFunction("any_="));

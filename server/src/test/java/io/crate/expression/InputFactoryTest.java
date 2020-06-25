@@ -188,7 +188,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         java.lang.reflect.Field f = FunctionExpression.class.getDeclaredField("scalar");
         f.setAccessible(true);
         FunctionImplementation impl = (FunctionImplementation) f.get(expression);
-        assertThat(impl.info(), is(function.info()));
+        assertThat(impl.signature(), is(function.signature()));
 
         FunctionImplementation uncompiled = expressions.functions().getQualified(
             function,

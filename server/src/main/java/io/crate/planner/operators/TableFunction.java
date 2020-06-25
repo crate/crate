@@ -164,7 +164,7 @@ public final class TableFunction implements LogicalPlan {
     public void print(PrintContext printContext) {
         printContext
             .text("TableFunction[")
-            .text(relation.function().info().ident().name())
+            .text(relation.function().name())
             .text(" | [")
             .text(Lists2.joinOn(", ", toCollect, Symbol::toString))
             .text("] | ")

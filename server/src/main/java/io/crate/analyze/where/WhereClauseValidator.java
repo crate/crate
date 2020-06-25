@@ -96,7 +96,7 @@ public final class WhereClauseValidator {
         @Override
         public Symbol visitFunction(Function function, Context context) {
             context.functions.push(function);
-            if (function.info().type().equals(FunctionType.TABLE)) {
+            if (function.type().equals(FunctionType.TABLE)) {
                 throw new UnsupportedOperationException("Table functions are not allowed in WHERE");
             }
             continueTraversal(function, context);
@@ -117,7 +117,7 @@ public final class WhereClauseValidator {
 
         private static boolean insideNotPredicate(Context context) {
             for (Function function : context.functions) {
-                if (function.info().ident().name().equals(NotPredicate.NAME)) {
+                if (function.name().equals(NotPredicate.NAME)) {
                     return true;
                 }
             }
@@ -132,9 +132,9 @@ public final class WhereClauseValidator {
             var lastFunction = context.functions.get(numFunctions - 1);
             var parentFunction = context.functions.get(numFunctions - 2);
 
-            if (CAST_FUNCTION_NAMES.contains(lastFunction.info().ident().name())
-                && parentFunction.info().ident().name().startsWith(Operator.PREFIX)
-                && requiredFunctionNames.contains(parentFunction.info().ident().name())) {
+            if (CAST_FUNCTION_NAMES.contains(lastFunction.name())
+                && parentFunction.name().startsWith(Operator.PREFIX)
+                && requiredFunctionNames.contains(parentFunction.name())) {
                 var rightArg = parentFunction.arguments().get(1);
                 return rightArg.symbolType().isValueSymbol();
             }
@@ -159,7 +159,7 @@ public final class WhereClauseValidator {
             }
             Function function = context.functions.lastElement();
             if ((!insideCastComparedWithLiteral(context, requiredFunctionNames)
-                && !requiredFunctionNames.contains(function.info().ident().name().toLowerCase(Locale.ENGLISH)))
+                && !requiredFunctionNames.contains(function.name().toLowerCase(Locale.ENGLISH)))
                 || insideNotPredicate(context)) {
                 throw error.get();
             }

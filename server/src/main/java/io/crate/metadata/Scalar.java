@@ -123,7 +123,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             idx++;
         }
         //noinspection unchecked
-        return Literal.ofUnchecked(function.info().returnType(), scalar.evaluate(txnCtx, inputs));
+        return Literal.ofUnchecked(function.valueType(), scalar.evaluate(txnCtx, inputs));
     }
 
     public enum Feature {

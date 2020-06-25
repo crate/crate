@@ -37,7 +37,7 @@ class FunctionLiteralPair {
         Symbol left = outerFunction.arguments().get(0);
         Symbol right = outerFunction.arguments().get(1);
 
-        functionName = outerFunction.info().ident().name();
+        functionName = outerFunction.name();
 
         if (left instanceof Function) {
             function = (Function) left;

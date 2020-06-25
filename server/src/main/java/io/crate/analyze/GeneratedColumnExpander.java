@@ -129,7 +129,7 @@ public final class GeneratedColumnExpander {
 
         @Override
         public Symbol visitFunction(Function function, Context context) {
-            if (Operators.COMPARISON_OPERATORS.contains(function.info().ident().name())) {
+            if (Operators.COMPARISON_OPERATORS.contains(function.name())) {
                 Reference reference = null;
                 Symbol otherSide = null;
                 for (int i = 0; i < function.arguments().size(); i++) {
@@ -179,26 +179,13 @@ public final class GeneratedColumnExpander {
 
                 Function generatedFunction = (Function) generatedReference.generatedExpression();
 
-                String operatorName;
-                String generatedFunctionName;
-                java.util.function.Function<Scalar.Feature, Boolean> hasFeatures;
-                var signature = function.signature();
-                var generatedFunctionSignature = generatedFunction.signature();
-                if (signature != null && generatedFunctionSignature != null) {
-                    operatorName = signature.getName().name();
-                    generatedFunctionName = generatedFunctionSignature.getName().name();
-                    hasFeatures = generatedFunctionSignature::hasFeature;
-                } else {
-                    operatorName = function.info().ident().name();
-                    generatedFunctionName = generatedFunction.info().ident().name();
-                    hasFeatures = f ->  generatedFunction.info().hasFeature(f);
-                }
+                String operatorName = function.name();
                 if (!operatorName.equals(EqOperator.NAME)) {
-                    if (!hasFeatures.apply(Scalar.Feature.COMPARISON_REPLACEMENT)) {
+                    if (!generatedFunction.hasFeature(Scalar.Feature.COMPARISON_REPLACEMENT)) {
                         return null;
                     }
                     // rewrite operator
-                    if (ROUNDING_FUNCTIONS.contains(generatedFunctionName)) {
+                    if (ROUNDING_FUNCTIONS.contains(generatedFunction.name())) {
                         String replacedOperatorName = ROUNDING_FUNCTION_MAPPING.get(operatorName);
                         if (replacedOperatorName != null) {
                             operatorName = replacedOperatorName;
