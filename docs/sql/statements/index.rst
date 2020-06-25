@@ -26,12 +26,13 @@ SQL Statements
     deallocate
     delete
     deny
+    discard
     drop-analyzer
+    drop-constraint
     drop-function
     drop-repository
     drop-snapshot
     drop-table
-    drop-constraint
     drop-user
     drop-view
     explain

@@ -20,33 +20,26 @@
  * agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.planner;
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
-import static org.hamcrest.Matchers.is;
-
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
+public class DiscardTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows.size(), is(243));
-        Row row = rows.get(0);
+    public void test_discard_with_all_modifiers_results_in_noop_plan() throws Exception {
+        // discard is for discarding the session state and needs special handling in `Session`
+        // The planner always returns a noopPlan
 
-        assertThat(row.get(0), is("add"));
-        assertThat(row.get(1), is("R"));
-        assertThat(row.get(2), is("reserved"));
+        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+        assertThat(e.plan("DISCARD ALL"), Matchers.sameInstance(NoopPlan.INSTANCE));
+        assertThat(e.plan("DISCARD PLANS"), Matchers.sameInstance(NoopPlan.INSTANCE));
+        assertThat(e.plan("DISCARD SEQUENCES"), Matchers.sameInstance(NoopPlan.INSTANCE));
+        assertThat(e.plan("DISCARD TEMPORARY"), Matchers.sameInstance(NoopPlan.INSTANCE));
+        assertThat(e.plan("DISCARD TEMP"), Matchers.sameInstance(NoopPlan.INSTANCE));
     }
 }

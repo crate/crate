@@ -20,33 +20,46 @@
  * agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.sql.tree;
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import org.junit.Test;
+import java.util.Locale;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+public final class DiscardStatement extends Statement {
 
-import static org.hamcrest.Matchers.is;
+    public enum Target {
+        ALL,
+        PLANS,
+        SEQUENCES,
+        TEMPORARY
+    }
 
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
+    private final Target target;
 
-    @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows.size(), is(243));
-        Row row = rows.get(0);
+    public DiscardStatement(Target target) {
+        this.target = target;
+    }
 
-        assertThat(row.get(0), is("add"));
-        assertThat(row.get(1), is("R"));
-        assertThat(row.get(2), is("reserved"));
+    public Target target() {
+        return target;
+    }
+
+    @Override
+    public String toString() {
+        return "DISCARD " + target.name().toUpperCase(Locale.ENGLISH);
+    }
+
+    @Override
+    public int hashCode() {
+        return target.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof DiscardStatement && ((DiscardStatement) obj).target == this.target;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitDiscard(this, context);
     }
 }
