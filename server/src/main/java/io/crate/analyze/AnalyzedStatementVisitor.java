@@ -236,4 +236,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitAnalyze(AnalyzedAnalyze analyzedAnalyze, C context) {
         return visitDDLStatement(analyzedAnalyze, context);
     }
+
+    public R visitDiscard(AnalyzedDiscard discard, C context) {
+        return visitAnalyzedStatement(discard, context);
+    }
 }

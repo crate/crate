@@ -234,6 +234,8 @@ Functions and operators
 New statements and clauses
 --------------------------
 
+- Added the :ref:`DISCARD <discard>` statement.
+
 - Added the :ref:`CHECK <check_constraint>` constraint syntax, which specifies
   that the values of certain columns must satisfy a boolean expression on
   insert and update.

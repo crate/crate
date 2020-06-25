@@ -22,11 +22,31 @@
 
 package io.crate.sql.parser;
 
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
 import io.crate.common.collections.Lists2;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.DiscardContext;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
@@ -76,6 +96,7 @@ import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DiscardStatement;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
@@ -183,23 +204,6 @@ import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
 
 class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
@@ -230,6 +234,23 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitAnalyze(SqlBaseParser.AnalyzeContext ctx) {
         return new AnalyzeStatement();
+    }
+
+    @Override
+    public Node visitDiscard(DiscardContext ctx) {
+        final DiscardStatement.Target target;
+        if (ctx.ALL() != null) {
+            target = DiscardStatement.Target.ALL;
+        } else if (ctx.PLANS() != null) {
+            target = DiscardStatement.Target.PLANS;
+        } else if (ctx.SEQUENCES() != null) {
+            target = DiscardStatement.Target.SEQUENCES;
+        } else if (ctx.TEMP() != null || ctx.TEMPORARY() != null) {
+            target = DiscardStatement.Target.TEMPORARY;
+        } else {
+            throw new IllegalStateException("Unexpected DiscardContext: " + ctx);
+        }
+        return new DiscardStatement(target);
     }
 
     @Override

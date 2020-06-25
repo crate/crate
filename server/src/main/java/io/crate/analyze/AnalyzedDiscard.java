@@ -20,33 +20,29 @@
  * agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.analyze;
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import org.junit.Test;
+import io.crate.sql.tree.DiscardStatement.Target;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+public final class AnalyzedDiscard implements AnalyzedStatement {
 
-import static org.hamcrest.Matchers.is;
+    private final Target target;
 
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
+    public AnalyzedDiscard(Target target) {
+        this.target = target;
+    }
 
-    @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows.size(), is(243));
-        Row row = rows.get(0);
+    public Target target() {
+        return target;
+    }
 
-        assertThat(row.get(0), is("add"));
-        assertThat(row.get(1), is("R"));
-        assertThat(row.get(2), is("reserved"));
+    @Override
+    public boolean isWriteOperation() {
+        return false;
+    }
+
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitDiscard(this, context);
     }
 }

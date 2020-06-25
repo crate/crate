@@ -434,6 +434,33 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_discard_all_discards_all_portals_and_prepared_statements() throws Exception {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
+        Session session = new Session(
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            executor,
+            AccessControl.DISABLED,
+            SessionContext.systemSessionContext());
+
+        session.parse("S_1", "SELECT 1", List.of());
+        session.bind("P_1", "S_1", List.of(), null);
+
+        assertThat(session.portals.size(), is(1));
+        assertThat(session.preparedStatements.size(), is(1));
+
+        session.parse("stmt", "DISCARD ALL", Collections.emptyList());
+        session.bind("", "stmt", Collections.emptyList(), null);
+        session.execute("", 0, new BaseResultReceiver());
+
+        assertThat(session.portals.entrySet(), Matchers.empty());
+        assertThat(session.preparedStatements.entrySet(), Matchers.empty());
+    }
+
+    @Test
     public void test_bulk_operations_result_in_jobslog_entries() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x int)")

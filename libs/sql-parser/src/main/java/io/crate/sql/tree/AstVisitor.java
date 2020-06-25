@@ -619,4 +619,8 @@ public abstract class AstVisitor<R, C> {
     public R visitRecordSubscript(RecordSubscript recordSubscript, C context) {
         return visitExpression(recordSubscript, context);
     }
+
+    public R visitDiscard(DiscardStatement discardStatement, C context) {
+        return visitStatement(discardStatement, context);
+    }
 }
