@@ -39,6 +39,7 @@ import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -50,6 +51,7 @@ import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
+import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -95,6 +97,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<PgIndexTable.Entry> pgIndices;
     private final Iterable<PgClassTable.Entry> pgClasses;
     private final Iterable<PgProcTable.Entry> pgBuiltInFunc;
+    private final Iterable<PgProcTable.Entry> pgTypeReceiveFunctions;
     private final Functions functions;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -105,7 +108,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     public InformationSchemaIterables(final Schemas schemas,
                                       final Functions functions,
                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                      ClusterService clusterService) throws IOException {
+                                      ClusterService clusterService) {
         this.schemas = schemas;
         this.functions = functions;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
@@ -156,6 +159,19 @@ public class InformationSchemaIterables implements ClusterStateListener {
         pgBuiltInFunc = () -> sequentialStream(functions.functionResolvers().values())
             .flatMap(List::stream)
             .map(this::pgProc)
+            .iterator();
+        pgTypeReceiveFunctions = () -> sequentialStream(PGTypes.pgTypes())
+            .filter(pgType -> PGTypes.fromOID(pgType.oid()) != null)
+            .map(
+                type -> Signature.scalar(
+                    type.typName() + "recv",
+                    Objects.requireNonNullElse(
+                        PGTypes.fromOID(type.oid()),
+                        DataTypes.UNDEFINED
+                    ).getTypeSignature()
+                )
+            )
+            .map(PgProcTable.Entry::of)
             .iterator();
     }
 
@@ -277,10 +293,13 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<PgProcTable.Entry> pgProc() {
         return () -> concat(
-            sequentialStream(pgBuiltInFunc),
-            sequentialStream(functions.udfFunctionResolvers().values())
-                .flatMap(List::stream)
-                .map(this::pgProc)
+            concat(
+                sequentialStream(pgBuiltInFunc),
+                sequentialStream(functions.udfFunctionResolvers().values())
+                    .flatMap(List::stream)
+                    .map(this::pgProc)
+            ),
+            sequentialStream(pgTypeReceiveFunctions)
         ).iterator();
     }
 
