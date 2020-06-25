@@ -37,7 +37,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     private BooleanType() {
     }
 
-    private static final Map<String, Boolean> BOOLEAN_MAP = Map.<String, Boolean>ofEntries(
+    private static final Map<String, Boolean> BOOLEAN_MAP = Map.ofEntries(
         Map.entry("f", false),
         Map.entry("false", false),
         Map.entry("t", true),
@@ -62,6 +62,21 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     @Override
     public Streamer<Boolean> streamer() {
         return this;
+    }
+
+    @Override
+    public Boolean implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Boolean) {
+            return (Boolean) value;
+        } else if (value instanceof String) {
+            return booleanFromString((String) value);
+        } else if (value instanceof Number) {
+            return booleanFromNumber((Number) value);
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
     }
 
     @Override

@@ -84,6 +84,17 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
     }
 
     @Override
+    public Period implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof String) {
+            return IntervalParser.apply((String) value);
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
+    }
+
+    @Override
     public Period value(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;

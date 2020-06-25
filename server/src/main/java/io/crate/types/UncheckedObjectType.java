@@ -70,6 +70,12 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     }
 
     @Override
+    public Map<Object, Object> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        //noinspection unchecked
+        return (Map<Object, Object>) value;
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public Map<Object, Object> value(Object value) {
         return (Map<Object, Object>) value;

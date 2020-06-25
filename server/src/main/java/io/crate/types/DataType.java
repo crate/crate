@@ -86,13 +86,20 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     public abstract Streamer<T> streamer();
 
     /**
-     * Must be used only in the cast functions.
+     * Converts the {@code value} argument to the the value of the current
+     * data type. The conversion succeeds only if the {@code value} to the
+     * desired data type, otherwise {@link ClassCastException} is thrown.
+     * <p>
+     * Should be used only in the cast functions, but there are exceptions.
      *
      * @param value The value to cast to the target {@link DataType}.
      * @return The value casted the target {@link DataType}.
+     * @throws ClassCastException       if the conversion between data types is not supported.
+     * @throws IllegalArgumentException if the conversion is supported but the converted value
+     *                                  violates pre-conditions of the target type.
      */
     public T implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return value(value);
+        throw new UnsupportedOperationException("The cast operation is not supported.");
     }
 
     /**
@@ -132,7 +139,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * @param other The other type to compare against.
      * @return True if the current type precedes, false otherwise.
      */
-    public boolean precedes(DataType other) {
+    public boolean precedes(DataType<?> other) {
         return this.precedence().ordinal() > other.precedence().ordinal();
     }
 

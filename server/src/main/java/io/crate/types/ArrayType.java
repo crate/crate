@@ -245,12 +245,17 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ArrayType)) return false;
-        if (!super.equals(o)) return false;
-
-        ArrayType arrayType = (ArrayType) o;
-        return innerType.equals(arrayType.innerType);
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        ArrayType<?> arrayType = (ArrayType<?>) o;
+        return Objects.equals(innerType, arrayType.innerType);
     }
 
     @Override
