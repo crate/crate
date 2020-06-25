@@ -67,14 +67,17 @@ public class Regproc {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        // Such as we cannot lookup the function name by oid and fallback
+        // to using the oid as name, we cannot use the name to check the
+        // equality of the Regproc objects. Therefore, we use the oid only
+        // to check the equality and calculate the hash code.
         Regproc regproc = (Regproc) o;
-        return oid == regproc.oid &&
-               Objects.equals(name, regproc.name);
+        return oid == regproc.oid;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(oid, name);
+        return Objects.hash(oid);
     }
 
     @Override

@@ -26,7 +26,6 @@ import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -100,6 +99,6 @@ public class RegprocTypeTest extends CrateUnitTest {
         DataTypes.toStream(REGPROC, out);
 
         var in = out.bytes().streamInput();
-        assertThat(DataTypes.fromStream(in), CoreMatchers.is(REGPROC));
+        assertThat(DataTypes.fromStream(in), is(REGPROC));
     }
 }
