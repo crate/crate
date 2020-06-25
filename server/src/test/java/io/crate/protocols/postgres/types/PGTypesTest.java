@@ -116,10 +116,10 @@ public class PGTypesTest extends CrateUnitTest {
     }
 
     private static class Entry {
-        final DataType type;
+        final DataType<?> type;
         final Object value;
 
-        public Entry(DataType type, Object value) {
+        public Entry(DataType<?> type, Object value) {
             this.type = type;
             this.value = value;
         }
@@ -160,6 +160,24 @@ public class PGTypesTest extends CrateUnitTest {
     @Test
     public void testReadWriteVarCharType() {
         assertEntryOfPgType(new Entry(DataTypes.STRING, "test"), VarCharType.INSTANCE);
+    }
+
+    @Test
+    public void test_binary_oidvector_streaming_roundtrip() throws Exception {
+        Entry entry = new Entry(DataTypes.OIDVECTOR, List.of(1, 2, 3, 4));
+        assertThat(
+            writeAndReadBinary(entry, PGTypes.get(entry.type)),
+            is(entry.value)
+        );
+    }
+
+    @Test
+    public void test_text_oidvector_streaming_roundtrip() throws Exception {
+        Entry entry = new Entry(DataTypes.OIDVECTOR, List.of(1, 2, 3, 4));
+        assertThat(
+            writeAndReadAsText(entry, PGTypes.get(entry.type)),
+            is(entry.value)
+        );
     }
 
     @Test

@@ -39,6 +39,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.protocols.postgres.types.PgOidVectorType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -89,6 +90,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
+import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -452,6 +454,13 @@ public class SQLTransportExecutor {
                     elements.add(Byte.parseByte((String) o));
                 }
                 return elements;
+            }
+            case "oidvector": {
+                String textval = resultSet.getString(columnIndex);
+                if (textval == null) {
+                    return null;
+                }
+                return PgOidVectorType.listFromOidVectorString(textval);
             }
             case "char":
                 String strValue = resultSet.getString(columnIndex);

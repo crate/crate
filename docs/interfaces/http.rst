@@ -293,6 +293,9 @@ IDs of all currently available data types:
    * - 20
      - :ref:`time with time zone <time-data-type>`
      - [``bigint``, ``integer``] e.g. [70652987666, 0]
+   * - 21
+     - :ref:`oidvector <oidvector_type>`
+     - An array of numbers
    * - 100
      - :ref:`array <data-type-array>`
      - [``integer``, ``integer``] e.g. [100, 9] for a ``array(integer)``

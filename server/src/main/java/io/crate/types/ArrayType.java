@@ -135,7 +135,7 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
         ArrayList<T> result;
         if (value instanceof Collection) {
-            Collection values = (Collection) value;
+            Collection<?> values = (Collection<?>) value;
             result = new ArrayList<>(values.size());
             for (Object o : values) {
                 result.add(innerType.apply(o));

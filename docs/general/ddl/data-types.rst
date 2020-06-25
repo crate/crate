@@ -1196,6 +1196,18 @@ For more information, see PostgreSQL :ref:`postgres_pg_oid`.
 Casting a column of the ``regproc`` alias data type to ``text`` or
 ``integer`` results in a function name or its ``oid``, respectively.
 
+
+.. _oidvector_type:
+
+oidvector
+---------
+
+This is a system type used to represent one or more OID values.
+
+It looks similar to an array of integers, but doesn't support any of the scalar
+functions or expressions that can be used on regular arrays.
+
+
 .. _type_conversion:
 
 Type conversion
