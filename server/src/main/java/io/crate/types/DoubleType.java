@@ -58,6 +58,19 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     }
 
     @Override
+    public Double implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof String) {
+            return Double.valueOf((String) value);
+        } else if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
+    }
+
+    @Override
     public Double value(Object value) {
         if (value == null) {
             return null;

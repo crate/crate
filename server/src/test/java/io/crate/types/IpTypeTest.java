@@ -30,12 +30,22 @@ import static org.hamcrest.Matchers.nullValue;
 public class IpTypeTest extends CrateUnitTest {
 
     @Test
-    public void testValue() throws Exception {
+    public void test_value() {
         assertThat(DataTypes.IP.value(null), is(nullValue()));
         assertThat(DataTypes.IP.value("127.0.0.1"), is("127.0.0.1"));
+    }
 
+    @Test
+    public void test_value_invalid_ip_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Failed to validate ip [2000.0.0.1], not a valid ipv4 address");
         DataTypes.IP.value("2000.0.0.1");
+    }
+
+    @Test
+    public void test_cast_negative_bigint_value_to_ip_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Failed to convert long value: -9223372036854775808 to ipv4 address");
+        IpType.INSTANCE.implicitCast(Long.MIN_VALUE);
     }
 }

@@ -56,6 +56,23 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
+    public Byte implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof String) {
+            return Byte.parseByte((String) value);
+        } else if (value instanceof Number) {
+            int val = ((Number) value).intValue();
+            if (val < Byte.MIN_VALUE || Byte.MAX_VALUE < val) {
+                throw new IllegalArgumentException("byte value out of range: " + val);
+            }
+            return (byte) val;
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
+    }
+
+    @Override
     public Byte value(Object value) {
         if (value == null) {
             return null;

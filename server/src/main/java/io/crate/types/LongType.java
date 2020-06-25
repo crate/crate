@@ -55,6 +55,19 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     }
 
     @Override
+    public Long implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof String) {
+            return Long.valueOf((String) value);
+        } else if (value instanceof Number) {
+            return ((Number) value).longValue();
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
+    }
+
+    @Override
     public Long value(Object value) {
         if (value == null) {
             return null;

@@ -36,94 +36,22 @@ import static org.hamcrest.core.IsNot.not;
 public class DataTypesTest extends CrateUnitTest {
 
     @Test
-    public void testConvertStringToBoolean() {
-        assertEquals(true, DataTypes.BOOLEAN.value("t"));
-        assertEquals(false, DataTypes.BOOLEAN.value("false"));
-        assertEquals(false, DataTypes.BOOLEAN.value("FALSE"));
-        assertEquals(false, DataTypes.BOOLEAN.value("f"));
-        assertEquals(false, DataTypes.BOOLEAN.value("F"));
-        assertEquals(true, DataTypes.BOOLEAN.value("true"));
-        assertEquals(true, DataTypes.BOOLEAN.value("TRUE"));
-        assertEquals(true, DataTypes.BOOLEAN.value("t"));
-        assertEquals(true, DataTypes.BOOLEAN.value("T"));
-    }
-
-    @Test
-    public void testLongToNumbers() {
-        Long longValue = 123L;
-
-        assertEquals((Long) 123L, DataTypes.LONG.value((longValue)));
-        assertEquals((Integer) 123, DataTypes.INTEGER.value(longValue));
-        assertEquals((Double) 123.0d, DataTypes.DOUBLE.value(longValue));
-        assertEquals((Float) 123.0f, DataTypes.FLOAT.value(longValue));
-        assertEquals((Short) (short) 123, DataTypes.SHORT.value(longValue));
-        assertEquals((Byte) (byte) 123, DataTypes.BYTE.value(longValue));
-        assertEquals((Long) 123L, DataTypes.TIMESTAMPZ.value(longValue));
-    }
-
-    private static Map<String, Object> testMap = Map.of(
-        "int", 1,
-        "boolean", false,
-        "double", 2.8d,
-        "list", List.of(1, 3, 4)
-    );
-
-    private static Map<String, Object> testCompareMap = Map.of(
-        "int", 2,
-        "boolean", true,
-        "double", 2.9d,
-        "list", List.of(9, 9, 9, 9)
-    );
-
-    @Test
-    public void testConvertToObject() {
-        DataType<?> objectType = DataTypes.UNTYPED_OBJECT;
-        assertThat(objectType.value(testMap), is(testMap));
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testMapToBoolean() {
-        DataTypes.BOOLEAN.value(testMap);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testMapToLong() {
-        DataTypes.LONG.value(testMap);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testMapToInteger() {
-        DataTypes.INTEGER.value(testMap);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertToDouble() {
-        DataTypes.DOUBLE.value(testMap);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertToFloat() {
-        DataTypes.FLOAT.value(testMap);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertToShort() {
-        DataTypes.SHORT.value(testMap);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertToByte() {
-        DataTypes.BYTE.value(testMap);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertMapToTimestamp() {
-        DataTypes.TIMESTAMPZ.value(testMap);
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void testCompareTo() {
+        var testMap = Map.of(
+            "int", 1,
+            "boolean", false,
+            "double", 2.8d,
+            "list", List.of(1, 3, 4)
+        );
+
+        var testCompareMap = Map.of(
+            "int", 2,
+            "boolean", true,
+            "double", 2.9d,
+            "list", List.of(9, 9, 9, 9)
+        );
+
         Map testMapCopy = Map.copyOf(testMap);
         Map emptyMap = Map.of();
         DataType objectType = DataTypes.UNTYPED_OBJECT;
@@ -138,59 +66,6 @@ public class DataTypesTest extends CrateUnitTest {
         // then values
         assertThat(objectType.compare(testMap, testCompareMap), is(1));
         assertThat(objectType.compare(testCompareMap, testMap), is(1));
-    }
-
-    @Test
-    public void testStringConvertToNumbers() {
-        String value = "123";
-
-        assertEquals((Long) 123L, DataTypes.LONG.value(value));
-        assertEquals((Integer) 123, DataTypes.INTEGER.value(value));
-        assertEquals((Double) 123.0d, DataTypes.DOUBLE.value(value));
-        assertEquals((Float) 123.0f, DataTypes.FLOAT.value(value));
-        assertEquals((Short) (short) 123, DataTypes.SHORT.value(value));
-        assertEquals((Byte) (byte) 123, DataTypes.BYTE.value(value));
-    }
-
-    @Test(expected = NumberFormatException.class)
-    public void testConvertToUnsupportedNumberConversion() {
-        DataTypes.LONG.value("hello");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testConvertToUnsupportedBooleanConversion() {
-        DataTypes.BOOLEAN.value("hello");
-    }
-
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertBooleanToLong() {
-        DataTypes.LONG.value(true);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertBooleanToInteger() {
-        DataTypes.INTEGER.value(true);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertBooleanToDouble() {
-        DataTypes.DOUBLE.value(true);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertBooleanToFloat() {
-        DataTypes.FLOAT.value(true);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertBooleanToShort() {
-        DataTypes.SHORT.value(true);
-    }
-
-    @Test(expected = ClassCastException.class)
-    public void testConvertBooleanToByte() {
-        DataTypes.BYTE.value(true);
     }
 
     @Test

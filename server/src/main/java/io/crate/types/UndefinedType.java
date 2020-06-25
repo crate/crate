@@ -57,12 +57,17 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
     }
 
     @Override
+    public Object implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return value;
+    }
+
+    @Override
     public Object value(Object value) {
         return value;
     }
 
     @Override
-    public boolean isConvertableTo(DataType other, boolean explicitCast) {
+    public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
         return true;
     }
 

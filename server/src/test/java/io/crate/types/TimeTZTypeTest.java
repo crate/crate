@@ -4,6 +4,7 @@ import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 
 public class TimeTZTypeTest extends CrateUnitTest {
@@ -18,13 +19,14 @@ public class TimeTZTypeTest extends CrateUnitTest {
 
     @Test
     public void test_value_cast_null() {
-        assertNull(TimeTZType.INSTANCE.value(null));
+        assertThat(TimeTZType.INSTANCE.implicitCast(null), is(nullValue()));
     }
 
     @Test
     public void test_value_cast_not_null() {
-        assertThat(TimeTZType.INSTANCE.value(new TimeTZ(3600000000L, 7200)),
-                   isTZ(3600000000L, 7200));
+        assertThat(
+            TimeTZType.INSTANCE.implicitCast(new TimeTZ(3600000000L, 7200)),
+            isTZ(3600000000L, 7200));
     }
 
     @Test
