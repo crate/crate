@@ -79,6 +79,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.INTERVAL), PGArray.INTERVAL_ARRAY)
         .put(new ArrayType<>(RowType.EMPTY), PGArray.EMPTY_RECORD_ARRAY)
         .put(new ArrayType<>(DataTypes.REGPROC), PGArray.REGPROC_ARRAY)
+        .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
         .build();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();

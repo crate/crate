@@ -878,6 +878,15 @@ public class PostgresITest extends SQLTransportIntegrationTest {
        assertThat(response.rowCount(), is (0L));
     }
 
+    @Test
+    public void test_getProcedureColumns() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW))) {
+            var results = conn.getMetaData().getProcedureColumns("", "", "", "");
+            assertThat(results.next(), is(true));
+            assertThat(results.getString(3), is("_pg_expandarray"));
+        }
+    }
+
     private void assertSelectNameFromSysClusterWorks(Connection conn) throws SQLException {
         PreparedStatement stmt;// verify that queries can be made after an error occurred
         stmt = conn.prepareStatement("select name from sys.cluster");
