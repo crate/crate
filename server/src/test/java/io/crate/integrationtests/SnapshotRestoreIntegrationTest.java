@@ -497,62 +497,62 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("create snapshot my_repo_ro.s1 ALL WITH (wait_for_completion=true)");
     }
 
-    public void test_snapshot_with_corrupted_shard_index_file() throws Exception {
-        execute("CREATE TABLE t1 (x int)");
-        var numberOfDocs = randomLongBetween(0, 10);
-        for (int i = 0; i < numberOfDocs; i++) {
-            execute("INSERT INTO t1 (x) VALUES (?)", new Object[]{randomInt()});
-        }
-        execute("REFRESH TABLE t1");
-
-        var snapShotName1 = "s1";
-        var fullSnapShotName1 =  REPOSITORY_NAME + "." + snapShotName1;
-        execute("CREATE SNAPSHOT " + fullSnapShotName1 + " ALL WITH (wait_for_completion=true)");
-
-        var repositoryData = getRepositoryData();
-        var indexIds = repositoryData.getIndices();
-        assertThat(indexIds.size(), equalTo(1));
-
-        var corruptedIndex = indexIds.entrySet().iterator().next().getValue();
-        var shardIndexFile = defaultRepositoryLocation.toPath().resolve("indices")
-            .resolve(corruptedIndex.getId()).resolve("0")
-            .resolve("index-0");
-
-        // Truncating shard index file
-        try (var outChan = Files.newByteChannel(shardIndexFile, StandardOpenOption.WRITE)) {
-            outChan.truncate(randomInt(10));
-        }
-
-        assertSnapShotState(snapShotName1);
-
-        execute("drop table t1");
-        execute("RESTORE SNAPSHOT " +  fullSnapShotName1 + " TABLE t1 with (wait_for_completion=true)");
-        ensureYellow();
-
-        execute("SELECT COUNT(*) FROM t1");
-        assertThat(response.rows()[0][0], is(numberOfDocs));
-
-        var numberOfAdditionalDocs = randomLongBetween(0, 10);
-        for (int i = 0; i < numberOfAdditionalDocs; i++) {
-            execute("INSERT INTO t1 (x) VALUES (?)", new Object[]{randomInt()});
-        }
-        execute("REFRESH TABLE t1");
-
-        var snapShotName2 = "s2";
-        var fullSnapShotName2 = REPOSITORY_NAME + ".s2";
-
-        execute("CREATE SNAPSHOT " + fullSnapShotName2 + " ALL WITH (wait_for_completion=true)");
-
-        assertSnapShotState(snapShotName2);
-
-        execute("drop table t1");
-        execute("RESTORE SNAPSHOT " + fullSnapShotName2 + " TABLE t1 with (wait_for_completion=true)");
-        ensureYellow();
-
-        execute("SELECT COUNT(*) FROM t1");
-        assertThat(response.rows()[0][0], is(numberOfDocs + numberOfAdditionalDocs));
-
-    }
+//    public void test_snapshot_with_corrupted_shard_index_file() throws Exception {
+//        execute("CREATE TABLE t1 (x int)");
+//        var numberOfDocs = randomLongBetween(0, 10);
+//        for (int i = 0; i < numberOfDocs; i++) {
+//            execute("INSERT INTO t1 (x) VALUES (?)", new Object[]{randomInt()});
+//        }
+//        execute("REFRESH TABLE t1");
+//
+//        var snapShotName1 = "s1";
+//        var fullSnapShotName1 =  REPOSITORY_NAME + "." + snapShotName1;
+//        execute("CREATE SNAPSHOT " + fullSnapShotName1 + " ALL WITH (wait_for_completion=true)");
+//
+//        var repositoryData = getRepositoryData();
+//        var indexIds = repositoryData.getIndices();
+//        assertThat(indexIds.size(), equalTo(1));
+//
+//        var corruptedIndex = indexIds.entrySet().iterator().next().getValue();
+//        var shardIndexFile = defaultRepositoryLocation.toPath().resolve("indices")
+//            .resolve(corruptedIndex.getId()).resolve("0")
+//            .resolve("index-0");
+//
+//        // Truncating shard index file
+//        try (var outChan = Files.newByteChannel(shardIndexFile, StandardOpenOption.WRITE)) {
+//            outChan.truncate(randomInt(10));
+//        }
+//
+//        assertSnapShotState(snapShotName1);
+//
+//        execute("drop table t1");
+//        execute("RESTORE SNAPSHOT " +  fullSnapShotName1 + " TABLE t1 with (wait_for_completion=true)");
+//        ensureYellow();
+//
+//        execute("SELECT COUNT(*) FROM t1");
+//        assertThat(response.rows()[0][0], is(numberOfDocs));
+//
+//        var numberOfAdditionalDocs = randomLongBetween(0, 10);
+//        for (int i = 0; i < numberOfAdditionalDocs; i++) {
+//            execute("INSERT INTO t1 (x) VALUES (?)", new Object[]{randomInt()});
+//        }
+//        execute("REFRESH TABLE t1");
+//
+//        var snapShotName2 = "s2";
+//        var fullSnapShotName2 = REPOSITORY_NAME + ".s2";
+//
+//        execute("CREATE SNAPSHOT " + fullSnapShotName2 + " ALL WITH (wait_for_completion=true)");
+//
+//        assertSnapShotState(snapShotName2);
+//
+//        execute("drop table t1");
+//        execute("RESTORE SNAPSHOT " + fullSnapShotName2 + " TABLE t1 with (wait_for_completion=true)");
+//        ensureYellow();
+//
+//        execute("SELECT COUNT(*) FROM t1");
+//        assertThat(response.rows()[0][0], is(numberOfDocs + numberOfAdditionalDocs));
+//
+//    }
 
     private void assertSnapShotState(String snapShotName) {
         execute(

@@ -46,6 +46,7 @@ import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetaData;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
+import org.elasticsearch.common.blobstore.DeleteResult;
 import org.elasticsearch.common.blobstore.fs.FsBlobContainer;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -551,37 +552,38 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param foundIndices all indices blob containers found in the repository before {@code newRepoData} was written
      * @param rootBlobs    all blobs found directly under the repository root
      * @param newRepoData  new repository data that was just written
-     * @param listener     listener to invoke with the combined numbers of blobs removed in this operation
+     * @param listener     listener to invoke with the combined {@link DeleteResult} of all blobs removed in this operation
      */
     private void cleanupStaleBlobs(Map<String, BlobContainer> foundIndices, Map<String, BlobMetaData> rootBlobs,
-                                   RepositoryData newRepoData, ActionListener<Integer> listener) {
-        final GroupedActionListener<Integer> groupedListener = new GroupedActionListener<>(ActionListener.wrap(numberOfDeletes -> {
-            int deletions = 0;
-            for (var d : numberOfDeletes) {
-                deletions += d;
+                                   RepositoryData newRepoData, ActionListener<DeleteResult> listener) {
+        final GroupedActionListener<DeleteResult> groupedListener = new GroupedActionListener<>(ActionListener.wrap(deleteResults -> {
+            DeleteResult deleteResult = DeleteResult.ZERO;
+            for (DeleteResult result : deleteResults) {
+                deleteResult = deleteResult.add(result);
             }
-            listener.onResponse(deletions);
+            listener.onResponse(deleteResult);
         }, listener::onFailure), 2);
 
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
         executor.execute(ActionRunnable.supply(groupedListener, () -> {
-            return cleanupStaleRootFiles(staleRootBlobs(newRepoData, rootBlobs.keySet())).size();
+            List<String> deletedBlobs = cleanupStaleRootFiles(staleRootBlobs(newRepoData, rootBlobs.keySet()));
+            return new DeleteResult(deletedBlobs.size(), deletedBlobs.stream().mapToLong(name -> rootBlobs.get(name).length()).sum());
         }));
 
         final Set<String> survivingIndexIds = newRepoData.getIndices().values().stream().map(IndexId::getId).collect(Collectors.toSet());
         executor.execute(ActionRunnable.supply(groupedListener, () -> cleanupStaleIndices(foundIndices, survivingIndexIds)));
     }
 
-    private int cleanupStaleIndices(Map<String, BlobContainer> foundIndices, Set<String> survivingIndexIds) {
-        int deleteResult = 0;
+    private DeleteResult cleanupStaleIndices(Map<String, BlobContainer> foundIndices, Set<String> survivingIndexIds) {
+        DeleteResult deleteResult = DeleteResult.ZERO;
         try {
             for (Map.Entry<String, BlobContainer> indexEntry : foundIndices.entrySet()) {
                 final String indexSnId = indexEntry.getKey();
                 try {
                     if (survivingIndexIds.contains(indexSnId) == false) {
                         LOGGER.debug("[{}] Found stale index [{}]. Cleaning it up", metadata.name(), indexSnId);
-                        //TODO once we have need backport BlobContainer.delete we can use delete results here
-                        deleteResult += 1;
+                        //TODO fix that, we need backport BlobContainer.delete before
+                        deleteResult = deleteResult.add(new DeleteResult(1,1));
                         LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
                     }
                 } catch (Exception e) {
@@ -1389,6 +1391,47 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
 
     /**
+     * Writes a new index file for the shard and removes all unreferenced files from the repository.
+     *
+     * We need to be really careful in handling index files in case of failures to make sure we don't
+     * have index file that points to files that were deleted.
+     *
+     * @param snapshots          list of active snapshots in the container
+     * @param fileListGeneration the generation number of the current snapshot index file
+     * @param blobs              list of blobs in the container
+     * @param reason             a reason explaining why the shard index file is written
+     */
+    private void finalizeShard(List<SnapshotFiles> snapshots, long fileListGeneration, Map<String, BlobMetaData> blobs,
+                               String reason, BlobContainer shardContainer, ShardId shardId, SnapshotId snapshotId) {
+        final String indexGeneration = Long.toString(fileListGeneration + 1);
+        try {
+            final List<String> blobsToDelete;
+            if (snapshots.isEmpty()) {
+                // If we deleted all snapshots, we don't need to create a new index file and simply delete all the blobs we found
+                blobsToDelete = List.copyOf(blobs.keySet());
+            } else {
+                final BlobStoreIndexShardSnapshots updatedSnapshots = new BlobStoreIndexShardSnapshots(snapshots);
+                indexShardSnapshotsFormat.writeAtomic(updatedSnapshots, shardContainer, indexGeneration);
+                // Delete all previous index-N, data-blobs that are not referenced by the new index-N and temporary blobs
+                blobsToDelete = blobs.keySet().stream().filter(blob ->
+                                                                   blob.startsWith(SNAPSHOT_INDEX_PREFIX)
+                                                                   || blob.startsWith(DATA_BLOB_PREFIX) && updatedSnapshots.findNameFile(canonicalName(blob)) == null
+                                                                   || FsBlobContainer.isTempBlobName(blob)).collect(Collectors.toList());
+            }
+            try {
+                shardContainer.deleteBlobsIgnoringIfNotExists(blobsToDelete);
+            } catch (IOException e) {
+                LOGGER.warn(() -> new ParameterizedMessage("[{}][{}] failed to delete blobs during finalization",
+                                                           snapshotId, shardId), e);
+            }
+        } catch (IOException e) {
+            String message =
+                "Failed to finalize " + reason + " with shard index [" + indexShardSnapshotsFormat.blobName(indexGeneration) + "]";
+            throw new IndexShardSnapshotFailedException(shardId, message, e);
+        }
+    }
+
+    /**
      * Loads all available snapshots in the repository using the given {@code generation} or falling back to trying to determine it from
      * the given list of blobs in the shard container.
      *
@@ -1511,6 +1554,14 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             }
         }
         return latest;
+    }
+
+    @Override
+    public IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId) {
+        BlobStoreIndexShardSnapshot snapshot = loadShardSnapshot(shardContainer(indexId, shardId), snapshotId);
+        return IndexShardSnapshotStatus.newDone(snapshot.startTime(), snapshot.time(),
+                                                snapshot.incrementalFileCount(), snapshot.totalFileCount(),
+                                                snapshot.incrementalSize(), snapshot.totalSize(), null); // Not adding a real generation here as it doesn't matter to callers
     }
 
     /**

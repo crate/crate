@@ -66,7 +66,7 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
         // Check if index closing conflicts with any running restores
         RestoreService.checkIndexClosing(currentState, indicesToClose);
         // Check if index closing conflicts with any running snapshots
-        SnapshotsService.checkIndexClosing(currentState, indicesToClose);
+        // SnapshotsService.checkIndexClosing(currentState, indicesToClose);
 
         MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
