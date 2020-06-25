@@ -58,7 +58,7 @@ public class RegprocTypeTest extends CrateUnitTest {
     @Test
     public void test_implicit_cast_regproc_to_not_allowed_type_throws_class_cast_exception() {
         expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Cannot cast value '1.1' to regproc");
+        expectedException.expectMessage("Can't cast '1.1' to regproc");
         REGPROC.implicitCast(1.1);
     }
 

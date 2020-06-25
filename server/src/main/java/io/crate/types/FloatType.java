@@ -58,6 +58,26 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     }
 
     @Override
+    public Float implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Float) {
+            return (Float) value;
+        } else if (value instanceof String) {
+            return Float.parseFloat((String) value);
+        } else if (value instanceof Number) {
+            double doubleValue = ((Number) value).doubleValue();
+            if (!Double.isInfinite(doubleValue)
+                && (doubleValue < -Float.MAX_VALUE || Float.MAX_VALUE < doubleValue)) {
+                throw new IllegalArgumentException("float value out of range: " + doubleValue);
+            }
+            return ((Number) value).floatValue();
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
+    }
+
+    @Override
     public Float value(Object value) {
         if (value == null) {
             return null;

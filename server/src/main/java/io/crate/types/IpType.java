@@ -49,6 +49,25 @@ public class IpType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
+    public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof String) {
+            validate((String) value);
+            return (String) value;
+        } else if (value instanceof Number) {
+            long longIp = ((Number) value).longValue();
+            if (longIp < 0) {
+                throw new IllegalArgumentException(
+                    "Failed to convert long value: " + longIp + " to ipv4 address");
+            }
+            return longToIp(longIp);
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
+    }
+
+    @Override
     public Precedence precedence() {
         return Precedence.IP;
     }

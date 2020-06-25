@@ -58,6 +58,27 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     }
 
     @Override
+    public Integer implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Integer) {
+            return (Integer) value;
+        } else if (value instanceof String) {
+            return Integer.parseInt((String) value);
+        } else if (value instanceof Regproc) {
+            return ((Regproc) value).oid();
+        } else if (value instanceof Number) {
+            long longVal = ((Number) value).longValue();
+            if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {
+                throw new IllegalArgumentException("integer value out of range: " + longVal);
+            }
+            return ((Number) value).intValue();
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
+    }
+
+    @Override
     public Integer value(Object value) {
         if (value == null) {
             return null;

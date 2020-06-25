@@ -24,52 +24,69 @@ package io.crate.types;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
+import java.util.Map;
+
 import static org.hamcrest.Matchers.is;
 
 public class LongTypeTest extends CrateUnitTest {
 
     @Test
-    public void testBytesRefToLongParsing() {
-        assertLongConversion("12839", 12839L);
-        assertLongConversion("-12839", -12839L);
-        assertLongConversion(Long.toString(Long.MAX_VALUE), Long.MAX_VALUE);
-        assertLongConversion(Long.toString(Long.MIN_VALUE), Long.MIN_VALUE);
+    public void test_cast_text_to_bigint() {
+        assertThat(LongType.INSTANCE.implicitCast("12839"), is(12839L));
+        assertThat(LongType.INSTANCE.implicitCast("-12839"), is(-12839L));
+        assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MAX_VALUE)), is(Long.MAX_VALUE));
+        assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MIN_VALUE)), is(Long.MIN_VALUE));
+        assertThat(LongType.INSTANCE.implicitCast("+2147483647111"), is(2147483647111L));
+    }
 
-        assertLongConversion("+2147483647111", 2147483647111L);
+    @Test
+    public void test_cast_text_with_only_letters_to_bigint_throws_exception() {
+        expectedException.expect(NumberFormatException.class);
+        LongType.INSTANCE.implicitCast("hello");
     }
 
     @Test
     public void testConversionWithNonAsciiCharacter() {
         expectedException.expect(NumberFormatException.class);
         expectedException.expectMessage("\u03C0"); // "π" GREEK SMALL LETTER PI
-        assertLongConversion("\u03C0", 0L);
+        LongType.INSTANCE.implicitCast("\u03C0");
     }
 
     @Test
     public void testInvalidFirstChar() {
         expectedException.expect(NumberFormatException.class);
-        assertLongConversion(" 1", 1L);
+        LongType.INSTANCE.implicitCast(" 1");
     }
 
     @Test
     public void testOnlyMinusSign() {
         expectedException.expect(NumberFormatException.class);
-        assertLongConversion("-", 1L);
+        LongType.INSTANCE.implicitCast("-");
     }
 
     @Test
     public void testOnlyPlusSign() {
         expectedException.expect(NumberFormatException.class);
-        assertLongConversion("+", 1L);
+        LongType.INSTANCE.implicitCast("+");
     }
 
     @Test
     public void testNumberThatIsGreaterThanMaxValue() {
         expectedException.expect(NumberFormatException.class);
-        assertLongConversion(Long.MAX_VALUE + "111", Long.MIN_VALUE);
+        LongType.INSTANCE.implicitCast(Long.MAX_VALUE + "111");
     }
 
-    private static void assertLongConversion(Object actual, Long expected) {
-        assertThat(LongType.INSTANCE.value(actual), is(expected));
+    @Test
+    public void test_cast_object_to_bigint_throws_exception() {
+        expectedException.expect(ClassCastException.class);
+        expectedException.expectMessage("Can't cast '{}' to bigint");
+        LongType.INSTANCE.implicitCast(Map.of());
+    }
+
+    @Test
+    public void test_cast_boolean_to_bigint_throws_exception() {
+        expectedException.expect(ClassCastException.class);
+        expectedException.expectMessage("Can't cast 'true' to bigint");
+        LongType.INSTANCE.implicitCast(true);
     }
 }

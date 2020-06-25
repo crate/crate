@@ -56,16 +56,14 @@ public class RegprocType extends DataType<Regproc> implements Streamer<Regproc> 
     public Regproc implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        }
-        if (value instanceof Integer) {
+        } else if (value instanceof Integer) {
             return Regproc.of((int) value, value.toString());
         } else if (value instanceof String) {
             return Regproc.of((String) value);
         } else if (value instanceof Regproc) {
             return (Regproc) value;
         } else {
-            throw new ClassCastException(
-                "Cannot cast value '" + value + "' to " + getName());
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
     }
 

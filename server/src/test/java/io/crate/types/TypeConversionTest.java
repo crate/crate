@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
@@ -36,7 +37,7 @@ import io.crate.test.integration.CrateUnitTest;
 public class TypeConversionTest extends CrateUnitTest {
 
     private Iterable<Byte> bytes(int num) {
-        return () -> Stream.generate(() -> randomByte()).limit(num).iterator();
+        return () -> Stream.generate(ESTestCase::randomByte).limit(num).iterator();
     }
 
     private Iterable<Integer> integers(final int lower, final int upper, int num) {
@@ -96,51 +97,6 @@ public class TypeConversionTest extends CrateUnitTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testByteOutOfRangeNegative() throws Exception {
-        DataTypes.BYTE.value(-129);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testByteOutOfRangePositive() throws Exception {
-        DataTypes.BYTE.value(129);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testShortOutOfRangePositive() throws Exception {
-        DataTypes.SHORT.value(Integer.MAX_VALUE);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testShortOutOfRangeNegative() throws Exception {
-        DataTypes.SHORT.value(Integer.MIN_VALUE);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testIntOutOfRangePositive() throws Exception {
-        DataTypes.INTEGER.value(Long.MAX_VALUE);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testIntOutOfRangeNegative() throws Exception {
-        DataTypes.INTEGER.value(Long.MIN_VALUE);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testFloatOutOfRangePositive() throws Exception {
-        DataTypes.FLOAT.value(Double.MAX_VALUE);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testFloatOutOfRangeNegative() throws Exception {
-        DataTypes.FLOAT.value(-Double.MAX_VALUE);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testIpNegativeValue() throws Exception {
-        DataTypes.IP.value(Long.MIN_VALUE);
-    }
-
     @Test
     public void selfConversionTest() throws Exception {
         for (DataType<?> type : Lists2.concat(
@@ -181,6 +137,11 @@ public class TypeConversionTest extends CrateUnitTest {
     public void testGeoPointConversion() throws Exception {
         assertThat(DataTypes.GEO_POINT.isConvertableTo(new ArrayType<>(DataTypes.DOUBLE), false), is(true));
         assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_POINT, false), is(true));
+    }
+
+    @Test
+    public void test_conversion_bigint_array_to_geo_point() {
+        assertThat(DataTypes.BIGINT_ARRAY.isConvertableTo(GeoPointType.INSTANCE, false), is(true));
     }
 
     @Test

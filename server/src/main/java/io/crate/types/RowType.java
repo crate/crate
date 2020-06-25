@@ -145,6 +145,11 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
     }
 
     @Override
+    public Row implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return (Row) value;
+    }
+
+    @Override
     public Row value(Object value) throws IllegalArgumentException, ClassCastException {
         return (Row) value;
     }

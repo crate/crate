@@ -66,6 +66,33 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     @Override
+    public Point implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Point) {
+            return ((Point) value);
+        } else if (value instanceof Double[]) {
+            Double[] doubles = (Double[]) value;
+            checkLengthIs2(doubles.length);
+            ensurePointsInRange(doubles[0], doubles[1]);
+            return new PointImpl(doubles[0], doubles[1], JtsSpatialContext.GEO);
+        } else if (value instanceof String) {
+            return pointFromString((String) value);
+        } else if (value instanceof List) {
+            List<?> values = (List<?>) value;
+            checkLengthIs2(values.size());
+            PointImpl point = new PointImpl(
+                ((Number) values.get(0)).doubleValue(),
+                ((Number) values.get(1)).doubleValue(),
+                JtsSpatialContext.GEO);
+            ensurePointsInRange(point.getX(), point.getY());
+            return point;
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
+    }
+
+    @Override
     public Point value(Object value) {
         if (value == null) {
             return null;

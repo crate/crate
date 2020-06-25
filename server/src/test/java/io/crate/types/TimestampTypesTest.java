@@ -4,6 +4,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Map;
+
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -137,5 +139,12 @@ public class TimestampTypesTest {
     public void testTimestampParseUnixTimestampAsString() {
         assertThat(TimestampType.parseTimestampIgnoreTimeZone("1395961200000"), is(1395961200000L));
         assertThat(TimestampType.parseTimestamp("1395961200000"), is(1395961200000L));
+    }
+
+    @Test
+    public void test_cast_object_to_timestamptz_throws_exception() {
+        expectedException.expect(ClassCastException.class);
+        expectedException.expectMessage("Can't cast '{}' to timestamp with time zone");
+        TimestampType.INSTANCE_WITH_TZ.implicitCast(Map.of());
     }
 }

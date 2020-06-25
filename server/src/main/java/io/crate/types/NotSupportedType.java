@@ -57,6 +57,11 @@ public class NotSupportedType extends DataType<Void> {
     }
 
     @Override
+    public Void implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return null;
+    }
+
+    @Override
     public Void value(Object value) {
         return null;
     }

@@ -58,6 +58,25 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     }
 
     @Override
+    public Short implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Short) {
+            return (Short) value;
+        } else if (value instanceof String) {
+            return Short.valueOf((String) value);
+        } else if (value instanceof Number) {
+            int intVal = ((Number) value).intValue();
+            if (intVal < Short.MIN_VALUE || Short.MAX_VALUE < intVal) {
+                throw new IllegalArgumentException("short value out of range: " + intVal);
+            }
+            return ((Number) value).shortValue();
+        } else {
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        }
+    }
+
+    @Override
     public Short value(Object value) {
         if (value == null) {
             return null;

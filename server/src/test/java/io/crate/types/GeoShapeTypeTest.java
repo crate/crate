@@ -36,12 +36,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
 
 public class GeoShapeTypeTest extends CrateUnitTest {
 
@@ -119,7 +116,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
     @Test
     public void testStreamer() throws Exception {
         for (Map<String, Object> geoJSON : GEO_JSON) {
-            Map<String, Object> value = type.value(geoJSON);
+            Map<String, Object> value = type.implicitCast(geoJSON);
 
             BytesStreamOutput out = new BytesStreamOutput();
             type.streamer().writeValueTo(out, value);
@@ -134,8 +131,8 @@ public class GeoShapeTypeTest extends CrateUnitTest {
 
     @Test
     public void testCompareValueTo() throws Exception {
-        Map<String, Object> val1 = type.value("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))");
-        Map<String, Object> val2 = type.value("POINT (10 10)");
+        Map<String, Object> val1 = type.implicitCast("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))");
+        Map<String, Object> val2 = type.implicitCast("POINT (10 10)");
 
         assertThat(type.compare(val1, val2), is(1));
         assertThat(type.compare(val2, val1), is(-1));
@@ -145,38 +142,34 @@ public class GeoShapeTypeTest extends CrateUnitTest {
     @Test
     public void testInvalidStringValueCausesIllegalArgumentException() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert \"foobar\" to geo_shape");
-        type.value("foobar");
+        expectedException.expectMessage("Cannot convert WKT \"foobar\" to shape");
+        type.implicitCast("foobar");
     }
 
     @Test
     public void testInvalidTypeCausesIllegalArgumentException() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert \"200\" to geo_shape");
-        type.value(200);
+        expectedException.expect(ClassCastException.class);
+        expectedException.expectMessage("Can't cast '200' to geo_shape");
+        type.implicitCast(200);
     }
 
     @Test
     public void testInvalidCoordinates() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(allOf(
-            startsWith("Cannot convert \""),
-            endsWith("\" to geo_shape"))
-        );
-        type.value(Map.of(
+        expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
+        type.implicitCast(Map.of(
             GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING,
             GeoJSONUtils.COORDINATES_FIELD, new double[][]{
                 new double[]{170.0d, 99.0d},
                 new double[]{180.5d, -180.5d}
             }
         ));
-
     }
 
     @Test
     public void testConvertFromValidWKT() throws Exception {
         for (String wkt : WKT) {
-            Map<String, Object> geoShape = type.value(wkt);
+            Map<String, Object> geoShape = type.implicitCast(wkt);
             assertThat(geoShape, is(notNullValue()));
         }
     }
@@ -184,14 +177,14 @@ public class GeoShapeTypeTest extends CrateUnitTest {
     @Test
     public void testConvertFromValidGeoJSON() throws Exception {
         for (Map<String, Object> geoJSON : GEO_JSON) {
-            Map<String, Object> geoShape = type.value(geoJSON);
+            Map<String, Object> geoShape = type.implicitCast(geoJSON);
             assertThat(geoShape, is(notNullValue()));
         }
     }
 
     @Test
-    public void testNullValue() throws Exception {
-        assertThat(type.value(null), is(nullValue()));
+    public void test_cast_with_null_value() {
+        assertThat(type.implicitCast(null), is(nullValue()));
     }
 
     @Test
