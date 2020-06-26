@@ -85,7 +85,7 @@ public class PgProcTable {
             .add("pronargs", SHORT, x -> (short) x.signature.getArgumentTypes().size())
             .add("pronargdefaults", SHORT, x -> null)
             .add("prorettype", INTEGER, x -> x.returnTypeId)
-            .add("proargtypes", INTEGER_ARRAY, x ->
+            .add("proargtypes", DataTypes.OIDVECTOR, x ->
                 Lists2.map(x.signature.getArgumentTypes(), Entry::pgTypeIdFrom))
             .add("proallargtypes", INTEGER_ARRAY, x -> null)
             .add("proargmodes", STRING_ARRAY, x -> {

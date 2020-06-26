@@ -186,4 +186,14 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
             "WHERE typname = 'bool'");
         assertThat(printedTable(response.rows()), is("bool| boolrecv| 994071801| boolrecv\n"));
     }
+
+    @Test
+    public void test_join_pg_proc_with_pg_type_on_typreceive_for_bool() {
+        execute(
+            "SELECT pg_type.typname, pg_type.typreceive, pg_proc.oid " +
+            "FROM pg_type " +
+            "JOIN pg_proc ON pg_proc.oid = pg_type.typreceive " +
+            "WHERE pg_type.typname = 'bool'");
+        assertThat(printedTable(response.rows()), is("bool| boolrecv| 994071801\n"));
+    }
 }

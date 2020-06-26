@@ -171,6 +171,7 @@ table available in CrateDB::
     |   21 | int2                         |     1005 |       0 |      2 | b       | N           |
     |   23 | int4                         |     1007 |       0 |      4 | b       | N           |
     |   24 | regproc                      |     1008 |       0 |      4 | b       | N           |
+    |   30 | oidvector                    |     1013 |       0 |     -1 | b       | A           |
     |  114 | json                         |      199 |       0 |     -1 | b       | U           |
     |  199 | _json                        |        0 |     114 |     -1 | b       | A           |
     |  600 | point                        |     1017 |       0 |     16 | b       | G           |
@@ -200,7 +201,7 @@ table available in CrateDB::
     | 2277 | anyarray                     |        0 |    2276 |     -1 | p       | P           |
     | 2287 | _record                      |        0 |    2249 |     -1 | p       | A           |
     +------+------------------------------+----------+---------+--------+---------+-------------+
-    SELECT 35 rows in set (... sec)
+    SELECT 36 rows in set (... sec)
 
 .. NOTE::
 

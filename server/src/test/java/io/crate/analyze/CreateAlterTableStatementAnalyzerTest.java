@@ -1375,4 +1375,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "of type \"" + DataTypes.STRING.getName() + "\" of the unbound length limit.");
         analyze("CREATE TABLE tbl (name varchar(2) INDEX using fulltext WITH (analyzer='german'))");
     }
+
+    @Test
+    public void test_oidvector_cannot_be_used_in_create_table() throws Exception {
+        expectedException.expectMessage("Cannot use the type `oidvector` for column: x");
+        analyze("CREATE TABLE tbl (x oidvector)");
+    }
 }
