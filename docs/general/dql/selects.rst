@@ -599,8 +599,9 @@ all rows where race['interests'] has at least one element that does not equal
 
     When using the negated operator ``!= ANY`` by default the maximum size of
     the array to operate on is ``8192``. To be able to use larger arrays the
-    :ref:`indices.query.bool.max_clause_count <conf-indices-query-bool.max_clause_count>`
-    setting must be changed appropriately on each node.
+    :ref:`indices.query.bool.max_clause_count
+    <indices.query.bool.max_clause_count>` setting must be changed
+    appropriately on each node.
 
 Negating the ``=`` query from above is totally different. It can be translated
 to *get all rows where race['interests'] has no value that equals 'netball'*::
@@ -632,8 +633,9 @@ for operators
 
     When using the operators ``LIKE ANY`` and ``NOT LIKE ANY`` by default the
     maximum size of the array to operate on is ``8192``. To be able to use
-    larger arrays the :ref:`indices.query.bool.max_clause_count <conf-indices-query-bool.max_clause_count>`
-    setting must be changed appropriately on each node.
+    larger arrays the :ref:`indices.query.bool.max_clause_count
+    <indices.query.bool.max_clause_count>` setting must be changed
+    appropriately on each node.
 
 
 .. _sql_dql_objects:

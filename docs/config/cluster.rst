@@ -187,7 +187,7 @@ The settings of the Usage Data Collector are read-only and cannot be set during
 runtime. Please refer to :ref:`usage_data_collector` to get further information
 about its usage.
 
-.. _udc_enabled:
+.. _udc.enabled:
 
 **udc.enabled**
   | *Default:*  ``true``
@@ -197,7 +197,7 @@ about its usage.
 
   ``false``: Disables the Usage Data Collector.
 
-.. _cluster.udc.initial_delay:
+.. _udc.initial_delay:
 
 **udc.initial_delay**
   | *Default:*  ``10m``
@@ -209,7 +209,7 @@ about its usage.
   ``double precision`` or alternatively as a string literal with a time suffix
   (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
-.. _cluster.udc.interval:
+.. _udc.interval:
 
 **udc.interval**
   | *Default:*  ``24h``
@@ -221,7 +221,7 @@ about its usage.
   ``double precision`` or alternatively as a string literal with a time suffix
   (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
-.. _cluster.udc.url:
+.. _udc.url:
 
 **udc.url**
   | *Default:*  ``https://udc.crate.io``
@@ -317,7 +317,7 @@ discovery. Discovery runs when a CrateDB node starts and when a node is not
 able to reach the master node and continues until a master node is found or a
 new master node is elected.
 
-.. _discovery_seed_hosts:
+.. _discovery.seed_hosts:
 
 **discovery.seed_hosts**
    | *Default:* ``127.0.0.1``
@@ -340,7 +340,7 @@ new master node is elected.
 
    IPv6 hosts must be bracketed.
 
-.. _cluster_initial_master_nodes:
+.. _cluster.initial_master_nodes:
 
 **cluster.initial_master_nodes**
    | *Default:* ``not set``
@@ -356,7 +356,7 @@ new master node is elected.
    explicitly list the names or IP addresses of the master-eligible nodes whose
    votes should be counted in the very first election.
 
-.. _conf_discovery_type:
+.. _discovery.type:
 
 **discovery.type**
   | *Default:* ``zen``
@@ -384,7 +384,7 @@ Unicast host discovery
 
 As described above, CrateDB has built-in support for statically specifying a
 list of addresses that will act as the seed nodes in the discovery process
-using the `discovery_seed_hosts`_ setting.
+using the `discovery.seed_hosts`_ setting.
 
 CrateDB also has support for several different mechanisms of seed nodes
 discovery. Currently there are three other discovery types: via DNS, via EC2
@@ -397,6 +397,8 @@ unicast hosts for node discovery.
 
 The same lookup is also performed by all nodes in a cluster whenever the master
 is re-elected (see `Cluster Meta Data`).
+
+.. _discovery.seed_providers:
 
 **discovery.seed_providers**
   | *Default:*   ``not set``
@@ -424,12 +426,16 @@ would result in a list of discovery nodes ordered like::
 
     crate2.example.com:4300, crate3.example.com:4300, crate1.example.com:4300
 
+.. _discovery.srv.query:
+
 **discovery.srv.query**
   | *Runtime:*  ``no``
 
   The DNS query that is used to look up SRV records, usually in the format
   ``_service._protocol.fqdn`` If not set, the service discovery will not be
   able to look up any SRV records.
+
+.. _discovery.srv.resolver:
 
 **discovery.srv.resolver**
   | *Runtime:*  ``no``
@@ -449,10 +455,14 @@ CrateDB has built-in support for discovery via the EC2 API. To enable EC2
 discovery the ``discovery.seed_providers`` settings needs to be set to
 ``ec2``.
 
+.. _discovery.ec2.access_key:
+
 **discovery.ec2.access_key**
   | *Runtime:*  ``no``
 
   The access key ID to identify the API calls.
+
+.. _discovery.ec2.secret_key:
 
 **discovery.ec2.secret_key**
   | *Runtime:*  ``no``
@@ -461,13 +471,15 @@ discovery the ``discovery.seed_providers`` settings needs to be set to
 
 Following settings control the discovery:
 
-.. _discovery_ec2_groups:
+.. _discovery.ec2.groups:
 
 **discovery.ec2.groups**
   | *Runtime:*  ``no``
 
   A list of security groups; either by ID or name. Only instances with the
   given group will be used for unicast host discovery.
+
+.. _discovery.ec2.any_group:
 
 **discovery.ec2.any_group**
   | *Runtime:*  ``no``
@@ -476,7 +488,7 @@ Following settings control the discovery:
   Defines whether all (``false``) or just any (``true``) security group must
   be present for the instance to be used for discovery.
 
-.. _discovery_ec2_host_type:
+.. _discovery.ec2.host_type:
 
 **discovery.ec2.host_type**
   | *Runtime:*  ``no``
@@ -485,7 +497,7 @@ Following settings control the discovery:
 
   Defines via which host type to communicate with other instances.
 
-.. _discovery_ec2_zones:
+.. _discovery.ec2.availability_zones:
 
 **discovery.ec2.availability_zones**
   | *Runtime:*  ``no``
@@ -493,7 +505,7 @@ Following settings control the discovery:
   A list of availability zones. Only instances within the given availability
   zone will be used for unicast host discovery.
 
-.. _discovery_ec2_tags:
+.. _discovery.ec2.tag.name:
 
 **discovery.ec2.tag.<name>**
   | *Runtime:*  ``no``
@@ -503,6 +515,8 @@ Following settings control the discovery:
 
   E.g. to filter instances that have the ``environment`` tags with the value
   ``dev`` your setting will look like: ``discovery.ec2.tag.environment: dev``.
+
+.. _discovery.ec2.endpoint:
 
 **discovery.ec2.endpoint**
   | *Runtime:*  ``no``
@@ -519,12 +533,16 @@ CrateDB has built-in support for discovery via the Azure Virtual Machine API.
 To enable Azure discovery set the ``discovery.seed_providers`` setting to
 ``azure``.
 
+.. _cloud.azure.management.resourcegroup.name:
+
 **cloud.azure.management.resourcegroup.name**
   | *Runtime:*  ``no``
 
   The name of the resource group the CrateDB cluster is running on.
 
   All nodes need to be started within the same resource group.
+
+.. _cloud.azure.management.subscription.id:
 
 **cloud.azure.management.subscription.id**
   | *Runtime:*  ``no``
@@ -533,20 +551,28 @@ To enable Azure discovery set the ``discovery.seed_providers`` setting to
 
   You can find the ID on the `Azure Portal`_.
 
+.. _cloud.azure.management.tenant.id:
+
 **cloud.azure.management.tenant.id**
   | *Runtime:*  ``no``
 
   The tenant ID of the `Active Directory application`_.
+
+.. _cloud.azure.management.app.id:
 
 **cloud.azure.management.app.id**
   | *Runtime:*  ``no``
 
   The application ID of the `Active Directory application`_.
 
+.. _cloud.azure.management.app.secret:
+
 **cloud.azure.management.app.secret**
   | *Runtime:*  ``no``
 
   The password of the `Active Directory application`_.
+
+.. _discovery.azure.method:
 
 **discovery.azure.method**
   | *Runtime:* ``no``
@@ -674,7 +700,7 @@ across generic attributes associated with nodes.
 
   The awareness attributes can hold several values
 
-.. _cluster.routing.allocation.awareness.force.*.values:
+.. _cluster.routing.allocation.awareness.force.\*.values:
 
 **cluster.routing.allocation.awareness.force.\*.values**
   | *Runtime:*  ``no``
@@ -923,6 +949,8 @@ Recovery
 Memory management
 -----------------
 
+.. _memory.allocation.type:
+
 **memory.allocation.type**
   | *Default:*  ``on-heap``
   | *Runtime:*  ``yes``
@@ -950,6 +978,8 @@ execution of a query. If a query consumes too much memory or if the cluster is
 already near its memory limit it will terminate the query to ensure the cluster
 keeps working.
 
+.. _indices.breaker.query.limit:
+
 **indices.breaker.query.limit**
   | *Default:*   ``60%``
   | *Runtime:*   ``yes``
@@ -958,6 +988,8 @@ keeps working.
   absolute values (interpreted as a number of bytes), byte sizes (eg. 1mb) or
   percentage of the heap size (eg. 12%). A value of ``-1`` disables breaking
   the circuit while still accounting memory usage.
+
+.. _indices.breaker.query.overhead:
 
 **indices.breaker.query.overhead**
   | *Default:*   ``1.09``
@@ -973,11 +1005,15 @@ The field data circuit breaker allows estimation of needed heap memory required
 for loading field data into memory. If a certain limit is reached an exception
 is raised.
 
+.. _indices.breaker.fielddata.limit:
+
 **indices.breaker.fielddata.limit**
   | *Default:*   ``60%``
   | *Runtime:*  ``yes``
 
   Specifies the JVM heap limit for the fielddata breaker.
+
+.. _indices.breaker.fielddata.overhead:
 
 **indices.breaker.fielddata.overhead**
   | *Default:*   ``1.03``
@@ -993,11 +1029,15 @@ The request circuit breaker allows an estimation of required heap memory per
 request. If a single request exceeds the specified amount of memory, an
 exception is raised.
 
+.. _indices.breaker.request.limit:
+
 **indices.breaker.request.limit**
   | *Default:*   ``60%``
   | *Runtime:*  ``yes``
 
   Specifies the JVM heap limit for the request circuit breaker.
+
+.. _indices.breaker.request.overhead:
 
 **indices.breaker.request.overhead**
   | *Default:*   ``1.0``
@@ -1012,12 +1052,15 @@ Accounting circuit breaker
 Tracks things that are held in memory independent of queries. For example the
 memory used by Lucene for segments.
 
+.. _indices.breaker.accounting.limit:
+
 **indices.breaker.accounting.limit**
   | *Default:*  ``100%``
   | *Runtime:*  ``yes``
 
   Specifies the JVM heap limit for the accounting circuit breaker
 
+.. _indices.breaker.accounting.overhead:
 
 **indices.breaker.accounting.overhead**
   | *Default:*  ``1.0``
@@ -1062,10 +1105,11 @@ each of them, the breaker limit can be set.
   error message and clears the :ref:`sys.operations_log <sys-logs>` table
   completely.
 
-.. _indices.breaker.total.limit:
 
 Total circuit breaker
 ---------------------
+
+.. _indices.breaker.total.limit:
 
 **indices.breaker.total.limit**
   | *Default:*    ``95%``
@@ -1089,6 +1133,8 @@ a node. There are several pools, but the important ones include:
 * ``get``: For queries on ``sys.shards`` and ``sys.nodes``, defaults to fixed.
 * ``refresh``: For refresh operations, defaults to cache
 
+.. _thread_pool.<name>.type:
+
 **thread_pool.<name>.type**
   | *Runtime:*  ``no``
   | *Allowed Values:* ``fixed | scaling``
@@ -1105,11 +1151,15 @@ Settings for fixed thread pools
 If the type of a thread pool is set to ``fixed`` there are a few optional
 settings.
 
+.. _thread_pool.<name>.size:
+
 **thread_pool.<name>.size**
   | *Runtime:*  ``no``
 
   Number of threads. The default size of the different thread pools depend on
   the number of available CPU cores.
+
+.. _thread_pool.<name>.queue_size:
 
 **thread_pool.<name>.queue_size**
   | *Default write:*  ``200``

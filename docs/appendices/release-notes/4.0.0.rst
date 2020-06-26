@@ -87,9 +87,9 @@ Due to this some discovery settings are added, renamed and removed.
 
 .. CAUTION::
 
-   The :ref:`cluster.initial_master_nodes <cluster_initial_master_nodes>`
+   The :ref:`cluster.initial_master_nodes <cluster.initial_master_nodes>`
    setting is required to be set at production (non loopback bound) clusters on
-   upgrade, see the :ref:`setting documentation <cluster_initial_master_nodes>`
+   upgrade, see the :ref:`setting documentation <cluster.initial_master_nodes>`
    for details.
 
 .. NOTE::
