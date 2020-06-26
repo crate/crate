@@ -62,6 +62,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequestDeduplicator;
@@ -114,7 +115,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
     @Inject
     public SnapshotShardsService(Settings settings, ClusterService clusterService, RepositoriesService repositoriesService,
                                  ThreadPool threadPool, TransportService transportService, IndicesService indicesService,
-                                 IndexNameExpressionResolver indexNameExpressionResolver) {
+                                IndexNameExpressionResolver indexNameExpressionResolver) {
         this.indicesService = indicesService;
         this.repositoriesService = repositoriesService;
         this.transportService = transportService;
@@ -566,20 +567,19 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
 
     static class UpdateIndexShardSnapshotStatusResponse extends TransportResponse {
 
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-        }
+        UpdateIndexShardSnapshotStatusResponse() {}
 
-        public UpdateIndexShardSnapshotStatusResponse() {
-        }
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {}
     }
 
     private class UpdateSnapshotStatusAction
         extends TransportMasterNodeAction<UpdateIndexShardSnapshotStatusRequest, UpdateIndexShardSnapshotStatusResponse> {
         UpdateSnapshotStatusAction(TransportService transportService, ClusterService clusterService,
-                                   ThreadPool threadPool,IndexNameExpressionResolver indexNameExpressionResolver) {
+                                   ThreadPool threadPool, IndexNameExpressionResolver indexNameExpressionResolver) {
             super(
-                SnapshotShardsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, transportService, clusterService, threadPool, UpdateIndexShardSnapshotStatusRequest::new, indexNameExpressionResolver
+                SnapshotShardsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, transportService, clusterService, threadPool,
+                UpdateIndexShardSnapshotStatusRequest::new, indexNameExpressionResolver
             );
         }
 
@@ -594,7 +594,14 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
         }
 
         @Override
-        protected void masterOperation(UpdateIndexShardSnapshotStatusRequest request, ClusterState state,
+        protected void masterOperation(UpdateIndexShardSnapshotStatusRequest request,
+                                       ClusterState state,
+                                       ActionListener<UpdateIndexShardSnapshotStatusResponse> listener) throws Exception {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        protected void masterOperation(Task task, UpdateIndexShardSnapshotStatusRequest request, ClusterState state,
                                        ActionListener<UpdateIndexShardSnapshotStatusResponse> listener) {
             innerUpdateSnapshotState(request, listener);
         }

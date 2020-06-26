@@ -170,7 +170,7 @@ public class AzureRepository extends BlobStoreRepository {
                            NamedXContentRegistry namedXContentRegistry,
                            AzureStorageService storageService,
                            ThreadPool threadPool) {
-        super(metadata, environment.settings(), namedXContentRegistry, threadPool, buildBasePath(metadata));
+        super(metadata, namedXContentRegistry, threadPool, buildBasePath(metadata));
         this.chunkSize = Repository.CHUNK_SIZE_SETTING.get(metadata.settings());
         this.storageService = storageService;
 
@@ -227,19 +227,7 @@ public class AzureRepository extends BlobStoreRepository {
         return chunkSize;
     }
 
-    @Override
-    public void initializeSnapshot(SnapshotId snapshotId, List<IndexId> indices, MetaData clusterMetadata) {
-        try {
-            final AzureBlobStore blobStore = (AzureBlobStore) blobStore();
-            if (blobStore.containerExist() == false) {
-                throw new IllegalArgumentException("The bucket [" + blobStore + "] does not exist. Please create it before "
-                    + " creating an azure snapshot repository backed by it.");
-            }
-        } catch (URISyntaxException | StorageException e) {
-            throw new SnapshotCreationException(metadata.name(), snapshotId, e);
-        }
-        super.initializeSnapshot(snapshotId, indices, clusterMetadata);
-    }
+
 
     @Override
     public boolean isReadOnly() {

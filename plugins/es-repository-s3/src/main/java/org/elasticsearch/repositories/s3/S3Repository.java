@@ -109,7 +109,7 @@ public class S3Repository extends BlobStoreRepository {
                  final NamedXContentRegistry namedXContentRegistry,
                  final S3Service service,
                  final ThreadPool threadPool) {
-        super(metadata, settings, namedXContentRegistry, threadPool, buildBasePath(metadata));
+        super(metadata, namedXContentRegistry, threadPool, buildBasePath(metadata));
         this.service = service;
 
         // Parse and validate the user's S3 Storage Class setting
