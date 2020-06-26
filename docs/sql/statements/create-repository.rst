@@ -113,12 +113,12 @@ accessible by all master and data nodes in the cluster.
 
   An absolute or relative path to the directory where snapshots get stored. If
   the path is relative, it will be appended to the first entry in the
-  :ref:`path.repo <conf-path-repo>` setting.
+  :ref:`path.repo <path.repo>` setting.
 
   Windows UNC paths are allowed, if server name and shares are specified and
   backslashes properly escaped.
 
-  Only paths starting with an entry from :ref:`path.repo <conf-path-repo>` are
+  Only paths starting with an entry from :ref:`path.repo <path.repo>` are
   possible.
 
 **compress**

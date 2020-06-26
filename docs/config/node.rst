@@ -22,6 +22,8 @@ Basics
 
   The name of the CrateDB cluster the node should join to.
 
+.. _node.name:
+
 **node.name**
   | *Runtime:* ``no``
 
@@ -31,6 +33,8 @@ Basics
   .. NOTE::
 
       Node names must be unique in a CrateDB cluster.
+
+.. _node.max_local_storage_nodes:
 
 **node.max_local_storage_nodes**
   | *Default:*    ``1``
@@ -54,12 +58,16 @@ CrateDB supports different kinds of nodes.
 
 The following settings can be used to differentiate nodes upon startup:
 
+.. _node.master:
+
 **node.master**
   | *Default:* ``true``
   | *Runtime:* ``no``
 
   Whether or not this node is able to get elected as *master* node in the
   cluster.
+
+.. _node.data:
 
 **node.data**
   | *Default:* ``true``
@@ -88,6 +96,8 @@ they are elected as the cluster master. All other loads are shared equally.
 
 Read-only node
 ==============
+
+.. _node.sql.read_only:
 
 **node.sql.read_only**
   | *Default:* ``false``
@@ -193,7 +203,7 @@ Ports
   (``transport.tcp.port``) of the node is not directly reachable from outside,
   e.g. running it behind a firewall or inside a Docker container.
 
-.. _psql_port:
+.. _psql.port:
 
 **psql.port**
   | *Runtime:*   ``no``
@@ -205,6 +215,8 @@ Ports
 
 Paths
 =====
+
+.. _path.conf:
 
 **path.conf**
   | *Runtime:* ``no``
@@ -225,6 +237,8 @@ Paths
   CrateDB finds striped shards at the provided locations (from CrateDB
   <0.55.0), these shards will be migrated automatically on startup.
 
+.. _path.logs:
+
 **path.logs**
   | *Runtime:* ``no``
 
@@ -241,7 +255,7 @@ Paths
        file:
          file: ${path.logs}/${cluster.name}.log
 
-.. _conf-path-repo:
+.. _path.repo:
 
 **path.repo**
   | *Runtime:* ``no``
@@ -259,6 +273,8 @@ Paths
 Plug-ins
 ========
 
+.. _plugin.mandatory:
+
 **plugin.mandatory**
   | *Runtime:* ``no``
 
@@ -268,6 +284,8 @@ Plug-ins
 
 CPU
 ===
+
+.. _processors:
 
 **processors**
   | *Runtime:* ``no``
@@ -284,6 +302,8 @@ CPU
 Memory
 ======
 
+.. _bootstrap.memory_lock:
+
 **bootstrap.memory_lock**
   | *Runtime:* ``no``
   | *Default:* ``false``
@@ -299,12 +319,16 @@ Garbage collection
 CrateDB logs if JVM garbage collection on different memory pools takes too
 long. The following settings can be used to adjust these timeouts:
 
+.. _monitor.jvm.gc.collector.young.warn:
+
 **monitor.jvm.gc.collector.young.warn**
   | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
   CrateDB will log a warning message if it takes more than the configured
   timespan to collect the *Eden Space* (heap).
+
+.. _monitor.jvm.gc.collector.young.info:
 
 **monitor.jvm.gc.collector.young.info**
   | *Default:* ``700ms``
@@ -313,12 +337,16 @@ long. The following settings can be used to adjust these timeouts:
   CrateDB will log an info message if it takes more than the configured
   timespan to collect the *Eden Space* (heap).
 
+.. _monitor.jvm.gc.collector.young.debug:
+
 **monitor.jvm.gc.collector.young.debug**
   | *Default:* ``400ms``
   | *Runtime:* ``no``
 
   CrateDB will log a debug message if it takes more than the configured
   timespan to collect the *Eden Space* (heap).
+
+.. _monitor.jvm.gc.collector.old.warn:
 
 **monitor.jvm.gc.collector.old.warn**
   | *Default:* ``10000ms``
@@ -327,12 +355,16 @@ long. The following settings can be used to adjust these timeouts:
   CrateDB will log a warning message if it takes more than the configured
   timespan to collect the *Old Gen* / *Tenured Gen* (heap).
 
+.. _monitor.jvm.gc.collector.old.info:
+
 **monitor.jvm.gc.collector.old.info**
   | *Default:* ``5000ms``
   | *Runtime:* ``no``
 
   CrateDB will log an info message if it takes more than the configured
   timespan to collect the *Old Gen* / *Tenured Gen* (heap).
+
+.. _monitor.jvm.gc.collector.old.debug:
 
 **monitor.jvm.gc.collector.old.debug**
   | *Default:* ``2000ms``
@@ -353,6 +385,8 @@ Authentication
 Trust authentication
 --------------------
 
+.. _auth.trust.http_default_user:
+
 **auth.trust.http_default_user**
   | *Runtime:* ``no``
   | *Default:* ``crate``
@@ -368,6 +402,8 @@ Authentication settings (``auth.host_based.*``) are node settings, which means
 that their values apply only to the node where they are applied and different
 nodes may have different authentication settings.
 
+.. _auth.host_based.enabled:
+
 **auth.host_based.enabled**
   | *Runtime:* ``no``
   | *Default:* ``false``
@@ -382,6 +418,8 @@ The ``auth.host_based.config.`` setting is a group setting that can have zero,
 one or multiple groups that are defined by their group key (``${order}``) and
 their fields (``user``, ``address``, ``method``, ``protocol``, ``ssl``).
 
+.. _$(order):
+
 **${order}:**
   | An identifier that is used as a natural order key when looking up the host
   | based configuration entries. For example, an order key of ``a`` will be
@@ -394,12 +432,16 @@ restrict or allow access to CrateDB.
 
 The meaning of the fields of the are as follows:
 
+.. _auth.host_based.config.${order}.user:
+
 **auth.host_based.config.${order}.user**
   | *Runtime:*  ``no``
 
   | Specifies an existing CrateDB username, only ``crate`` user (superuser) is
   | available. If no user is specified in the entry, then all existing users
   | can have access.
+
+.. _auth.host_based.config.${order}.address:
 
 **auth.host_based.config.${order}.address**
   | *Runtime:* ``no``
@@ -411,6 +453,8 @@ The meaning of the fields of the are as follows:
   | IPv6 connections from localhost. If no address is specified in the entry,
   | then access to CrateDB is open for all hosts.
 
+.. _auth.host_based.config.${order}.method:
+
 **auth.host_based.config.${order}.method**
   | *Runtime:* ``no``
 
@@ -420,12 +464,16 @@ The meaning of the fields of the are as follows:
   | See :ref:`auth_trust`, :ref:`auth_cert` and :ref:`auth_password` for more
   | information about these methods.
 
+.. _auth.host_based.config.${order}.protocol:
+
 **auth.host_based.config.${order}.protocol**
   | *Runtime:* ``no``
 
   | Specifies the protocol for which the authentication entry should be used.
   | If no protocol is specified, then this entry will be valid for all
   | protocols that rely on host based authentication see :ref:`auth_trust`).
+
+.. _auth.host_based.config.${order}.ssl:
 
 **auth.host_based.config.${order}.ssl**
   | *Runtime:* ``no``
@@ -444,7 +492,7 @@ The meaning of the fields of the are as follows:
       **auth.host_based.config.${order}.ssl** is available only for ``pg``
       protocol.
 
-**Example of config groups:**
+Example of config groups:
 
 .. code-block:: yaml
 
@@ -475,12 +523,16 @@ Layer Security (TLS).
 
     SSL is an :ref:`enterprise feature <enterprise-features>`.
 
+.. _ssl.http.enabled:
+
 **ssl.http.enabled**
   | *Runtime:*  ``no``
   | *Default:* ``false``
 
   Set this to true to enable secure communication between the CrateDB node
   and the client through SSL via the HTTPS protocol.
+
+.. _ssl.psql.enabled:
 
 **ssl.psql.enabled**
   | *Runtime:*  ``no``
@@ -489,16 +541,22 @@ Layer Security (TLS).
   Set this to true to enable secure communication between the CrateDB node
   and the client through SSL via the PostgreSQL wire protocol.
 
+.. _ssl.keystore_filepath:
+
 **ssl.keystore_filepath**
   | *Runtime:* ``no``
 
   The full path to the node keystore file.
+
+.. _ssl.keystore_password:
 
 **ssl.keystore_password**
   | *Runtime:* ``no``
 
   The password used to decrypt the keystore file defined with
   ``ssl.keystore_filepath``.
+
+.. _ssl.keystore_key_password:
 
 **ssl.keystore_key_password**
   | *Runtime:* ``no``
@@ -510,11 +568,15 @@ Layer Security (TLS).
     Optionally trusted CA certificates can be stored separately from the
     node's keystore into a truststore for CA certificates.
 
+.. _ssl.truststore_filepath:
+
 **ssl.truststore_filepath**
   | *Runtime:* ``no``
 
   The full path to the node truststore file. If not defined, then only a
   keystore will be used.
+
+.. _ssl.truststore_password:
 
 **ssl.truststore_password**
   | *Runtime:* ``no``
@@ -538,11 +600,15 @@ Many browsers support the `same-origin policy`_ which requires web applications
 to explicitly allow requests across origins. The `cross-origin resource
 sharing`_ settings in CrateDB allow for configuring these.
 
+.. _http.cors.enabled:
+
 **http.cors.enabled**
   | *Default:* ``false``
   | *Runtime:* ``no``
 
   Enable or disable `cross-origin resource sharing`_.
+
+.. _http.cors.allow-origin:
 
 **http.cors.allow-origin**
   | *Default:* ``<empty>``
@@ -554,11 +620,15 @@ sharing`_ settings in CrateDB allow for configuring these.
   allow requests from ``http://crate.io`` and ``https://crate.io``. This
   setting disallows any origin by default.
 
+.. _http.cors.max-age:
+
 **http.cors.max-age**
   | *Default:* ``1728000`` (20 days)
   | *Runtime:* ``no``
 
   Max cache age of a preflight request in seconds.
+
+.. _http.cors.allow-methods:
 
 **http.cors.allow-methods**
   | *Default:* ``OPTIONS, HEAD, GET, POST, PUT, DELETE``
@@ -566,11 +636,15 @@ sharing`_ settings in CrateDB allow for configuring these.
 
   Allowed HTTP methods.
 
+.. _http.cors.allow-headers:
+
 **http.cors.allow-headers**
   | *Default:* ``X-Requested-With, Content-Type, Content-Length``
   | *Runtime:* ``no``
 
   Allowed HTTP headers.
+
+.. _http.cors.allow-credentials:
 
 **http.cors.allow-credentials**
   | *Default:* ``false``
@@ -583,6 +657,8 @@ sharing`_ settings in CrateDB allow for configuring these.
 
 Blobs
 =====
+
+.. _blobs.path:
 
 **blobs.path**
   | *Runtime:* ``no``
@@ -600,6 +676,8 @@ Repositories
 
 Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
 
+.. _repositories.url.allowed_urls:
+
 **repositories.url.allowed_urls**
   | *Runtime:* ``no``
 
@@ -615,9 +693,9 @@ Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
 
   In addition, the supported protocols can be restricted using the
   :ref:`repositories.url.supported_protocols
-  <conf-repositories-url-supported-protocols>` setting.
+  <repositories.url.supported_protocols>` setting.
 
-.. _conf-repositories-url-supported-protocols:
+.. _repositories.url.supported_protocols:
 
 **repositories.url.supported_protocols**
   | *Default:* ``http``, ``https``, ``ftp``, ``file`` and ``jar``
@@ -629,14 +707,14 @@ Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
   The ``jar`` protocol is used to access the contents of jar files. For more
   info, see the java `JarURLConnection documentation`_.
 
-See also the :ref:`path.repo <conf-path-repo>` Setting.
+See also the :ref:`path.repo <path.repo>` Setting.
 
 .. _`JarURLConnection documentation`: http://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
 
 Queries
 =======
 
-.. _conf-indices-query-bool.max_clause_count:
+.. _indices.query.bool.max_clause_count:
 
 **indices.query.bool.max_clause_count**
   | *Default:* ``8192``
@@ -656,6 +734,8 @@ Queries
 
 Javascript language
 ===================
+
+.. _lang.js.enabled:
 
 **lang.js.enabled**
   | *Default:*  ``true``
