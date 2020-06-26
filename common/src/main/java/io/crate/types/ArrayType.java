@@ -24,15 +24,19 @@ package io.crate.types;
 import com.google.common.base.Preconditions;
 import io.crate.Streamer;
 import io.crate.protocols.postgres.parser.PgArrayParser;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A type which contains a collection of elements of another type.
@@ -127,6 +131,55 @@ public class ArrayType<T> extends DataType<List<T>> {
             }
         }
         return result;
+    }
+
+    public List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
+        if (values == null) {
+            return null;
+        } else {
+            ArrayList<String> array = new ArrayList<>(values.length);
+            for (var value : values) {
+                array.add(anyValueToString(value));
+            }
+            return array;
+        }
+    }
+
+    public List<String> fromAnyArray(List<?> values) throws IllegalArgumentException {
+        if (values == null) {
+            return null;
+        } else {
+            ArrayList<String> array = new ArrayList<>(values.size());
+            for (var value : values) {
+                array.add(anyValueToString(value));
+            }
+            return array;
+        }
+    }
+
+    private String anyValueToString(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            if (value instanceof Map) {
+                //noinspection unchecked
+                return
+                    Strings.toString(
+                        XContentFactory.jsonBuilder().map((Map<String, ?>) value));
+            } else if (value instanceof Collection) {
+                var array = XContentFactory.jsonBuilder().startArray();
+                for (var element : (Collection<?>) value) {
+                    array.value(element);
+                }
+                array.endArray();
+                return Strings.toString(array);
+            } else {
+                return value.toString();
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override

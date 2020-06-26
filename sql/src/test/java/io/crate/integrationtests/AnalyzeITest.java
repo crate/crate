@@ -68,4 +68,17 @@ public class AnalyzeITest extends SQLTransportIntegrationTest{
         execute("select reltuples from pg_class where relname = 'tbl'");
         assertThat(response.rows()[0][0], is(1.0f));
     }
+
+    @Test
+    public void test_select_from_pg_stats_when_most_common_vals_is_array_type_value() {
+        execute("CREATE TABLE doc.tbl (val array(object as (id int)))");
+        execute("INSERT INTO doc.tbl (val) VALUES ([{id=1}]), ([{id=1}]), ([{id=2}])");
+        execute("REFRESH TABLE doc.tbl");
+        execute("ANALYZE");
+        execute("SELECT attname, most_common_vals, histogram_bounds FROM pg_stats");
+        Object[] row = response.rows()[0];
+        assertThat(row[0], is("val['id']"));
+        assertThat(row[1], is(List.of("[1]")));
+        assertThat(row[2], is(List.of()));
+    }
 }
