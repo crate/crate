@@ -88,9 +88,15 @@ public class JdkDownloadPluginFunctionalTest {
                                  Consumer<BuildResult> assertions,
                                  String vendor,
                                  String version) {
+        var testKitDirPath = Paths.get(
+            System.getProperty("user.dir"),
+            "build",
+            System.getProperty("user.name")
+        );
         GradleRunner runner = GradleRunner.create()
             .withDebug(true)
             .withProjectDir(getTestKitProjectDir("jdk-download"))
+            .withTestKitDir(testKitDirPath.toFile())
             .withArguments(
                 task,
                 "-Dtests.jdk_vendor=" + vendor,
