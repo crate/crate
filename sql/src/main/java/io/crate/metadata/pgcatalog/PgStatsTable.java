@@ -73,7 +73,8 @@ public class PgStatsTable extends StaticTableInfo<ColumnStatsEntry> {
             .register(
                 "most_common_vals",
                 DataTypes.STRING_ARRAY,
-                () -> forFunction(x -> DataTypes.STRING_ARRAY.value(x.columnStats().mostCommonValues().values()))
+                () -> forFunction(x -> DataTypes.STRING_ARRAY
+                    .fromAnyArray(x.columnStats().mostCommonValues().values()))
             )
             .register(
                 "most_common_freqs",
@@ -90,7 +91,8 @@ public class PgStatsTable extends StaticTableInfo<ColumnStatsEntry> {
             .register(
                 "histogram_bounds",
                 DataTypes.STRING_ARRAY,
-                () -> forFunction(x -> DataTypes.STRING_ARRAY.value(x.columnStats().histogram()))
+                () -> forFunction(x -> DataTypes.STRING_ARRAY
+                    .fromAnyArray(x.columnStats().histogram()))
             )
             .register("correlation", DataTypes.FLOAT, () -> constant(0.0f))
             .register("most_common_elems", DataTypes.STRING_ARRAY, () -> constant(null))
