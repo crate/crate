@@ -56,6 +56,7 @@ import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DiscardStatement;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropCheckConstraint;
@@ -381,6 +382,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitDeallocateStatement(DeallocateStatement node, Analysis context) {
             return DeallocateAnalyzer.analyze(node);
+        }
+
+        @Override
+        public AnalyzedStatement visitDiscard(DiscardStatement discardStatement, Analysis context) {
+            return new AnalyzedDiscard(discardStatement.target());
         }
 
         @Override

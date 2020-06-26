@@ -112,6 +112,15 @@ public class TestStatementBuilder {
         printStatement("ANALYZE");
     }
 
+    @Test
+    public void test_discard_statement_parsing() throws Exception {
+        printStatement("DISCARD ALL");
+        printStatement("DISCARD PLANS");
+        printStatement("DISCARD SEQUENCES");
+        printStatement("DISCARD TEMPORARY");
+        printStatement("DISCARD TEMP");
+    }
+
 
     @Test
     public void testEmptyOverClauseAfterFunction() {

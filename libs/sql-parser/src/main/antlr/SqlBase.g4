@@ -97,6 +97,7 @@ statement
     | createStmt                                                                     #create
     | DEALLOCATE (PREPARE)? (ALL | prepStmt=stringLiteralOrIdentifierOrQname)        #deallocate
     | ANALYZE                                                                        #analyze
+    | DISCARD (ALL | PLANS | SEQUENCES | TEMPORARY | TEMP)                           #discard
     ;
 
 query:
@@ -676,6 +677,7 @@ nonReserved
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN | PRECISION
     | REPLACE | RETURNING | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM
     | CURRENT_SCHEMA | PROMOTE | CHARACTER | VARYING
+    | DISCARD | PLANS | SEQUENCES | TEMPORARY | TEMP
     ;
 
 SELECT: 'SELECT';
@@ -844,6 +846,11 @@ LANGUAGE: 'LANGUAGE';
 INPUT: 'INPUT';
 
 ANALYZE: 'ANALYZE';
+DISCARD: 'DISCARD';
+PLANS: 'PLANS';
+SEQUENCES: 'SEQUENCES';
+TEMPORARY: 'TEMPORARY';
+TEMP: 'TEMP';
 CONSTRAINT: 'CONSTRAINT';
 CHECK: 'CHECK';
 DESCRIBE: 'DESCRIBE';

@@ -22,8 +22,25 @@
 
 package io.crate.action.sql;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.Randomness;
+
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedDeallocate;
+import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
@@ -53,22 +70,9 @@ import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.RetryOnFailureResultReceiver;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.DiscardStatement.Target;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.Randomness;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 /**
  * Stateful Session
@@ -374,6 +378,14 @@ public class Session implements AutoCloseable {
                     LOGGER.debug("deallocating all prepared statements");
                 }
                 preparedStatements.clear();
+            }
+            resultReceiver.allFinished(false);
+        } else if (analyzedStmt instanceof AnalyzedDiscard) {
+            AnalyzedDiscard discard = (AnalyzedDiscard) analyzedStmt;
+            // We don't cache plans, don't have sequences or temporary tables
+            // See https://www.postgresql.org/docs/current/sql-discard.html
+            if (discard.target() == Target.ALL) {
+                close();
             }
             resultReceiver.allFinished(false);
         } else if (analyzedStmt.isWriteOperation()) {
