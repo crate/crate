@@ -51,7 +51,7 @@ public class PgStatsTable {
             .add(
                 "most_common_vals",
                 DataTypes.STRING_ARRAY,
-                x -> DataTypes.STRING_ARRAY.value(x.columnStats().mostCommonValues().values())
+                x -> DataTypes.STRING_ARRAY.fromAnyArray(x.columnStats().mostCommonValues().values())
             )
             .add(
                 "most_common_freqs",
@@ -68,7 +68,7 @@ public class PgStatsTable {
             .add(
                 "histogram_bounds",
                 DataTypes.STRING_ARRAY,
-                x -> DataTypes.STRING_ARRAY.value(x.columnStats().histogram())
+                x -> DataTypes.STRING_ARRAY.fromAnyArray(x.columnStats().histogram())
             )
             .add("correlation", DataTypes.FLOAT, c -> 0.0f)
             .add("most_common_elems", DataTypes.STRING_ARRAY, c -> null)

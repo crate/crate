@@ -253,4 +253,6 @@ Performance improvements
 Fixes
 =====
 
-None
+- Fixed an issue that would prevent the :ref:`pg_stats <pg_stats>` table from
+  querying if the ``most_common_vals`` or ``histogram_bounds`` columns contain
+  values of the ``OBJECT`` or ``ARRAY`` types.
