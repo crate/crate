@@ -40,6 +40,7 @@ import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -521,7 +522,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
             outChan.truncate(randomInt(10));
         }
 
-        assertSnapShotState(snapShotName1);
+        assertSnapShotState(snapShotName1,  SnapshotState.SUCCESS);
 
         execute("drop table t1");
         execute("RESTORE SNAPSHOT " +  fullSnapShotName1 + " TABLE t1 with (wait_for_completion=true)");
@@ -541,23 +542,15 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("CREATE SNAPSHOT " + fullSnapShotName2 + " ALL WITH (wait_for_completion=true)");
 
-        assertSnapShotState(snapShotName2);
-
-        execute("drop table t1");
-        execute("RESTORE SNAPSHOT " + fullSnapShotName2 + " TABLE t1 with (wait_for_completion=true)");
-        ensureYellow();
-
-        execute("SELECT COUNT(*) FROM t1");
-        assertThat(response.rows()[0][0], is(numberOfDocs + numberOfAdditionalDocs));
-
+        assertSnapShotState(snapShotName2, SnapshotState.PARTIAL);
     }
 
-    private void assertSnapShotState(String snapShotName) {
+    private void assertSnapShotState(String snapShotName, SnapshotState state) {
         execute(
             "SELECT state, array_length(concrete_indices, 1) FROM sys.snapshots where name = ? and repository = ?",
             new Object[]{snapShotName, REPOSITORY_NAME});
 
-        assertThat(response.rows()[0][0], is("SUCCESS"));
+        assertThat(response.rows()[0][0], is(state.name()));
         assertThat(response.rows()[0][1], is(1));
     }
 
