@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -46,5 +47,32 @@ public class AnyTypeTest extends BasePGTypeTest<Integer> {
     public void test_read_value_text() {
         byte[] bytesToRead = String.valueOf(Integer.MAX_VALUE).getBytes(StandardCharsets.UTF_8);
         assertBytesReadText(bytesToRead, Integer.MAX_VALUE, bytesToRead.length);
+    }
+
+    @Test
+    public void test_typreceive_is_0_for_anytype() throws Exception {
+        /** PostgreSQL types that have a 0 oid as "typreceive" value
+         * select typname  from pg_type where typreceive = 0;
+         *     typname
+         *------------------
+         * aclitem
+         * gtsvector
+         * any
+         * trigger
+         * event_trigger
+         * language_handler
+         * internal
+         * opaque
+         * anyelement
+         * anynonarray
+         * anyenum
+         * fdw_handler
+         * index_am_handler
+         * tsm_handler
+         * table_am_handler
+         * anyrange
+         **/
+        assertThat(AnyType.INSTANCE.typReceive().oid(), Matchers.is(0));
+        assertThat(AnyType.INSTANCE.typReceive().name(), Matchers.is("-"));
     }
 }

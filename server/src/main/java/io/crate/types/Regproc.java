@@ -36,17 +36,17 @@ public class Regproc {
         return new Regproc(OidHash.functionOid(name), name);
     }
 
-    public static Regproc of(int oid, @Nonnull String name) {
+    public static Regproc of(int functionOid, @Nonnull String name) {
         // To match PostgreSQL behavior 1:1 this would need to lookup the
         // function name by oid and fallback to using the oid as name if there is
         // no match.
         // It looks like for compatibility with clients it is good enough
         // to not mirror this behavior.
-        return new Regproc(oid, name);
+        return new Regproc(functionOid, name);
     }
 
-    private Regproc(int oid, String name) {
-        this.oid = oid;
+    private Regproc(int functionOid, String name) {
+        this.oid = functionOid;
         this.name = name;
     }
 

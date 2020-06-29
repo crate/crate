@@ -887,6 +887,24 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         }
     }
 
+    @Test
+    public void test_each_non_array_pg_type_entry_can_be_joined_with_pg_proc() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW))) {
+            PreparedStatement stmt = conn.prepareStatement(
+                "SELECT pg_type.oid, pg_type.typname, pg_proc.proname " +
+                "FROM pg_catalog.pg_type LEFT OUTER JOIN pg_catalog.pg_proc ON pg_proc.oid = pg_type.typreceive " +
+                "WHERE pg_type.typarray <> 0");
+            ResultSet result = stmt.executeQuery();
+            while (result.next()) {
+                assertThat(
+                    "There must be an entry for `" + result.getInt(1) + "/" + result.getString(2) + "` in pg_proc",
+                    result.getString(3),
+                    Matchers.notNullValue(String.class)
+                );
+            }
+        }
+    }
+
     private void assertSelectNameFromSysClusterWorks(Connection conn) throws SQLException {
         PreparedStatement stmt;// verify that queries can be made after an error occurred
         stmt = conn.prepareStatement("select name from sys.cluster");
