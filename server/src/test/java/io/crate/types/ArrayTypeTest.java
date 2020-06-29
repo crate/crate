@@ -30,6 +30,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -114,4 +115,39 @@ public class ArrayTypeTest extends CrateUnitTest {
         );
         assertThat(cmp, is(-1));
     }
+
+    @Test
+    public void test_as_array_of_string_with_null_values() {
+        var array = new ArrayList<>();
+        array.add(null);
+        array.add("string");
+        assertThat(DataTypes.STRING_ARRAY.fromAnyArray(array), is(array));
+    }
+
+    @Test
+    public void test_from_any_array_with_nested_into_array_objects_and_arrays() {
+        assertThat(
+            DataTypes.STRING_ARRAY.fromAnyArray(
+                List.of(
+                    List.of(Map.of("key", "value")),
+                    List.of(List.of("nested"))
+                )
+            ),
+            is(List.of("[{\"key\":\"value\"}]", "[[\"nested\"]]"))
+        );
+    }
+
+    @Test
+    public void test_from_any_array_with_nested_into_object_arrays_and_objects() {
+        assertThat(
+            DataTypes.STRING_ARRAY.fromAnyArray(
+                List.of(
+                    Map.of("key1", List.of("test")),
+                    Map.of("key2", Map.of("key", "value"))
+                )
+            ),
+            is(List.of("{\"key1\":[\"test\"]}", "{\"key2\":{\"key\":\"value\"}}"))
+        );
+    }
+
 }
