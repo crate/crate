@@ -46,6 +46,16 @@ public class BooleanTypeTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_sanitize_boolean_value() {
+        assertThat(BooleanType.INSTANCE.sanitizeValue(Boolean.FALSE), is(false));
+    }
+
+    @Test
+    public void test_sanitize_numeric_value() {
+        assertThat(BooleanType.INSTANCE.sanitizeValue(1), is(true));
+    }
+
+    @Test
     public void test_cast_unsupported_text_to_boolean_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Can't convert \"hello\" to boolean");

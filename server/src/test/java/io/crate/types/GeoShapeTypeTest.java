@@ -188,9 +188,9 @@ public class GeoShapeTypeTest extends CrateUnitTest {
     }
 
     @Test
-    public void testValueShape() throws Exception {
+    public void test_sanitize_value_geo_shape_objects() {
         for (Shape shape : GeoJSONUtilsTest.SHAPES) {
-            Map<String, Object> map = type.value(shape);
+            Map<String, Object> map = type.sanitizeValue(shape);
             GeoJSONUtils.validateGeoJson(map);
         }
     }

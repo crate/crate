@@ -96,6 +96,11 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
+        public StandardDeviation sanitizeValue(Object value) {
+            return (StandardDeviation) value;
+        }
+
+        @Override
         public int compare(StandardDeviation val1, StandardDeviation val2) {
             return val1.compareTo(val2);
         }

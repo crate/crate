@@ -46,11 +46,12 @@ public final class TimeTZ implements Comparable<TimeTZ> {
         if (this == o) {
             return true;
         }
-        if (o == null || false == o instanceof TimeTZ) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        TimeTZ that = (TimeTZ) o;
-        return microsFromMidnight == that.microsFromMidnight && secondsFromUTC == that.secondsFromUTC;
+        TimeTZ timeTZ = (TimeTZ) o;
+        return microsFromMidnight == timeTZ.microsFromMidnight &&
+               secondsFromUTC == timeTZ.secondsFromUTC;
     }
 
     @Override

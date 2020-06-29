@@ -30,16 +30,16 @@ import static org.hamcrest.Matchers.nullValue;
 public class IpTypeTest extends CrateUnitTest {
 
     @Test
-    public void test_value() {
-        assertThat(DataTypes.IP.value(null), is(nullValue()));
-        assertThat(DataTypes.IP.value("127.0.0.1"), is("127.0.0.1"));
+    public void test_sanitize_value() {
+        assertThat(IpType.INSTANCE.sanitizeValue(null), is(nullValue()));
+        assertThat(IpType.INSTANCE.sanitizeValue("127.0.0.1"), is("127.0.0.1"));
     }
 
     @Test
-    public void test_value_invalid_ip_throws_exception() {
+    public void test_sanitize_invalid_ip_value_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Failed to validate ip [2000.0.0.1], not a valid ipv4 address");
-        DataTypes.IP.value("2000.0.0.1");
+        IpType.INSTANCE.sanitizeValue("2000.0.0.1");
     }
 
     @Test

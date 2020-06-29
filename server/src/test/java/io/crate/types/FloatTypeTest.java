@@ -42,6 +42,11 @@ public class FloatTypeTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_sanitize_numeric_value() {
+        assertThat(FloatType.INSTANCE.sanitizeValue(1d), is(1f));
+    }
+
+    @Test
     public void test_cast_double_to_real_out_of_positive_range_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("float value out of range: 1.7976931348623157E308");

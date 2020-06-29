@@ -40,6 +40,11 @@ public class LongTypeTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_sanitize_numeric_value() {
+        assertThat(LongType.INSTANCE.sanitizeValue(1f), is(1L));
+    }
+
+    @Test
     public void test_cast_text_with_only_letters_to_bigint_throws_exception() {
         expectedException.expect(NumberFormatException.class);
         LongType.INSTANCE.implicitCast("hello");

@@ -184,6 +184,17 @@ public class StringType extends DataType<String> implements Streamer<String> {
         return convert(value);
     }
 
+    @Override
+    public String sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof BytesRef) {
+            return ((BytesRef) value).utf8ToString();
+        } else {
+            return (String) value;
+        }
+    }
+
     @Nonnull
     private String convert(@Nonnull Object value) throws IllegalArgumentException {
         if (value instanceof String) {

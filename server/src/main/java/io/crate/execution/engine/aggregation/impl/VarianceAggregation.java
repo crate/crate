@@ -96,6 +96,11 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
 
         @Override
+        public Variance sanitizeValue(Object value) {
+            return (Variance) value;
+        }
+
+        @Override
         public int compare(Variance val1, Variance val2) {
             return val1.compareTo(val2);
         }
