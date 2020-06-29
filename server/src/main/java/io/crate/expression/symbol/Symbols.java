@@ -24,10 +24,13 @@ package io.crate.expression.symbol;
 import io.crate.Streamer;
 import io.crate.common.collections.LazyMapList;
 import io.crate.expression.symbol.format.Style;
+import io.crate.expression.tablefunctions.UnnestFunction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.RowType;
 import io.crate.types.TypeSignature;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -41,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
 
@@ -52,7 +56,21 @@ public class Symbols {
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
-        return LazyMapList.of(symbols, Symbol::valueType);
+        return LazyMapList.of(symbols, (s) -> {
+            DataType<?> type = s.valueType();
+            if (type instanceof RowType
+                && ((RowType) type).fieldTypes().isEmpty()
+                && s instanceof Function
+                && ((Function) s).name().equals(UnnestFunction.NAME)) {
+
+                type = new RowType(((Function) s).arguments()
+                                       .stream()
+                                       .map(Symbol::valueType)
+                                       .map(ArrayType::unnest)
+                                       .collect(Collectors.toList()));
+            }
+            return type;
+        });
     }
 
     public static List<TypeSignature> typeSignatureView(List<? extends Symbol> symbols) {

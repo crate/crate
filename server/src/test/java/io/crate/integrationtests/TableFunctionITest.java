@@ -45,6 +45,17 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectUnnestNoFrom() {
+        execute("select unnest([1, 2, 3, 4], ['uno', 'dos', 'tres', 'quatro'])");
+
+        assertThat(response.rowCount(), is(4L));
+        assertThat(printedTable(response.rows()), is("(1,uno)\n" +
+                                                     "(2,dos)\n" +
+                                                     "(3,tres)\n" +
+                                                     "(4,quatro)\n"));
+    }
+
+    @Test
     public void testSelectFromUnnestWithOrderByAndLimit() {
         execute("select * from unnest([1, 2], ['Trillian', 'Marvin']) order by col1 desc limit 1");
         assertThat(response.rowCount(), is(1L));

@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class RowType extends DataType<Row> implements Streamer<Row> {
 
@@ -183,5 +184,10 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
     @Override
     public List<DataType<?>> getTypeParameters() {
         return fieldTypes;
+    }
+
+    @Override
+    public String toString() {
+        return String.format(Locale.ENGLISH, "%s{%s}", getName(), fieldTypes);
     }
 }
