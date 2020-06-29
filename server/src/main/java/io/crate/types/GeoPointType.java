@@ -76,6 +76,15 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             checkLengthIs2(doubles.length);
             ensurePointsInRange(doubles[0], doubles[1]);
             return new PointImpl(doubles[0], doubles[1], JtsSpatialContext.GEO);
+        } else if (value instanceof Object[]) {
+            Object[] values = (Object[]) value;
+            checkLengthIs2(values.length);
+            PointImpl point = new PointImpl(
+                ((Number) values[0]).doubleValue(),
+                ((Number) values[1]).doubleValue(),
+                JtsSpatialContext.GEO);
+            ensurePointsInRange(point.getX(), point.getY());
+            return point;
         } else if (value instanceof String) {
             return pointFromString((String) value);
         } else if (value instanceof List) {
@@ -127,6 +136,24 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             JtsSpatialContext.GEO);
         ensurePointsInRange(point.getX(), point.getY());
         return point;
+    }
+
+    @Override
+    public Point sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof List) {
+            List<?> values = (List<?>) value;
+            checkLengthIs2(values.size());
+            PointImpl point = new PointImpl(
+                ((Number) values.get(0)).doubleValue(),
+                ((Number) values.get(1)).doubleValue(),
+                JtsSpatialContext.GEO);
+            ensurePointsInRange(point.getX(), point.getY());
+            return point;
+        } else {
+            return (Point) value;
+        }
     }
 
     private void ensurePointsInRange(double x, double y) {

@@ -138,6 +138,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return convert(value, DataType::value);
     }
 
+    @Override
+    public Map<String, Object> sanitizeValue(Object value) {
+        return convert(value, DataType::sanitizeValue);
+    }
+
     private Map<String, Object> convert(Object value,
                                         BiFunction<DataType<?>, Object, Object> innerType) {
         if (value instanceof String) {

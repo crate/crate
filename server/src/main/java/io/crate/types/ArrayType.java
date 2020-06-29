@@ -132,6 +132,11 @@ public class ArrayType<T> extends DataType<List<T>> {
         return convert(value, innerType::value);
     }
 
+    @Override
+    public List<T> sanitizeValue(Object value) {
+        return convert(value, innerType::sanitizeValue);
+    }
+
     public List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
         if (values == null) {
             return null;

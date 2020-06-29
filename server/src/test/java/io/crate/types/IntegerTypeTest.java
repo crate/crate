@@ -41,6 +41,12 @@ public class IntegerTypeTest extends CrateUnitTest {
         assertThat(IntegerType.INSTANCE.implicitCast(123L), is(123));
     }
 
+
+    @Test
+    public void test_sanitize_numeric_value() {
+        assertThat(IntegerType.INSTANCE.sanitizeValue(1f), is(1));
+    }
+
     @Test
     public void test_cast_boolean_to_integer_throws_exception() {
         expectedException.expect(ClassCastException.class);

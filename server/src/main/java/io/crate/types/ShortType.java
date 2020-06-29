@@ -93,6 +93,17 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     }
 
     @Override
+    public Short sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Short) {
+            return (Short) value;
+        } else {
+            return ((Number) value).shortValue();
+        }
+    }
+
+    @Override
     public int compare(Short val1, Short val2) {
         return Short.compare(val1, val2);
     }

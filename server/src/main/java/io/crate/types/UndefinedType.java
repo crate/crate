@@ -71,6 +71,10 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
         return true;
     }
 
+    public Object sanitizeValue(Object value) {
+        return value;
+    }
+
     @Override
     public int compare(Object val1, Object val2) {
         return 0;

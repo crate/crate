@@ -223,6 +223,11 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         }
 
         @Override
+        public LongState sanitizeValue(Object value) {
+            return (LongState) value;
+        }
+
+        @Override
         public int compare(LongState val1, LongState val2) {
             if (val1 == null) {
                 return -1;

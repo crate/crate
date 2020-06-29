@@ -93,6 +93,17 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     }
 
     @Override
+    public Float sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Float) {
+            return (Float) value;
+        } else {
+            return ((Number) value).floatValue();
+        }
+    }
+
+    @Override
     public int compare(Float val1, Float val2) {
         return Float.compare(val1, val2);
     }

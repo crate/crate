@@ -154,6 +154,11 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
         return (Row) value;
     }
 
+    @Override
+    public Row sanitizeValue(Object value) {
+        return (Row) value;
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public int compare(Row val1, Row val2) {

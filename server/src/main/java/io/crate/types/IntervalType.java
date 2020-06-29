@@ -112,6 +112,15 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
     }
 
     @Override
+    public Period sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else {
+            return (Period) value;
+        }
+    }
+
+    @Override
     public int compare(Period p1, Period p2) {
         return p1.toStandardDuration().compareTo(p2.toStandardDuration());
 

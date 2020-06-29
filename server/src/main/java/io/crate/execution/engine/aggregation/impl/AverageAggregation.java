@@ -145,6 +145,11 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
 
         @Override
+        public AverageState sanitizeValue(Object value) {
+            return (AverageState) value;
+        }
+
+        @Override
         public int compare(AverageState val1, AverageState val2) {
             if (val1 == null) return -1;
             return val1.compareTo(val2);

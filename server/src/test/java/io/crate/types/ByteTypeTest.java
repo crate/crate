@@ -42,6 +42,11 @@ public class ByteTypeTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_sanitize_numeric_value() {
+        assertThat(ByteType.INSTANCE.sanitizeValue(1f), is((byte) 1));
+    }
+
+    @Test
     public void test_cast_boolean_to_char_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast 'true' to char");

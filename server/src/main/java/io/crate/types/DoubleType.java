@@ -85,6 +85,17 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     }
 
     @Override
+    public Double sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Double) {
+            return (Double) value;
+        } else {
+            return ((Number) value).doubleValue();
+        }
+    }
+
+    @Override
     public int compare(Double val1, Double val2) {
         return Double.compare(val1, val2);
     }
