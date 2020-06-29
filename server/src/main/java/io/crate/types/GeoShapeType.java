@@ -108,6 +108,18 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         throw new IllegalArgumentException(invalidMsg(value));
     }
 
+    @Override
+    public Map<String, Object> sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Map) {
+            GeoJSONUtils.validateGeoJson((Map) value);
+            return (Map<String, Object>) value;
+        } else {
+            return GeoJSONUtils.shape2Map((Shape) value);
+        }
+    }
+
     private String invalidMsg(Object value) {
         return String.format(Locale.ENGLISH, "Cannot convert \"%s\" to geo_shape", value);
     }

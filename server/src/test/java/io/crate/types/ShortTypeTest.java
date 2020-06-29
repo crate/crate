@@ -43,6 +43,11 @@ public class ShortTypeTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_sanitize_numeric_value() {
+        assertThat(ShortType.INSTANCE.sanitizeValue(1f), is((short) 1));
+    }
+
+    @Test
     public void test_cast_boolean_to_smallint_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast 'true' to smallint");

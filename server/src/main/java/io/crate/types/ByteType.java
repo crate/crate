@@ -90,6 +90,17 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
+    public Byte sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Byte) {
+            return (Byte) value;
+        } else {
+            return ((Number) value).byteValue();
+        }
+    }
+
+    @Override
     public int compare(Byte val1, Byte val2) {
         return Byte.compare(val1, val2);
     }

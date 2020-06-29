@@ -126,6 +126,20 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
 
+    /**
+     * Fixes the {@link DataType} of the input {@code value} when its type is
+     * slightly different the target {@link DataType}.
+     * <p>
+     * For example, to fix a type read from source  where `integer` might have
+     * been stored as `bigint`. This is mostly in case for the reference
+     * resolvers and column expression implementations.
+     *
+     * @param value The value to sanitize to the target {@link DataType}.
+     * @return The value of {@link DataType}.
+     * @see DataType#implicitCast(Object)
+     */
+    public abstract T sanitizeValue(Object value);
+
     public TypeSignature getTypeSignature() {
         return new TypeSignature(getName());
     }

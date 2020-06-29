@@ -42,6 +42,11 @@ public class DoubleTypeTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_sanitize_numeric_value() {
+        assertThat(DoubleType.INSTANCE.sanitizeValue(1f), is(1d));
+    }
+
+    @Test
     public void text_cast_object_to_double_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '{}' to double precision");

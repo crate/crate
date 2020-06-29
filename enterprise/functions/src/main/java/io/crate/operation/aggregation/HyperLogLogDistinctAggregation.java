@@ -267,6 +267,11 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         @Override
+        public HllState sanitizeValue(Object value) {
+            return (HyperLogLogDistinctAggregation.HllState) value;
+        }
+
+        @Override
         public int compare(HyperLogLogDistinctAggregation.HllState val1, HyperLogLogDistinctAggregation.HllState val2) {
             if (val1 == null) {
                 return -1;

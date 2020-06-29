@@ -90,6 +90,16 @@ public class IpType extends DataType<String> implements Streamer<String> {
         }
     }
 
+    @Override
+    public String sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else {
+            validate((String) value);
+            return (String) value;
+        }
+    }
+
     private static String longToIp(long longIp) {
         int octet3 = (int) ((longIp >> 24) % 256);
         int octet2 = (int) ((longIp >> 16) % 256);

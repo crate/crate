@@ -98,6 +98,17 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     }
 
     @Override
+    public Integer sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Integer) {
+            return (Integer) value;
+        } else {
+            return ((Number) value).intValue();
+        }
+    }
+
+    @Override
     public int compare(Integer val1, Integer val2) {
         return Integer.compare(val1, val2);
     }

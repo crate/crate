@@ -82,6 +82,12 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     }
 
     @Override
+    public Map<Object, Object> sanitizeValue(Object value) {
+        //noinspection unchecked
+        return (Map<Object, Object>) value;
+    }
+
+    @Override
     public int compare(Map<Object, Object> val1, Map<Object, Object> val2) {
         return MapComparator.compareMaps(val1, val2);
     }

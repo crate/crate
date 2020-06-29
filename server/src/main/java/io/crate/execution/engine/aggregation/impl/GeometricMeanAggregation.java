@@ -158,6 +158,11 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         }
 
         @Override
+        public GeometricMeanState sanitizeValue(Object value) {
+            return (GeometricMeanState) value;
+        }
+
+        @Override
         public int compare(GeometricMeanState val1, GeometricMeanState val2) {
             return val1.compareTo(val2);
         }

@@ -73,6 +73,11 @@ class TDigestStateType extends DataType<TDigestState> implements Streamer<TDiges
     }
 
     @Override
+    public TDigestState sanitizeValue(Object value) {
+        return (TDigestState) value;
+    }
+
+    @Override
     public int compare(TDigestState val1, TDigestState val2) {
         return 0;
     }

@@ -50,6 +50,13 @@ public class GeoPointTypeTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_sanitize_list_of_doubles_value() {
+        Point value = DataTypes.GEO_POINT.sanitizeValue(List.of(1d, 2d));
+        assertThat(value.getX(), is(1.0d));
+        assertThat(value.getY(), is(2.0d));
+    }
+
+    @Test
     public void testWktToGeoPointValue() throws Exception {
         Point value = DataTypes.GEO_POINT.implicitCast("POINT(1 2)");
         assertThat(value.getX(), is(1.0d));

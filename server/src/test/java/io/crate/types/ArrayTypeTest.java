@@ -42,7 +42,7 @@ public class ArrayTypeTest extends CrateUnitTest {
     @Test
     public void test_pg_string_array_literal_can_be_converted_to_values() {
         ArrayType<String> strArray = new ArrayType<>(DataTypes.STRING);
-        List<String> values = strArray.value("{a,abc,A,ABC,null,\"null\",NULL,\"NULL\"}");
+        List<String> values = strArray.implicitCast("{a,abc,A,ABC,null,\"null\",NULL,\"NULL\"}");
         assertThat(
             values,
             contains("a", "abc", "A", "ABC", null, "null", null, "NULL")
@@ -110,8 +110,8 @@ public class ArrayTypeTest extends CrateUnitTest {
     @Test
     public void test_compare_arrays_of_string_that_contain_nulls() {
         int cmp = DataTypes.STRING_ARRAY.compare(
-            DataTypes.STRING_ARRAY.value("{'a', null}"),
-            DataTypes.STRING_ARRAY.value("{'a', 'b'}")
+            DataTypes.STRING_ARRAY.sanitizeValue("{'a', null}"),
+            DataTypes.STRING_ARRAY.sanitizeValue("{'a', 'b'}")
         );
         assertThat(cmp, is(-1));
     }

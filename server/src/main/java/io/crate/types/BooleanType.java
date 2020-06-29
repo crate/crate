@@ -93,6 +93,17 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         return (Boolean) value;
     }
 
+    @Override
+    public Boolean sanitizeValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Boolean) {
+            return (Boolean) value;
+        } else {
+            return booleanFromNumber((Number) value);
+        }
+    }
+
     private Boolean booleanFromString(String value) {
         String lowerValue = value.toLowerCase(Locale.ENGLISH);
         Boolean boolValue = BOOLEAN_MAP.get(lowerValue);
