@@ -733,21 +733,27 @@ public class PostgresWireProtocol {
 
             Function<Throwable, Exception> wrapError = SQLExceptions.forWireTransmission(
                 getAccessControl.apply(session.sessionContext()));
+            CompletableFuture<?> execute;
             if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, wrapError);
-                session.execute("", 0, rowCountReceiver);
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel.bypassDelay(), wrapError);
+                execute = session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null);
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
-                    channel,
+                    channel.bypassDelay(),
                     wrapError,
                     Lists2.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
-                session.execute("", 0, resultSetReceiver);
+                execute = session.execute("", 0, resultSetReceiver);
             }
-            return session.sync();
+            if (execute == null) {
+                return session.sync();
+            } else {
+                channel.delayWritesUntil(execute);
+                return execute.thenCompose(ignored -> session.sync());
+            }
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, t);
             result.completeExceptionally(t);
