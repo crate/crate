@@ -44,23 +44,23 @@ class PolyglotValuesConverter {
             case ArrayType.ID:
                 ArrayList<Object> items = new ArrayList<>((int) value.getArraySize());
                 for (int idx = 0; idx < value.getArraySize(); idx++) {
-                    var item = toCrateObject(value.getArrayElement(idx), ((ArrayType) type).innerType());
+                    var item = toCrateObject(value.getArrayElement(idx), ((ArrayType<?>) type).innerType());
                     items.add(idx, item);
                 }
-                return type.value(items);
+                return type.implicitCast(items);
             case ObjectType.ID:
-                return type.value(value.as(MAP_TYPE_LITERAL));
+                return type.implicitCast(value.as(MAP_TYPE_LITERAL));
             case GeoPointType.ID:
                 if (value.hasArrayElements()) {
-                    return type.value(toCrateObject(value, DataTypes.DOUBLE_ARRAY));
+                    return type.implicitCast(toCrateObject(value, DataTypes.DOUBLE_ARRAY));
                 } else {
-                    return type.value(value.asString());
+                    return type.implicitCast(value.asString());
                 }
             case GeoShapeType.ID:
                 if (value.isString()) {
-                    return type.value(value.asString());
+                    return type.implicitCast(value.asString());
                 } else {
-                    return type.value(value.as(MAP_TYPE_LITERAL));
+                    return type.implicitCast(value.as(MAP_TYPE_LITERAL));
                 }
             default:
                 final Object polyglotValue;
@@ -73,7 +73,7 @@ class PolyglotValuesConverter {
                 } else {
                     polyglotValue = value.asString();
                 }
-                return type.value(polyglotValue);
+                return type.implicitCast(polyglotValue);
         }
     }
 

@@ -62,7 +62,10 @@ public class MapComparator implements Comparator<Map> {
                 }
                 if (!thisValue.getClass().equals(otherValue.getClass())) {
                     DataType leftType = DataTypes.guessType(thisValue);
-                    int cmp = leftType.compare(leftType.value(thisValue), leftType.value(otherValue));
+                    int cmp = leftType.compare(
+                        thisValue,
+                        leftType.implicitCast(otherValue)
+                    );
                     if (cmp == 0) {
                         continue;
                     }

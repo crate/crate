@@ -69,7 +69,7 @@ public class SessionSettingRegistry {
                              throw new IllegalArgumentException(HASH_JOIN_KEY + " should have only one argument.");
                          }
                      },
-                     objects -> DataTypes.BOOLEAN.value(objects[0]),
+                     objects -> DataTypes.BOOLEAN.implicitCast(objects[0]),
                      SessionContext::setHashJoinEnabled,
                      s -> Boolean.toString(s.hashJoinsEnabled()),
                      () -> String.valueOf(true),
@@ -130,7 +130,7 @@ public class SessionSettingRegistry {
     private static String[] objectsToStringArray(Object[] objects) {
         String[] strings = new String[objects.length];
         for (int i = 0; i < objects.length; i++) {
-            strings[i] = DataTypes.STRING.value(objects[i]);
+            strings[i] = DataTypes.STRING.implicitCast(objects[i]);
         }
         return strings;
     }

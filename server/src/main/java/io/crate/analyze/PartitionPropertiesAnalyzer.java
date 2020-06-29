@@ -56,7 +56,7 @@ public class PartitionPropertiesAnalyzer {
 
         int idx = 0;
         for (Object o : properties.values()) {
-            values[idx++] = DataTypes.STRING.value(o);
+            values[idx++] = DataTypes.STRING.implicitCast(o);
         }
         return new PartitionName(relationName, List.of(values));
     }
@@ -83,8 +83,8 @@ public class PartitionPropertiesAnalyzer {
             int idx = tableInfo.partitionedBy().indexOf(entry.getKey());
             try {
                 Reference reference = tableInfo.partitionedByColumns().get(idx);
-                Object converted = reference.valueType().value(value);
-                values[idx] = DataTypes.STRING.value(converted);
+                Object converted = reference.valueType().implicitCast(value);
+                values[idx] = DataTypes.STRING.implicitCast(converted);
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "\"%s\" is no known partition column", entry.getKey().sqlFqn()));

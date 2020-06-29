@@ -115,7 +115,12 @@ public final class GeneratedColumns<T> {
 
             //noinspection unchecked
             DataType<Object> dataType = (DataType<Object>) ref.valueType();
-            if (Comparator.nullsFirst(dataType).compare(dataType.value(generatedValue), dataType.value(providedValue)) != 0) {
+            if (Comparator
+                    .nullsFirst(dataType)
+                    .compare(
+                        dataType.sanitizeValue(generatedValue),
+                        dataType.sanitizeValue(providedValue)
+                    ) != 0) {
                 throw new IllegalArgumentException(
                     "Given value " + providedValue +
                     " for generated column " + ref.column() +

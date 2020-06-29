@@ -93,7 +93,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
             String columnName = columnInfo.v1().sqlFqn();
             Object value = partitionName.values().get(i);
             if (!columnInfo.v2().equals(DataTypes.STRING)) {
-                value = columnInfo.v2().value(value);
+                value = columnInfo.v2().implicitCast(value);
             }
             valuesMap.put(columnName, value);
             i++;

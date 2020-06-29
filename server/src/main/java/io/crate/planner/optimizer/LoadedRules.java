@@ -102,7 +102,7 @@ public class LoadedRules implements SessionSettingProvider {
         return new SessionSetting<>(
             optimizerRuleName,
             objects -> { },
-            objects -> DataTypes.BOOLEAN.value(objects[0]),
+            objects -> DataTypes.BOOLEAN.sanitizeValue(objects[0]),
             (sessionContext, enabled) -> rule.setEnabled(enabled),
             s -> String.valueOf(rule.isEnabled()),
             () -> String.valueOf(true),

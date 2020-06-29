@@ -31,7 +31,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.TimestampType;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.Rounding;
 import org.joda.time.DateTimeZone;
@@ -180,10 +179,11 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             if (interval == null) {
                 return null;
             }
-            return truncate(rounding(interval, timeZone),
-                TimestampType.INSTANCE_WITH_TZ.value(value));
+            return truncate(
+                rounding(interval, timeZone),
+                DataTypes.TIMESTAMPZ.sanitizeValue(value));
         }
-        return truncate(tzRounding, TimestampType.INSTANCE_WITH_TZ.value(value));
+        return truncate(tzRounding, DataTypes.TIMESTAMPZ.sanitizeValue(value));
     }
 
     private Rounding rounding(String interval, String timeZoneString) {

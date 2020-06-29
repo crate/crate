@@ -113,7 +113,7 @@ public class OptionParser {
         if (transpositions == null) {
             return false;
         }
-        return BooleanType.INSTANCE.value(transpositions);
+        return BooleanType.INSTANCE.implicitCast(transpositions);
     }
 
     @Nullable

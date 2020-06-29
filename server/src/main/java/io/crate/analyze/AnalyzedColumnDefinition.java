@@ -337,7 +337,7 @@ public class AnalyzedColumnDefinition<T> {
                 throw new IllegalArgumentException("array literal not allowed for the analyzer property");
             }
 
-            String analyzerName = StringType.INSTANCE.value(definition.analyzer);
+            String analyzerName = DataTypes.STRING.sanitizeValue(definition.analyzer);
             if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzerName)) {
                 Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzerName);
                 definition.analyzerSettings(settings);
@@ -457,7 +457,7 @@ public class AnalyzedColumnDefinition<T> {
                 break;
             case StringType.ID:
                 if (definition.analyzer != null) {
-                    mapping.put("analyzer", DataTypes.STRING.value(definition.analyzer));
+                    mapping.put("analyzer", DataTypes.STRING.sanitizeValue(definition.analyzer));
                 }
                 var stringType = (StringType) definition.dataType;
                 if (!stringType.unbound()) {

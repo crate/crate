@@ -78,7 +78,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
             for (Reference partitionedInfo : info.partitionedByColumns()) {
                 builder.put(
                     partitionedInfo.column(),
-                    constant(partitionedInfo.valueType().value(partitionValue.get(i)))
+                    constant(partitionedInfo.valueType().implicitCast(partitionValue.get(i)))
                 );
                 i++;
             }

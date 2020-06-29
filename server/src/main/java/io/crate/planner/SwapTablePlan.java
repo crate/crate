@@ -60,13 +60,14 @@ public class SwapTablePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        boolean dropSource = Objects.requireNonNull(DataTypes.BOOLEAN.value(SymbolEvaluator.evaluate(
-            plannerContext.transactionContext(),
-            dependencies.functions(),
-            swapTable.dropSource(),
-            params,
-            subQueryResults
-        )), SwapTableAnalyzer.DROP_SOURCE + " option must be true or false, not null");
+        boolean dropSource = Objects.requireNonNull(
+            DataTypes.BOOLEAN.sanitizeValue(SymbolEvaluator.evaluate(
+                plannerContext.transactionContext(),
+                dependencies.functions(),
+                swapTable.dropSource(),
+                params,
+                subQueryResults
+            )), SwapTableAnalyzer.DROP_SOURCE + " option must be true or false, not null");
 
         RelationName source = swapTable.source().ident();
         SwapRelationsRequest request = new SwapRelationsRequest(

@@ -125,7 +125,7 @@ public class SysClusterTableInfo {
             settingsBuilder.add(
                 leaf.name,
                 valueType,
-                x -> valueType.value(crateSetting.setting().get(crateSettings.settings()))
+                x -> valueType.implicitCast(crateSetting.setting().get(crateSettings.settings()))
             );
         } else {
             var node = (Node<CrateSetting<?>>) element;

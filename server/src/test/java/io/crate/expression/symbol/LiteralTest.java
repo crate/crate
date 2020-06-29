@@ -62,8 +62,14 @@ public class LiteralTest extends CrateUnitTest {
 
     @Test
     public void testHashCodeIsEqualOnArrayValues() throws Exception {
-        Literal<Point> l1 = Literal.newGeoPoint(new Double[]{10.0, 20.2});
-        Literal<Point> l2 = Literal.newGeoPoint(new Double[]{10.0, 20.2});
+        Literal<Point> l1 = new Literal<>(
+            DataTypes.GEO_POINT,
+            DataTypes.GEO_POINT.implicitCast(new Double[]{10.0, 20.2})
+        );
+        Literal<Point> l2 = new Literal<>(
+            DataTypes.GEO_POINT,
+            DataTypes.GEO_POINT.implicitCast(new Double[]{10.0, 20.2})
+        );
         assertThat(l1.hashCode(), is(l2.hashCode()));
     }
 

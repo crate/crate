@@ -48,7 +48,7 @@ public final class CeilFunction {
                             signature,
                             boundSignature,
                             type,
-                            x -> returnType.value(Math.ceil(((Number) x).doubleValue()))
+                            x -> returnType.sanitizeValue(Math.ceil(((Number) x).doubleValue()))
                         )
                 );
             }

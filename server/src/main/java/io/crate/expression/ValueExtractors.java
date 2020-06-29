@@ -61,7 +61,7 @@ public final class ValueExtractors {
     }
 
     public static Function<Map<String, Object>, Object> fromMap(ColumnIdent column, DataType<?> type) {
-        return map -> type.value(fromMap(map, column));
+        return map -> type.implicitCast(fromMap(map, column));
     }
 
     public static Function<Row, Object> fromRow(int idx, List<String> subscript) {

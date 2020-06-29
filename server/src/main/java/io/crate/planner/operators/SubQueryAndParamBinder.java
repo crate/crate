@@ -63,7 +63,7 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
     @Override
     public Symbol visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
         Object value = subQueryResults.getSafe(selectSymbol);
-        return Literal.ofUnchecked(selectSymbol.valueType(), selectSymbol.valueType().value(value));
+        return Literal.ofUnchecked(selectSymbol.valueType(), selectSymbol.valueType().sanitizeValue(value));
     }
 
     @Override
@@ -87,6 +87,6 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
         if (type.equals(DataTypes.UNDEFINED)) {
             type = DataTypes.guessType(value);
         }
-        return Literal.ofUnchecked(type, type.value(value));
+        return Literal.ofUnchecked(type, type.implicitCast(value));
     }
 }

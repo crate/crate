@@ -83,7 +83,7 @@ public class DeletePartitions implements Plan {
     ArrayList<String> getIndices(TransactionContext txnCtx, Functions functions, Row parameters, SubQueryResults subQueryResults) {
         ArrayList<String> indexNames = new ArrayList<>();
         Function<Symbol, String> symbolToString =
-            s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(txnCtx, functions, s, parameters, subQueryResults));
+            s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, functions, s, parameters, subQueryResults));
         for (List<Symbol> partitionValues : partitions) {
             List<String> values = Lists2.map(partitionValues, symbolToString);
             String indexName = IndexParts.toIndexName(relationName, PartitionName.encodeIdent(values));
