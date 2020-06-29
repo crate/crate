@@ -132,6 +132,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("select * from sys.snapshots where name = ?", new Object[]{snapshotName});
         assertThat(response.rowCount(), is(0L));
+        assertAllRepoSnapshotFilesAreDeleted(defaultRepositoryLocation);
     }
 
     @Test
@@ -558,6 +559,13 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         assertThat(response.rows()[0][0], is("SUCCESS"));
         assertThat(response.rows()[0][1], is(1));
+    }
+
+    private static void assertAllRepoSnapshotFilesAreDeleted(File location) {
+        //Make sure the file location does not consist of any .dat file
+        for (var file : location.listFiles()) {
+            assertThat(file.getName().endsWith(".dat"), is(false));
+        }
     }
 
     private RepositoryData getRepositoryData() throws Exception {
