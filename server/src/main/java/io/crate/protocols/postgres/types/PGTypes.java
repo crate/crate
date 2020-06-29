@@ -106,6 +106,7 @@ public class PGTypes {
         // the below is added manually as currently we do not want to expose this type to crateDB
         // we merely need this type information in 'pg_types' static table for postgres compatibility
         TYPES.add(VarCharType.NameType.INSTANCE);
+        TYPES.add(OidType.INSTANCE);
     }
 
     public static Iterable<PGType> pgTypes() {
