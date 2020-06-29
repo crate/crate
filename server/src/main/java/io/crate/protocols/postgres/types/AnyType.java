@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
 import javax.annotation.Nonnull;
@@ -59,6 +60,11 @@ public class AnyType extends PGType<Integer> {
         buffer.writeInt(TYPE_LEN);
         buffer.writeInt(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of(0, "-");
     }
 
     @Override
