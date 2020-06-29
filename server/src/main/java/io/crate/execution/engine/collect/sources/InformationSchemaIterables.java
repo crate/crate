@@ -51,7 +51,9 @@ import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
+import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -160,20 +162,39 @@ public class InformationSchemaIterables implements ClusterStateListener {
             .flatMap(List::stream)
             .map(this::pgProc)
             .iterator();
-        pgTypeReceiveFunctions = () -> sequentialStream(PGTypes.pgTypes())
-            .filter(pgType -> PGTypes.fromOID(pgType.oid()) != null)
-            .map(
-                type -> Signature.scalar(
-                    type.typName() + "recv",
-                    Objects.requireNonNullElse(
-                        PGTypes.fromOID(type.oid()),
-                        DataTypes.UNDEFINED
-                    ).getTypeSignature()
+
+        pgTypeReceiveFunctions = () ->
+            Stream.concat(
+                sequentialStream(PGTypes.pgTypes())
+                    .filter(t -> t.typArray() != 0)
+                    .map(InformationSchemaIterables::typeToSignature)
+                    .map(PgProcTable.Entry::of),
+
+                // Don't generate array_recv entry from pgTypes to avoid duplicate entries
+                // (We want 1 array_recv entry, not one per array type)
+                Stream.of(
+                    PgProcTable.Entry.of(
+                        Signature.scalar(
+                            "array_recv",
+                            DataTypes.INTEGER.getTypeSignature(),
+                            new ArrayType<>(DataTypes.UNDEFINED).getTypeSignature()
+                        )
+                    )
                 )
             )
-            .map(PgProcTable.Entry::of)
             .iterator();
     }
+
+    private static Signature typeToSignature(PGType<?> type) {
+        return Signature.scalar(
+            type.typReceive().name(),
+            Objects.requireNonNullElse(
+                PGTypes.fromOID(type.oid()),
+                DataTypes.UNDEFINED
+            ).getTypeSignature()
+        );
+    }
+
 
     private boolean isPrimaryKey(RelationInfo relationInfo) {
         return (relationInfo.primaryKey().size() > 1 ||

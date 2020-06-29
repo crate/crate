@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -110,6 +111,30 @@ public abstract class PGType<T> {
 
     public String typName() {
         return typName;
+    }
+
+    public Regproc typInput() {
+        if (typArray() == 0) {
+            return Regproc.of("array_in");
+        } else {
+            return Regproc.of(typName() + "_in");
+        }
+    }
+
+    public Regproc typOutput() {
+        if (typArray() == 0) {
+            return Regproc.of("array_out");
+        } else {
+            return Regproc.of(typName() + "_out");
+        }
+    }
+
+    public Regproc typReceive() {
+        if (typArray() == 0) {
+            return Regproc.of("array_recv");
+        } else {
+            return Regproc.of(typName() + "recv");
+        }
     }
 
     public int typElem() {

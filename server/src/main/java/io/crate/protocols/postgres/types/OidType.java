@@ -22,59 +22,55 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.types.Regproc;
-import io.netty.buffer.ByteBuf;
-
-import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-public class AnyType extends PGType<Integer> {
-    // we represent the any data type as integer,
-    // because the postgresql typalign of any is integer.
+import io.netty.buffer.ByteBuf;
 
-    public static final AnyType INSTANCE = new AnyType();
+public class OidType extends PGType<Integer> {
+
+    public static final OidType INSTANCE = new OidType();
+
+    static final int OID = 26;
+
     private static final int TYPE_LEN = 4;
-    static final int OID = 2276;
+    private static final int TYPE_MOD = -1;
 
-    private AnyType() {
-        super(OID, TYPE_LEN, -1, "any");
+    OidType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "oid");
     }
 
     @Override
     public int typArray() {
-        return 0;
-    }
-
-    @Override
-    public String type() {
-        return Type.PSEUDO.code();
+        return PGArray.OID_ARRAY.oid();
     }
 
     @Override
     public String typeCategory() {
-        return TypeCategory.PSEUDO.code();
+        return TypeCategory.NUMERIC.code();
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Integer value) {
+    public String type() {
+        return Type.BASE.code();
+    }
+
+    @Override
+    public int writeAsBinary(ByteBuf buffer, Integer value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeInt(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    public Regproc typReceive() {
-        return Regproc.of(0, "-");
-    }
-
-    @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Integer value) {
-        return Integer.toString(value).getBytes(StandardCharsets.UTF_8);
-    }
-
-    @Override
     public Integer readBinaryValue(ByteBuf buffer, int valueLength) {
+        assert valueLength == TYPE_LEN
+            : "length should be " + TYPE_LEN + " because oid is int32. Actual length: " + valueLength;
         return buffer.readInt();
+    }
+
+    @Override
+    byte[] encodeAsUTF8Text(Integer value) {
+        return Integer.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

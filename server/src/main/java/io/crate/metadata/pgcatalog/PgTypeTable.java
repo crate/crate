@@ -22,18 +22,16 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.protocols.postgres.types.PGType;
-import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.types.Regproc;
-
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.REGPROC;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
+
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.protocols.postgres.types.PGType;
 
 public class PgTypeTable {
 
@@ -64,31 +62,10 @@ public class PgTypeTable {
             .add("typtypmod", INTEGER, c -> -1)
             .add("typnamespace", INTEGER, c -> TYPE_NAMESPACE_OID)
             .add("typarray", INTEGER, PGType::typArray)
-            .add("typinput", REGPROC, t -> {
-                if (t.typArray() == 0) {
-                    return Regproc.of("array_in");
-                } else {
-                    return regprocForMetaFunction(t, "_in");
-                }
-            })
-            .add("typoutput", REGPROC, t -> {
-                if (t.typArray() == 0) {
-                    return Regproc.of("array_out");
-                } else {
-                    return regprocForMetaFunction(t, "_out");
-                }
-            })
-            .add("typreceive", REGPROC, t -> regprocForMetaFunction(t, "recv"))
+            .add("typinput", REGPROC, PGType::typInput)
+            .add("typoutput", REGPROC, PGType::typOutput)
+            .add("typreceive", REGPROC, PGType::typReceive)
             .add("typnotnull", BOOLEAN, c -> false)
             .build();
-    }
-
-    private static Regproc regprocForMetaFunction(PGType<?> type,
-                                                  String suffix) {
-        if (PGTypes.fromOID(type.oid()) != null) {
-            return Regproc.of(type.typName() + suffix);
-        } else {
-            return Regproc.of(0, "0");
-        }
     }
 }
