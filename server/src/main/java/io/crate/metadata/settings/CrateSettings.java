@@ -28,7 +28,6 @@ import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.settings.CrateSetting;
 import io.crate.statistics.TableStatsService;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 import org.apache.logging.log4j.LogManager;
@@ -225,8 +224,7 @@ public final class CrateSettings implements ClusterStateListener {
                 "Cannot set \"" + key + "\" to `null`. Use `RESET [GLOBAL] \"" + key +
                 "\"` to reset a setting to its default value");
         } else if (value instanceof List) {
-            ArrayType<String> strArray = new ArrayType<>(DataTypes.STRING);
-            List<String> values = strArray.value(value);
+            List<String> values = DataTypes.STRING_ARRAY.sanitizeValue(value);
             settingsBuilder.put(key, String.join(",", values));
         } else {
             settingsBuilder.put(key, value.toString());

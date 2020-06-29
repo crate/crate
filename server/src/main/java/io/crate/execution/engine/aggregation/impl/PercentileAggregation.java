@@ -103,7 +103,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
             Object fractionValue = args[1].value();
             initState(state, fractionValue);
         }
-        Double value = DataTypes.DOUBLE.value(args[0].value());
+        Double value = DataTypes.DOUBLE.sanitizeValue(args[0].value());
         if (value != null) {
             state.add(value);
         }
@@ -119,7 +119,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                 }
                 state.fractions(toDoubleArray(values));
             } else {
-                state.fractions(new double[]{DataTypes.DOUBLE.value(argValue)});
+                state.fractions(new double[]{DataTypes.DOUBLE.sanitizeValue(argValue)});
             }
         }
     }
@@ -127,7 +127,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     private static double[] toDoubleArray(List values) {
         double[] result = new double[values.size()];
         for (int i = 0; i < values.size(); i++) {
-            result[i] = DataTypes.DOUBLE.value(values.get(i));
+            result[i] = DataTypes.DOUBLE.sanitizeValue(values.get(i));
         }
         return result;
     }

@@ -66,9 +66,9 @@ public class KillAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnalyzeKillJobWithParameter() {
         UUID jobId = UUID.randomUUID();
-        assertThat(analyze("KILL $2", 2, jobId), is(jobId));
-        assertThat(analyze("KILL $1", jobId), is(jobId));
-        assertThat(analyze("KILL ?", jobId), is(jobId));
+        assertThat(analyze("KILL $2", 2, jobId.toString()), is(jobId));
+        assertThat(analyze("KILL $1", jobId.toString()), is(jobId));
+        assertThat(analyze("KILL ?", jobId.toString()), is(jobId));
     }
 
     @Test

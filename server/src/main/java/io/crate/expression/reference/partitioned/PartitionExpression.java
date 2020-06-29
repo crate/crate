@@ -39,7 +39,7 @@ public class PartitionExpression implements NestableCollectExpression<PartitionN
     @Override
     public void setNextRow(PartitionName row) {
         assert row != null : "row shouldn't be null for PartitionExpression";
-        value = ref.valueType().value(row.values().get(valuesIndex));
+        value = ref.valueType().implicitCast(row.values().get(valuesIndex));
     }
 
     @Override

@@ -91,6 +91,6 @@ public final class DecommissionNodePlan implements Plan {
             parameters,
             subQueryResults
         );
-        return DataTypes.STRING.value(boundedNodeIdOrName);
+        return DataTypes.STRING.sanitizeValue(boundedNodeIdOrName);
     }
 }

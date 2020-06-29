@@ -85,7 +85,7 @@ public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> 
         }
         var limitSymbol = limit.limit();
         if (limitSymbol instanceof Literal) {
-            var limitVal = DataTypes.INTEGER.value(((Literal<?>) limitSymbol).value());
+            var limitVal = DataTypes.INTEGER.sanitizeValue(((Literal<?>) limitSymbol).value());
             // Would consume all source rows -> prefer default group by implementation which has other optimizations
             // which are more beneficial in this scenario
             if (limitVal > groupAggregate.numExpectedRows()) {

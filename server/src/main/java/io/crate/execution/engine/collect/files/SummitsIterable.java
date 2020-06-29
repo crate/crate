@@ -76,7 +76,7 @@ public class SummitsIterable implements Iterable<SummitsContext> {
 
     @Nullable
     private static Point safeParseCoordinates(String value) {
-        return value.isEmpty() ? null : DataTypes.GEO_POINT.value(value);
+        return value.isEmpty() ? null : DataTypes.GEO_POINT.implicitCast(value);
     }
 
     @Override

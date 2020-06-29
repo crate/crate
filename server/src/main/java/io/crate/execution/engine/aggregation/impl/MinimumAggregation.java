@@ -107,7 +107,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         @Override
         public Object partialResult(MutableLong state) {
             if (state.hasValue()) {
-                return partialType.value(state.value());
+                return partialType.sanitizeValue(state.value());
             } else {
                 return null;
             }
@@ -149,7 +149,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         @Override
         public Object partialResult(MutableDouble state) {
             if (state.hasValue()) {
-                return partialType.value(state.value());
+                return partialType.sanitizeValue(state.value());
             } else {
                 return null;
             }

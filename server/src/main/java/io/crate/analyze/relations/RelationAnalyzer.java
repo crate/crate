@@ -530,7 +530,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private static Symbol getByPosition(List<Symbol> outputSymbols, Literal<?> ordinal, String clause) {
         Integer ord;
         try {
-            ord = DataTypes.INTEGER.value(ordinal.value());
+            ord = DataTypes.INTEGER.sanitizeValue(ordinal.value());
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,

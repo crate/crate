@@ -63,7 +63,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return idFunction.apply(
                 LazyMapList.of(
                     key.subList(0, width),
-                    s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(txnCtx, functions, s, params, subQueryResults))
+                    s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, functions, s, params, subQueryResults))
                 )
             );
         }
@@ -71,7 +71,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         public Optional<Long> version(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
             if (withVersions && key.get(width) != null) {
                 Object val = SymbolEvaluator.evaluate(txnCtx, functions, key.get(width), params, subQueryResults);
-                return Optional.of(LongType.INSTANCE.value(val));
+                return Optional.of(DataTypes.LONG.sanitizeValue(val));
             }
             return Optional.empty();
         }
@@ -79,7 +79,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         public Optional<Long> sequenceNo(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
             if (withSequenceVersioning && key.get(width) != null) {
                 Object val = SymbolEvaluator.evaluate(txnCtx, functions, key.get(width), params, subQueryResults);
-                return Optional.of(LongType.INSTANCE.value(val));
+                return Optional.of(LongType.INSTANCE.sanitizeValue(val));
             }
             return Optional.empty();
         }
@@ -87,7 +87,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         public Optional<Long> primaryTerm(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
             if (withSequenceVersioning && key.get(width + 1) != null) {
                 Object val = SymbolEvaluator.evaluate(txnCtx, functions, key.get(width + 1), params, subQueryResults);
-                return Optional.of(LongType.INSTANCE.value(val));
+                return Optional.of(LongType.INSTANCE.sanitizeValue(val));
             }
             return Optional.empty();
         }
@@ -102,7 +102,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             }
             return Lists2.map(
                 partitionIdx,
-                pIdx -> DataTypes.STRING.value(SymbolEvaluator.evaluate(txnCtx, functions, key.get(pIdx), params, subQueryResults)));
+                pIdx -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, functions, key.get(pIdx), params, subQueryResults)));
 
         }
 

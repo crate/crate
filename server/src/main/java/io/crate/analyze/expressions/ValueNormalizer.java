@@ -175,7 +175,7 @@ public final class ValueNormalizer {
             return primitiveValue;
         }
         try {
-            return info.valueType().value(primitiveValue);
+            return info.valueType().sanitizeValue(primitiveValue);
         } catch (Exception e) {
             throw new ColumnValidationException(
                 info.column().sqlFqn(),

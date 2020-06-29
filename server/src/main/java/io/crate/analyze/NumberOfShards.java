@@ -44,21 +44,17 @@ public class NumberOfShards {
 
     public int fromClusteredByClause(ClusteredBy<Object> clusteredBy) {
         Optional<Object> numberOfShards = clusteredBy.numberOfShards();
-        if (numberOfShards.isPresent()) {
-            Object value = numberOfShards.get();
-            int numShards;
-            try {
-                numShards = DataTypes.INTEGER.value(value);
-            } catch (NumberFormatException e) {
+        return numberOfShards.map(rawNumOfShards -> {
+            if (!(rawNumOfShards instanceof Number)) {
                 throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "invalid number '%s'", value), e);
+                    String.format(Locale.ENGLISH, "invalid number '%s'", rawNumOfShards));
             }
+            var numShards = DataTypes.INTEGER.sanitizeValue(rawNumOfShards);
             if (numShards < 1) {
                 throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
             }
             return numShards;
-        }
-        return defaultNumberOfShards();
+        }).orElse(defaultNumberOfShards());
     }
 
     public int defaultNumberOfShards() {

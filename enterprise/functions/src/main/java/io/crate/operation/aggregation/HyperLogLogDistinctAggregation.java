@@ -111,7 +111,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         if (state.isInitialized() == false) {
             int precision = HyperLogLogPlusPlus.DEFAULT_PRECISION;
             if (args.length > 1) {
-                precision = DataTypes.INTEGER.value(args[1].value());
+                precision = DataTypes.INTEGER.sanitizeValue(args[1].value());
             }
             state.init(memoryManager, precision);
         }
@@ -326,7 +326,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
             @Override
             long hash(Object val) {
-                return BitMixer.mix64(DataTypes.LONG.value(val));
+                return BitMixer.mix64(DataTypes.LONG.sanitizeValue(val));
             }
         }
 
@@ -336,7 +336,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
             @Override
             long hash(Object val) {
-                return BitMixer.mix64(java.lang.Double.doubleToLongBits(DataTypes.DOUBLE.value(val)));
+                return BitMixer.mix64(
+                    java.lang.Double.doubleToLongBits(DataTypes.DOUBLE.sanitizeValue(val)));
             }
         }
 
@@ -346,7 +347,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
             @Override
             long hash(Object val) {
-                byte[] bytes = DataTypes.STRING.value(val).getBytes(StandardCharsets.UTF_8);
+                byte[] bytes = DataTypes.STRING.implicitCast(val).getBytes(StandardCharsets.UTF_8);
                 return MurmurHash3.hash64(bytes, bytes.length);
             }
         }
@@ -357,7 +358,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
             @Override
             long hash(Object val) {
-                byte[] bytes = DataTypes.STRING.value(val).getBytes(StandardCharsets.UTF_8);
+                byte[] bytes = DataTypes.STRING.implicitCast(val).getBytes(StandardCharsets.UTF_8);
                 MurmurHash3.hash128(bytes, 0, bytes.length, 0, hash);
                 return hash.h1;
             }

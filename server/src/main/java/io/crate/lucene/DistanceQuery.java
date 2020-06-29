@@ -65,7 +65,7 @@ class DistanceQuery implements InnerFunctionToQuery {
             // must be something like eq(distance(..), non-literal) - fallback to genericFunction
             return null;
         }
-        Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
+        Double distance = DataTypes.DOUBLE.implicitCast(functionLiteralPair.input().value());
 
         String parentName = functionLiteralPair.functionName();
         Input geoPointInput = distanceRefLiteral.literal();

@@ -40,12 +40,20 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate(
             "within(geopoint, geoshape)",
             null,
-            Literal.newGeoPoint(null), Literal.newGeoShape("POINT (10 10)")
+            Literal.of(DataTypes.GEO_POINT, null),
+            Literal.of(
+                DataTypes.GEO_POINT,
+                DataTypes.GEO_POINT.implicitCast("POINT (10 10)")
+            )
         );
         assertEvaluate(
             "within(geopoint, geoshape)",
             null,
-            Literal.newGeoPoint("POINT (10 10)"), Literal.newGeoShape(null)
+            Literal.of(
+                DataTypes.GEO_POINT,
+                DataTypes.GEO_POINT.implicitCast("POINT (10 10)")
+            ),
+            Literal.of(DataTypes.GEO_SHAPE, null)
         );
     }
 

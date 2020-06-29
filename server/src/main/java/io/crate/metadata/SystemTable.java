@@ -215,7 +215,11 @@ public final class SystemTable<T> implements TableInfo {
 
         @Override
         public void addExpression(HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions) {
-            expressions.put(column, () -> new MapLookupByPathExpression<>(getProperty, List.of(), leafType::value));
+            expressions.put(column, () -> new MapLookupByPathExpression<>(
+                getProperty,
+                List.of(),
+                leafType::implicitCast)
+            );
         }
     }
 

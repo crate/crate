@@ -66,7 +66,7 @@ class VarCharType extends PGType<Object> {
 
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        byte[] bytes = DataTypes.STRING.value(value).getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = DataTypes.STRING.implicitCast(value).getBytes(StandardCharsets.UTF_8);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
         return INT32_BYTE_SIZE + bytes.length;
@@ -79,7 +79,7 @@ class VarCharType extends PGType<Object> {
 
     @Override
     protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        return DataTypes.STRING.value(value).getBytes(StandardCharsets.UTF_8);
+        return DataTypes.STRING.implicitCast(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

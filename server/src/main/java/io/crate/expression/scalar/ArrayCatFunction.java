@@ -82,7 +82,7 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
                 continue;
             }
             for (Object value : values) {
-                resultList.add(innerType.value(value));
+                resultList.add(innerType.sanitizeValue(value));
             }
         }
         return resultList;

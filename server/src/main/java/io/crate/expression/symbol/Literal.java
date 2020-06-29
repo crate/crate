@@ -31,7 +31,6 @@ import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.Period;
-import org.locationtech.spatial4j.shape.Point;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -109,11 +108,11 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
                 }
             }
             // lets do the expensive "deep" map value conversion only after everything else succeeded
-            Map<String, Object> safeValue = objectType.value(value);
+            Map<String, Object> safeValue = objectType.sanitizeValue(value);
             return safeValue.size() == mapValue.size();
         }
 
-        return Objects.equals(type.value(value), value);
+        return Objects.equals(type.sanitizeValue(value), value);
     }
 
     @Override
@@ -223,13 +222,5 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
 
     public static Literal<Period> newInterval(Period value) {
         return new Literal<>(DataTypes.INTERVAL, value);
-    }
-
-    public static Literal<Point> newGeoPoint(Object point) {
-        return new Literal<>(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value(point));
-    }
-
-    public static Literal<Map<String, Object>> newGeoShape(String value) {
-        return new Literal<>(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value(value));
     }
 }
