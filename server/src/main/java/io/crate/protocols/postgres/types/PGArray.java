@@ -37,6 +37,7 @@ public class PGArray extends PGType<List<Object>> {
     static final PGArray CHAR_ARRAY = new PGArray(1002, CharType.INSTANCE);
     static final PGArray INT2_ARRAY = new PGArray(1005, SmallIntType.INSTANCE);
     static final PGArray INT4_ARRAY = new PGArray(1007, IntegerType.INSTANCE);
+    static final PGArray OID_ARRAY = new PGArray(1028, OidType.INSTANCE);
     static final PGArray INT8_ARRAY = new PGArray(1016, BigIntType.INSTANCE);
     static final PGArray FLOAT4_ARRAY = new PGArray(1021, RealType.INSTANCE);
     static final PGArray FLOAT8_ARRAY = new PGArray(1022, DoubleType.INSTANCE);
