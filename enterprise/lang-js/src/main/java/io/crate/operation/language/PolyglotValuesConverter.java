@@ -30,6 +30,7 @@ import org.graalvm.polyglot.Value;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.function.Function;
 
 class PolyglotValuesConverter {
 
@@ -40,27 +41,28 @@ class PolyglotValuesConverter {
         if (value == null) {
             return null;
         }
+        Function<Object, ?> convert = type::implicitCast;
         switch (type.id()) {
             case ArrayType.ID:
                 ArrayList<Object> items = new ArrayList<>((int) value.getArraySize());
                 for (int idx = 0; idx < value.getArraySize(); idx++) {
-                    var item = toCrateObject(value.getArrayElement(idx), ((ArrayType) type).innerType());
+                    var item = toCrateObject(value.getArrayElement(idx), ((ArrayType<?>) type).innerType());
                     items.add(idx, item);
                 }
-                return type.value(items);
+                return convert.apply(items);
             case ObjectType.ID:
-                return type.value(value.as(MAP_TYPE_LITERAL));
+                return convert.apply(value.as(MAP_TYPE_LITERAL));
             case GeoPointType.ID:
                 if (value.hasArrayElements()) {
-                    return type.value(toCrateObject(value, DataTypes.DOUBLE_ARRAY));
+                    return convert.apply(toCrateObject(value, DataTypes.DOUBLE_ARRAY));
                 } else {
-                    return type.value(value.asString());
+                    return convert.apply(value.asString());
                 }
             case GeoShapeType.ID:
                 if (value.isString()) {
-                    return type.value(value.asString());
+                    return convert.apply(value.asString());
                 } else {
-                    return type.value(value.as(MAP_TYPE_LITERAL));
+                    return convert.apply(value.as(MAP_TYPE_LITERAL));
                 }
             default:
                 final Object polyglotValue;
@@ -73,7 +75,7 @@ class PolyglotValuesConverter {
                 } else {
                     polyglotValue = value.asString();
                 }
-                return type.value(polyglotValue);
+                return convert.apply(polyglotValue);
         }
     }
 

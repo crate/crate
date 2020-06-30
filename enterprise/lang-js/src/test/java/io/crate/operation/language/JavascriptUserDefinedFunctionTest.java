@@ -69,8 +69,8 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     }
 
     private void registerUserDefinedFunction(String name,
-                                             DataType returnType,
-                                             List<DataType> types,
+                                             DataType<?> returnType,
+                                             List<DataType<?>> types,
                                              String definition) throws ScriptException {
         UserDefinedFunctionMetaData udf = new UserDefinedFunctionMetaData(
             Schemas.DOC_SCHEMA_NAME,
@@ -187,7 +187,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             DataTypes.IP,
             List.of(),
             "function f() { return \"127.0.0.1\"; }");
-        assertEvaluate("f()", DataTypes.IP.value("127.0.0.1"));
+        assertEvaluate("f()", DataTypes.IP.sanitizeValue("127.0.0.1"));
     }
 
     @Test
