@@ -64,7 +64,8 @@ statement
     | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
     | ALTER USER name=ident SET '(' genericProperties ')'                            #alterUser
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
-    | SET SESSION CHARACTERISTICS AS TRANSACTION setExpr (setExpr)*                  #setSessionTransactionMode
+    | SET SESSION CHARACTERISTICS AS TRANSACTION transactionMode (',' transactionMode)*  #setTransaction
+    | SET TRANSACTION transactionMode (',' transactionMode)*                             #setTransaction
     | SET (SESSION | LOCAL)? qname
         (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
     | SET GLOBAL (PERSISTENT | TRANSIENT)?

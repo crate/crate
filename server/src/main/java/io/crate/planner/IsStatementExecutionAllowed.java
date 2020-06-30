@@ -60,7 +60,6 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         }
         if (analyzedStatement instanceof AnalyzedSetStatement) {
             switch (((AnalyzedSetStatement) analyzedStatement).scope()) {
-                case SESSION_TRANSACTION_MODE:
                 case SESSION:
                 case LOCAL:
                     return true;

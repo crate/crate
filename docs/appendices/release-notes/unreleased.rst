@@ -234,6 +234,9 @@ Functions and operators
 New statements and clauses
 --------------------------
 
+- Extended the supported syntax for :ref:`SET TRANSACTION
+  <ref-set-transaction>`.
+
 - Added the :ref:`DISCARD <discard>` statement.
 
 - Added the :ref:`CHECK <check_constraint>` constraint syntax, which specifies

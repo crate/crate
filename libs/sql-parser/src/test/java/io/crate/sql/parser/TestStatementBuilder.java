@@ -108,6 +108,19 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testSetTransaction() throws Exception {
+        printStatement("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+        printStatement("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+        printStatement("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
+        printStatement("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
+        printStatement("SET TRANSACTION READ WRITE");
+        printStatement("SET TRANSACTION READ ONLY");
+        printStatement("SET TRANSACTION DEFERRABLE");
+        printStatement("SET TRANSACTION NOT DEFERRABLE");
+        printStatement("SET TRANSACTION READ WRITE, ISOLATION LEVEL SERIALIZABLE");
+    }
+
+    @Test
     public void test_analyze_statement_can_be_parsed() {
         printStatement("ANALYZE");
     }
