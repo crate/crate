@@ -47,6 +47,9 @@ import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.DiscardContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.IsolationLevelContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.SetTransactionContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.TransactionModeContext;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
@@ -175,6 +178,7 @@ import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.Select;
 import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.SetTransactionStatement;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.ShowSchemas;
@@ -204,6 +208,7 @@ import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
+import io.crate.sql.tree.SetTransactionStatement.TransactionMode;
 
 class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
@@ -689,11 +694,35 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitSetSessionTransactionMode(SqlBaseParser.SetSessionTransactionModeContext ctx) {
-        Assignment<Expression> assignment = new Assignment<>(
-            new StringLiteral("transaction_mode"),
-            visitCollection(ctx.setExpr(), Expression.class));
-        return new SetStatement<>(SetStatement.Scope.SESSION_TRANSACTION_MODE, assignment);
+    public Node visitSetTransaction(SetTransactionContext ctx) {
+        List<TransactionModeContext> transactionModeCtx = ctx.transactionMode();
+        List<TransactionMode> modes = Lists2.map(ctx.transactionMode(), AstBuilder::getTransactionMode);
+        return new SetTransactionStatement(modes);
+    }
+
+    private static TransactionMode getTransactionMode(TransactionModeContext transactionModeCtx) {
+        if (transactionModeCtx.ISOLATION() != null) {
+            IsolationLevelContext isolationLevel = transactionModeCtx.isolationLevel();
+            if (isolationLevel.COMMITTED() != null) {
+                return SetTransactionStatement.IsolationLevel.READ_COMMITTED;
+            } else if (isolationLevel.UNCOMMITTED() != null) {
+                return SetTransactionStatement.IsolationLevel.READ_UNCOMMITTED;
+            } else if (isolationLevel.REPEATABLE() != null) {
+                return SetTransactionStatement.IsolationLevel.REPEATABLE_READ;
+            } else {
+                return SetTransactionStatement.IsolationLevel.SERIALIZABLE;
+            }
+        } else if (transactionModeCtx.READ() != null) {
+            return SetTransactionStatement.ReadMode.READ_ONLY;
+        } else if (transactionModeCtx.WRITE() != null) {
+            return SetTransactionStatement.ReadMode.READ_WRITE;
+        } else if (transactionModeCtx.NOT() != null) {
+            return new SetTransactionStatement.Deferrable(true);
+        } else if (transactionModeCtx.DEFERRABLE() != null) {
+            return new SetTransactionStatement.Deferrable(false);
+        } else {
+            throw new IllegalStateException("Unexpected TransactionModeContext: " + transactionModeCtx);
+        }
     }
 
     @Override

@@ -1,5 +1,5 @@
 .. highlight:: psql
-.. _ref-set-transation:
+.. _ref-set-transaction:
 
 ===================
 ``SET TRANSACTION``
@@ -18,6 +18,14 @@ Synopsis
 ::
 
     SET SESSION CHARACTERISTICS AS TRANSACTION transaction_mode [, ...]
+    SET TRANSACTION transaction_mode [, ...]
+
+
+    where transaction_mode is one of:
+
+        ISOLATION LEVEL { SERIALIZABLE | REPEATABLE READ | READ COMMITTED | READ UNCOMMITTED }
+        READ WRITE | READ ONLY
+        [ NOT ] DEFERRABLE
 
 Description
 ===========

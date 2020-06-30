@@ -44,7 +44,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSetSessionTransactionModeIsNoopPlan() throws Exception {
-        Plan plan = e.plan("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ");
+        Plan plan = e.plan("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
         assertThat(plan, instanceOf(NoopPlan.class));
     }
 

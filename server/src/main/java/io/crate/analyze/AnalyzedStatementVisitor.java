@@ -240,4 +240,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitDiscard(AnalyzedDiscard discard, C context) {
         return visitAnalyzedStatement(discard, context);
     }
+
+    public R visitSetTransaction(AnalyzedSetTransaction setTransaction, C context) {
+        return visitAnalyzedStatement(setTransaction, context);
+    }
 }

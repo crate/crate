@@ -21,6 +21,11 @@
 
 package io.crate.analyze;
 
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.auth.user.UserManager;
@@ -79,6 +84,7 @@ import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
 import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.SetTransactionStatement;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.ShowSchemas;
@@ -88,10 +94,6 @@ import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 @Singleton
 public class Analyzer {
@@ -528,11 +530,17 @@ public class Analyzer {
                 context.sessionContext().searchPath());
         }
 
-        public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
+        @Override
+        public AnalyzedStatement visitSetStatement(SetStatement<?> node, Analysis context) {
             return setStatementAnalyzer.analyze(
                 (SetStatement<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitSetTransaction(SetTransactionStatement setTransaction, Analysis analysis) {
+            return new AnalyzedSetTransaction(setTransaction.transactionModes());
         }
 
         @Override

@@ -623,4 +623,8 @@ public abstract class AstVisitor<R, C> {
     public R visitDiscard(DiscardStatement discardStatement, C context) {
         return visitStatement(discardStatement, context);
     }
+
+    public R visitSetTransaction(SetTransactionStatement setTransactionStatement, C context) {
+        return visitStatement(setTransactionStatement, context);
+    }
 }
