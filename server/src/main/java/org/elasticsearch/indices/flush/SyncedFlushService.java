@@ -28,7 +28,7 @@ import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -124,8 +124,8 @@ public class SyncedFlushService implements IndexEventListener {
         final Map<String, List<ShardsSyncedFlushResult>> results = ConcurrentCollections.newConcurrentMap();
         int numberOfShards = 0;
         for (Index index : concreteIndices) {
-            final IndexMetaData indexMetaData = state.metaData().getIndexSafe(index);
-            numberOfShards += indexMetaData.getNumberOfShards();
+            final IndexMetadata indexMetadata = state.metadata().getIndexSafe(index);
+            numberOfShards += indexMetadata.getNumberOfShards();
             results.put(index.getName(), Collections.synchronizedList(new ArrayList<>()));
 
         }
@@ -137,10 +137,10 @@ public class SyncedFlushService implements IndexEventListener {
 
         for (final Index concreteIndex : concreteIndices) {
             final String index = concreteIndex.getName();
-            final IndexMetaData indexMetaData = state.metaData().getIndexSafe(concreteIndex);
-            final int indexNumberOfShards = indexMetaData.getNumberOfShards();
+            final IndexMetadata indexMetadata = state.metadata().getIndexSafe(concreteIndex);
+            final int indexNumberOfShards = indexMetadata.getNumberOfShards();
             for (int shard = 0; shard < indexNumberOfShards; shard++) {
-                final ShardId shardId = new ShardId(indexMetaData.getIndex(), shard);
+                final ShardId shardId = new ShardId(indexMetadata.getIndex(), shard);
                 innerAttemptSyncedFlush(shardId, state, new ActionListener<ShardsSyncedFlushResult>() {
                     @Override
                     public void onResponse(ShardsSyncedFlushResult syncedFlushResult) {
@@ -153,7 +153,7 @@ public class SyncedFlushService implements IndexEventListener {
                     @Override
                     public void onFailure(Exception e) {
                         LOGGER.debug("{} unexpected error while executing synced flush", shardId);
-                        final int totalShards = indexMetaData.getNumberOfReplicas() + 1;
+                        final int totalShards = indexMetadata.getNumberOfReplicas() + 1;
                         results.get(index).add(new ShardsSyncedFlushResult(shardId, totalShards, e.getMessage()));
                         if (countDown.countDown()) {
                             listener.onResponse(new SyncedFlushResponse(results));
@@ -285,8 +285,8 @@ public class SyncedFlushService implements IndexEventListener {
     final IndexShardRoutingTable getShardRoutingTable(ShardId shardId, ClusterState state) {
         final IndexRoutingTable indexRoutingTable = state.routingTable().index(shardId.getIndexName());
         if (indexRoutingTable == null) {
-            IndexMetaData index = state.getMetaData().index(shardId.getIndex());
-            if (index != null && index.getState() == IndexMetaData.State.CLOSE) {
+            IndexMetadata index = state.getMetadata().index(shardId.getIndex());
+            if (index != null && index.getState() == IndexMetadata.State.CLOSE) {
                 throw new IndexClosedException(shardId.getIndex());
             }
             throw new IndexNotFoundException(shardId.getIndexName());

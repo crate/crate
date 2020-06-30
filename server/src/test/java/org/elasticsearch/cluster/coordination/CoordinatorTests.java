@@ -35,14 +35,14 @@ import org.elasticsearch.cluster.ESAllocationTestCase;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.coordination.ClusterStatePublisher.AckListener;
-import org.elasticsearch.cluster.coordination.CoordinationMetaData.VotingConfiguration;
+import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.cluster.coordination.CoordinationState.PersistedState;
 import org.elasticsearch.cluster.coordination.Coordinator.Mode;
 import org.elasticsearch.cluster.coordination.CoordinatorTests.Cluster.ClusterNode;
 import org.elasticsearch.cluster.coordination.LinearizabilityChecker.History;
 import org.elasticsearch.cluster.coordination.LinearizabilityChecker.SequentialSpec;
 import org.elasticsearch.cluster.metadata.Manifest;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNode.Role;
 import org.elasticsearch.cluster.service.ClusterApplierService;
@@ -273,7 +273,7 @@ public class CoordinatorTests extends ESTestCase {
         logger.info("setting auto-shrink reconfiguration to true");
         leader.submitSetAutoShrinkVotingConfiguration(true);
         cluster.stabilise(DEFAULT_CLUSTER_STATE_UPDATE_DELAY);
-        assertTrue(CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION.get(leader.getLastAppliedClusterState().metaData().settings()));
+        assertTrue(CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION.get(leader.getLastAppliedClusterState().metadata().settings()));
 
         cluster.addNodesAndStabilise(2);
 
@@ -353,7 +353,7 @@ public class CoordinatorTests extends ESTestCase {
             logger.info("setting auto-shrink reconfiguration to false");
             leader.submitSetAutoShrinkVotingConfiguration(false);
             cluster.stabilise(DEFAULT_CLUSTER_STATE_UPDATE_DELAY);
-            assertFalse(CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION.get(leader.getLastAppliedClusterState().metaData().settings()));
+            assertFalse(CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION.get(leader.getLastAppliedClusterState().metadata().settings()));
         }
 
         final ClusterNode disconnect1 = cluster.getAnyNode();
@@ -375,7 +375,7 @@ public class CoordinatorTests extends ESTestCase {
         logger.info("setting auto-shrink reconfiguration to true");
         leader.submitSetAutoShrinkVotingConfiguration(true);
         cluster.stabilise(DEFAULT_CLUSTER_STATE_UPDATE_DELAY * 2); // allow for a reconfiguration
-        assertTrue(CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION.get(leader.getLastAppliedClusterState().metaData().settings()));
+        assertTrue(CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION.get(leader.getLastAppliedClusterState().metadata().settings()));
 
         {
             final VotingConfiguration lastCommittedConfiguration = leader.getLastAppliedClusterState().getLastCommittedConfiguration();
@@ -952,9 +952,9 @@ public class CoordinatorTests extends ESTestCase {
 
         final ClusterNode leader = cluster.getAnyLeader();
         leader.submitUpdateTask("update NO_MASTER_BLOCK_SETTING", cs -> {
-            final Builder settingsBuilder = Settings.builder().put(cs.metaData().persistentSettings());
+            final Builder settingsBuilder = Settings.builder().put(cs.metadata().persistentSettings());
             settingsBuilder.put(NO_MASTER_BLOCK_SETTING.getKey(), noMasterBlockSetting);
-            return ClusterState.builder(cs).metaData(MetaData.builder(cs.metaData()).persistentSettings(settingsBuilder.build())).build();
+            return ClusterState.builder(cs).metadata(Metadata.builder(cs.metadata()).persistentSettings(settingsBuilder.build())).build();
         }, (source, e) -> {});
         cluster.runFor(DEFAULT_CLUSTER_STATE_UPDATE_DELAY, "committing setting update");
 
@@ -1062,7 +1062,7 @@ public class CoordinatorTests extends ESTestCase {
         assertEquals(0, newNode.getLastAppliedClusterState().version());
 
         final ClusterNode detachedNode = newNode.restartedNode(
-            metaData -> DetachClusterCommand.updateMetaData(metaData),
+            metadata -> DetachClusterCommand.updateMetadata(metadata),
             term -> DetachClusterCommand.updateCurrentTerm(), newNode.nodeSettings);
         cluster1.clusterNodes.replaceAll(cn -> cn == newNode ? detachedNode : cn);
         cluster1.stabilise();
@@ -1745,14 +1745,14 @@ public class CoordinatorTests extends ESTestCase {
             }
 
             MockPersistedState(DiscoveryNode newLocalNode, MockPersistedState oldState,
-                               Function<MetaData, MetaData> adaptGlobalMetaData, Function<Long, Long> adaptCurrentTerm) {
+                               Function<Metadata, Metadata> adaptGlobalMetadata, Function<Long, Long> adaptCurrentTerm) {
                 try {
                     if (oldState.nodeEnvironment != null) {
                         nodeEnvironment = oldState.nodeEnvironment;
                         final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry());
-                        final MetaData updatedMetaData = adaptGlobalMetaData.apply(oldState.getLastAcceptedState().metaData());
-                        if (updatedMetaData != oldState.getLastAcceptedState().metaData()) {
-                            metaStateService.writeGlobalStateAndUpdateManifest("update global state", updatedMetaData);
+                        final Metadata updatedMetadata = adaptGlobalMetadata.apply(oldState.getLastAcceptedState().metadata());
+                        if (updatedMetadata != oldState.getLastAcceptedState().metadata()) {
+                            metaStateService.writeGlobalStateAndUpdateManifest("update global state", updatedMetadata);
                         }
                         final long updatedTerm = adaptCurrentTerm.apply(oldState.getCurrentTerm());
                         if (updatedTerm != oldState.getCurrentTerm()) {
@@ -1767,10 +1767,11 @@ public class CoordinatorTests extends ESTestCase {
                         nodeEnvironment = null;
                         BytesStreamOutput outStream = new BytesStreamOutput();
                         outStream.setVersion(Version.CURRENT);
-                        final MetaData updatedMetaData = adaptGlobalMetaData.apply(oldState.getLastAcceptedState().metaData());
+                        final Metadata updatedMetadata = adaptGlobalMetadata.apply(oldState.getLastAcceptedState().metadata());
                         final ClusterState clusterState;
-                        if (updatedMetaData != oldState.getLastAcceptedState().metaData()) {
-                            clusterState = ClusterState.builder(oldState.getLastAcceptedState()).metaData(updatedMetaData).build();
+                        if (updatedMetadata != oldState.getLastAcceptedState().metadata()) {
+                            clusterState = ClusterState.builder(oldState.getLastAcceptedState()).metadata(
+                                updatedMetadata).build();
                         } else {
                             clusterState = oldState.getLastAcceptedState();
                         }
@@ -1915,7 +1916,7 @@ public class CoordinatorTests extends ESTestCase {
                 return restartedNode(Function.identity(), Function.identity(), nodeSettings);
             }
 
-            ClusterNode restartedNode(Function<MetaData, MetaData> adaptGlobalMetaData, Function<Long, Long> adaptCurrentTerm,
+            ClusterNode restartedNode(Function<Metadata, Metadata> adaptGlobalMetadata, Function<Long, Long> adaptCurrentTerm,
                                       Settings nodeSettings) {
                 final TransportAddress address = randomBoolean() ? buildNewFakeTransportAddress() : localNode.getAddress();
                 final DiscoveryNode newLocalNode = new DiscoveryNode(localNode.getName(), localNode.getId(),
@@ -1923,7 +1924,7 @@ public class CoordinatorTests extends ESTestCase {
                     address.address().getHostString(), address.getAddress(), address, Collections.emptyMap(),
                     localNode.isMasterNode() ? EnumSet.allOf(Role.class) : emptySet(), Version.CURRENT);
                 return new ClusterNode(nodeIndex, newLocalNode,
-                    node -> new MockPersistedState(newLocalNode, persistedState, adaptGlobalMetaData, adaptCurrentTerm), nodeSettings);
+                    node -> new MockPersistedState(newLocalNode, persistedState, adaptGlobalMetadata, adaptCurrentTerm), nodeSettings);
             }
 
             private PersistedState getPersistedState() {
@@ -1981,10 +1982,10 @@ public class CoordinatorTests extends ESTestCase {
 
             void submitSetAutoShrinkVotingConfiguration(final boolean autoShrinkVotingConfiguration) {
                 submitUpdateTask("set master nodes failure tolerance [" + autoShrinkVotingConfiguration + "]", cs ->
-                    ClusterState.builder(cs).metaData(
-                        MetaData.builder(cs.metaData())
+                    ClusterState.builder(cs).metadata(
+                        Metadata.builder(cs.metadata())
                             .persistentSettings(Settings.builder()
-                                .put(cs.metaData().persistentSettings())
+                                .put(cs.metadata().persistentSettings())
                                 .put(CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION.getKey(), autoShrinkVotingConfiguration)
                                 .build())
                             .build())
@@ -2308,10 +2309,10 @@ public class CoordinatorTests extends ESTestCase {
     }
 
     public ClusterState setValue(ClusterState clusterState, int key, long value) {
-        return ClusterState.builder(clusterState).metaData(
-            MetaData.builder(clusterState.metaData())
+        return ClusterState.builder(clusterState).metadata(
+            Metadata.builder(clusterState.metadata())
                 .persistentSettings(Settings.builder()
-                    .put(clusterState.metaData().persistentSettings())
+                    .put(clusterState.metadata().persistentSettings())
                     .put("value_" + key, value)
                     .build())
                 .build())
@@ -2323,7 +2324,7 @@ public class CoordinatorTests extends ESTestCase {
     }
 
     public long value(ClusterState clusterState, int key) {
-        return clusterState.metaData().persistentSettings().getAsLong("value_" + key, 0L);
+        return clusterState.metadata().persistentSettings().getAsLong("value_" + key, 0L);
     }
 
     public void assertStateEquals(ClusterState clusterState1, ClusterState clusterState2) {
@@ -2336,7 +2337,7 @@ public class CoordinatorTests extends ESTestCase {
     }
 
     public Set<Integer> keySet(ClusterState clusterState) {
-        return clusterState.metaData().persistentSettings().keySet().stream()
+        return clusterState.metadata().persistentSettings().keySet().stream()
             .filter(s -> s.startsWith("value_")).map(s -> Integer.valueOf(s.substring("value_".length()))).collect(Collectors.toSet());
     }
 

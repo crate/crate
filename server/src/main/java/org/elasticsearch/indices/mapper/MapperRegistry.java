@@ -67,7 +67,7 @@ public final class MapperRegistry {
     /**
      * Returns true if the provide field is a registered metadata field, false otherwise
      */
-    public boolean isMetaDataField(String field) {
+    public boolean isMetadataField(String field) {
         return getMetadataMapperParsers().containsKey(field);
     }
 

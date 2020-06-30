@@ -32,9 +32,9 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.hamcrest.Matcher;
@@ -64,16 +64,16 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Before
     public void setUpSQLExecutor() throws Exception {
         validationCallArguments = new ArrayList<>();
-        RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
+        RepositoriesMetadata repositoriesMetadata = new RepositoriesMetadata(
             singletonList(
-                new RepositoryMetaData(
+                new RepositoryMetadata(
                     "my_repo",
                     "fs",
                     Settings.builder().put("location", "/tmp/my_repo").build()
             )));
         ClusterState clusterState = ClusterState.builder(clusterService.state())
-            .metaData(MetaData.builder(clusterService.state().metaData())
-                .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
+            .metadata(Metadata.builder(clusterService.state().metadata())
+                .putCustom(RepositoriesMetadata.TYPE, repositoriesMetadata))
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
 

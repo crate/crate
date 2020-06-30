@@ -22,13 +22,12 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -36,8 +35,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_CREATION_DATE;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -56,13 +55,13 @@ public class AlterTableClusterStateExecutorTest {
             .put(SETTING_CREATION_DATE, false)      // private, must be filtered out
             .put(SETTING_NUMBER_OF_SHARDS, 4)
             .build();
-        IndexTemplateMetaData indexTemplateMetaData = IndexTemplateMetaData.builder(templateName)
+        IndexTemplateMetadata indexTemplateMetadata = IndexTemplateMetadata.builder(templateName)
             .patterns(Collections.singletonList("*"))
             .settings(settings)
             .build();
 
         ClusterState initialState = ClusterState.builder(ClusterState.EMPTY_STATE)
-            .metaData(MetaData.builder().put(indexTemplateMetaData))
+            .metadata(Metadata.builder().put(indexTemplateMetadata))
             .build();
 
         ClusterState result =
@@ -73,7 +72,7 @@ public class AlterTableClusterStateExecutorTest {
                                                           (x, y) -> { },
                                                           indexScopedSettings);
 
-        IndexTemplateMetaData template = result.getMetaData().getTemplates().get(templateName);
+        IndexTemplateMetadata template = result.getMetadata().getTemplates().get(templateName);
         assertThat(template.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
     }
 

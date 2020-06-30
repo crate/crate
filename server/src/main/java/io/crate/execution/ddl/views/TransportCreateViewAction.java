@@ -24,7 +24,7 @@ package io.crate.execution.ddl.views;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.view.ViewsMetadata;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -32,7 +32,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
@@ -71,8 +71,8 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
 
     @Override
     protected void masterOperation(CreateViewRequest request, ClusterState state, ActionListener<CreateViewResponse> listener) {
-        ViewsMetaData views = state.metaData().custom(ViewsMetaData.TYPE);
-        if (conflictsWithTable(request.name(), state.metaData()) || conflictsWithView(request, views)) {
+        ViewsMetadata views = state.metadata().custom(ViewsMetadata.TYPE);
+        if (conflictsWithTable(request.name(), state.metadata()) || conflictsWithView(request, views)) {
             listener.onResponse(new CreateViewResponse(true));
         } else {
             clusterService.submitStateUpdateTask("views/create [" + request.name() + "]",
@@ -82,17 +82,17 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
 
                     @Override
                     public ClusterState execute(ClusterState currentState) {
-                        ViewsMetaData views = currentState.metaData().custom(ViewsMetaData.TYPE);
-                        if (conflictsWithTable(request.name(), currentState.metaData()) || conflictsWithView(request, views)) {
+                        ViewsMetadata views = currentState.metadata().custom(ViewsMetadata.TYPE);
+                        if (conflictsWithTable(request.name(), currentState.metadata()) || conflictsWithView(request, views)) {
                             alreadyExitsFailure = true;
                             return currentState;
                         }
                         return ClusterState.builder(currentState)
-                            .metaData(
-                                MetaData.builder(currentState.metaData())
+                            .metadata(
+                                Metadata.builder(currentState.metadata())
                                     .putCustom(
-                                        ViewsMetaData.TYPE,
-                                        ViewsMetaData.addOrReplace(views, request.name(), request.query(), request.owner()))
+                                        ViewsMetadata.TYPE,
+                                        ViewsMetadata.addOrReplace(views, request.name(), request.query(), request.owner()))
                                     .build()
                             ).build();
                     }
@@ -105,12 +105,12 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
         }
     }
 
-    private static boolean conflictsWithTable(RelationName viewName, MetaData indexMetaData) {
-        return indexMetaData.hasIndex(viewName.indexNameOrAlias())
-               || indexMetaData.templates().containsKey(PartitionName.templateName(viewName.schema(), viewName.name()));
+    private static boolean conflictsWithTable(RelationName viewName, Metadata indexMetadata) {
+        return indexMetadata.hasIndex(viewName.indexNameOrAlias())
+               || indexMetadata.templates().containsKey(PartitionName.templateName(viewName.schema(), viewName.name()));
     }
 
-    private static boolean conflictsWithView(CreateViewRequest request, ViewsMetaData views) {
+    private static boolean conflictsWithView(CreateViewRequest request, ViewsMetadata views) {
         return !request.replaceExisting() && views != null && views.contains(request.name());
     }
 

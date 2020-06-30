@@ -43,11 +43,11 @@ public interface UDFLanguage {
 
     /**
      * Create the function implementation for a function from its meta data.
-     * @param metaData from the cluster state
+     * @param metadata from the cluster state
      * @return the function implementation
      * @throws ScriptException if the implementation cannot be created
      */
-    Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData, Signature signature) throws ScriptException;
+    Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata, Signature signature) throws ScriptException;
 
     /**
      * Validate the function code provided by the meta data.
@@ -55,7 +55,7 @@ public interface UDFLanguage {
      * @return error message if validation of the function fails, otherwise null
      */
     @Nullable
-    String validate(UserDefinedFunctionMetaData metadata);
+    String validate(UserDefinedFunctionMetadata metadata);
 
     /**
      * @return name of the language

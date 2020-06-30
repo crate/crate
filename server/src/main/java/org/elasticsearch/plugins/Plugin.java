@@ -31,9 +31,9 @@ import java.util.function.UnaryOperator;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -67,7 +67,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 public abstract class Plugin implements Closeable {
 
     /**
-     * A feature exposed by the plugin. This should be used if a plugin exposes {@link ClusterState.Custom} or {@link MetaData.Custom}; see
+     * A feature exposed by the plugin. This should be used if a plugin exposes {@link ClusterState.Custom} or {@link Metadata.Custom}; see
      * also {@link ClusterState.FeatureAware}.
      *
      * @return a feature set represented by this plugin, or the empty optional if the plugin does not expose cluster state or metadata
@@ -168,11 +168,11 @@ public abstract class Plugin implements Closeable {
      * The order of custom meta data upgraders calls is undefined and can change between runs so, it is expected that
      * plugins will modify only data owned by them to avoid conflicts.
      * <p>
-     * @return Never {@code null}. The same or upgraded {@code MetaData.Custom} map.
-     * @throws IllegalStateException if the node should not start because at least one {@code MetaData.Custom}
+     * @return Never {@code null}. The same or upgraded {@code Metadata.Custom} map.
+     * @throws IllegalStateException if the node should not start because at least one {@code Metadata.Custom}
      *                               is unsupported
      */
-    public UnaryOperator<Map<String, MetaData.Custom>> getCustomMetaDataUpgrader() {
+    public UnaryOperator<Map<String, Metadata.Custom>> getCustomMetadataUpgrader() {
         return UnaryOperator.identity();
     }
 
@@ -184,11 +184,11 @@ public abstract class Plugin implements Closeable {
      * The order of the template upgrader calls is undefined and can change between runs so, it is expected that
      * plugins will modify only templates owned by them to avoid conflicts.
      * <p>
-     * @return Never {@code null}. The same or upgraded {@code IndexTemplateMetaData} map.
-     * @throws IllegalStateException if the node should not start because at least one {@code IndexTemplateMetaData}
+     * @return Never {@code null}. The same or upgraded {@code IndexTemplateMetadata} map.
+     * @throws IllegalStateException if the node should not start because at least one {@code IndexTemplateMetadata}
      *                               cannot be upgraded
      */
-    public UnaryOperator<Map<String, IndexTemplateMetaData>> getIndexTemplateMetaDataUpgrader() {
+    public UnaryOperator<Map<String, IndexTemplateMetadata>> getIndexTemplateMetadataUpgrader() {
         return UnaryOperator.identity();
     }
 
@@ -200,10 +200,10 @@ public abstract class Plugin implements Closeable {
      * The order of the index upgrader calls for the same index is undefined and can change between runs so, it is expected that
      * plugins will modify only indices owned by them to avoid conflicts.
      * <p>
-     * @return Never {@code null}. The same or upgraded {@code IndexMetaData}.
+     * @return Never {@code null}. The same or upgraded {@code IndexMetadata}.
      * @throws IllegalStateException if the node should not start because the index is unsupported
      */
-    public UnaryOperator<IndexMetaData> getIndexMetaDataUpgrader() {
+    public UnaryOperator<IndexMetadata> getIndexMetadataUpgrader() {
         return UnaryOperator.identity();
     }
 

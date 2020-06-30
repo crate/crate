@@ -21,9 +21,9 @@ package org.elasticsearch.repositories.azure;
 
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.StorageException;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetaData;
+import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.repositories.azure.AzureRepository.Repository;
@@ -44,7 +44,7 @@ public class AzureBlobStore implements BlobStore {
     private final String container;
     private final LocationMode locationMode;
 
-    public AzureBlobStore(RepositoryMetaData metadata, AzureStorageService service) {
+    public AzureBlobStore(RepositoryMetadata metadata, AzureStorageService service) {
         this.service = service;
         this.container = Repository.CONTAINER_SETTING.get(metadata.settings());
         this.clientName = Repository.CLIENT_NAME.get(metadata.settings());
@@ -108,7 +108,7 @@ public class AzureBlobStore implements BlobStore {
         return service.getInputStream(container, blob);
     }
 
-    public Map<String, BlobMetaData> listBlobsByPrefix(String keyPath, String prefix)
+    public Map<String, BlobMetadata> listBlobsByPrefix(String keyPath, String prefix)
         throws URISyntaxException, StorageException {
         return service.listBlobsByPrefix(container, keyPath, prefix);
     }

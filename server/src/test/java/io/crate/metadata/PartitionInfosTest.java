@@ -26,8 +26,8 @@ import io.crate.Constants;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -44,11 +44,11 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         return Settings.builder().put("index.version.created", Version.CURRENT).build();
     }
 
-    private void addIndexMetaDataToClusterState(IndexMetaData.Builder imdBuilder) throws Exception {
+    private void addIndexMetadataToClusterState(IndexMetadata.Builder imdBuilder) throws Exception {
         CompletableFuture<Boolean> processed = new CompletableFuture<>();
         ClusterState currentState = clusterService.state();
         ClusterState newState = ClusterState.builder(currentState)
-            .metaData(MetaData.builder(currentState.metaData())
+            .metadata(Metadata.builder(currentState.metadata())
                 .put(imdBuilder))
             .build();
         clusterService.addListener(event -> {
@@ -63,8 +63,8 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIgnoreNoPartitions() throws Exception {
-        addIndexMetaDataToClusterState(
-            IndexMetaData.builder("test1").settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
+        addIndexMetadataToClusterState(
+            IndexMetadata.builder("test1").settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         assertThat(partitioninfos.iterator().hasNext(), is(false));
     }
@@ -73,7 +73,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
     public void testPartitionWithoutMapping() throws Exception {
         PartitionName partitionName = new PartitionName(
             new RelationName("doc", "test1"), ImmutableList.of("foo"));
-        addIndexMetaDataToClusterState(IndexMetaData.builder(partitionName.asIndexName())
+        addIndexMetadataToClusterState(IndexMetadata.builder(partitionName.asIndexName())
             .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         assertThat(partitioninfos.iterator().hasNext(), is(false));
@@ -83,13 +83,13 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
     public void testPartitionWithMeta() throws Exception {
         PartitionName partitionName = new PartitionName(
             new RelationName("doc", "test1"), ImmutableList.of("foo"));
-        IndexMetaData.Builder indexMetaData = IndexMetaData
+        IndexMetadata.Builder indexMetadata = IndexMetadata
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"]]}}")
             .numberOfShards(10)
             .numberOfReplicas(4);
-        addIndexMetaDataToClusterState(indexMetaData);
+        addIndexMetadataToClusterState(indexMetadata);
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();
@@ -104,13 +104,13 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
     public void testPartitionWithMetaMultiCol() throws Exception {
         PartitionName partitionName = new PartitionName(
             new RelationName("doc", "test1"), ImmutableList.of("foo", "1"));
-        IndexMetaData.Builder indexMetaData = IndexMetaData
+        IndexMetadata.Builder indexMetadata = IndexMetadata
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"], [\"col2\", \"integer\"]]}}")
             .numberOfShards(10)
             .numberOfReplicas(4);
-        addIndexMetaDataToClusterState(indexMetaData);
+        addIndexMetadataToClusterState(indexMetadata);
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();

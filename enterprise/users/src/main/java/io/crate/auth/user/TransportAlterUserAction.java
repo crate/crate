@@ -19,7 +19,7 @@
 package io.crate.auth.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.metadata.UsersMetaData;
+import io.crate.metadata.UsersMetadata;
 import io.crate.user.SecureHash;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -28,7 +28,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
@@ -75,14 +75,14 @@ public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUse
 
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    MetaData currentMetaData = currentState.metaData();
-                    MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
+                    Metadata currentMetadata = currentState.metadata();
+                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
                     userExists = alterUser(
                         mdBuilder,
                         request.userName(),
                         request.secureHash()
                     );
-                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 }
 
                 @Override
@@ -93,17 +93,17 @@ public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUse
     }
 
     @VisibleForTesting
-    static boolean alterUser(MetaData.Builder mdBuilder, String userName, @Nullable SecureHash secureHash) {
-        UsersMetaData oldMetaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
-        if (oldMetaData == null || !oldMetaData.contains(userName)) {
+    static boolean alterUser(Metadata.Builder mdBuilder, String userName, @Nullable SecureHash secureHash) {
+        UsersMetadata oldMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        if (oldMetadata == null || !oldMetadata.contains(userName)) {
             return false;
         }
         // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);
-        newMetaData.put(userName, secureHash);
+        UsersMetadata newMetadata = UsersMetadata.newInstance(oldMetadata);
+        newMetadata.put(userName, secureHash);
 
-        assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
-        mdBuilder.putCustom(UsersMetaData.TYPE, newMetaData);
+        assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
+        mdBuilder.putCustom(UsersMetadata.TYPE, newMetadata);
 
         return true;
     }

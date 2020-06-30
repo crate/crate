@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.exceptions.UnavailableShardsException;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -50,7 +50,7 @@ import java.util.TreeMap;
 import static io.crate.metadata.Routing.forTableOnSingleNode;
 import static org.elasticsearch.cluster.routing.OperationRouting.calculateScaledShardId;
 import static org.elasticsearch.cluster.routing.OperationRouting.generateShardId;
-import static org.elasticsearch.cluster.routing.OperationRouting.indexMetaData;
+import static org.elasticsearch.cluster.routing.OperationRouting.indexMetadata;
 
 /**
  * This component can be used to get the Routing for indices.
@@ -102,8 +102,8 @@ public final class RoutingProvider {
     }
 
     public ShardRouting forId(ClusterState state, String index, String id, @Nullable String routing) {
-        IndexMetaData indexMetaData = indexMetaData(state, index);
-        ShardId shardId = new ShardId(indexMetaData.getIndex(), generateShardId(indexMetaData, id, routing));
+        IndexMetadata indexMetadata = indexMetadata(state, index);
+        ShardId shardId = new ShardId(indexMetadata.getIndex(), generateShardId(indexMetadata, id, routing));
         IndexShardRoutingTable routingTable = state.getRoutingTable().shardRoutingTable(shardId);
         ShardRouting shardRouting;
         if (awarenessAttributes.isEmpty()) {
@@ -191,13 +191,13 @@ public final class RoutingProvider {
         LinkedHashSet<IndexShardRoutingTable> set = new LinkedHashSet<>();
         for (String index : concreteIndices) {
             final IndexRoutingTable indexRouting = indexRoutingTable(clusterState, index);
-            final IndexMetaData indexMetaData = indexMetaData(clusterState, index);
+            final IndexMetadata indexMetadata = indexMetadata(clusterState, index);
             final Set<String> effectiveRouting = routing.get(index);
             if (effectiveRouting != null) {
                 for (String r : effectiveRouting) {
-                    final int routingPartitionSize = indexMetaData.getRoutingPartitionSize();
+                    final int routingPartitionSize = indexMetadata.getRoutingPartitionSize();
                     for (int partitionOffset = 0; partitionOffset < routingPartitionSize; partitionOffset++) {
-                        set.add(shardRoutingTable(indexRouting, calculateScaledShardId(indexMetaData, r, partitionOffset)));
+                        set.add(shardRoutingTable(indexRouting, calculateScaledShardId(indexMetadata, r, partitionOffset)));
                     }
                 }
             } else {

@@ -23,7 +23,7 @@
 package io.crate.metadata.cluster;
 
 import io.crate.Constants;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.Strings;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -53,7 +53,7 @@ public class DDLClusterStateHelpersTest {
             .map();
 
         Map<String, Object> mapping = DDLClusterStateHelpers.mergeTemplateMapping(
-            IndexTemplateMetaData.builder("foo")
+            IndexTemplateMetadata.builder("foo")
                 .patterns(List.of("*"))
                 .putMapping(Constants.DEFAULT_MAPPING_TYPE,
                             Strings.toString(XContentFactory.jsonBuilder().map(

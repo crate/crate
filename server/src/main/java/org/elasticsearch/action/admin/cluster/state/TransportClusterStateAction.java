@@ -24,10 +24,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaData.Custom;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.Metadata.Custom;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -96,30 +96,30 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
             builder.blocks(currentState.blocks());
         }
 
-        MetaData.Builder mdBuilder = MetaData.builder();
-        mdBuilder.clusterUUID(currentState.metaData().clusterUUID());
+        Metadata.Builder mdBuilder = Metadata.builder();
+        mdBuilder.clusterUUID(currentState.metadata().clusterUUID());
 
-        if (request.metaData()) {
+        if (request.metadata()) {
             if (request.indices().length > 0) {
                 String[] indices = indexNameExpressionResolver.concreteIndexNames(currentState, request);
                 for (String filteredIndex : indices) {
-                    IndexMetaData indexMetaData = currentState.metaData().index(filteredIndex);
-                    if (indexMetaData != null) {
-                        mdBuilder.put(indexMetaData, false);
+                    IndexMetadata indexMetadata = currentState.metadata().index(filteredIndex);
+                    if (indexMetadata != null) {
+                        mdBuilder.put(indexMetadata, false);
                     }
                 }
             } else {
-                mdBuilder = MetaData.builder(currentState.metaData());
+                mdBuilder = Metadata.builder(currentState.metadata());
             }
 
             // filter out metadata that shouldn't be returned by the API
-            for (ObjectObjectCursor<String, Custom> custom : currentState.metaData().customs()) {
-                if (custom.value.context().contains(MetaData.XContentContext.API) == false) {
+            for (ObjectObjectCursor<String, Custom> custom : currentState.metadata().customs()) {
+                if (custom.value.context().contains(Metadata.XContentContext.API) == false) {
                     mdBuilder.removeCustom(custom.key);
                 }
             }
         }
-        builder.metaData(mdBuilder);
+        builder.metadata(mdBuilder);
 
         if (request.customs()) {
             for (ObjectObjectCursor<String, ClusterState.Custom> custom : currentState.customs()) {

@@ -40,7 +40,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -109,7 +109,7 @@ public final class ReservoirSampler {
         }
         DocTableInfo docTable = (DocTableInfo) table;
         Random random = Randomness.get();
-        MetaData metaData = clusterService.state().metaData();
+        Metadata metadata = clusterService.state().metadata();
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         List<Streamer> streamers = Arrays.asList(Symbols.streamerArray(columns));
         List<Engine.Searcher> searchersToRelease = new ArrayList<>();
@@ -123,7 +123,7 @@ public final class ReservoirSampler {
                 maxSamples,
                 docTable,
                 random,
-                metaData,
+                metadata,
                 coordinatorTxnCtx,
                 streamers,
                 searchersToRelease,
@@ -141,7 +141,7 @@ public final class ReservoirSampler {
                                int maxSamples,
                                DocTableInfo docTable,
                                Random random,
-                               MetaData metaData,
+                               Metadata metadata,
                                CoordinatorTxnCtx coordinatorTxnCtx,
                                List<Streamer> streamers,
                                List<Engine.Searcher> searchersToRelease,
@@ -152,11 +152,11 @@ public final class ReservoirSampler {
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
         for (String index : docTable.concreteOpenIndices()) {
-            var indexMetaData = metaData.index(index);
-            if (indexMetaData == null) {
+            var indexMetadata = metadata.index(index);
+            if (indexMetadata == null) {
                 continue;
             }
-            var indexService = indicesService.indexService(indexMetaData.getIndex());
+            var indexService = indicesService.indexService(indexMetadata.getIndex());
             if (indexService == null) {
                 continue;
             }

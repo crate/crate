@@ -68,7 +68,7 @@ public class SysClusterTableInfo {
                                        LicenseService licenseService) {
         Settings settings = clusterService.getSettings();
         var relBuilder = SystemTable.<Void>builder(IDENT)
-            .add("id", DataTypes.STRING, nothing -> clusterService.state().metaData().clusterUUID())
+            .add("id", DataTypes.STRING, nothing -> clusterService.state().metadata().clusterUUID())
             .add("name", DataTypes.STRING, nothing -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value())
             .add("master_node", DataTypes.STRING, nothing -> clusterService.state().nodes().getMasterNodeId())
             .startObject("license", x -> licenseService.currentLicense() == null)

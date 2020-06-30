@@ -32,7 +32,7 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -53,7 +53,7 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
                                     ClusterService clusterService,
                                     ThreadPool threadPool,
                                     IndexNameExpressionResolver indexNameExpressionResolver,
-                                    MetaDataDeleteIndexService deleteIndexService,
+                                    MetadataDeleteIndexService deleteIndexService,
                                     DDLClusterStateService ddlClusterStateService) {
         super(ACTION_NAME, transportService, clusterService, threadPool,
             indexNameExpressionResolver, DropTableRequest::new, AcknowledgedResponse::new, AcknowledgedResponse::new, "drop-table");

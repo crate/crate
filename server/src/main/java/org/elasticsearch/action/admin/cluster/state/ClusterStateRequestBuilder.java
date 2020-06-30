@@ -22,6 +22,8 @@ package org.elasticsearch.action.admin.cluster.state;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadOperationRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 
 public class ClusterStateRequestBuilder extends MasterNodeReadOperationRequestBuilder<ClusterStateRequest, ClusterStateResponse, ClusterStateRequestBuilder> {
 
@@ -51,11 +53,11 @@ public class ClusterStateRequestBuilder extends MasterNodeReadOperationRequestBu
     }
 
     /**
-     * Should the cluster state result include the {@link org.elasticsearch.cluster.metadata.MetaData}. Defaults
+     * Should the cluster state result include the {@link Metadata}. Defaults
      * to {@code true}.
      */
-    public ClusterStateRequestBuilder setMetaData(boolean filter) {
-        request.metaData(filter);
+    public ClusterStateRequestBuilder setMetadata(boolean filter) {
+        request.metadata(filter);
         return this;
     }
 
@@ -87,7 +89,7 @@ public class ClusterStateRequestBuilder extends MasterNodeReadOperationRequestBu
     }
 
     /**
-     * When {@link #setMetaData(boolean)} is set, which indices to return the {@link org.elasticsearch.cluster.metadata.IndexMetaData}
+     * When {@link #setMetadata(boolean)} is set, which indices to return the {@link IndexMetadata}
      * for. Defaults to all indices.
      */
     public ClusterStateRequestBuilder setIndices(String... indices) {

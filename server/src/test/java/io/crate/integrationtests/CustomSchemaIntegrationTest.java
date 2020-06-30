@@ -101,9 +101,9 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table custom.foo (id integer)");
         execute("create table custom.bar (id integer)");
 
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex("custom.foo"), is(true));
+        assertThat(internalCluster().clusterService().state().metadata().hasIndex("custom.foo"), is(true));
         execute("drop table custom.foo");
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex("custom.foo"), is(false));
+        assertThat(internalCluster().clusterService().state().metadata().hasIndex("custom.foo"), is(false));
 
         assertBusy(() -> {
             try {

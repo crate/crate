@@ -33,7 +33,7 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaDataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -58,7 +58,7 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
                                                     IndexNameExpressionResolver indexNameExpressionResolver,
                                                     AllocationService allocationService,
                                                     DDLClusterStateService ddlClusterStateService,
-                                                    MetaDataIndexUpgradeService metaDataIndexUpgradeService,
+                                                    MetadataIndexUpgradeService metadataIndexUpgradeService,
                                                     IndicesService indexServices) {
         super(ACTION_NAME,
             transportService,
@@ -70,7 +70,7 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
             AcknowledgedResponse::new,
             "open-table-or-partition");
         openExecutor = new OpenTableClusterStateTaskExecutor(indexNameExpressionResolver, allocationService,
-            ddlClusterStateService, metaDataIndexUpgradeService, indexServices);
+            ddlClusterStateService, metadataIndexUpgradeService, indexServices);
         closeExecutor = new CloseTableClusterStateTaskExecutor(indexNameExpressionResolver, allocationService,
             ddlClusterStateService);
     }

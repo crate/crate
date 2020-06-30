@@ -162,7 +162,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
         internalCluster().stopRandomNode(InternalTestCluster.nameFilter(replicaNode));
         ensureYellow();
-        assertEquals(2, client().admin().cluster().prepareState().get().getState().metaData().index(indexName)
+        assertEquals(2, client().admin().cluster().prepareState().get().getState().metadata().index(indexName)
             .inSyncAllocationIds(0).size());
         internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
             @Override
@@ -174,7 +174,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         assertBusy(() -> assertTrue(client().admin().cluster().prepareState().get().getState()
             .getRoutingTable().index(indexName).allPrimaryShardsUnassigned()));
         assertEquals(2, client().admin().cluster().prepareState().get().getState()
-            .metaData().index(indexName).inSyncAllocationIds(0).size());
+            .metadata().index(indexName).inSyncAllocationIds(0).size());
 
         logger.info("--> starting node that reuses data folder with the up-to-date shard");
         internalCluster().startDataOnlyNode(inSyncDataPathSettings);
@@ -193,11 +193,11 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         internalCluster().stopRandomNode(InternalTestCluster.nameFilter(replicaNode));
         ensureYellow();
         assertEquals(2, client().admin().cluster().prepareState().get().getState()
-            .metaData().index(indexName).inSyncAllocationIds(0).size());
+            .metadata().index(indexName).inSyncAllocationIds(0).size());
         logger.info("--> inserting row...");
         execute("insert into t values ('value1')");
         assertEquals(1, client().admin().cluster().prepareState().get().getState()
-            .metaData().index(indexName).inSyncAllocationIds(0).size());
+            .metadata().index(indexName).inSyncAllocationIds(0).size());
         internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
             @Override
             public boolean clearData(String nodeName) {
@@ -208,7 +208,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         assertBusy(() -> assertTrue(client().admin().cluster().prepareState().get().getState()
             .getRoutingTable().index(indexName).allPrimaryShardsUnassigned()));
         assertEquals(1, client().admin().cluster().prepareState().get().getState()
-            .metaData().index(indexName).inSyncAllocationIds(0).size());
+            .metadata().index(indexName).inSyncAllocationIds(0).size());
 
         logger.info("--> starting node that reuses data folder with the up-to-date shard");
         internalCluster().startDataOnlyNode(inSyncDataPathSettings);
@@ -269,7 +269,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         final String oldPrimary = internalCluster().startDataOnlyNode();
         execute("create table t (x string) clustered into 1 shards " +
                 "with (number_of_replicas = " + numberOfReplicas + ", \"write.wait_for_active_shards\" = 1)");
-        final ShardId shardId = new ShardId(clusterService().state().metaData().index(indexName).getIndex(), 0);
+        final ShardId shardId = new ShardId(clusterService().state().metadata().index(indexName).getIndex(), 0);
         final Set<String> replicaNodes = new HashSet<>(internalCluster().startDataOnlyNodes(numberOfReplicas));
         ensureGreen();
         execute("SET GLOBAL cluster.routing.allocation.enable = 'none'");
@@ -303,7 +303,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
             for (ShardRouting activeShard : shardRoutingTable.activeShards()) {
                 assertThat(state.getRoutingNodes().node(activeShard.currentNodeId()).node().getName(), is(in(selectedPartition)));
             }
-            assertThat(state.metaData().index(indexName).inSyncAllocationIds(shardId.id()), hasSize(numberOfReplicas + 1));
+            assertThat(state.metadata().index(indexName).inSyncAllocationIds(shardId.id()), hasSize(numberOfReplicas + 1));
         }, 1, TimeUnit.MINUTES);
         execute("SET GLOBAL cluster.routing.allocation.enable = 'all'");
         partition.stopDisrupting();
@@ -312,7 +312,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         assertBusy(() -> {
             ClusterState state = client(master).admin().cluster().prepareState().get().getState();
             assertThat(state.routingTable().shardRoutingTable(shardId).activeShards(), hasSize(numberOfReplicas));
-            assertThat(state.metaData().index(indexName).inSyncAllocationIds(shardId.id()), hasSize(numberOfReplicas + 1));
+            assertThat(state.metadata().index(indexName).inSyncAllocationIds(shardId.id()), hasSize(numberOfReplicas + 1));
             for (String node : replicaNodes) {
                 IndexShard shard = internalCluster().getInstance(IndicesService.class, node).getShardOrNull(shardId);
                 assertThat(shard.getLocalCheckpoint(), equalTo(numDocs + moreDocs));

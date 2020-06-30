@@ -253,7 +253,7 @@ public class FulltextAnalyzerResolver {
         if (name == null) {
             return null;
         }
-        String encodedSettings = clusterService.state().metaData().persistentSettings().get(type.buildSettingName(name));
+        String encodedSettings = clusterService.state().metadata().persistentSettings().get(type.buildSettingName(name));
         if (encodedSettings == null) {
             return null;
         }
@@ -265,7 +265,7 @@ public class FulltextAnalyzerResolver {
     }
 
     private Settings getCustomThingies(CustomType type) {
-        Map<String, Settings> settingsMap = clusterService.state().metaData().persistentSettings()
+        Map<String, Settings> settingsMap = clusterService.state().metadata().persistentSettings()
             .getGroups(CUSTOM_ANALYSIS_SETTINGS_PREFIX);
         Settings result = settingsMap.get(type.getName());
         return result != null ? result : Settings.EMPTY;
@@ -279,7 +279,7 @@ public class FulltextAnalyzerResolver {
      * @return true if exists, false otherwise
      */
     public boolean hasCustomThingy(String name, CustomType type) {
-        return clusterService.state().metaData().persistentSettings().hasValue(type.buildSettingName(name));
+        return clusterService.state().metadata().persistentSettings().hasValue(type.buildSettingName(name));
     }
 
     /**

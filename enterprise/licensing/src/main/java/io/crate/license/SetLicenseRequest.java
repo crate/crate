@@ -32,7 +32,7 @@ public class SetLicenseRequest extends MasterNodeRequest<SetLicenseRequest> {
         this.licenseKey = licenseKey;
     }
 
-    LicenseKey licenseMetaData() {
+    LicenseKey licenseMetadata() {
         return licenseKey;
     }
 

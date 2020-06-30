@@ -25,7 +25,7 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -89,11 +89,11 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
     }
 
     @Override
-    protected void resolveRequest(IndexMetaData indexMetaData, DeleteBlobRequest request) {
+    protected void resolveRequest(IndexMetadata indexMetadata, DeleteBlobRequest request) {
         ShardIterator shardIterator = clusterService.operationRouting()
             .indexShards(clusterService.state(), request.index(), request.id(), null);
         request.setShardId(shardIterator.shardId());
-        super.resolveRequest(indexMetaData, request);
+        super.resolveRequest(indexMetadata, request);
     }
 
     @Override

@@ -24,12 +24,12 @@ import org.elasticsearch.cluster.action.index.NodeMappingRefreshAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
-import org.elasticsearch.cluster.metadata.MetaDataIndexTemplateService;
-import org.elasticsearch.cluster.metadata.MetaDataMappingService;
-import org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService;
-import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
+import org.elasticsearch.cluster.metadata.MetadataMappingService;
+import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
+import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.routing.DelayedAllocationService;
 import org.elasticsearch.cluster.routing.RoutingService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -131,13 +131,13 @@ public class ClusterModule extends AbstractModule {
         registerClusterCustom(entries, SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress::new,
             SnapshotDeletionsInProgress::readDiffFrom);
         // Metadata
-        registerMetaDataCustom(entries, RepositoriesMetaData.TYPE, RepositoriesMetaData::new, RepositoriesMetaData::readDiffFrom);
-        registerMetaDataCustom(entries, IndexGraveyard.TYPE, IndexGraveyard::new, IndexGraveyard::readDiffFrom);
+        registerMetadataCustom(entries, RepositoriesMetadata.TYPE, RepositoriesMetadata::new, RepositoriesMetadata::readDiffFrom);
+        registerMetadataCustom(entries, IndexGraveyard.TYPE, IndexGraveyard::new, IndexGraveyard::readDiffFrom);
         return entries;
     }
 
     static final Set<String> PRE_6_3_METADATA_CUSTOMS_WHITE_LIST = Collections.unmodifiableSet(Sets.newHashSet(
-        IndexGraveyard.TYPE, RepositoriesMetaData.TYPE));
+        IndexGraveyard.TYPE, RepositoriesMetadata.TYPE));
 
     static final Set<String> PRE_6_3_CLUSTER_CUSTOMS_WHITE_LIST = Collections.unmodifiableSet(Sets.newHashSet(
         RestoreInProgress.TYPE, SnapshotDeletionsInProgress.TYPE, SnapshotsInProgress.TYPE));
@@ -156,21 +156,21 @@ public class ClusterModule extends AbstractModule {
                 builder.removeCustom(name);
             }
         });
-        final MetaData.Builder metaBuilder = MetaData.builder(clusterState.metaData());
-        clusterState.metaData().customs().keysIt().forEachRemaining(name -> {
+        final Metadata.Builder metaBuilder = Metadata.builder(clusterState.metadata());
+        clusterState.metadata().customs().keysIt().forEachRemaining(name -> {
             if (PRE_6_3_METADATA_CUSTOMS_WHITE_LIST.contains(name) == false) {
                 metaBuilder.removeCustom(name);
             }
         });
-        return builder.metaData(metaBuilder).build();
+        return builder.metadata(metaBuilder).build();
     }
 
     public static List<NamedXContentRegistry.Entry> getNamedXWriteables() {
         List<NamedXContentRegistry.Entry> entries = new ArrayList<>();
         // Metadata
-        entries.add(new NamedXContentRegistry.Entry(MetaData.Custom.class, new ParseField(RepositoriesMetaData.TYPE),
-            RepositoriesMetaData::fromXContent));
-        entries.add(new NamedXContentRegistry.Entry(MetaData.Custom.class, new ParseField(IndexGraveyard.TYPE),
+        entries.add(new NamedXContentRegistry.Entry(Metadata.Custom.class, new ParseField(RepositoriesMetadata.TYPE),
+            RepositoriesMetadata::fromXContent));
+        entries.add(new NamedXContentRegistry.Entry(Metadata.Custom.class, new ParseField(IndexGraveyard.TYPE),
             IndexGraveyard::fromXContent));
         return entries;
     }
@@ -180,9 +180,9 @@ public class ClusterModule extends AbstractModule {
         registerCustom(entries, ClusterState.Custom.class, name, reader, diffReader);
     }
 
-    private static <T extends MetaData.Custom> void registerMetaDataCustom(List<Entry> entries, String name, Reader<? extends T> reader,
-                                                                       Reader<NamedDiff> diffReader) {
-        registerCustom(entries, MetaData.Custom.class, name, reader, diffReader);
+    private static <T extends Metadata.Custom> void registerMetadataCustom(List<Entry> entries, String name, Reader<? extends T> reader,
+                                                                           Reader<NamedDiff> diffReader) {
+        registerCustom(entries, Metadata.Custom.class, name, reader, diffReader);
     }
 
     private static <T extends NamedWriteable> void registerCustom(List<Entry> entries, Class<T> category, String name,
@@ -263,10 +263,10 @@ public class ClusterModule extends AbstractModule {
         bind(AllocationService.class).toInstance(allocationService);
         bind(ClusterService.class).toInstance(clusterService);
         bind(NodeConnectionsService.class).asEagerSingleton();
-        bind(MetaDataDeleteIndexService.class).asEagerSingleton();
-        bind(MetaDataMappingService.class).asEagerSingleton();
-        bind(MetaDataUpdateSettingsService.class).asEagerSingleton();
-        bind(MetaDataIndexTemplateService.class).asEagerSingleton();
+        bind(MetadataDeleteIndexService.class).asEagerSingleton();
+        bind(MetadataMappingService.class).asEagerSingleton();
+        bind(MetadataUpdateSettingsService.class).asEagerSingleton();
+        bind(MetadataIndexTemplateService.class).asEagerSingleton();
         bind(IndexNameExpressionResolver.class).toInstance(indexNameExpressionResolver);
         bind(RoutingService.class).asEagerSingleton();
         bind(DelayedAllocationService.class).asEagerSingleton();

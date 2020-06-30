@@ -57,7 +57,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -74,7 +74,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.env.ShardLockObtainFailedException;
-import org.elasticsearch.gateway.MetaDataStateFormat;
+import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.gateway.MetaStateService;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
@@ -260,19 +260,19 @@ public class IndicesService extends AbstractLifecycleComponent
     /**
      * Creates a new {@link IndexService} for the given metadata.
      *
-     * @param indexMetaData          the index metadata to create the index for
+     * @param indexMetadata          the index metadata to create the index for
      * @param builtInListeners       a list of built-in lifecycle {@link IndexEventListener} that should should be used along side with the
      *                               per-index listeners
      * @throws ResourceAlreadyExistsException if the index already exists.
      */
     @Override
     public synchronized IndexService createIndex(
-            final IndexMetaData indexMetaData, final List<IndexEventListener> builtInListeners) throws IOException {
+            final IndexMetadata indexMetadata, final List<IndexEventListener> builtInListeners) throws IOException {
         ensureChangesAllowed();
-        if (indexMetaData.getIndexUUID().equals(IndexMetaData.INDEX_UUID_NA_VALUE)) {
-            throw new IllegalArgumentException("index must have a real UUID found value: [" + indexMetaData.getIndexUUID() + "]");
+        if (indexMetadata.getIndexUUID().equals(IndexMetadata.INDEX_UUID_NA_VALUE)) {
+            throw new IllegalArgumentException("index must have a real UUID found value: [" + indexMetadata.getIndexUUID() + "]");
         }
-        final Index index = indexMetaData.getIndex();
+        final Index index = indexMetadata.getIndex();
         if (hasIndex(index)) {
             throw new ResourceAlreadyExistsException(index);
         }
@@ -286,7 +286,7 @@ public class IndicesService extends AbstractLifecycleComponent
         finalListeners.add(onStoreClose);
         final IndexService indexService = createIndexService(
             "create index",
-            indexMetaData,
+            indexMetadata,
             indicesQueryCache,
             finalListeners,
             indexingMemoryController
@@ -308,15 +308,15 @@ public class IndicesService extends AbstractLifecycleComponent
      * This creates a new IndexService without registering it
      */
     private synchronized IndexService createIndexService(final String reason,
-                                                         IndexMetaData indexMetaData,
+                                                         IndexMetadata indexMetadata,
                                                          IndicesQueryCache indicesQueryCache,
                                                          List<IndexEventListener> builtInListeners,
                                                          IndexingOperationListener... indexingOperationListeners) throws IOException {
-        final IndexSettings idxSettings = new IndexSettings(indexMetaData, this.settings, indexScopedSettings);
+        final IndexSettings idxSettings = new IndexSettings(indexMetadata, this.settings, indexScopedSettings);
         // we ignore private settings since they are not registered settings
-        indexScopedSettings.validate(indexMetaData.getSettings(), true, true, true);
+        indexScopedSettings.validate(indexMetadata.getSettings(), true, true, true);
         LOGGER.debug("creating Index [{}], shards [{}]/[{}] - reason [{}]",
-            indexMetaData.getIndex(),
+            indexMetadata.getIndex(),
             idxSettings.getNumberOfShards(),
             idxSettings.getNumberOfReplicas(),
             reason);
@@ -375,31 +375,31 @@ public class IndicesService extends AbstractLifecycleComponent
      *
      * Note: the returned {@link MapperService} should be closed when unneeded.
      */
-    public synchronized MapperService createIndexMapperService(IndexMetaData indexMetaData) throws IOException {
-        final IndexSettings idxSettings = new IndexSettings(indexMetaData, this.settings, indexScopedSettings);
+    public synchronized MapperService createIndexMapperService(IndexMetadata indexMetadata) throws IOException {
+        final IndexSettings idxSettings = new IndexSettings(indexMetadata, this.settings, indexScopedSettings);
         final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, getEngineFactory(idxSettings), indexStoreFactories);
         pluginsService.onIndexModule(indexModule);
         return indexModule.newIndexMapperService(xContentRegistry, mapperRegistry);
     }
 
     /**
-     * This method verifies that the given {@code metaData} holds sane values to create an {@link IndexService}.
-     * This method tries to update the meta data of the created {@link IndexService} if the given {@code metaDataUpdate} is different from the given {@code metaData}.
+     * This method verifies that the given {@code metadata} holds sane values to create an {@link IndexService}.
+     * This method tries to update the meta data of the created {@link IndexService} if the given {@code metadataUpdate} is different from the given {@code metadata}.
      * This method will throw an exception if the creation or the update fails.
      * The created {@link IndexService} will not be registered and will be closed immediately.
      */
-    public synchronized void verifyIndexMetadata(IndexMetaData metaData, IndexMetaData metaDataUpdate) throws IOException {
+    public synchronized void verifyIndexMetadata(IndexMetadata metadata, IndexMetadata metadataUpdate) throws IOException {
         final List<Closeable> closeables = new ArrayList<>();
         try {
             IndicesQueryCache indicesQueryCache = new IndicesQueryCache(settings);
             closeables.add(indicesQueryCache);
             // this will also fail if some plugin fails etc. which is nice since we can verify that early
             final IndexService service =
-                createIndexService("metadata verification", metaData, indicesQueryCache, emptyList());
+                createIndexService("metadata verification", metadata, indicesQueryCache, emptyList());
             closeables.add(() -> service.close("metadata verification", false));
-            service.mapperService().merge(metaData, MapperService.MergeReason.MAPPING_RECOVERY, true);
-            if (metaData.equals(metaDataUpdate) == false) {
-                service.updateMetaData(metaData, metaDataUpdate);
+            service.mapperService().merge(metadata, MapperService.MergeReason.MAPPING_RECOVERY, true);
+            if (metadata.equals(metadataUpdate) == false) {
+                service.updateMetadata(metadata, metadataUpdate);
             }
         } finally {
             IOUtils.close(closeables);
@@ -475,18 +475,18 @@ public class IndicesService extends AbstractLifecycleComponent
      * but does not deal with in-memory structures. For those call {@link #removeIndex(Index, IndexRemovalReason, String)}
      */
     @Override
-    public void deleteUnassignedIndex(String reason, IndexMetaData metaData, ClusterState clusterState) {
+    public void deleteUnassignedIndex(String reason, IndexMetadata metadata, ClusterState clusterState) {
         if (nodeEnv.hasNodeFile()) {
-            String indexName = metaData.getIndex().getName();
+            String indexName = metadata.getIndex().getName();
             try {
-                if (clusterState.metaData().hasIndex(indexName)) {
-                    final IndexMetaData index = clusterState.metaData().index(indexName);
+                if (clusterState.metadata().hasIndex(indexName)) {
+                    final IndexMetadata index = clusterState.metadata().index(indexName);
                     throw new IllegalStateException("Can't delete unassigned index store for [" + indexName + "] - it's still part of " +
-                                                    "the cluster state [" + index.getIndexUUID() + "] [" + metaData.getIndexUUID() + "]");
+                                                    "the cluster state [" + index.getIndexUUID() + "] [" + metadata.getIndexUUID() + "]");
                 }
-                deleteIndexStore(reason, metaData, clusterState);
+                deleteIndexStore(reason, metadata, clusterState);
             } catch (Exception e) {
-                LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to delete unassigned index (reason [{}])", metaData.getIndex(), reason), e);
+                LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to delete unassigned index (reason [{}])", metadata.getIndex(), reason), e);
             }
         }
     }
@@ -497,25 +497,25 @@ public class IndicesService extends AbstractLifecycleComponent
      *
      * Package private for testing
      */
-    void deleteIndexStore(String reason, IndexMetaData metaData, ClusterState clusterState) throws IOException {
+    void deleteIndexStore(String reason, IndexMetadata metadata, ClusterState clusterState) throws IOException {
         if (nodeEnv.hasNodeFile()) {
             synchronized (this) {
-                Index index = metaData.getIndex();
+                Index index = metadata.getIndex();
                 if (hasIndex(index)) {
                     String localUUid = indexService(index).indexUUID();
-                    throw new IllegalStateException("Can't delete index store for [" + index.getName() + "] - it's still part of the indices service [" + localUUid + "] [" + metaData.getIndexUUID() + "]");
+                    throw new IllegalStateException("Can't delete index store for [" + index.getName() + "] - it's still part of the indices service [" + localUUid + "] [" + metadata.getIndexUUID() + "]");
                 }
 
-                if (clusterState.metaData().hasIndex(index.getName()) && (clusterState.nodes().getLocalNode().isMasterNode() == true)) {
+                if (clusterState.metadata().hasIndex(index.getName()) && (clusterState.nodes().getLocalNode().isMasterNode() == true)) {
                     // we do not delete the store if it is a master eligible node and the index is still in the cluster state
                     // because we want to keep the meta data for indices around even if no shards are left here
-                    final IndexMetaData idxMeta = clusterState.metaData().index(index.getName());
+                    final IndexMetadata idxMeta = clusterState.metadata().index(index.getName());
                     throw new IllegalStateException("Can't delete index store for [" + index.getName() + "] - it's still part of the " +
-                                                    "cluster state [" + idxMeta.getIndexUUID() + "] [" + metaData.getIndexUUID() + "], " +
+                                                    "cluster state [" + idxMeta.getIndexUUID() + "] [" + metadata.getIndexUUID() + "], " +
                                                     "we are master eligible, so will keep the index metadata even if no shards are left.");
                 }
             }
-            final IndexSettings indexSettings = buildIndexSettings(metaData);
+            final IndexSettings indexSettings = buildIndexSettings(metadata);
             deleteIndexStore(reason, indexSettings.getIndex(), indexSettings);
         }
     }
@@ -547,7 +547,7 @@ public class IndicesService extends AbstractLifecycleComponent
             }
             // this is a pure protection to make sure this index doesn't get re-imported as a dangling index.
             // we should in the future rather write a tombstone rather than wiping the metadata.
-            MetaDataStateFormat.deleteMetaState(nodeEnv.indexPaths(index));
+            MetadataStateFormat.deleteMetaState(nodeEnv.indexPaths(index));
         }
     }
 
@@ -579,9 +579,9 @@ public class IndicesService extends AbstractLifecycleComponent
      */
     public void deleteShardStore(String reason, ShardId shardId, ClusterState clusterState)
             throws IOException, ShardLockObtainFailedException {
-        final IndexMetaData metaData = clusterState.getMetaData().indices().get(shardId.getIndexName());
+        final IndexMetadata metadata = clusterState.getMetadata().indices().get(shardId.getIndexName());
 
-        final IndexSettings indexSettings = buildIndexSettings(metaData);
+        final IndexSettings indexSettings = buildIndexSettings(metadata);
         ShardDeletionCheckResult shardDeletionCheckResult = canDeleteShardContent(shardId, indexSettings);
         if (shardDeletionCheckResult != ShardDeletionCheckResult.FOLDER_FOUND_CAN_DELETE) {
             throw new IllegalStateException("Can't delete shard " + shardId + " (cause: " + shardDeletionCheckResult + ")");
@@ -594,7 +594,7 @@ public class IndicesService extends AbstractLifecycleComponent
             if (nodeEnv.findAllShardIds(shardId.getIndex()).isEmpty()) {
                 try {
                     // note that deleteIndexStore have more safety checks and may throw an exception if index was concurrently created.
-                    deleteIndexStore("no longer used", metaData, clusterState);
+                    deleteIndexStore("no longer used", metadata, clusterState);
                 } catch (Exception e) {
                     // wrap the exception to indicate we already deleted the shard
                     throw new ElasticsearchException("failed to delete unused index after deleting its last shard (" + shardId + ")", e);
@@ -629,35 +629,35 @@ public class IndicesService extends AbstractLifecycleComponent
      * through index tombstones.
      * @param index {@code Index} to make sure its deleted from disk
      * @param clusterState {@code ClusterState} to ensure the index is not part of it
-     * @return IndexMetaData for the index loaded from disk
+     * @return IndexMetadata for the index loaded from disk
      */
     @Override
     @Nullable
-    public IndexMetaData verifyIndexIsDeleted(final Index index, final ClusterState clusterState) {
+    public IndexMetadata verifyIndexIsDeleted(final Index index, final ClusterState clusterState) {
         // this method should only be called when we know the index (name + uuid) is not part of the cluster state
-        if (clusterState.metaData().index(index) != null) {
+        if (clusterState.metadata().index(index) != null) {
             throw new IllegalStateException("Cannot delete index [" + index + "], it is still part of the cluster state.");
         }
         if (nodeEnv.hasNodeFile() && FileSystemUtils.exists(nodeEnv.indexPaths(index))) {
-            final IndexMetaData metaData;
+            final IndexMetadata metadata;
             try {
-                metaData = metaStateService.loadIndexState(index);
-                if (metaData == null) {
+                metadata = metaStateService.loadIndexState(index);
+                if (metadata == null) {
                     return null;
                 }
             } catch (Exception e) {
                 LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to load state file from a stale deleted index, folders will be left on disk", index), e);
                 return null;
             }
-            final IndexSettings indexSettings = buildIndexSettings(metaData);
+            final IndexSettings indexSettings = buildIndexSettings(metadata);
             try {
                 deleteIndexStoreIfDeletionAllowed("stale deleted index", index, indexSettings, ALWAYS_TRUE);
             } catch (Exception e) {
                 // we just warn about the exception here because if deleteIndexStoreIfDeletionAllowed
                 // throws an exception, it gets added to the list of pending deletes to be tried again
-                LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to delete index on disk", metaData.getIndex()), e);
+                LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to delete index on disk", metadata.getIndex()), e);
             }
-            return metaData;
+            return metadata;
         }
         return null;
     }
@@ -703,11 +703,11 @@ public class IndicesService extends AbstractLifecycleComponent
         }
     }
 
-    private IndexSettings buildIndexSettings(IndexMetaData metaData) {
+    private IndexSettings buildIndexSettings(IndexMetadata metadata) {
         // play safe here and make sure that we take node level settings into account.
         // we might run on nodes where we use shard FS and then in the future don't delete
         // actual content.
-        return new IndexSettings(metaData, settings);
+        return new IndexSettings(metadata, settings);
     }
 
     /**
@@ -916,8 +916,8 @@ public class IndicesService extends AbstractLifecycleComponent
     /**
      * Returns true if the provided field is a registered metadata field (including ones registered via plugins), false otherwise.
      */
-    public boolean isMetaDataField(String field) {
-        return mapperRegistry.isMetaDataField(field);
+    public boolean isMetadataField(String field) {
+        return mapperRegistry.isMetadataField(field);
     }
 
     public MapperRegistry getMapperRegistry() {

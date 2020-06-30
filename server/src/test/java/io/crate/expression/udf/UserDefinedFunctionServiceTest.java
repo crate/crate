@@ -42,15 +42,15 @@ import static org.hamcrest.Matchers.notNullValue;
 
 public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 
-    private final UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData(
+    private final UserDefinedFunctionMetadata same1 = new UserDefinedFunctionMetadata(
         Schemas.DOC_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function same(){ return 3; }"
     );
-    private final UserDefinedFunctionMetaData same2 = new UserDefinedFunctionMetaData(
+    private final UserDefinedFunctionMetadata same2 = new UserDefinedFunctionMetadata(
         Schemas.DOC_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function same() { return 2; }"
     );
-    private final UserDefinedFunctionMetaData different = new UserDefinedFunctionMetaData(
+    private final UserDefinedFunctionMetadata different = new UserDefinedFunctionMetadata(
         Schemas.DOC_SCHEMA_NAME, "different", ImmutableList.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function different() { return 3; }"
     );
@@ -63,52 +63,52 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 
     @Test
     public void testFirstFunction() throws Exception {
-        UserDefinedFunctionsMetaData metaData = udfService.putFunction(null, same1, true);
-        assertThat(metaData.functionsMetaData(), hasSize(1));
-        assertThat(metaData.functionsMetaData(), contains(same1));
+        UserDefinedFunctionsMetadata metadata = udfService.putFunction(null, same1, true);
+        assertThat(metadata.functionsMetadata(), hasSize(1));
+        assertThat(metadata.functionsMetadata(), contains(same1));
     }
 
     @Test
     public void testReplaceExistingFunction() throws Exception {
-        UserDefinedFunctionsMetaData metaData = udfService.putFunction(UserDefinedFunctionsMetaData.of(same1), same2, true);
-        assertThat(metaData.functionsMetaData(), hasSize(1));
-        assertThat(metaData.functionsMetaData(), contains(same2));
+        UserDefinedFunctionsMetadata metadata = udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), same2, true);
+        assertThat(metadata.functionsMetadata(), hasSize(1));
+        assertThat(metadata.functionsMetadata(), contains(same2));
     }
 
     @Test
     public void testReplaceNotExistingFunction() throws Exception {
-        UserDefinedFunctionsMetaData metaData =
-            udfService.putFunction(UserDefinedFunctionsMetaData.of(same1), different, true);
-        assertThat(metaData.functionsMetaData(), hasSize(2));
-        assertThat(metaData.functionsMetaData(), containsInAnyOrder(same1, different));
+        UserDefinedFunctionsMetadata metadata =
+            udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), different, true);
+        assertThat(metadata.functionsMetadata(), hasSize(2));
+        assertThat(metadata.functionsMetadata(), containsInAnyOrder(same1, different));
     }
 
     @Test
     public void testRemoveFunction() throws Exception {
-        UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(same1);
-        UserDefinedFunctionsMetaData newMetaData = udfService.removeFunction(metaData, same1.schema(), same1.name(), same1.argumentTypes(), false);
-        assertThat(metaData, not(is(newMetaData))); // A new instance of metaData must be returned on a change
-        assertThat(newMetaData.functionsMetaData().size(), is(0));
+        UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(same1);
+        UserDefinedFunctionsMetadata newMetadata = udfService.removeFunction(metadata, same1.schema(), same1.name(), same1.argumentTypes(), false);
+        assertThat(metadata, not(is(newMetadata))); // A new instance of metadata must be returned on a change
+        assertThat(newMetadata.functionsMetadata().size(), is(0));
     }
 
     @Test
-    public void testRemoveIfExistsEmptyMetaData() throws Exception {
-        UserDefinedFunctionsMetaData newMetaData = udfService.removeFunction(null, same1.schema(), same1.name(), same1.argumentTypes(), true);
-        assertThat(newMetaData, is(notNullValue()));
+    public void testRemoveIfExistsEmptyMetadata() throws Exception {
+        UserDefinedFunctionsMetadata newMetadata = udfService.removeFunction(null, same1.schema(), same1.name(), same1.argumentTypes(), true);
+        assertThat(newMetadata, is(notNullValue()));
     }
 
     @Test
     public void testRemoveDoesNotExist() throws Exception {
         expectedException.expect(UserDefinedFunctionUnknownException.class);
         expectedException.expectMessage("Cannot resolve user defined function: 'doc.different()'");
-        UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(same1);
-        udfService.removeFunction(metaData, different.schema(), different.name(), different.argumentTypes(), false);
+        UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(same1);
+        udfService.removeFunction(metadata, different.schema(), different.name(), different.argumentTypes(), false);
     }
 
     @Test
     public void testReplaceIsFalse() throws Exception {
         expectedException.expect(UserDefinedFunctionAlreadyExistsException.class);
         expectedException.expectMessage("User defined Function 'doc.same()' already exists.");
-        udfService.putFunction(UserDefinedFunctionsMetaData.of(same1), same2, false);
+        udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), same2, false);
     }
 }

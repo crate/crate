@@ -80,12 +80,12 @@ public class TransportCreateUserDefinedFunctionAction
     protected void masterOperation(final CreateUserDefinedFunctionRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
-        UserDefinedFunctionMetaData metaData = request.userDefinedFunctionMetaData();
-        String errorMessage = udfService.getLanguage(metaData.language()).validate(metaData);
+        UserDefinedFunctionMetadata metadata = request.userDefinedFunctionMetadata();
+        String errorMessage = udfService.getLanguage(metadata.language()).validate(metadata);
         if (errorMessage != null) {
-            throw new ScriptException(errorMessage, metaData.language());
+            throw new ScriptException(errorMessage, metadata.language());
         }
-        udfService.registerFunction(metaData, request.replace(), listener, request.masterNodeTimeout());
+        udfService.registerFunction(metadata, request.replace(), listener, request.masterNodeTimeout());
     }
 
     @Override

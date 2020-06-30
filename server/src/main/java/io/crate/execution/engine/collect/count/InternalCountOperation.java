@@ -33,8 +33,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -87,17 +87,17 @@ public class InternalCountOperation implements CountOperation {
                                          Map<String, IntIndexedContainer> indexShardMap,
                                          Symbol filter) {
         List<Supplier<Long>> suppliers = new ArrayList<>();
-        MetaData metaData = clusterService.state().getMetaData();
+        Metadata metadata = clusterService.state().getMetadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
             String indexName = entry.getKey();
-            IndexMetaData indexMetaData = metaData.index(indexName);
-            if (indexMetaData == null) {
+            IndexMetadata indexMetadata = metadata.index(indexName);
+            if (indexMetadata == null) {
                 if (IndexParts.isPartitioned(indexName)) {
                     continue;
                 }
                 throw new IndexNotFoundException(indexName);
             }
-            final Index index = indexMetaData.getIndex();
+            final Index index = indexMetadata.getIndex();
             for (IntCursor shardCursor : entry.getValue()) {
                 int shardValue = shardCursor.value;
                 suppliers.add(() -> {

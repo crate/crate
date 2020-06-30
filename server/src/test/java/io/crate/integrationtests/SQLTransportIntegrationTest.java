@@ -81,9 +81,9 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.ConfigurationException;
@@ -560,16 +560,16 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         ClusterStateRequest request = Requests.clusterStateRequest()
             .routingTable(false)
             .nodes(false)
-            .metaData(true)
+            .metadata(true)
             .indices(index);
         ClusterStateResponse response = client().admin().cluster().state(request)
             .actionGet();
 
-        MetaData metaData = response.getState().metaData();
+        Metadata metadata = response.getState().metadata();
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
-        IndexMetaData indexMetaData = metaData.iterator().next();
-        for (ObjectCursor<MappingMetaData> cursor : indexMetaData.getMappings().values()) {
+        IndexMetadata indexMetadata = metadata.iterator().next();
+        for (ObjectCursor<MappingMetadata> cursor : indexMetadata.getMappings().values()) {
             builder.field(cursor.value.type());
             builder.map(cursor.value.sourceAsMap());
         }
@@ -645,18 +645,18 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         ClusterStateRequest request = Requests.clusterStateRequest()
             .routingTable(false)
             .nodes(false)
-            .metaData(true)
+            .metadata(true)
             .indices(index);
         ClusterStateResponse response = client().admin().cluster().state(request)
             .actionGet();
 
-        MetaData metaData = response.getState().metaData();
+        Metadata metadata = response.getState().metadata();
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
-        for (IndexMetaData indexMetaData : metaData) {
-            builder.startObject(indexMetaData.getIndex().getName());
+        for (IndexMetadata indexMetadata : metadata) {
+            builder.startObject(indexMetadata.getIndex().getName());
             builder.startObject("settings");
-            Settings settings = indexMetaData.getSettings();
+            Settings settings = indexMetadata.getSettings();
             for (String settingName : settings.keySet()) {
                 builder.field(settingName, settings.get(settingName));
             }

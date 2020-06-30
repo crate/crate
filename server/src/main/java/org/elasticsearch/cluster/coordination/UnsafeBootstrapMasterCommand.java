@@ -24,13 +24,13 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.metadata.Manifest;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeMetaData;
+import org.elasticsearch.env.NodeMetadata;
 import org.elasticsearch.node.Node;
 
 import java.io.IOException;
@@ -65,7 +65,7 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
 
     public static final String MASTER_NODE_BOOTSTRAPPED_MSG = "Master node was successfully bootstrapped";
     public static final Setting<String> UNSAFE_BOOTSTRAP =
-            ClusterService.USER_DEFINED_META_DATA.getConcreteSetting("cluster.metadata.unsafe-bootstrap");
+            ClusterService.USER_DEFINED_METADATA.getConcreteSetting("cluster.metadata.unsafe-bootstrap");
 
     public UnsafeBootstrapMasterCommand() {
         super("Forces the successful election of the current node after the permanent loss of the half or more master-eligible nodes");
@@ -85,47 +85,47 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
 
     protected void processNodePaths(Terminal terminal, Path[] dataPaths, Environment env) throws IOException {
         terminal.println(Terminal.Verbosity.VERBOSE, "Loading node metadata");
-        final NodeMetaData nodeMetaData = NodeMetaData.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, dataPaths);
-        if (nodeMetaData == null) {
+        final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, dataPaths);
+        if (nodeMetadata == null) {
             throw new ElasticsearchException(NO_NODE_METADATA_FOUND_MSG);
         }
 
-        String nodeId = nodeMetaData.nodeId();
+        String nodeId = nodeMetadata.nodeId();
         terminal.println(Terminal.Verbosity.VERBOSE, "Current nodeId is " + nodeId);
 
-        final Tuple<Manifest, MetaData> manifestMetaDataTuple = loadMetaData(terminal, dataPaths);
-        final Manifest manifest = manifestMetaDataTuple.v1();
-        final MetaData metaData = manifestMetaDataTuple.v2();
-        final CoordinationMetaData coordinationMetaData = metaData.coordinationMetaData();
-        if (coordinationMetaData == null ||
-                coordinationMetaData.getLastCommittedConfiguration() == null ||
-                coordinationMetaData.getLastCommittedConfiguration().isEmpty()) {
+        final Tuple<Manifest, Metadata> manifestMetadataTuple = loadMetadata(terminal, dataPaths);
+        final Manifest manifest = manifestMetadataTuple.v1();
+        final Metadata metadata = manifestMetadataTuple.v2();
+        final CoordinationMetadata coordinationMetadata = metadata.coordinationMetadata();
+        if (coordinationMetadata == null ||
+                coordinationMetadata.getLastCommittedConfiguration() == null ||
+                coordinationMetadata.getLastCommittedConfiguration().isEmpty()) {
             throw new ElasticsearchException(EMPTY_LAST_COMMITTED_VOTING_CONFIG_MSG);
         }
-        terminal.println(String.format(Locale.ROOT, CLUSTER_STATE_TERM_VERSION_MSG_FORMAT, coordinationMetaData.term(),
-                metaData.version()));
+        terminal.println(String.format(Locale.ROOT, CLUSTER_STATE_TERM_VERSION_MSG_FORMAT, coordinationMetadata.term(),
+                metadata.version()));
 
         confirm(terminal, CONFIRMATION_MSG);
 
-        CoordinationMetaData newCoordinationMetaData = CoordinationMetaData.builder(coordinationMetaData)
+        CoordinationMetadata newCoordinationMetadata = CoordinationMetadata.builder(coordinationMetadata)
                 .clearVotingConfigExclusions()
-                .lastAcceptedConfiguration(new CoordinationMetaData.VotingConfiguration(Collections.singleton(nodeId)))
-                .lastCommittedConfiguration(new CoordinationMetaData.VotingConfiguration(Collections.singleton(nodeId)))
+                .lastAcceptedConfiguration(new CoordinationMetadata.VotingConfiguration(Collections.singleton(nodeId)))
+                .lastCommittedConfiguration(new CoordinationMetadata.VotingConfiguration(Collections.singleton(nodeId)))
                 .build();
 
         Settings persistentSettings = Settings.builder()
-                .put(metaData.persistentSettings())
+                .put(metadata.persistentSettings())
                 .put(UNSAFE_BOOTSTRAP.getKey(), true)
                 .build();
-        MetaData newMetaData = MetaData.builder(metaData)
-                .clusterUUID(MetaData.UNKNOWN_CLUSTER_UUID)
+        Metadata newMetadata = Metadata.builder(metadata)
+                .clusterUUID(Metadata.UNKNOWN_CLUSTER_UUID)
                 .generateClusterUuidIfNeeded()
                 .clusterUUIDCommitted(true)
                 .persistentSettings(persistentSettings)
-                .coordinationMetaData(newCoordinationMetaData)
+                .coordinationMetadata(newCoordinationMetadata)
                 .build();
 
-        writeNewMetaData(terminal, manifest, manifest.getCurrentTerm(), metaData, newMetaData, dataPaths);
+        writeNewMetadata(terminal, manifest, manifest.getCurrentTerm(), metadata, newMetadata, dataPaths);
 
         terminal.println(MASTER_NODE_BOOTSTRAPPED_MSG);
     }

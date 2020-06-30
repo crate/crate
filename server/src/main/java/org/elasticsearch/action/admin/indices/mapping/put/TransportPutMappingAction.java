@@ -28,7 +28,7 @@ import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaDataMappingService;
+import org.elasticsearch.cluster.metadata.MetadataMappingService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -44,16 +44,16 @@ import java.io.IOException;
  */
 public class TransportPutMappingAction extends TransportMasterNodeAction<PutMappingRequest, AcknowledgedResponse> {
 
-    private final MetaDataMappingService metaDataMappingService;
+    private final MetadataMappingService metadataMappingService;
 
     @Inject
     public TransportPutMappingAction(TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
-                                     MetaDataMappingService metaDataMappingService,
+                                     MetadataMappingService metadataMappingService,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
         super(PutMappingAction.NAME, transportService, clusterService, threadPool, PutMappingRequest::new, indexNameExpressionResolver);
-        this.metaDataMappingService = metaDataMappingService;
+        this.metadataMappingService = metadataMappingService;
     }
 
     @Override
@@ -88,7 +88,7 @@ public class TransportPutMappingAction extends TransportMasterNodeAction<PutMapp
                     .updateAllTypes(request.updateAllTypes())
                     .source(request.source());
 
-            metaDataMappingService.putMapping(updateRequest, new ActionListener<ClusterStateUpdateResponse>() {
+            metadataMappingService.putMapping(updateRequest, new ActionListener<ClusterStateUpdateResponse>() {
 
                 @Override
                 public void onResponse(ClusterStateUpdateResponse response) {

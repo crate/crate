@@ -27,7 +27,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
@@ -88,7 +88,7 @@ public class DropAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         ClusterState clusterState = ClusterState.builder(clusterService.state())
-            .metaData(MetaData.builder(clusterService.state().metaData())
+            .metadata(Metadata.builder(clusterService.state().metadata())
                 .persistentSettings(settings))
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);

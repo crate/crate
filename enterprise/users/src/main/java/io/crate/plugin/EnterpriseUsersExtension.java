@@ -18,12 +18,12 @@
 
 package io.crate.plugin;
 
-import io.crate.metadata.UsersMetaData;
-import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.UsersMetadata;
+import io.crate.metadata.UsersPrivilegesMetadata;
 import io.crate.scalar.UsersScalarFunctionModule;
 import io.crate.user.UserExtension;
 import org.elasticsearch.cluster.NamedDiff;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -41,25 +41,25 @@ public class EnterpriseUsersExtension implements UserExtension {
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
         List<NamedWriteableRegistry.Entry> entries = new ArrayList<>(4);
         entries.add(new NamedWriteableRegistry.Entry(
-            MetaData.Custom.class,
-            UsersMetaData.TYPE,
-            UsersMetaData::new
+            Metadata.Custom.class,
+            UsersMetadata.TYPE,
+            UsersMetadata::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
-            UsersMetaData.TYPE,
-            in -> UsersMetaData.readDiffFrom(MetaData.Custom.class, UsersMetaData.TYPE, in)
+            UsersMetadata.TYPE,
+            in -> UsersMetadata.readDiffFrom(Metadata.Custom.class, UsersMetadata.TYPE, in)
         ));
 
         entries.add(new NamedWriteableRegistry.Entry(
-            MetaData.Custom.class,
-            UsersPrivilegesMetaData.TYPE,
-            UsersPrivilegesMetaData::new
+            Metadata.Custom.class,
+            UsersPrivilegesMetadata.TYPE,
+            UsersPrivilegesMetadata::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
-            UsersPrivilegesMetaData.TYPE,
-            in -> UsersPrivilegesMetaData.readDiffFrom(MetaData.Custom.class, UsersPrivilegesMetaData.TYPE, in)
+            UsersPrivilegesMetadata.TYPE,
+            in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
         ));
         return entries;
     }
@@ -68,14 +68,14 @@ public class EnterpriseUsersExtension implements UserExtension {
     public List<NamedXContentRegistry.Entry> getNamedXContent() {
         List<NamedXContentRegistry.Entry> entries = new ArrayList<>(2);
         entries.add(new NamedXContentRegistry.Entry(
-            MetaData.Custom.class,
-            new ParseField(UsersMetaData.TYPE),
-            UsersMetaData::fromXContent
+            Metadata.Custom.class,
+            new ParseField(UsersMetadata.TYPE),
+            UsersMetadata::fromXContent
         ));
         entries.add(new NamedXContentRegistry.Entry(
-            MetaData.Custom.class,
-            new ParseField(UsersPrivilegesMetaData.TYPE),
-            UsersPrivilegesMetaData::fromXContent
+            Metadata.Custom.class,
+            new ParseField(UsersPrivilegesMetadata.TYPE),
+            UsersPrivilegesMetadata::fromXContent
         ));
         return entries;
     }

@@ -41,14 +41,14 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
 
     static final UDFLanguage DUMMY_LANG = new UDFLanguage() {
         @Override
-        public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData,
+        public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
                                                    Signature signature) throws ScriptException {
             return new DummyFunction(signature);
         }
 
         @Nullable
         @Override
-        public String validate(UserDefinedFunctionMetaData metadata) {
+        public String validate(UserDefinedFunctionMetadata metadata) {
             return null;
         }
 

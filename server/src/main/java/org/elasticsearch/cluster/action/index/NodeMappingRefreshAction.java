@@ -23,7 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.metadata.MetaDataMappingService;
+import org.elasticsearch.cluster.metadata.MetadataMappingService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -46,12 +46,12 @@ public class NodeMappingRefreshAction {
     public static final String ACTION_NAME = "internal:cluster/node/mapping/refresh";
 
     private final TransportService transportService;
-    private final MetaDataMappingService metaDataMappingService;
+    private final MetadataMappingService metadataMappingService;
 
     @Inject
-    public NodeMappingRefreshAction(TransportService transportService, MetaDataMappingService metaDataMappingService) {
+    public NodeMappingRefreshAction(TransportService transportService, MetadataMappingService metadataMappingService) {
         this.transportService = transportService;
-        this.metaDataMappingService = metaDataMappingService;
+        this.metadataMappingService = metadataMappingService;
         transportService.registerRequestHandler(ACTION_NAME, NodeMappingRefreshRequest::new, ThreadPool.Names.SAME, new NodeMappingRefreshTransportHandler());
     }
 
@@ -67,7 +67,7 @@ public class NodeMappingRefreshAction {
 
         @Override
         public void messageReceived(NodeMappingRefreshRequest request, TransportChannel channel, Task task) throws Exception {
-            metaDataMappingService.refreshMapping(request.index(), request.indexUUID());
+            metadataMappingService.refreshMapping(request.index(), request.indexUUID());
             channel.sendResponse(TransportResponse.Empty.INSTANCE);
         }
     }

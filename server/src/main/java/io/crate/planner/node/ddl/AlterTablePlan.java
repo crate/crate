@@ -46,7 +46,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -133,8 +133,8 @@ public class AlterTablePlan implements Plan {
     // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.
     static void maybeRaiseBlockedException(TableInfo tableInfo, Settings tableSettings) {
         if (tableSettings.size() != 1 ||
-            (tableSettings.get(IndexMetaData.SETTING_BLOCKS_METADATA) == null &&
-             tableSettings.get(IndexMetaData.SETTING_READ_ONLY) == null)) {
+            (tableSettings.get(IndexMetadata.SETTING_BLOCKS_METADATA) == null &&
+             tableSettings.get(IndexMetadata.SETTING_READ_ONLY) == null)) {
 
             Operation.blockedRaiseException(tableInfo, Operation.ALTER);
         }

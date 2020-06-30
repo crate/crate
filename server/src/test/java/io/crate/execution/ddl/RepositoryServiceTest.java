@@ -34,9 +34,9 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.spi.Message;
 import org.elasticsearch.common.settings.Settings;
@@ -73,9 +73,9 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(RepositoryException.class);
 
         // add repo to cluster service so that it exists..
-        RepositoriesMetaData repos = new RepositoriesMetaData(Collections.singletonList(new RepositoryMetaData("repo1", "fs", Settings.EMPTY)));
-        ClusterState state = ClusterState.builder(new ClusterName("dummy")).metaData(
-            MetaData.builder().putCustom(RepositoriesMetaData.TYPE, repos)).build();
+        RepositoriesMetadata repos = new RepositoriesMetadata(Collections.singletonList(new RepositoryMetadata("repo1", "fs", Settings.EMPTY)));
+        ClusterState state = ClusterState.builder(new ClusterName("dummy")).metadata(
+                Metadata.builder().putCustom(RepositoriesMetadata.TYPE, repos)).build();
         ClusterServiceUtils.setState(clusterService, state);
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
 

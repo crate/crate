@@ -101,7 +101,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
@@ -400,10 +400,10 @@ public class ProjectionToProjectorVisitor
         Supplier<String> indexNameResolver =
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         ClusterState state = clusterService.state();
-        Settings tableSettings = TableSettingsResolver.get(state.getMetaData(),
+        Settings tableSettings = TableSettingsResolver.get(state.getMetadata(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
 
-        int targetTableNumShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
+        int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
         int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize());
 
         UpsertResultContext upsertResultContext;
@@ -423,7 +423,7 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SEARCH),
             context.txnCtx,
             functions,
-            state.metaData().settings(),
+            state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,
             transportActionProvider.transportBulkCreateIndicesAction(),
@@ -458,10 +458,10 @@ public class ProjectionToProjectorVisitor
             insertInputs.add(ctx.add(symbol));
         }
         ClusterState state = clusterService.state();
-        Settings tableSettings = TableSettingsResolver.get(state.getMetaData(),
+        Settings tableSettings = TableSettingsResolver.get(state.getMetadata(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
 
-        int targetTableNumShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
+        int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
         int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize());
 
         return new ColumnIndexWriterProjector(
@@ -471,7 +471,7 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SEARCH),
             context.txnCtx,
             functions,
-            state.metaData().settings(),
+            state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),

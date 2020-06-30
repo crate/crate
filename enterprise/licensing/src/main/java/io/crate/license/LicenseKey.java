@@ -22,7 +22,7 @@ import io.crate.license.exception.InvalidLicenseException;
 import io.crate.license.exception.LicenseMetadataParsingException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -34,7 +34,7 @@ import java.util.Base64;
 import java.util.EnumSet;
 import java.util.Objects;
 
-public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
+public class LicenseKey extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
     public static final String WRITEABLE_TYPE = "license";
 
@@ -115,7 +115,7 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
     }
 
     /*
-     * LicenseMetaData XContent has the following structure:
+     * LicenseMetadata XContent has the following structure:
      *
      * <pre>
      *     {
@@ -185,8 +185,8 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
     }
 
     @Override
-    public EnumSet<MetaData.XContentContext> context() {
-        return EnumSet.of(MetaData.XContentContext.GATEWAY, MetaData.XContentContext.SNAPSHOT);
+    public EnumSet<Metadata.XContentContext> context() {
+        return EnumSet.of(Metadata.XContentContext.GATEWAY, Metadata.XContentContext.SNAPSHOT);
     }
 
     @Override

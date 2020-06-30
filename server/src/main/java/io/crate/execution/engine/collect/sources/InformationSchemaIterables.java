@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect.sources;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.FunctionProvider;
@@ -57,7 +57,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
@@ -344,20 +344,20 @@ public class InformationSchemaIterables implements ClusterStateListener {
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if (initialClusterStateReceived) {
-            Set<String> changedCustomMetaDataSet = event.changedCustomMetaDataSet();
-            if (changedCustomMetaDataSet.contains(UserDefinedFunctionsMetaData.TYPE) == false) {
+            Set<String> changedCustomMetadataSet = event.changedCustomMetadataSet();
+            if (changedCustomMetadataSet.contains(UserDefinedFunctionsMetadata.TYPE) == false) {
                 return;
             }
-            createMetaDataBasedIterables(event.state().getMetaData());
+            createMetadataBasedIterables(event.state().getMetadata());
         } else {
             initialClusterStateReceived = true;
-            createMetaDataBasedIterables(event.state().getMetaData());
+            createMetadataBasedIterables(event.state().getMetadata());
         }
     }
 
-    private void createMetaDataBasedIterables(MetaData metaData) {
+    private void createMetadataBasedIterables(Metadata metadata) {
         RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver,
-            metaData.custom(UserDefinedFunctionsMetaData.TYPE));
+            metadata.custom(UserDefinedFunctionsMetadata.TYPE));
         routines = () -> sequentialStream(routineInfos).filter(Objects::nonNull).iterator();
     }
 

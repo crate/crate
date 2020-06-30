@@ -30,7 +30,7 @@ import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
@@ -318,9 +318,9 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         SnapshotsInProgress finalSnapshotsInProgress = clusterService().state().custom(SnapshotsInProgress.TYPE);
         assertFalse(finalSnapshotsInProgress.entries().stream().anyMatch(entry -> entry.state().completed() == false));
 
-        ImmutableOpenMap<String, IndexMetaData> state = clusterService().state().metaData().indices();
-        IndexMetaData indexMetaData = state.values().iterator().next().value;
-        int sizeOfProperties = ((Map<?, ?>) indexMetaData.getMappings().values().iterator().next().value.sourceAsMap().get("properties")).size();
+        ImmutableOpenMap<String, IndexMetadata> state = clusterService().state().metadata().indices();
+        IndexMetadata indexMetadata = state.values().iterator().next().value;
+        int sizeOfProperties = ((Map<?, ?>) indexMetadata.getMappings().values().iterator().next().value.sourceAsMap().get("properties")).size();
 
         execute("select count(*) from test");
 

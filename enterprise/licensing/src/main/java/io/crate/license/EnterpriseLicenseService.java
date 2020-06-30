@@ -175,7 +175,7 @@ public class EnterpriseLicenseService implements LicenseService, ClusterStateLis
     }
 
     private LicenseKey getLicenseMetadata(ClusterState clusterState) {
-        return clusterState.getMetaData().custom(LicenseKey.WRITEABLE_TYPE);
+        return clusterState.getMetadata().custom(LicenseKey.WRITEABLE_TYPE);
     }
 
     private void registerTrialLicense(ClusterState clusterState) {

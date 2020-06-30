@@ -29,9 +29,9 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
@@ -53,7 +53,7 @@ import java.util.function.Predicate;
 
 class DDLClusterStateHelpers {
 
-    static IndexTemplateMetaData updateTemplate(IndexTemplateMetaData indexTemplateMetaData,
+    static IndexTemplateMetadata updateTemplate(IndexTemplateMetadata indexTemplateMetadata,
                                                 Map<String, Object> newMappings,
                                                 Map<String, Object> mappingsToRemove,
                                                 Settings newSettings,
@@ -62,25 +62,25 @@ class DDLClusterStateHelpers {
 
         // merge mappings & remove mappings
         Map<String, Object> mapping = removeFromMapping(
-            mergeTemplateMapping(indexTemplateMetaData, newMappings),
+            mergeTemplateMapping(indexTemplateMetadata, newMappings),
             mappingsToRemove);
 
         // merge settings
         final Settings settings = Settings.builder()
-            .put(indexTemplateMetaData.settings())
+            .put(indexTemplateMetadata.settings())
             .put(newSettings)
-            .normalizePrefix(IndexMetaData.INDEX_SETTING_PREFIX)
+            .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
             // Private settings must not be (over-)written as they are generated, remove them.
             .build().filter(settingsFilter);
 
-        settingsValidator.accept(indexTemplateMetaData.getName(), settings);
+        settingsValidator.accept(indexTemplateMetadata.getName(), settings);
 
         // wrap it in a type map if its not
         if (mapping.size() != 1 || mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE) == false) {
             mapping = MapBuilder.<String, Object>newMapBuilder().put(Constants.DEFAULT_MAPPING_TYPE, mapping).map();
         }
         try {
-            return new IndexTemplateMetaData.Builder(indexTemplateMetaData)
+            return new IndexTemplateMetadata.Builder(indexTemplateMetadata)
                 .settings(settings)
                 .putMapping(Constants.DEFAULT_MAPPING_TYPE, Strings.toString(XContentFactory.jsonBuilder().map(mapping)))
                 .build();
@@ -89,23 +89,23 @@ class DDLClusterStateHelpers {
         }
     }
 
-    static Set<IndexMetaData> indexMetaDataSetFromIndexNames(MetaData metaData,
+    static Set<IndexMetadata> indexMetadataSetFromIndexNames(Metadata metadata,
                                                              String[] indices,
-                                                             IndexMetaData.State state) {
-        Set<IndexMetaData> indicesMetaData = new HashSet<>();
+                                                             IndexMetadata.State state) {
+        Set<IndexMetadata> indicesMetadata = new HashSet<>();
         for (String indexName : indices) {
-            IndexMetaData indexMetaData = metaData.index(indexName);
-            if (indexMetaData != null && indexMetaData.getState() != state) {
-                indicesMetaData.add(indexMetaData);
+            IndexMetadata indexMetadata = metadata.index(indexName);
+            if (indexMetadata != null && indexMetadata.getState() != state) {
+                indicesMetadata.add(indexMetadata);
             }
         }
-        return indicesMetaData;
+        return indicesMetadata;
     }
 
     @Nullable
-    static IndexTemplateMetaData templateMetaData(MetaData metaData, RelationName relationName) {
+    static IndexTemplateMetadata templateMetadata(Metadata metadata, RelationName relationName) {
         String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        return metaData.templates().get(templateName);
+        return metadata.templates().get(templateName);
     }
 
     private static Map<String, Object> removeFromMapping(Map<String, Object> mapping,
@@ -125,10 +125,10 @@ class DDLClusterStateHelpers {
     }
 
     @VisibleForTesting
-    static Map<String, Object> mergeTemplateMapping(IndexTemplateMetaData templateMetaData,
-                                                            Map<String, Object> newMapping) {
+    static Map<String, Object> mergeTemplateMapping(IndexTemplateMetadata templateMetadata,
+                                                    Map<String, Object> newMapping) {
         Map<String, Object> mergedMapping = new HashMap<>();
-        for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.mappings()) {
+        for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetadata.mappings()) {
             Map<String, Object> mapping = parseMapping(cursor.value.toString());
             Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
             assert o instanceof Map :

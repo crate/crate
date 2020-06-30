@@ -28,7 +28,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -38,12 +38,12 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewInfoFactory;
-import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.view.ViewsMetadata;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
@@ -156,11 +156,11 @@ public class DocSchemaInfo implements SchemaInfo {
 
     private Collection<String> tableNames() {
         Set<String> tables = new HashSet<>();
-        extractRelationNamesForSchema(Stream.of(clusterService.state().metaData().getConcreteAllIndices()),
+        extractRelationNamesForSchema(Stream.of(clusterService.state().metadata().getConcreteAllIndices()),
             schemaName, tables);
 
         // Search for partitioned table templates
-        Iterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();
+        Iterator<String> templates = clusterService.state().metadata().getTemplates().keysIt();
         while (templates.hasNext()) {
             String templateName = templates.next();
             if (!IndexParts.isPartitioned(templateName)) {
@@ -186,12 +186,12 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private Collection<String> viewNames() {
-        ViewsMetaData viewMetaData = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
-        if (viewMetaData == null) {
+        ViewsMetadata viewMetadata = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
+        if (viewMetadata == null) {
             return Collections.emptySet();
         }
         Set<String> views = new HashSet<>();
-        extractRelationNamesForSchema(StreamSupport.stream(viewMetaData.names().spliterator(), false),
+        extractRelationNamesForSchema(StreamSupport.stream(viewMetadata.names().spliterator(), false),
             schemaName, views);
         return views;
     }
@@ -217,26 +217,26 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public void update(ClusterChangedEvent event) {
-        assert event.metaDataChanged() : "metaDataChanged must be true if update is called";
+        assert event.metadataChanged() : "metadataChanged must be true if update is called";
 
         // search for aliases of deleted and created indices, they must be invalidated also
-        MetaData prevMetaData = event.previousState().metaData();
+        Metadata prevMetadata = event.previousState().metadata();
         for (Index index : event.indicesDeleted()) {
-            invalidateFromIndex(index, prevMetaData);
+            invalidateFromIndex(index, prevMetadata);
         }
-        MetaData newMetaData = event.state().metaData();
+        Metadata newMetadata = event.state().metadata();
         for (String index : event.indicesCreated()) {
-            invalidateAliases(newMetaData.index(index).getAliases());
+            invalidateAliases(newMetadata.index(index).getAliases());
         }
 
         // search for templates with changed meta data => invalidate template aliases
-        ImmutableOpenMap<String, IndexTemplateMetaData> newTemplates = newMetaData.templates();
-        ImmutableOpenMap<String, IndexTemplateMetaData> prevTemplates = prevMetaData.templates();
+        ImmutableOpenMap<String, IndexTemplateMetadata> newTemplates = newMetadata.templates();
+        ImmutableOpenMap<String, IndexTemplateMetadata> prevTemplates = prevMetadata.templates();
         if (!newTemplates.equals(prevTemplates)) {
-            for (ObjectCursor<IndexTemplateMetaData> cursor : newTemplates.values()) {
+            for (ObjectCursor<IndexTemplateMetadata> cursor : newTemplates.values()) {
                 invalidateAliases(cursor.value.aliases());
             }
-            for (ObjectCursor<IndexTemplateMetaData> cursor : prevTemplates.values()) {
+            for (ObjectCursor<IndexTemplateMetadata> cursor : prevTemplates.values()) {
                 invalidateAliases(cursor.value.aliases());
             }
         }
@@ -244,26 +244,26 @@ public class DocSchemaInfo implements SchemaInfo {
         // search indices with changed meta data
         Iterator<String> currentTablesIt = docTableByName.keySet().iterator();
         ObjectLookupContainer<String> templates = newTemplates.keys();
-        ImmutableOpenMap<String, IndexMetaData> indices = newMetaData.indices();
+        ImmutableOpenMap<String, IndexMetadata> indices = newMetadata.indices();
         while (currentTablesIt.hasNext()) {
             String tableName = currentTablesIt.next();
             String indexName = getIndexName(tableName);
 
-            IndexMetaData newIndexMetaData = newMetaData.index(indexName);
-            if (newIndexMetaData == null) {
+            IndexMetadata newIndexMetadata = newMetadata.index(indexName);
+            if (newIndexMetadata == null) {
                 docTableByName.remove(tableName);
             } else {
-                IndexMetaData oldIndexMetaData = prevMetaData.index(indexName);
-                if (oldIndexMetaData != null && ClusterChangedEvent.indexMetaDataChanged(oldIndexMetaData, newIndexMetaData)) {
+                IndexMetadata oldIndexMetadata = prevMetadata.index(indexName);
+                if (oldIndexMetadata != null && ClusterChangedEvent.indexMetadataChanged(oldIndexMetadata, newIndexMetadata)) {
                     docTableByName.remove(tableName);
                     // invalidate aliases of changed indices
-                    invalidateAliases(newIndexMetaData.getAliases());
-                    invalidateAliases(oldIndexMetaData.getAliases());
+                    invalidateAliases(newIndexMetadata.getAliases());
+                    invalidateAliases(oldIndexMetadata.getAliases());
                 } else {
                     // this is the case if a single partition has been modified using alter table <t> partition (...)
                     String possibleTemplateName = PartitionName.templateName(name(), tableName);
                     if (templates.contains(possibleTemplateName)) {
-                        for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
+                        for (ObjectObjectCursor<String, IndexMetadata> indexEntry : indices) {
                             if (IndexParts.isPartitioned(indexEntry.key)) {
                                 docTableByName.remove(tableName);
                                 break;
@@ -275,23 +275,23 @@ public class DocSchemaInfo implements SchemaInfo {
         }
 
         // re register UDFs for this schema
-        UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);
-        if (udfMetaData != null) {
+        UserDefinedFunctionsMetadata udfMetadata = newMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
+        if (udfMetadata != null) {
             udfService.updateImplementations(
                 schemaName,
-                udfMetaData.functionsMetaData().stream().filter(f -> schemaName.equals(f.schema())));
+                udfMetadata.functionsMetadata().stream().filter(f -> schemaName.equals(f.schema())));
         }
     }
 
     /**
-     * checks if metaData contains a particular index and
+     * checks if metadata contains a particular index and
      * invalidates its aliases if so
      */
     @VisibleForTesting
-    void invalidateFromIndex(Index index, MetaData metaData) {
-        IndexMetaData indexMetaData = metaData.index(index);
-        if (indexMetaData != null) {
-            invalidateAliases(indexMetaData.getAliases());
+    void invalidateFromIndex(Index index, Metadata metadata) {
+        IndexMetadata indexMetadata = metadata.index(index);
+        if (indexMetadata != null) {
+            invalidateAliases(indexMetadata.getAliases());
         }
     }
 
@@ -303,7 +303,7 @@ public class DocSchemaInfo implements SchemaInfo {
         }
     }
 
-    private void invalidateAliases(ImmutableOpenMap<String, AliasMetaData> aliases) {
+    private void invalidateAliases(ImmutableOpenMap<String, AliasMetadata> aliases) {
         assert aliases != null : "aliases must not be null";
         if (aliases.size() > 0) {
             aliases.keysIt().forEachRemaining(docTableByName::remove);

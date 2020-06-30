@@ -62,7 +62,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.metadata.view.ViewMetaData;
+import io.crate.metadata.view.ViewMetadata;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
@@ -606,16 +606,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 relation = new TableRelation(tableInfo);
             }
         } catch (RelationUnknown e) {
-            Tuple<ViewMetaData, RelationName> viewMetaData;
+            Tuple<ViewMetadata, RelationName> viewMetadata;
             try {
-                viewMetaData = schemas.resolveView(tableQualifiedName, searchPath);
+                viewMetadata = schemas.resolveView(tableQualifiedName, searchPath);
             } catch (RelationUnknown e1) {
                 // don't shadow original exception, as looking for the view is just a fallback
                 throw e;
             }
-            ViewMetaData view = viewMetaData.v1();
+            ViewMetadata view = viewMetadata.v1();
             AnalyzedRelation resolvedView = SqlParser.createStatement(view.stmt()).accept(this, context);
-            relation = new AnalyzedView(viewMetaData.v2(), view.owner(), resolvedView);
+            relation = new AnalyzedView(viewMetadata.v2(), view.owner(), resolvedView);
         }
 
         context.currentRelationContext().addSourceRelation(relation);

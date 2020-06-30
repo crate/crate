@@ -47,9 +47,9 @@ public class DanglingIndicesIntegrationTest extends SQLTransportIntegrationTest 
         createIndex(dangling1, dangling2, dangling3);
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metaData().hasIndex(dangling1), is(true));
-        assertThat(clusterService.state().metaData().hasIndex(dangling2), is(true));
-        assertThat(clusterService.state().metaData().hasIndex(dangling3), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(dangling1), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(dangling2), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(dangling3), is(true));
 
         execute("select id, table_name, state from sys.shards where table_name = 't1'");
         assertThat(response.rowCount(), is(3L));

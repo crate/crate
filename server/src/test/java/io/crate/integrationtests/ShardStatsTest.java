@@ -21,9 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.blob.v2.BlobAdminClient;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 

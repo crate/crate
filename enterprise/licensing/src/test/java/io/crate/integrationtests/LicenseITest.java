@@ -41,7 +41,7 @@ public class LicenseITest extends SQLTransportIntegrationTest {
     public void testLicenseIsAvailableInClusterStateAfterSetLicense() {
         execute("set license '" + ENTERPRISE_LICENSE_KEY + "'");
 
-        LicenseKey licenseKey = clusterService().state().metaData().custom(LicenseKey.WRITEABLE_TYPE);
+        LicenseKey licenseKey = clusterService().state().metadata().custom(LicenseKey.WRITEABLE_TYPE);
         assertThat(licenseKey, is(new LicenseKey(ENTERPRISE_LICENSE_KEY)));
     }
 

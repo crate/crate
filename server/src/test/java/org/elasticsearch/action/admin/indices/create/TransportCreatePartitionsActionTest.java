@@ -27,7 +27,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.settings.Settings;
@@ -62,9 +62,9 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
 
-        MetaData indexMetaData = internalCluster().clusterService().state().metaData();
+        Metadata indexMetadata = internalCluster().clusterService().state().metadata();
         for (String index : indices) {
-            assertThat(indexMetaData.hasIndex(index), is(true));
+            assertThat(indexMetadata.hasIndex(index), is(true));
         }
     }
 
@@ -109,9 +109,9 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
             new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
-        MetaData indexMetaData = internalCluster().clusterService().state().metaData();
+        Metadata indexMetadata = internalCluster().clusterService().state().metadata();
         for (String index : indices) {
-            assertThat(indexMetaData.hasIndex(index), is(true));
+            assertThat(indexMetadata.hasIndex(index), is(true));
         }
         AcknowledgedResponse response2 = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
@@ -137,7 +137,7 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
             fail("no exception thrown");
         } catch (Throwable t) {
             // if one name is invalid no index is created
-            assertThat(internalCluster().clusterService().state().metaData().hasIndex("valid"), is(false));
+            assertThat(internalCluster().clusterService().state().metadata().hasIndex("valid"), is(false));
             throw t;
         }
     }

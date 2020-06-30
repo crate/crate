@@ -37,7 +37,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.settings.Settings;
@@ -101,8 +101,8 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
         public void run() {
             try {
                 ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
-                MetaData metaData = clusterService.state().getMetaData();
-                String indexUUID = metaData.index(".blob_b1").getIndexUUID();
+                Metadata metadata = clusterService.state().getMetadata();
+                String indexUUID = metadata.index(".blob_b1").getIndexUUID();
                 BlobIndicesService blobIndicesService = internalCluster().getDataNodeInstance(BlobIndicesService.class);
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
                 Schemas schemas = new Schemas(Collections.emptyMap(), clusterService, null);

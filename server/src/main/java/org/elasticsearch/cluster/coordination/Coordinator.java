@@ -32,11 +32,11 @@ import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.LocalClusterUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.coordination.ClusterFormationFailureHelper.ClusterFormationState;
-import org.elasticsearch.cluster.coordination.CoordinationMetaData.VotingConfigExclusion;
-import org.elasticsearch.cluster.coordination.CoordinationMetaData.VotingConfiguration;
+import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
+import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.cluster.coordination.FollowersChecker.FollowerCheckRequest;
 import org.elasticsearch.cluster.coordination.JoinHelper.InitialJoinAccumulator;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -284,13 +284,13 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
             final ClusterState localState = coordinationState.get().getLastAcceptedState();
 
-            if (localState.metaData().clusterUUIDCommitted() &&
-                localState.metaData().clusterUUID().equals(publishRequest.getAcceptedState().metaData().clusterUUID()) == false) {
+            if (localState.metadata().clusterUUIDCommitted() &&
+                localState.metadata().clusterUUID().equals(publishRequest.getAcceptedState().metadata().clusterUUID()) == false) {
                 LOGGER.warn("received cluster state from {} with a different cluster uuid {} than local cluster uuid {}, rejecting",
-                    sourceNode, publishRequest.getAcceptedState().metaData().clusterUUID(), localState.metaData().clusterUUID());
+                    sourceNode, publishRequest.getAcceptedState().metadata().clusterUUID(), localState.metadata().clusterUUID());
                 throw new CoordinationStateRejectedException("received cluster state from " + sourceNode +
-                    " with a different cluster uuid " + publishRequest.getAcceptedState().metaData().clusterUUID() +
-                    " than local cluster uuid " + localState.metaData().clusterUUID() + ", rejecting");
+                    " with a different cluster uuid " + publishRequest.getAcceptedState().metadata().clusterUUID() +
+                    " than local cluster uuid " + localState.metadata().clusterUUID() + ", rejecting");
             }
 
             if (publishRequest.getAcceptedState().term() > localState.term()) {
@@ -364,7 +364,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             if (mode == Mode.CANDIDATE) {
                 if (electionQuorumContainsLocalNode(getLastAcceptedState()) == false) {
                     LOGGER.trace("skip election as local node is not part of election quorum: {}",
-                        getLastAcceptedState().coordinationMetaData());
+                        getLastAcceptedState().coordinationMetadata());
                     return;
                 }
 
@@ -696,7 +696,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             assert followersChecker.getFastResponseState().term == getCurrentTerm() : followersChecker.getFastResponseState();
             assert followersChecker.getFastResponseState().mode == getMode() : followersChecker.getFastResponseState();
             assert (applierState.nodes().getMasterNodeId() == null) == applierState.blocks().hasGlobalBlockWithId(NO_MASTER_BLOCK_ID);
-            assert applierState.nodes().getMasterNodeId() == null || applierState.metaData().clusterUUIDCommitted();
+            assert applierState.nodes().getMasterNodeId() == null || applierState.metadata().clusterUUIDCommitted();
             assert preVoteCollector.getPreVoteResponse().equals(getPreVoteResponse())
                 : preVoteCollector + " vs " + getPreVoteResponse();
 
@@ -821,19 +821,19 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             }
 
             LOGGER.info("setting initial configuration to {}", votingConfiguration);
-            final CoordinationMetaData coordinationMetaData = CoordinationMetaData.builder(currentState.coordinationMetaData())
+            final CoordinationMetadata coordinationMetadata = CoordinationMetadata.builder(currentState.coordinationMetadata())
                 .lastAcceptedConfiguration(votingConfiguration)
                 .lastCommittedConfiguration(votingConfiguration)
                 .build();
 
-            MetaData.Builder metaDataBuilder = MetaData.builder(currentState.metaData());
+            Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
             // automatically generate a UID for the metadata if we need to
-            metaDataBuilder.generateClusterUuidIfNeeded(); // TODO generate UUID in bootstrapping tool?
-            metaDataBuilder.coordinationMetaData(coordinationMetaData);
+            metadataBuilder.generateClusterUuidIfNeeded(); // TODO generate UUID in bootstrapping tool?
+            metadataBuilder.coordinationMetadata(coordinationMetadata);
 
-            coordinationState.get().setInitialState(ClusterState.builder(currentState).metaData(metaDataBuilder).build());
+            coordinationState.get().setInitialState(ClusterState.builder(currentState).metadata(metadataBuilder).build());
             assert electionQuorumContainsLocalNode(getLastAcceptedState()) :
-                "initial state does not have local node in its election quorum: " + getLastAcceptedState().coordinationMetaData();
+                "initial state does not have local node in its election quorum: " + getLastAcceptedState().coordinationMetadata();
             preVoteCollector.update(getPreVoteResponse(), null); // pick up the change to last-accepted version
             startElectionScheduler();
             return true;
@@ -851,8 +851,8 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             getLocalNode(), clusterState.getLastAcceptedConfiguration());
         if (newConfig.equals(clusterState.getLastAcceptedConfiguration()) == false) {
             assert coordinationState.get().joinVotesHaveQuorumFor(newConfig);
-            return ClusterState.builder(clusterState).metaData(MetaData.builder(clusterState.metaData())
-                .coordinationMetaData(CoordinationMetaData.builder(clusterState.coordinationMetaData())
+            return ClusterState.builder(clusterState).metadata(Metadata.builder(clusterState.metadata())
+                .coordinationMetadata(CoordinationMetadata.builder(clusterState.coordinationMetadata())
                     .lastAcceptedConfiguration(newConfig).build())).build();
         }
         return clusterState;
@@ -1131,7 +1131,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
                         if (electionQuorumContainsLocalNode(lastAcceptedState) == false) {
                             LOGGER.trace("skip prevoting as local node is not part of election quorum: {}",
-                                lastAcceptedState.coordinationMetaData());
+                                lastAcceptedState.coordinationMetadata());
                             return;
                         }
 

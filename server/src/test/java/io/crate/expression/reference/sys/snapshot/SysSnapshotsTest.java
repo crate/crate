@@ -24,7 +24,7 @@ package io.crate.expression.reference.sys.snapshot;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.Repository;
@@ -60,7 +60,7 @@ public class SysSnapshotsTest extends CrateUnitTest {
 
         Repository r1 = mock(Repository.class);
         when(r1.getRepositoryData()).thenReturn(repositoryData);
-        when(r1.getMetadata()).thenReturn(new RepositoryMetaData("repo1", "fs", Settings.EMPTY));
+        when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
         when(r1.getSnapshotInfo(eq(s1))).thenThrow(new SnapshotException("repo1", "s1", "Everything is wrong"));
         when(r1.getSnapshotInfo(eq(s2))).thenReturn(new SnapshotInfo(s2, Collections.emptyList(), SnapshotState.SUCCESS));
 

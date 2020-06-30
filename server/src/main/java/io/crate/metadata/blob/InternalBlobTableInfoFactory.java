@@ -30,7 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
@@ -63,7 +63,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);;
     }
 
-    private IndexMetaData resolveIndexMetaData(String tableName, ClusterState state) {
+    private IndexMetadata resolveIndexMetadata(String tableName, ClusterState state) {
         String indexName = BlobIndex.fullIndexName(tableName);
         Index index;
         try {
@@ -71,28 +71,28 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         } catch (IndexNotFoundException ex) {
             throw new RelationUnknown(indexName, ex);
         }
-        return state.metaData().index(index);
+        return state.metadata().index(index);
     }
 
     @Override
     public BlobTableInfo create(RelationName ident, ClusterState clusterState) {
-        IndexMetaData indexMetaData = resolveIndexMetaData(ident.name(), clusterState);
-        Settings settings = indexMetaData.getSettings();
+        IndexMetadata indexMetadata = resolveIndexMetadata(ident.name(), clusterState);
+        Settings settings = indexMetadata.getSettings();
         return new BlobTableInfo(
             ident,
-            indexMetaData.getIndex().getName(),
-            indexMetaData.getNumberOfShards(),
+            indexMetadata.getIndex().getName(),
+            indexMetadata.getNumberOfShards(),
             NumberOfReplicas.fromSettings(settings),
             settings,
             blobsPath(settings),
-            IndexMetaData.SETTING_INDEX_VERSION_CREATED.get(settings),
-            settings.getAsVersion(IndexMetaData.SETTING_VERSION_UPGRADED, null),
-            indexMetaData.getState() == IndexMetaData.State.CLOSE);
+            IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings),
+            settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
+            indexMetadata.getState() == IndexMetadata.State.CLOSE);
     }
 
-    private String blobsPath(Settings indexMetaDataSettings) {
+    private String blobsPath(Settings indexMetadataSettings) {
         String blobsPath;
-        String blobsPathStr = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.get(indexMetaDataSettings);
+        String blobsPathStr = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.get(indexMetadataSettings);
         if (!Strings.isNullOrEmpty(blobsPathStr)) {
             blobsPath = blobsPathStr;
         } else {

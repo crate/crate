@@ -22,10 +22,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.user.Privilege;
 import io.crate.metadata.UserDefinitions;
-import io.crate.metadata.UsersMetaData;
-import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.UsersMetadata;
+import io.crate.metadata.UsersPrivilegesMetadata;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -52,11 +52,11 @@ public class TransportPrivilegesActionTest extends CrateUnitTest {
     @Test
     public void testApplyPrivilegesCreatesNewPrivilegesInstance() {
         // given
-        MetaData.Builder mdBuilder = MetaData.builder();
+        Metadata.Builder mdBuilder = Metadata.builder();
         Map<String, Set<Privilege>> usersPrivileges = new HashMap<>();
         usersPrivileges.put("Ford", new HashSet<>(PRIVILEGES));
-        UsersPrivilegesMetaData initialPrivilegesMetadata = new UsersPrivilegesMetaData(usersPrivileges);
-        mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, initialPrivilegesMetadata);
+        UsersPrivilegesMetadata initialPrivilegesMetadata = new UsersPrivilegesMetadata(usersPrivileges);
+        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, initialPrivilegesMetadata);
         PrivilegesRequest denyPrivilegeRequest =
             new PrivilegesRequest(Collections.singletonList("Ford"), Collections.singletonList(DENY_DQL));
 
@@ -64,34 +64,34 @@ public class TransportPrivilegesActionTest extends CrateUnitTest {
         TransportPrivilegesAction.applyPrivileges(mdBuilder, denyPrivilegeRequest);
 
         // then
-        UsersPrivilegesMetaData newPrivilegesMetadata =
-            (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
+        UsersPrivilegesMetadata newPrivilegesMetadata =
+            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         assertNotSame(newPrivilegesMetadata, initialPrivilegesMetadata);
     }
 
     @Test
     public void testValidateUserNamesEmptyUsers() throws Exception {
         List<String> userNames = Lists.newArrayList("ford", "arthur");
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(MetaData.EMPTY_META_DATA, userNames);
+        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(Metadata.EMPTY_METADATA, userNames);
         assertThat(unknownUserNames, is(userNames));
     }
 
     @Test
     public void testValidateUserNamesMissingUser() throws Exception {
-        MetaData metaData = MetaData.builder()
-            .putCustom(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY))
+        Metadata metadata = Metadata.builder()
+            .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY))
             .build();
         List<String> userNames = Lists.newArrayList("Ford", "Arthur");
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metaData, userNames);
+        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, userNames);
         assertThat(unknownUserNames, contains("Ford"));
     }
 
     @Test
     public void testValidateUserNamesAllExists() throws Exception {
-        MetaData metaData = MetaData.builder()
-            .putCustom(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.DUMMY_USERS))
+        Metadata metadata = Metadata.builder()
+            .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.DUMMY_USERS))
             .build();
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metaData, ImmutableList.of("Ford", "Arthur"));
+        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, ImmutableList.of("Ford", "Arthur"));
         assertThat(unknownUserNames.size(), is(0));
     }
 
