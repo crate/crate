@@ -80,7 +80,9 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         changed |= filter != newFilter;
 
         if (changed) {
-            return new Function(func.info(), func.signature(), newArgs, newFilter);
+            var signature = func.signature();
+            assert signature != null : "Expecting signature not to be null";
+            return new Function(signature, newArgs, func.valueType(), newFilter);
         }
         return func;
     }
@@ -101,7 +103,9 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (arg1 == newArg1 && arg2 == newArg2 && filter == newFilter) {
             return func;
         }
-        return new Function(func.info(), func.signature(), List.of(newArg1, newArg2), newFilter);
+        var signature = func.signature();
+        assert signature != null : "Expecting signature not to be null";
+        return new Function(signature, List.of(newArg1, newArg2), func.valueType(), newFilter);
     }
 
     private Function zeroArg(Function func, C context) {
@@ -116,7 +120,9 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (filter == newFilter) {
             return func;
         }
-        return new Function(func.info(), func.signature(), List.of(), newFilter);
+        var signature = func.signature();
+        assert signature != null : "Expecting signature not to be null";
+        return new Function(signature, List.of(), func.valueType(), newFilter);
     }
 
     private Function oneArg(Function func, C context) {
@@ -130,7 +136,9 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (arg == newArg && filter == newFilter) {
             return func;
         }
-        return new Function(func.info(), func.signature(), List.of(newArg), newFilter);
+        var signature = func.signature();
+        assert signature != null : "Expecting signature not to be null";
+        return new Function(signature, List.of(newArg), func.valueType(), newFilter);
     }
 
     @Nullable
@@ -150,9 +158,9 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     public Symbol visitWindowFunction(WindowFunction windowFunction, C context) {
         Function processedFunction = processAndMaybeCopy(windowFunction, context);
         return new WindowFunction(
-            processedFunction.info(),
             processedFunction.signature(),
             processedFunction.arguments(),
+            processedFunction.valueType(),
             processNullable(windowFunction.filter(), context),
             windowFunction.windowDefinition().map(s -> s.accept(this, context))
         );

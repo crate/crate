@@ -22,8 +22,6 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -48,11 +46,7 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
-                new StringToArrayFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING_ARRAY),
-                    signature
-                )
+            StringToArrayFunction::new
         );
         module.register(
             Signature.scalar(
@@ -62,30 +56,26 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
-                new StringToArrayFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING_ARRAY),
-                    signature
-                )
+            StringToArrayFunction::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private StringToArrayFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    public StringToArrayFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

@@ -23,8 +23,6 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -48,32 +46,27 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, argumentTypes) -> {
-                ensureInnerTypeIsNotUndefined(argumentTypes, NAME);
-                return new ArrayLowerFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.INTEGER),
-                    signature
-                );
-            }
+            ArrayLowerFunction::new
         );
     }
 
-    private final FunctionInfo functionInfo;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private ArrayLowerFunction(FunctionInfo functionInfo, Signature signature) {
-        this.functionInfo = functionInfo;
+    public ArrayLowerFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return functionInfo;
+        this.boundSignature = boundSignature;
+        ensureInnerTypeIsNotUndefined(boundSignature.getArgumentDataTypes(), NAME);
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

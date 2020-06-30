@@ -34,7 +34,7 @@ import java.util.List;
 public enum AggregateMode {
     ITER_PARTIAL {
         @Override
-        public DataType returnType(AggregationFunction<?, ?> function) {
+        public DataType<?> returnType(AggregationFunction<?, ?> function) {
             return function.partialType();
         }
 
@@ -48,8 +48,8 @@ public enum AggregateMode {
 
     private static final List<AggregateMode> VALUES = List.of(values());
 
-    public DataType returnType(AggregationFunction<?, ?> function) {
-        return function.info().returnType();
+    public DataType<?> returnType(AggregationFunction<?, ?> function) {
+        return function.boundSignature().getReturnType().createType();
     }
 
     public <TP, TF> TF finishCollect(RamAccounting ramAccounting, AggregationFunction<TP, TF> function, TP state) {

@@ -55,6 +55,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.sql.parser.ParsingException;
@@ -119,10 +120,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation relation = analyze("select * from sys.nodes where id is not null");
         Function query = (Function) relation.where();
 
-        assertThat(query.info().ident().name(), is(NotPredicate.NAME));
+        assertThat(query.name(), is(NotPredicate.NAME));
         assertThat(query.arguments().get(0), instanceOf(Function.class));
         Function isNull = (Function) query.arguments().get(0);
-        assertThat(isNull.info().ident().name(), is(IsNullPredicate.NAME));
+        assertThat(isNull.name(), is(IsNullPredicate.NAME));
     }
 
     @Test
@@ -179,8 +180,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.groupBy().isEmpty(), is(true));
         assertThat(relation.outputs().size(), is(1));
         Function col1 = (Function) relation.outputs().get(0);
-        assertThat(col1.info().type(), is(FunctionInfo.Type.AGGREGATE));
-        assertThat(col1.info().ident().name(), is(AverageAggregation.NAME));
+        assertThat(col1.signature().getKind(), is(FunctionType.AGGREGATE));
+        assertThat(col1.name(), is(AverageAggregation.NAME));
     }
 
     private List<String> outputNames(AnalyzedRelation relation) {
@@ -230,11 +231,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.groupBy().isEmpty(), is(true));
 
         Function whereClause = (Function) relation.where();
-        assertThat(whereClause.info().ident().name(), is(OrOperator.NAME));
-        assertThat(whereClause.info().type() == FunctionInfo.Type.AGGREGATE, is(false));
+        assertThat(whereClause.name(), is(OrOperator.NAME));
+        assertThat(whereClause.signature().getKind() == FunctionType.AGGREGATE, is(false));
 
         Function left = (Function) whereClause.arguments().get(0);
-        assertThat(left.info().ident().name(), is(EqOperator.NAME));
+        assertThat(left.name(), is(EqOperator.NAME));
 
         assertThat(left.arguments().get(0), isReference("load['1']"));
 
@@ -242,7 +243,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(left.arguments().get(1).valueType(), is(DataTypes.DOUBLE));
 
         Function right = (Function) whereClause.arguments().get(1);
-        assertThat(right.info().ident().name(), is(LteOperator.NAME));
+        assertThat(right.name(), is(LteOperator.NAME));
         assertThat(right.arguments().get(0), isReference("load['5']"));
         assertThat(right.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
         assertThat(left.arguments().get(1).valueType(), is(DataTypes.DOUBLE));
@@ -255,18 +256,18 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "where load['1'] = ? or load['5'] <= ? or load['15'] >= ? or load['1'] = ? " +
             "or load['1'] = ? or name = ?");
         Function whereClause = (Function) relation.where();
-        assertThat(whereClause.info().ident().name(), is(OrOperator.NAME));
-        assertThat(whereClause.info().type() == FunctionInfo.Type.AGGREGATE, is(false));
+        assertThat(whereClause.name(), is(OrOperator.NAME));
+        assertThat(whereClause.signature().getKind() == FunctionType.AGGREGATE, is(false));
 
         Function function = (Function) whereClause.arguments().get(0);
-        assertThat(function.info().ident().name(), is(OrOperator.NAME));
+        assertThat(function.name(), is(OrOperator.NAME));
         function = (Function) function.arguments().get(1);
-        assertThat(function.info().ident().name(), is(EqOperator.NAME));
+        assertThat(function.name(), is(EqOperator.NAME));
         assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(ParameterSymbol.class));
         assertThat(function.arguments().get(1).valueType(), is(DataTypes.DOUBLE));
 
         function = (Function) whereClause.arguments().get(1);
-        assertThat(function.info().ident().name(), is(EqOperator.NAME));
+        assertThat(function.name(), is(EqOperator.NAME));
         assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(ParameterSymbol.class));
         assertThat(function.arguments().get(1).valueType(), is(DataTypes.STRING));
     }
@@ -373,11 +374,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             QueriedSelectRelation relation = analyze(statement);
 
             Function notFunction = (Function) relation.where();
-            assertThat(notFunction.info().ident().name(), is(NotPredicate.NAME));
+            assertThat(notFunction.name(), is(NotPredicate.NAME));
             assertThat(notFunction.arguments().size(), is(1));
 
             Function eqFunction = (Function) notFunction.arguments().get(0);
-            assertThat(eqFunction.info().ident().name(), is(EqOperator.NAME));
+            assertThat(eqFunction.name(), is(EqOperator.NAME));
             assertThat(eqFunction.arguments().size(), is(2));
 
             List<Symbol> eqArguments = eqFunction.arguments();
@@ -391,11 +392,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation relation = analyze(statement);
 
         Function notFunction = (Function) relation.where();
-        assertThat(notFunction.info().ident().name(), is(NotPredicate.NAME));
+        assertThat(notFunction.name(), is(NotPredicate.NAME));
         assertThat(notFunction.arguments().size(), is(1));
 
         Function eqFunction = (Function) notFunction.arguments().get(0);
-        assertThat(eqFunction.info().ident().name(), is(RegexpMatchOperator.NAME));
+        assertThat(eqFunction.name(), is(RegexpMatchOperator.NAME));
         assertThat(eqFunction.arguments().size(), is(2));
 
         List<Symbol> eqArguments = eqFunction.arguments();
@@ -432,7 +433,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testWhereInSelect() throws Exception {
         QueriedSelectRelation relation = analyze("select load from sys.nodes where load['1'] in (1.0, 2.0, 4.0, 8.0, 16.0)");
         Function whereClause = (Function) relation.where();
-        assertThat(whereClause.info().ident().name(), is(AnyOperators.Type.EQ.opName()));
+        assertThat(whereClause.name(), is(AnyOperators.Type.EQ.opName()));
     }
 
     @Test
@@ -476,7 +477,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(symbol, isFunction("collect_set"));
 
         Function collectSet = (Function) symbol;
-        assertThat(collectSet.info().type(), equalTo(FunctionInfo.Type.AGGREGATE));
+        assertThat(collectSet.signature().getKind(), equalTo(FunctionType.AGGREGATE));
 
         assertThat(collectSet.arguments().size(), is(1));
         assertThat(collectSet.arguments().get(0), isReference("load['1']"));
@@ -545,9 +546,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         assertNotNull(relation.where());
         Function whereClause = (Function) relation.where();
-        assertThat(whereClause.info().ident().name(), is(LikeOperators.OP_LIKE));
+        assertThat(whereClause.name(), is(LikeOperators.OP_LIKE));
         ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
-        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+        assertEquals(argumentTypes, Symbols.typeView(whereClause.arguments()));
 
         assertThat(whereClause.arguments().get(0), isReference("name"));
         assertThat(whereClause.arguments().get(1), isLiteral("foo"));
@@ -559,9 +560,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         assertNotNull(relation.where());
         Function whereClause = (Function) relation.where();
-        assertThat(whereClause.info().ident().name(), is(LikeOperators.OP_ILIKE));
+        assertThat(whereClause.name(), is(LikeOperators.OP_ILIKE));
         ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
-        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+        assertEquals(argumentTypes, Symbols.typeView(whereClause.arguments()));
 
         assertThat(whereClause.arguments().get(0), isReference("name"));
         assertThat(whereClause.arguments().get(1), isLiteral("foo%"));
@@ -590,7 +591,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // check if the implicit cast of the pattern worked
         ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
         Function whereClause = (Function) relation.where();
-        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+        assertEquals(argumentTypes, Symbols.typeView(whereClause.arguments()));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
         Literal stringLiteral = (Literal) whereClause.arguments().get(1);
         assertThat(stringLiteral.value(), is("1"));
@@ -613,7 +614,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation relation = analyze("select * from sys.nodes where name is null");
         Function isNullFunction = (Function) relation.where();
 
-        assertThat(isNullFunction.info().ident().name(), is(IsNullPredicate.NAME));
+        assertThat(isNullFunction.name(), is(IsNullPredicate.NAME));
         assertThat(isNullFunction.arguments().size(), is(1));
         assertThat(isNullFunction.arguments().get(0), isReference("name"));
         assertNotNull(relation.where());
@@ -634,7 +635,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testNotPredicate() {
         QueriedSelectRelation relation = analyze("select * from users where name not like 'foo%'");
-        assertThat(((Function) relation.where()).info().ident().name(), is(NotPredicate.NAME));
+        assertThat(((Function) relation.where()).name(), is(NotPredicate.NAME));
     }
 
     @Test
@@ -820,21 +821,21 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testArrayCompareAny() throws Exception {
         QueriedSelectRelation relation = analyze("select * from users where 0 = ANY (counters)");
 
-        FunctionInfo anyInfo = ((Function) relation.where()).info();
-        assertThat(anyInfo.ident().name(), is("any_="));
+        var func = (Function) relation.where();
+        assertThat(func.name(), is("any_="));
 
         relation = analyze("select * from users where 0 = ANY (counters)");
 
-        anyInfo = ((Function) relation.where()).info();
-        assertThat(anyInfo.ident().name(), is("any_="));
+        func = (Function) relation.where();
+        assertThat(func.name(), is("any_="));
     }
 
     @Test
     public void testArrayCompareAnyNeq() throws Exception {
         QueriedSelectRelation relation = analyze("select * from users where 4.3 != ANY (counters)");
 
-        FunctionInfo anyInfo = ((Function) relation.where()).info();
-        assertThat(anyInfo.ident().name(), is("any_<>"));
+        var func = (Function) relation.where();
+        assertThat(func.name(), is("any_<>"));
     }
 
     @Test
@@ -859,7 +860,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation relation = analyze(
             "select * from users where 5 = ANY (friends['id'])");
         Function anyFunction = (Function) relation.where();
-        assertThat(anyFunction.info().ident().name(), is(AnyOperators.Type.EQ.opName()));
+        assertThat(anyFunction.name(), is(AnyOperators.Type.EQ.opName()));
         assertThat(anyFunction.arguments().get(1), isReference("friends['id']", new ArrayType<>(DataTypes.LONG)));
         assertThat(anyFunction.arguments().get(0), isLiteral(5L));
     }
@@ -932,7 +933,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testArithmeticPlus() throws Exception {
         AnalyzedRelation relation = analyze("select load['1'] + load['5'] from sys.nodes");
-        assertThat(((Function) relation.outputs().get(0)).info().ident().name(), is(ArithmeticFunctions.Names.ADD));
+        assertThat(((Function) relation.outputs().get(0)).name(), is(ArithmeticFunctions.Names.ADD));
     }
 
     @Test
@@ -954,7 +955,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testAnyLike() throws Exception {
         QueriedSelectRelation relation = analyze("select * from users where 'awesome' LIKE ANY (tags)");
         Function query = (Function) relation.where();
-        assertThat(query.info().ident().name(), is("any_like"));
+        assertThat(query.name(), is("any_like"));
         assertThat(query.arguments().size(), is(2));
         assertThat(query.arguments().get(0), instanceOf(Literal.class));
         assertThat(query.arguments().get(0), isLiteral("awesome", DataTypes.STRING));
@@ -977,7 +978,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testAnyNotLike() throws Exception {
         QueriedSelectRelation relation = analyze("select * from users where 'awesome' NOT LIKE ANY (tags)");
         Function query = (Function) relation.where();
-        assertThat(query.info().ident().name(), is("any_not_like"));
+        assertThat(query.name(), is("any_not_like"));
 
         assertThat(query.arguments().size(), is(2));
         assertThat(query.arguments().get(0), instanceOf(Literal.class));
@@ -1223,7 +1224,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Function havingFunction = (Function) relation.having();
 
         // assert that the in was converted to or
-        assertThat(havingFunction.info().ident().name(), is(AnyOperators.Type.EQ.opName()));
+        assertThat(havingFunction.name(), is(AnyOperators.Type.EQ.opName()));
     }
 
     @Test
@@ -1302,7 +1303,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testRegexpMatch() throws Exception {
         QueriedSelectRelation relation = analyze("select * from users where name ~ '.*foo(bar)?'");
-        assertThat(((Function) relation.where()).info().ident().name(), is("op_~"));
+        assertThat(((Function) relation.where()).name(), is("op_~"));
     }
 
     @Test

@@ -327,7 +327,7 @@ public class LuceneQueryBuilder {
             }
             function = rewriteAndValidateFields(function, context);
 
-            FunctionToQuery toQuery = functions.get(function.info().ident().name());
+            FunctionToQuery toQuery = functions.get(function.name());
             if (toQuery == null) {
                 return genericFunctionFilter(function, context);
             }
@@ -352,7 +352,7 @@ public class LuceneQueryBuilder {
         private Query queryFromInnerFunction(Function function, Context context) {
             for (Symbol symbol : function.arguments()) {
                 if (symbol.symbolType() == SymbolType.FUNCTION) {
-                    String functionName = ((Function) symbol).info().ident().name();
+                    String functionName = ((Function) symbol).name();
                     InnerFunctionToQuery functionToQuery = innerFunctions.get(functionName);
                     if (functionToQuery != null) {
                         try {
@@ -398,9 +398,9 @@ public class LuceneQueryBuilder {
                     Reference ref = (Reference) left;
                     if (ref.column().equals(DocSysColumns.UID)) {
                         return new Function(
-                            function.info(),
                             function.signature(),
-                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right)
+                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right),
+                            function.valueType()
                         );
                     } else {
                         String unsupportedMessage = context.unsupportedMessage(ref.column().name());

@@ -228,7 +228,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testSwapFunctionLeftSide() throws Exception {
         Function cmp = (Function) expressions.normalize(executor.asSymbol("8 + 5 > t1.x"));
         // the comparison was swapped so the field is on the left side
-        assertThat(cmp.info().ident().name(), is("op_<"));
+        assertThat(cmp.name(), is("op_<"));
         assertThat(cmp.arguments().get(0), isReference("x"));
     }
 

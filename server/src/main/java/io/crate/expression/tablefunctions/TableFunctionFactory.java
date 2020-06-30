@@ -26,6 +26,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -42,7 +43,7 @@ public class TableFunctionFactory {
 
     public static TableFunctionImplementation<?> from(FunctionImplementation functionImplementation) {
         TableFunctionImplementation<?> tableFunction;
-        switch (functionImplementation.info().type()) {
+        switch (functionImplementation.signature().getKind()) {
             case TABLE:
                 tableFunction = (TableFunctionImplementation<?>) functionImplementation;
                 break;
@@ -55,13 +56,13 @@ public class TableFunctionFactory {
                     String.format(
                         Locale.ENGLISH,
                         "Window or Aggregate function: '%s' is not allowed in function in FROM clause",
-                        functionImplementation.info().ident().name()));
+                        functionImplementation.signature().getName().toString(Style.QUALIFIED)));
             default:
                 throw new UnsupportedOperationException(
                     String.format(
                         Locale.ENGLISH,
                         "Unknown type function: '%s' is not allowed in function in FROM clause",
-                        functionImplementation.info().ident().name()));
+                        functionImplementation.signature().getName().toString(Style.QUALIFIED)));
         }
         return tableFunction;
     }
@@ -73,18 +74,13 @@ public class TableFunctionFactory {
 
         private final Scalar<?, T> functionImplementation;
         private final RowType returnType;
-        private final FunctionInfo info;
         private final Signature signature;
+        private final Signature boundSignature;
 
         private ScalarTableFunctionImplementation(Scalar<?, T> functionImplementation) {
             this.functionImplementation = functionImplementation;
             FunctionInfo info = functionImplementation.info();
             returnType = new RowType(List.of(info.returnType()), List.of(info.ident().name()));
-            this.info = new FunctionInfo(
-                info.ident(),
-                info.returnType(),
-                FunctionInfo.Type.TABLE
-            );
             signature = Signature.table(
                 functionImplementation.signature().getName(),
                 Lists2.concat(
@@ -92,16 +88,23 @@ public class TableFunctionFactory {
                     functionImplementation.signature().getReturnType()
                 ).toArray(new TypeSignature[0])
             );
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
+            boundSignature = Signature.table(
+                functionImplementation.boundSignature().getName(),
+                Lists2.concat(
+                    functionImplementation.boundSignature().getArgumentTypes(),
+                    functionImplementation.boundSignature().getReturnType()
+                ).toArray(new TypeSignature[0])
+            );
         }
 
         @Override
         public Signature signature() {
             return signature;
+        }
+
+        @Override
+        public Signature boundSignature() {
+            return boundSignature;
         }
 
         @Override

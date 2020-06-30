@@ -22,7 +22,6 @@
 package io.crate.expression.operator;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -34,7 +33,6 @@ import java.util.regex.Pattern;
 public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
 
     public static final String NAME = "op_~*";
-    public static final FunctionInfo INFO = generateInfo(NAME, DataTypes.STRING);
 
     public static void register(OperatorModule module) {
         var supportedArgumentTypes = List.of(DataTypes.STRING, DataTypes.UNDEFINED);
@@ -47,16 +45,18 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
                         right.getTypeSignature(),
                         Operator.RETURN_TYPE.getTypeSignature()
                     ).withForbiddenCoercion(),
-                    (signature, dataTypes) -> new RegexpMatchCaseInsensitiveOperator(signature)
+                    RegexpMatchCaseInsensitiveOperator::new
                 );
             }
         }
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public RegexpMatchCaseInsensitiveOperator(Signature signature) {
+    public RegexpMatchCaseInsensitiveOperator(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -76,12 +76,12 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return INFO;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

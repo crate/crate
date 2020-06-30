@@ -24,7 +24,6 @@ package io.crate.expression.operator;
 
 import io.crate.common.collections.MapComparator;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 
@@ -34,24 +33,24 @@ import java.util.function.IntPredicate;
 
 public final class CmpOperator extends Operator<Object> {
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final IntPredicate isMatch;
 
-    public CmpOperator(FunctionInfo info, Signature signature, IntPredicate cmpResultIsMatch) {
-        this.info = info;
+    public CmpOperator(Signature signature, Signature boundSignature, IntPredicate cmpResultIsMatch) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.isMatch = cmpResultIsMatch;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

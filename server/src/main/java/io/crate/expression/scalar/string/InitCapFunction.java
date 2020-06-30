@@ -36,11 +36,10 @@ public final class InitCapFunction {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new UnaryScalar<>(
-                    "initcap",
                     signature,
-                    DataTypes.STRING,
+                    boundSignature,
                     DataTypes.STRING,
                     InitCapFunction::toCapital
                 )

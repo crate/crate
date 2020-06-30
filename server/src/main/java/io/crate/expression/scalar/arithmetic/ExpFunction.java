@@ -24,7 +24,6 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import static io.crate.metadata.functions.Signature.scalar;
@@ -38,16 +37,13 @@ public class ExpFunction {
             var typeSignature = type.getTypeSignature();
             module.register(
                 scalar(NAME, typeSignature, typeSignature),
-                (signature, argumentTypes) -> {
-                    DataType<?> argType = argumentTypes.get(0);
-                    return new UnaryScalar<>(
-                        NAME,
-                        signature,
-                        argType,
-                        argType,
-                        x -> argType.value(Math.exp(((Number) x).doubleValue()))
-                    );
-                }
+                (declaredSignature, boundSignature) ->
+                    new UnaryScalar<>(
+                        declaredSignature,
+                        boundSignature,
+                        type,
+                        x -> type.value(Math.exp(((Number) x).doubleValue()))
+                    )
             );
         }
     }

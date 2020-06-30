@@ -41,7 +41,6 @@ import java.util.Collection;
 import java.util.List;
 
 import static org.elasticsearch.client.Requests.clusterHealthRequest;
-import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 public class PluginLoaderTest extends ESIntegTestCase {
@@ -52,29 +51,6 @@ public class PluginLoaderTest extends ESIntegTestCase {
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return Arrays.asList(PluginLoaderPlugin.class, Netty4Plugin.class);
-    }
-
-    @Test
-    public void testLoadPlugin() throws Exception {
-        String node = startNodeWithPlugins("/io/crate/plugin/simple_plugin");
-
-        PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
-        PluginLoaderPlugin corePlugin = getCratePlugin(pluginsService);
-
-        PluginLoader pluginLoader = corePlugin.pluginLoader;
-        assertThat(pluginLoader.plugins.size(), is(1));
-        assertThat(pluginLoader.plugins.get(0).getClass().getCanonicalName(), is("io.crate.plugin.ExamplePlugin"));
-    }
-
-    @Test
-    public void testPluginWithCrateSettings() throws Exception {
-        String node = startNodeWithPlugins("/io/crate/plugin/plugin_with_crate_settings");
-
-        PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
-        PluginLoaderPlugin corePlugin = getCratePlugin(pluginsService);
-        Settings settings = corePlugin.settings;
-
-        assertThat(settings.get("setting.for.crate"), is("foo"));
     }
 
     @Test

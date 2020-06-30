@@ -21,8 +21,6 @@ package io.crate.operation.language;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -59,11 +57,7 @@ public class JavaScriptLanguage implements UDFLanguage {
 
     public Scalar createFunctionImplementation(UserDefinedFunctionMetaData meta,
                                                Signature signature) throws ScriptException {
-        FunctionInfo info = new FunctionInfo(
-            new FunctionIdent(meta.schema(), meta.name(), meta.argumentTypes()),
-            meta.returnType()
-        );
-        return new JavaScriptUserDefinedFunction(info, signature, meta.definition());
+        return new JavaScriptUserDefinedFunction(signature, meta.definition());
     }
 
     @Nullable

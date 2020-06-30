@@ -27,8 +27,6 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -50,17 +48,10 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
                     NAME,
                     supportedType.getTypeSignature(),
                     supportedType.getTypeSignature()),
-                (signature, args) -> {
-                    var arg = args.get(0); // f(x) -> x
-                    var info = new FunctionInfo(
-                        new FunctionIdent(NAME, args),
-                        arg,
-                        FunctionInfo.Type.AGGREGATE
-                    );
-                    return fixedWidthType
-                        ? new FixedMaximumAggregation(info, signature)
-                        : new VariableMaximumAggregation(info, signature);
-                }
+                (signature, boundSignature) ->
+                    fixedWidthType
+                    ? new FixedMaximumAggregation(signature, boundSignature)
+                    : new VariableMaximumAggregation(signature, boundSignature)
             );
         }
     }
@@ -69,8 +60,8 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
         private final int size;
 
-        public FixedMaximumAggregation(FunctionInfo info, Signature signature) {
-            super(info, signature);
+        public FixedMaximumAggregation(Signature signature, Signature boundSignature) {
+            super(signature, boundSignature);
             size = ((FixedWidthType) partialType()).fixedSize();
         }
 
@@ -103,8 +94,8 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
         private final SizeEstimator<Object> estimator;
 
-        VariableMaximumAggregation(FunctionInfo info, Signature signature) {
-            super(info, signature);
+        VariableMaximumAggregation(Signature signature, Signature boundSignature) {
+            super(signature, boundSignature);
             estimator = SizeEstimatorFactory.create(partialType());
         }
 
@@ -136,17 +127,12 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private MaximumAggregation(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private MaximumAggregation(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -155,8 +141,13 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     }
 
     @Override
-    public DataType partialType() {
-        return info().returnType();
+    public Signature boundSignature() {
+        return boundSignature;
+    }
+
+    @Override
+    public DataType<?> partialType() {
+        return boundSignature.getReturnType().createType();
     }
 
     @Override

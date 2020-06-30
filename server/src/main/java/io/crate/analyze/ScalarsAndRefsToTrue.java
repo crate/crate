@@ -67,14 +67,14 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<Void, Symbol> {
 
     @Override
     public Symbol visitFunction(Function symbol, Void context) {
-        String functionName = symbol.info().ident().name();
+        String functionName = symbol.name();
 
         if (functionName.equals(NotPredicate.NAME)) {
             Symbol argument = symbol.arguments().get(0);
             if (argument instanceof Reference) {
                 return argument.accept(this, context);
             } else if (argument instanceof Function) {
-                if (!Operators.LOGICAL_OPERATORS.contains(((Function) argument).info().ident().name())) {
+                if (!Operators.LOGICAL_OPERATORS.contains(((Function) argument).name())) {
                     return argument.accept(this, context);
                 }
             }
@@ -96,7 +96,7 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<Void, Symbol> {
         if (allLiterals && !Operators.LOGICAL_OPERATORS.contains(functionName)) {
             return isNull ? Literal.NULL : Literal.BOOLEAN_TRUE;
         }
-        return new Function(symbol.info(), symbol.signature(), newArgs);
+        return new Function(symbol.signature(), newArgs, symbol.valueType());
     }
 
     @Override

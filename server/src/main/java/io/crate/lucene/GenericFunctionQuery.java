@@ -87,7 +87,7 @@ class GenericFunctionQuery extends Query {
         return new Weight(this) {
             @Override
             public boolean isCacheable(LeafReaderContext ctx) {
-                if (SymbolVisitors.any(s -> s instanceof Function && !((Function) s).info().isDeterministic(), function)) {
+                if (SymbolVisitors.any(s -> s instanceof Function && !((Function) s).isDeterministic(), function)) {
                     return false;
                 }
                 var fields = new ArrayList<String>();

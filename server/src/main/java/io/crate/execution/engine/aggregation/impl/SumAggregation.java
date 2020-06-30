@@ -27,8 +27,6 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -47,7 +45,6 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.BinaryOperator;
 
@@ -64,16 +61,16 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                 NAME,
                 DataTypes.FLOAT.getTypeSignature(),
                 DataTypes.FLOAT.getTypeSignature()),
-            (signature, args) ->
-                new SumAggregation<>(DataTypes.FLOAT, Float::sum, (n1, n2) -> n1 - n2, signature)
+            (signature, boundSignature) ->
+                new SumAggregation<>(DataTypes.FLOAT, Float::sum, (n1, n2) -> n1 - n2, signature, boundSignature)
         );
         mod.register(
             Signature.aggregate(
                 NAME,
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()),
-            (signature, args) ->
-                new SumAggregation<>(DataTypes.DOUBLE, Double::sum, (n1, n2) -> n1 - n2, signature)
+            (signature, boundSignature) ->
+                new SumAggregation<>(DataTypes.DOUBLE, Double::sum, (n1, n2) -> n1 - n2, signature, boundSignature)
         );
 
         for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
@@ -82,14 +79,14 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature()),
-                (signature, args) ->
-                    new SumAggregation<>(supportedType, DataTypes.LONG, add, sub, signature)
+                (signature, boundSignature) ->
+                    new SumAggregation<>(supportedType, DataTypes.LONG, add, sub, signature, boundSignature)
             );
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final BinaryOperator<T> addition;
     private final BinaryOperator<T> subtraction;
     private final DataType<T> returnType;
@@ -99,15 +96,17 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     private SumAggregation(final DataType<T> returnType,
                            final BinaryOperator<T> addition,
                            final BinaryOperator<T> subtraction,
-                           Signature signature) {
-        this(returnType, returnType, addition, subtraction, signature);
+                           Signature signature,
+                           Signature boundSignature) {
+        this(returnType, returnType, addition, subtraction, signature, boundSignature);
     }
 
     private SumAggregation(final DataType<?> inputType,
                            final DataType<T> returnType,
                            final BinaryOperator<T> addition,
                            final BinaryOperator<T> subtraction,
-                           Signature signature) {
+                           Signature signature,
+                           Signature boundSignature) {
         this.addition = addition;
         this.subtraction = subtraction;
         this.returnType = returnType;
@@ -120,12 +119,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
             bytesSize = DataTypes.LONG.fixedSize();
         }
 
-        this.info = new FunctionInfo(
-            new FunctionIdent(NAME, Collections.singletonList(inputType)),
-            returnType,
-            FunctionInfo.Type.AGGREGATE
-        );
         this.signature = signature;
+        this.boundSignature = signature;
     }
 
     @Nullable
@@ -161,17 +156,17 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     @Override
     public DataType<?> partialType() {
-        return info.returnType();
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        return boundSignature.getReturnType().createType();
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

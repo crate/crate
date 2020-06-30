@@ -94,8 +94,9 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
         Function function = (Function) sqlExpressions.asSymbol("_values([['a', 'b']])");
 
         var funcImplementation = (TableFunctionImplementation<?>) functions.getQualified(
-            function.signature(),
-            function.info().ident().argumentTypes());
+            function,
+            txnCtx.sessionSettings().searchPath()
+        );
 
         assertThat(funcImplementation.returnType(), instanceOf(RowType.class));
         assertThat(funcImplementation.returnType().fieldTypes(), contains(DataTypes.STRING_ARRAY));

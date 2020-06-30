@@ -46,6 +46,11 @@ public class PgOidVectorType extends PGType<List<Integer>> {
     }
 
     @Override
+    public int typElem() {
+        return OidType.OID;
+    }
+
+    @Override
     public String typeCategory() {
         return TypeCategory.ARRAY.code();
     }

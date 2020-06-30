@@ -24,14 +24,11 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -57,44 +54,36 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
                 parseTypeSignature("array(E)"),
                 parseTypeSignature("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, argumentTypes) ->
+            (signature, boundSignature) ->
                 new ArrayDifferenceFunction(
-                    createInfo(argumentTypes),
                     signature,
+                    boundSignature,
                     null
                 )
         );
     }
 
-    private static FunctionInfo createInfo(List<DataType<?>> types) {
-        ensureBothInnerTypesAreNotUndefined(types, NAME);
-        ArrayType<?> arrayType = (ArrayType<?>) types.get(0);
-        if (arrayType.innerType().equals(DataTypes.UNDEFINED)) {
-            arrayType = (ArrayType<?>) types.get(1);
-        }
-        return new FunctionInfo(new FunctionIdent(NAME, types), arrayType);
-    }
-
-    private final FunctionInfo functionInfo;
     private final Signature signature;
+    private final Signature boundSignature;
     private final Optional<Set<Object>> optionalSubtractSet;
 
-    private ArrayDifferenceFunction(FunctionInfo functionInfo,
-                                    Signature signature,
+    private ArrayDifferenceFunction(Signature signature,
+                                    Signature boundSignature,
                                     @Nullable Set<Object> subtractSet) {
-        this.functionInfo = functionInfo;
         this.signature = signature;
+        this.boundSignature = boundSignature;
         optionalSubtractSet = Optional.ofNullable(subtractSet);
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return functionInfo;
+        ensureBothInnerTypesAreNotUndefined(boundSignature.getArgumentDataTypes(), NAME);
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -109,7 +98,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
         Input<?> input = (Input<?>) symbol;
         Object inputValue = input.value();
 
-        DataType<?> innerType = ((ArrayType<?>) this.info().returnType()).innerType();
+        DataType<?> innerType = ((ArrayType<?>) this.boundSignature.getReturnType().createType()).innerType();
         List<Object> values = (List<Object>) inputValue;
         Set<Object> subtractSet;
         if (values == null) {
@@ -120,7 +109,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
                 subtractSet.add(innerType.value(element));
             }
         }
-        return new ArrayDifferenceFunction(this.functionInfo, signature, subtractSet);
+        return new ArrayDifferenceFunction(signature, boundSignature, subtractSet);
     }
 
     @Override
@@ -130,7 +119,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
             return null;
         }
 
-        DataType<?> innerType = ((ArrayType<?>) this.info().returnType()).innerType();
+        DataType<?> innerType = ((ArrayType<?>) this.boundSignature.getReturnType().createType()).innerType();
         Set<Object> localSubtractSet;
         if (optionalSubtractSet.isEmpty()) {
             localSubtractSet = new HashSet<>();

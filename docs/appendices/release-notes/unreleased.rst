@@ -234,6 +234,8 @@ Functions and operators
 New statements and clauses
 --------------------------
 
+- Added the :ref:`DISCARD <discard>` statement.
+
 - Added the :ref:`CHECK <check_constraint>` constraint syntax, which specifies
   that the values of certain columns must satisfy a boolean expression on
   insert and update.
@@ -251,4 +253,6 @@ Performance improvements
 Fixes
 =====
 
-None
+- Fixed an issue that would prevent the :ref:`pg_stats <pg_stats>` table from
+  querying if the ``most_common_vals`` or ``histogram_bounds`` columns contain
+  values of the ``OBJECT`` or ``ARRAY`` types.

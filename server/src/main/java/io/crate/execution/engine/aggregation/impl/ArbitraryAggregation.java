@@ -27,8 +27,6 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -47,32 +45,19 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                     NAME,
                     supportedType.getTypeSignature(),
                     supportedType.getTypeSignature()),
-                (signature, args) ->
-                    new ArbitraryAggregation(
-                        new FunctionInfo(
-                            new FunctionIdent(NAME, args),
-                            args.get(0),
-                            FunctionInfo.Type.AGGREGATE
-                        ),
-                        signature
-                    )
+                ArbitraryAggregation::new
             );
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final SizeEstimator<Object> partialEstimator;
 
-    ArbitraryAggregation(FunctionInfo info, Signature signature) {
-        this.info = info;
+    ArbitraryAggregation(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
         partialEstimator = SizeEstimatorFactory.create(partialType());
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     @Override
@@ -81,8 +66,13 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     }
 
     @Override
+    public Signature boundSignature() {
+        return boundSignature;
+    }
+
+    @Override
     public DataType<?> partialType() {
-        return info.returnType();
+        return boundSignature.getReturnType().createType();
     }
 
     @Nullable

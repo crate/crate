@@ -20,7 +20,6 @@ package io.crate.operation.language;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -35,12 +34,10 @@ import static io.crate.operation.language.JavaScriptLanguage.resolvePolyglotFunc
 
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
-    private final FunctionInfo info;
     private final Signature signature;
     private final String script;
 
-    JavaScriptUserDefinedFunction(FunctionInfo info, Signature signature, String script) {
-        this.info = info;
+    JavaScriptUserDefinedFunction(Signature signature, String script) {
         this.signature = signature;
         this.script = script;
     }
@@ -50,7 +47,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         try {
             return new CompiledFunction(
                 resolvePolyglotFunctionValue(
-                    info.ident().name(),
+                    signature.getName().name(),
                     script));
         } catch (PolyglotException | IOException e) {
             // this should not happen if the script was validated upfront
@@ -65,11 +62,11 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     @Override
     public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         try {
-            var function = resolvePolyglotFunctionValue(info.ident().name(), script);
+            var function = resolvePolyglotFunctionValue(signature.getName().name(), script);
             var polyglotValueArgs = PolyglotValuesConverter.toPolyglotValues(args);
             return PolyglotValuesConverter.toCrateObject(
                 function.execute(polyglotValueArgs),
-                info.returnType());
+                signature.getReturnType().createType());
         } catch (PolyglotException | IOException e) {
             throw new io.crate.exceptions.ScriptException(
                 e.getLocalizedMessage(),
@@ -79,14 +76,15 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         }
     }
 
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return signature();
     }
 
     private class CompiledFunction extends Scalar<Object, Object> {
@@ -103,7 +101,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
             try {
                 return toCrateObject(
                     function.execute(polyglotValueArgs),
-                    info.returnType());
+                    signature.getReturnType().createType());
             } catch (PolyglotException e) {
                 throw new io.crate.exceptions.ScriptException(
                     e.getLocalizedMessage(),
@@ -114,14 +112,12 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         }
 
         @Override
-        public FunctionInfo info() {
-            // Return the functionInfo of the outer class, because the function
-            // info is the same for every compiled function instance.
-            return info;
+        public Signature signature() {
+            return signature;
         }
 
         @Override
-        public Signature signature() {
+        public Signature boundSignature() {
             return signature;
         }
     }

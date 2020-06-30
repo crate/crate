@@ -28,15 +28,12 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.Randomness;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
@@ -66,15 +63,9 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         RoutingBuilder routingBuilder = new RoutingBuilder(clusterService.state(), routingProvider);
         WhereClause whereClause = new WhereClause(
             new Function(
-                new FunctionInfo(
-                    new FunctionIdent(
-                        EqOperator.NAME,
-                        List.of(DataTypes.INTEGER, DataTypes.INTEGER)
-                    ),
-                    DataTypes.BOOLEAN
-                ),
                 EqOperator.SIGNATURE,
-                List.of(tableInfo.getReference(new ColumnIdent("id")), Literal.of(2))
+                List.of(tableInfo.getReference(new ColumnIdent("id")), Literal.of(2)),
+                EqOperator.RETURN_TYPE
             ));
 
         routingBuilder.allocateRouting(tableInfo, WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, null);

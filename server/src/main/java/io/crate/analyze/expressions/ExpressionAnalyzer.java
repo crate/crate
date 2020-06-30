@@ -44,7 +44,9 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AllOperator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
@@ -69,9 +71,8 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.interval.IntervalParser;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -136,7 +137,6 @@ import org.joda.time.Period;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -221,7 +221,7 @@ public class ExpressionAnalyzer {
         var symbol = expression.accept(innerAnalyzer, expressionAnalysisContext);
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.info().isDeterministic()
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
         );
         return normalizer.normalize(symbol, coordinatorTxnCtx);
     }
@@ -741,8 +741,7 @@ public class ExpressionAnalyzer {
 
             Comparison comparison = new Comparison(functions, coordinatorTxnCtx, node.getType(), left, right);
             comparison.normalize(context);
-            FunctionIdent ident = comparison.toFunctionIdent();
-            return allocateFunction(ident.name(), comparison.arguments(), context);
+            return allocateFunction(comparison.operatorName, comparison.arguments(), context);
         }
 
         @Override
@@ -993,16 +992,16 @@ public class ExpressionAnalyzer {
             Symbol max = node.getMax().accept(this, context);
 
             Comparison gte = new Comparison(functions, coordinatorTxnCtx, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
-            FunctionIdent gteIdent = gte.normalize(context).toFunctionIdent();
+            gte.normalize(context);
             Symbol gteFunc = allocateFunction(
-                gteIdent.name(),
+                GteOperator.NAME,
                 gte.arguments(),
                 context);
 
             Comparison lte = new Comparison(functions, coordinatorTxnCtx, ComparisonExpression.Type.LESS_THAN_OR_EQUAL, value, max);
-            FunctionIdent lteIdent = lte.normalize(context).toFunctionIdent();
+            lte.normalize(context);
             Symbol lteFunc = allocateFunction(
-                lteIdent.name(),
+                LteOperator.NAME,
                 lte.arguments(),
                 context);
 
@@ -1133,29 +1132,29 @@ public class ExpressionAnalyzer {
             arguments,
             coordinatorTxnCtx.sessionContext().searchPath());
 
-        FunctionInfo functionInfo = funcImpl.info();
         Signature signature = funcImpl.signature();
-        List<Symbol> castArguments = cast(arguments, functionInfo.ident().argumentTypes());
+        Signature boundSignature = funcImpl.boundSignature();
+        List<Symbol> castArguments = cast(arguments, boundSignature.getArgumentDataTypes());
         Function newFunction;
         if (windowDefinition == null) {
-            if (functionInfo.type() == FunctionInfo.Type.AGGREGATE) {
+            if (signature.getKind() == FunctionType.AGGREGATE) {
                 context.indicateAggregates();
             } else if (filter != null) {
                 throw new UnsupportedOperationException(
                     "Only aggregate functions allow a FILTER clause");
             }
-            newFunction = new Function(functionInfo, signature, castArguments, filter);
+            newFunction = new Function(signature, castArguments, boundSignature.getReturnType().createType(), filter);
         } else {
-            if (functionInfo.type() != FunctionInfo.Type.WINDOW && functionInfo.type() != FunctionInfo.Type.AGGREGATE) {
+            if (signature.getKind() != FunctionType.WINDOW && signature.getKind() != FunctionType.AGGREGATE) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
                     "OVER clause was specified, but %s is neither a window nor an aggregate function.",
                     functionName));
             }
             newFunction = new WindowFunction(
-                functionInfo,
                 signature,
                 castArguments,
+                boundSignature.getReturnType().createType(),
                 filter,
                 windowDefinition);
         }
@@ -1198,7 +1197,6 @@ public class ExpressionAnalyzer {
         private Symbol left;
         private Symbol right;
         private String operatorName;
-        private FunctionIdent functionIdent;
 
         private Comparison(Functions functions,
                            CoordinatorTxnCtx coordinatorTxnCtx,
@@ -1269,17 +1267,7 @@ public class ExpressionAnalyzer {
                 functions,
                 coordinatorTxnCtx);
             right = null;
-            functionIdent = NotPredicate.INFO.ident();
             operatorName = NotPredicate.NAME;
-        }
-
-        FunctionIdent toFunctionIdent() {
-            if (functionIdent == null) {
-                return new FunctionIdent(
-                    operatorName,
-                    Arrays.asList(left.valueType(), right.valueType()));
-            }
-            return functionIdent;
         }
 
         List<Symbol> arguments() {

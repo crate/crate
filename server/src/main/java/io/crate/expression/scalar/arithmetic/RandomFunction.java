@@ -26,14 +26,11 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.Collections;
 import java.util.Random;
 
 import static io.crate.metadata.functions.Signature.scalar;
@@ -42,22 +39,23 @@ public class RandomFunction extends Scalar<Double, Void> {
 
     public static final String NAME = "random";
 
-    protected static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, Collections.emptyList()), DataTypes.DOUBLE,
-        FunctionInfo.Type.SCALAR, FunctionInfo.NO_FEATURES);
-
     public static void register(ScalarFunctionModule module) {
         module.register(
-            scalar(NAME, DataTypes.DOUBLE.getTypeSignature()),
-            (signature, args) -> new RandomFunction(signature)
+            scalar(
+                NAME,
+                DataTypes.DOUBLE.getTypeSignature()
+            ).withFeatures(NO_FEATURES),
+            RandomFunction::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
     private final Random random = new Random();
 
-    public RandomFunction(Signature signature) {
+    public RandomFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -70,13 +68,13 @@ public class RandomFunction extends Scalar<Double, Void> {
 
 
     @Override
-    public FunctionInfo info() {
-        return INFO;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

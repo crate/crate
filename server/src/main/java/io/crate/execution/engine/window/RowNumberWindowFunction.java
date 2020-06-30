@@ -25,8 +25,6 @@ package io.crate.execution.engine.window;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -38,23 +36,20 @@ public class RowNumberWindowFunction implements WindowFunction {
 
     public static void register(WindowFunctionModule module) {
         module.register(
-            Signature.window(NAME, DataTypes.INTEGER.getTypeSignature()),
-            (signature, args) -> new RowNumberWindowFunction(
-                new FunctionInfo(
-                    new FunctionIdent(NAME, args),
-                    DataTypes.INTEGER,
-                    FunctionInfo.Type.WINDOW),
-                signature
-            )
+            Signature.window(
+                NAME,
+                DataTypes.INTEGER.getTypeSignature()
+            ),
+            RowNumberWindowFunction::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private RowNumberWindowFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private RowNumberWindowFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -66,12 +61,12 @@ public class RowNumberWindowFunction implements WindowFunction {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

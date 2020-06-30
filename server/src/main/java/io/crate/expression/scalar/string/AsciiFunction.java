@@ -36,8 +36,8 @@ public final class AsciiFunction {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),
-            (signature, args) ->
-                new UnaryScalar<>("ascii", signature, args.get(0), DataTypes.INTEGER, AsciiFunction::ascii)
+            (signature, boundSignature) ->
+                new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, AsciiFunction::ascii)
         );
     }
 

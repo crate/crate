@@ -26,8 +26,6 @@ import io.crate.data.Input;
 import io.crate.exceptions.CircuitBreakingException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -53,16 +51,9 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()),
-                (signature, args) ->
-                    new PercentileAggregation(
-                        new FunctionInfo(
-                            new FunctionIdent(NAME, args),
-                            DataTypes.DOUBLE,
-                            FunctionInfo.Type.AGGREGATE
-                        ),
-                        signature
-                    )
+                    DataTypes.DOUBLE.getTypeSignature()
+                ),
+                PercentileAggregation::new
             );
             mod.register(
                 Signature.aggregate(
@@ -71,35 +62,27 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                     DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                     DataTypes.DOUBLE_ARRAY.getTypeSignature()
                 ),
-                (signature, args) ->
-                    new PercentileAggregation(
-                        new FunctionInfo(
-                            new FunctionIdent(NAME, args),
-                            DataTypes.DOUBLE_ARRAY,
-                            FunctionInfo.Type.AGGREGATE
-                        ),
-                        signature
-                    )
+                PercentileAggregation::new
             );
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    PercentileAggregation(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private PercentileAggregation(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Nullable
@@ -168,7 +151,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
             return null;
         }
         List<Double> percentiles = new ArrayList<>(state.fractions().length);
-        if (info.returnType() instanceof ArrayType) {
+        if (boundSignature.getReturnType().createType() instanceof ArrayType) {
             for (int i = 0; i < state.fractions().length; i++) {
                 double percentile = state.quantile(state.fractions()[i]);
                 if (Double.isNaN(percentile)) {

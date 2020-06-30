@@ -94,7 +94,7 @@ public class SelectivityFunctions {
 
         @Override
         public Double visitFunction(Function function, Void context) {
-            switch (function.info().ident().name()) {
+            switch (function.name()) {
                 case AndOperator.NAME: {
                     double selectivity = 1.0;
                     for (Symbol argument : function.arguments()) {

@@ -28,8 +28,6 @@ import io.crate.data.Input;
 import io.crate.exceptions.CircuitBreakingException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -50,17 +48,10 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
                     NAME,
                     supportedType.getTypeSignature(),
                     supportedType.getTypeSignature()),
-                (signature, args) -> {
-                    var arg = args.get(0); // f(x) -> x
-                    var info = new FunctionInfo(
-                        new FunctionIdent(NAME, args),
-                        arg,
-                        FunctionInfo.Type.AGGREGATE
-                    );
-                    return fixedWidthType
-                        ? new FixedMinimumAggregation(info, signature)
-                        : new VariableMinimumAggregation(info, signature);
-                }
+                (signature, boundSignature) ->
+                    fixedWidthType
+                    ? new FixedMinimumAggregation(signature, boundSignature)
+                    : new VariableMinimumAggregation(signature, boundSignature)
             );
         }
     }
@@ -69,8 +60,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         private final SizeEstimator<Object> estimator;
 
-        VariableMinimumAggregation(FunctionInfo info, Signature signature) {
-            super(info, signature);
+        VariableMinimumAggregation(Signature signature, Signature boundSignature) {
+            super(signature, boundSignature);
             estimator = SizeEstimatorFactory.create(partialType());
         }
 
@@ -106,8 +97,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         private final int size;
 
-        FixedMinimumAggregation(FunctionInfo info, Signature signature) {
-            super(info, signature);
+        FixedMinimumAggregation(Signature signature, Signature boundSignature) {
+            super(signature, boundSignature);
             size = ((FixedWidthType) partialType()).fixedSize();
         }
 
@@ -136,17 +127,12 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private MinimumAggregation(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private MinimumAggregation(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -155,8 +141,13 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
     }
 
     @Override
-    public DataType partialType() {
-        return info().returnType();
+    public Signature boundSignature() {
+        return boundSignature;
+    }
+
+    @Override
+    public DataType<?> partialType() {
+        return boundSignature.getReturnType().createType();
     }
 
     @Override

@@ -34,12 +34,9 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.SearchPath;
 import io.crate.test.integration.CrateUnitTest;
@@ -67,7 +64,7 @@ public abstract class AggregationTest extends CrateUnitTest {
         memoryManager = new OnHeapMemoryManager(RAM_ACCOUNTING::addBytes);
         evaluatingNormalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> f.info().isDeterministic()
+            Function::isDeterministic
         );
     }
 
@@ -127,7 +124,7 @@ public abstract class AggregationTest extends CrateUnitTest {
         AggregationFunction function =
             (AggregationFunction) functions.get(null, functionName, arguments, SearchPath.pathWithPGCatalogAndDoc());
         return function.normalizeSymbol(
-            new Function(function.info(), function.signature(), arguments),
+            new Function(function.signature(), arguments, function.partialType()),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
     }
 }

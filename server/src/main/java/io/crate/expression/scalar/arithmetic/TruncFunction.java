@@ -24,8 +24,6 @@ package io.crate.expression.scalar.arithmetic;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -34,7 +32,6 @@ import io.crate.types.DataTypes;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
 import java.util.function.Function;
 
 import static io.crate.metadata.functions.Signature.scalar;
@@ -55,15 +52,14 @@ public final class TruncFunction {
                     NAME,
                     type.getTypeSignature(),
                     returnType.getTypeSignature()
-                ),
-                (signature, argumentTypes) ->
-                    new UnaryScalar<Number, Number>(
-                        NAME,
+                ).withForbiddenCoercion(),
+                (signature, boundSignature) ->
+                    new UnaryScalar<>(
                         signature,
+                        boundSignature,
                         type,
-                        returnType,
                         n -> {
-                            double val = n.doubleValue();
+                            double val = ((Number) n).doubleValue();
                             Function<Double, Double> f = val >= 0 ? Math::floor : Math::ceil;
                             return (Number) returnType.value(f.apply(val));
                         }
@@ -83,22 +79,17 @@ public final class TruncFunction {
         );
     }
 
-    private static Scalar<Number, Number> createTruncWithMode(Signature signature, List<DataType<?>> argumentTypes) {
+    private static Scalar<Number, Number> createTruncWithMode(Signature signature, Signature boundSignature) {
         return new Scalar<>() {
-
-            final FunctionInfo info = new FunctionInfo(
-                new FunctionIdent(NAME, argumentTypes),
-                DataTypes.DOUBLE
-            );
-
-            @Override
-            public FunctionInfo info() {
-                return info;
-            }
 
             @Override
             public Signature signature() {
                 return signature;
+            }
+
+            @Override
+            public Signature boundSignature() {
+                return boundSignature;
             }
 
             @Override

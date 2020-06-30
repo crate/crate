@@ -40,6 +40,7 @@ import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -132,6 +133,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("select * from sys.snapshots where name = ?", new Object[]{snapshotName});
         assertThat(response.rowCount(), is(0L));
+        assertAllRepoSnapshotFilesAreDeleted(defaultRepositoryLocation);
     }
 
     @Test
@@ -344,6 +346,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testRestoreSnapshotSinglePartition() throws Exception {
         createTableAndSnapshot("my_parted_table", SNAPSHOT_NAME, true);
+        waitNoPendingTasksOnAll();
 
         execute("delete from my_parted_table");
         waitNoPendingTasksOnAll();
@@ -416,6 +419,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createTable("my_table_1", false);
         createTable("my_table_2", false);
         createSnapshot(SNAPSHOT_NAME, "my_table_1", "my_table_2");
+        waitNoPendingTasksOnAll();
 
         execute("drop table my_table_1");
 
@@ -513,14 +517,14 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         var corruptedIndex = indexIds.entrySet().iterator().next().getValue();
         var shardIndexFile = defaultRepositoryLocation.toPath().resolve("indices")
             .resolve(corruptedIndex.getId()).resolve("0")
-            .resolve("index-0");
+            .resolve("index-" + repositoryData.shardGenerations().getShardGen(corruptedIndex, 0));
 
         // Truncating shard index file
         try (var outChan = Files.newByteChannel(shardIndexFile, StandardOpenOption.WRITE)) {
             outChan.truncate(randomInt(10));
         }
 
-        assertSnapShotState(snapShotName1);
+        assertSnapShotState(snapShotName1, SnapshotState.SUCCESS);
 
         execute("drop table t1");
         execute("RESTORE SNAPSHOT " +  fullSnapShotName1 + " TABLE t1 with (wait_for_completion=true)");
@@ -539,25 +543,23 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         var fullSnapShotName2 = REPOSITORY_NAME + ".s2";
 
         execute("CREATE SNAPSHOT " + fullSnapShotName2 + " ALL WITH (wait_for_completion=true)");
-
-        assertSnapShotState(snapShotName2);
-
-        execute("drop table t1");
-        execute("RESTORE SNAPSHOT " + fullSnapShotName2 + " TABLE t1 with (wait_for_completion=true)");
-        ensureYellow();
-
-        execute("SELECT COUNT(*) FROM t1");
-        assertThat(response.rows()[0][0], is(numberOfDocs + numberOfAdditionalDocs));
-
+        assertSnapShotState(snapShotName2, SnapshotState.PARTIAL);
     }
 
-    private void assertSnapShotState(String snapShotName) {
+    private void assertSnapShotState(String snapShotName, SnapshotState state) {
         execute(
             "SELECT state, array_length(concrete_indices, 1) FROM sys.snapshots where name = ? and repository = ?",
             new Object[]{snapShotName, REPOSITORY_NAME});
 
-        assertThat(response.rows()[0][0], is("SUCCESS"));
+        assertThat(response.rows()[0][0], is(state.name()));
         assertThat(response.rows()[0][1], is(1));
+    }
+
+    private static void assertAllRepoSnapshotFilesAreDeleted(File location) {
+        //Make sure the file location does not consist of any .dat file
+        for (var file : location.listFiles()) {
+            assertThat(file.getName().endsWith(".dat"), is(false));
+        }
     }
 
     private RepositoryData getRepositoryData() throws Exception {

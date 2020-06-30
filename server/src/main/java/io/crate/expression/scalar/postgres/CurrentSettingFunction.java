@@ -24,8 +24,6 @@ package io.crate.expression.scalar.postgres;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -50,10 +48,10 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
+            (signature, boundSignature) ->
                 new CurrentSettingFunction(
-                    new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0)),
                     signature,
+                    boundSignature,
                     sessionSettingRegistry
                 )
         );
@@ -65,34 +63,34 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
+            (signature, boundSignature) ->
                 new CurrentSettingFunction(
-                    new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0)),
                     signature,
+                    boundSignature,
                     sessionSettingRegistry
                 )
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
     private final Provider<SessionSettingRegistry> sessionSettingRegistry;
 
-    CurrentSettingFunction(FunctionInfo info, Signature signature, Provider<SessionSettingRegistry> sessionSettingRegistry) {
-        this.info = info;
+    CurrentSettingFunction(Signature signature, Signature boundSignature, Provider<SessionSettingRegistry> sessionSettingRegistry) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.sessionSettingRegistry = sessionSettingRegistry;
 
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

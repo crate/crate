@@ -247,4 +247,27 @@ public interface ActionListener<Response> {
             }
         };
     }
+
+    /**
+     * Creates a listener that delegates all responses it receives to another listener.
+     *
+     * @param delegate ActionListener to wrap and delegate any exception to
+     * @param bc BiConsumer invoked with delegate listener and exception
+     * @param <T> Type of the listener
+     * @return Delegating listener
+     */
+    static <T> ActionListener<T> delegateResponse(ActionListener<T> delegate, BiConsumer<ActionListener<T>, Exception> onFailure) {
+        return new ActionListener<T>() {
+
+            @Override
+            public void onResponse(T r) {
+                delegate.onResponse(r);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                onFailure.accept(delegate, e);
+            }
+        };
+    }
 }

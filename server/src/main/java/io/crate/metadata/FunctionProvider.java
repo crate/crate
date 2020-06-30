@@ -23,18 +23,16 @@
 package io.crate.metadata;
 
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
 
-import java.util.List;
 import java.util.function.BiFunction;
 
 public class FunctionProvider {
 
     private final Signature signature;
-    private final BiFunction<Signature, List<DataType<?>>, FunctionImplementation> factory;
+    private final BiFunction<Signature, Signature, FunctionImplementation> factory;
 
     public FunctionProvider(Signature signature,
-                            BiFunction<Signature, List<DataType<?>>, FunctionImplementation> factory) {
+                            BiFunction<Signature, Signature, FunctionImplementation> factory) {
         this.signature = signature;
         this.factory = factory;
     }
@@ -43,7 +41,7 @@ public class FunctionProvider {
         return signature;
     }
 
-    public BiFunction<Signature, List<DataType<?>>, FunctionImplementation> getFactory() {
+    public BiFunction<Signature, Signature, FunctionImplementation> getFactory() {
         return factory;
     }
 

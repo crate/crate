@@ -61,10 +61,10 @@ public class MoveReferenceCastToLiteralCastInsideOperators implements Rule<Funct
         this.functionResolver = functionResolver;
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
-            .with(f -> MATCHING_OPERATORS.contains(f.info().ident().name()))
+            .with(f -> MATCHING_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType() == SymbolType.LITERAL)
             .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
-                .with(f -> CAST_FUNCTION_NAMES.contains(f.info().ident().name()))
+                .with(f -> CAST_FUNCTION_NAMES.contains(f.name()))
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
             );
     }
@@ -84,7 +84,7 @@ public class MoveReferenceCastToLiteralCastInsideOperators implements Rule<Funct
         DataType<?> targetType = reference.valueType();
 
         return functionResolver.apply(
-            operator.info().ident().name(),
+            operator.name(),
             List.of(reference, literal.cast(targetType))
         );
     }

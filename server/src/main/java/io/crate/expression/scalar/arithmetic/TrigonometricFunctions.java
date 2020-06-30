@@ -24,15 +24,13 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionInfo;
-import io.crate.types.DataType;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 
 import java.util.function.DoubleUnaryOperator;
 
 import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.types.DataTypes.NUMERIC_PRIMITIVE_TYPES;
 
 public final class TrigonometricFunctions {
 
@@ -45,24 +43,21 @@ public final class TrigonometricFunctions {
         register(module, "cot", x -> 1 / Math.tan(x));
         register(module, "atan", x -> Math.atan(checkRange(x)));
 
-        for (DataType<?> inputType : NUMERIC_PRIMITIVE_TYPES) {
-            module.register(
-                scalar(
-                    "atan2",
-                    inputType.getTypeSignature(),
-                    inputType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ),
-                (signature, argumentTypes) ->
-                    new BinaryScalar<>(
-                        Math::atan2,
-                        "atan2",
-                        signature,
-                        DoubleType.INSTANCE,
-                        FunctionInfo.DETERMINISTIC_ONLY
-                    )
-            );
-        }
+        module.register(
+            scalar(
+                "atan2",
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ).withFeatures(Scalar.DETERMINISTIC_ONLY),
+            (signature, boundSignature) ->
+                new BinaryScalar<>(
+                    Math::atan2,
+                    signature,
+                    boundSignature,
+                    DoubleType.INSTANCE
+                )
+        );
     }
 
     private static void register(ScalarFunctionModule module, String name, DoubleUnaryOperator func) {
@@ -72,8 +67,8 @@ public final class TrigonometricFunctions {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
-                new DoubleScalar(name, signature, argumentTypes.get(0), func)
+            (signature, boundSignature) ->
+                new DoubleScalar(signature, boundSignature, func)
         );
     }
 

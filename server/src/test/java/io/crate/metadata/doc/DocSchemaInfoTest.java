@@ -29,11 +29,9 @@ import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
@@ -67,20 +65,19 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
                 if (error != null) {
                     throw new ScriptException("this is not Burlesque");
                 }
-                return new Scalar() {
-                    private final FunctionInfo info = new FunctionInfo(new FunctionIdent(metaData.schema(), metaData.name(), metaData.argumentTypes()), metaData.returnType());
+                return new Scalar<>() {
                     @Override
                     public Object evaluate(TransactionContext txnCtx, Input[] args) {
                         return null;
                     }
 
                     @Override
-                    public FunctionInfo info() {
-                        return info;
+                    public Signature signature() {
+                        return signature;
                     }
 
                     @Override
-                    public Signature signature() {
+                    public Signature boundSignature() {
                         return signature;
                     }
                 };

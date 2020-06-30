@@ -32,8 +32,6 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
@@ -55,8 +53,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static io.crate.common.collections.Tuple.tuple;
+import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -392,15 +390,13 @@ public class WindowBatchIteratorTest {
             }
 
             @Override
-            public FunctionInfo info() {
-                return new FunctionInfo(
-                    new FunctionIdent("first_cell_value", Collections.emptyList()),
-                    DataTypes.INTEGER);
+            public Signature signature() {
+                return Signature.window("first_cell_value", DataTypes.INTEGER.getTypeSignature());
             }
 
             @Override
-            public Signature signature() {
-                return Signature.window("first_cell_value", DataTypes.INTEGER.getTypeSignature());
+            public Signature boundSignature() {
+                return signature();
             }
         };
     }
@@ -413,15 +409,13 @@ public class WindowBatchIteratorTest {
             }
 
             @Override
-            public FunctionInfo info() {
-                return new FunctionInfo(
-                    new FunctionIdent("a_frame_bounded_window_function", Collections.emptyList()),
-                    DataTypes.INTEGER);
+            public Signature signature() {
+                return Signature.window("a_frame_bounded_window_function", DataTypes.INTEGER.getTypeSignature());
             }
 
             @Override
-            public Signature signature() {
-                return Signature.window("a_frame_bounded_window_function", DataTypes.INTEGER.getTypeSignature());
+            public Signature boundSignature() {
+                return signature();
             }
         };
     }
@@ -434,15 +428,13 @@ public class WindowBatchIteratorTest {
             }
 
             @Override
-            public FunctionInfo info() {
-                return new FunctionInfo(
-                    new FunctionIdent("row_number", Collections.emptyList()),
-                    DataTypes.INTEGER);
+            public Signature signature() {
+                return Signature.window("row_number", DataTypes.INTEGER.getTypeSignature());
             }
 
             @Override
-            public Signature signature() {
-                return Signature.window("row_number", DataTypes.INTEGER.getTypeSignature());
+            public Signature boundSignature() {
+                return signature();
             }
         };
     }

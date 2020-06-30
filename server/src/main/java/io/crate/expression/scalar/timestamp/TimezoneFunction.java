@@ -24,8 +24,6 @@ package io.crate.expression.scalar.timestamp;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -50,11 +48,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMPZ.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
-                new TimezoneFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMP),
-                    signature
-                )
+            TimezoneFunction::new
         );
         module.register(
             Signature.scalar(
@@ -63,11 +57,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
-                new TimezoneFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMPZ),
-                    signature
-                )
+            TimezoneFunction::new
         );
         module.register(
             Signature.scalar(
@@ -76,30 +66,26 @@ public class TimezoneFunction extends Scalar<Long, Object> {
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
-            (signature, argumentTypes) ->
-                new TimezoneFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMPZ),
-                    signature
-                )
+            TimezoneFunction::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private TimezoneFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private TimezoneFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -125,7 +111,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
         }
 
         Instant instant = Instant.ofEpochMilli(utcTimestamp.longValue());
-        boolean paramHadTimezone = info.returnType() == DataTypes.TIMESTAMP;
+        boolean paramHadTimezone = boundSignature.getReturnType().createType() == DataTypes.TIMESTAMP;
         ZoneId srcZoneId = paramHadTimezone ? zoneId : UTC;
         ZoneId dstZoneId = paramHadTimezone ? UTC : zoneId;
         ZonedDateTime zonedDateTime = instant.atZone(srcZoneId).withZoneSameLocal(dstZoneId);

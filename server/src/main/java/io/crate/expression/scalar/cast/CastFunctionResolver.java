@@ -25,7 +25,6 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -60,35 +59,27 @@ public class CastFunctionResolver {
             // types have to be considered as well. Therefore, to bypass this
             // limitation we encode the return type info as the second function
             // argument.
-            var info = FunctionInfo.of(
-                modes.contains(CastMode.TRY)
-                    ? TryCastFunction.NAME
-                    : ExplicitCastFunction.NAME,
-                List.of(sourceType, targetType),
-                targetType);
+            var name = modes.contains(CastMode.TRY)
+                ? TryCastFunction.NAME
+                : ExplicitCastFunction.NAME;
             return new Function(
-                info,
                 Signature
                     .scalar(
-                        info.ident().fqnName(),
+                        name,
                         parseTypeSignature("E"),
                         parseTypeSignature("V"),
                         parseTypeSignature("V")
                     ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
                 // a literal with a NULL value is passed as an argument
                 // to match the method signature
-                List.of(sourceSymbol, Literal.of(targetType, null))
+                List.of(sourceSymbol, Literal.of(targetType, null)),
+                targetType
             );
         } else {
-            var info = FunctionInfo.of(
-                ImplicitCastFunction.NAME,
-                List.of(sourceType, DataTypes.STRING),
-                targetType);
             return new Function(
-                info,
                 Signature
                     .scalar(
-                        info.ident().fqnName(),
+                        ImplicitCastFunction.NAME,
                         parseTypeSignature("E"),
                         DataTypes.STRING.getTypeSignature(),
                         DataTypes.UNDEFINED.getTypeSignature())
@@ -96,7 +87,8 @@ public class CastFunctionResolver {
                 List.of(
                     sourceSymbol,
                     Literal.of(targetType.getTypeSignature().toString())
-                )
+                ),
+                targetType
             );
         }
     }

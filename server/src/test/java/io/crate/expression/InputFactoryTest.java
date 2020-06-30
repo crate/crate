@@ -37,10 +37,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -65,19 +64,14 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
     private InputFactory factory;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private Function add = new Function(
-        new FunctionInfo(
-            new FunctionIdent(ArithmeticFunctions.Names.ADD, List.of(DataTypes.INTEGER, DataTypes.INTEGER)),
-            DataTypes.INTEGER,
-            FunctionInfo.Type.SCALAR,
-            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
-        ),
         Signature.scalar(
             ArithmeticFunctions.Names.ADD,
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature()
-        ),
-        List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10))
+        ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
+        List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10)),
+        DataTypes.INTEGER
     );
 
     @Before
@@ -95,8 +89,8 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         Function avgX = (Function) expressions.asSymbol("avg(x)");
 
         List<Symbol> aggregations = Arrays.asList(
-            new Aggregation(countX.info(), countX.signature(), countX.info().returnType(), Arrays.asList(new InputColumn(0))),
-            new Aggregation(avgX.info(), avgX.signature(), countX.info().returnType(), Arrays.asList(new InputColumn(0)))
+            new Aggregation( countX.signature(), countX.signature().getReturnType().createType(), List.of(new InputColumn(0))),
+            new Aggregation(avgX.signature(), avgX.signature().getReturnType().createType(), List.of(new InputColumn(0)))
         );
 
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
@@ -149,7 +143,6 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
 
         // values: [ count(in(0)) ]
         List<Aggregation> values = List.of(new Aggregation(
-            countX.info(),
             countX.signature(),
             countX.valueType(),
             List.of(new InputColumn(0))
@@ -195,11 +188,11 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         java.lang.reflect.Field f = FunctionExpression.class.getDeclaredField("scalar");
         f.setAccessible(true);
         FunctionImplementation impl = (FunctionImplementation) f.get(expression);
-        assertThat(impl.info(), is(function.info()));
+        assertThat(impl.signature(), is(function.signature()));
 
         FunctionImplementation uncompiled = expressions.functions().getQualified(
-            function.signature(),
-            Symbols.typeView(function.arguments())
+            function,
+            txnCtx.sessionSettings().searchPath()
         );
         assertThat(uncompiled, not(sameInstance(impl)));
     }

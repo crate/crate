@@ -37,6 +37,7 @@ public class PGArray extends PGType<List<Object>> {
     static final PGArray CHAR_ARRAY = new PGArray(1002, CharType.INSTANCE);
     static final PGArray INT2_ARRAY = new PGArray(1005, SmallIntType.INSTANCE);
     static final PGArray INT4_ARRAY = new PGArray(1007, IntegerType.INSTANCE);
+    static final PGArray OID_ARRAY = new PGArray(1028, OidType.INSTANCE);
     static final PGArray INT8_ARRAY = new PGArray(1016, BigIntType.INSTANCE);
     static final PGArray FLOAT4_ARRAY = new PGArray(1021, RealType.INSTANCE);
     static final PGArray FLOAT8_ARRAY = new PGArray(1022, DoubleType.INSTANCE);
@@ -45,6 +46,7 @@ public class PGArray extends PGType<List<Object>> {
     static final PGArray TIMESTAMP_ARRAY = new PGArray(1115, TimestampType.INSTANCE);
     static final PGArray TIMETZ_ARRAY = new PGArray(1270, TimeTZType.INSTANCE);
     static final PGArray VARCHAR_ARRAY = new PGArray(1015, VarCharType.INSTANCE);
+    static final PGArray TEXT_ARRAY = new PGArray(1009, VarCharType.TextType.INSTANCE);
     static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE);
     static final PGArray POINT_ARRAY = new PGArray(1017, PointType.INSTANCE);
     static final PGArray INTERVAL_ARRAY = new PGArray(1187, IntervalType.INSTANCE);

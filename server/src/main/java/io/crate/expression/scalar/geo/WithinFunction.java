@@ -27,8 +27,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -53,11 +51,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
             ),
-            (signature, args) ->
-                new WithinFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.BOOLEAN),
-                    signature
-                )
+            WithinFunction::new
         );
         // Needed to avoid casts on references of `geo_point` and thus to avoid generic function filter on lucene.
         // Coercion must be forbidden, as string representation could be a `geo_shape` and thus must match
@@ -70,21 +64,17 @@ public class WithinFunction extends Scalar<Boolean, Object> {
                     type.getTypeSignature(),
                     DataTypes.BOOLEAN.getTypeSignature()
                 ).withForbiddenCoercion(),
-                (signature, args) ->
-                    new WithinFunction(
-                        new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.BOOLEAN),
-                        signature
-                    )
+                WithinFunction::new
             );
         }
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private WithinFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private WithinFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -130,13 +120,13 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

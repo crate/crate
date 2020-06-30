@@ -63,7 +63,8 @@ public class PercentileAggregationTest extends AggregationTest {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE)
+            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE),
+            DataTypes.DOUBLE
         );
         arraysPercentile = (PercentileAggregation) functions.getQualified(
             Signature.aggregate(
@@ -72,7 +73,8 @@ public class PercentileAggregationTest extends AggregationTest {
                 DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature()
             ),
-            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY)
+            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY),
+            DataTypes.DOUBLE_ARRAY
         );
     }
 
@@ -207,7 +209,8 @@ public class PercentileAggregationTest extends AggregationTest {
                 DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature()
             ),
-            List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY)
+            List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
+            DataTypes.DOUBLE_ARRAY
         );
 
         RamAccounting ramAccounting = RamAccounting.NO_ACCOUNTING;

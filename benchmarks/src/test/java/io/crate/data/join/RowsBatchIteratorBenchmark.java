@@ -96,7 +96,8 @@ public class RowsBatchIteratorBenchmark {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            List.of(DataTypes.INTEGER)
+            List.of(DataTypes.INTEGER),
+            DataTypes.INTEGER
         );
     }
 

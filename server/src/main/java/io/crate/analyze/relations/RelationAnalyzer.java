@@ -53,9 +53,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -94,6 +92,7 @@ import io.crate.sql.tree.ValuesList;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.RowType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -172,7 +171,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.info().isDeterministic()
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
         );
 
         return new QueriedSelectRelation(
@@ -354,7 +353,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.info().isDeterministic()
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
         );
 
         QueriedSelectRelation relation = new QueriedSelectRelation(
@@ -650,8 +649,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         Function function = (Function) symbol;
         FunctionImplementation functionImplementation = functions.getQualified(
-            function.signature(),
-            Symbols.typeView(function.arguments())
+            function,
+            statementContext.sessionContext().searchPath()
         );
         assert functionImplementation != null : "Function implementation not found using full qualified lookup";
         TableFunctionImplementation<?> tableFunction = TableFunctionFactory.from(functionImplementation);
@@ -733,7 +732,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             functions,
-            f -> f.info().isDeterministic()
+            f -> f.isDeterministic()
         );
 
         ArrayList<Symbol> arrays = new ArrayList<>(columns.size());
@@ -745,19 +744,20 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 s -> normalizer.normalize(s.cast(targetType), context.transactionContext())
             );
             arrays.add(new Function(
-                new FunctionInfo(new FunctionIdent(ArrayFunction.NAME, Symbols.typeView(columnValues)), arrayType),
                 ArrayFunction.SIGNATURE,
-                columnValues
+                columnValues,
+                arrayType
             ));
         }
         FunctionImplementation implementation = functions.getQualified(
             ValuesFunction.SIGNATURE,
-            Symbols.typeView(arrays)
+            Symbols.typeView(arrays),
+            RowType.EMPTY
         );
         Function function = new Function(
-            implementation.info(),
             implementation.signature(),
-            arrays
+            arrays,
+            RowType.EMPTY
         );
 
         TableFunctionImplementation<?> tableFunc = TableFunctionFactory.from(implementation);

@@ -22,8 +22,6 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -45,20 +43,16 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
                 parseTypeSignature("array(E)"),
                 DataTypes.LONG.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, argumentTypes) ->
-                new CollectionCountFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.LONG),
-                    signature
-                )
+            CollectionCountFunction::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private CollectionCountFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private CollectionCountFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -71,12 +65,12 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

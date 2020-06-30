@@ -28,7 +28,7 @@ import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -123,7 +123,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
 
     @Override
     public Void visitFunction(Function function, Context context) {
-        FunctionInfo.Type type = function.info().type();
+        FunctionType type = function.type();
         switch (type) {
             case SCALAR:
                 return super.visitFunction(function, context);

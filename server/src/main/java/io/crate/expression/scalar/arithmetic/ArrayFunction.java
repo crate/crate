@@ -24,16 +24,12 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -44,7 +40,7 @@ public class ArrayFunction extends Scalar<Object, Object> {
     public static final Signature SIGNATURE =
         Signature.builder()
             .name(NAME)
-            .kind(FunctionInfo.Type.SCALAR)
+            .kind(FunctionType.SCALAR)
             .typeVariableConstraints(typeVariable("E"))
             .argumentTypes(parseTypeSignature("E"))
             .returnType(parseTypeSignature("array(E)"))
@@ -55,31 +51,26 @@ public class ArrayFunction extends Scalar<Object, Object> {
     public static void register(ScalarFunctionModule module) {
         module.register(
             SIGNATURE,
-            (signature, args) -> new ArrayFunction(createInfo(args), signature)
+            ArrayFunction::new
         );
     }
 
-    public static FunctionInfo createInfo(List<DataType<?>> argumentTypes) {
-        DataType<?> innerType = argumentTypes.get(0);
-        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), new ArrayType<>(innerType));
-    }
-
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private ArrayFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private ArrayFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @SafeVarargs

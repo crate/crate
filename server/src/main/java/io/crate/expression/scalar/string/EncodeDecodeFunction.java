@@ -26,7 +26,6 @@ import io.crate.common.Hex;
 import io.crate.common.Octal;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.arithmetic.BinaryScalar;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -46,13 +45,12 @@ public class EncodeDecodeFunction {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new BinaryScalar<>(
-                    new Encode(),
-                    "encode",
-                    signature,
-                    DataTypes.STRING,
-                    FunctionInfo.DETERMINISTIC_ONLY
+                        new Encode(),
+                        signature,
+                        boundSignature,
+                        DataTypes.STRING
                 )
         );
         module.register(
@@ -62,13 +60,12 @@ public class EncodeDecodeFunction {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
+            (signature, boundSignature) ->
                 new BinaryScalar<>(
-                    new Decode(),
-                    "decode",
-                    signature,
-                    DataTypes.STRING,
-                    FunctionInfo.DETERMINISTIC_ONLY
+                        new Decode(),
+                        signature,
+                        boundSignature,
+                        DataTypes.STRING
                 )
         );
     }

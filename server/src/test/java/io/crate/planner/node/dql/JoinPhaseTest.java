@@ -31,8 +31,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateUnitTest;
@@ -84,15 +82,12 @@ public class JoinPhaseTest extends CrateUnitTest {
             DistributionInfo.DEFAULT_BROADCAST,
             null);
         joinCondition = new Function(
-            new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, List.of(DataTypes.STRING, DataTypes.STRING)),
-                DataTypes.BOOLEAN
-            ),
             EqOperator.SIGNATURE,
             List.of(
                 new InputColumn(0, DataTypes.STRING),
                 new InputColumn(1, DataTypes.STRING)
-            )
+            ),
+            EqOperator.RETURN_TYPE
         );
     }
 

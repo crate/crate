@@ -27,7 +27,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 
 import javax.annotation.Nullable;
@@ -82,10 +82,10 @@ public class HavingSymbolValidator {
 
         @Override
         public Void visitFunction(Function function, HavingContext context) {
-            FunctionInfo.Type type = function.info().type();
-            if (type == FunctionInfo.Type.TABLE) {
+            FunctionType type = function.type();
+            if (type == FunctionType.TABLE) {
                 throw new IllegalArgumentException("Table functions are not allowed in HAVING");
-            } else if (type == FunctionInfo.Type.AGGREGATE) {
+            } else if (type == FunctionType.AGGREGATE) {
                 context.insideAggregation = true;
             } else {
                 // allow function if it is part of the grouping symbols
@@ -97,7 +97,7 @@ public class HavingSymbolValidator {
             for (Symbol argument : function.arguments()) {
                 argument.accept(this, context);
             }
-            if (type == FunctionInfo.Type.AGGREGATE) {
+            if (type == FunctionType.AGGREGATE) {
                 context.insideAggregation = false;
             }
             return null;

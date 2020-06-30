@@ -69,7 +69,7 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
                              Functions functions) {
         TableFunction tableFunction = captures.get(this.capture);
         var relation = tableFunction.relation();
-        if (relation.function().info().ident().name().equals(ValuesFunction.NAME)) {
+        if (relation.function().name().equals(ValuesFunction.NAME)) {
             return new InsertFromValues(tableFunction.relation(), plan.columnIndexWriterProjection());
         } else {
             return null;

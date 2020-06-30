@@ -25,8 +25,6 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -47,11 +45,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new StringConcatFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING),
-                    signature
-                )
+            StringConcatFunction::new
         );
 
         module.register(
@@ -61,11 +55,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 DataTypes.STRING.getTypeSignature()
             )
                 .withVariableArity(),
-            (signature, args) ->
-                new GenericConcatFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING),
-                    signature
-                )
+            GenericConcatFunction::new
         );
 
         // concat(array[], array[]) -> same as `array_cat(...)`
@@ -77,30 +67,26 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 parseTypeSignature("array(E)")
             )
                 .withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
-                new ArrayCatFunction(
-                    ArrayCatFunction.createInfo(args, NAME),
-                    signature
-                )
+            ArrayCatFunction::new
         );
     }
 
-    private final FunctionInfo functionInfo;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    ConcatFunction(FunctionInfo functionInfo, Signature signature) {
-        this.functionInfo = functionInfo;
+    ConcatFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return functionInfo;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override
@@ -113,13 +99,13 @@ public abstract class ConcatFunction extends Scalar<String, String> {
             inputs[i] = ((Input) function.arguments().get(i));
         }
         //noinspection unchecked
-        return Literal.ofUnchecked(functionInfo.returnType(), evaluate(txnCtx, inputs));
+        return Literal.ofUnchecked(boundSignature.getReturnType().createType(), evaluate(txnCtx, inputs));
     }
 
     static class StringConcatFunction extends ConcatFunction {
 
-        StringConcatFunction(FunctionInfo functionInfo, Signature signature) {
-            super(functionInfo, signature);
+        StringConcatFunction(Signature signature, Signature boundSignature) {
+            super(signature, boundSignature);
         }
 
         @Override
@@ -141,8 +127,8 @@ public abstract class ConcatFunction extends Scalar<String, String> {
 
     private static class GenericConcatFunction extends ConcatFunction {
 
-        GenericConcatFunction(FunctionInfo functionInfo, Signature signature) {
-            super(functionInfo, signature);
+        public GenericConcatFunction(Signature signature, Signature boundSignature) {
+            super(signature, boundSignature);
         }
 
         @Override

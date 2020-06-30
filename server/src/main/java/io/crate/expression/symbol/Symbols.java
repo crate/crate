@@ -28,6 +28,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
+import io.crate.types.TypeSignature;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -52,6 +53,10 @@ public class Symbols {
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
         return LazyMapList.of(symbols, Symbol::valueType);
+    }
+
+    public static List<TypeSignature> typeSignatureView(List<? extends Symbol> symbols) {
+        return LazyMapList.of(symbols, s -> s.valueType().getTypeSignature());
     }
 
     public static Streamer<?>[] streamerArray(Collection<? extends Symbol> symbols) {
@@ -174,7 +179,7 @@ public class Symbols {
 
     public static Symbol unwrapReferenceFromCast(Symbol symbol) {
         if (symbol instanceof Function
-            && CAST_FUNCTION_NAMES.contains(((Function) symbol).info().ident().name())) {
+            && CAST_FUNCTION_NAMES.contains(((Function) symbol).name())) {
             return ((Function) symbol).arguments().get(0);
         }
         return symbol;

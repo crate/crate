@@ -35,26 +35,23 @@ public final class RoundFunction {
     public static void register(ScalarFunctionModule module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
+            DataType<?> returnType = DataTypes.getIntegralReturnType(type);
+            assert returnType != null : "Could not get integral type of " + type;
             module.register(
-                scalar(NAME, typeSignature, typeSignature),
-                (signature, argumentTypes) -> {
-                    DataType<?> argType = argumentTypes.get(0);
-                    DataType<?> returnType = DataTypes.getIntegralReturnType(argType);
-                    assert returnType != null : "Could not get integral type of " + argType;
+                scalar(NAME, typeSignature, returnType.getTypeSignature()),
+                (signature, boundSignature) -> {
                     if (returnType.equals(DataTypes.INTEGER)) {
                         return new UnaryScalar<>(
-                            NAME,
                             signature,
-                            argType,
-                            returnType,
+                            boundSignature,
+                            type,
                             x -> Math.round(((Number) x).floatValue())
                         );
                     } else {
                         return new UnaryScalar<>(
-                            NAME,
                             signature,
-                            argType,
-                            returnType,
+                            boundSignature,
+                            type,
                             x -> Math.round(((Number) x).doubleValue())
                         );
                     }

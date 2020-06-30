@@ -24,13 +24,9 @@ package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.TripleScalar;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Strings;
-
-import java.util.List;
 
 
 public final class ReplaceFunction {
@@ -46,13 +42,13 @@ public final class ReplaceFunction {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) -> new TripleScalar<>(
-                new FunctionInfo(
-                    new FunctionIdent(NAME, List.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING)),
-                    DataTypes.STRING
-                ),
-                signature,
-                Strings::replace)
+            (signature, boundSignature) ->
+                new TripleScalar<>(
+                    signature,
+                    boundSignature,
+                    DataTypes.STRING,
+                    Strings::replace
+                )
         );
     }
 }

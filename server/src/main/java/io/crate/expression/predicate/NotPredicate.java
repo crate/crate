@@ -25,18 +25,14 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.List;
-
 public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
-    public static final FunctionInfo INFO = FunctionInfo.of(NAME, List.of(DataTypes.BOOLEAN), DataTypes.BOOLEAN);
     public static final Signature SIGNATURE = Signature.scalar(
         NAME,
         DataTypes.BOOLEAN.getTypeSignature(),
@@ -45,23 +41,26 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     public static void register(PredicateModule module) {
         module.register(
             SIGNATURE,
-            (signature, argTypes) -> new NotPredicate(signature));
+            NotPredicate::new
+        );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private NotPredicate(Signature signature) {
+    private NotPredicate(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return INFO;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @Override

@@ -243,7 +243,8 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
         var functionImpl = functions.getQualified(
             signature,
-            List.of(DataTypes.UNTYPED_OBJECT, returnType)
+            List.of(DataTypes.UNTYPED_OBJECT, returnType),
+            returnType
         );
 
         assertThat(functionImpl.info().returnType(), is(returnType));

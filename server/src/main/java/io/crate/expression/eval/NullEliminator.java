@@ -83,7 +83,7 @@ public final class NullEliminator {
 
         @Override
         public Symbol visitFunction(Function func, Context context) {
-            String functionName = func.info().ident().name();
+            String functionName = func.name();
 
             // only operate inside logical operators
             if (Operators.LOGICAL_OPERATORS.contains(functionName)) {

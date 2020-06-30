@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
@@ -33,7 +34,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -140,10 +140,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             return;
         }
         Function function = (Function) functionSymbol;
-        FunctionImplementation impl = functions.getQualified(
-            function.signature(),
-            Symbols.typeView(function.arguments())
-        );
+        FunctionImplementation impl = functions.getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", impl, Matchers.notNullValue());
 
         Symbol normalized = sqlExpressions.normalize(function);
@@ -193,10 +190,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             }
             return literal;
         });
-        Scalar scalar = (Scalar) functions.getQualified(
-            function.signature(),
-            Symbols.typeView(function.arguments())
-        );
+        Scalar scalar = (Scalar) functions.getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
         AssertMax1ValueCallInput[] arguments = new AssertMax1ValueCallInput[function.arguments().size()];
@@ -244,10 +238,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
         Function function = (Function) functionSymbol;
-        Scalar scalar = (Scalar) functions.getQualified(
-            function.signature(),
-            Symbols.typeView(function.arguments())
-        );
+        Scalar scalar = (Scalar) functions.getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
         Scalar compiled = scalar.compile(function.arguments());

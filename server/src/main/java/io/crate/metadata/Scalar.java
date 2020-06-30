@@ -27,7 +27,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Base class for Scalar functions in crate.
@@ -37,7 +39,7 @@ import java.util.List;
  * </p>
  *
  * <p>
- *     Usually functions are registered as deterministic (See {@link io.crate.metadata.FunctionInfo.Feature}.
+ *     Usually functions are registered as deterministic (See {@link Feature}.
  *     If this is the case the function must be a pure function. Meaning that given the same input it must always produce
  *     the same output.
  *
@@ -58,6 +60,11 @@ import java.util.List;
  * @param <ReturnType> the class of the returned value
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation {
+
+    public static final Set<Feature> NO_FEATURES = Set.of();
+    public static final Set<Feature> DETERMINISTIC_ONLY = EnumSet.of(Feature.DETERMINISTIC);
+    public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = EnumSet.of(
+        Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);
 
     /**
      * Evaluate the function using the provided arguments
@@ -116,6 +123,80 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             idx++;
         }
         //noinspection unchecked
-        return Literal.ofUnchecked(function.info().returnType(), scalar.evaluate(txnCtx, inputs));
+        return Literal.ofUnchecked(function.valueType(), scalar.evaluate(txnCtx, inputs));
+    }
+
+    public enum Feature {
+        DETERMINISTIC,
+        /**
+         * If this feature is set, for this function it is possible to replace the containing
+         * comparison while preserving the truth value for all used operators
+         * with or without an operator mapping.
+         * <p>
+         * It describes the following:
+         * <p>
+         * say we have a comparison-query like this:
+         * <p>
+         * col > 10.5
+         * <p>
+         * then a function f, for which comparisons are replaceable, can be applied so
+         * that:
+         * <p>
+         * f(col) > f(10.5)
+         * <p>
+         * for all col for which col > 10.5 is true. Maybe > needs to be mapped to another
+         * operator, but this may not depend on the actual values used here.
+         * <p>
+         * Fun facts:
+         * <p>
+         * * This property holds for the = comparison operator for all functions f.
+         * * This property is transitive so if f and g are replaceable,
+         * then f(g(x)) also is
+         * * it is possible to replace:
+         * <p>
+         * col > 10.5
+         * <p>
+         * with:
+         * <p>
+         * f(col) > f(10.5)
+         * <p>
+         * for every operator (possibly mapped) and the query is still equivalent.
+         * <p>
+         * Example 1:
+         * <p>
+         * if f is defined as f(v) = v + 1
+         * then col + 1 > 11.5 must be true for all col > 10.5.
+         * This is indeed true.
+         * <p>
+         * So f is replaceable for >.
+         * <p>
+         * Fun fact: for f all comparison operators =, >, <, >=,<= are replaceable
+         * <p>
+         * Example 2 (a rounding function):
+         * <p>
+         * if f is defined as f(v) = ceil(v)
+         * then ceil(col) > 11 for all col > 10.5.
+         * But there is 10.8 for which f is 11 and
+         * 11 > 11 is false.
+         * <p>
+         * Here a simple mapping of the operator will do the trick:
+         * <p>
+         * > -> >=
+         * < -> <=
+         * <p>
+         * So for f comparisons are replaceable using the mapping above.
+         * <p>
+         * Example 3:
+         * <p>
+         * if f is defined as f(v) = v % 5
+         * then col % 5 > 0.5 for all col > 10.5
+         * but there is 20 for which
+         * f is 0 and
+         * 0 > 0.5 is false.
+         * <p>
+         * So for f comparisons cannot be replaced.
+         */
+        COMPARISON_REPLACEMENT,
+        LAZY_ATTRIBUTES
     }
 }

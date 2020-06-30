@@ -35,7 +35,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
@@ -84,14 +84,33 @@ public class HashAggregate extends ForwardingLogicalPlan {
         }
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), executionPlan.resultDescription().nodeIds())) {
             if (source.preferShardProjections()) {
-                executionPlan.addProjection(projectionBuilder.aggregationProjection(
-                    sourceOutputs, boundAggregates, AggregateMode.ITER_PARTIAL, RowGranularity.SHARD));
-                executionPlan.addProjection(projectionBuilder.aggregationProjection(
-                    boundAggregates, boundAggregates, AggregateMode.PARTIAL_FINAL, RowGranularity.CLUSTER));
+                executionPlan.addProjection(
+                    projectionBuilder.aggregationProjection(
+                        sourceOutputs,
+                        boundAggregates,
+                        AggregateMode.ITER_PARTIAL,
+                        RowGranularity.SHARD,
+                        plannerContext.transactionContext().sessionContext().searchPath()
+                    )
+                );
+                executionPlan.addProjection(
+                    projectionBuilder.aggregationProjection(
+                        boundAggregates,
+                        boundAggregates,
+                        AggregateMode.PARTIAL_FINAL,
+                        RowGranularity.CLUSTER,
+                        plannerContext.transactionContext().sessionContext().searchPath()
+                    )
+                );
                 return executionPlan;
             }
             AggregationProjection fullAggregation = projectionBuilder.aggregationProjection(
-                sourceOutputs, boundAggregates, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
+                sourceOutputs,
+                boundAggregates,
+                AggregateMode.ITER_FINAL,
+                RowGranularity.CLUSTER,
+                plannerContext.transactionContext().sessionContext().searchPath()
+            );
             executionPlan.addProjection(fullAggregation);
             return executionPlan;
         }
@@ -99,7 +118,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
             sourceOutputs,
             boundAggregates,
             AggregateMode.ITER_PARTIAL,
-            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
+            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
+            plannerContext.transactionContext().sessionContext().searchPath()
         );
         executionPlan.addProjection(toPartial);
 
@@ -107,7 +127,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
             boundAggregates,
             boundAggregates,
             AggregateMode.PARTIAL_FINAL,
-            RowGranularity.CLUSTER
+            RowGranularity.CLUSTER,
+            plannerContext.transactionContext().sessionContext().searchPath()
         );
         return new Merge(
             executionPlan,
@@ -191,7 +212,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         @Override
         public Void visitFunction(Function symbol, OutputValidatorContext context) {
             context.insideAggregation =
-                context.insideAggregation || symbol.info().type().equals(FunctionInfo.Type.AGGREGATE);
+                context.insideAggregation || symbol.type().equals(FunctionType.AGGREGATE);
             for (Symbol argument : symbol.arguments()) {
                 argument.accept(this, context);
             }

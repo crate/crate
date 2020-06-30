@@ -22,7 +22,7 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 
 import java.util.List;
@@ -56,7 +56,7 @@ public final class GroupAndAggregateSemantics {
     public static void validate(List<Symbol> outputSymbols,
                                 List<Symbol> groupBy) throws IllegalArgumentException {
         boolean containsAggregations = SymbolVisitors.any(
-            x -> x instanceof Function && ((Function) x).info().type() == FunctionInfo.Type.AGGREGATE,
+            x -> x instanceof Function && ((Function) x).type() == FunctionType.AGGREGATE,
             outputSymbols
         );
         if (!containsAggregations && groupBy.isEmpty()) {
@@ -87,7 +87,7 @@ public final class GroupAndAggregateSemantics {
 
         @Override
         public Symbol visitFunction(Function function, List<Symbol> groupBy) {
-            switch (function.info().type()) {
+            switch (function.type()) {
                 case SCALAR: {
                     /* valid:
                      *  SELECT 4 * x FROM tbl GROUP BY x
@@ -123,7 +123,7 @@ public final class GroupAndAggregateSemantics {
                     return null;
 
                 default:
-                    throw new IllegalStateException("Unexpected function type: " + function.info().type());
+                    throw new IllegalStateException("Unexpected function type: " + function.type());
             }
         }
 

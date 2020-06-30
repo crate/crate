@@ -22,8 +22,6 @@
 package io.crate.expression.operator;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 
@@ -44,23 +42,16 @@ public final class EqOperator extends Operator<Object> {
     public static void register(OperatorModule module) {
         module.register(
             SIGNATURE,
-            (signature, dataTypes) ->
-                new EqOperator(
-                    new FunctionInfo(
-                        new FunctionIdent(NAME, dataTypes),
-                        Operator.RETURN_TYPE
-                    ),
-                    signature
-                )
+            EqOperator::new
         );
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public EqOperator(FunctionInfo info, Signature signature) {
-        this.info = info;
+    private EqOperator(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -78,12 +69,12 @@ public final class EqOperator extends Operator<Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

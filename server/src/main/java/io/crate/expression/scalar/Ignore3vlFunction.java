@@ -23,14 +23,10 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.util.Collections;
 
 /**
  * This scalar function removes the 3-valued logic from the tree of operators below it.
@@ -47,9 +43,6 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "ignore3vl";
 
-    private static final FunctionInfo FUNCTION_INFO = new FunctionInfo(
-        new FunctionIdent(NAME, Collections.singletonList(DataTypes.BOOLEAN)), DataTypes.BOOLEAN);
-
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
@@ -57,14 +50,16 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
             ),
-            (signature, argumentTypes) -> new Ignore3vlFunction(signature)
+            Ignore3vlFunction::new
         );
     }
 
     private final Signature signature;
+    private final Signature boundSignature;
 
-    public Ignore3vlFunction(Signature signature) {
+    public Ignore3vlFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Override
@@ -78,12 +73,12 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return FUNCTION_INFO;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

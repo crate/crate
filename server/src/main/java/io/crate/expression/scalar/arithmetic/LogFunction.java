@@ -23,8 +23,6 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -43,22 +41,22 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         LnFunction.registerLnFunctions(module);
     }
 
-    protected final FunctionInfo info;
     protected final Signature signature;
+    protected final Signature boundSignature;
 
-    LogFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    LogFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        this.boundSignature = boundSignature;
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     /**
@@ -86,17 +84,12 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature(),
                     parseTypeSignature("double precision")),
-                (signature, args) -> new LogBaseFunction(
-                    new FunctionInfo(
-                        new FunctionIdent(NAME, args), DataTypes.DOUBLE
-                    ),
-                    signature
-                )
+                LogBaseFunction::new
             );
         }
 
-        LogBaseFunction(FunctionInfo info, Signature signature) {
-            super(info, signature);
+        LogBaseFunction(Signature signature, Signature boundSignature) {
+            super(signature, boundSignature);
         }
 
         @Override
@@ -129,15 +122,12 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()
                 ),
-                (signature, args) -> new Log10Function(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.DOUBLE),
-                    signature
-                )
+                Log10Function::new
             );
         }
 
-        Log10Function(FunctionInfo info, Signature signature) {
-            super(info, signature);
+        Log10Function(Signature signature, Signature boundSignature) {
+            super(signature, boundSignature);
         }
 
         @Override
@@ -166,17 +156,14 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()
                 ),
-                (signature, args) -> new LnFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.DOUBLE),
-                    signature
-                )
+                LnFunction::new
             );
         }
 
         public static final String NAME = "ln";
 
-        LnFunction(FunctionInfo info, Signature signature) {
-            super(info, signature);
+        LnFunction(Signature signature, Signature boundSignature) {
+            super(signature, boundSignature);
         }
 
         @Override
@@ -184,5 +171,4 @@ public abstract class LogFunction extends Scalar<Number, Number> {
             return validateResult(Math.log(value), "ln(x)");
         }
     }
-
 }

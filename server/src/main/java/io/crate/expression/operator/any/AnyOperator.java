@@ -23,7 +23,6 @@ package io.crate.expression.operator.any;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -36,29 +35,29 @@ public final class AnyOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "any_";
 
-    private final FunctionInfo functionInfo;
     private final Signature signature;
+    private final Signature boundSignature;
     private final IntPredicate cmpIsMatch;
     private final DataType leftType;
 
     /**
      * @param cmpIsMatch predicate to test if a comparison (-1, 0, 1) should be considered a match
      */
-    AnyOperator(FunctionInfo functionInfo, Signature signature, IntPredicate cmpIsMatch) {
-        this.functionInfo = functionInfo;
+    AnyOperator(Signature signature, Signature boundSignature, IntPredicate cmpIsMatch) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.cmpIsMatch = cmpIsMatch;
-        this.leftType = functionInfo.ident().argumentTypes().get(0);
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return functionInfo;
+        this.leftType = boundSignature.getArgumentDataTypes().get(0);
     }
 
     @Override
     public Signature signature() {
         return signature;
+    }
+
+    @Override
+    public Signature boundSignature() {
+        return boundSignature;
     }
 
     @SuppressWarnings("unchecked")

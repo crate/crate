@@ -140,11 +140,11 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         argsCtx.add(windowFunctionSymbol.arguments());
 
         FunctionImplementation impl = functions.getQualified(
-            windowFunctionSymbol.signature(),
-            Symbols.typeView(windowFunctionSymbol.arguments())
+            windowFunctionSymbol,
+            txnCtx.sessionSettings().searchPath()
         );
-
         assert impl instanceof WindowFunction || impl instanceof AggregationFunction: "Got " + impl + " but expected a window function";
+
         WindowFunction windowFunctionImpl;
         if (impl instanceof AggregationFunction) {
             windowFunctionImpl = new AggregateToWindowFunctionAdapter(

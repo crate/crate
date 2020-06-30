@@ -44,6 +44,7 @@ import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
@@ -491,6 +492,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitDeallocateAnalyzedStatement(AnalyzedDeallocate analysis, PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitDiscard(AnalyzedDiscard discard, PlannerContext context) {
         return NoopPlan.INSTANCE;
     }
 

@@ -22,8 +22,6 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -50,23 +48,15 @@ public class FormatFunction extends Scalar<String, Object> {
 
 
     public static void register(ScalarFunctionModule module) {
-        module.register(
-            SIGNATURE,
-            (signature, argumentTypes) ->
-                new FormatFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING),
-                    signature
-                )
-
-        );
+        module.register(SIGNATURE, FormatFunction::new);
     }
 
-    private final FunctionInfo info;
     private final Signature signature;
+    private final Signature boundSignature;
 
-    private FormatFunction(FunctionInfo info, Signature signature) {
-        this.info = info;
+    public FormatFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @SafeVarargs
@@ -86,12 +76,12 @@ public class FormatFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Signature signature() {
+        return signature;
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    public Signature boundSignature() {
+        return boundSignature;
     }
 }

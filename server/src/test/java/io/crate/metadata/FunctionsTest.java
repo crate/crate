@@ -22,16 +22,13 @@
 
 package io.crate.metadata;
 
-import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.TypeSignature;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -51,7 +48,7 @@ public class FunctionsTest extends CrateUnitTest {
     private Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
 
     private void register(Signature signature,
-                          BiFunction<Signature, List<DataType<?>>, FunctionImplementation> factory) {
+                          BiFunction<Signature, Signature, FunctionImplementation> factory) {
         List<FunctionProvider> functions = implementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());
@@ -70,26 +67,18 @@ public class FunctionsTest extends CrateUnitTest {
     private static class DummyFunction implements FunctionImplementation {
 
         private final Signature signature;
-        private final FunctionInfo info;
 
         public DummyFunction(Signature signature) {
             this.signature = signature;
-            this.info = new FunctionInfo(
-                new FunctionIdent(
-                    signature.getName(),
-                    Lists2.map(signature.getArgumentTypes(), TypeSignature::createType)
-                ),
-                signature.getReturnType().createType()
-            );
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
         }
 
         @Override
         public Signature signature() {
+            return signature;
+        }
+
+        @Override
+        public Signature boundSignature() {
             return signature;
         }
     }
@@ -264,7 +253,7 @@ public class FunctionsTest extends CrateUnitTest {
                 dummyFunction
         );
 
-        var func = new Function(dummyFunction.info, null, List.of(Literal.of("hoschi")));
+        var func = new Function(dummyFunction.signature(), List.of(Literal.of("hoschi")), DataTypes.INTEGER);
         var funcImpl = createFunctions().getQualified(func, SearchPath.pathWithPGCatalogAndDoc());
 
         assertThat(funcImpl, is(dummyFunction));
@@ -285,7 +274,7 @@ public class FunctionsTest extends CrateUnitTest {
                 dummyFunction
         );
 
-        var agg = new Aggregation(dummyFunction.info, null, DataTypes.STRING, List.of(Literal.of("hoschi")));
+        var agg = new Aggregation(dummyFunction.signature, DataTypes.STRING, List.of(Literal.of("hoschi")));
         var funcImpl = createFunctions().getQualified(agg, SearchPath.pathWithPGCatalogAndDoc());
 
         assertThat(funcImpl, is(dummyFunction));

@@ -25,12 +25,8 @@ import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
@@ -45,12 +41,9 @@ public final class SubscriptFunctions {
         List<Symbol> arguments = Lists2.mapTail(base, path, Literal::of);
         DataType<?> returnType = ((ObjectType) base.valueType()).resolveInnerType(path);
         return new Function(
-            new FunctionInfo(
-                new FunctionIdent(SubscriptObjectFunction.NAME, Symbols.typeView(arguments)),
-                returnType
-            ),
             SubscriptObjectFunction.SIGNATURE,
-            arguments
+            arguments,
+            returnType
         );
     }
 
@@ -68,12 +61,9 @@ public final class SubscriptFunctions {
                 List<Symbol> arguments = Lists2.mapTail(baseSymbol, path, Literal::of);
                 DataType<?> returnType = ((ObjectType) baseType).resolveInnerType(path);
                 return new Function(
-                    new FunctionInfo(
-                        new FunctionIdent(SubscriptObjectFunction.NAME, Symbols.typeView(arguments)),
-                        returnType
-                    ),
                     SubscriptObjectFunction.SIGNATURE,
-                    arguments
+                    arguments,
+                    returnType
                 );
             }
 
@@ -85,12 +75,9 @@ public final class SubscriptFunctions {
                     return null;
                 }
                 Function recordSubscript = new Function(
-                    new FunctionInfo(
-                        new FunctionIdent(SubscriptRecordFunction.NAME, List.of(baseType, DataTypes.STRING)),
-                        rowType.getFieldType(idx)
-                    ),
                     SubscriptRecordFunction.SIGNATURE,
-                    List.of(baseSymbol, Literal.of(child))
+                    List.of(baseSymbol, Literal.of(child)),
+                    rowType.getFieldType(idx)
                 );
                 if (path.size() > 1) {
                     return tryCreateSubscript(recordSubscript, path.subList(1, path.size()));

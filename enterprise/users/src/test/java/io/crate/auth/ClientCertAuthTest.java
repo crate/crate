@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import javax.net.ssl.SSLSession;
 import java.security.cert.Certificate;
+import java.util.Date;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -46,7 +47,11 @@ public class ClientCertAuthTest extends CrateUnitTest {
 
     @Before
     public void setUpSsl() throws Exception {
-        SelfSignedCertificate ssc = new SelfSignedCertificate();
+        var notBefore = new Date(System.currentTimeMillis() - 86400000L * 365);
+        var notAfter = new Date(253402300799000L);
+        SelfSignedCertificate ssc = new SelfSignedCertificate(
+            "example.com", notBefore, notAfter, "RSA", 2048
+        );
         sslSession = mock(SSLSession.class);
         when(sslSession.getPeerCertificates()).thenReturn(new Certificate[] { ssc.cert() });
 
