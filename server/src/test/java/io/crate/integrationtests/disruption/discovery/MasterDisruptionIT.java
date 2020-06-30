@@ -158,7 +158,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
                     assertEquals("unequal versions", state.version(), nodeState.version());
                     assertEquals("unequal node count", state.nodes().getSize(), nodeState.nodes().getSize());
                     assertEquals("different masters ", state.nodes().getMasterNodeId(), nodeState.nodes().getMasterNodeId());
-                    assertEquals("different meta data version", state.metaData().version(), nodeState.metaData().version());
+                    assertEquals("different meta data version", state.metadata().version(), nodeState.metadata().version());
                     assertEquals("different routing", state.routingTable().toString(), nodeState.routingTable().toString());
                 } catch (AssertionError t) {
                     fail("failed comparing cluster state: " + t.getMessage() + "\n" +

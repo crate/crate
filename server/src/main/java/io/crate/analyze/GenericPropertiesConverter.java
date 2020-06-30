@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_SETTING_PREFIX;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_SETTING_PREFIX;
 
 public class GenericPropertiesConverter {
 

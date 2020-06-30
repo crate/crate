@@ -19,8 +19,8 @@
 package io.crate.auth.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.metadata.UsersMetaData;
-import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.UsersMetadata;
+import io.crate.metadata.UsersPrivilegesMetadata;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -28,7 +28,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
@@ -75,14 +75,14 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
 
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    MetaData currentMetaData = currentState.metaData();
-                    MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
+                    Metadata currentMetadata = currentState.metadata();
+                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
                     alreadyExists = dropUser(
                         mdBuilder,
-                        currentMetaData.custom(UsersMetaData.TYPE),
+                        currentMetadata.custom(UsersMetadata.TYPE),
                         request.userName()
                     );
-                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 }
 
                 @Override
@@ -98,24 +98,24 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
     }
 
     @VisibleForTesting
-    static boolean dropUser(MetaData.Builder mdBuilder,
-                            @Nullable UsersMetaData oldMetaData,
+    static boolean dropUser(Metadata.Builder mdBuilder,
+                            @Nullable UsersMetadata oldMetadata,
                             String name) {
-        if (oldMetaData == null || oldMetaData.contains(name) == false) {
+        if (oldMetadata == null || oldMetadata.contains(name) == false) {
             return false;
         }
         // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);
-        newMetaData.remove(name);
+        UsersMetadata newMetadata = UsersMetadata.newInstance(oldMetadata);
+        newMetadata.remove(name);
 
-        assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
-        mdBuilder.putCustom(UsersMetaData.TYPE, newMetaData);
+        assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
+        mdBuilder.putCustom(UsersMetadata.TYPE, newMetadata);
 
         // removes all privileges for this user
-        UsersPrivilegesMetaData privilegesMetaData = UsersPrivilegesMetaData.copyOf(
-            (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
-        privilegesMetaData.dropPrivileges(name);
-        mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, privilegesMetaData);
+        UsersPrivilegesMetadata privilegesMetadata = UsersPrivilegesMetadata.copyOf(
+            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
+        privilegesMetadata.dropPrivileges(name);
+        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, privilegesMetadata);
 
         return true;
     }

@@ -19,7 +19,7 @@
 
 package org.elasticsearch.action.admin.indices.template.get;
 
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -36,13 +36,13 @@ import static java.util.Collections.singletonMap;
 
 public class GetIndexTemplatesResponse extends TransportResponse implements ToXContentObject {
 
-    private final List<IndexTemplateMetaData> indexTemplates;
+    private final List<IndexTemplateMetadata> indexTemplates;
 
-    GetIndexTemplatesResponse(List<IndexTemplateMetaData> indexTemplates) {
+    GetIndexTemplatesResponse(List<IndexTemplateMetadata> indexTemplates) {
         this.indexTemplates = indexTemplates;
     }
 
-    public List<IndexTemplateMetaData> getIndexTemplates() {
+    public List<IndexTemplateMetadata> getIndexTemplates() {
         return indexTemplates;
     }
 
@@ -50,14 +50,14 @@ public class GetIndexTemplatesResponse extends TransportResponse implements ToXC
         int size = in.readVInt();
         indexTemplates = new ArrayList<>(size);
         for (int i = 0 ; i < size ; i++) {
-            indexTemplates.add(0, IndexTemplateMetaData.readFrom(in));
+            indexTemplates.add(0, IndexTemplateMetadata.readFrom(in));
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(indexTemplates.size());
-        for (IndexTemplateMetaData indexTemplate : indexTemplates) {
+        for (IndexTemplateMetadata indexTemplate : indexTemplates) {
             indexTemplate.writeTo(out);
         }
     }
@@ -66,19 +66,19 @@ public class GetIndexTemplatesResponse extends TransportResponse implements ToXC
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         params = new ToXContent.DelegatingMapParams(singletonMap("reduce_mappings", "true"), params);
         builder.startObject();
-        for (IndexTemplateMetaData indexTemplateMetaData : getIndexTemplates()) {
-            IndexTemplateMetaData.Builder.toXContent(indexTemplateMetaData, builder, params);
+        for (IndexTemplateMetadata indexTemplateMetadata : getIndexTemplates()) {
+            IndexTemplateMetadata.Builder.toXContent(indexTemplateMetadata, builder, params);
         }
         builder.endObject();
         return builder;
     }
 
     public static GetIndexTemplatesResponse fromXContent(XContentParser parser) throws IOException {
-        final List<IndexTemplateMetaData> templates = new ArrayList<>();
+        final List<IndexTemplateMetadata> templates = new ArrayList<>();
         for (XContentParser.Token token = parser.nextToken(); token != XContentParser.Token.END_OBJECT; token = parser.nextToken()) {
             if (token == XContentParser.Token.FIELD_NAME) {
-                final IndexTemplateMetaData templateMetaData = IndexTemplateMetaData.Builder.fromXContent(parser, parser.currentName());
-                templates.add(templateMetaData);
+                final IndexTemplateMetadata templateMetadata = IndexTemplateMetadata.Builder.fromXContent(parser, parser.currentName());
+                templates.add(templateMetadata);
             }
         }
         return new GetIndexTemplatesResponse(templates);

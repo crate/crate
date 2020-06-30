@@ -39,7 +39,7 @@ import org.elasticsearch.cluster.coordination.LeaderChecker;
 import org.elasticsearch.cluster.coordination.NoMasterBlockService;
 import org.elasticsearch.cluster.coordination.Reconfigurator;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
@@ -184,8 +184,8 @@ public final class ClusterSettings extends AbstractScopedSettings {
         IndicesQueryCache.INDICES_CACHE_QUERY_COUNT_SETTING,
         IndicesQueryCache.INDICES_QUERIES_CACHE_ALL_SEGMENTS_SETTING,
         MappingUpdatedAction.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING,
-        MetaData.SETTING_READ_ONLY_SETTING,
-        MetaData.SETTING_READ_ONLY_ALLOW_DELETE_SETTING,
+        Metadata.SETTING_READ_ONLY_SETTING,
+        Metadata.SETTING_READ_ONLY_ALLOW_DELETE_SETTING,
         RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING,
         RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC_SETTING,
         RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING,
@@ -268,7 +268,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         IndexModule.NODE_STORE_ALLOW_MMAPFS,
         IndexModule.NODE_STORE_ALLOW_MMAP,
         ClusterService.CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING,
-        ClusterService.USER_DEFINED_META_DATA,
+        ClusterService.USER_DEFINED_METADATA,
         ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING,
         NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING,
         HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_TYPE_SETTING,

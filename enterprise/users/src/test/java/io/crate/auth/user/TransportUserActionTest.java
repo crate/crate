@@ -19,10 +19,10 @@
 package io.crate.auth.user;
 
 import io.crate.metadata.UserDefinitions;
-import io.crate.metadata.UsersMetaData;
-import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.UsersMetadata;
+import io.crate.metadata.UsersPrivilegesMetadata;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -36,62 +36,62 @@ public class TransportUserActionTest extends CrateUnitTest {
 
     @Test
     public void testCreateFirstUser() throws Exception {
-        MetaData.Builder mdBuilder = new MetaData.Builder();
+        Metadata.Builder mdBuilder = new Metadata.Builder();
         TransportCreateUserAction.putUser(mdBuilder, "root", null);
-        UsersMetaData metaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
-        assertThat(metaData.userNames().size(), is(1));
-        assertThat(metaData.userNames().get(0), is("root"));
+        UsersMetadata metadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        assertThat(metadata.userNames().size(), is(1));
+        assertThat(metadata.userNames().get(0), is("root"));
     }
 
     @Test
     public void testEmptyPrivilegesAreCreatedForNewUsers() throws Exception {
-        MetaData.Builder mdBuilder = new MetaData.Builder();
+        Metadata.Builder mdBuilder = new Metadata.Builder();
         TransportCreateUserAction.putUser(mdBuilder, "root", null);
-        UsersPrivilegesMetaData metaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
-        assertThat(metaData.getUserPrivileges("root"), is(Collections.emptySet()));
+        UsersPrivilegesMetadata metadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        assertThat(metadata.getUserPrivileges("root"), is(Collections.emptySet()));
     }
 
     @Test
     public void testCreateUserAlreadyExists() throws Exception {
-        MetaData.Builder mdBuilder = new MetaData.Builder()
-            .putCustom(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
+        Metadata.Builder mdBuilder = new Metadata.Builder()
+            .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY));
         assertThat(TransportCreateUserAction.putUser(mdBuilder, "Arthur", null), is(true));
     }
 
     @Test
     public void testCreateUser() throws Exception {
-        MetaData.Builder mdBuilder = new MetaData.Builder()
-            .putCustom(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
+        Metadata.Builder mdBuilder = new Metadata.Builder()
+            .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY));
         TransportCreateUserAction.putUser(mdBuilder, "Trillian", null);
-        UsersMetaData newMetaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
-        assertThat(newMetaData.userNames(), containsInAnyOrder("Trillian", "Arthur"));
+        UsersMetadata newMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        assertThat(newMetadata.userNames(), containsInAnyOrder("Trillian", "Arthur"));
     }
 
     @Test
     public void testDropUserNoUsersAtAll() throws Exception {
-        assertThat(TransportDropUserAction.dropUser(MetaData.builder(), null, "root"), is(false));
+        assertThat(TransportDropUserAction.dropUser(Metadata.builder(), null, "root"), is(false));
     }
 
     @Test
     public void testDropNonExistingUser() throws Exception {
         boolean res = TransportDropUserAction.dropUser(
-            MetaData.builder(),
-            new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY),
-            "trillian"
+                Metadata.builder(),
+                new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY),
+                "trillian"
         );
         assertThat(res, is(false));
     }
 
     @Test
     public void testDropUser() throws Exception {
-        UsersMetaData oldMetaData = new UsersMetaData(UserDefinitions.DUMMY_USERS);
-        MetaData.Builder mdBuilder = MetaData.builder();
-        boolean res = TransportDropUserAction.dropUser(mdBuilder, oldMetaData, "Arthur");
+        UsersMetadata oldMetadata = new UsersMetadata(UserDefinitions.DUMMY_USERS);
+        Metadata.Builder mdBuilder = Metadata.builder();
+        boolean res = TransportDropUserAction.dropUser(mdBuilder, oldMetadata, "Arthur");
         assertThat(users(mdBuilder), contains("Ford"));
         assertThat(res, is(true));
     }
 
-    private static List<String> users(MetaData.Builder mdBuilder) {
-        return ((UsersMetaData)mdBuilder.build().custom(UsersMetaData.TYPE)).userNames();
+    private static List<String> users(Metadata.Builder mdBuilder) {
+        return ((UsersMetadata)mdBuilder.build().custom(UsersMetadata.TYPE)).userNames();
     }
 }

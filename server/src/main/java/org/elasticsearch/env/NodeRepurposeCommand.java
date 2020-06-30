@@ -25,7 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
@@ -91,9 +91,9 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
         List<Path> shardDataPaths = NodeEnvironment.collectShardDataPaths(nodePaths);
 
         terminal.println(Terminal.Verbosity.VERBOSE, "Collecting index metadata paths");
-        List<Path> indexMetaDataPaths = NodeEnvironment.collectIndexMetaDataPaths(nodePaths);
+        List<Path> indexMetadataPaths = NodeEnvironment.collectIndexMetadataPaths(nodePaths);
 
-        Set<Path> indexPaths = uniqueParentPaths(shardDataPaths, indexMetaDataPaths);
+        Set<Path> indexPaths = uniqueParentPaths(shardDataPaths, indexMetadataPaths);
         if (indexPaths.isEmpty()) {
             terminal.println(Terminal.Verbosity.NORMAL, NO_DATA_TO_CLEAN_UP_FOUND);
             return;
@@ -102,7 +102,7 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
         Set<String> indexUUIDs = indexUUIDsFor(indexPaths);
         outputVerboseInformation(terminal, nodePaths, indexPaths, indexUUIDs);
 
-        terminal.println(noMasterMessage(indexUUIDs.size(), shardDataPaths.size(), indexMetaDataPaths.size()));
+        terminal.println(noMasterMessage(indexUUIDs.size(), shardDataPaths.size(), indexMetadataPaths.size()));
         outputHowToSeeVerboseInformation(terminal);
 
         final Manifest manifest = loadManifest(terminal, dataPaths);
@@ -166,8 +166,8 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
             indexPaths[i] = nodePaths[i].resolve(uuid);
         }
         try {
-            IndexMetaData metaData = IndexMetaData.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, indexPaths);
-            return metaData.getIndex().getName();
+            IndexMetadata metadata = IndexMetadata.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, indexPaths);
+            return metadata.getIndex().getName();
         } catch (Exception e) {
             return "no name for uuid: " + uuid + ": " + e;
         }
@@ -177,9 +177,9 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
         return indexPaths.stream().map(Path::getFileName).map(Path::toString).collect(Collectors.toSet());
     }
 
-    static String noMasterMessage(int indexes, int shards, int indexMetaData) {
+    static String noMasterMessage(int indexes, int shards, int indexMetadata) {
         return "Found " + indexes + " indices ("
-                + shards + " shards and " + indexMetaData + " index meta data) to clean up";
+                + shards + " shards and " + indexMetadata + " index meta data) to clean up";
     }
 
     static String shardMessage(int shards, int indices) {

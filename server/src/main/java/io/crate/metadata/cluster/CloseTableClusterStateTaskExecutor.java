@@ -25,10 +25,10 @@ package io.crate.metadata.cluster;
 import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.snapshots.RestoreService;
@@ -36,7 +36,7 @@ import org.elasticsearch.snapshots.SnapshotsService;
 
 import java.util.Set;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_CLOSED_BLOCK;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 
 
 public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableClusterStateTaskExecutor {
@@ -48,18 +48,18 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
     }
 
     @Override
-    protected IndexMetaData.State indexState() {
-        return IndexMetaData.State.CLOSE;
+    protected IndexMetadata.State indexState() {
+        return IndexMetadata.State.CLOSE;
     }
 
     @Override
     protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) throws Exception {
         Context context = prepare(currentState, request);
 
-        Set<IndexMetaData> indicesToClose = context.indicesMetaData();
-        IndexTemplateMetaData templateMetaData = context.templateMetaData();
+        Set<IndexMetadata> indicesToClose = context.indicesMetadata();
+        IndexTemplateMetadata templateMetadata = context.templateMetadata();
 
-        if (indicesToClose.isEmpty() && templateMetaData == null) {
+        if (indicesToClose.isEmpty() && templateMetadata == null) {
             return currentState;
         }
 
@@ -68,24 +68,24 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
         // Check if index closing conflicts with any running snapshots
         SnapshotsService.checkIndexClosing(currentState, indicesToClose);
 
-        MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
+        Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(currentState.blocks());
-        for (IndexMetaData openIndexMetadata : indicesToClose) {
+        for (IndexMetadata openIndexMetadata : indicesToClose) {
             final String indexName = openIndexMetadata.getIndex().getName();
-            mdBuilder.put(IndexMetaData.builder(openIndexMetadata).state(IndexMetaData.State.CLOSE));
+            mdBuilder.put(IndexMetadata.builder(openIndexMetadata).state(IndexMetadata.State.CLOSE));
             blocksBuilder.addIndexBlock(indexName, INDEX_CLOSED_BLOCK);
         }
 
         // mark closed at possible partitioned table template
-        if (templateMetaData != null) {
-            mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetaData, false));
+        if (templateMetadata != null) {
+            mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetadata, false));
         }
 
-        // The MetaData will always be overridden (and not merged!) when applying it on a cluster state builder.
+        // The Metadata will always be overridden (and not merged!) when applying it on a cluster state builder.
         // So we must re-build the state with the latest modifications before we pass this state to possible modifiers.
-        // Otherwise they would operate on the old MetaData and would just ignore any modifications.
-        ClusterState updatedState = ClusterState.builder(currentState).metaData(mdBuilder).blocks(blocksBuilder).build();
+        // Otherwise they would operate on the old Metadata and would just ignore any modifications.
+        ClusterState updatedState = ClusterState.builder(currentState).metadata(mdBuilder).blocks(blocksBuilder).build();
 
         // call possible registered modifiers
         if (context.partitionName() != null) {
@@ -96,7 +96,7 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
 
 
         RoutingTable.Builder rtBuilder = RoutingTable.builder(currentState.routingTable());
-        for (IndexMetaData index : indicesToClose) {
+        for (IndexMetadata index : indicesToClose) {
             rtBuilder.remove(index.getIndex().getName());
         }
 

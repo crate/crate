@@ -30,7 +30,7 @@ import org.elasticsearch.cli.EnvironmentAwareCommand;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.Manifest;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -89,7 +89,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
         }
     }
 
-    protected Tuple<Manifest, MetaData> loadMetaData(Terminal terminal, Path[] dataPaths) throws IOException {
+    protected Tuple<Manifest, Metadata> loadMetadata(Terminal terminal, Path[] dataPaths) throws IOException {
         terminal.println(Terminal.Verbosity.VERBOSE, "Loading manifest file");
         final Manifest manifest = Manifest.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, dataPaths);
 
@@ -100,13 +100,13 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
             throw new ElasticsearchException(GLOBAL_GENERATION_MISSING_MSG);
         }
         terminal.println(Terminal.Verbosity.VERBOSE, "Loading global metadata file");
-        final MetaData metaData = MetaData.FORMAT.loadGeneration(LOGGER, namedXContentRegistry, manifest.getGlobalGeneration(),
+        final Metadata metadata = Metadata.FORMAT.loadGeneration(LOGGER, namedXContentRegistry, manifest.getGlobalGeneration(),
                 dataPaths);
-        if (metaData == null) {
+        if (metadata == null) {
             throw new ElasticsearchException(NO_GLOBAL_METADATA_MSG + " [generation = " + manifest.getGlobalGeneration() + "]");
         }
 
-        return Tuple.tuple(manifest, metaData);
+        return Tuple.tuple(manifest, metadata);
     }
 
     protected void confirm(Terminal terminal, String msg) {
@@ -145,16 +145,16 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
     protected abstract void processNodePaths(Terminal terminal, Path[] dataPaths, Environment env) throws IOException;
 
 
-    protected void writeNewMetaData(Terminal terminal, Manifest oldManifest, long newCurrentTerm,
-                                    MetaData oldMetaData, MetaData newMetaData, Path[] dataPaths) {
+    protected void writeNewMetadata(Terminal terminal, Manifest oldManifest, long newCurrentTerm,
+                                    Metadata oldMetadata, Metadata newMetadata, Path[] dataPaths) {
         long newGeneration;
         try {
             terminal.println(Terminal.Verbosity.VERBOSE,
-                    "[clusterUUID = " + oldMetaData.clusterUUID() + ", committed = " + oldMetaData.clusterUUIDCommitted() + "] => " +
-                         "[clusterUUID = " + newMetaData.clusterUUID() + ", committed = " + newMetaData.clusterUUIDCommitted() + "]");
-            terminal.println(Terminal.Verbosity.VERBOSE, "New coordination metadata is " + newMetaData.coordinationMetaData());
+                    "[clusterUUID = " + oldMetadata.clusterUUID() + ", committed = " + oldMetadata.clusterUUIDCommitted() + "] => " +
+                         "[clusterUUID = " + newMetadata.clusterUUID() + ", committed = " + newMetadata.clusterUUIDCommitted() + "]");
+            terminal.println(Terminal.Verbosity.VERBOSE, "New coordination metadata is " + newMetadata.coordinationMetadata());
             terminal.println(Terminal.Verbosity.VERBOSE, "Writing new global metadata to disk");
-            newGeneration = MetaData.FORMAT.write(newMetaData, dataPaths);
+            newGeneration = Metadata.FORMAT.write(newMetadata, dataPaths);
             Manifest newManifest = new Manifest(newCurrentTerm, oldManifest.getClusterStateVersion(), newGeneration,
                     oldManifest.getIndexGenerations());
             terminal.println(Terminal.Verbosity.VERBOSE, "New manifest is " + newManifest);
@@ -162,21 +162,21 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
             Manifest.FORMAT.writeAndCleanup(newManifest, dataPaths);
         } catch (Exception e) {
             terminal.println(Terminal.Verbosity.VERBOSE, "Cleaning up new metadata");
-            MetaData.FORMAT.cleanupOldFiles(oldManifest.getGlobalGeneration(), dataPaths);
+            Metadata.FORMAT.cleanupOldFiles(oldManifest.getGlobalGeneration(), dataPaths);
             throw new ElasticsearchException(WRITE_METADATA_EXCEPTION_MSG, e);
         }
         // if cleaning old files fail, we still succeeded.
         try {
-            cleanUpOldMetaData(terminal, dataPaths, newGeneration);
+            cleanUpOldMetadata(terminal, dataPaths, newGeneration);
         } catch (Exception e) {
             terminal.println(Terminal.Verbosity.SILENT,
                 "Warning: Cleaning up old metadata failed, but operation was otherwise successful (message: " + e.getMessage() + ")");
         }
     }
 
-    protected void cleanUpOldMetaData(Terminal terminal, Path[] dataPaths, long newGeneration) {
+    protected void cleanUpOldMetadata(Terminal terminal, Path[] dataPaths, long newGeneration) {
         terminal.println(Terminal.Verbosity.VERBOSE, "Cleaning up old metadata");
-        MetaData.FORMAT.cleanupOldFiles(newGeneration, dataPaths);
+        Metadata.FORMAT.cleanupOldFiles(newGeneration, dataPaths);
     }
 
     protected NodeEnvironment.NodePath[] toNodePaths(Path[] dataPaths) {

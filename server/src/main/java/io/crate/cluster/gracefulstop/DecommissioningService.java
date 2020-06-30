@@ -163,7 +163,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
             return;
         }
         Map<String, Object> removedDecommissionedNodes = getRemovedDecommissionedNodes(
-            event.nodesDelta(), event.state().metaData().transientSettings());
+            event.nodesDelta(), event.state().metadata().transientSettings());
         if (removedDecommissionedNodes != null) {
             updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettings(removedDecommissionedNodes));
         }

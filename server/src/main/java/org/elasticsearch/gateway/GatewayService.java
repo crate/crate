@@ -269,7 +269,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
 
         @Override
         public void clusterStateProcessed(final String source, final ClusterState oldState, final ClusterState newState) {
-            LOGGER.info("recovered [{}] indices into cluster_state", newState.metaData().indices().size());
+            LOGGER.info("recovered [{}] indices into cluster_state", newState.metadata().indices().size());
         }
 
         @Override

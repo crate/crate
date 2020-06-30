@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Encapsulates the  {@link IndexMetaData} instances of a concrete index or indices an alias is pointing to.
+ * Encapsulates the  {@link IndexMetadata} instances of a concrete index or indices an alias is pointing to.
  */
 public interface AliasOrIndex {
 
@@ -41,19 +41,19 @@ public interface AliasOrIndex {
     boolean isAlias();
 
     /**
-     * @return All {@link IndexMetaData} of all concrete indices this alias is referring to or if this is a concrete index its {@link IndexMetaData}
+     * @return All {@link IndexMetadata} of all concrete indices this alias is referring to or if this is a concrete index its {@link IndexMetadata}
      */
-    List<IndexMetaData> getIndices();
+    List<IndexMetadata> getIndices();
 
     /**
-     * Represents an concrete index and encapsulates its {@link IndexMetaData}
+     * Represents an concrete index and encapsulates its {@link IndexMetadata}
      */
     class Index implements AliasOrIndex {
 
-        private final IndexMetaData concreteIndex;
+        private final IndexMetadata concreteIndex;
 
-        public Index(IndexMetaData indexMetaData) {
-            this.concreteIndex = indexMetaData;
+        public Index(IndexMetadata indexMetadata) {
+            this.concreteIndex = indexMetadata;
         }
 
         @Override
@@ -62,32 +62,32 @@ public interface AliasOrIndex {
         }
 
         @Override
-        public List<IndexMetaData> getIndices() {
+        public List<IndexMetadata> getIndices() {
             return Collections.singletonList(concreteIndex);
         }
 
         /**
-         * @return If this is an concrete index, its {@link IndexMetaData}
+         * @return If this is an concrete index, its {@link IndexMetadata}
          */
-        public IndexMetaData getIndex() {
+        public IndexMetadata getIndex() {
             return concreteIndex;
         }
 
     }
 
     /**
-     * Represents an alias and groups all {@link IndexMetaData} instances sharing the same alias name together.
+     * Represents an alias and groups all {@link IndexMetadata} instances sharing the same alias name together.
      */
     class Alias implements AliasOrIndex {
 
         private final String aliasName;
-        private final List<IndexMetaData> referenceIndexMetaDatas;
-        private SetOnce<IndexMetaData> writeIndex = new SetOnce<>();
+        private final List<IndexMetadata> referenceIndexMetadatas;
+        private SetOnce<IndexMetadata> writeIndex = new SetOnce<>();
 
-        public Alias(AliasMetaData aliasMetaData, IndexMetaData indexMetaData) {
-            this.aliasName = aliasMetaData.getAlias();
-            this.referenceIndexMetaDatas = new ArrayList<>();
-            this.referenceIndexMetaDatas.add(indexMetaData);
+        public Alias(AliasMetadata aliasMetadata, IndexMetadata indexMetadata) {
+            this.aliasName = aliasMetadata.getAlias();
+            this.referenceIndexMetadatas = new ArrayList<>();
+            this.referenceIndexMetadatas.add(indexMetadata);
         }
 
         @Override
@@ -100,13 +100,13 @@ public interface AliasOrIndex {
         }
 
         @Override
-        public List<IndexMetaData> getIndices() {
-            return referenceIndexMetaDatas;
+        public List<IndexMetadata> getIndices() {
+            return referenceIndexMetadatas;
         }
 
 
         @Nullable
-        public IndexMetaData getWriteIndex() {
+        public IndexMetadata getWriteIndex() {
             return writeIndex.get();
         }
 
@@ -116,23 +116,23 @@ public interface AliasOrIndex {
          * (note that although alias can point to the same concrete indices, each alias reference may have its own routing
          * and filters)
          */
-        public Iterable<Tuple<String, AliasMetaData>> getConcreteIndexAndAliasMetaDatas() {
-            return new Iterable<Tuple<String, AliasMetaData>>() {
+        public Iterable<Tuple<String, AliasMetadata>> getConcreteIndexAndAliasMetadatas() {
+            return new Iterable<Tuple<String, AliasMetadata>>() {
                 @Override
-                public Iterator<Tuple<String, AliasMetaData>> iterator() {
-                    return new Iterator<Tuple<String,AliasMetaData>>() {
+                public Iterator<Tuple<String, AliasMetadata>> iterator() {
+                    return new Iterator<Tuple<String, AliasMetadata>>() {
 
                         int index = 0;
 
                         @Override
                         public boolean hasNext() {
-                            return index < referenceIndexMetaDatas.size();
+                            return index < referenceIndexMetadatas.size();
                         }
 
                         @Override
-                        public Tuple<String, AliasMetaData> next() {
-                            IndexMetaData indexMetaData = referenceIndexMetaDatas.get(index++);
-                            return new Tuple<>(indexMetaData.getIndex().getName(), indexMetaData.getAliases().get(aliasName));
+                        public Tuple<String, AliasMetadata> next() {
+                            IndexMetadata indexMetadata = referenceIndexMetadatas.get(index++);
+                            return new Tuple<>(indexMetadata.getIndex().getName(), indexMetadata.getAliases().get(aliasName));
                         }
 
                         @Override
@@ -145,22 +145,22 @@ public interface AliasOrIndex {
             };
         }
 
-        public AliasMetaData getFirstAliasMetaData() {
-            return referenceIndexMetaDatas.get(0).getAliases().get(aliasName);
+        public AliasMetadata getFirstAliasMetadata() {
+            return referenceIndexMetadatas.get(0).getAliases().get(aliasName);
         }
 
-        void addIndex(IndexMetaData indexMetaData) {
-            this.referenceIndexMetaDatas.add(indexMetaData);
+        void addIndex(IndexMetadata indexMetadata) {
+            this.referenceIndexMetadatas.add(indexMetadata);
         }
 
         public void computeAndValidateWriteIndex() {
-            List<IndexMetaData> writeIndices = referenceIndexMetaDatas.stream()
+            List<IndexMetadata> writeIndices = referenceIndexMetadatas.stream()
                 .filter(idxMeta -> Boolean.TRUE.equals(idxMeta.getAliases().get(aliasName).writeIndex()))
                 .collect(Collectors.toList());
 
-            if (writeIndices.isEmpty() && referenceIndexMetaDatas.size() == 1
-                    && referenceIndexMetaDatas.get(0).getAliases().get(aliasName).writeIndex() == null) {
-                writeIndices.add(referenceIndexMetaDatas.get(0));
+            if (writeIndices.isEmpty() && referenceIndexMetadatas.size() == 1
+                    && referenceIndexMetadatas.get(0).getAliases().get(aliasName).writeIndex() == null) {
+                writeIndices.add(referenceIndexMetadatas.get(0));
             }
 
             if (writeIndices.size() == 1) {

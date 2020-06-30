@@ -218,7 +218,7 @@ public class SysShardsTableInfo {
      * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
      */
     public static Routing getRouting(ClusterState clusterState, RoutingProvider routingProvider, SessionContext sessionContext) {
-        String[] concreteIndices = Arrays.stream(clusterState.metaData().getConcreteAllOpenIndices())
+        String[] concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllOpenIndices())
             .filter(index -> !IndexParts.isDangling(index))
             .toArray(String[]::new);
         User user = sessionContext != null ? sessionContext.user() : null;

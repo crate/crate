@@ -25,8 +25,8 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.NotMasterException;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -133,7 +133,7 @@ public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecut
                     ensureNodesCompatibility(node.getVersion(), minClusterNodeVersion, maxClusterNodeVersion);
                     // we do this validation quite late to prevent race conditions between nodes joining and importing dangling indices
                     // we have to reject nodes that don't support all indices we have in this cluster
-                    ensureIndexCompatibility(node.getVersion(), currentState.getMetaData());
+                    ensureIndexCompatibility(node.getVersion(), currentState.getMetadata());
                     nodesBuilder.add(node);
                     nodesChanged = true;
                     minClusterNodeVersion = Version.min(minClusterNodeVersion, node.getVersion());
@@ -217,18 +217,18 @@ public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecut
      * @see Version#minimumIndexCompatibilityVersion()
      * @throws IllegalStateException if any index is incompatible with the given version
      */
-    public static void ensureIndexCompatibility(final Version nodeVersion, MetaData metaData) {
+    public static void ensureIndexCompatibility(final Version nodeVersion, Metadata metadata) {
         Version supportedIndexVersion = nodeVersion.minimumIndexCompatibilityVersion();
         // we ensure that all indices in the cluster we join are compatible with us no matter if they are
         // closed or not we can't read mappings of these indices so we need to reject the join...
-        for (IndexMetaData idxMetaData : metaData) {
-            if (idxMetaData.getCreationVersion().after(nodeVersion)) {
-                throw new IllegalStateException("index " + idxMetaData.getIndex() + " version not supported: "
-                    + idxMetaData.getCreationVersion() + " the node version is: " + nodeVersion);
+        for (IndexMetadata idxMetadata : metadata) {
+            if (idxMetadata.getCreationVersion().after(nodeVersion)) {
+                throw new IllegalStateException("index " + idxMetadata.getIndex() + " version not supported: "
+                    + idxMetadata.getCreationVersion() + " the node version is: " + nodeVersion);
             }
-            if (idxMetaData.getCreationVersion().before(supportedIndexVersion)) {
-                throw new IllegalStateException("index " + idxMetaData.getIndex() + " version not supported: "
-                    + idxMetaData.getCreationVersion() + " minimum compatible index version is: " + supportedIndexVersion);
+            if (idxMetadata.getCreationVersion().before(supportedIndexVersion)) {
+                throw new IllegalStateException("index " + idxMetadata.getIndex() + " version not supported: "
+                    + idxMetadata.getCreationVersion() + " minimum compatible index version is: " + supportedIndexVersion);
             }
         }
     }
@@ -271,7 +271,7 @@ public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecut
         final Collection<BiConsumer<DiscoveryNode, ClusterState>> validators = new ArrayList<>();
         validators.add((node, state) -> {
             ensureNodesCompatibility(node.getVersion(), state.getNodes());
-            ensureIndexCompatibility(node.getVersion(), state.getMetaData());
+            ensureIndexCompatibility(node.getVersion(), state.getMetadata());
         });
         validators.addAll(onJoinValidators);
         return Collections.unmodifiableCollection(validators);

@@ -24,13 +24,12 @@ package org.elasticsearch.common.settings;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Setting.Validator;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.transport.TransportSettings;
@@ -42,7 +41,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +54,6 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.sameInstance;
 
@@ -124,8 +121,8 @@ public class ScopedSettingsTests extends ESTestCase {
         Setting<Integer> dynamicSetting = Setting.intSetting("index.some.dyn.setting", 1, Property.Dynamic, Property.IndexScope);
 
         IndexScopedSettings settings = new IndexScopedSettings(currentSettings,
-            new HashSet<>(Arrays.asList(dynamicSetting, IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING)));
-        Map<String, String> s = IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING.getAsMap(currentSettings);
+            new HashSet<>(Arrays.asList(dynamicSetting, IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING)));
+        Map<String, String> s = IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING.getAsMap(currentSettings);
         assertEquals(1, s.size());
         assertEquals("192.168.0.1,127.0.0.1", s.get("_ip"));
         Settings.Builder builder = Settings.builder();
@@ -135,7 +132,7 @@ public class ScopedSettingsTests extends ESTestCase {
         settings.updateDynamicSettings(updates,
             Settings.builder().put(currentSettings), builder, "node");
         currentSettings = builder.build();
-        s = IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING.getAsMap(currentSettings);
+        s = IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING.getAsMap(currentSettings);
         assertEquals(0, s.size());
         assertEquals(1, dynamicSetting.get(currentSettings).intValue());
         assertEquals(1, currentSettings.size());
@@ -599,9 +596,9 @@ public class ScopedSettingsTests extends ESTestCase {
            Settings.EMPTY,
             IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
         IndexScopedSettings copy = settings.copy(Settings.builder().put("index.store.type", "boom").build(),
-                newIndexMeta("foo", Settings.builder().put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 3).build()));
-        assertEquals(3, copy.get(IndexMetaData.INDEX_NUMBER_OF_REPLICAS_SETTING).intValue());
-        assertEquals(1, copy.get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING).intValue());
+                newIndexMeta("foo", Settings.builder().put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 3).build()));
+        assertEquals(3, copy.get(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING).intValue());
+        assertEquals(1, copy.get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING).intValue());
         assertEquals("boom", copy.get(IndexModule.INDEX_STORE_TYPE_SETTING)); // test fallback to node settings
     }
 
@@ -637,14 +634,14 @@ public class ScopedSettingsTests extends ESTestCase {
         assertEquals("Failed to parse value [true] for setting [index.number_of_replicas]", e.getMessage());
     }
 
-    public static IndexMetaData newIndexMeta(String name, Settings indexSettings) {
-        Settings build = Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
-            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
+    public static IndexMetadata newIndexMeta(String name, Settings indexSettings) {
+        Settings build = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .put(indexSettings)
             .build();
-        IndexMetaData metaData = IndexMetaData.builder(name).settings(build).build();
-        return metaData;
+        IndexMetadata metadata = IndexMetadata.builder(name).settings(build).build();
+        return metadata;
     }
 
     @Test

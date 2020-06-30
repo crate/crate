@@ -23,7 +23,7 @@
 package org.elasticsearch.repositories.s3;
 
 import com.amazonaws.services.s3.AbstractAmazonS3;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -53,7 +53,7 @@ public class S3RepositoryTests extends ESTestCase {
 
     private static class DummyS3Service extends S3Service {
         @Override
-        public AmazonS3Reference client(RepositoryMetaData metadata) {
+        public AmazonS3Reference client(RepositoryMetadata metadata) {
             return new AmazonS3Reference(new DummyS3Client());
         }
 
@@ -66,31 +66,31 @@ public class S3RepositoryTests extends ESTestCase {
     public void testCreateRepositoryWithValidChunkBufferSizeSettings() {
         // chunk > buffer should pass
         final Settings s2 = bufferAndChunkSettings(5, 10);
-        createS3Repo(getRepositoryMetaData(s2)).close();
+        createS3Repo(getRepositoryMetadata(s2)).close();
         // chunk = buffer should pass
         final Settings s3 = bufferAndChunkSettings(5, 5);
-        createS3Repo(getRepositoryMetaData(s3)).close();
+        createS3Repo(getRepositoryMetadata(s3)).close();
     }
 
     @Test
     public void testCreateRepositoryWithChunkSmallerThanBufferSize() {
         expectedException.expect(RepositoryException.class);
         expectedException.expectMessage("chunk_size (5mb) can't be lower than buffer_size (10mb)");
-        createS3Repo(getRepositoryMetaData(bufferAndChunkSettings(10, 5)));
+        createS3Repo(getRepositoryMetadata(bufferAndChunkSettings(10, 5)));
     }
 
     @Test
     public void testCreateRepositoryWithBufferSizeSmallerThan5mb() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("failed to parse value [4mb] for setting [buffer_size], must be >= [5mb]");
-        createS3Repo(getRepositoryMetaData(bufferAndChunkSettings(4, 10)));
+        createS3Repo(getRepositoryMetadata(bufferAndChunkSettings(4, 10)));
     }
 
     @Test
     public void testCreateRepositoryWithChunkSizeGreaterThan5tb() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("failed to parse value [6000000mb] for setting [chunk_size], must be <= [5tb]");
-        createS3Repo(getRepositoryMetaData(bufferAndChunkSettings(5, 6000000)));
+        createS3Repo(getRepositoryMetadata(bufferAndChunkSettings(5, 6000000)));
     }
 
     private Settings bufferAndChunkSettings(long buffer, long chunk) {
@@ -102,20 +102,20 @@ public class S3RepositoryTests extends ESTestCase {
             .build();
     }
 
-    private RepositoryMetaData getRepositoryMetaData(Settings settings) {
-        return new RepositoryMetaData("dummy-repo", "mock", Settings.builder().put(settings).build());
+    private RepositoryMetadata getRepositoryMetadata(Settings settings) {
+        return new RepositoryMetadata("dummy-repo", "mock", Settings.builder().put(settings).build());
     }
 
     @Test
     public void testBasePathSetting() {
-        final RepositoryMetaData metadata = new RepositoryMetaData("dummy-repo", "mock", Settings.builder()
+        final RepositoryMetadata metadata = new RepositoryMetadata("dummy-repo", "mock", Settings.builder()
             .put(S3RepositorySettings.BASE_PATH_SETTING.getKey(), "foo/bar").build());
         try (S3Repository s3repo = createS3Repo(metadata)) {
             assertEquals("foo/bar/", s3repo.basePath().buildAsString());
         }
     }
 
-    private S3Repository createS3Repo(RepositoryMetaData metadata) {
+    private S3Repository createS3Repo(RepositoryMetadata metadata) {
         return new S3Repository(metadata, Settings.EMPTY, NamedXContentRegistry.EMPTY, new DummyS3Service(), mock(ThreadPool.class)) {
             @Override
             protected void assertSnapshotOrGenericThread() {

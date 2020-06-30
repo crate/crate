@@ -42,11 +42,11 @@ import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.metadata.AliasValidator;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaDataCreateIndexService;
-import org.elasticsearch.cluster.metadata.MetaDataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.metadata.TemplateUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingService;
@@ -113,7 +113,7 @@ import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.plugins.MapperPlugin;
-import org.elasticsearch.plugins.MetaDataUpgrader;
+import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginsService;
@@ -389,7 +389,7 @@ public class Node implements Closeable {
                 indexStoreFactories);
 
             final AliasValidator aliasValidator = new AliasValidator();
-            final MetaDataCreateIndexService metaDataCreateIndexService = new MetaDataCreateIndexService(
+            final MetadataCreateIndexService metadataCreateIndexService = new MetadataCreateIndexService(
                 settings,
                 clusterService,
                 indicesService,
@@ -424,24 +424,24 @@ public class Node implements Closeable {
                 xContentRegistry,
                 networkService,
                 client);
-            Collection<UnaryOperator<Map<String, MetaData.Custom>>> customMetaDataUpgraders =
+            Collection<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
-                    .map(Plugin::getCustomMetaDataUpgrader)
+                    .map(Plugin::getCustomMetadataUpgrader)
                     .collect(Collectors.toList());
-            Collection<UnaryOperator<Map<String, IndexTemplateMetaData>>> indexTemplateMetaDataUpgraders =
+            Collection<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
-                    .map(Plugin::getIndexTemplateMetaDataUpgrader)
+                    .map(Plugin::getIndexTemplateMetadataUpgrader)
                     .collect(Collectors.toList());
-            Collection<UnaryOperator<IndexMetaData>> indexMetaDataUpgraders = pluginsService.filterPlugins(Plugin.class).stream()
-                .map(Plugin::getIndexMetaDataUpgrader).collect(Collectors.toList());
-            final MetaDataUpgrader metaDataUpgrader = new MetaDataUpgrader(customMetaDataUpgraders,
-                                                                           indexTemplateMetaDataUpgraders);
-            final MetaDataIndexUpgradeService metaDataIndexUpgradeService = new MetaDataIndexUpgradeService(settings,
+            Collection<UnaryOperator<IndexMetadata>> indexMetadataUpgraders = pluginsService.filterPlugins(Plugin.class).stream()
+                .map(Plugin::getIndexMetadataUpgrader).collect(Collectors.toList());
+            final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(customMetadataUpgraders,
+                                                                           indexTemplateMetadataUpgraders);
+            final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(settings,
                                                                                                             xContentRegistry,
                                                                                                             indicesModule.getMapperRegistry(),
                                                                                                             settingsModule.getIndexScopedSettings(),
-                                                                                                            indexMetaDataUpgraders);
-            new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetaDataUpgraders);
+                                                                                                            indexMetadataUpgraders);
+            new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetadataUpgraders);
             final Transport transport = networkModule.getTransportSupplier().get();
             final TransportService transportService = newTransportService(settings,
                                                                           transport,
@@ -452,8 +452,8 @@ public class Node implements Closeable {
             final GatewayMetaState gatewayMetaState = new GatewayMetaState(settings,
                                                                            nodeEnvironment,
                                                                            metaStateService,
-                                                                           metaDataIndexUpgradeService,
-                                                                           metaDataUpgrader,
+                                                                           metadataIndexUpgradeService,
+                                                                           metadataUpgrader,
                                                                            transportService,
                                                                            clusterService,
                                                                            indicesService);
@@ -495,15 +495,15 @@ public class Node implements Closeable {
                     b.bind(PageCacheRecycler.class).toInstance(pageCacheRecycler);
                     b.bind(AnalysisRegistry.class).toInstance(analysisModule.getAnalysisRegistry());
                     b.bind(NamedWriteableRegistry.class).toInstance(namedWriteableRegistry);
-                    b.bind(MetaDataUpgrader.class).toInstance(metaDataUpgrader);
+                    b.bind(MetadataUpgrader.class).toInstance(metadataUpgrader);
                     b.bind(MetaStateService.class).toInstance(metaStateService);
                     b.bind(IndicesService.class).toInstance(indicesService);
                     b.bind(AliasValidator.class).toInstance(aliasValidator);
-                    b.bind(MetaDataCreateIndexService.class).toInstance(metaDataCreateIndexService);
+                    b.bind(MetadataCreateIndexService.class).toInstance(metadataCreateIndexService);
                     b.bind(Transport.class).toInstance(transport);
                     b.bind(TransportService.class).toInstance(transportService);
                     b.bind(NetworkService.class).toInstance(networkService);
-                    b.bind(MetaDataIndexUpgradeService.class).toInstance(metaDataIndexUpgradeService);
+                    b.bind(MetadataIndexUpgradeService.class).toInstance(metadataIndexUpgradeService);
                     b.bind(ClusterInfoService.class).toInstance(clusterInfoService);
                     b.bind(GatewayMetaState.class).toInstance(gatewayMetaState);
                     b.bind(Discovery.class).toInstance(discoveryModule.getDiscovery());
@@ -658,13 +658,13 @@ public class Node implements Closeable {
         assert localNodeFactory.getNode() != null;
         assert transportService.getLocalNode().equals(localNodeFactory.getNode())
             : "transportService has a different local node than the factory provided";
-        final MetaData onDiskMetadata;
+        final Metadata onDiskMetadata;
         // we load the global state here (the persistent part of the cluster state stored on disk) to
         // pass it to the bootstrap checks to allow plugins to enforce certain preconditions based on the recovered state.
         if (DiscoveryNode.isMasterNode(settings) || DiscoveryNode.isDataNode(settings)) {
-            onDiskMetadata = injector.getInstance(GatewayMetaState.class).getMetaData();
+            onDiskMetadata = injector.getInstance(GatewayMetaState.class).getMetadata();
         } else {
-            onDiskMetadata = MetaData.EMPTY_META_DATA;
+            onDiskMetadata = Metadata.EMPTY_METADATA;
         }
         assert onDiskMetadata != null : "metadata is null but shouldn't"; // this is never null
         validateNodeBeforeAcceptingRequests(transportService.boundAddress(),

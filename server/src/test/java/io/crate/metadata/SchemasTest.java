@@ -26,21 +26,21 @@ import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.expression.udf.UserDefinedFunctionMetaData;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewsMetaData;
-import io.crate.metadata.view.ViewsMetaDataTest;
+import io.crate.metadata.view.ViewsMetadata;
+import io.crate.metadata.view.ViewsMetadataTest;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -48,9 +48,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -79,61 +79,61 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSchemasFromUDF() {
-        MetaData metaData = MetaData.builder()
+        Metadata metadata = Metadata.builder()
             .putCustom(
-                UserDefinedFunctionsMetaData.TYPE,
-                UserDefinedFunctionsMetaData.of(
-                    new UserDefinedFunctionMetaData("new_schema", "my_function", ImmutableList.of(), DataTypes.STRING,
+                UserDefinedFunctionsMetadata.TYPE,
+                UserDefinedFunctionsMetadata.of(
+                    new UserDefinedFunctionMetadata("new_schema", "my_function", ImmutableList.of(), DataTypes.STRING,
                         "burlesque", "Hello, World!Q")
                 )
             ).build();
-        assertThat(Schemas.getNewCurrentSchemas(metaData), containsInAnyOrder("doc", "new_schema"));
+        assertThat(Schemas.getNewCurrentSchemas(metadata), containsInAnyOrder("doc", "new_schema"));
     }
 
     @Test
     public void testSchemasFromViews() {
-        MetaData metaData = MetaData.builder()
+        Metadata metadata = Metadata.builder()
             .putCustom(
-                ViewsMetaData.TYPE,
-                ViewsMetaDataTest.createMetaData()
+                ViewsMetadata.TYPE,
+                ViewsMetadataTest.createMetadata()
             ).build();
-        assertThat(Schemas.getNewCurrentSchemas(metaData), containsInAnyOrder("doc", "my_schema"));
+        assertThat(Schemas.getNewCurrentSchemas(metadata), containsInAnyOrder("doc", "my_schema"));
     }
 
 
     @Test
     public void testCurrentSchemas() throws Exception {
-        MetaData metaData = MetaData.builder()
-            .put(IndexMetaData.builder("doc.d1")
-                .state(IndexMetaData.State.OPEN)
+        Metadata metadata = Metadata.builder()
+            .put(IndexMetadata.builder("doc.d1")
+                .state(IndexMetadata.State.OPEN)
                 .settings(Settings.builder()
                     .put(SETTING_NUMBER_OF_SHARDS, 1)
                     .put(SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
-            .put(IndexMetaData.builder("doc.d2")
-                .state(IndexMetaData.State.CLOSE)
+            .put(IndexMetadata.builder("doc.d2")
+                .state(IndexMetadata.State.CLOSE)
                 .settings(Settings.builder()
                     .put(SETTING_NUMBER_OF_SHARDS, 1)
                     .put(SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
-            .put(IndexMetaData.builder("foo.f1")
-                .state(IndexMetaData.State.CLOSE)
+            .put(IndexMetadata.builder("foo.f1")
+                .state(IndexMetadata.State.CLOSE)
                 .settings(Settings.builder()
                     .put(SETTING_NUMBER_OF_SHARDS, 1)
                     .put(SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
-            .put(IndexMetaData.builder("foo.f2")
-                .state(IndexMetaData.State.OPEN)
+            .put(IndexMetadata.builder("foo.f2")
+                .state(IndexMetadata.State.OPEN)
                 .settings(Settings.builder()
                     .put(SETTING_NUMBER_OF_SHARDS, 1)
                     .put(SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
             .build();
-        assertThat(Schemas.getNewCurrentSchemas(metaData), contains("foo", "doc"));
+        assertThat(Schemas.getNewCurrentSchemas(metadata), contains("foo", "doc"));
     }
 
     private Schemas getReferenceInfos(SchemaInfo schemaInfo) {

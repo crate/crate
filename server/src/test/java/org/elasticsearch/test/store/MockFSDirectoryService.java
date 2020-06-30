@@ -30,7 +30,7 @@ import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.store.MockDirectoryWrapper;
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.TestRuleMarkFailure;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lucene.Lucene;
@@ -160,11 +160,11 @@ public class MockFSDirectoryService extends FsDirectoryService {
     }
 
     private FsDirectoryService randomDirectoryService(IndexSettings indexSettings, ShardPath path) {
-        final IndexMetaData build = IndexMetaData.builder(indexSettings.getIndexMetaData())
+        final IndexMetadata build = IndexMetadata.builder(indexSettings.getIndexMetadata())
             .settings(Settings.builder()
                 // don't use the settings from indexSettings#getSettings() they are merged with node settings and might contain
                 // secure settings that should not be copied in here since the new IndexSettings ctor below will barf if we do
-                .put(indexSettings.getIndexMetaData().getSettings())
+                .put(indexSettings.getIndexMetadata().getSettings())
                 .put(IndexModule.INDEX_STORE_TYPE_SETTING.getKey(),
                     RandomPicks.randomFrom(random, IndexModule.Type.values()).getSettingsKey()))
             .build();

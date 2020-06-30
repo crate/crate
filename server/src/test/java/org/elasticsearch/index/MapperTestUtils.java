@@ -23,7 +23,7 @@
 package org.elasticsearch.index;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -55,8 +55,8 @@ public class MapperTestUtils {
         Settings.Builder settingsBuilder = Settings.builder()
             .put(Environment.PATH_HOME_SETTING.getKey(), tempDir)
             .put(settings);
-        if (settings.get(IndexMetaData.SETTING_VERSION_CREATED) == null) {
-            settingsBuilder.put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT);
+        if (settings.get(IndexMetadata.SETTING_VERSION_CREATED) == null) {
+            settingsBuilder.put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
         }
         Settings finalSettings = settingsBuilder.build();
         MapperRegistry mapperRegistry = indicesModule.getMapperRegistry();

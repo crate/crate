@@ -24,7 +24,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterModule;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedRunnable;
@@ -257,7 +257,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
     private void createIndexDataFiles(Settings settings, int shardCount) throws IOException {
         int shardDataDirNumber = randomInt(10);
         try (NodeEnvironment env = new NodeEnvironment(settings, TestEnvironment.newEnvironment(settings))) {
-            IndexMetaData.FORMAT.write(IndexMetaData.builder(INDEX.getName())
+            IndexMetadata.FORMAT.write(IndexMetadata.builder(INDEX.getName())
                 .settings(Settings.builder().put("index.version.created", Version.CURRENT))
                 .numberOfShards(1)
                 .numberOfReplicas(1)

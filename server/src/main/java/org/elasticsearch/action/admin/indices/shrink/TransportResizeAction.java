@@ -30,9 +30,9 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaDataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -54,14 +54,14 @@ import java.util.function.IntFunction;
  * Main class to initiate resizing (shrink / split) an index into a new index
  */
 public class TransportResizeAction extends TransportMasterNodeAction<ResizeRequest, ResizeResponse> {
-    private final MetaDataCreateIndexService createIndexService;
+    private final MetadataCreateIndexService createIndexService;
     private final Client client;
 
     @Inject
     public TransportResizeAction(TransportService transportService,
                                  ClusterService clusterService,
                                  ThreadPool threadPool,
-                                 MetaDataCreateIndexService createIndexService,
+                                 MetadataCreateIndexService createIndexService,
                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                  Client client) {
         this(ResizeAction.NAME, transportService, clusterService, threadPool, createIndexService,
@@ -69,7 +69,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
     }
 
     protected TransportResizeAction(String actionName, TransportService transportService, ClusterService clusterService,
-                                 ThreadPool threadPool, MetaDataCreateIndexService createIndexService,
+                                 ThreadPool threadPool, MetadataCreateIndexService createIndexService,
                                  IndexNameExpressionResolver indexNameExpressionResolver, Client client) {
         super(actionName, transportService, clusterService, threadPool, ResizeRequest::new, indexNameExpressionResolver);
         this.createIndexService = createIndexService;
@@ -132,15 +132,15 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                                                                           String sourceIndexName,
                                                                           String targetIndexName) {
         final CreateIndexRequest targetIndex = resizeRequest.getTargetIndexRequest();
-        final IndexMetaData metaData = state.metaData().index(sourceIndexName);
-        if (metaData == null) {
+        final IndexMetadata metadata = state.metadata().index(sourceIndexName);
+        if (metadata == null) {
             throw new IndexNotFoundException(sourceIndexName);
         }
         final Settings targetIndexSettings = Settings.builder().put(targetIndex.settings())
-            .normalizePrefix(IndexMetaData.INDEX_SETTING_PREFIX).build();
+            .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX).build();
         final int numShards;
-        if (IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.exists(targetIndexSettings)) {
-            numShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexSettings);
+        if (IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.exists(targetIndexSettings)) {
+            numShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexSettings);
         } else {
             assert resizeRequest.getResizeType() == ResizeType.SHRINK : "split must specify the number of shards explicitly";
             numShards = 1;
@@ -148,7 +148,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
 
         for (int i = 0; i < numShards; i++) {
             if (resizeRequest.getResizeType() == ResizeType.SHRINK) {
-                Set<ShardId> shardIds = IndexMetaData.selectShrinkShards(i, metaData, numShards);
+                Set<ShardId> shardIds = IndexMetadata.selectShrinkShards(i, metadata, numShards);
                 long count = 0;
                 for (ShardId id : shardIds) {
                     DocsStats docsStats = perShardDocStats.apply(id.id());
@@ -161,19 +161,19 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                     }
                 }
             } else {
-                Objects.requireNonNull(IndexMetaData.selectSplitShard(i, metaData, numShards));
+                Objects.requireNonNull(IndexMetadata.selectSplitShard(i, metadata, numShards));
                 // we just execute this to ensure we get the right exceptions if the number of shards is wrong or less then etc.
             }
         }
 
-        if (IndexMetaData.INDEX_ROUTING_PARTITION_SIZE_SETTING.exists(targetIndexSettings)) {
+        if (IndexMetadata.INDEX_ROUTING_PARTITION_SIZE_SETTING.exists(targetIndexSettings)) {
             throw new IllegalArgumentException("cannot provide a routing partition size value when resizing an index");
         }
-        if (IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(targetIndexSettings)) {
+        if (IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(targetIndexSettings)) {
             throw new IllegalArgumentException("cannot provide index.number_of_routing_shards on resize");
         }
-        if (IndexSettings.INDEX_SOFT_DELETES_SETTING.exists(metaData.getSettings()) &&
-            IndexSettings.INDEX_SOFT_DELETES_SETTING.get(metaData.getSettings()) &&
+        if (IndexSettings.INDEX_SOFT_DELETES_SETTING.exists(metadata.getSettings()) &&
+            IndexSettings.INDEX_SOFT_DELETES_SETTING.get(metadata.getSettings()) &&
             IndexSettings.INDEX_SOFT_DELETES_SETTING.exists(targetIndexSettings) &&
             IndexSettings.INDEX_SOFT_DELETES_SETTING.get(targetIndexSettings) == false) {
             throw new IllegalArgumentException("Can't disable [index.soft_deletes.enabled] setting on resize");
@@ -193,7 +193,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                 .settings(targetIndex.settings())
                 .aliases(targetIndex.aliases())
                 .waitForActiveShards(targetIndex.waitForActiveShards())
-                .recoverFrom(metaData.getIndex())
+                .recoverFrom(metadata.getIndex())
                 .resizeType(resizeRequest.getResizeType())
                 .copySettings(resizeRequest.getCopySettings() == null ? false : resizeRequest.getCopySettings());
     }

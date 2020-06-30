@@ -27,81 +27,80 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaDataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.indices.IndicesService;
 
 import java.util.Set;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_CLOSED_BLOCK;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 
 
 public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClusterStateTaskExecutor {
 
-    private final MetaDataIndexUpgradeService metaDataIndexUpgradeService;
+    private final MetadataIndexUpgradeService metadataIndexUpgradeService;
     private final IndicesService indicesService;
-
 
     public OpenTableClusterStateTaskExecutor(IndexNameExpressionResolver indexNameExpressionResolver,
                                       AllocationService allocationService,
                                       DDLClusterStateService ddlClusterStateService,
-                                      MetaDataIndexUpgradeService metaDataIndexUpgradeService,
+                                      MetadataIndexUpgradeService metadataIndexUpgradeService,
                                       IndicesService indexServices) {
         super(indexNameExpressionResolver, allocationService, ddlClusterStateService);
-        this.metaDataIndexUpgradeService = metaDataIndexUpgradeService;
+        this.metadataIndexUpgradeService = metadataIndexUpgradeService;
         this.indicesService = indexServices;
     }
 
     @Override
-    protected IndexMetaData.State indexState() {
-        return IndexMetaData.State.OPEN;
+    protected IndexMetadata.State indexState() {
+        return IndexMetadata.State.OPEN;
     }
 
     @Override
     protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) throws Exception {
         Context context = prepare(currentState, request);
-        Set<IndexMetaData> indicesToOpen = context.indicesMetaData();
-        IndexTemplateMetaData templateMetaData = context.templateMetaData();
+        Set<IndexMetadata> indicesToOpen = context.indicesMetadata();
+        IndexTemplateMetadata templateMetadata = context.templateMetadata();
 
-        if (indicesToOpen.isEmpty() && templateMetaData == null) {
+        if (indicesToOpen.isEmpty() && templateMetadata == null) {
             return currentState;
         }
 
-        MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
+        Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(currentState.blocks());
         final Version minIndexCompatibilityVersion = currentState.getNodes().getMaxNodeVersion()
             .minimumIndexCompatibilityVersion();
-        for (IndexMetaData closedMetaData : indicesToOpen) {
-            final String indexName = closedMetaData.getIndex().getName();
-            IndexMetaData indexMetaData = IndexMetaData.builder(closedMetaData).state(IndexMetaData.State.OPEN).build();
+        for (IndexMetadata closedMetadata : indicesToOpen) {
+            final String indexName = closedMetadata.getIndex().getName();
+            IndexMetadata indexMetadata = IndexMetadata.builder(closedMetadata).state(IndexMetadata.State.OPEN).build();
             // The index might be closed because we couldn't import it due to old incompatible version
             // We need to check that this index can be upgraded to the current version
-            indexMetaData = metaDataIndexUpgradeService.upgradeIndexMetaData(indexMetaData, minIndexCompatibilityVersion);
+            indexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(indexMetadata, minIndexCompatibilityVersion);
             try {
-                indicesService.verifyIndexMetadata(indexMetaData, indexMetaData);
+                indicesService.verifyIndexMetadata(indexMetadata, indexMetadata);
             } catch (Exception e) {
-                throw new ElasticsearchException("Failed to verify index " + indexMetaData.getIndex(), e);
+                throw new ElasticsearchException("Failed to verify index " + indexMetadata.getIndex(), e);
             }
 
-            mdBuilder.put(indexMetaData, true);
+            mdBuilder.put(indexMetadata, true);
             blocksBuilder.removeIndexBlock(indexName, INDEX_CLOSED_BLOCK);
         }
 
         // remove closed flag at possible partitioned table template
-        if (templateMetaData != null) {
-            mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetaData, true));
+        if (templateMetadata != null) {
+            mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetadata, true));
         }
 
-        // The MetaData will always be overridden (and not merged!) when applying it on a cluster state builder.
+        // The Metadata will always be overridden (and not merged!) when applying it on a cluster state builder.
         // So we must re-build the state with the latest modifications before we pass this state to possible modifiers.
-        // Otherwise they would operate on the old MetaData and would just ignore any modifications.
-        ClusterState updatedState = ClusterState.builder(currentState).metaData(mdBuilder).blocks(blocksBuilder).build();
+        // Otherwise they would operate on the old Metadata and would just ignore any modifications.
+        ClusterState updatedState = ClusterState.builder(currentState).metadata(mdBuilder).blocks(blocksBuilder).build();
 
         // call possible registered modifiers
         if (context.partitionName() != null) {
@@ -111,8 +110,8 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
         }
 
         RoutingTable.Builder rtBuilder = RoutingTable.builder(updatedState.routingTable());
-        for (IndexMetaData index : indicesToOpen) {
-            rtBuilder.addAsFromCloseToOpen(updatedState.metaData().getIndexSafe(index.getIndex()));
+        for (IndexMetadata index : indicesToOpen) {
+            rtBuilder.addAsFromCloseToOpen(updatedState.metadata().getIndexSafe(index.getIndex()));
         }
 
         //no explicit wait for other nodes needed as we use AckedClusterStateUpdateTask

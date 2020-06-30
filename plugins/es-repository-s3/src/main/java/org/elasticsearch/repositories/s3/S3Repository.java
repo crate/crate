@@ -21,7 +21,7 @@ package org.elasticsearch.repositories.s3;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
@@ -104,7 +104,7 @@ public class S3Repository extends BlobStoreRepository {
     /**
      * Constructs an s3 backed repository
      */
-    S3Repository(final RepositoryMetaData metadata,
+    S3Repository(final RepositoryMetadata metadata,
                  final Settings settings,
                  final NamedXContentRegistry namedXContentRegistry,
                  final S3Service service,
@@ -142,7 +142,7 @@ public class S3Repository extends BlobStoreRepository {
                 storageClass);
     }
 
-    private static BlobPath buildBasePath(RepositoryMetaData metadata) {
+    private static BlobPath buildBasePath(RepositoryMetadata metadata) {
         final String basePath = BASE_PATH_SETTING.get(metadata.settings());
         if (Strings.hasLength(basePath)) {
             return new BlobPath().add(basePath);

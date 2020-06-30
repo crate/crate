@@ -32,10 +32,10 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -45,8 +45,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
 class DocTableInfoBuilder {
 
@@ -54,7 +54,7 @@ class DocTableInfoBuilder {
     private final ClusterState state;
     private final Functions functions;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final MetaData metaData;
+    private final Metadata metadata;
     private String[] concreteIndices;
     private String[] concreteOpenIndices;
     private static final Logger LOGGER = LogManager.getLogger(DocTableInfoBuilder.class);
@@ -67,14 +67,14 @@ class DocTableInfoBuilder {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.ident = ident;
         this.state = state;
-        this.metaData = state.metaData();
+        this.metadata = state.metadata();
     }
 
-    private DocIndexMetaData docIndexMetaData() {
-        DocIndexMetaData docIndexMetaData;
+    private DocIndexMetadata docIndexMetadata() {
+        DocIndexMetadata docIndexMetadata;
         String templateName = PartitionName.templateName(ident.schema(), ident.name());
-        if (metaData.getTemplates().containsKey(templateName)) {
-            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.indexNameOrAlias(), templateName);
+        if (metadata.getTemplates().containsKey(templateName)) {
+            docIndexMetadata = buildDocIndexMetadataFromTemplate(ident.indexNameOrAlias(), templateName);
             // We need all concrete indices, regardless of their state, for operations such as reopening.
             concreteIndices = indexNameExpressionResolver.concreteIndexNames(
                 state, IndicesOptions.lenientExpandOpen(), ident.indexNameOrAlias());
@@ -91,58 +91,58 @@ class DocTableInfoBuilder {
                     // no matching index found
                     throw new RelationUnknown(ident);
                 }
-                docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
+                docIndexMetadata = buildDocIndexMetadata(concreteIndices[0]);
             } catch (IndexNotFoundException ex) {
                 throw new RelationUnknown(ident.fqn(), ex);
             }
         }
-        return docIndexMetaData;
+        return docIndexMetadata;
     }
 
-    private DocIndexMetaData buildDocIndexMetaData(String indexName) {
-        DocIndexMetaData docIndexMetaData;
-        IndexMetaData indexMetaData = metaData.index(indexName);
+    private DocIndexMetadata buildDocIndexMetadata(String indexName) {
+        DocIndexMetadata docIndexMetadata;
+        IndexMetadata indexMetadata = metadata.index(indexName);
         try {
-            docIndexMetaData = new DocIndexMetaData(functions, indexMetaData, ident);
+            docIndexMetadata = new DocIndexMetadata(functions, indexMetadata, ident);
         } catch (IOException e) {
-            throw new UnhandledServerException("Unable to build DocIndexMetaData", e);
+            throw new UnhandledServerException("Unable to build DocIndexMetadata", e);
         }
         try {
-            return docIndexMetaData.build();
+            return docIndexMetadata.build();
         } catch (Exception e) {
             try {
                 LOGGER.error(
-                    "Could not build DocIndexMetaData from: {}", indexMetaData.mapping("default").getSourceAsMap());
+                    "Could not build DocIndexMetadata from: {}", indexMetadata.mapping("default").getSourceAsMap());
             } catch (Exception ignored) {
             }
             throw e;
         }
     }
 
-    private DocIndexMetaData buildDocIndexMetaDataFromTemplate(String index, String templateName) {
-        IndexTemplateMetaData indexTemplateMetaData = metaData.getTemplates().get(templateName);
-        DocIndexMetaData docIndexMetaData;
+    private DocIndexMetadata buildDocIndexMetadataFromTemplate(String index, String templateName) {
+        IndexTemplateMetadata indexTemplateMetadata = metadata.getTemplates().get(templateName);
+        DocIndexMetadata docIndexMetadata;
         try {
-            IndexMetaData.Builder builder = new IndexMetaData.Builder(index);
+            IndexMetadata.Builder builder = new IndexMetadata.Builder(index);
             builder.putMapping(Constants.DEFAULT_MAPPING_TYPE,
-                indexTemplateMetaData.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).toString());
+                indexTemplateMetadata.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).toString());
 
             Settings.Builder settingsBuilder = Settings.builder()
-                .put(indexTemplateMetaData.settings())
-                .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT);
+                .put(indexTemplateMetadata.settings())
+                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
 
             Settings settings = settingsBuilder.build();
             builder.settings(settings);
             builder.numberOfShards(settings.getAsInt(SETTING_NUMBER_OF_SHARDS, 5));
             builder.numberOfReplicas(settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
-            docIndexMetaData = new DocIndexMetaData(functions, builder.build(), ident);
+            docIndexMetadata = new DocIndexMetadata(functions, builder.build(), ident);
         } catch (IOException e) {
-            throw new UnhandledServerException("Unable to build DocIndexMetaData from template", e);
+            throw new UnhandledServerException("Unable to build DocIndexMetadata from template", e);
         }
-        return docIndexMetaData.build();
+        return docIndexMetadata.build();
     }
 
-    private List<PartitionName> buildPartitions(DocIndexMetaData md) {
+    private List<PartitionName> buildPartitions(DocIndexMetadata md) {
         List<PartitionName> partitions = new ArrayList<>();
         if (md.partitionedBy().size() > 0) {
             for (String indexName : concreteIndices) {
@@ -162,7 +162,7 @@ class DocTableInfoBuilder {
     }
 
     public DocTableInfo build() {
-        DocIndexMetaData md = docIndexMetaData();
+        DocIndexMetadata md = docIndexMetadata();
         List<PartitionName> partitions = buildPartitions(md);
 
         return new DocTableInfo(

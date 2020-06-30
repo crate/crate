@@ -24,7 +24,7 @@ package io.crate.metadata.settings;
 
 import io.crate.analyze.NumberOfReplicas;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
@@ -34,12 +34,12 @@ import static io.crate.analyze.TableParameters.stripIndexPrefix;
 
 public class NumberOfReplicasSetting extends Setting<Settings> {
 
-    private static final String NAME = stripIndexPrefix(IndexMetaData.SETTING_NUMBER_OF_REPLICAS);
+    private static final String NAME = stripIndexPrefix(IndexMetadata.SETTING_NUMBER_OF_REPLICAS);
 
     private static final Settings DEFAULT = Settings.builder()
-        .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-        .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS,
-            IndexMetaData.INDEX_AUTO_EXPAND_REPLICAS_SETTING.getDefaultRaw(Settings.EMPTY))
+        .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+        .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS,
+             IndexMetadata.INDEX_AUTO_EXPAND_REPLICAS_SETTING.getDefaultRaw(Settings.EMPTY))
         .build();
 
     public NumberOfReplicasSetting() {

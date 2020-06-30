@@ -36,11 +36,11 @@ public class GCDanglingArtifactsITest extends SQLTransportIntegrationTest {
         createIndex(".resized.foobar");
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metaData().hasIndex(".resized.foobar"), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(".resized.foobar"), is(true));
 
         execute("alter cluster gc dangling artifacts");
 
-        assertThat(clusterService.state().metaData().hasIndex(".resized.foobar"), is(false));
-        assertThat(clusterService.state().metaData().hasIndex("t1"), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(".resized.foobar"), is(false));
+        assertThat(clusterService.state().metadata().hasIndex("t1"), is(true));
     }
 }

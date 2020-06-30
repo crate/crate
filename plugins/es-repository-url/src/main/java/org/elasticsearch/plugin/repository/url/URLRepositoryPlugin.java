@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -61,7 +61,7 @@ public class URLRepositoryPlugin extends Plugin implements RepositoryPlugin {
                 }
 
                 @Override
-                public Repository create(RepositoryMetaData metadata) throws Exception {
+                public Repository create(RepositoryMetadata metadata) throws Exception {
                     return new URLRepository(metadata, env, namedXContentRegistry, threadPool);
                 }
             }

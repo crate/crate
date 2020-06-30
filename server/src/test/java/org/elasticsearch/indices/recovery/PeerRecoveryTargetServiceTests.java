@@ -29,7 +29,7 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.index.store.Store;
-import org.elasticsearch.index.store.StoreFileMetaData;
+import org.elasticsearch.index.store.StoreFileMetadata;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -53,8 +53,8 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         }
         sourceShard.flush(new FlushRequest());
         Store.MetadataSnapshot sourceSnapshot = sourceShard.store().getMetadata(null);
-        List<StoreFileMetaData> mdFiles = new ArrayList<>();
-        for (StoreFileMetaData md : sourceSnapshot) {
+        List<StoreFileMetadata> mdFiles = new ArrayList<>();
+        for (StoreFileMetadata md : sourceSnapshot) {
             mdFiles.add(md);
         }
         final IndexShard targetShard = newShard(false);
@@ -63,12 +63,12 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         targetShard.markAsRecovering("test-peer-recovery", new RecoveryState(targetShard.routingEntry(), rNode, pNode));
         final RecoveryTarget recoveryTarget = new RecoveryTarget(targetShard, null, null, null);
         recoveryTarget.receiveFileInfo(
-            mdFiles.stream().map(StoreFileMetaData::name).collect(Collectors.toList()),
-            mdFiles.stream().map(StoreFileMetaData::length).collect(Collectors.toList()),
+            mdFiles.stream().map(StoreFileMetadata::name).collect(Collectors.toList()),
+            mdFiles.stream().map(StoreFileMetadata::length).collect(Collectors.toList()),
             Collections.emptyList(), Collections.emptyList(), 0
         );
         List<RecoveryFileChunkRequest> requests = new ArrayList<>();
-        for (StoreFileMetaData md : mdFiles) {
+        for (StoreFileMetadata md : mdFiles) {
             try (IndexInput in = sourceShard.store().directory().openInput(md.name(), IOContext.READONCE)) {
                 int pos = 0;
                 while (pos < md.length()) {

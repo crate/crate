@@ -37,7 +37,7 @@ import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.AllocationId;
@@ -192,14 +192,14 @@ public abstract class TransportReplicationAction<
      * Resolves derived values in the request. For example, the target shard id of the incoming request, if not set at request construction.
      * Additional processing or validation of the request should be done here.
      *
-     * @param indexMetaData index metadata of the concrete index this request is going to operate on
+     * @param indexMetadata index metadata of the concrete index this request is going to operate on
      * @param request       the request to resolve
      */
-    protected void resolveRequest(final IndexMetaData indexMetaData, final Request request) {
+    protected void resolveRequest(final IndexMetadata indexMetadata, final Request request) {
         if (request.waitForActiveShards() == ActiveShardCount.DEFAULT) {
             // if the wait for active shard count has not been set in the request,
             // resolve it from the index settings
-            request.waitForActiveShards(indexMetaData.getWaitForActiveShards());
+            request.waitForActiveShards(indexMetadata.getWaitForActiveShards());
         }
     }
 
@@ -711,17 +711,17 @@ public abstract class TransportReplicationAction<
 
             // request does not have a shardId yet, we need to pass the concrete index to resolve shardId
             final String concreteIndex = concreteIndex(state);
-            final IndexMetaData indexMetaData = state.metaData().index(concreteIndex);
-            if (indexMetaData == null) {
+            final IndexMetadata indexMetadata = state.metadata().index(concreteIndex);
+            if (indexMetadata == null) {
                 retry(new IndexNotFoundException(concreteIndex));
                 return;
             }
-            if (indexMetaData.getState() == IndexMetaData.State.CLOSE) {
-                throw new IndexClosedException(indexMetaData.getIndex());
+            if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+                throw new IndexClosedException(indexMetadata.getIndex());
             }
 
             // resolve all derived request fields, so we can route and apply it
-            resolveRequest(indexMetaData, request);
+            resolveRequest(indexMetadata, request);
             assert request.shardId() != null : "request shardId must be set in resolveRequest";
             assert request.waitForActiveShards() != ActiveShardCount.DEFAULT : "request waitForActiveShards must be set in resolveRequest";
 
@@ -731,20 +731,20 @@ public abstract class TransportReplicationAction<
             }
             final DiscoveryNode node = state.nodes().get(primary.currentNodeId());
             if (primary.currentNodeId().equals(state.nodes().getLocalNodeId())) {
-                performLocalAction(state, primary, node, indexMetaData);
+                performLocalAction(state, primary, node, indexMetadata);
             } else {
                 performRemoteAction(state, primary, node);
             }
         }
 
-        private void performLocalAction(ClusterState state, ShardRouting primary, DiscoveryNode node, IndexMetaData indexMetaData) {
+        private void performLocalAction(ClusterState state, ShardRouting primary, DiscoveryNode node, IndexMetadata indexMetadata) {
             setPhase(task, "waiting_on_primary");
             if (logger.isTraceEnabled()) {
                 logger.trace("send action [{}] to local primary [{}] for request [{}] with cluster state version [{}] to [{}] ",
                     transportPrimaryAction, request.shardId(), request, state.version(), primary.currentNodeId());
             }
             performAction(node, transportPrimaryAction, true,
-                new ConcreteShardRequest<>(request, primary.allocationId().getId(), indexMetaData.primaryTerm(primary.id())));
+                new ConcreteShardRequest<>(request, primary.allocationId().getId(), indexMetadata.primaryTerm(primary.id())));
         }
 
         private void performRemoteAction(ClusterState state, ShardRouting primary, DiscoveryNode node) {

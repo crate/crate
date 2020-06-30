@@ -27,9 +27,9 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService;
+import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -44,13 +44,13 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 
 public class TransportUpdateSettingsAction extends TransportMasterNodeAction<UpdateSettingsRequest, AcknowledgedResponse> {
 
-    private final MetaDataUpdateSettingsService updateSettingsService;
+    private final MetadataUpdateSettingsService updateSettingsService;
 
     @Inject
     public TransportUpdateSettingsAction(TransportService transportService,
                                          ClusterService clusterService,
                                          ThreadPool threadPool,
-                                         MetaDataUpdateSettingsService updateSettingsService,
+                                         MetadataUpdateSettingsService updateSettingsService,
                                          IndexNameExpressionResolver indexNameExpressionResolver) {
         super(UpdateSettingsAction.NAME, transportService, clusterService, threadPool, UpdateSettingsRequest::new, indexNameExpressionResolver);
         this.updateSettingsService = updateSettingsService;
@@ -74,9 +74,9 @@ public class TransportUpdateSettingsAction extends TransportMasterNodeAction<Upd
         Settings settings = request.settings().filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX + "*") == false);
 
         if (settings.size() == 1 &&  // we have to allow resetting these settings otherwise users can't unblock an index
-            IndexMetaData.INDEX_BLOCKS_METADATA_SETTING.exists(settings)
-            || IndexMetaData.INDEX_READ_ONLY_SETTING.exists(settings)
-            || IndexMetaData.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING.exists(settings)) {
+            IndexMetadata.INDEX_BLOCKS_METADATA_SETTING.exists(settings)
+            || IndexMetadata.INDEX_READ_ONLY_SETTING.exists(settings)
+            || IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING.exists(settings)) {
             return null;
         }
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNameExpressionResolver.concreteIndexNames(state, request));

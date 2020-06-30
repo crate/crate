@@ -44,7 +44,7 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
@@ -452,8 +452,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     }
 
     @Override
-    public boolean updateMapping(final IndexMetaData currentIndexMetaData, final IndexMetaData newIndexMetaData) throws IOException {
-        return mapperService().updateMapping(currentIndexMetaData, newIndexMetaData);
+    public boolean updateMapping(final IndexMetadata currentIndexMetadata, final IndexMetadata newIndexMetadata) throws IOException {
+        return mapperService().updateMapping(currentIndexMetadata, newIndexMetadata);
     }
 
     private class StoreCloseListener implements Store.OnClose {
@@ -481,32 +481,32 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    public IndexMetaData getMetaData() {
-        return indexSettings.getIndexMetaData();
+    public IndexMetadata getMetadata() {
+        return indexSettings.getIndexMetadata();
     }
 
     @Override
-    public synchronized void updateMetaData(final IndexMetaData currentIndexMetaData, final IndexMetaData newIndexMetaData) {
+    public synchronized void updateMetadata(final IndexMetadata currentIndexMetadata, final IndexMetadata newIndexMetadata) {
         final Translog.Durability oldTranslogDurability = indexSettings.getTranslogDurability();
 
-        final boolean updateIndexMetaData = indexSettings.updateIndexMetaData(newIndexMetaData);
+        final boolean updateIndexMetadata = indexSettings.updateIndexMetadata(newIndexMetadata);
 
         if (Assertions.ENABLED
-                && currentIndexMetaData != null
-                && currentIndexMetaData.getCreationVersion().onOrAfter(Version.ES_V_6_5_1)) {
-            final long currentSettingsVersion = currentIndexMetaData.getSettingsVersion();
-            final long newSettingsVersion = newIndexMetaData.getSettingsVersion();
+                && currentIndexMetadata != null
+                && currentIndexMetadata.getCreationVersion().onOrAfter(Version.ES_V_6_5_1)) {
+            final long currentSettingsVersion = currentIndexMetadata.getSettingsVersion();
+            final long newSettingsVersion = newIndexMetadata.getSettingsVersion();
             if (currentSettingsVersion == newSettingsVersion) {
-                assert updateIndexMetaData == false;
+                assert updateIndexMetadata == false;
             } else {
-                assert updateIndexMetaData;
+                assert updateIndexMetadata;
                 assert currentSettingsVersion < newSettingsVersion :
                         "expected current settings version [" + currentSettingsVersion + "] "
                                 + "to be less than new settings version [" + newSettingsVersion + "]";
             }
         }
 
-        if (updateIndexMetaData) {
+        if (updateIndexMetadata) {
             for (final IndexShard shard : this.shards.values()) {
                 try {
                     shard.onSettingsChanged();

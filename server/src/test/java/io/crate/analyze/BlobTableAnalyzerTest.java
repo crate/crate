@@ -37,7 +37,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.AlterTable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
@@ -97,8 +97,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(analysis.relationName().name(), is("screenshots"));
         assertThat(analysis.relationName().schema(), is(BlobSchemaInfo.NAME));
-        assertThat(settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
-        assertThat(settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(10));
+        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
     }
 
     @Test
@@ -108,7 +108,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(analysis.relationName().name(), is("screenshots"));
         assertThat(analysis.relationName().schema(), is(BlobSchemaInfo.NAME));
-        assertThat(settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(4));
+        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(4));
     }
 
     @Test
@@ -124,8 +124,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Settings settings = buildSettings(analysis);
 
         assertThat(analysis.relationName().name(), is("screenshots"));
-        assertThat(settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
-        assertThat(settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(10));
+        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
     }
 
     @Test
@@ -219,7 +219,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.tableInfo().ident().name(), is("blobs"));
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
-        assertThat(parameter.settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
+        assertThat(parameter.settings().getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
     }
 
     @Test
@@ -239,8 +239,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(analysis.relationName().name(), is("screenshots"));
         assertThat(analysis.relationName().schema(), is(BlobSchemaInfo.NAME));
-        assertThat(settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(2));
-        assertThat(settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(2));
+        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
     }
 
     @Test

@@ -19,8 +19,8 @@
 package io.crate.auth.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.metadata.UsersMetaData;
-import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.UsersMetadata;
+import io.crate.metadata.UsersPrivilegesMetadata;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -28,7 +28,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
@@ -89,13 +89,13 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
 
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    MetaData currentMetaData = currentState.metaData();
-                    MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-                    unknownUserNames = validateUserNames(currentMetaData, request.userNames());
+                    Metadata currentMetadata = currentState.metadata();
+                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+                    unknownUserNames = validateUserNames(currentMetadata, request.userNames());
                     if (unknownUserNames.isEmpty()) {
                         affectedRows = applyPrivileges(mdBuilder, request);
                     }
-                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 }
 
                 @Override
@@ -107,15 +107,15 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @VisibleForTesting
-    static List<String> validateUserNames(MetaData metaData, Collection<String> userNames) {
-        UsersMetaData usersMetaData = metaData.custom(UsersMetaData.TYPE);
-        if (usersMetaData == null) {
+    static List<String> validateUserNames(Metadata metadata, Collection<String> userNames) {
+        UsersMetadata usersMetadata = metadata.custom(UsersMetadata.TYPE);
+        if (usersMetadata == null) {
             return new ArrayList<>(userNames);
         }
         List<String> unknownUserNames = null;
         for (String userName : userNames) {
             //noinspection PointlessBooleanExpression
-            if (usersMetaData.userNames().contains(userName) == false) {
+            if (usersMetadata.userNames().contains(userName) == false) {
                 if (unknownUserNames == null) {
                     unknownUserNames = new ArrayList<>();
                 }
@@ -129,14 +129,14 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @VisibleForTesting
-    static long applyPrivileges(MetaData.Builder mdBuilder,
+    static long applyPrivileges(Metadata.Builder mdBuilder,
                                 PrivilegesRequest request) {
         // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.copyOf(
-            (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
+        UsersPrivilegesMetadata newMetadata = UsersPrivilegesMetadata.copyOf(
+            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
 
-        long affectedRows = newMetaData.applyPrivileges(request.userNames(), request.privileges());
-        mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);
+        long affectedRows = newMetadata.applyPrivileges(request.userNames(), request.privileges());
+        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, newMetadata);
         return affectedRows;
     }
 }

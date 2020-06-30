@@ -33,7 +33,7 @@ import java.util.function.Function;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
@@ -73,10 +73,10 @@ public class InformationPartitionsTableInfo {
             .endObject()
             .startObject("settings")
                 .startObject("blocks")
-                    .add("read_only", BOOLEAN, fromSetting(IndexMetaData.INDEX_READ_ONLY_SETTING))
-                    .add("read", BOOLEAN, fromSetting(IndexMetaData.INDEX_BLOCKS_READ_SETTING))
-                    .add("write", BOOLEAN, fromSetting(IndexMetaData.INDEX_BLOCKS_WRITE_SETTING))
-                    .add("metadata", BOOLEAN, fromSetting(IndexMetaData.INDEX_BLOCKS_METADATA_SETTING))
+                    .add("read_only", BOOLEAN, fromSetting(IndexMetadata.INDEX_READ_ONLY_SETTING))
+                    .add("read", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_READ_SETTING))
+                    .add("write", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_WRITE_SETTING))
+                    .add("metadata", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_METADATA_SETTING))
                 .endObject()
 
                 .add("codec", STRING, fromSetting(INDEX_CODEC_SETTING))
@@ -122,7 +122,7 @@ public class InformationPartitionsTableInfo {
                 .endObject()
 
                 .startObject("write")
-                    .add("wait_for_active_shards", STRING, fromSetting(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS, ActiveShardCount::toString))
+                    .add("wait_for_active_shards", STRING, fromSetting(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS, ActiveShardCount::toString))
                 .endObject()
 
             .endObject()

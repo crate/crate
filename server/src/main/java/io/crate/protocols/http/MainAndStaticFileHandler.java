@@ -129,7 +129,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
     private CompletableFuture<FullHttpResponse> serveJSON(HttpMethod method, ByteBufAllocator alloc) {
         var requestClusterState = new ClusterStateRequest()
             .blocks(true)
-            .metaData(false)
+            .metadata(false)
             .nodes(false)
             .local(true);
         FutureActionListener<ClusterStateResponse, ClusterStateResponse> listener = new FutureActionListener<>(x -> x);

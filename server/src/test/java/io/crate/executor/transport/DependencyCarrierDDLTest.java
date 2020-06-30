@@ -104,7 +104,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         Bucket objects = executePlan(node, plannerContext);
 
         assertThat(objects, contains(isRow(1L)));
-        assertEquals("false", client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
+        assertEquals("false", client().admin().cluster().prepareState().execute().actionGet().getState().metadata()
             .persistentSettings().get(persistentSetting)
         );
 
@@ -116,7 +116,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         objects = executePlan(node, plannerContext);
 
         assertThat(objects, contains(isRow(1L)));
-        assertEquals("123s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
+        assertEquals("123s", client().admin().cluster().prepareState().execute().actionGet().getState().metadata()
             .transientSettings().get(transientSetting)
         );
     }

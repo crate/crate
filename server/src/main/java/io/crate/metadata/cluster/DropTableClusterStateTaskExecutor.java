@@ -28,8 +28,8 @@ import io.crate.metadata.RelationName;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.index.Index;
 
 import java.util.Arrays;
@@ -39,11 +39,11 @@ import java.util.Set;
 public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<DropTableRequest> {
 
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final MetaDataDeleteIndexService deleteIndexService;
+    private final MetadataDeleteIndexService deleteIndexService;
     private final DDLClusterStateService ddlClusterStateService;
 
     public DropTableClusterStateTaskExecutor(IndexNameExpressionResolver indexNameExpressionResolver,
-                                             MetaDataDeleteIndexService deleteIndexService,
+                                             MetadataDeleteIndexService deleteIndexService,
                                              DDLClusterStateService ddlClusterStateService) {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.deleteIndexService = deleteIndexService;
@@ -60,9 +60,9 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
         if (request.isPartitioned()) {
             // delete template
             String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-            MetaData.Builder metaData = MetaData.builder(currentState.metaData());
-            metaData.removeTemplate(templateName);
-            currentState = ClusterState.builder(currentState).metaData(metaData).build();
+            Metadata.Builder metadata = Metadata.builder(currentState.metadata());
+            metadata.removeTemplate(templateName);
+            currentState = ClusterState.builder(currentState).metadata(metadata).build();
         }
 
         // call possible modifiers

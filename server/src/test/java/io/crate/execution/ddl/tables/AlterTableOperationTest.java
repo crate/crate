@@ -24,14 +24,14 @@ package io.crate.execution.ddl.tables;
 
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_BLOCKS_WRITE;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_BLOCKS_WRITE;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -53,43 +53,43 @@ public class AlterTableOperationTest extends CrateUnitTest {
             .put(baseIndexSettings())
             .put(SETTING_BLOCKS_WRITE, false)      // allow writes
             .build();
-        IndexMetaData indexMetaData = IndexMetaData.builder("t1")
+        IndexMetadata indexMetadata = IndexMetadata.builder("t1")
             .settings(settings)
             .build();
 
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Table/Partition needs to be at a read-only state");
-        AlterTableOperation.validateReadOnlyIndexForResize(indexMetaData);
+        AlterTableOperation.validateReadOnlyIndexForResize(indexMetadata);
     }
 
     @Test
     public void testEqualNumberOfShardsRequestedIsNotPermitted() {
-        IndexMetaData indexMetaData = IndexMetaData.builder("t1")
+        IndexMetadata indexMetadata = IndexMetadata.builder("t1")
             .settings(baseIndexSettings())
             .build();
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Table/partition is already allocated <5> shards");
-        AlterTableOperation.validateNumberOfShardsForResize(indexMetaData, 5);
+        AlterTableOperation.validateNumberOfShardsForResize(indexMetadata, 5);
     }
 
     @Test
     public void testGreaterNumberOfShardsRequestedIsSupported() {
-        IndexMetaData indexMetaData = IndexMetaData.builder("t1")
+        IndexMetadata indexMetadata = IndexMetadata.builder("t1")
             .settings(baseIndexSettings())
             .build();
-        AlterTableOperation.validateNumberOfShardsForResize(indexMetaData, 10);
+        AlterTableOperation.validateNumberOfShardsForResize(indexMetadata, 10);
     }
 
     @Test
     public void testNumberOfShardsRequestedNotAFactorOfCurrentIsNotSupported() {
-        IndexMetaData indexMetaData = IndexMetaData.builder("t1")
+        IndexMetadata indexMetadata = IndexMetadata.builder("t1")
             .settings(baseIndexSettings())
             .build();
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Requested number of shards: <3> needs to be a factor of the current one: <5>");
-        AlterTableOperation.validateNumberOfShardsForResize(indexMetaData, 3);
+        AlterTableOperation.validateNumberOfShardsForResize(indexMetadata, 3);
     }
 
     @Test

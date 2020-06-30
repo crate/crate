@@ -23,7 +23,7 @@ package io.crate.blob;
 
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -89,11 +89,11 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
     }
 
     @Override
-    protected void resolveRequest(IndexMetaData indexMetaData, StartBlobRequest request) {
+    protected void resolveRequest(IndexMetadata indexMetadata, StartBlobRequest request) {
         ShardIterator shardIterator = clusterService.operationRouting().indexShards(
             clusterService.state(), request.index(), request.id(), null);
         request.setShardId(shardIterator.shardId());
-        super.resolveRequest(indexMetaData, request);
+        super.resolveRequest(indexMetadata, request);
     }
 
     @Override

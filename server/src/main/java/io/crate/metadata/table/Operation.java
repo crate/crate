@@ -24,7 +24,7 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.Sets;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 
@@ -71,14 +71,14 @@ public enum Operation {
 
     private static final Map<String, EnumSet<Operation>> BLOCK_SETTING_TO_OPERATIONS_MAP =
         MapBuilder.<String, EnumSet<Operation>>newMapBuilder()
-            .put(IndexMetaData.SETTING_READ_ONLY, READ_ONLY)
-            .put(IndexMetaData.SETTING_BLOCKS_READ, READ_DISABLED_OPERATIONS)
-            .put(IndexMetaData.SETTING_BLOCKS_WRITE, WRITE_DISABLED_OPERATIONS)
-            .put(IndexMetaData.SETTING_BLOCKS_METADATA, METADATA_DISABLED_OPERATIONS)
+            .put(IndexMetadata.SETTING_READ_ONLY, READ_ONLY)
+            .put(IndexMetadata.SETTING_BLOCKS_READ, READ_DISABLED_OPERATIONS)
+            .put(IndexMetadata.SETTING_BLOCKS_WRITE, WRITE_DISABLED_OPERATIONS)
+            .put(IndexMetadata.SETTING_BLOCKS_METADATA, METADATA_DISABLED_OPERATIONS)
             .map();
 
-    public static EnumSet<Operation> buildFromIndexSettingsAndState(Settings settings, IndexMetaData.State state) {
-        if (state == IndexMetaData.State.CLOSE) {
+    public static EnumSet<Operation> buildFromIndexSettingsAndState(Settings settings, IndexMetadata.State state) {
+        if (state == IndexMetadata.State.CLOSE) {
             return CLOSED_OPERATIONS;
         }
         Set<Operation> operations = ALL;

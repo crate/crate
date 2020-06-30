@@ -27,7 +27,7 @@ import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import io.crate.exceptions.InvalidArgumentException;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
@@ -59,7 +59,7 @@ public class AwsS3ServiceImplTests extends ESTestCase {
 
     @Test
     public void testGetClientForSameSettingsReturnsCachedClient() {
-        RepositoryMetaData metadata = new RepositoryMetaData("", "", Settings.builder()
+        RepositoryMetadata metadata = new RepositoryMetadata("", "", Settings.builder()
             .put("access_key", "access_key")
             .put("secret_key", "secret_key")
             .build());
@@ -87,8 +87,8 @@ public class AwsS3ServiceImplTests extends ESTestCase {
             .put("secret_key", "new_secret_key")
             .build();
 
-        RepositoryMetaData metadata = new RepositoryMetaData("", "", settings);
-        RepositoryMetaData newMetadata = new RepositoryMetaData("", "", newSettings);
+        RepositoryMetadata metadata = new RepositoryMetadata("", "", settings);
+        RepositoryMetadata newMetadata = new RepositoryMetadata("", "", newSettings);
 
         AmazonS3Reference clientRef = service.client(metadata);
         assertThat(clientRef.refCount(), is(2));

@@ -29,12 +29,12 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -107,14 +107,14 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
 
     @Override
     public void update(ClusterChangedEvent event) {
-        assert event.metaDataChanged() : "metaDataChanged must be true if update is called";
-        MetaData newMetaData = event.state().metaData();
+        assert event.metadataChanged() : "metadataChanged must be true if update is called";
+        Metadata newMetadata = event.state().metadata();
         // re register UDFs for this schema
-        UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);
-        if (udfMetaData != null) {
+        UserDefinedFunctionsMetadata udfMetadata = newMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
+        if (udfMetadata != null) {
             udfService.updateImplementations(
                 NAME,
-                udfMetaData.functionsMetaData().stream().filter(f -> NAME.equals(f.schema())));
+                udfMetadata.functionsMetadata().stream().filter(f -> NAME.equals(f.schema())));
         }
     }
 }

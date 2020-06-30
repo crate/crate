@@ -21,7 +21,7 @@ package org.elasticsearch.cluster.coordination;
 
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.metadata.Manifest;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.env.Environment;
 
@@ -50,26 +50,26 @@ public class DetachClusterCommand extends ElasticsearchNodeCommand {
 
     @Override
     protected void processNodePaths(Terminal terminal, Path[] dataPaths, Environment env) throws IOException {
-        final Tuple<Manifest, MetaData> manifestMetaDataTuple = loadMetaData(terminal, dataPaths);
-        final Manifest manifest = manifestMetaDataTuple.v1();
-        final MetaData metaData = manifestMetaDataTuple.v2();
+        final Tuple<Manifest, Metadata> manifestMetadataTuple = loadMetadata(terminal, dataPaths);
+        final Manifest manifest = manifestMetadataTuple.v1();
+        final Metadata metadata = manifestMetadataTuple.v2();
 
         confirm(terminal, CONFIRMATION_MSG);
 
-        writeNewMetaData(terminal, manifest, updateCurrentTerm(), metaData, updateMetaData(metaData), dataPaths);
+        writeNewMetadata(terminal, manifest, updateCurrentTerm(), metadata, updateMetadata(metadata), dataPaths);
 
         terminal.println(NODE_DETACHED_MSG);
     }
 
     // package-private for tests
-    static MetaData updateMetaData(MetaData oldMetaData) {
-        final CoordinationMetaData coordinationMetaData = CoordinationMetaData.builder()
-                .lastAcceptedConfiguration(CoordinationMetaData.VotingConfiguration.MUST_JOIN_ELECTED_MASTER)
-                .lastCommittedConfiguration(CoordinationMetaData.VotingConfiguration.MUST_JOIN_ELECTED_MASTER)
+    static Metadata updateMetadata(Metadata oldMetadata) {
+        final CoordinationMetadata coordinationMetadata = CoordinationMetadata.builder()
+                .lastAcceptedConfiguration(CoordinationMetadata.VotingConfiguration.MUST_JOIN_ELECTED_MASTER)
+                .lastCommittedConfiguration(CoordinationMetadata.VotingConfiguration.MUST_JOIN_ELECTED_MASTER)
                 .term(0)
                 .build();
-        return MetaData.builder(oldMetaData)
-                .coordinationMetaData(coordinationMetaData)
+        return Metadata.builder(oldMetadata)
+                .coordinationMetadata(coordinationMetadata)
                 .clusterUUIDCommitted(false)
                 .build();
     }

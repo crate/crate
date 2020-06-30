@@ -26,8 +26,8 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.ESAllocationTestCase;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -104,22 +104,22 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         AllocationService strategy = new AllocationService(
             deciders, new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), cis);
 
-        MetaData metaData = MetaData.builder()
-            .put(IndexMetaData.builder("test").settings(
+        Metadata metadata = Metadata.builder()
+            .put(IndexMetadata.builder("test").settings(
                 Settings.builder()
-                    .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
-                    .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
+                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
             .build();
 
         final RoutingTable initialRoutingTable = RoutingTable.builder()
-            .addAsNew(metaData.index("test"))
+            .addAsNew(metadata.index("test"))
             .build();
 
         ClusterState clusterState = ClusterState
             .builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY))
-            .metaData(metaData)
+            .metadata(metadata)
             .routingTable(initialRoutingTable).build();
 
         logger.info("--> adding two nodes");
@@ -289,19 +289,19 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         AllocationService strategy = new AllocationService(
             deciders, new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), cis);
 
-        MetaData metaData = MetaData.builder()
-            .put(IndexMetaData.builder("test").settings(
-                Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 2)
-                    .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+        Metadata metadata = Metadata.builder()
+            .put(IndexMetadata.builder("test").settings(
+                Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 2)
+                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
             .build();
 
         RoutingTable initialRoutingTable = RoutingTable.builder()
-            .addAsNew(metaData.index("test"))
+            .addAsNew(metadata.index("test"))
             .build();
 
-        ClusterState clusterState = ClusterState.builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY)).metaData(metaData)
+        ClusterState clusterState = ClusterState.builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY)).metadata(metadata)
             .routingTable(initialRoutingTable).build();
 
         logger.info("--> adding node1 and node2 node");
@@ -499,7 +499,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
     public void testDiskThresholdWithShardSizes() {
         Settings diskSettings = Settings.builder()
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey(), true)
-            .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")
+            .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING.getKey(), 0.7)
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING.getKey(), "71%").build();
 
@@ -528,22 +528,22 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         AllocationService strategy = new AllocationService(
             deciders, new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), cis);
 
-        MetaData metaData = MetaData.builder()
-            .put(IndexMetaData.builder("test").settings(
-                Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-                    .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")
+        Metadata metadata = Metadata.builder()
+            .put(IndexMetadata.builder("test").settings(
+                Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
                     .build()))
             .build();
 
         RoutingTable routingTable = RoutingTable.builder()
-            .addAsNew(metaData.index("test"))
+            .addAsNew(metadata.index("test"))
             .build();
 
         ClusterState clusterState = ClusterState
             .builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY))
-            .metaData(metaData)
+            .metadata(metadata)
             .routingTable(routingTable).build();
         logger.info("--> adding node1");
         clusterState = ClusterState
@@ -598,21 +598,21 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         AllocationService strategy = new AllocationService(
             deciders, new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), cis);
 
-        MetaData metaData = MetaData.builder()
-            .put(IndexMetaData.builder("test").settings(
-                Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+        Metadata metadata = Metadata.builder()
+            .put(IndexMetadata.builder("test").settings(
+                Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
             .build();
 
         RoutingTable routingTable = RoutingTable.builder()
-            .addAsNew(metaData.index("test"))
+            .addAsNew(metadata.index("test"))
             .build();
 
         ClusterState clusterState = ClusterState
             .builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY))
-            .metaData(metaData)
+            .metadata(metadata)
             .routingTable(routingTable).build();
         logger.info("--> adding node1");
         clusterState = ClusterState
@@ -691,23 +691,23 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
 
         DiskThresholdDecider diskThresholdDecider = makeDecider(diskSettings);
-        MetaData metaData = MetaData.builder()
-            .put(IndexMetaData.builder("test").settings(
+        Metadata metadata = Metadata.builder()
+            .put(IndexMetadata.builder("test").settings(
                 Settings.builder()
-                    .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")))
-            .put(IndexMetaData.builder("foo").settings(
-                Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+            .put(IndexMetadata.builder("foo").settings(
+                Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
             .build();
 
         RoutingTable initialRoutingTable = RoutingTable.builder()
-            .addAsNew(metaData.index("test"))
-            .addAsNew(metaData.index("foo"))
+            .addAsNew(metadata.index("test"))
+            .addAsNew(metadata.index("foo"))
             .build();
 
         DiscoveryNode discoveryNode1 = new DiscoveryNode("node1", buildNewFakeTransportAddress(), emptyMap(),
@@ -717,7 +717,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         DiscoveryNodes discoveryNodes = DiscoveryNodes.builder().add(discoveryNode1).add(discoveryNode2).build();
 
         ClusterState baseClusterState = ClusterState.builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY))
-            .metaData(metaData)
+            .metadata(metadata)
             .routingTable(initialRoutingTable)
             .nodes(discoveryNodes)
             .build();
@@ -829,16 +829,16 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes.build());
 
         DiskThresholdDecider diskThresholdDecider = makeDecider(diskSettings);
-        MetaData metaData = MetaData.builder()
-            .put(IndexMetaData.builder("test").settings(
-                Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+        Metadata metadata = Metadata.builder()
+            .put(IndexMetadata.builder("test").settings(
+                Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
             .build();
 
         RoutingTable initialRoutingTable = RoutingTable.builder()
-            .addAsNew(metaData.index("test"))
+            .addAsNew(metadata.index("test"))
             .build();
 
         logger.info("--> adding one master node, one data node");
@@ -849,7 +849,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         DiscoveryNodes discoveryNodes = DiscoveryNodes.builder().add(discoveryNode1).add(discoveryNode2).build();
         ClusterState baseClusterState = ClusterState.builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY))
-            .metaData(metaData)
+            .metadata(metadata)
             .routingTable(initialRoutingTable)
             .nodes(discoveryNodes)
             .build();

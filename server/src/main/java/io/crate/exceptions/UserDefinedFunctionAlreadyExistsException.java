@@ -22,7 +22,7 @@
 
 package io.crate.exceptions;
 
-import io.crate.expression.udf.UserDefinedFunctionMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 
 import java.util.Locale;
 
@@ -30,12 +30,12 @@ public class UserDefinedFunctionAlreadyExistsException extends ConflictException
 
     private final String schema;
 
-    public UserDefinedFunctionAlreadyExistsException(UserDefinedFunctionMetaData udfMetaData) {
+    public UserDefinedFunctionAlreadyExistsException(UserDefinedFunctionMetadata udfMetadata) {
         super(String.format(Locale.ENGLISH, "User defined Function '%s.%s' already exists.",
-            udfMetaData.schema(),
-            udfMetaData.specificName())
+            udfMetadata.schema(),
+            udfMetadata.specificName())
         );
-        this.schema = udfMetaData.schema();
+        this.schema = udfMetadata.schema();
     }
 
     @Override

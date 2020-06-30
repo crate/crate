@@ -26,7 +26,7 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.udf.UserDefinedFunctionMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -112,7 +112,7 @@ public class FunctionArgumentDefinition implements Writeable, ToXContent {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject().field("name", name).field("data_type");
-        UserDefinedFunctionMetaData.DataTypeXContent.toXContent(type, builder, params);
+        UserDefinedFunctionMetadata.DataTypeXContent.toXContent(type, builder, params);
         builder.endObject();
         return builder;
     }
@@ -132,7 +132,7 @@ public class FunctionArgumentDefinition implements Writeable, ToXContent {
                     if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
                         throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
                     }
-                    type = UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);
+                    type = UserDefinedFunctionMetadata.DataTypeXContent.fromXContent(parser);
                 } else {
                     throw new IllegalArgumentException("Expected \"name\" or \"data_type\", but got " + parser.currentName());
                 }

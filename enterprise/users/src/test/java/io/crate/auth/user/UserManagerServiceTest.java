@@ -19,8 +19,8 @@
 package io.crate.auth.user;
 
 import io.crate.metadata.UserDefinitions;
-import io.crate.metadata.UsersMetaData;
-import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.UsersMetadata;
+import io.crate.metadata.UsersPrivilegesMetadata;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Test;
 
@@ -33,18 +33,18 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void testNullAndEmptyMetaData() {
+    public void testNullAndEmptyMetadata() {
         // the users list will always contain a crate user
         Set<User> users = UserManagerService.getUsers(null, null);
         assertThat(users, contains(CRATE_USER));
 
-        users = UserManagerService.getUsers(new UsersMetaData(), new UsersPrivilegesMetaData());
+        users = UserManagerService.getUsers(new UsersMetadata(), new UsersPrivilegesMetadata());
         assertThat(users, contains(CRATE_USER));
     }
 
     @Test
     public void testNewUser() {
-        Set<User> users = UserManagerService.getUsers(new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY), new UsersPrivilegesMetaData());
+        Set<User> users = UserManagerService.getUsers(new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY), new UsersPrivilegesMetadata());
         assertThat(users, containsInAnyOrder(User.of("Arthur"), CRATE_USER));
     }
 }
