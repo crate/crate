@@ -22,7 +22,15 @@
 
 package io.crate.expression.tablefunctions;
 
+import io.crate.expression.symbol.Function;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.types.DataTypes;
 import org.junit.Test;
+
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
+
 
 public class UnnestFunctionTest extends AbstractTableFunctionsTest {
 
@@ -80,5 +88,17 @@ public class UnnestFunctionTest extends AbstractTableFunctionsTest {
             "4| NULL\n" +
             "5| NULL\n"
         );
+    }
+
+    @Test
+    public void test_unnest_bound_signature_return_type_resolves_correct_row_type_parameters() {
+        var function = (Function) sqlExpressions.asSymbol("unnest([1], ['a'], [{}])");
+        var functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+            function,
+            txnCtx.sessionSettings().searchPath()
+        );
+        assertThat(
+            functionImplementation.boundSignature().getReturnType().createType().getTypeParameters(),
+            is(List.of(DataTypes.INTEGER, DataTypes.STRING, DataTypes.UNTYPED_OBJECT)));
     }
 }

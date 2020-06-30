@@ -56,7 +56,10 @@ public class UnnestFunction {
                     parseTypeSignature("E")
                 )
                 .withTypeVariableConstraints(typeVariable("E")),
-            UnnestTableFunctionImplementation::new
+            (signature, boundSignature) -> new UnnestTableFunctionImplementation(
+                signature,
+                boundSignature,
+                new RowType(List.of(boundSignature.getReturnType().createType())))
         );
         module.register(
             Signature
@@ -68,7 +71,28 @@ public class UnnestFunction {
                 )
                 .withTypeVariableConstraints(typeVariable("E"), typeVariableOfAnyType("N"))
                 .withVariableArity(),
-            UnnestTableFunctionImplementation::new
+            (signature, boundSignature) -> {
+                var argTypes = boundSignature.getArgumentDataTypes();
+                ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
+                for (int i = 0; i < argTypes.size(); i++) {
+                    DataType<?> dataType = argTypes.get(i);
+                    fieldTypes.add(ArrayType.unnest(dataType));
+                }
+                var returnType = new RowType(fieldTypes);
+                // the return type of the bound signature has to be resolved
+                // and created explicitly based on the arguments of the bounded
+                // signature, such as we cannot resolve correctly the field types
+                // of the record type from the array of any type with variable arity.
+                return new UnnestTableFunctionImplementation(
+                    signature,
+                    Signature.builder()
+                        .name(boundSignature.getName())
+                        .kind(boundSignature.getKind())
+                        .argumentTypes(boundSignature.getArgumentTypes())
+                        .returnType(returnType.getTypeSignature())
+                        .build(),
+                    returnType);
+            }
         );
         // unnest() to keep it compatible with previous versions
         module.register(
@@ -76,7 +100,10 @@ public class UnnestFunction {
                 NAME,
                 DataTypes.UNTYPED_OBJECT.getTypeSignature()
             ),
-            UnnestTableFunctionImplementation::new
+            (signature, boundSignature) -> new UnnestTableFunctionImplementation(
+                signature,
+                boundSignature,
+                RowType.EMPTY)
         );
     }
 
@@ -86,16 +113,12 @@ public class UnnestFunction {
         private final Signature signature;
         private final Signature boundSignature;
 
-        private UnnestTableFunctionImplementation(Signature signature, Signature boundSignature) {
+        private UnnestTableFunctionImplementation(Signature signature,
+                                                  Signature boundSignature,
+                                                  RowType returnType) {
             this.signature = signature;
             this.boundSignature = boundSignature;
-            var argTypes = boundSignature.getArgumentDataTypes();
-            ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
-            for (int i = 0; i < argTypes.size(); i++) {
-                DataType<?> dataType = argTypes.get(i);
-                fieldTypes.add(ArrayType.unnest(dataType));
-            }
-            this.returnType = new RowType(fieldTypes);
+            this.returnType = returnType;
         }
 
         @Override
@@ -119,7 +142,6 @@ public class UnnestFunction {
         }
 
         /**
-         *
          * @param arguments collection of array-literals
          *                  e.g. [ [1, 2], [Marvin, Trillian] ]
          * @return Bucket containing the unnested rows.
