@@ -84,8 +84,6 @@ public class PGTypes {
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
     private static final Set<PGType> TYPES;
-    private static final int TEXT_OID = 25;
-    private static final int TEXT_ARRAY_OID = 1009;
 
     static {
         for (Map.Entry<DataType<?>, PGType> e : CRATE_TO_PG_TYPES.entrySet()) {
@@ -96,8 +94,8 @@ public class PGTypes {
             }
         }
         PG_TYPES_TO_CRATE_TYPE.put(0, DataTypes.UNDEFINED);
-        PG_TYPES_TO_CRATE_TYPE.put(TEXT_OID, DataTypes.STRING);
-        PG_TYPES_TO_CRATE_TYPE.put(TEXT_ARRAY_OID, new ArrayType<>(DataTypes.STRING));
+        PG_TYPES_TO_CRATE_TYPE.put(VarCharType.TextType.OID, DataTypes.STRING);
+        PG_TYPES_TO_CRATE_TYPE.put(PGArray.TEXT_ARRAY.oid(), new ArrayType<>(DataTypes.STRING));
         TYPES = new HashSet<>(CRATE_TO_PG_TYPES.values()); // some pgTypes are used multiple times, de-dup them
         // the following polymorphic types are added manually,
         // because there are no corresponding data types in CrateDB
@@ -107,6 +105,11 @@ public class PGTypes {
         // we merely need this type information in 'pg_types' static table for postgres compatibility
         TYPES.add(VarCharType.NameType.INSTANCE);
         TYPES.add(OidType.INSTANCE);
+
+        // We map DataTypes.STRING to varchar (for no good reason, other than history)
+        // But want to expose text additionally as well
+        TYPES.add(VarCharType.TextType.INSTANCE);
+        TYPES.add(PGArray.TEXT_ARRAY);
     }
 
     public static Iterable<PGType> pgTypes() {

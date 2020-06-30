@@ -101,4 +101,10 @@ class VarCharType extends PGType<Object> {
 
         static final VarCharType INSTANCE = new VarCharType(OID, ARRAY_OID, TYPE_LEN, "name");
     }
+
+    static class TextType {
+        static final int OID = 25;
+        static final int TEXT_ARRAY_OID = 1009;
+        static final VarCharType INSTANCE = new VarCharType(OID, TEXT_ARRAY_OID, -1, "text");
+    }
 }
