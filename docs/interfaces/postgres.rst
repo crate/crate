@@ -171,6 +171,7 @@ table available in CrateDB::
     |   21 | int2                         |     1005 |       0 |      2 | b       | N           |
     |   23 | int4                         |     1007 |       0 |      4 | b       | N           |
     |   24 | regproc                      |     1008 |       0 |      4 | b       | N           |
+    |   25 | text                         |     1009 |       0 |     -1 | b       | S           |
     |   26 | oid                          |     1028 |       0 |      4 | b       | N           |
     |   30 | oidvector                    |     1013 |      26 |     -1 | b       | A           |
     |  114 | json                         |      199 |       0 |     -1 | b       | U           |
@@ -183,6 +184,7 @@ table available in CrateDB::
     | 1005 | _int2                        |        0 |      21 |     -1 | b       | A           |
     | 1007 | _int4                        |        0 |      23 |     -1 | b       | A           |
     | 1008 | _regproc                     |        0 |      24 |     -1 | b       | A           |
+    | 1009 | _text                        |        0 |      25 |     -1 | b       | A           |
     | 1015 | _varchar                     |        0 |    1043 |     -1 | b       | A           |
     | 1016 | _int8                        |        0 |      20 |     -1 | b       | A           |
     | 1017 | _point                       |        0 |     600 |     -1 | b       | A           |
@@ -202,7 +204,7 @@ table available in CrateDB::
     | 2277 | anyarray                     |        0 |    2276 |     -1 | p       | P           |
     | 2287 | _record                      |        0 |    2249 |     -1 | p       | A           |
     +------+------------------------------+----------+---------+--------+---------+-------------+
-    SELECT 37 rows in set (... sec)
+    SELECT 39 rows in set (... sec)
 
 .. NOTE::
 
