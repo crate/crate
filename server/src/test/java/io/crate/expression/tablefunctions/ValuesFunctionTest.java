@@ -28,7 +28,10 @@ import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 
 public class ValuesFunctionTest extends AbstractTableFunctionsTest {
@@ -109,5 +112,17 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
         expectedException.expectMessage("Unknown function: _values(200)," +
                                         " no overload found for matching argument types: (integer).");
         assertExecute("_values(200)", "");
+    }
+
+    @Test
+    public void test_bound_signature_return_type_resolves_correct_row_type_parameters() {
+        var function = (Function) sqlExpressions.asSymbol("_values([1], ['a'], [{}])");
+        var functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+            function,
+            txnCtx.sessionSettings().searchPath()
+        );
+        assertThat(
+            functionImplementation.boundSignature().getReturnType().createType().getTypeParameters(),
+            is(List.of(DataTypes.INTEGER, DataTypes.STRING, DataTypes.UNTYPED_OBJECT)));
     }
 }

@@ -64,7 +64,6 @@ public class ValuesFunction {
         private ValuesTableFunctionImplementation(Signature signature,
                                                   Signature boundSignature) {
             this.signature = signature;
-            this.boundSignature = boundSignature;
             var argTypes = boundSignature.getArgumentDataTypes();
             ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {
@@ -74,6 +73,12 @@ public class ValuesFunction {
                 fieldTypes.add(((ArrayType<?>) dataType).innerType());
             }
             returnType = new RowType(fieldTypes);
+            this.boundSignature = Signature.builder()
+                .name(boundSignature.getName())
+                .kind(boundSignature.getKind())
+                .argumentTypes(boundSignature.getArgumentTypes())
+                .returnType(returnType.getTypeSignature())
+                .build();
         }
 
         @Override

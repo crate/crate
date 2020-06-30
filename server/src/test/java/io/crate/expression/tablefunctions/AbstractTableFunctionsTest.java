@@ -34,12 +34,12 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
@@ -49,7 +49,7 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
     protected TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
-    public void prepareFunctions() throws Exception {
+    public void prepareFunctions() {
         sqlExpressions = new SqlExpressions(Map.of(new RelationName(null, "t"), mock(DocTableRelation.class)));
         functions = sqlExpressions.getInstance(Functions.class);
     }
@@ -58,16 +58,28 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
         Symbol functionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(expr));
 
         var function = (Function) functionSymbol;
-        TableFunctionImplementation<?> functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+        var functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
             function,
             txnCtx.sessionSettings().searchPath()
         );
+
+        if (functionImplementation.returnType().numElements() > 1) {
+            // See classdocs of TableFunctionImplementation for an explanation
+            assertThat(
+                "If the rowType has multiple elements, the returnType of the boundSignature " +
+                "must be an exact match of the returnType",
+                functionImplementation.boundSignature().getReturnType().createType(),
+                is(functionImplementation.returnType())
+            );
+        }
+
+        //noinspection unchecked,rawtypes
         return functionImplementation.evaluate(
             txnCtx,
             function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
     }
 
     protected void assertExecute(String expr, String expected) {
-        assertThat(printedTable(execute(expr)), Matchers.is(expected));
+        assertThat(printedTable(execute(expr)), is(expected));
     }
 }
