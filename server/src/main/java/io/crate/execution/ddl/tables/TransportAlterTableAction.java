@@ -30,8 +30,8 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaDataCreateIndexService;
-import org.elasticsearch.cluster.metadata.MetaDataMappingService;
+import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataMappingService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -53,11 +53,11 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
                                      IndexNameExpressionResolver indexNameExpressionResolver,
-                                     MetaDataMappingService metaDataMappingService,
+                                     MetadataMappingService metadataMappingService,
                                      IndicesService indicesService,
                                      AllocationService allocationService,
                                      IndexScopedSettings indexScopedSettings,
-                                     MetaDataCreateIndexService metaDataCreateIndexService) {
+                                     MetadataCreateIndexService metadataCreateIndexService) {
         super(ACTION_NAME,
               transportService,
               clusterService,
@@ -67,12 +67,12 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,
               "alter-table");
-        executor = new AlterTableClusterStateExecutor(metaDataMappingService,
+        executor = new AlterTableClusterStateExecutor(metadataMappingService,
                                                       indicesService,
                                                       allocationService,
                                                       indexScopedSettings,
                                                       indexNameExpressionResolver,
-                                                      metaDataCreateIndexService);
+                                                      metadataCreateIndexService);
     }
 
     @Override

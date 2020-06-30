@@ -25,7 +25,7 @@ package io.crate.expression.reference.sys.check.cluster;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -58,8 +58,8 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     @Override
     public CompletableFuture<?> computeResult() {
         HashSet<String> fqTables = new HashSet<>();
-        for (ObjectCursor<IndexMetaData> cursor : clusterService.state()
-            .metaData()
+        for (ObjectCursor<IndexMetadata> cursor : clusterService.state()
+            .metadata()
             .indices()
             .values()) {
 

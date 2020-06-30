@@ -30,8 +30,8 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
@@ -92,7 +92,7 @@ public class DefaultTemplateService extends AbstractLifecycleComponent implement
         if (Objects.equals(nodes.getMasterNodeId(), nodes.getLocalNodeId()) == false) {
             return;
         }
-        if (state.getMetaData().getTemplates().containsKey(TEMPLATE_NAME) == false) {
+        if (state.getMetadata().getTemplates().containsKey(TEMPLATE_NAME) == false) {
             createDefaultTemplate();
         }
     }
@@ -113,23 +113,23 @@ public class DefaultTemplateService extends AbstractLifecycleComponent implement
 
     @VisibleForTesting
     static ClusterState addDefaultTemplate(ClusterState currentState) throws IOException {
-        MetaData currentMetaData = currentState.getMetaData();
-        ImmutableOpenMap<String, IndexTemplateMetaData> currentTemplates = currentMetaData.getTemplates();
-        ImmutableOpenMap<String, IndexTemplateMetaData> newTemplates = createCopyWithDefaultTemplateAdded(currentTemplates);
-        MetaData.Builder mdBuilder = MetaData.builder(currentMetaData).templates(newTemplates);
-        return ClusterState.builder(currentState).metaData(mdBuilder).build();
+        Metadata currentMetadata = currentState.getMetadata();
+        ImmutableOpenMap<String, IndexTemplateMetadata> currentTemplates = currentMetadata.getTemplates();
+        ImmutableOpenMap<String, IndexTemplateMetadata> newTemplates = createCopyWithDefaultTemplateAdded(currentTemplates);
+        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata).templates(newTemplates);
+        return ClusterState.builder(currentState).metadata(mdBuilder).build();
     }
 
-    private static ImmutableOpenMap<String, IndexTemplateMetaData> createCopyWithDefaultTemplateAdded(
-        ImmutableOpenMap<String, IndexTemplateMetaData> currentTemplates) throws IOException {
+    private static ImmutableOpenMap<String, IndexTemplateMetadata> createCopyWithDefaultTemplateAdded(
+        ImmutableOpenMap<String, IndexTemplateMetadata> currentTemplates) throws IOException {
 
-        ImmutableOpenMap.Builder<String, IndexTemplateMetaData> builder = ImmutableOpenMap.builder(currentTemplates);
-        builder.put(TEMPLATE_NAME, createDefaultIndexTemplateMetaData());
+        ImmutableOpenMap.Builder<String, IndexTemplateMetadata> builder = ImmutableOpenMap.builder(currentTemplates);
+        builder.put(TEMPLATE_NAME, createDefaultIndexTemplateMetadata());
         return builder.build();
     }
 
-    public static IndexTemplateMetaData createDefaultIndexTemplateMetaData() throws IOException {
-        return IndexTemplateMetaData.builder(TEMPLATE_NAME)
+    public static IndexTemplateMetadata createDefaultIndexTemplateMetadata() throws IOException {
+        return IndexTemplateMetadata.builder(TEMPLATE_NAME)
             .order(0)
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, DEFAULT_MAPPING_SOURCE)
             .patterns(Collections.singletonList("*"))

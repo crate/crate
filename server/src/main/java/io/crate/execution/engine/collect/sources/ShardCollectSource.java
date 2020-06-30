@@ -71,8 +71,8 @@ import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -334,10 +334,10 @@ public class ShardCollectSource implements CollectSource {
         SharedShardContexts sharedShardContexts = collectTask.sharedShardContexts();
         Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
         List<OrderedDocCollector> orderedDocCollectors = new ArrayList<>();
-        MetaData metaData = clusterService.state().metaData();
+        Metadata metadata = clusterService.state().metadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
-            Index index = metaData.index(indexName).getIndex();
+            Index index = metadata.index(indexName).getIndex();
 
             for (IntCursor shard : entry.getValue()) {
                 ShardId shardId = new ShardId(index, shard.value);
@@ -400,11 +400,11 @@ public class ShardCollectSource implements CollectSource {
                                                   boolean requiresScroll,
                                                   Map<String, IntIndexedContainer> indexShards) {
 
-        MetaData metaData = clusterService.state().metaData();
+        Metadata metadata = clusterService.state().metadata();
         List<BatchIterator<Row>> iterators = new ArrayList<>();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
-            IndexMetaData indexMD = metaData.index(indexName);
+            IndexMetadata indexMD = metadata.index(indexName);
             if (indexMD == null) {
                 if (IndexParts.isPartitioned(indexName)) {
                     continue;
@@ -458,16 +458,16 @@ public class ShardCollectSource implements CollectSource {
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<ShardRowContext> shardRowContexts = new ArrayList<>();
         Map<String, IntIndexedContainer> indexShardsMap = locations.get(localNodeId);
-        MetaData metaData = clusterService.state().metaData();
+        Metadata metadata = clusterService.state().metadata();
 
 
         for (Map.Entry<String, IntIndexedContainer> indexShards : indexShardsMap.entrySet()) {
             String indexName = indexShards.getKey();
-            IndexMetaData indexMetaData = metaData.index(indexName);
-            if (indexMetaData == null) {
+            IndexMetadata indexMetadata = metadata.index(indexName);
+            if (indexMetadata == null) {
                 continue;
             }
-            Index index = indexMetaData.getIndex();
+            Index index = indexMetadata.getIndex();
             IntIndexedContainer shards = indexShards.getValue();
             IndexService indexService = indicesService.indexService(index);
             if (indexService == null) {

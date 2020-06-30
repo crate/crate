@@ -27,8 +27,8 @@ import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.IndexParts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
@@ -45,7 +45,7 @@ import static io.crate.metadata.DefaultTemplateService.TEMPLATE_NAME;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
-public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetaData>> {
+public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetadata>> {
 
     private final Logger logger;
 
@@ -54,10 +54,10 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
     }
 
     @Override
-    public Map<String, IndexTemplateMetaData> apply(Map<String, IndexTemplateMetaData> templates) {
-        HashMap<String, IndexTemplateMetaData> upgradedTemplates = archiveUnknownOrInvalidSettings(templates);
+    public Map<String, IndexTemplateMetadata> apply(Map<String, IndexTemplateMetadata> templates) {
+        HashMap<String, IndexTemplateMetadata> upgradedTemplates = archiveUnknownOrInvalidSettings(templates);
         try {
-            upgradedTemplates.put(TEMPLATE_NAME, DefaultTemplateService.createDefaultIndexTemplateMetaData());
+            upgradedTemplates.put(TEMPLATE_NAME, DefaultTemplateService.createDefaultIndexTemplateMetadata());
         } catch (IOException e) {
             logger.error("Error while trying to upgrade the default template", e);
         }
@@ -66,19 +66,19 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
 
     /**
      * Filter out all unknown/old/invalid settings. Archiving them *only* is not working as they would be "un-archived"
-     * by {@link IndexTemplateMetaData.Builder#fromXContent} logic to prefix all settings with `index.` when applying
+     * by {@link IndexTemplateMetadata.Builder#fromXContent} logic to prefix all settings with `index.` when applying
      * the new cluster state.
      */
-    private HashMap<String, IndexTemplateMetaData> archiveUnknownOrInvalidSettings(Map<String, IndexTemplateMetaData> templates) {
-        HashMap<String, IndexTemplateMetaData> upgradedTemplates = new HashMap<>(templates.size());
-        for (Map.Entry<String, IndexTemplateMetaData> entry : templates.entrySet()) {
-            IndexTemplateMetaData templateMetaData = entry.getValue();
-            Settings.Builder settingsBuilder = Settings.builder().put(templateMetaData.settings());
+    private HashMap<String, IndexTemplateMetadata> archiveUnknownOrInvalidSettings(Map<String, IndexTemplateMetadata> templates) {
+        HashMap<String, IndexTemplateMetadata> upgradedTemplates = new HashMap<>(templates.size());
+        for (Map.Entry<String, IndexTemplateMetadata> entry : templates.entrySet()) {
+            IndexTemplateMetadata templateMetadata = entry.getValue();
+            Settings.Builder settingsBuilder = Settings.builder().put(templateMetadata.settings());
             String templateName = entry.getKey();
 
             // only process partition table templates
             if (IndexParts.isPartitioned(templateName) == false) {
-                upgradedTemplates.put(templateName, templateMetaData);
+                upgradedTemplates.put(templateName, templateMetadata);
                 continue;
             }
 
@@ -86,12 +86,12 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
                 settingsBuilder.build(), e -> { }, (e, ex) -> { })
                 .filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX) == false);
 
-            IndexTemplateMetaData.Builder builder = IndexTemplateMetaData.builder(templateName)
-                .patterns(templateMetaData.patterns())
-                .order(templateMetaData.order())
+            IndexTemplateMetadata.Builder builder = IndexTemplateMetadata.builder(templateName)
+                .patterns(templateMetadata.patterns())
+                .order(templateMetadata.order())
                 .settings(settings);
             try {
-                for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.getMappings()) {
+                for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetadata.getMappings()) {
                     var mappingSource = XContentHelper.toMap(cursor.value.compressedReference(), XContentType.JSON);
 
                     Object defaultMapping = mappingSource.get("default");
@@ -113,7 +113,7 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
                 continue;
             }
 
-            for (ObjectObjectCursor<String, AliasMetaData> container : templateMetaData.aliases()) {
+            for (ObjectObjectCursor<String, AliasMetadata> container : templateMetadata.aliases()) {
                 builder.putAlias(container.value);
             }
             upgradedTemplates.put(templateName, builder.build());

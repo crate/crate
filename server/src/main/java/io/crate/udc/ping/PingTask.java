@@ -78,7 +78,7 @@ public class PingTask extends TimerTask {
     }
 
     private String getClusterId() {
-        return clusterService.state().metaData().clusterUUID();
+        return clusterService.state().metadata().clusterUUID();
     }
 
     private Boolean isMasterNode() {

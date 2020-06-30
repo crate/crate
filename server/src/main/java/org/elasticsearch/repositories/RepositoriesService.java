@@ -29,9 +29,9 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -94,7 +94,7 @@ public class RepositoriesService implements ClusterStateApplier {
      * @param listener register repository listener
      */
     public void registerRepository(final RegisterRepositoryRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
-        final RepositoryMetaData newRepositoryMetaData = new RepositoryMetaData(request.name, request.type, request.settings);
+        final RepositoryMetadata newRepositoryMetadata = new RepositoryMetadata(request.name, request.type, request.settings);
 
         final ActionListener<ClusterStateUpdateResponse> registrationListener;
         if (request.verify) {
@@ -113,39 +113,39 @@ public class RepositoriesService implements ClusterStateApplier {
             public ClusterState execute(ClusterState currentState) throws IOException {
                 ensureRepositoryNotInUse(currentState, request.name);
                 // Trying to create the new repository on master to make sure it works
-                if (!registerRepository(newRepositoryMetaData)) {
+                if (!registerRepository(newRepositoryMetadata)) {
                     // The new repository has the same settings as the old one - ignore
                     return currentState;
                 }
-                MetaData metaData = currentState.metaData();
-                MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
-                RepositoriesMetaData repositories = metaData.custom(RepositoriesMetaData.TYPE);
+                Metadata metadata = currentState.metadata();
+                Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
+                RepositoriesMetadata repositories = metadata.custom(RepositoriesMetadata.TYPE);
                 if (repositories == null) {
                     LOGGER.info("put repository [{}]", request.name);
-                    repositories = new RepositoriesMetaData(
-                        Collections.singletonList(new RepositoryMetaData(request.name, request.type, request.settings)));
+                    repositories = new RepositoriesMetadata(
+                        Collections.singletonList(new RepositoryMetadata(request.name, request.type, request.settings)));
                 } else {
                     boolean found = false;
-                    List<RepositoryMetaData> repositoriesMetaData = new ArrayList<>(repositories.repositories().size() + 1);
+                    List<RepositoryMetadata> repositoriesMetadata = new ArrayList<>(repositories.repositories().size() + 1);
 
-                    for (RepositoryMetaData repositoryMetaData : repositories.repositories()) {
-                        if (repositoryMetaData.name().equals(newRepositoryMetaData.name())) {
+                    for (RepositoryMetadata repositoryMetadata : repositories.repositories()) {
+                        if (repositoryMetadata.name().equals(newRepositoryMetadata.name())) {
                             found = true;
-                            repositoriesMetaData.add(newRepositoryMetaData);
+                            repositoriesMetadata.add(newRepositoryMetadata);
                         } else {
-                            repositoriesMetaData.add(repositoryMetaData);
+                            repositoriesMetadata.add(repositoryMetadata);
                         }
                     }
                     if (!found) {
                         LOGGER.info("put repository [{}]", request.name);
-                        repositoriesMetaData.add(new RepositoryMetaData(request.name, request.type, request.settings));
+                        repositoriesMetadata.add(new RepositoryMetadata(request.name, request.type, request.settings));
                     } else {
                         LOGGER.info("update repository [{}]", request.name);
                     }
-                    repositories = new RepositoriesMetaData(repositoriesMetaData);
+                    repositories = new RepositoriesMetadata(repositoriesMetadata);
                 }
-                mdBuilder.putCustom(RepositoriesMetaData.TYPE, repositories);
-                return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                mdBuilder.putCustom(RepositoriesMetadata.TYPE, repositories);
+                return ClusterState.builder(currentState).metadata(mdBuilder).build();
             }
 
             @Override
@@ -181,24 +181,24 @@ public class RepositoriesService implements ClusterStateApplier {
             @Override
             public ClusterState execute(ClusterState currentState) {
                 ensureRepositoryNotInUse(currentState, request.name);
-                MetaData metaData = currentState.metaData();
-                MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
-                RepositoriesMetaData repositories = metaData.custom(RepositoriesMetaData.TYPE);
+                Metadata metadata = currentState.metadata();
+                Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
+                RepositoriesMetadata repositories = metadata.custom(RepositoriesMetadata.TYPE);
                 if (repositories != null && repositories.repositories().size() > 0) {
-                    List<RepositoryMetaData> repositoriesMetaData = new ArrayList<>(repositories.repositories().size());
+                    List<RepositoryMetadata> repositoriesMetadata = new ArrayList<>(repositories.repositories().size());
                     boolean changed = false;
-                    for (RepositoryMetaData repositoryMetaData : repositories.repositories()) {
-                        if (Regex.simpleMatch(request.name, repositoryMetaData.name())) {
-                            LOGGER.info("delete repository [{}]", repositoryMetaData.name());
+                    for (RepositoryMetadata repositoryMetadata : repositories.repositories()) {
+                        if (Regex.simpleMatch(request.name, repositoryMetadata.name())) {
+                            LOGGER.info("delete repository [{}]", repositoryMetadata.name());
                             changed = true;
                         } else {
-                            repositoriesMetaData.add(repositoryMetaData);
+                            repositoriesMetadata.add(repositoryMetadata);
                         }
                     }
                     if (changed) {
-                        repositories = new RepositoriesMetaData(repositoriesMetaData);
-                        mdBuilder.putCustom(RepositoriesMetaData.TYPE, repositories);
-                        return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                        repositories = new RepositoriesMetadata(repositoriesMetadata);
+                        mdBuilder.putCustom(RepositoriesMetadata.TYPE, repositories);
+                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
                 }
                 if (Regex.isMatchAllPattern(request.name)) { // we use a wildcard so we don't barf if it's not present.
@@ -279,11 +279,11 @@ public class RepositoriesService implements ClusterStateApplier {
     @Override
     public void applyClusterState(ClusterChangedEvent event) {
         try {
-            RepositoriesMetaData oldMetaData = event.previousState().getMetaData().custom(RepositoriesMetaData.TYPE);
-            RepositoriesMetaData newMetaData = event.state().getMetaData().custom(RepositoriesMetaData.TYPE);
+            RepositoriesMetadata oldMetadata = event.previousState().getMetadata().custom(RepositoriesMetadata.TYPE);
+            RepositoriesMetadata newMetadata = event.state().getMetadata().custom(RepositoriesMetadata.TYPE);
 
             // Check if repositories got changed
-            if ((oldMetaData == null && newMetaData == null) || (oldMetaData != null && oldMetaData.equals(newMetaData))) {
+            if ((oldMetadata == null && newMetadata == null) || (oldMetadata != null && oldMetadata.equals(newMetadata))) {
                 return;
             }
 
@@ -292,7 +292,7 @@ public class RepositoriesService implements ClusterStateApplier {
             Map<String, Repository> survivors = new HashMap<>();
             // First, remove repositories that are no longer there
             for (Map.Entry<String, Repository> entry : repositories.entrySet()) {
-                if (newMetaData == null || newMetaData.repository(entry.getKey()) == null) {
+                if (newMetadata == null || newMetadata.repository(entry.getKey()) == null) {
                     LOGGER.debug("unregistering repository [{}]", entry.getKey());
                     closeRepository(entry.getValue());
                 } else {
@@ -301,37 +301,37 @@ public class RepositoriesService implements ClusterStateApplier {
             }
 
             Map<String, Repository> builder = new HashMap<>();
-            if (newMetaData != null) {
+            if (newMetadata != null) {
                 // Now go through all repositories and update existing or create missing
-                for (RepositoryMetaData repositoryMetaData : newMetaData.repositories()) {
-                    Repository repository = survivors.get(repositoryMetaData.name());
+                for (RepositoryMetadata repositoryMetadata : newMetadata.repositories()) {
+                    Repository repository = survivors.get(repositoryMetadata.name());
                     if (repository != null) {
                         // Found previous version of this repository
-                        RepositoryMetaData previousMetadata = repository.getMetadata();
-                        if (previousMetadata.type().equals(repositoryMetaData.type()) == false
-                            || previousMetadata.settings().equals(repositoryMetaData.settings()) == false) {
+                        RepositoryMetadata previousMetadata = repository.getMetadata();
+                        if (previousMetadata.type().equals(repositoryMetadata.type()) == false
+                            || previousMetadata.settings().equals(repositoryMetadata.settings()) == false) {
                             // Previous version is different from the version in settings
-                            LOGGER.debug("updating repository [{}]", repositoryMetaData.name());
+                            LOGGER.debug("updating repository [{}]", repositoryMetadata.name());
                             closeRepository(repository);
                             repository = null;
                             try {
-                                repository = createRepository(repositoryMetaData);
+                                repository = createRepository(repositoryMetadata);
                             } catch (RepositoryException ex) {
                                 // TODO: this catch is bogus, it means the old repo is already closed,
                                 // but we have nothing to replace it
-                                LOGGER.warn(() -> new ParameterizedMessage("failed to change repository [{}]", repositoryMetaData.name()), ex);
+                                LOGGER.warn(() -> new ParameterizedMessage("failed to change repository [{}]", repositoryMetadata.name()), ex);
                             }
                         }
                     } else {
                         try {
-                            repository = createRepository(repositoryMetaData);
+                            repository = createRepository(repositoryMetadata);
                         } catch (RepositoryException ex) {
-                            LOGGER.warn(() -> new ParameterizedMessage("failed to create repository [{}]", repositoryMetaData.name()), ex);
+                            LOGGER.warn(() -> new ParameterizedMessage("failed to create repository [{}]", repositoryMetadata.name()), ex);
                         }
                     }
                     if (repository != null) {
-                        LOGGER.debug("registering repository [{}]", repositoryMetaData.name());
-                        builder.put(repositoryMetaData.name(), repository);
+                        LOGGER.debug("registering repository [{}]", repositoryMetadata.name());
+                        builder.put(repositoryMetadata.name(), repository);
                     }
                 }
             }
@@ -365,24 +365,24 @@ public class RepositoriesService implements ClusterStateApplier {
      * replaced with the new repository. If a repository with the same name exists but it has the same type and settings
      * the new repository is ignored.
      *
-     * @param repositoryMetaData new repository metadata
+     * @param repositoryMetadata new repository metadata
      * @return {@code true} if new repository was added or {@code false} if it was ignored
      */
-    private boolean registerRepository(RepositoryMetaData repositoryMetaData) throws IOException {
-        Repository previous = repositories.get(repositoryMetaData.name());
+    private boolean registerRepository(RepositoryMetadata repositoryMetadata) throws IOException {
+        Repository previous = repositories.get(repositoryMetadata.name());
         if (previous != null) {
-            RepositoryMetaData previousMetadata = previous.getMetadata();
-            if (previousMetadata.equals(repositoryMetaData)) {
+            RepositoryMetadata previousMetadata = previous.getMetadata();
+            if (previousMetadata.equals(repositoryMetadata)) {
                 // Previous version is the same as this one - ignore it
                 return false;
             }
         }
-        Repository newRepo = createRepository(repositoryMetaData);
+        Repository newRepo = createRepository(repositoryMetadata);
         if (previous != null) {
             closeRepository(previous);
         }
         Map<String, Repository> newRepositories = new HashMap<>(repositories);
-        newRepositories.put(repositoryMetaData.name(), newRepo);
+        newRepositories.put(repositoryMetadata.name(), newRepo);
         repositories = newRepositories;
         return true;
     }
@@ -396,20 +396,20 @@ public class RepositoriesService implements ClusterStateApplier {
     /**
      * Creates repository holder
      */
-    private Repository createRepository(RepositoryMetaData repositoryMetaData) {
-        LOGGER.debug("creating repository [{}][{}]", repositoryMetaData.type(), repositoryMetaData.name());
-        Repository.Factory factory = typesRegistry.get(repositoryMetaData.type());
+    private Repository createRepository(RepositoryMetadata repositoryMetadata) {
+        LOGGER.debug("creating repository [{}][{}]", repositoryMetadata.type(), repositoryMetadata.name());
+        Repository.Factory factory = typesRegistry.get(repositoryMetadata.type());
         if (factory == null) {
-            throw new RepositoryException(repositoryMetaData.name(),
-                "repository type [" + repositoryMetaData.type() + "] does not exist");
+            throw new RepositoryException(repositoryMetadata.name(),
+                "repository type [" + repositoryMetadata.type() + "] does not exist");
         }
         try {
-            Repository repository = factory.create(repositoryMetaData, typesRegistry::get);
+            Repository repository = factory.create(repositoryMetadata, typesRegistry::get);
             repository.start();
             return repository;
         } catch (Exception e) {
-            LOGGER.warn(() -> new ParameterizedMessage("failed to create repository [{}][{}]", repositoryMetaData.type(), repositoryMetaData.name()), e);
-            throw new RepositoryException(repositoryMetaData.name(), "failed to create repository", e);
+            LOGGER.warn(() -> new ParameterizedMessage("failed to create repository [{}][{}]", repositoryMetadata.type(), repositoryMetadata.name()), e);
+            throw new RepositoryException(repositoryMetadata.name(), "failed to create repository", e);
         }
     }
 

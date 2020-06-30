@@ -28,7 +28,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
-import org.elasticsearch.index.store.StoreFileMetaData;
+import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.EmptyTransportResponseHandler;
@@ -164,15 +164,15 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     }
 
     @Override
-    public void cleanFiles(int totalTranslogOps, Store.MetadataSnapshot sourceMetaData) throws IOException {
+    public void cleanFiles(int totalTranslogOps, Store.MetadataSnapshot sourceMetadata) throws IOException {
         transportService.submitRequest(targetNode, PeerRecoveryTargetService.Actions.CLEAN_FILES,
-                new RecoveryCleanFilesRequest(recoveryId, shardId, sourceMetaData, totalTranslogOps),
+                new RecoveryCleanFilesRequest(recoveryId, shardId, sourceMetadata, totalTranslogOps),
                 TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build(),
                 EmptyTransportResponseHandler.INSTANCE_SAME).txGet();
     }
 
     @Override
-    public void writeFileChunk(StoreFileMetaData fileMetaData,
+    public void writeFileChunk(StoreFileMetadata fileMetadata,
                                long position,
                                BytesReference content,
                                boolean lastChunk,
@@ -201,7 +201,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
         }
 
         transportService.submitRequest(targetNode, PeerRecoveryTargetService.Actions.FILE_CHUNK,
-            new RecoveryFileChunkRequest(recoveryId, shardId, fileMetaData, position, content, lastChunk,
+            new RecoveryFileChunkRequest(recoveryId, shardId, fileMetadata, position, content, lastChunk,
                 totalTranslogOps,
                 /* we send estimateTotalOperations with every request since we collect stats on the target and that way we can
                  * see how many translog ops we accumulate while copying files across the network. A future optimization

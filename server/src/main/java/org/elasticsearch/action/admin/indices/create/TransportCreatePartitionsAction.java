@@ -42,13 +42,13 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaDataCreateIndexService;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -86,14 +86,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
 
 
 /**
  * Creates one or more partitions within one cluster-state-update-task
  * <p>
- * This is more or less a more optimized version of {@link MetaDataCreateIndexService}
+ * This is more or less a more optimized version of {@link MetadataCreateIndexService}
  * <p>
  * It also has some limitations:
  * <p>
@@ -164,14 +164,14 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
                             String partitionTemplateName = PartitionName.templateName(request.indices().iterator().next());
-                            IndexTemplateMetaData templateMetaData = state.metaData().getTemplates().get(partitionTemplateName);
+                            IndexTemplateMetadata templateMetadata = state.metadata().getTemplates().get(partitionTemplateName);
 
                             logger.info("[{}] Table partitions created, but the operation timed out while waiting for " +
                                          "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
                                          "Consider decreasing the 'number_of_shards' table setting (currently: {}) or adding nodes to the cluster.",
                                 request.indices(), request.timeout(),
-                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetaData.getSettings()),
-                                INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetaData.getSettings()));
+                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetadata.getSettings()),
+                                INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetadata.getSettings()));
                         }
                         listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
                     }, listener::onFailure);
@@ -184,7 +184,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     }
 
     /**
-     * This code is more or less the same as the stuff in {@link MetaDataCreateIndexService}
+     * This code is more or less the same as the stuff in {@link MetadataCreateIndexService}
      * but optimized for bulk operation without separate mapping/alias/index settings.
      */
     private ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
@@ -198,23 +198,23 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             }
 
             Map<String, Map<String, Object>> mappings = new HashMap<>();
-            Map<String, AliasMetaData> templatesAliases = new HashMap<>();
+            Map<String, AliasMetadata> templatesAliases = new HashMap<>();
             List<String> templateNames = new ArrayList<>();
 
-            List<IndexTemplateMetaData> templates = findTemplates(request, currentState);
+            List<IndexTemplateMetadata> templates = findTemplates(request, currentState);
             applyTemplates(mappings, templatesAliases, templateNames, templates);
 
-            MetaData.Builder newMetaDataBuilder = MetaData.builder(currentState.metaData());
+            Metadata.Builder newMetadataBuilder = Metadata.builder(currentState.metadata());
             for (String index : indicesToCreate) {
                 Settings indexSettings = createIndexSettings(currentState, templates);
-                int routingNumShards = IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(indexSettings);
+                int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(indexSettings);
 
                 String testIndex = indicesToCreate.get(0);
-                IndexMetaData.Builder tmpImdBuilder = IndexMetaData.builder(testIndex)
+                IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(testIndex)
                     .setRoutingNumShards(routingNumShards);
 
                 // Set up everything, now locally create the index to see that things are ok, and apply
-                final IndexMetaData tmpImd = tmpImdBuilder.settings(indexSettings).build();
+                final IndexMetadata tmpImd = tmpImdBuilder.settings(indexSettings).build();
                 ActiveShardCount waitForActiveShards = tmpImd.getWaitForActiveShards();
                 if (!waitForActiveShards.validate(tmpImd.getNumberOfReplicas())) {
                     throw new IllegalArgumentException("invalid wait_for_active_shards[" + waitForActiveShards +
@@ -235,46 +235,46 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 }
 
                 // now, update the mappings with the actual source
-                HashMap<String, MappingMetaData> mappingsMetaData = new HashMap<>();
+                HashMap<String, MappingMetadata> mappingsMetadata = new HashMap<>();
                 for (DocumentMapper mapper : mapperService.docMappers(true)) {
-                    MappingMetaData mappingMd = new MappingMetaData(mapper);
-                    mappingsMetaData.put(mapper.type(), mappingMd);
+                    MappingMetadata mappingMd = new MappingMetadata(mapper);
+                    mappingsMetadata.put(mapper.type(), mappingMd);
                 }
 
-                final IndexMetaData.Builder indexMetaDataBuilder = IndexMetaData.builder(index)
+                final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
                     .setRoutingNumShards(routingNumShards)
                     .settings(indexSettings);
 
-                for (MappingMetaData mappingMd : mappingsMetaData.values()) {
-                    indexMetaDataBuilder.putMapping(mappingMd);
+                for (MappingMetadata mappingMd : mappingsMetadata.values()) {
+                    indexMetadataBuilder.putMapping(mappingMd);
                 }
-                for (AliasMetaData aliasMetaData : templatesAliases.values()) {
-                    indexMetaDataBuilder.putAlias(aliasMetaData);
+                for (AliasMetadata aliasMetadata : templatesAliases.values()) {
+                    indexMetadataBuilder.putAlias(aliasMetadata);
                 }
-                indexMetaDataBuilder.state(IndexMetaData.State.OPEN);
+                indexMetadataBuilder.state(IndexMetadata.State.OPEN);
 
-                final IndexMetaData indexMetaData;
+                final IndexMetadata indexMetadata;
                 try {
-                    indexMetaData = indexMetaDataBuilder.build();
+                    indexMetadata = indexMetadataBuilder.build();
                 } catch (Exception e) {
                     removalReasons.add("failed to build index metadata");
                     throw e;
                 }
                 logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}], mappings {}",
-                    index, templateNames, indexMetaData.getNumberOfShards(), indexMetaData.getNumberOfReplicas(), mappings.keySet());
+                    index, templateNames, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas(), mappings.keySet());
 
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(
-                    indexMetaData.getIndex(), indexMetaData.getSettings());
-                newMetaDataBuilder.put(indexMetaData, false);
+                    indexMetadata.getIndex(), indexMetadata.getSettings());
+                newMetadataBuilder.put(indexMetadata, false);
                 removalReasons.add("cleaning up after validating index on master");
             }
 
-            MetaData newMetaData = newMetaDataBuilder.build();
+            Metadata newMetadata = newMetadataBuilder.build();
 
-            ClusterState updatedState = ClusterState.builder(currentState).metaData(newMetaData).build();
+            ClusterState updatedState = ClusterState.builder(currentState).metadata(newMetadata).build();
             RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable());
             for (String index : indicesToCreate) {
-                routingTableBuilder.addAsNew(updatedState.metaData().index(index));
+                routingTableBuilder.addAsNew(updatedState.metadata().index(index));
             }
             return allocationService.reroute(
                 ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(), "bulk-index-creation");
@@ -317,7 +317,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                                   CreatePartitionsRequest request) {
         for (String index : request.indices()) {
             try {
-                MetaDataCreateIndexService.validateIndexName(index, currentState);
+                MetadataCreateIndexService.validateIndexName(index, currentState);
                 indicesToCreate.add(index);
             } catch (ResourceAlreadyExistsException e) {
                 // ignore
@@ -325,31 +325,31 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         }
     }
 
-    private Settings createIndexSettings(ClusterState currentState, List<IndexTemplateMetaData> templates) {
+    private Settings createIndexSettings(ClusterState currentState, List<IndexTemplateMetadata> templates) {
         Settings.Builder indexSettingsBuilder = Settings.builder();
         // apply templates, here, in reverse order, since first ones are better matching
         for (int i = templates.size() - 1; i >= 0; i--) {
             indexSettingsBuilder.put(templates.get(i).settings());
         }
-        if (indexSettingsBuilder.get(IndexMetaData.SETTING_VERSION_CREATED) == null) {
+        if (indexSettingsBuilder.get(IndexMetadata.SETTING_VERSION_CREATED) == null) {
             DiscoveryNodes nodes = currentState.nodes();
             final Version createdVersion = Version.min(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
-            indexSettingsBuilder.put(IndexMetaData.SETTING_VERSION_CREATED, createdVersion);
+            indexSettingsBuilder.put(IndexMetadata.SETTING_VERSION_CREATED, createdVersion);
         }
-        if (indexSettingsBuilder.get(IndexMetaData.SETTING_CREATION_DATE) == null) {
-            indexSettingsBuilder.put(IndexMetaData.SETTING_CREATION_DATE, new DateTime(DateTimeZone.UTC).getMillis());
+        if (indexSettingsBuilder.get(IndexMetadata.SETTING_CREATION_DATE) == null) {
+            indexSettingsBuilder.put(IndexMetadata.SETTING_CREATION_DATE, new DateTime(DateTimeZone.UTC).getMillis());
         }
-        indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
+        indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
 
         return indexSettingsBuilder.build();
     }
 
     private void applyTemplates(Map<String, Map<String, Object>> mappings,
-                                Map<String, AliasMetaData> templatesAliases,
+                                Map<String, AliasMetadata> templatesAliases,
                                 List<String> templateNames,
-                                List<IndexTemplateMetaData> templates) throws Exception {
+                                List<IndexTemplateMetadata> templates) throws Exception {
 
-        for (IndexTemplateMetaData template : templates) {
+        for (IndexTemplateMetadata template : templates) {
             templateNames.add(template.getName());
             for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
                 if (mappings.containsKey(cursor.key)) {
@@ -359,22 +359,22 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 }
             }
             //handle aliases
-            for (ObjectObjectCursor<String, AliasMetaData> cursor : template.aliases()) {
-                AliasMetaData aliasMetaData = cursor.value;
-                templatesAliases.put(aliasMetaData.alias(), aliasMetaData);
+            for (ObjectObjectCursor<String, AliasMetadata> cursor : template.aliases()) {
+                AliasMetadata aliasMetadata = cursor.value;
+                templatesAliases.put(aliasMetadata.alias(), aliasMetadata);
             }
         }
     }
 
-    private List<IndexTemplateMetaData> findTemplates(CreatePartitionsRequest request, ClusterState state) {
-        List<IndexTemplateMetaData> templates = new ArrayList<>();
+    private List<IndexTemplateMetadata> findTemplates(CreatePartitionsRequest request, ClusterState state) {
+        List<IndexTemplateMetadata> templates = new ArrayList<>();
         String firstIndex = request.indices().iterator().next();
 
 
         // note: only use the first index name to see if template matches.
         // this means
-        for (ObjectCursor<IndexTemplateMetaData> cursor : state.metaData().templates().values()) {
-            IndexTemplateMetaData template = cursor.value;
+        for (ObjectCursor<IndexTemplateMetadata> cursor : state.metadata().templates().values()) {
+            IndexTemplateMetadata template = cursor.value;
             for (String pattern : template.getPatterns()) {
                 if (Regex.simpleMatch(pattern, firstIndex)) {
                     templates.add(template);

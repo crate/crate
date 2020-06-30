@@ -21,7 +21,7 @@ package io.crate.operation.language;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.udf.UserDefinedFunctionMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionName;
@@ -72,7 +72,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
                                              DataType returnType,
                                              List<DataType> types,
                                              String definition) throws ScriptException {
-        UserDefinedFunctionMetaData udf = new UserDefinedFunctionMetaData(
+        UserDefinedFunctionMetadata udf = new UserDefinedFunctionMetadata(
             Schemas.DOC_SCHEMA_NAME,
             name,
             types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
@@ -111,7 +111,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testValidateCatchesScriptException() {
-        var udfMeta = new UserDefinedFunctionMetaData(
+        var udfMeta = new UserDefinedFunctionMetadata(
             Schemas.DOC_SCHEMA_NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
@@ -128,7 +128,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testValidateCatchesAssertionError() {
-        var udfMeta = new UserDefinedFunctionMetaData(
+        var udfMeta = new UserDefinedFunctionMetadata(
             Schemas.DOC_SCHEMA_NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
@@ -150,7 +150,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testValidJavascript() {
-        var udfMeta = new UserDefinedFunctionMetaData(
+        var udfMeta = new UserDefinedFunctionMetadata(
             Schemas.DOC_SCHEMA_NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY)),
@@ -253,7 +253,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testFunctionWrongNameInFunctionBody() {
-        var udfMeta = new UserDefinedFunctionMetaData(
+        var udfMeta = new UserDefinedFunctionMetadata(
             Schemas.DOC_SCHEMA_NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),

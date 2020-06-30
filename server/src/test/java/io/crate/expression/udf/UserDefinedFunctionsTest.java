@@ -72,7 +72,7 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
         List<DataType> types,
         String definition) {
 
-        var udf = new UserDefinedFunctionMetaData(
+        var udf = new UserDefinedFunctionMetadata(
             schema,
             name,
             types.stream().map(FunctionArgumentDefinition::of).collect(toList()),

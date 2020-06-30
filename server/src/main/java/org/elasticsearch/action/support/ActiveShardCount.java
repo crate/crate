@@ -21,7 +21,7 @@ package org.elasticsearch.action.support;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -30,7 +30,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
 
 /**
  * A class whose instances represent a value for counting the number
@@ -147,8 +147,8 @@ public final class ActiveShardCount implements Writeable {
         }
 
         for (final String indexName : indices) {
-            final IndexMetaData indexMetaData = clusterState.metaData().index(indexName);
-            if (indexMetaData == null) {
+            final IndexMetadata indexMetadata = clusterState.metadata().index(indexName);
+            if (indexMetadata == null) {
                 // its possible the index was deleted while waiting for active shard copies,
                 // in this case, we'll just consider it that we have enough active shard copies
                 // and we can stop waiting
@@ -162,7 +162,7 @@ public final class ActiveShardCount implements Writeable {
             }
             ActiveShardCount waitForActiveShards = this;
             if (waitForActiveShards == ActiveShardCount.DEFAULT) {
-                waitForActiveShards = SETTING_WAIT_FOR_ACTIVE_SHARDS.get(indexMetaData.getSettings());
+                waitForActiveShards = SETTING_WAIT_FOR_ACTIVE_SHARDS.get(indexMetadata.getSettings());
             }
             for (final IntObjectCursor<IndexShardRoutingTable> shardRouting : indexRoutingTable.getShards()) {
                 if (waitForActiveShards.enoughShardsActive(shardRouting.value) == false) {

@@ -27,7 +27,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaDataIndexTemplateService;
+import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -41,13 +41,13 @@ import java.io.IOException;
  */
 public class TransportDeleteIndexTemplateAction extends TransportMasterNodeAction<DeleteIndexTemplateRequest, AcknowledgedResponse> {
 
-    private final MetaDataIndexTemplateService indexTemplateService;
+    private final MetadataIndexTemplateService indexTemplateService;
 
     @Inject
     public TransportDeleteIndexTemplateAction(TransportService transportService,
                                               ClusterService clusterService,
                                               ThreadPool threadPool,
-                                              MetaDataIndexTemplateService indexTemplateService,
+                                              MetadataIndexTemplateService indexTemplateService,
                                               IndexNameExpressionResolver indexNameExpressionResolver) {
         super(DeleteIndexTemplateAction.NAME, transportService, clusterService, threadPool, DeleteIndexTemplateRequest::new, indexNameExpressionResolver);
         this.indexTemplateService = indexTemplateService;
@@ -71,9 +71,9 @@ public class TransportDeleteIndexTemplateAction extends TransportMasterNodeActio
 
     @Override
     protected void masterOperation(final DeleteIndexTemplateRequest request, final ClusterState state, final ActionListener<AcknowledgedResponse> listener) {
-        indexTemplateService.removeTemplates(new MetaDataIndexTemplateService.RemoveRequest(request.name()).masterTimeout(request.masterNodeTimeout()), new MetaDataIndexTemplateService.RemoveListener() {
+        indexTemplateService.removeTemplates(new MetadataIndexTemplateService.RemoveRequest(request.name()).masterTimeout(request.masterNodeTimeout()), new MetadataIndexTemplateService.RemoveListener() {
             @Override
-            public void onResponse(MetaDataIndexTemplateService.RemoveResponse response) {
+            public void onResponse(MetadataIndexTemplateService.RemoveResponse response) {
                 listener.onResponse(new AcknowledgedResponse(response.acknowledged()));
             }
 

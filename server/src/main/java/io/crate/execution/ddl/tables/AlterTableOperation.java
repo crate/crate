@@ -49,7 +49,7 @@ import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -65,8 +65,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_BLOCKS_WRITE_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_BLOCKS_WRITE_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
 @Singleton
 public class AlterTableOperation {
@@ -192,9 +192,9 @@ public class AlterTableOperation {
         }
 
         final ClusterState currentState = clusterService.state();
-        final IndexMetaData sourceIndexMetaData = currentState.metaData().index(sourceIndexName);
+        final IndexMetadata sourceIndexMetadata = currentState.metadata().index(sourceIndexName);
         final int targetNumberOfShards = getNumberOfShards(analysis.tableParameter().settings());
-        validateForResizeRequest(sourceIndexMetaData, targetNumberOfShards);
+        validateForResizeRequest(sourceIndexMetadata, targetNumberOfShards);
 
         final List<ChainableAction<Long>> actions = new ArrayList<>();
         final String resizedIndex = RESIZE_PREFIX + sourceIndexName;
@@ -202,7 +202,7 @@ public class AlterTableOperation {
 
         actions.add(new ChainableAction<>(
             () -> resizeIndex(
-                currentState.metaData().index(sourceIndexName),
+                currentState.metadata().index(sourceIndexName),
                 sourceIndexAlias,
                 resizedIndex,
                 targetNumberOfShards
@@ -227,7 +227,7 @@ public class AlterTableOperation {
                                                       List<ChainableAction<Long>> actions,
                                                       String resizeIndex) {
 
-        if (currentState.metaData().hasIndex(resizeIndex)) {
+        if (currentState.metadata().hasIndex(resizeIndex)) {
             actions.add(new ChainableAction<>(
                 () -> deleteIndex(resizeIndex),
                 () -> CompletableFuture.completedFuture(-1L)
@@ -235,7 +235,7 @@ public class AlterTableOperation {
         }
     }
 
-    private static void validateForResizeRequest(IndexMetaData sourceIndex, int targetNumberOfShards) {
+    private static void validateForResizeRequest(IndexMetadata sourceIndex, int targetNumberOfShards) {
         validateNumberOfShardsForResize(sourceIndex, targetNumberOfShards);
         validateReadOnlyIndexForResize(sourceIndex);
     }
@@ -249,8 +249,8 @@ public class AlterTableOperation {
     }
 
     @VisibleForTesting
-    static void validateNumberOfShardsForResize(IndexMetaData indexMetaData, int targetNumberOfShards) {
-        final int currentNumberOfShards = indexMetaData.getNumberOfShards();
+    static void validateNumberOfShardsForResize(IndexMetadata indexMetadata, int targetNumberOfShards) {
+        final int currentNumberOfShards = indexMetadata.getNumberOfShards();
         if (currentNumberOfShards == targetNumberOfShards) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH,
@@ -267,8 +267,8 @@ public class AlterTableOperation {
     }
 
     @VisibleForTesting
-    static void validateReadOnlyIndexForResize(IndexMetaData indexMetaData) {
-        final Boolean readOnly = indexMetaData
+    static void validateReadOnlyIndexForResize(IndexMetadata indexMetadata) {
+        final Boolean readOnly = indexMetadata
             .getSettings()
             .getAsBoolean(INDEX_BLOCKS_WRITE_SETTING.getKey(), Boolean.FALSE);
         if (!readOnly) {
@@ -277,7 +277,7 @@ public class AlterTableOperation {
         }
     }
 
-    private CompletableFuture<Long> resizeIndex(IndexMetaData sourceIndex,
+    private CompletableFuture<Long> resizeIndex(IndexMetadata sourceIndex,
                                                 @Nullable String sourceIndexAlias,
                                                 String targetIndexName,
                                                 int targetNumberOfShards) {

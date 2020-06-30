@@ -19,7 +19,7 @@
 
 package org.elasticsearch.repositories;
 
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -58,7 +58,7 @@ public class RepositoriesModule extends AbstractModule {
             }
 
             @Override
-            public Repository create(RepositoryMetaData metadata) throws Exception {
+            public Repository create(RepositoryMetadata metadata) throws Exception {
                 return new FsRepository(metadata, env, namedXContentRegistry, threadPool);
             }
         });

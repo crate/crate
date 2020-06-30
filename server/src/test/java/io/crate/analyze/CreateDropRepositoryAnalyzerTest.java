@@ -31,9 +31,9 @@ import java.util.Map;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.test.ClusterServiceUtils;
@@ -59,16 +59,16 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Before
     public void prepare() {
-        RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
+        RepositoriesMetadata repositoriesMetadata = new RepositoriesMetadata(
             Collections.singletonList(
-                new RepositoryMetaData(
+                new RepositoryMetadata(
                     "my_repo",
                     "fs",
                     Settings.builder().put("location", "/tmp/my_repo").build()
                 )));
         ClusterState clusterState = ClusterState.builder(new ClusterName("testing"))
-            .metaData(MetaData.builder()
-                          .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
+            .metadata(Metadata.builder()
+                          .putCustom(RepositoriesMetadata.TYPE, repositoriesMetadata))
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
         e = SQLExecutor.builder(clusterService).build();

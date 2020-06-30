@@ -31,7 +31,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.udf.UDFLanguage;
-import io.crate.expression.udf.UserDefinedFunctionMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -60,12 +60,12 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     public static class DummyFunction<InputType> extends Scalar<String, InputType>  {
 
         private final Signature signature;
-        private final UserDefinedFunctionMetaData metaData;
+        private final UserDefinedFunctionMetadata metadata;
 
-        private DummyFunction(UserDefinedFunctionMetaData metaData,
+        private DummyFunction(UserDefinedFunctionMetadata metadata,
                               Signature signature) {
             this.signature = signature;
-            this.metaData = metaData;
+            this.metadata = metadata;
         }
 
         @Override
@@ -81,20 +81,20 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         @Override
         public String evaluate(TransactionContext txnCtx, Input<InputType>... args) {
             // dummy-lang functions simple print the type of the only argument
-            return "DUMMY EATS " + metaData.argumentTypes().get(0).getName();
+            return "DUMMY EATS " + metadata.argumentTypes().get(0).getName();
         }
     }
 
     public static class DummyLang implements UDFLanguage {
 
         @Override
-        public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData,
+        public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
                                                    Signature signature) throws ScriptException {
-            return new DummyFunction<>(metaData, signature);
+            return new DummyFunction<>(metadata, signature);
         }
 
         @Override
-        public String validate(UserDefinedFunctionMetaData metadata) {
+        public String validate(UserDefinedFunctionMetadata metadata) {
             // dummy language does not validate anything
             return null;
         }

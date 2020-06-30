@@ -25,8 +25,8 @@ package io.crate.execution.ddl;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
 
 import java.io.IOException;
@@ -34,15 +34,15 @@ import java.util.Collections;
 
 public final class Templates {
 
-    public static IndexTemplateMetaData.Builder copyWithNewName(IndexTemplateMetaData source, RelationName newName) {
+    public static IndexTemplateMetadata.Builder copyWithNewName(IndexTemplateMetadata source, RelationName newName) {
         String targetTemplateName = PartitionName.templateName(newName.schema(), newName.name());
         String targetAlias = newName.indexNameOrAlias();
-        IndexTemplateMetaData.Builder templateBuilder = IndexTemplateMetaData
+        IndexTemplateMetadata.Builder templateBuilder = IndexTemplateMetadata
             .builder(targetTemplateName)
             .patterns(Collections.singletonList(PartitionName.templatePrefix(newName.schema(), newName.name())))
             .settings(source.settings())
             .order(source.order())
-            .putAlias(AliasMetaData.builder(targetAlias).build())
+            .putAlias(AliasMetadata.builder(targetAlias).build())
             .version(source.version());
 
         for (ObjectObjectCursor<String, CompressedXContent> mapping : source.mappings()) {

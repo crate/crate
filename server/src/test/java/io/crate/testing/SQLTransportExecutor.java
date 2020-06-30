@@ -78,7 +78,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
+import java.sql .ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -90,7 +90,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
-import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -386,19 +385,19 @@ public class SQLTransportExecutor {
 
     private static SQLResponse executeAndConvertResult(PreparedStatement preparedStatement) throws SQLException {
         if (preparedStatement.execute()) {
-            ResultSetMetaData metaData = preparedStatement.getMetaData();
+            ResultSetMetaData metadata = preparedStatement.getMetaData();
             ResultSet resultSet = preparedStatement.getResultSet();
             List<Object[]> rows = new ArrayList<>();
-            List<String> columnNames = new ArrayList<>(metaData.getColumnCount());
-            DataType[] dataTypes = new DataType[metaData.getColumnCount()];
-            for (int i = 0; i < metaData.getColumnCount(); i++) {
-                columnNames.add(metaData.getColumnName(i + 1));
+            List<String> columnNames = new ArrayList<>(metadata.getColumnCount());
+            DataType[] dataTypes = new DataType[metadata.getColumnCount()];
+            for (int i = 0; i < metadata.getColumnCount(); i++) {
+                columnNames.add(metadata.getColumnName(i + 1));
             }
             while (resultSet.next()) {
-                Object[] row = new Object[metaData.getColumnCount()];
+                Object[] row = new Object[metadata.getColumnCount()];
                 for (int i = 0; i < row.length; i++) {
                     Object value;
-                    String typeName = metaData.getColumnTypeName(i + 1);
+                    String typeName = metadata.getColumnTypeName(i + 1);
                     value = getObject(resultSet, i, typeName);
                     row[i] = value;
                 }

@@ -33,7 +33,7 @@ import com.amazonaws.services.s3.internal.Constants;
 import io.crate.exceptions.InvalidArgumentException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.Strings;
 
 import java.io.Closeable;
@@ -49,9 +49,9 @@ class S3Service implements Closeable {
      * Attempts to retrieve a client by name from the cache.
      * If the client does not exist it will be created.
      *
-     * @param metadata {@link RepositoryMetaData}
+     * @param metadata {@link RepositoryMetadata}
      */
-    public AmazonS3Reference client(RepositoryMetaData metadata) {
+    public AmazonS3Reference client(RepositoryMetadata metadata) {
         final S3ClientSettings clientSettings = S3ClientSettings
             .getClientSettings(metadata.settings());
         boolean settingsUpdated = !clientSettings.equals(clientSettingsCache);

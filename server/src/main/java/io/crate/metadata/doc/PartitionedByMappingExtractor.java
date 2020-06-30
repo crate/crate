@@ -58,7 +58,7 @@ public final class PartitionedByMappingExtractor {
         String dottedColumnName = partitioned.get(0);
         ColumnIdent column = ColumnIdent.fromPath(dottedColumnName);
         String typeDefinition = partitioned.get(1);
-        DataType type = DocIndexMetaData.getColumnDataType(Collections.singletonMap("type", typeDefinition));
+        DataType type = DocIndexMetadata.getColumnDataType(Collections.singletonMap("type", typeDefinition));
         return new Tuple<>(column, type);
     }
 }

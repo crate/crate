@@ -48,7 +48,7 @@ import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -79,39 +79,39 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
         RelationName bulkImportIdent = new RelationName(sqlExecutor.getCurrentSchema(), "bulk_import");
         ClusterState state = clusterService().state();
-        Settings tableSettings = TableSettingsResolver.get(state.getMetaData(), bulkImportIdent, false);
+        Settings tableSettings = TableSettingsResolver.get(state.getMetadata(), bulkImportIdent, false);
         ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
         IndexWriterProjector writerProjector = new IndexWriterProjector(
-            clusterService(),
-            new NodeJobsCounter(),
-            threadPool.scheduler(),
-            threadPool.executor(ThreadPool.Names.SEARCH),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            internalCluster().getInstance(Functions.class),
-            Settings.EMPTY,
-            IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
-            NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),
-            internalCluster().getInstance(TransportCreatePartitionsAction.class),
-            internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
-            IndexNameResolver.forTable(bulkImportIdent),
-            new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
+                clusterService(),
+                new NodeJobsCounter(),
+                threadPool.scheduler(),
+                threadPool.executor(ThreadPool.Names.SEARCH),
+                CoordinatorTxnCtx.systemTransactionContext(),
+                internalCluster().getInstance(Functions.class),
+                Settings.EMPTY,
+                IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
+                NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),
+                internalCluster().getInstance(TransportCreatePartitionsAction.class),
+                internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
+                IndexNameResolver.forTable(bulkImportIdent),
+                new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
                           RowGranularity.DOC,
                           DataTypes.STRING,
                           null,
                           null),
-            Collections.singletonList(ID_IDENT),
-            Collections.<Symbol>singletonList(new InputColumn(0)),
-            null,
-            null,
-            sourceInput,
-            collectExpressions,
-            20,
-            null,
-            null,
-            false,
-            false,
-            UUID.randomUUID(),
-            UpsertResultContext.forRowCount()
+                Collections.singletonList(ID_IDENT),
+                Collections.<Symbol>singletonList(new InputColumn(0)),
+                null,
+                null,
+                sourceInput,
+                collectExpressions,
+                20,
+                null,
+                null,
+                false,
+                false,
+                UUID.randomUUID(),
+                UpsertResultContext.forRowCount()
         );
 
         BatchIterator rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)

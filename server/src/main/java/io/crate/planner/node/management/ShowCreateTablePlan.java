@@ -22,7 +22,7 @@
 package io.crate.planner.node.management;
 
 import io.crate.analyze.AnalyzedShowCreateTable;
-import io.crate.analyze.MetaDataToASTNodeResolver;
+import io.crate.analyze.MetadataToASTNodeResolver;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -57,7 +57,7 @@ public class ShowCreateTablePlan implements Plan {
                               SubQueryResults subQueryResults) {
         Row1 row;
         try {
-            CreateTable createTable = MetaDataToASTNodeResolver.resolveCreateTable(statement.tableInfo());
+            CreateTable createTable = MetadataToASTNodeResolver.resolveCreateTable(statement.tableInfo());
             row = new Row1(SqlFormatter.formatSql(createTable));
         } catch (Throwable t) {
             consumer.accept(null, t);

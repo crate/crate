@@ -24,7 +24,7 @@ import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
 import org.elasticsearch.cluster.block.ClusterBlock;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 
@@ -46,7 +46,7 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
     private ResizeType resizeType;
     private boolean copySettings;
 
-    private IndexMetaData.State state = IndexMetaData.State.OPEN;
+    private IndexMetadata.State state = IndexMetadata.State.OPEN;
 
     private Settings settings = Settings.Builder.EMPTY_SETTINGS;
 
@@ -108,7 +108,7 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
         return index;
     }
 
-    public IndexMetaData.State state() {
+    public IndexMetadata.State state() {
         return state;
     }
 
@@ -139,7 +139,7 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
 
     /**
      * The name that was provided by the user. This might contain a date math expression.
-     * @see IndexMetaData#SETTING_INDEX_PROVIDED_NAME
+     * @see IndexMetadata#SETTING_INDEX_PROVIDED_NAME
      */
     public String getProvidedName() {
         return providedName;

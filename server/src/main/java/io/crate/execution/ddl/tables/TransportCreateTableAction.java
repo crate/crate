@@ -24,7 +24,7 @@ package io.crate.execution.ddl.tables;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.view.ViewsMetadata;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -130,7 +130,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     }
 
     private static boolean viewsExists(RelationName relationName, ClusterState state) {
-        ViewsMetaData views = state.metaData().custom(ViewsMetaData.TYPE);
+        ViewsMetadata views = state.metadata().custom(ViewsMetadata.TYPE);
         return views != null && views.contains(relationName);
     }
 }

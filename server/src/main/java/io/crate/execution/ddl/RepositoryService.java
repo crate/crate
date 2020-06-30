@@ -33,8 +33,8 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDelet
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.Inject;
@@ -63,8 +63,8 @@ public class RepositoryService {
     }
 
     @Nullable
-    public RepositoryMetaData getRepository(String repositoryName) {
-        RepositoriesMetaData repositories = clusterService.state().metaData().custom(RepositoriesMetaData.TYPE);
+    public RepositoryMetadata getRepository(String repositoryName) {
+        RepositoriesMetadata repositories = clusterService.state().metadata().custom(RepositoriesMetadata.TYPE);
         if (repositories != null) {
             return repositories.repository(repositoryName);
         }
@@ -122,7 +122,7 @@ public class RepositoryService {
     }
 
     private void dropIfExists(String repoName, Runnable callback) {
-        RepositoryMetaData repository = getRepository(repoName);
+        RepositoryMetadata repository = getRepository(repoName);
         if (repository == null) {
             callback.run();
         } else {

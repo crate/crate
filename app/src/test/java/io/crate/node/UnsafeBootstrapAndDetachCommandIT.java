@@ -32,7 +32,7 @@ import org.elasticsearch.cluster.coordination.DetachClusterCommand;
 import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
 import org.elasticsearch.cluster.coordination.NoMasterBlockService;
 import org.elasticsearch.cluster.coordination.UnsafeBootstrapMasterCommand;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
@@ -144,10 +144,10 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLTransportIntegrationTe
 
         logger.info("--> unsafely-bootstrap 1st master-eligible node");
         MockTerminal terminal = unsafeBootstrap(environmentMaster1);
-        MetaData metaData = MetaData.FORMAT.loadLatestState(logger, xContentRegistry(), nodeEnvironment.nodeDataPaths());
+        Metadata metadata = Metadata.FORMAT.loadLatestState(logger, xContentRegistry(), nodeEnvironment.nodeDataPaths());
         assertThat(terminal.getOutput(), containsString(
             String.format(Locale.ROOT, UnsafeBootstrapMasterCommand.CLUSTER_STATE_TERM_VERSION_MSG_FORMAT,
-                          metaData.coordinationMetaData().term(), metaData.version())));
+                          metadata.coordinationMetadata().term(), metadata.version())));
 
         logger.info("--> start 1st master-eligible node");
         internalCluster().startMasterOnlyNode(master1DataPathSettings);
@@ -165,7 +165,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLTransportIntegrationTe
             ClusterState state = internalCluster().client(dataNode2).admin().cluster().prepareState().setLocal(true)
                     .execute().actionGet().getState();
             assertFalse(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID));
-            assertTrue(state.metaData().persistentSettings().getAsBoolean(UnsafeBootstrapMasterCommand.UNSAFE_BOOTSTRAP.getKey(), false));
+            assertTrue(state.metadata().persistentSettings().getAsBoolean(UnsafeBootstrapMasterCommand.UNSAFE_BOOTSTRAP.getKey(), false));
         });
 
         logger.info("--> ensure index test is green");

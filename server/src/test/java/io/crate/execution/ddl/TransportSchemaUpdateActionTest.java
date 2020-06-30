@@ -32,8 +32,8 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -76,10 +76,10 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         );
 
         String templateName = templateName("doc", "t");
-        IndexTemplateMetaData template = currentState.metaData().templates().get(templateName);
+        IndexTemplateMetadata template = currentState.metadata().templates().get(templateName);
         ClusterState stateWithXLong = ClusterState.builder(currentState)
-            .metaData(MetaData.builder(currentState.metaData())
-                .put(IndexTemplateMetaData.builder(templateName)
+            .metadata(Metadata.builder(currentState.metadata())
+                .put(IndexTemplateMetadata.builder(templateName)
                     .patterns(template.patterns())
                     .putMapping(
                         Constants.DEFAULT_MAPPING_TYPE,

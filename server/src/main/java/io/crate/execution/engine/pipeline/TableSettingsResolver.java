@@ -25,36 +25,36 @@ package io.crate.execution.engine.pipeline;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 
 public final class TableSettingsResolver {
 
-    public static Settings get(MetaData metaData, RelationName relationName, boolean partitioned) {
+    public static Settings get(Metadata metadata, RelationName relationName, boolean partitioned) {
         if (partitioned) {
-            return forPartitionedTable(metaData, relationName);
+            return forPartitionedTable(metadata, relationName);
         }
-        return forTable(metaData, relationName);
+        return forTable(metadata, relationName);
     }
 
-    private static Settings forTable(MetaData metaData, RelationName relationName) {
-        IndexMetaData indexMetaData = metaData.index(relationName.indexNameOrAlias());
-        if (indexMetaData == null) {
+    private static Settings forTable(Metadata metadata, RelationName relationName) {
+        IndexMetadata indexMetadata = metadata.index(relationName.indexNameOrAlias());
+        if (indexMetadata == null) {
             throw new IndexNotFoundException(relationName.indexNameOrAlias());
         }
-        return indexMetaData.getSettings();
+        return indexMetadata.getSettings();
     }
 
-    private static Settings forPartitionedTable(MetaData metaData, RelationName relationName) {
+    private static Settings forPartitionedTable(Metadata metadata, RelationName relationName) {
         String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        IndexTemplateMetaData templateMetaData = metaData.templates().get(templateName);
-        if (templateMetaData == null) {
+        IndexTemplateMetadata templateMetadata = metadata.templates().get(templateName);
+        if (templateMetadata == null) {
             throw new RelationUnknown(relationName);
         }
-        return templateMetaData.getSettings();
+        return templateMetadata.getSettings();
     }
 
     private TableSettingsResolver() {

@@ -77,7 +77,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfoFactory;
-import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.view.ViewsMetadata;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
@@ -101,12 +101,12 @@ import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepos
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.EmptyClusterInfoService;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -161,9 +161,9 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_CREATION_DATE;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_INDEX_UUID;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.mockito.Mockito.mock;
 
@@ -316,13 +316,13 @@ public class SQLExecutor {
          * {@link org.elasticsearch.cluster.ClusterStateListener} like e.g. {@link Schemas} will consume it and
          * build current schema/table infos.
          *
-         * The {@link MetaData#version()} must be increased to trigger a {@link ClusterChangedEvent#metaDataChanged()}.
+         * The {@link Metadata#version()} must be increased to trigger a {@link ClusterChangedEvent#metadataChanged()}.
          */
         private void publishInitialClusterState() {
             ClusterState currentState = clusterService.state();
             ClusterState newState = ClusterState.builder(currentState)
-                .metaData(MetaData.builder(currentState.metaData())
-                              .version(currentState.metaData().version() + 1)
+                .metadata(Metadata.builder(currentState.metadata())
+                              .version(currentState.metadata().version() + 1)
                               .build())
                 .build();
             ClusterServiceUtils.setState(clusterService, newState);
@@ -463,31 +463,31 @@ public class SQLExecutor {
             XContentBuilder mappingBuilder = XContentFactory.jsonBuilder().map(analyzedStmt.mapping());
             CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
             Settings settings = analyzedStmt.tableParameter().settings();
-            AliasMetaData.Builder alias = AliasMetaData.builder(analyzedStmt.tableIdent().indexNameOrAlias());
-            IndexTemplateMetaData.Builder template = IndexTemplateMetaData.builder(analyzedStmt.templateName())
+            AliasMetadata.Builder alias = AliasMetadata.builder(analyzedStmt.tableIdent().indexNameOrAlias());
+            IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(analyzedStmt.templateName())
                 .patterns(singletonList(analyzedStmt.templatePrefix()))
                 .order(100)
                 .putMapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
                 .settings(settings)
                 .putAlias(alias);
 
-            MetaData.Builder mdBuilder = MetaData.builder(prevState.metaData())
+            Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata())
                 .put(template);
 
             RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
             for (String partition : partitions) {
-                IndexMetaData indexMetaData= getIndexMetaData(
+                IndexMetadata indexMetadata= getIndexMetadata(
                     partition,
                     analyzedStmt.tableParameter().settings(),
                     analyzedStmt.mapping(),
                     prevState.nodes().getSmallestNonClientNodeVersion())
                     .putAlias(alias)
                     .build();
-                mdBuilder.put(indexMetaData, true);
-                routingBuilder.addAsNew(indexMetaData);
+                mdBuilder.put(indexMetadata, true);
+                routingBuilder.addAsNew(indexMetadata);
             }
             ClusterState newState = ClusterState.builder(prevState)
-                .metaData(mdBuilder.build())
+                .metadata(mdBuilder.build())
                 .routingTable(routingBuilder.build())
                 .build();
 
@@ -519,7 +519,7 @@ public class SQLExecutor {
             }
             ClusterState prevState = clusterService.state();
             RelationName relationName = analyzedStmt.tableIdent();
-            IndexMetaData indexMetaData = getIndexMetaData(
+            IndexMetadata indexMetadata = getIndexMetadata(
                 relationName.indexNameOrAlias(),
                 analyzedStmt.tableParameter().settings(),
                 analyzedStmt.mapping(),
@@ -527,15 +527,15 @@ public class SQLExecutor {
             ).build();
 
             ClusterState state = ClusterState.builder(prevState)
-                .metaData(MetaData.builder(prevState.metaData()).put(indexMetaData, true))
-                .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetaData).build())
+                .metadata(Metadata.builder(prevState.metadata()).put(indexMetadata, true))
+                .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
             return this;
         }
 
-        private static IndexMetaData.Builder getIndexMetaData(String indexName,
+        private static IndexMetadata.Builder getIndexMetadata(String indexName,
                                                               Settings settings,
                                                               @Nullable Map<String, Object> mapping,
                                                               Version smallestNodeVersion) throws IOException {
@@ -546,10 +546,10 @@ public class SQLExecutor {
                 .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
 
             Settings indexSettings = builder.build();
-            IndexMetaData.Builder metaBuilder = IndexMetaData.builder(indexName)
+            IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
                 .settings(indexSettings);
             if (mapping != null) {
-                metaBuilder.putMapping(new MappingMetaData(
+                metaBuilder.putMapping(new MappingMetadata(
                     Constants.DEFAULT_MAPPING_TYPE,
                     mapping));
             }
@@ -558,18 +558,18 @@ public class SQLExecutor {
         }
 
         /**
-         * Add a view definition to the metaData.
+         * Add a view definition to the metadata.
          * Note that this by-passes the analyzer step and directly operates on the clusterState. So there is no
          * resolve logic for columns (`*` is not resolved to the column names)
          */
         public Builder addView(RelationName name, String query) {
             ClusterState prevState = clusterService.state();
-            ViewsMetaData newViews = ViewsMetaData.addOrReplace(
-                prevState.metaData().custom(ViewsMetaData.TYPE), name, query, user == null ? null : user.name());
+            ViewsMetadata newViews = ViewsMetadata.addOrReplace(
+                    prevState.metadata().custom(ViewsMetadata.TYPE), name, query, user == null ? null : user.name());
 
-            MetaData newMetaData = MetaData.builder(prevState.metaData()).putCustom(ViewsMetaData.TYPE, newViews).build();
+            Metadata newMetadata = Metadata.builder(prevState.metadata()).putCustom(ViewsMetadata.TYPE, newViews).build();
             ClusterState newState = ClusterState.builder(prevState)
-                .metaData(newMetaData)
+                .metadata(newMetadata)
                 .build();
 
             ClusterServiceUtils.setState(clusterService, newState);
@@ -590,7 +590,7 @@ public class SQLExecutor {
                 new NumberOfShards(clusterService));
 
             ClusterState prevState = clusterService.state();
-            IndexMetaData indexMetaData = getIndexMetaData(
+            IndexMetadata indexMetadata = getIndexMetadata(
                 fullIndexName(analyzedStmt.relationName().name()),
                 settings,
                 Collections.emptyMap(),
@@ -598,8 +598,8 @@ public class SQLExecutor {
             ).build();
 
             ClusterState state = ClusterState.builder(prevState)
-                .metaData(MetaData.builder(prevState.metaData()).put(indexMetaData, true))
-                .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetaData).build())
+                .metadata(Metadata.builder(prevState.metadata()).put(indexMetadata, true))
+                .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));

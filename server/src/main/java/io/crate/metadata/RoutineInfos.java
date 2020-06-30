@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
@@ -39,7 +39,7 @@ import static java.util.Collections.emptyIterator;
 public class RoutineInfos implements Iterable<RoutineInfo> {
 
     private static final Logger LOGGER = LogManager.getLogger(RoutineInfos.class);
-    private final UserDefinedFunctionsMetaData functionsMetaData;
+    private final UserDefinedFunctionsMetadata functionsMetadata;
     private FulltextAnalyzerResolver ftResolver;
 
     private enum RoutineType {
@@ -59,9 +59,9 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
         }
     }
 
-    public RoutineInfos(FulltextAnalyzerResolver ftResolver, UserDefinedFunctionsMetaData functionsMetaData) {
+    public RoutineInfos(FulltextAnalyzerResolver ftResolver, UserDefinedFunctionsMetadata functionsMetadata) {
         this.ftResolver = ftResolver;
-        this.functionsMetaData = functionsMetaData;
+        this.functionsMetadata = functionsMetadata;
     }
 
     private Iterator<RoutineInfo> builtInAnalyzers() {
@@ -117,10 +117,10 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
     }
 
     private Iterator<RoutineInfo> userDefinedFunctions() {
-        if (functionsMetaData == null) {
+        if (functionsMetadata == null) {
             return emptyIterator();
         }
-        return Iterators.transform(functionsMetaData.functionsMetaData().iterator(),
+        return Iterators.transform(functionsMetadata.functionsMetadata().iterator(),
             input -> new RoutineInfo(
                 input.name(),
                 RoutineType.FUNCTION.getName(),

@@ -35,7 +35,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -86,11 +86,11 @@ public final class IndexEnv implements AutoCloseable {
                     Version indexVersion,
                     Path tempDir) throws IOException  {
         String indexName = table.ident().indexNameOrAlias();
-        assert clusterState.metaData().hasIndex(indexName) : "ClusterState must contain the index: " + indexName;
+        assert clusterState.metadata().hasIndex(indexName) : "ClusterState must contain the index: " + indexName;
 
         Index index = new Index(indexName, UUIDs.randomBase64UUID());
         Settings nodeSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_VERSION_CREATED, indexVersion)
+            .put(IndexMetadata.SETTING_VERSION_CREATED, indexVersion)
             .put("path.home", tempDir.toAbsolutePath())
             .build();
         Environment env = new Environment(nodeSettings, tempDir.resolve("config"));
@@ -111,10 +111,10 @@ public final class IndexEnv implements AutoCloseable {
             mapperRegistry,
             queryShardContext::get
         );
-        IndexMetaData indexMetaData = clusterState.getMetaData().index(indexName);
+        IndexMetadata indexMetadata = clusterState.getMetadata().index(indexName);
         mapperService.merge(
             "default",
-            indexMetaData.mappingOrDefault("default").source(),
+            indexMetadata.mappingOrDefault("default").source(),
             MapperService.MergeReason.MAPPING_UPDATE,
             true
         );

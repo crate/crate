@@ -26,8 +26,8 @@ import com.microsoft.azure.storage.StorageException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
@@ -165,7 +165,7 @@ public class AzureRepository extends BlobStoreRepository {
     private final AzureStorageService storageService;
     private final boolean readonly;
 
-    public AzureRepository(RepositoryMetaData metadata,
+    public AzureRepository(RepositoryMetadata metadata,
                            Environment environment,
                            NamedXContentRegistry namedXContentRegistry,
                            AzureStorageService storageService,
@@ -184,7 +184,7 @@ public class AzureRepository extends BlobStoreRepository {
         }
     }
 
-    private static BlobPath buildBasePath(RepositoryMetaData metadata) {
+    private static BlobPath buildBasePath(RepositoryMetadata metadata) {
         final String basePath = Strings.trimLeadingCharacter(Repository.BASE_PATH_SETTING.get(metadata.settings()), '/');
         if (Strings.hasLength(basePath)) {
             // Remove starting / if any
@@ -228,7 +228,7 @@ public class AzureRepository extends BlobStoreRepository {
     }
 
     @Override
-    public void initializeSnapshot(SnapshotId snapshotId, List<IndexId> indices, MetaData clusterMetadata) {
+    public void initializeSnapshot(SnapshotId snapshotId, List<IndexId> indices, Metadata clusterMetadata) {
         try {
             final AzureBlobStore blobStore = (AzureBlobStore) blobStore();
             if (blobStore.containerExist() == false) {

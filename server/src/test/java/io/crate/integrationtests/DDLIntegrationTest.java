@@ -30,7 +30,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -625,12 +625,12 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
 
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex("test"), is(true));
+        assertThat(internalCluster().clusterService().state().metadata().hasIndex("test"), is(true));
 
         execute("drop table test");
         assertThat(response.rowCount(), is(1L));
 
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex("test"), is(false));
+        assertThat(internalCluster().clusterService().state().metadata().hasIndex("test"), is(false));
     }
 
     @Test
@@ -653,10 +653,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testDropTableIfExists() {
         execute("create table test (col1 integer primary key, col2 string)");
 
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex("test"), is(true));
+        assertThat(internalCluster().clusterService().state().metadata().hasIndex("test"), is(true));
         execute("drop table if exists test");
         assertThat(response.rowCount(), is(1L));
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex("test"), is(false));
+        assertThat(internalCluster().clusterService().state().metadata().hasIndex("test"), is(false));
     }
 
     @Test
@@ -710,7 +710,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         GetIndexTemplatesResponse templatesResponse =
             client().admin().indices().prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(5));
+        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(5));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?)",
             new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}

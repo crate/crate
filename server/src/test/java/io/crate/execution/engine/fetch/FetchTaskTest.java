@@ -34,8 +34,8 @@ import io.crate.planner.fetch.IndexBaseBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
@@ -48,9 +48,9 @@ import java.util.UUID;
 import java.util.function.UnaryOperator;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
 
@@ -68,7 +68,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 ImmutableList.of()),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class), UnaryOperator.identity()),
-            clusterService.state().getMetaData(),
+            clusterService.state().getMetadata(),
             relationName -> null,
             Collections.emptyList());
 
@@ -86,8 +86,8 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
         HashMultimap<RelationName, String> tableIndices = HashMultimap.create();
         tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i1"), "i1");
 
-        MetaData metaData = MetaData.builder()
-            .put(IndexMetaData.builder("i1")
+        Metadata metadata = Metadata.builder()
+            .put(IndexMetadata.builder("i1")
                 .settings(Settings.builder()
                     .put(SETTING_NUMBER_OF_SHARDS, 1)
                     .put(SETTING_NUMBER_OF_REPLICAS, 0)
@@ -104,7 +104,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS), UnaryOperator.identity()),
-            metaData,
+            metadata,
             relationName -> null,
             ImmutableList.of(routing));
 

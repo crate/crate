@@ -22,8 +22,8 @@ package org.elasticsearch.repositories.azure;
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
-import org.elasticsearch.common.blobstore.BlobMetaData;
-import org.elasticsearch.common.blobstore.support.PlainBlobMetaData;
+import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.io.Streams;
@@ -54,7 +54,7 @@ public class AzureStorageServiceMock extends AzureStorageService {
 
     @Override
     public void deleteFiles(String container, String path) throws StorageException {
-        final Map<String, BlobMetaData> blobs = listBlobsByPrefix(container, path, null);
+        final Map<String, BlobMetadata> blobs = listBlobsByPrefix(container, path, null);
         for (String key : blobs.keySet()) {
             deleteBlob(container, key);
         }
@@ -81,8 +81,8 @@ public class AzureStorageServiceMock extends AzureStorageService {
     }
 
     @Override
-    public Map<String, BlobMetaData> listBlobsByPrefix(String container, String keyPath, String prefix) {
-        final var blobsBuilder = new HashMap<String, BlobMetaData>();
+    public Map<String, BlobMetadata> listBlobsByPrefix(String container, String keyPath, String prefix) {
+        final var blobsBuilder = new HashMap<String, BlobMetadata>();
         blobs.forEach((String blobName, ByteArrayOutputStream bos) -> {
             final String checkBlob;
             if (keyPath != null && !keyPath.isEmpty()) {
@@ -92,7 +92,7 @@ public class AzureStorageServiceMock extends AzureStorageService {
                 checkBlob = blobName;
             }
             if (prefix == null || startsWithIgnoreCase(checkBlob, prefix)) {
-                blobsBuilder.put(blobName, new PlainBlobMetaData(checkBlob, bos.size()));
+                blobsBuilder.put(blobName, new PlainBlobMetadata(checkBlob, bos.size()));
             }
         });
         return Map.copyOf(blobsBuilder);

@@ -22,13 +22,12 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
@@ -80,8 +79,8 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0][0] + resolveCanonicalString("/blobs"), is(response.rows()[0][1]));
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        MetaData metaData = clusterService.state().getMetaData();
-        IndexMetaData index = metaData.index(".blob_b2");
+        Metadata metadata = clusterService.state().getMetadata();
+        IndexMetadata index = metadata.index(".blob_b2");
         String indexUUID = index.getIndexUUID();
 
         // b2

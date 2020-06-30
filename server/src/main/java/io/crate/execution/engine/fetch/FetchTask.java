@@ -35,8 +35,8 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocTableInfo;
 
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -64,7 +64,7 @@ public class FetchTask extends AbstractTask {
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
     private final TreeMap<Integer, RelationName> tableIdents = new TreeMap<>();
-    private final MetaData metaData;
+    private final Metadata metadata;
     private final Iterable<? extends Routing> routingIterable;
     private final Map<RelationName, Collection<Reference>> toFetch;
     private final AtomicBoolean isKilled = new AtomicBoolean(false);
@@ -75,7 +75,7 @@ public class FetchTask extends AbstractTask {
                      FetchPhase phase,
                      String localNodeId,
                      SharedShardContexts sharedShardContexts,
-                     MetaData metaData,
+                     Metadata metadata,
                      Function<RelationName, DocTableInfo> getTableInfo,
                      Iterable<? extends Routing> routingIterable) {
         super(phase.phaseId());
@@ -83,7 +83,7 @@ public class FetchTask extends AbstractTask {
         this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
-        this.metaData = metaData;
+        this.metadata = metadata;
         this.routingIterable = routingIterable;
         this.toFetch = new HashMap<>(phase.tableIndices().size());
         this.getTableInfo = getTableInfo;
@@ -120,14 +120,14 @@ public class FetchTask extends AbstractTask {
                 if (base == null) {
                     continue;
                 }
-                IndexMetaData indexMetaData = metaData.index(indexName);
-                if (indexMetaData == null) {
+                IndexMetadata indexMetadata = metadata.index(indexName);
+                if (indexMetadata == null) {
                     if (IndexParts.isPartitioned(indexName)) {
                         continue;
                     }
                     throw new IndexNotFoundException(indexName);
                 }
-                Index index = indexMetaData.getIndex();
+                Index index = indexMetadata.getIndex();
                 RelationName ident = index2TableIdent.get(indexName);
                 assert ident != null : "no relationName found for index " + indexName;
                 tableIdents.put(base, ident);

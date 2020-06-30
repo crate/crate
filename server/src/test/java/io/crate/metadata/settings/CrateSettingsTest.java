@@ -30,7 +30,7 @@ import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayService;
@@ -121,7 +121,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
         CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
 
         ClusterState newState = ClusterState.builder(clusterService.state())
-            .metaData(MetaData.builder().transientSettings(
+            .metadata(Metadata.builder().transientSettings(
                 Settings.builder().put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build()))
             .build();
         crateSettings.clusterChanged(new ClusterChangedEvent("settings updated", newState, clusterService.state()));

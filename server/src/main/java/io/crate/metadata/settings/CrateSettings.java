@@ -258,8 +258,8 @@ public final class CrateSettings implements ClusterStateListener {
     public void clusterChanged(ClusterChangedEvent event) {
         try {
             // nothing to do until we actually recover from the gateway or any other block indicates we need to disable persistency
-            if (event.state().blocks().disableStatePersistence() == false && event.metaDataChanged()) {
-                Settings incomingSetting = event.state().metaData().settings();
+            if (event.state().blocks().disableStatePersistence() == false && event.metadataChanged()) {
+                Settings incomingSetting = event.state().metadata().settings();
                 settings = Settings.builder().put(initialSettings).put(incomingSetting).build();
             }
         } catch (Exception ex) {

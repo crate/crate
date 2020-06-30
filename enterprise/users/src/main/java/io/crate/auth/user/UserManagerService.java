@@ -25,15 +25,15 @@ import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
-import io.crate.metadata.UsersMetaData;
-import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.UsersMetadata;
+import io.crate.metadata.UsersPrivilegesMetadata;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.sys.SysPrivilegesTableInfo;
 import io.crate.metadata.sys.SysUsersTableInfo;
 import io.crate.user.SecureHash;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -105,16 +105,16 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         ddlClusterStateService.addModifier(DDL_MODIFIER);
     }
 
-    static Set<User> getUsers(@Nullable UsersMetaData metaData,
-                              @Nullable UsersPrivilegesMetaData privilegesMetaData) {
+    static Set<User> getUsers(@Nullable UsersMetadata metadata,
+                              @Nullable UsersPrivilegesMetadata privilegesMetadata) {
         ImmutableSet.Builder<User> usersBuilder = new ImmutableSet.Builder<User>().add(CRATE_USER);
-        if (metaData != null) {
-            for (Map.Entry<String, SecureHash> user: metaData.users().entrySet()) {
+        if (metadata != null) {
+            for (Map.Entry<String, SecureHash> user: metadata.users().entrySet()) {
                 String userName = user.getKey();
                 SecureHash password = user.getValue();
                 Set<Privilege> privileges = null;
-                if (privilegesMetaData != null) {
-                    privileges = privilegesMetaData.getUserPrivileges(userName);
+                if (privilegesMetadata != null) {
+                    privileges = privilegesMetadata.getUserPrivileges(userName);
                 }
                 usersBuilder.add(User.of(userName, privileges, password));
             }
@@ -187,14 +187,14 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        MetaData prevMetaData = event.previousState().metaData();
-        MetaData newMetaData = event.state().metaData();
+        Metadata prevMetadata = event.previousState().metadata();
+        Metadata newMetadata = event.state().metadata();
 
-        UsersMetaData prevUsers = prevMetaData.custom(UsersMetaData.TYPE);
-        UsersMetaData newUsers = newMetaData.custom(UsersMetaData.TYPE);
+        UsersMetadata prevUsers = prevMetadata.custom(UsersMetadata.TYPE);
+        UsersMetadata newUsers = newMetadata.custom(UsersMetadata.TYPE);
 
-        UsersPrivilegesMetaData prevUsersPrivileges = prevMetaData.custom(UsersPrivilegesMetaData.TYPE);
-        UsersPrivilegesMetaData newUsersPrivileges = newMetaData.custom(UsersPrivilegesMetaData.TYPE);
+        UsersPrivilegesMetadata prevUsersPrivileges = prevMetadata.custom(UsersPrivilegesMetadata.TYPE);
+        UsersPrivilegesMetadata newUsersPrivileges = newMetadata.custom(UsersPrivilegesMetadata.TYPE);
 
         if (prevUsers != newUsers || prevUsersPrivileges != newUsersPrivileges) {
             users = getUsers(newUsers, newUsersPrivileges);

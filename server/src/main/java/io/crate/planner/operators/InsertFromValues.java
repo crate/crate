@@ -75,7 +75,7 @@ import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -702,10 +702,10 @@ public class InsertFromValues implements LogicalPlan {
                                                                          Set<String> indices,
                                                                          ClusterService clusterService,
                                                                          UUID jobId) {
-        MetaData metaData = clusterService.state().getMetaData();
+        Metadata metadata = clusterService.state().getMetadata();
         List<String> indicesToCreate = new ArrayList<>();
         for (var index : indices) {
-            if (IndexParts.isPartitioned(index) && metaData.hasIndex(index) == false) {
+            if (IndexParts.isPartitioned(index) && metadata.hasIndex(index) == false) {
                 indicesToCreate.add(index);
             }
         }

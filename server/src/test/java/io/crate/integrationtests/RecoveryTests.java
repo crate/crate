@@ -35,7 +35,7 @@ import io.crate.common.Hex;
 import io.crate.test.utils.Blobs;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -143,11 +143,11 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
         logger.trace("--> creating test index ...");
         Settings indexSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             // SETTING_AUTO_EXPAND_REPLICAS is enabled by default
             // but for this test it needs to be disabled so we can have 0 replicas
-            .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")
+            .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
             .build();
 
         blobAdminClient.createBlobTable("test", indexSettings).get();
