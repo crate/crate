@@ -22,36 +22,19 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.data.Row1;
-import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.types.DataTypes;
-import io.netty.channel.Channel;
-import org.junit.Test;
-import org.mockito.Answers;
 
-import java.util.Collections;
+public enum TransactionState {
+    IDLE('I'),
+    IN_TRANSACTION('T'),
+    FAILED_TRANSACTION('E');
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+    private final char code;
 
-public class ResultSetReceiverTest {
+    private TransactionState(char code) {
+        this.code = code;
+    }
 
-    @Test
-    public void testChannelIsPeriodicallyFlushedToAvoidConsumingTooMuchMemory() {
-        Channel channel = mock(Channel.class, Answers.RETURNS_DEEP_STUBS);
-        ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
-            "select * from t",
-            channel,
-            TransactionState.IDLE,
-            RuntimeException::new,
-            Collections.singletonList(PGTypes.get(DataTypes.INTEGER)),
-            null
-        );
-        Row1 row1 = new Row1(1);
-        for (int i = 0; i < 1500; i++) {
-            resultSetReceiver.setNextRow(row1);
-        }
-        verify(channel, times(1)).flush();
+    public int code() {
+        return (int) code;
     }
 }

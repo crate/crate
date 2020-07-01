@@ -39,6 +39,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     private final Channel channel;
     private final Function<Throwable, Exception> wrapError;
     private final List<PGType<?>> columnTypes;
+    private final TransactionState transactionState;
 
     @Nullable
     private final FormatCodes.FormatCode[] formatCodes;
@@ -47,11 +48,13 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     ResultSetReceiver(String query,
                       Channel channel,
+                      TransactionState transactionState,
                       Function<Throwable, Exception> wrapError,
                       List<PGType<?>> columnTypes,
                       @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
+        this.transactionState = transactionState;
         this.wrapError = wrapError;
         this.columnTypes = columnTypes;
         this.formatCodes = formatCodes;
@@ -69,7 +72,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Override
     public void batchFinished() {
         Messages.sendPortalSuspended(channel);
-        Messages.sendReadyForQuery(channel);
+        Messages.sendReadyForQuery(channel, transactionState);
     }
 
     @Override

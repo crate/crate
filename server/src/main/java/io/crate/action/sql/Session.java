@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 
 import io.crate.analyze.AnalyzedBegin;
+import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedStatement;
@@ -69,6 +70,7 @@ import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.RetryOnFailureResultReceiver;
+import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.DiscardStatement.Target;
 import io.crate.sql.tree.Statement;
@@ -132,6 +134,8 @@ public class Session implements AutoCloseable {
     private final JobsLogs jobsLogs;
     private final boolean isReadOnly;
     private final ParameterTypeExtractor parameterTypeExtractor;
+
+    private TransactionState currentTransactionState = TransactionState.IDLE;
 
     public Session(Analyzer analyzer,
                    Planner planner,
@@ -368,6 +372,10 @@ public class Session implements AutoCloseable {
             throw new ReadOnlyException(portal.preparedStmt().rawStatement());
         }
         if (analyzedStmt instanceof AnalyzedBegin) {
+            currentTransactionState = TransactionState.IN_TRANSACTION;
+            resultReceiver.allFinished(false);
+        } else if (analyzedStmt instanceof AnalyzedCommit) {
+            currentTransactionState = TransactionState.IDLE;
             resultReceiver.allFinished(false);
         } else if (analyzedStmt instanceof AnalyzedDeallocate) {
             String stmtToDeallocate = ((AnalyzedDeallocate) analyzedStmt).preparedStmtName();
@@ -686,6 +694,7 @@ public class Session implements AutoCloseable {
 
     @Override
     public void close() {
+        currentTransactionState = TransactionState.IDLE;
         resetDeferredExecutions();
         activeExecution = null;
         for (Portal portal : portals.values()) {
@@ -707,5 +716,9 @@ public class Session implements AutoCloseable {
             }
         }
         deferredExecutionsByStmt.clear();
+    }
+
+    public TransactionState transactionState() {
+        return currentTransactionState;
     }
 }

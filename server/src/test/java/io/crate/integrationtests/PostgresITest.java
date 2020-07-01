@@ -263,8 +263,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 statement.executeUpdate("refresh table t");
             }
 
-            // Because our ReadyForQuery messages always sends transaction-status IDLE, rollback and commit don't do anything
-            conn.rollback();
             conn.commit();
 
             try (Statement statement = conn.createStatement()) {
