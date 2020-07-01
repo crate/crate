@@ -144,7 +144,7 @@ public class ExplainPlan implements Plan {
                         params,
                         subQueryResults
                     );
-                String planAsJson = DataTypes.STRING.value(PlanPrinter.objectMap(executionPlan));
+                String planAsJson = DataTypes.STRING.implicitCast(PlanPrinter.objectMap(executionPlan));
                 consumer.accept(InMemoryBatchIterator.of(new Row1(planAsJson), SENTINEL), null);
             } else {
                 consumer.accept(InMemoryBatchIterator.of(

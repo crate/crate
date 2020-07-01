@@ -64,7 +64,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -398,14 +397,13 @@ public final class CopyFromPlan implements Plan {
 
     private static Symbol validateAndConvertToLiteral(Object uri) {
         if (uri instanceof String) {
-            return Literal.of(DataTypes.STRING.value(uri));
+            return Literal.of(DataTypes.STRING.sanitizeValue(uri));
         } else if (uri instanceof List) {
             Object value = ((List) uri).get(0);
             if (!(value instanceof String)) {
                 throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
             }
-            ArrayType<String> strArray = new ArrayType<>(DataTypes.STRING);
-            return Literal.of(strArray, strArray.value(uri));
+            return Literal.of(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY.sanitizeValue(uri));
         }
         throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
     }

@@ -545,7 +545,7 @@ public class InsertFromValues implements LogicalPlan {
             DataType<?> targetType = reference.valueType();
             Object value = row.get(i);
             try {
-                cells[i] = targetType.value(value);
+                cells[i] = targetType.implicitCast(value);
             } catch (IllegalArgumentException | ClassCastException e) {
                 throw new ColumnValidationException(
                     reference.column().name(),

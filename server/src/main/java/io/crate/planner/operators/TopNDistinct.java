@@ -96,7 +96,7 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
             );
             executionPlan.addProjection(evalProjection);
         }
-        int limit = DataTypes.INTEGER.value(
+        int limit = DataTypes.INTEGER.sanitizeValue(
             evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
@@ -105,7 +105,7 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
                 subQueryResults
             )
         );
-        int offset = DataTypes.INTEGER.value(
+        int offset = DataTypes.INTEGER.sanitizeValue(
             evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
