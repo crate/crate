@@ -118,6 +118,13 @@ class S3SnapshotIntegrationTest(unittest.TestCase):
                     CREATE REPOSITORY r1 TYPE S3
                     WITH (access_key = 'minio', secret_key = 'miniostorage', bucket='backups', endpoint = '127.0.0.1:9000', protocol = 'http')
                 """)
+
+                # Make sure access_key and secret_key are masked in sys.repositories
+                c.execute('''SELECT settings from sys.repositories where name = 'r1' ''')
+                settings = c.fetchone()[0]
+                self.assertEqual(settings['access_key'], '[xxxxx]')
+                self.assertEqual(settings['secret_key'], '[xxxxx]')
+
                 c.execute('CREATE SNAPSHOT r1.s1 ALL WITH (wait_for_completion = true)')
                 c.execute('DROP TABLE t1')
                 c.execute('RESTORE SNAPSHOT r1.s1 ALL WITH (wait_for_completion = true)')
