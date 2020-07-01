@@ -84,6 +84,13 @@ Breaking Changes
   issue for most clients as the ``HTTP`` endpoint uses ``JSON`` for
   serialization and PostgreSQL clients usually use a typed ``getLong``.
 
+- In the PostgreSQL Wire Protocol, ``ReadyForQuery`` messages now contain the
+  ``IN TRANSACTION`` or ``FAILED TRANSACTION`` indicator based on previous
+  ``BEGIN`` and ``COMMIT`` SQL statements. Before this change, the status
+  always defaulted to ``IDLE``. This change may have the side-effect that an
+  explicit ``rollback`` call in a client library will result in an unsupported
+  ``ROLLBACK`` statement.
+
 Deprecations
 ============
 

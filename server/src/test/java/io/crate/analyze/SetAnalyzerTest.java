@@ -22,24 +22,23 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.is;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.expression.symbol.Literal;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.SetTransactionStatement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

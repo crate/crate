@@ -494,6 +494,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         DescribeResult describeResult = mock(DescribeResult.class);
         when(describeResult.getFields()).thenReturn(null);
         when(session.describe(anyChar(), anyString())).thenReturn(describeResult);
+        when(session.transactionState()).thenReturn(TransactionState.IDLE);
 
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(

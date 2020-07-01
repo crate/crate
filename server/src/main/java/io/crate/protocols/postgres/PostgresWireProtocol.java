@@ -272,9 +272,11 @@ public class PostgresWireProtocol {
 
     private static class ReadyForQueryCallback implements BiConsumer<Object, Throwable> {
         private final Channel channel;
+        private final TransactionState transactionState;
 
-        private ReadyForQueryCallback(Channel channel) {
+        private ReadyForQueryCallback(Channel channel, TransactionState transactionState) {
             this.channel = channel;
+            this.transactionState = transactionState;
         }
 
         @Override
@@ -282,7 +284,7 @@ public class PostgresWireProtocol {
             boolean clientInterrupted = t instanceof ClientInterrupted
                                         || (t != null && t.getCause() instanceof ClientInterrupted);
             if (!clientInterrupted) {
-                Messages.sendReadyForQuery(channel);
+                Messages.sendReadyForQuery(channel, transactionState);
             }
         }
     }
@@ -455,7 +457,7 @@ public class PostgresWireProtocol {
         Messages.sendParameterStatus(channel, "datestyle", "ISO");
         Messages.sendParameterStatus(channel, "TimeZone", "UTC");
         Messages.sendParameterStatus(channel, "integer_datetimes", "on");
-        Messages.sendReadyForQuery(channel);
+        Messages.sendReadyForQuery(channel, TransactionState.IDLE);
     }
 
     /**
@@ -639,6 +641,7 @@ public class PostgresWireProtocol {
             resultReceiver = new ResultSetReceiver(
                 query,
                 channel.bypassDelay(),
+                session.transactionState(),
                 SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext())),
                 Lists2.map(outputTypes, PGTypes::get),
                 session.getResultFormatCodes(portalName)
@@ -679,15 +682,15 @@ public class PostgresWireProtocol {
             //  4) p, b, e    -> We've a new query deferred.
             //  5) `sync`     -> We must execute the query from 4, but not 1)
             session.resetDeferredExecutions();
-            Messages.sendReadyForQuery(channel);
+            Messages.sendReadyForQuery(channel, TransactionState.FAILED_TRANSACTION);
             return;
         }
         try {
-            ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel);
+            ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel, session.transactionState());
             session.sync().whenComplete(readyForQueryCallback);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, t);
-            Messages.sendReadyForQuery(channel);
+            Messages.sendReadyForQuery(channel, TransactionState.FAILED_TRANSACTION);
         }
     }
 
@@ -712,7 +715,7 @@ public class PostgresWireProtocol {
         for (String query : queries) {
             composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(query, channel));
         }
-        composedFuture.whenComplete(new ReadyForQueryCallback(channel));
+        composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE));
     }
 
     private CompletableFuture<?> handleSingleQuery(String query, DelayableWriteChannel channel) {
@@ -742,6 +745,7 @@ public class PostgresWireProtocol {
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
                     channel.bypassDelay(),
+                    TransactionState.IDLE,
                     wrapError,
                     Lists2.map(fields, x -> PGTypes.get(x.valueType())),
                     null
