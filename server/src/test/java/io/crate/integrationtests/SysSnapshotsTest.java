@@ -71,6 +71,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put("path.repo", TEMP_FOLDER.getRoot().getAbsolutePath())
+            .put(ThreadPool.ESTIMATED_TIME_INTERVAL_SETTING.getKey(), 0) // We have tests that verify an exact wait time
             .build();
     }
 
