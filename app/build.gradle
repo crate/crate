@@ -66,6 +66,7 @@ dependencies {
     compileNotTransitive project(':libs:pgwire')
     compileNotTransitive project(':libs:dex')
     compileNotTransitive project(':libs:shared')
+    compileNotTransitive project(':libs:cli')
     compileNotTransitive project(':libs:guice')
     compileNotTransitive project(':libs:es-x-content')
     compileNotTransitive project(':libs:es-plugin-classloader')

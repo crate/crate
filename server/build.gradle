@@ -12,6 +12,7 @@ dependencies {
     compile project(':libs:es-x-content')
     compile project(':libs:pgwire')
     compile project(':libs:shared')
+    compile project(':libs:cli')
     compile project(':libs:sql-parser')
     compile project(':libs:guice')
 
@@ -44,10 +45,6 @@ dependencies {
 
     compile "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
     compile "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
-
-    compile("org.elasticsearch:elasticsearch-cli:${versions.elasticsearch}") {
-        exclude group: 'org.elasticsearch', module: 'elasticsearch-core'
-    }
 
     compile "net.java.dev.jna:jna:${versions.jna}"
 
