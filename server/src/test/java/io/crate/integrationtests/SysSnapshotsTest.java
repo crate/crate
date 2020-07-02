@@ -21,17 +21,25 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseJdbc;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.StringType;
-import io.crate.types.TimestampType;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -39,17 +47,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import io.crate.testing.UseJdbc;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 
 @ESIntegTestCase.ClusterScope()
 @UseJdbc(0) // missing column types
@@ -75,9 +77,10 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
     @Before
     public void setUpSnapshots() throws Exception {
         createRepository(REPOSITORY_NAME);
-        createdTime = System.currentTimeMillis();
+        ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
+        createdTime = threadPool.absoluteTimeInMillis();
         createTableAndSnapshot("test_table", "test_snap_1");
-        finishedTime = System.currentTimeMillis();
+        finishedTime = threadPool.absoluteTimeInMillis();
         waitUntilShardOperationsFinished();
     }
 
