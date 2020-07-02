@@ -234,8 +234,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBetweenIsRewrittenToLteAndGte() throws Exception {
-        Symbol symbol = expressions.asSymbol("10 between 1 and 10");
-        assertThat(symbol, isSQL("true"));
+        Symbol symbol = executor.asSymbol("2 between t1.x and 20");
+        assertThat(symbol, isSQL("(doc.t1.x <= 2)"));
+    }
+
+    @Test
+    public void test_between_rewrite_if_first_arg_is_a_reference() throws Exception {
+        Symbol symbol = executor.asSymbol("t1.x between 10 and 20");
+        assertThat(symbol, isSQL("((doc.t1.x >= 10) AND (doc.t1.x <= 20))"));
     }
 
     @Test
