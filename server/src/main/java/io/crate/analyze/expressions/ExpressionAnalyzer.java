@@ -22,7 +22,32 @@
 
 package io.crate.analyze.expressions;
 
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
+import static java.util.stream.Collectors.toList;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.collect.Lists;
+
+import org.joda.time.Period;
+
 import io.crate.action.sql.Option;
 import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.FrameBoundDefinition;
@@ -44,9 +69,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AllOperator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
-import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
@@ -133,28 +156,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
-import org.joda.time.Period;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
-import static java.util.stream.Collectors.toList;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -1003,18 +1004,19 @@ public class ExpressionAnalyzer {
             Symbol max = node.getMax().accept(this, context);
 
             Comparison gte = new Comparison(functions, coordinatorTxnCtx, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
-            gte.normalize(context);
+            Comparison normalizedGte = gte.normalize(context);
             Symbol gteFunc = allocateFunction(
-                GteOperator.NAME,
-                gte.arguments(),
-                context);
-
+                normalizedGte.operatorName,
+                normalizedGte.arguments(),
+                context
+            );
             Comparison lte = new Comparison(functions, coordinatorTxnCtx, ComparisonExpression.Type.LESS_THAN_OR_EQUAL, value, max);
-            lte.normalize(context);
+            Comparison normalizedLte = lte.normalize(context);
             Symbol lteFunc = allocateFunction(
-                LteOperator.NAME,
-                lte.arguments(),
-                context);
+                normalizedLte.operatorName,
+                normalizedLte.arguments(),
+                context
+            );
 
             return allocateFunction(AndOperator.NAME, List.of(gteFunc, lteFunc), context);
         }
