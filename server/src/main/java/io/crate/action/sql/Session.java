@@ -371,32 +371,7 @@ public class Session implements AutoCloseable {
         if (isReadOnly && analyzedStmt.isWriteOperation()) {
             throw new ReadOnlyException(portal.preparedStmt().rawStatement());
         }
-        if (analyzedStmt instanceof AnalyzedBegin) {
-            currentTransactionState = TransactionState.IN_TRANSACTION;
-            resultReceiver.allFinished(false);
-        } else if (analyzedStmt instanceof AnalyzedCommit) {
-            currentTransactionState = TransactionState.IDLE;
-            resultReceiver.allFinished(false);
-        } else if (analyzedStmt instanceof AnalyzedDeallocate) {
-            String stmtToDeallocate = ((AnalyzedDeallocate) analyzedStmt).preparedStmtName();
-            if (stmtToDeallocate != null) {
-                close((byte) 'S', stmtToDeallocate);
-            } else {
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("deallocating all prepared statements");
-                }
-                preparedStatements.clear();
-            }
-            resultReceiver.allFinished(false);
-        } else if (analyzedStmt instanceof AnalyzedDiscard) {
-            AnalyzedDiscard discard = (AnalyzedDiscard) analyzedStmt;
-            // We don't cache plans, don't have sequences or temporary tables
-            // See https://www.postgresql.org/docs/current/sql-discard.html
-            if (discard.target() == Target.ALL) {
-                close();
-            }
-            resultReceiver.allFinished(false);
-        } else if (analyzedStmt.isWriteOperation()) {
+        if (analyzedStmt.isWriteOperation()) {
             /* We defer the execution for any other statements to `sync` messages so that we can efficiently process
              * bulk operations. E.g. If we receive `INSERT INTO (x) VALUES (?)` bindings/execute multiple times
              * We want to create bulk requests internally:                                                          /
@@ -424,7 +399,28 @@ public class Session implements AutoCloseable {
                 }
             );
         } else {
-            if (!deferredExecutionsByStmt.isEmpty()) {
+            if (analyzedStmt instanceof AnalyzedBegin) {
+                currentTransactionState = TransactionState.IN_TRANSACTION;
+            } else if (analyzedStmt instanceof AnalyzedCommit) {
+                currentTransactionState = TransactionState.IDLE;
+            } else if (analyzedStmt instanceof AnalyzedDeallocate) {
+                String stmtToDeallocate = ((AnalyzedDeallocate) analyzedStmt).preparedStmtName();
+                if (stmtToDeallocate != null) {
+                    close((byte) 'S', stmtToDeallocate);
+                } else {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("deallocating all prepared statements");
+                    }
+                    preparedStatements.clear();
+                }
+            } else if (analyzedStmt instanceof AnalyzedDiscard) {
+                AnalyzedDiscard discard = (AnalyzedDiscard) analyzedStmt;
+                // We don't cache plans, don't have sequences or temporary tables
+                // See https://www.postgresql.org/docs/current/sql-discard.html
+                if (discard.target() == Target.ALL) {
+                    close();
+                }
+            } else if (!deferredExecutionsByStmt.isEmpty()) {
                 throw new UnsupportedOperationException(
                     "Only write operations are allowed in Batch statements");
             }

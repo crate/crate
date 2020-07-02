@@ -360,6 +360,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         DependencyCarrier executor = mock(DependencyCarrier.class);
         when(executor.threadPool()).thenReturn(mock(ThreadPool.class));
+        when(executor.clusterService()).thenReturn(clusterService);
         Session session = new Session(
             sqlExecutor.analyzer,
             sqlExecutor.planner,
@@ -387,6 +388,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         DependencyCarrier executor = mock(DependencyCarrier.class);
         when(executor.threadPool()).thenReturn(mock(ThreadPool.class));
+        when(executor.clusterService()).thenReturn(clusterService);
         Session session = new Session(
             sqlExecutor.analyzer,
             sqlExecutor.planner,
