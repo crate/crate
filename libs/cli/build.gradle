@@ -1,0 +1,6 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+archivesBaseName = 'crate-cli'
+
+dependencies {
+    compile "net.sf.jopt-simple:jopt-simple:${versions.jopt_simple}"
+}

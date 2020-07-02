@@ -60,7 +60,6 @@ public class MockTerminal extends Terminal {
         return textInput.get(textIndex++);
     }
 
-    @Override
     public char[] readSecret(String prompt) {
         if (secretIndex >= secretInput.size()) {
             throw new IllegalStateException("No secret input configured for prompt [" + prompt + "]");
