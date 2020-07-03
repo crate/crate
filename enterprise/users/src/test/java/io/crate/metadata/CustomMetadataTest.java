@@ -63,7 +63,7 @@ public class CustomMetadataTest {
             .putCustom(UsersMetadata.TYPE,
                        new UsersMetadata(UserDefinitions.DUMMY_USERS))
             .putCustom(UserDefinedFunctionsMetadata.TYPE,
-                       UserDefinedFunctionsMetadataTest.DUMMY_UDF_META_DATA)
+                       UserDefinedFunctionsMetadataTest.DUMMY_UDF_METADATA)
             .putCustom(UsersPrivilegesMetadata.TYPE,
                        UsersPrivilegesMetadataTest.createMetadata())
             .putCustom(ViewsMetadata.TYPE,

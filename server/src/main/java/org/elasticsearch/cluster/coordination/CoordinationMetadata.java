@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 
 public class CoordinationMetadata implements Writeable, ToXContentFragment {
 
-    public static final CoordinationMetadata EMPTY_META_DATA = builder().build();
+    public static final CoordinationMetadata EMPTY_METADATA = builder().build();
 
     private final long term;
 

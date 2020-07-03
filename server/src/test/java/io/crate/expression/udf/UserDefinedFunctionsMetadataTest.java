@@ -51,7 +51,7 @@ public class UserDefinedFunctionsMetadataTest extends CrateUnitTest {
         FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
         FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
     );
-    private static final UserDefinedFunctionMetadata FUNCTION_META_DATA = new UserDefinedFunctionMetadata(
+    private static final UserDefinedFunctionMetadata FUNCTION_METADATA = new UserDefinedFunctionMetadata(
         "my_schema",
         "my_add",
         args,
@@ -60,16 +60,16 @@ public class UserDefinedFunctionsMetadataTest extends CrateUnitTest {
        definition
     );
 
-    public static final UserDefinedFunctionsMetadata DUMMY_UDF_META_DATA = UserDefinedFunctionsMetadata.of(FUNCTION_META_DATA);
+    public static final UserDefinedFunctionsMetadata DUMMY_UDF_METADATA = UserDefinedFunctionsMetadata.of(FUNCTION_METADATA);
 
     @Test
     public void testUserDefinedFunctionStreaming() throws IOException {
         BytesStreamOutput out = new BytesStreamOutput();
-        FUNCTION_META_DATA.writeTo(out);
+        FUNCTION_METADATA.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
         UserDefinedFunctionMetadata udfMeta2 = new UserDefinedFunctionMetadata(in);
-        assertThat(FUNCTION_META_DATA, is(udfMeta2));
+        assertThat(FUNCTION_METADATA, is(udfMeta2));
 
         assertThat(udfMeta2.schema(), is("my_schema"));
         assertThat(udfMeta2.name(), is("my_add"));
@@ -90,14 +90,14 @@ public class UserDefinedFunctionsMetadataTest extends CrateUnitTest {
 
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
-        DUMMY_UDF_META_DATA.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        DUMMY_UDF_METADATA.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
         UserDefinedFunctionsMetadata functions = UserDefinedFunctionsMetadata.fromXContent(parser);
-        assertEquals(DUMMY_UDF_META_DATA, functions);
+        assertEquals(DUMMY_UDF_METADATA, functions);
     }
 
     @Test
@@ -132,10 +132,10 @@ public class UserDefinedFunctionsMetadataTest extends CrateUnitTest {
 
     @Test
     public void testSameSignature() throws Exception {
-        assertThat(FUNCTION_META_DATA.sameSignature("my_schema", "my_add", argumentTypesFrom(args)), is(true));
-        assertThat(FUNCTION_META_DATA.sameSignature("different_schema", "my_add", argumentTypesFrom(args)), is(false));
-        assertThat(FUNCTION_META_DATA.sameSignature("my_schema", "different_name", argumentTypesFrom(args)), is(false));
-        assertThat(FUNCTION_META_DATA.sameSignature("my_schema", "my_add", ImmutableList.of()), is(false));
+        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", argumentTypesFrom(args)), is(true));
+        assertThat(FUNCTION_METADATA.sameSignature("different_schema", "my_add", argumentTypesFrom(args)), is(false));
+        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "different_name", argumentTypesFrom(args)), is(false));
+        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", ImmutableList.of()), is(false));
     }
 
     @Test

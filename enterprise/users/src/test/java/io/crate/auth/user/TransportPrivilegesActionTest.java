@@ -72,7 +72,7 @@ public class TransportPrivilegesActionTest extends CrateUnitTest {
     @Test
     public void testValidateUserNamesEmptyUsers() throws Exception {
         List<String> userNames = Lists.newArrayList("ford", "arthur");
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(Metadata.EMPTY_META_DATA, userNames);
+        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(Metadata.EMPTY_METADATA, userNames);
         assertThat(unknownUserNames, is(userNames));
     }
 

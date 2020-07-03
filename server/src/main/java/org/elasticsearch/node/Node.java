@@ -664,7 +664,7 @@ public class Node implements Closeable {
         if (DiscoveryNode.isMasterNode(settings) || DiscoveryNode.isDataNode(settings)) {
             onDiskMetadata = injector.getInstance(GatewayMetaState.class).getMetadata();
         } else {
-            onDiskMetadata = Metadata.EMPTY_META_DATA;
+            onDiskMetadata = Metadata.EMPTY_METADATA;
         }
         assert onDiskMetadata != null : "metadata is null but shouldn't"; // this is never null
         validateNodeBeforeAcceptingRequests(transportService.boundAddress(),

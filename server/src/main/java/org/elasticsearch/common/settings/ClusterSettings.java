@@ -268,7 +268,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
             IndexModule.NODE_STORE_ALLOW_MMAPFS,
             IndexModule.NODE_STORE_ALLOW_MMAP,
             ClusterService.CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING,
-            ClusterService.USER_DEFINED_META_DATA,
+            ClusterService.USER_DEFINED_METADATA,
             ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING,
             NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING,
             HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_TYPE_SETTING,

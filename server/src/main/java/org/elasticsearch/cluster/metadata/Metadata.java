@@ -136,7 +136,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
     public static final ClusterBlock CLUSTER_READ_ONLY_ALLOW_DELETE_BLOCK = new ClusterBlock(13, "cluster read-only / allow delete (api)",
         false, false, true, RestStatus.FORBIDDEN, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
 
-    public static final Metadata EMPTY_META_DATA = builder().build();
+    public static final Metadata EMPTY_METADATA = builder().build();
 
     public static final String CONTEXT_MODE_PARAM = "context_mode";
 
@@ -843,7 +843,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         private boolean clusterUUIDCommitted;
         private long version;
 
-        private CoordinationMetadata coordinationMetadata = CoordinationMetadata.EMPTY_META_DATA;
+        private CoordinationMetadata coordinationMetadata = CoordinationMetadata.EMPTY_METADATA;
         private Settings transientSettings = Settings.Builder.EMPTY_SETTINGS;
         private Settings persistentSettings = Settings.Builder.EMPTY_SETTINGS;
 
