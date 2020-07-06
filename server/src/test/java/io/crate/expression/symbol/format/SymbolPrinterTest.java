@@ -370,6 +370,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_negate_is_pretty_printed() throws Exception {
+        assertPrintingRoundTrip("- bar", "- doc.formatter.bar");
+    }
+
+    @Test
     public void testAnyLikeOperator() throws Exception {
         assertPrintingRoundTrip("foo LIKE ANY (s_arr)", "(doc.formatter.foo LIKE ANY(doc.formatter.s_arr))");
         assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ANY(['a', 'b', 'c']))");
