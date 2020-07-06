@@ -51,6 +51,11 @@ public class NegateFunctionsTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void test_negate_cast_to_real() throws Exception {
+        assertEvaluate("- CAST(36 as REAL)", -36.0f);
+    }
+
+    @Test
     public void testNegateNull() throws Exception {
         assertEvaluate("- null", null);
     }
