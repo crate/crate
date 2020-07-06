@@ -73,7 +73,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             Object value = ((Input<?>) arg).value();
             if (value == null) {
                 // WHERE NOT NULL -> WHERE NULL
-                return Literal.NULL;
+                return Literal.of(DataTypes.BOOLEAN, null);
             }
             if (value instanceof Boolean) {
                 return Literal.of(!((Boolean) value));

@@ -22,6 +22,7 @@
 package io.crate.expression.predicate;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
@@ -32,7 +33,7 @@ public class NotPredicateTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeSymbolNull() throws Exception {
-        assertNormalize("not null", isLiteral(null));
+        assertNormalize("not null", isLiteral(null, DataTypes.BOOLEAN));
     }
 
     @Test
