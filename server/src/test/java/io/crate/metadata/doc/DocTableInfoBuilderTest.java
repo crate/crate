@@ -31,9 +31,9 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -61,7 +61,7 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
         String schemaName = randomSchema();
         PartitionName partitionName = new PartitionName(
             new RelationName(schemaName, "test"), Collections.singletonList("boo"));
-        IndexMetaData.Builder indexMetaDataBuilder = IndexMetaData.builder(partitionName.asIndexName())
+        IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(partitionName.asIndexName())
             .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
             .numberOfReplicas(0)
             .numberOfShards(5)
@@ -76,11 +76,11 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
                 "    }" +
                 "  }" +
                 "}");
-        MetaData metaData = MetaData.builder()
-            .put(indexMetaDataBuilder)
+        Metadata metadata = Metadata.builder()
+            .put(indexMetadataBuilder)
             .build();
 
-        ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build();
+        ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metadata(metadata).build();
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
             functions,
             new RelationName(schemaName, "test"),

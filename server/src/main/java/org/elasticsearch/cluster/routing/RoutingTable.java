@@ -25,8 +25,8 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.DiffableUtils;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -160,9 +160,9 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
     }
 
 
-    public boolean validate(MetaData metaData) {
+    public boolean validate(Metadata metadata) {
         for (IndexRoutingTable indexRoutingTable : this) {
-            if (indexRoutingTable.validate(metaData) == false) {
+            if (indexRoutingTable.validate(metadata) == false) {
                 return false;
             }
         }
@@ -500,52 +500,52 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
             return this;
         }
 
-        public Builder addAsNew(IndexMetaData indexMetaData) {
-            if (indexMetaData.getState() == IndexMetaData.State.OPEN) {
-                IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetaData.getIndex())
-                        .initializeAsNew(indexMetaData);
+        public Builder addAsNew(IndexMetadata indexMetadata) {
+            if (indexMetadata.getState() == IndexMetadata.State.OPEN) {
+                IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
+                        .initializeAsNew(indexMetadata);
                 add(indexRoutingBuilder);
             }
             return this;
         }
 
-        public Builder addAsRecovery(IndexMetaData indexMetaData) {
-            if (indexMetaData.getState() == IndexMetaData.State.OPEN) {
-                IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetaData.getIndex())
-                        .initializeAsRecovery(indexMetaData);
+        public Builder addAsRecovery(IndexMetadata indexMetadata) {
+            if (indexMetadata.getState() == IndexMetadata.State.OPEN) {
+                IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
+                        .initializeAsRecovery(indexMetadata);
                 add(indexRoutingBuilder);
             }
             return this;
         }
 
-        public Builder addAsFromDangling(IndexMetaData indexMetaData) {
-            if (indexMetaData.getState() == IndexMetaData.State.OPEN) {
-                IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetaData.getIndex())
-                        .initializeAsFromDangling(indexMetaData);
+        public Builder addAsFromDangling(IndexMetadata indexMetadata) {
+            if (indexMetadata.getState() == IndexMetadata.State.OPEN) {
+                IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
+                        .initializeAsFromDangling(indexMetadata);
                 add(indexRoutingBuilder);
             }
             return this;
         }
 
-        public Builder addAsFromCloseToOpen(IndexMetaData indexMetaData) {
-            if (indexMetaData.getState() == IndexMetaData.State.OPEN) {
-                IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetaData.getIndex())
-                        .initializeAsFromCloseToOpen(indexMetaData);
+        public Builder addAsFromCloseToOpen(IndexMetadata indexMetadata) {
+            if (indexMetadata.getState() == IndexMetadata.State.OPEN) {
+                IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
+                        .initializeAsFromCloseToOpen(indexMetadata);
                 add(indexRoutingBuilder);
             }
             return this;
         }
 
-        public Builder addAsRestore(IndexMetaData indexMetaData, SnapshotRecoverySource recoverySource) {
-            IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetaData.getIndex())
-                    .initializeAsRestore(indexMetaData, recoverySource);
+        public Builder addAsRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource) {
+            IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
+                    .initializeAsRestore(indexMetadata, recoverySource);
             add(indexRoutingBuilder);
             return this;
         }
 
-        public Builder addAsNewRestore(IndexMetaData indexMetaData, SnapshotRecoverySource recoverySource, IntSet ignoreShards) {
-            IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetaData.getIndex())
-                    .initializeAsNewRestore(indexMetaData, recoverySource, ignoreShards);
+        public Builder addAsNewRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource, IntSet ignoreShards) {
+            IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
+                    .initializeAsNewRestore(indexMetadata, recoverySource, ignoreShards);
             add(indexRoutingBuilder);
             return this;
         }

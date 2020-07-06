@@ -26,16 +26,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.data.Input;
 import io.crate.expression.udf.UDFLanguage;
-import io.crate.expression.udf.UserDefinedFunctionMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.Index;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -59,9 +59,9 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         udfService = new UserDefinedFunctionService(clusterService, functions);
         udfService.registerLanguage(new UDFLanguage() {
             @Override
-            public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData,
+            public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
                                                        Signature signature) throws ScriptException {
-                String error = validate(metaData);
+                String error = validate(metadata);
                 if (error != null) {
                     throw new ScriptException("this is not Burlesque");
                 }
@@ -85,7 +85,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
             @Override
             @Nullable
-            public String validate(UserDefinedFunctionMetaData metadata) {
+            public String validate(UserDefinedFunctionMetadata metadata) {
                 if (!metadata.definition().equals("\"Hello, World!\"Q")) {
                     return "this is not Burlesque";
                 }
@@ -103,18 +103,18 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInvalidFunction() throws Exception {
-        UserDefinedFunctionMetaData invalid = new UserDefinedFunctionMetaData(
+        UserDefinedFunctionMetadata invalid = new UserDefinedFunctionMetadata(
             "my_schema", "invalid", ImmutableList.of(), DataTypes.INTEGER,
             "burlesque", "this is not valid burlesque code"
         );
-        UserDefinedFunctionMetaData valid = new UserDefinedFunctionMetaData(
+        UserDefinedFunctionMetadata valid = new UserDefinedFunctionMetadata(
             "my_schema", "valid", ImmutableList.of(), DataTypes.INTEGER,
             "burlesque", "\"Hello, World!\"Q"
         );
-        UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(invalid, valid);
+        UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(invalid, valid);
         // if a functionImpl can't be created, it won't be registered
 
-        udfService.updateImplementations("my_schema", metaData.functionsMetaData().stream());
+        udfService.updateImplementations("my_schema", metadata.functionsMetadata().stream());
 
         assertThat(functions.get("my_schema", "valid", ImmutableList.of(), pathWithPGCatalogAndDoc()), Matchers.notNullValue());
 
@@ -126,8 +126,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     public void testNoNPEIfDeletedIndicesNotInPreviousClusterState() throws Exception {
         // sometimes on startup it occurs that a ClusterChangedEvent contains deleted indices
         // which are not in the previousState.
-        MetaData metaData = new MetaData.Builder().build();
-        docSchemaInfo.invalidateFromIndex(new Index("my_index", "asdf"), metaData);
+        Metadata metadata = new Metadata.Builder().build();
+        docSchemaInfo.invalidateFromIndex(new Index("my_index", "asdf"), metadata);
     }
 
 }

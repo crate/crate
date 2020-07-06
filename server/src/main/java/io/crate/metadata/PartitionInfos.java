@@ -24,14 +24,14 @@ package io.crate.metadata;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
-import io.crate.metadata.doc.DocIndexMetaData;
+import io.crate.metadata.doc.DocIndexMetadata;
 import io.crate.metadata.doc.PartitionedByMappingExtractor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Settings;
@@ -54,41 +54,41 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
     @Override
     public Iterator<PartitionInfo> iterator() {
         // get a fresh one for each iteration
-        return StreamSupport.stream(clusterService.state().metaData().indices().spliterator(), false)
+        return StreamSupport.stream(clusterService.state().metadata().indices().spliterator(), false)
             .filter(entry -> IndexParts.isPartitioned(entry.key))
             .map(PartitionInfos::createPartitionInfo)
             .filter(Objects::nonNull)
             .iterator();
     }
 
-    private static PartitionInfo createPartitionInfo(ObjectObjectCursor<String, IndexMetaData> indexMetaDataEntry) {
-        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexMetaDataEntry.key);
+    private static PartitionInfo createPartitionInfo(ObjectObjectCursor<String, IndexMetadata> indexMetadataEntry) {
+        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexMetadataEntry.key);
         try {
-            IndexMetaData indexMetaData = indexMetaDataEntry.value;
-            MappingMetaData mappingMetaData = indexMetaData.mapping(Constants.DEFAULT_MAPPING_TYPE);
-            Map<String, Object> mappingMap = mappingMetaData.sourceAsMap();
-            Map<String, Object> valuesMap = buildValuesMap(partitionName, mappingMetaData);
-            Settings settings = indexMetaData.getSettings();
+            IndexMetadata indexMetadata = indexMetadataEntry.value;
+            MappingMetadata mappingMetadata = indexMetadata.mapping(Constants.DEFAULT_MAPPING_TYPE);
+            Map<String, Object> mappingMap = mappingMetadata.sourceAsMap();
+            Map<String, Object> valuesMap = buildValuesMap(partitionName, mappingMetadata);
+            Settings settings = indexMetadata.getSettings();
             String numberOfReplicas = NumberOfReplicas.fromSettings(settings);
             return new PartitionInfo(
-                partitionName,
-                indexMetaData.getNumberOfShards(),
-                numberOfReplicas,
-                IndexMetaData.SETTING_INDEX_VERSION_CREATED.get(settings),
-                settings.getAsVersion(IndexMetaData.SETTING_VERSION_UPGRADED, null),
-                DocIndexMetaData.isClosed(indexMetaData, mappingMap, false),
-                valuesMap,
-                indexMetaData.getSettings());
+                    partitionName,
+                    indexMetadata.getNumberOfShards(),
+                    numberOfReplicas,
+                    IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings),
+                    settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
+                    DocIndexMetadata.isClosed(indexMetadata, mappingMap, false),
+                    valuesMap,
+                    indexMetadata.getSettings());
         } catch (Exception e) {
-            LOGGER.trace("error extracting partition infos from index {}", e, indexMetaDataEntry.key);
+            LOGGER.trace("error extracting partition infos from index {}", e, indexMetadataEntry.key);
             return null; // must filter on null
         }
     }
 
-    private static Map<String, Object> buildValuesMap(PartitionName partitionName, MappingMetaData mappingMetaData) throws Exception {
+    private static Map<String, Object> buildValuesMap(PartitionName partitionName, MappingMetadata mappingMetadata) throws Exception {
         int i = 0;
         Map<String, Object> valuesMap = new HashMap<>();
-        Iterable<Tuple<ColumnIdent, DataType>> partitionColumnInfoIterable = PartitionedByMappingExtractor.extractPartitionedByColumns(mappingMetaData.sourceAsMap());
+        Iterable<Tuple<ColumnIdent, DataType>> partitionColumnInfoIterable = PartitionedByMappingExtractor.extractPartitionedByColumns(mappingMetadata.sourceAsMap());
         for (Tuple<ColumnIdent, DataType> columnInfo : partitionColumnInfoIterable) {
             String columnName = columnInfo.v1().sqlFqn();
             Object value = partitionName.values().get(i);

@@ -54,7 +54,7 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.PartitionedBy;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -158,7 +158,7 @@ public class CreateTablePlan implements Plan {
             tableElements, fulltextAnalyzerResolver);
         tableParameter.settingsBuilder().put(tableSettings);
         tableParameter.settingsBuilder().put(
-            IndexMetaData.SETTING_NUMBER_OF_SHARDS, numberOfShards.defaultNumberOfShards());
+                IndexMetadata.SETTING_NUMBER_OF_SHARDS, numberOfShards.defaultNumberOfShards());
 
         ColumnIdent routingColumn = null;
         if (table.clusteredBy().isPresent()) {
@@ -167,7 +167,7 @@ public class CreateTablePlan implements Plan {
             routingColumn = resolveRoutingFromClusteredBy(clusteredBy, tableElements);
             if (clusteredBy.numberOfShards().isPresent()) {
                 tableParameter.settingsBuilder().put(
-                    IndexMetaData.SETTING_NUMBER_OF_SHARDS,
+                    IndexMetadata.SETTING_NUMBER_OF_SHARDS,
                     numberOfShards.fromClusteredByClause(clusteredBy)
                 );
             }

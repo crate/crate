@@ -46,7 +46,7 @@ import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.function.Function;
@@ -128,7 +128,7 @@ public class CreateBlobTablePlan implements Plan {
         } else {
             numShards = numberOfShards.defaultNumberOfShards();
         }
-        builder.put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
+        builder.put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards);
 
         return builder.build();
     }

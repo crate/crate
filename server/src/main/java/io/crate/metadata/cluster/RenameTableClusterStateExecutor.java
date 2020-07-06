@@ -32,11 +32,11 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
@@ -66,15 +66,15 @@ public class RenameTableClusterStateExecutor {
         RelationName target = request.targetTableIdent();
         boolean isPartitioned = request.isPartitioned();
 
-        MetaData currentMetaData = currentState.getMetaData();
-        MetaData.Builder newMetaData = MetaData.builder(currentMetaData);
+        Metadata currentMetadata = currentState.getMetadata();
+        Metadata.Builder newMetadata = Metadata.builder(currentMetadata);
 
         if (isPartitioned) {
-            IndexTemplateMetaData indexTemplateMetaData = DDLClusterStateHelpers.templateMetaData(currentMetaData, source);
-            if (indexTemplateMetaData == null) {
+            IndexTemplateMetadata indexTemplateMetadata = DDLClusterStateHelpers.templateMetadata(currentMetadata, source);
+            if (indexTemplateMetadata == null) {
                 throw new IndexTemplateMissingException("Template for partitioned table is missing");
             }
-            renameTemplate(newMetaData, indexTemplateMetaData, target);
+            renameTemplate(newMetadata, indexTemplateMetadata, target);
         }
 
         RoutingTable.Builder newRoutingTable = RoutingTable.builder(currentState.routingTable());
@@ -87,27 +87,27 @@ public class RenameTableClusterStateExecutor {
                 currentState, STRICT_INDICES_OPTIONS, source.indexNameOrAlias());
 
             for (Index sourceIndex : sourceIndices) {
-                IndexMetaData sourceIndexMetaData = currentMetaData.getIndexSafe(sourceIndex);
+                IndexMetadata sourceIndexMetadata = currentMetadata.getIndexSafe(sourceIndex);
                 String sourceIndexName = sourceIndex.getName();
-                newMetaData.remove(sourceIndexName);
+                newMetadata.remove(sourceIndexName);
                 newRoutingTable.remove(sourceIndexName);
                 blocksBuilder.removeIndexBlocks(sourceIndexName);
 
-                IndexMetaData targetMd;
+                IndexMetadata targetMd;
                 if (isPartitioned) {
                     PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndexName);
                     String targetIndexName = IndexParts.toIndexName(target, partitionName.ident());
-                    targetMd = IndexMetaData.builder(sourceIndexMetaData)
+                    targetMd = IndexMetadata.builder(sourceIndexMetadata)
                         .removeAllAliases()
-                        .putAlias(AliasMetaData.builder(target.indexNameOrAlias()).build())
+                        .putAlias(AliasMetadata.builder(target.indexNameOrAlias()).build())
                         .index(targetIndexName)
                         .build();
                 } else {
-                    targetMd = IndexMetaData.builder(sourceIndexMetaData)
+                    targetMd = IndexMetadata.builder(sourceIndexMetadata)
                         .index(target.indexNameOrAlias())
                         .build();
                 }
-                newMetaData.put(targetMd, true);
+                newMetadata.put(targetMd, true);
                 newRoutingTable.addAsFromCloseToOpen(targetMd);
                 blocksBuilder.addBlocks(targetMd);
             }
@@ -119,7 +119,7 @@ public class RenameTableClusterStateExecutor {
         }
 
         ClusterState clusterStateAfterRename = ClusterState.builder(currentState)
-            .metaData(newMetaData)
+            .metadata(newMetadata)
             .routingTable(newRoutingTable.build())
             .blocks(blocksBuilder)
             .build();
@@ -130,12 +130,12 @@ public class RenameTableClusterStateExecutor {
         );
     }
 
-    private static void renameTemplate(MetaData.Builder newMetaData,
-                                       IndexTemplateMetaData sourceTemplateMetaData,
+    private static void renameTemplate(Metadata.Builder newMetadata,
+                                       IndexTemplateMetadata sourceTemplateMetadata,
                                        RelationName target) {
-        IndexTemplateMetaData.Builder updatedTemplate = Templates.copyWithNewName(sourceTemplateMetaData, target);
-        newMetaData
-            .removeTemplate(sourceTemplateMetaData.getName())
+        IndexTemplateMetadata.Builder updatedTemplate = Templates.copyWithNewName(sourceTemplateMetadata, target);
+        newMetadata
+            .removeTemplate(sourceTemplateMetadata.getName())
             .put(updatedTemplate);
     }
 }

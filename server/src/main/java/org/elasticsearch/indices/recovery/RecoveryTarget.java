@@ -48,7 +48,7 @@ import org.elasticsearch.index.shard.IndexShardNotRecoveringException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
-import org.elasticsearch.index.store.StoreFileMetaData;
+import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
 
 import java.io.IOException;
@@ -308,7 +308,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
      * Note: You can use {@link #getOpenIndexOutput(String)} with the same filename to retrieve the same IndexOutput
      * at a later stage
      */
-    public IndexOutput openAndPutIndexOutput(String fileName, StoreFileMetaData metaData, Store store) throws IOException {
+    public IndexOutput openAndPutIndexOutput(String fileName, StoreFileMetadata metadata, Store store) throws IOException {
         ensureRefCount();
         String tempFileName = getTempNameForFile(fileName);
         if (tempFileNames.containsKey(tempFileName)) {
@@ -316,7 +316,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
         }
         // add first, before it's created
         tempFileNames.put(tempFileName, fileName);
-        IndexOutput indexOutput = store.createVerifyingOutput(tempFileName, metaData, IOContext.DEFAULT);
+        IndexOutput indexOutput = store.createVerifyingOutput(tempFileName, metadata, IOContext.DEFAULT);
         openIndexOutputs.put(fileName, indexOutput);
         return indexOutput;
     }
@@ -460,7 +460,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
     }
 
     @Override
-    public void cleanFiles(int totalTranslogOps, Store.MetadataSnapshot sourceMetaData) throws IOException {
+    public void cleanFiles(int totalTranslogOps, Store.MetadataSnapshot sourceMetadata) throws IOException {
         state().getTranslog().totalOperations(totalTranslogOps);
         // first, we go and move files that were created with the recovery id suffix to
         // the actual names, its ok if we have a corrupted index here, since we have replicas
@@ -469,7 +469,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
         final Store store = store();
         store.incRef();
         try {
-            store.cleanupAndVerify("recovery CleanFilesRequestHandler", sourceMetaData);
+            store.cleanupAndVerify("recovery CleanFilesRequestHandler", sourceMetadata);
             // TODO: Assign the global checkpoint to the max_seqno of the safe commit if the index version >= 6.2
             final String translogUUID = Translog.createEmptyTranslog(
                 indexShard.shardPath().resolveTranslog(), SequenceNumbers.UNASSIGNED_SEQ_NO, shardId,
@@ -503,16 +503,16 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
         }
     }
 
-    private void innerWriteFileChunk(StoreFileMetaData fileMetaData,
+    private void innerWriteFileChunk(StoreFileMetadata fileMetadata,
                                      long position,
                                      BytesReference content,
                                      boolean lastChunk) throws IOException {
         final Store store = store();
-        final String name = fileMetaData.name();
+        final String name = fileMetadata.name();
         final RecoveryState.Index indexState = state().getIndex();
         IndexOutput indexOutput;
         if (position == 0) {
-            indexOutput = openAndPutIndexOutput(name, fileMetaData, store);
+            indexOutput = openAndPutIndexOutput(name, fileMetadata, store);
         } else {
             indexOutput = getOpenIndexOutput(name);
         }
@@ -524,7 +524,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
             indexOutput.writeBytes(scratch.bytes, scratch.offset, scratch.length);
         }
         indexState.addRecoveredBytesToFile(name, content.length());
-        if (indexOutput.getFilePointer() >= fileMetaData.length() || lastChunk) {
+        if (indexOutput.getFilePointer() >= fileMetadata.length() || lastChunk) {
             try {
                 Store.verify(indexOutput);
             } finally {
@@ -541,7 +541,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
     }
 
     @Override
-    public void writeFileChunk(StoreFileMetaData fileMetaData,
+    public void writeFileChunk(StoreFileMetadata fileMetadata,
                                long position,
                                BytesReference content,
                                boolean lastChunk,
@@ -550,8 +550,8 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
         try {
             state().getTranslog().totalOperations(totalTranslogOps);
             final FileChunkWriter writer = fileChunkWriters
-                .computeIfAbsent(fileMetaData.name(), name -> new FileChunkWriter());
-            writer.writeChunk(new FileChunk(fileMetaData, content, position, lastChunk));
+                .computeIfAbsent(fileMetadata.name(), name -> new FileChunkWriter());
+            writer.writeChunk(new FileChunk(fileMetadata, content, position, lastChunk));
             listener.onResponse(null);
         } catch (Exception e) {
             listener.onFailure(e);
@@ -559,12 +559,12 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
     }
 
     private static final class FileChunk {
-        final StoreFileMetaData md;
+        final StoreFileMetadata md;
         final BytesReference content;
         final long position;
         final boolean lastChunk;
 
-        FileChunk(StoreFileMetaData md, BytesReference content, long position, boolean lastChunk) {
+        FileChunk(StoreFileMetadata md, BytesReference content, long position, boolean lastChunk) {
             this.md = md;
             this.content = content;
             this.position = position;

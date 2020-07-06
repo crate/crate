@@ -19,8 +19,8 @@
 package io.crate.auth.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.metadata.UsersMetaData;
-import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.UsersMetadata;
+import io.crate.metadata.UsersPrivilegesMetadata;
 import io.crate.user.SecureHash;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -29,7 +29,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
@@ -77,10 +77,10 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
 
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    MetaData currentMetaData = currentState.metaData();
-                    MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
+                    Metadata currentMetadata = currentState.metadata();
+                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
                     alreadyExists = putUser(mdBuilder, request.userName(), request.secureHash());
-                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 }
 
                 @Override
@@ -101,22 +101,22 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
      * @return boolean true if the user already exists, otherwise false
      */
     @VisibleForTesting
-    static boolean putUser(MetaData.Builder mdBuilder, String name, @Nullable SecureHash secureHash) {
-        UsersMetaData oldMetaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
-        if (oldMetaData != null && oldMetaData.contains(name)) {
+    static boolean putUser(Metadata.Builder mdBuilder, String name, @Nullable SecureHash secureHash) {
+        UsersMetadata oldMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        if (oldMetadata != null && oldMetadata.contains(name)) {
             return true;
         }
         // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);
-        newMetaData.put(name, secureHash);
-        assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
-        mdBuilder.putCustom(UsersMetaData.TYPE, newMetaData);
+        UsersMetadata newMetadata = UsersMetadata.newInstance(oldMetadata);
+        newMetadata.put(name, secureHash);
+        assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
+        mdBuilder.putCustom(UsersMetadata.TYPE, newMetadata);
 
         // create empty privileges for this user
-        UsersPrivilegesMetaData privilegesMetaData = UsersPrivilegesMetaData.copyOf(
-            (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
-        privilegesMetaData.createPrivileges(name, Collections.emptySet());
-        mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, privilegesMetaData);
+        UsersPrivilegesMetadata privilegesMetadata = UsersPrivilegesMetadata.copyOf(
+            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
+        privilegesMetadata.createPrivileges(name, Collections.emptySet());
+        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, privilegesMetadata);
         return false;
     }
 }

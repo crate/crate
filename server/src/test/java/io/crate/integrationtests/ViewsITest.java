@@ -23,7 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.view.ViewsMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -56,7 +56,7 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         execute("refresh table t1");
         execute("create view v1 as select * from t1 where x > ?", $(0));
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
-            ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
+            ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
             assertThat(views, Matchers.notNullValue());
             assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1")), is(true));
         }
@@ -67,7 +67,7 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         );
         execute("drop view v1");
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
-            ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
+            ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
             assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1")), is(false));
         }
     }
@@ -89,7 +89,7 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         execute("create or replace view v2 as select 2 from sys.cluster");
         assertThat(printedTable(execute("select * from v2").rows()), is("2\n"));
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
-            ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
+            ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
             assertThat(views, Matchers.notNullValue());
             assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v2")), is(true));
         }

@@ -23,7 +23,7 @@
 package io.crate.license;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import static io.crate.integrationtests.LicenseITest.ENTERPRISE_LICENSE_KEY;
@@ -33,7 +33,7 @@ public class TransportSetLicenseActionTest extends CrateUnitTest {
 
     @Test
     public void testTrialLicenseCannotOverrideExistingLicense() throws Exception {
-        MetaData currentMetaData = MetaData.builder()
+        Metadata currentMetadata = Metadata.builder()
             .putCustom(LicenseKey.WRITEABLE_TYPE, new LicenseKey(ENTERPRISE_LICENSE_KEY))
             .build();
 
@@ -44,6 +44,6 @@ public class TransportSetLicenseActionTest extends CrateUnitTest {
         );
         LicenseKey trialLicenseKey = TrialLicense.createLicenseKey(LicenseKey.VERSION, licenseData);
 
-        assertTrue(TransportSetLicenseAction.ignoreNewTrialLicense(trialLicenseKey, currentMetaData));
+        assertTrue(TransportSetLicenseAction.ignoreNewTrialLicense(trialLicenseKey, currentMetadata));
     }
 }

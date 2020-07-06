@@ -27,7 +27,7 @@ import io.crate.sql.tree.GenericProperty;
 import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolPB;
 import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.security.SecurityUtil;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -157,7 +157,7 @@ public final class HdfsPlugin extends Plugin implements RepositoryPlugin {
                 }
 
                 @Override
-                public Repository create(RepositoryMetaData metadata) throws Exception {
+                public Repository create(RepositoryMetadata metadata) throws Exception {
                     return new HdfsRepository(metadata, env, namedXContentRegistry, threadPool);
                 }
             }

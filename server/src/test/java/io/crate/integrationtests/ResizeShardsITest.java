@@ -85,7 +85,7 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
         createIndex(resizeIndex);
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metaData().hasIndex(resizeIndex), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(resizeIndex), is(true));
 
         final String resizeNodeName = getADataNodeName(clusterService.state());
 
@@ -98,7 +98,7 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
         execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
         assertThat(printedTable(response.rows()), is("1\n"));
 
-        assertThat(clusterService.state().metaData().hasIndex(resizeIndex), is(false));
+        assertThat(clusterService.state().metadata().hasIndex(resizeIndex), is(false));
     }
 
     @Test

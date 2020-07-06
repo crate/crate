@@ -56,7 +56,7 @@ import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.IndexShardRelocatedException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.store.Store;
-import org.elasticsearch.index.store.StoreFileMetaData;
+import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteTransportException;
@@ -413,7 +413,7 @@ public class RecoverySourceHandler {
                 throw ex;
             }
             for (String name : snapshot.getFileNames()) {
-                final StoreFileMetaData md = recoverySourceMetadata.get(name);
+                final StoreFileMetadata md = recoverySourceMetadata.get(name);
                 if (md == null) {
                     logger.info("Snapshot differs from actual index for file: {} meta: {}", name, recoverySourceMetadata.asMap());
                     throw new CorruptIndexException("Snapshot differs from actual index - maybe index was removed metadata has " +
@@ -425,7 +425,7 @@ public class RecoverySourceHandler {
                 // segment files on the target node, using the existing files on
                 // the source node
                 final Store.RecoveryDiff diff = recoverySourceMetadata.recoveryDiff(request.metadataSnapshot());
-                for (StoreFileMetaData md : diff.identical) {
+                for (StoreFileMetadata md : diff.identical) {
                     phase1ExistingFileNames.add(md.name());
                     phase1ExistingFileSizes.add(md.length());
                     existingTotalSize += md.length();
@@ -435,10 +435,10 @@ public class RecoverySourceHandler {
                     }
                     totalSize += md.length();
                 }
-                List<StoreFileMetaData> phase1Files = new ArrayList<>(diff.different.size() + diff.missing.size());
+                List<StoreFileMetadata> phase1Files = new ArrayList<>(diff.different.size() + diff.missing.size());
                 phase1Files.addAll(diff.different);
                 phase1Files.addAll(diff.missing);
-                for (StoreFileMetaData md : phase1Files) {
+                for (StoreFileMetadata md : phase1Files) {
                     if (request.metadataSnapshot().asMap().containsKey(md.name())) {
                         logger.trace("recovery [phase1]: recovering [{}], exists in local store, but is different: remote [{}], local [{}]",
                             md.name(), request.metadataSnapshot().asMap().get(md.name()), md);
@@ -456,7 +456,7 @@ public class RecoverySourceHandler {
                 cancellableThreads.execute(() -> recoveryTarget.receiveFileInfo(
                     phase1FileNames, phase1FileSizes, phase1ExistingFileNames, phase1ExistingFileSizes, translogOps.get()));
                 // How many bytes we've copied since we last called RateLimiter.pause
-                sendFiles(store, phase1Files.toArray(new StoreFileMetaData[0]), translogOps);
+                sendFiles(store, phase1Files.toArray(new StoreFileMetadata[0]), translogOps);
 
                 // Send the CLEAN_FILES request, which takes all of the files that
                 // were transferred and renames them from their temporary file
@@ -478,10 +478,11 @@ public class RecoverySourceHandler {
                     if ((corruptIndexException = ExceptionsHelper.unwrapCorruption(targetException)) != null) {
                         try {
                             final Store.MetadataSnapshot recoverySourceMetadata1 = store.getMetadata(snapshot);
-                            StoreFileMetaData[] metadata =
-                                    StreamSupport.stream(recoverySourceMetadata1.spliterator(), false).toArray(StoreFileMetaData[]::new);
-                            ArrayUtil.timSort(metadata, Comparator.comparingLong(StoreFileMetaData::length)); // check small files first
-                            for (StoreFileMetaData md : metadata) {
+                            StoreFileMetadata[] metadata =
+                                    StreamSupport.stream(recoverySourceMetadata1.spliterator(), false).toArray(
+                                            StoreFileMetadata[]::new);
+                            ArrayUtil.timSort(metadata, Comparator.comparingLong(StoreFileMetadata::length)); // check small files first
+                            for (StoreFileMetadata md : metadata) {
                                 cancellableThreads.checkForCancel();
                                 logger.debug("checking integrity for file {} after remove corruption exception", md);
                                 if (store.checkIntegrityNoException(md) == false) { // we are corrupted on the primary -- fail!
@@ -758,12 +759,12 @@ public class RecoverySourceHandler {
                 '}';
     }
 
-    void sendFiles(Store store, StoreFileMetaData[] files, Supplier<Integer> translogOps) throws Exception {
-        ArrayUtil.timSort(files, Comparator.comparingLong(StoreFileMetaData::length)); // send smallest first
+    void sendFiles(Store store, StoreFileMetadata[] files, Supplier<Integer> translogOps) throws Exception {
+        ArrayUtil.timSort(files, Comparator.comparingLong(StoreFileMetadata::length)); // send smallest first
         final LocalCheckpointTracker requestSeqIdTracker = new LocalCheckpointTracker(NO_OPS_PERFORMED, NO_OPS_PERFORMED);
-        final AtomicReference<Tuple<StoreFileMetaData, Exception>> error = new AtomicReference<>();
+        final AtomicReference<Tuple<StoreFileMetadata, Exception>> error = new AtomicReference<>();
         final byte[] buffer = new byte[chunkSizeInBytes];
-        for (final StoreFileMetaData md : files) {
+        for (final StoreFileMetadata md : files) {
             if (error.get() != null) {
                 break;
             }
@@ -813,7 +814,7 @@ public class RecoverySourceHandler {
         }
     }
 
-    private void handleErrorOnSendFiles(Store store, StoreFileMetaData md, Exception e) throws Exception {
+    private void handleErrorOnSendFiles(Store store, StoreFileMetadata md, Exception e) throws Exception {
         final IOException corruptIndexException;
         if ((corruptIndexException = ExceptionsHelper.unwrapCorruption(e)) != null) {
             if (store.checkIntegrityNoException(md) == false) { // we are corrupted on the primary -- fail!

@@ -30,8 +30,8 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Tuple;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.expression.udf.UserDefinedFunctionMetaData;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -40,15 +40,15 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewMetaData;
-import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.view.ViewMetadata;
+import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -206,7 +206,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         String identSchema = schemaName(ident);
         String relation = relationName(ident);
 
-        ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
+        ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
         if (identSchema == null) {
             for (String pathSchema : searchPath) {
                 RelationName tableOrViewRelation = getTableOrViewRelation(pathSchema, relation, views);
@@ -224,7 +224,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     @Nullable
-    private RelationName getTableOrViewRelation(String pathSchema, String relation, ViewsMetaData views) {
+    private RelationName getTableOrViewRelation(String pathSchema, String relation, ViewsMetadata views) {
         SchemaInfo schemaInfo = schemas.get(pathSchema);
         if (schemaInfo != null) {
             TableInfo tableInfo = schemaInfo.getTableInfo(relation);
@@ -314,11 +314,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if (!event.metaDataChanged()) {
+        if (!event.metadataChanged()) {
             return;
         }
 
-        Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metaData());
+        Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metadata());
         synchronized (schemas) {
             Sets.SetView<String> nonBuiltInSchemas = Sets.difference(schemas.keySet(), builtInSchemas.keySet());
             Set<String> deleted = Sets.difference(nonBuiltInSchemas, newCurrentSchemas).immutableCopy();
@@ -344,27 +344,27 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     @VisibleForTesting
-    static Set<String> getNewCurrentSchemas(MetaData metaData) {
+    static Set<String> getNewCurrentSchemas(Metadata metadata) {
         Set<String> schemas = new HashSet<>();
         // 'doc' schema is always available and has the special property that its indices
         // don't have to be prefixed with the schema name
         schemas.add(DOC_SCHEMA_NAME);
-        for (String index : metaData.getConcreteAllIndices()) {
+        for (String index : metadata.getConcreteAllIndices()) {
             addIfSchema(schemas, index);
         }
-        for (ObjectCursor<String> cursor : metaData.templates().keys()) {
+        for (ObjectCursor<String> cursor : metadata.templates().keys()) {
             addIfSchema(schemas, cursor.value);
         }
-        UserDefinedFunctionsMetaData udfMetaData = metaData.custom(UserDefinedFunctionsMetaData.TYPE);
-        if (udfMetaData != null) {
-            udfMetaData.functionsMetaData()
+        UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
+        if (udfMetadata != null) {
+            udfMetadata.functionsMetadata()
                 .stream()
-                .map(UserDefinedFunctionMetaData::schema)
+                .map(UserDefinedFunctionMetadata::schema)
                 .forEach(schemas::add);
         }
-        ViewsMetaData viewsMetaData = metaData.custom(ViewsMetaData.TYPE);
-        if (viewsMetaData != null) {
-            StreamSupport.stream(viewsMetaData.names().spliterator(), false)
+        ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
+        if (viewsMetadata != null) {
+            StreamSupport.stream(viewsMetadata.names().spliterator(), false)
                 .map(IndexParts::new)
                 .map(IndexParts::getSchema)
                 .forEach(schemas::add);
@@ -439,9 +439,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     /**
      * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
-    public Tuple<ViewMetaData, RelationName> resolveView(QualifiedName ident, SearchPath searchPath) {
-        ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
-        ViewMetaData view = null;
+    public Tuple<ViewMetadata, RelationName> resolveView(QualifiedName ident, SearchPath searchPath) {
+        ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
+        ViewMetadata view = null;
         RelationName viewRelationName = null;
         String identSchema = schemaName(ident);
         String viewName = relationName(ident);
@@ -473,7 +473,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * Performs a lookup to see if a view with the relationName exists.
      */
     public boolean viewExists(RelationName relationName) {
-        ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
+        ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
         return views != null && views.getView(relationName) != null;
     }
 }

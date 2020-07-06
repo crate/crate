@@ -25,13 +25,12 @@ package io.crate.expression.reference.sys.cluster;
 import static org.hamcrest.core.Is.is;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -78,7 +77,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
         clusterService.submitStateUpdateTask("update settings", new ClusterStateUpdateTask() {
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
-                return ClusterState.builder(currentState).metaData(MetaData.builder().transientSettings(settings)).build();
+                return ClusterState.builder(currentState).metadata(Metadata.builder().transientSettings(settings)).build();
             }
 
             @Override

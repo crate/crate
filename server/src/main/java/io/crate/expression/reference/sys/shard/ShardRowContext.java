@@ -29,7 +29,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
@@ -162,8 +162,8 @@ public class ShardRowContext {
 
     public boolean isOrphanedPartition() {
         if (aliasName != null && templateName != null) {
-            MetaData metaData = clusterService.state().metaData();
-            return !(metaData.templates().containsKey(templateName) && metaData.hasConcreteIndex(aliasName));
+            Metadata metadata = clusterService.state().metadata();
+            return !(metadata.templates().containsKey(templateName) && metadata.hasConcreteIndex(aliasName));
         } else {
             return false;
         }

@@ -23,7 +23,7 @@ import io.crate.license.LicenseExtension;
 import io.crate.license.LicenseKey;
 import io.crate.license.LicenseModule;
 import org.elasticsearch.cluster.NamedDiff;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -42,14 +42,14 @@ public class EnterpriseLicenseExtension implements LicenseExtension {
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
         List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedWriteableRegistry.Entry(
-            MetaData.Custom.class,
+            Metadata.Custom.class,
             LicenseKey.WRITEABLE_TYPE,
             LicenseKey::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             LicenseKey.WRITEABLE_TYPE,
-            in -> LicenseKey.readDiffFrom(MetaData.Custom.class, LicenseKey.WRITEABLE_TYPE, in)
+            in -> LicenseKey.readDiffFrom(Metadata.Custom.class, LicenseKey.WRITEABLE_TYPE, in)
         ));
         return entries;
     }
@@ -57,7 +57,7 @@ public class EnterpriseLicenseExtension implements LicenseExtension {
     @Override
     public List<NamedXContentRegistry.Entry> getNamedXContent() {
         return Collections.singletonList(new NamedXContentRegistry.Entry(
-            MetaData.Custom.class,
+            Metadata.Custom.class,
             new ParseField(LicenseKey.WRITEABLE_TYPE),
             LicenseKey::fromXContent
         ));

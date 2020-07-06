@@ -86,7 +86,7 @@ public class DeleteById implements Plan {
                                                                     PlannerContext plannerContext) {
         ClusterService clusterService = dependencies.clusterService();
         TimeValue requestTimeout = ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING
-            .setting().get(clusterService.state().metaData().settings());
+            .setting().get(clusterService.state().metadata().settings());
         return new ShardRequestExecutor<>(
             clusterService,
             plannerContext.transactionContext(),

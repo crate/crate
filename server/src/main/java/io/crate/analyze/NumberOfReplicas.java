@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.common.Booleans;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Objects;
@@ -31,8 +31,8 @@ import java.util.regex.Pattern;
 
 public class NumberOfReplicas {
 
-    public static final String NUMBER_OF_REPLICAS = IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
-    public static final String AUTO_EXPAND_REPLICAS = IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS;
+    public static final String NUMBER_OF_REPLICAS = IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+    public static final String AUTO_EXPAND_REPLICAS = IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
 
     private static final Pattern EXPAND_REPLICA_PATTERN = Pattern.compile("\\d+\\-(all|\\d+)");
     private final String esSettingKey;
@@ -78,7 +78,7 @@ public class NumberOfReplicas {
     }
 
     public static int fromSettings(Settings settings, int dataNodeCount) {
-        AutoExpandReplicas autoExpandReplicas = IndexMetaData.INDEX_AUTO_EXPAND_REPLICAS_SETTING.get(settings);
+        AutoExpandReplicas autoExpandReplicas = IndexMetadata.INDEX_AUTO_EXPAND_REPLICAS_SETTING.get(settings);
         if (autoExpandReplicas.isEnabled()) {
             final int min = autoExpandReplicas.getMinReplicas();
             final int max = autoExpandReplicas.getMaxReplicas(dataNodeCount);
@@ -89,6 +89,6 @@ public class NumberOfReplicas {
                 return max;
             }
         }
-        return IndexMetaData.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings);
+        return IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings);
     }
 }

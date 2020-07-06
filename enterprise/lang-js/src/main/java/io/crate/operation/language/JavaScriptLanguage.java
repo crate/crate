@@ -19,7 +19,7 @@
 package io.crate.operation.language;
 
 import io.crate.expression.udf.UDFLanguage;
-import io.crate.expression.udf.UserDefinedFunctionMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -55,13 +55,13 @@ public class JavaScriptLanguage implements UDFLanguage {
         udfService.registerLanguage(this);
     }
 
-    public Scalar createFunctionImplementation(UserDefinedFunctionMetaData meta,
+    public Scalar createFunctionImplementation(UserDefinedFunctionMetadata meta,
                                                Signature signature) throws ScriptException {
         return new JavaScriptUserDefinedFunction(signature, meta.definition());
     }
 
     @Nullable
-    public String validate(UserDefinedFunctionMetaData meta) {
+    public String validate(UserDefinedFunctionMetadata meta) {
         try {
             resolvePolyglotFunctionValue(meta.name(), meta.definition());
             return null;

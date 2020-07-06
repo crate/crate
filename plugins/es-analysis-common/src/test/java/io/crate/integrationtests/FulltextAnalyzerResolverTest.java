@@ -96,7 +96,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
     public Settings getPersistentClusterSettings() {
         ClusterStateResponse response = client().admin().cluster().prepareState().execute().actionGet();
-        return response.getState().metaData().persistentSettings();
+        return response.getState().metadata().persistentSettings();
     }
 
     @Test

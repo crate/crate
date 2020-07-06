@@ -36,10 +36,10 @@ public class DefaultTemplateServiceTest {
         ClusterState state = ClusterState.builder(new ClusterName("foo")).build();
 
         ClusterState newState = DefaultTemplateService.addDefaultTemplate(state);
-        assertThat(newState.getMetaData().templates().containsKey(DefaultTemplateService.TEMPLATE_NAME), is(true));
+        assertThat(newState.getMetadata().templates().containsKey(DefaultTemplateService.TEMPLATE_NAME), is(true));
 
         // verify that it doesn't fail it the template already exists
         newState = DefaultTemplateService.addDefaultTemplate(newState);
-        assertThat(newState.getMetaData().templates().containsKey(DefaultTemplateService.TEMPLATE_NAME), is(true));
+        assertThat(newState.getMetadata().templates().containsKey(DefaultTemplateService.TEMPLATE_NAME), is(true));
     }
 }

@@ -34,7 +34,7 @@ import io.crate.metadata.table.StoredTable;
 import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
@@ -171,10 +171,10 @@ public class InformationTablesTableInfo {
                 .add("refresh_interval", LONG, fromTimeValue(INDEX_REFRESH_INTERVAL_SETTING))
 
                 .startObject("blocks")
-                    .add("read_only", BOOLEAN, fromSetting(IndexMetaData.INDEX_READ_ONLY_SETTING))
-                    .add("read", BOOLEAN, fromSetting(IndexMetaData.INDEX_BLOCKS_READ_SETTING))
-                    .add("write", BOOLEAN, fromSetting(IndexMetaData.INDEX_BLOCKS_WRITE_SETTING))
-                    .add("metadata", BOOLEAN, fromSetting(IndexMetaData.INDEX_BLOCKS_METADATA_SETTING))
+                    .add("read_only", BOOLEAN, fromSetting(IndexMetadata.INDEX_READ_ONLY_SETTING))
+                    .add("read", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_READ_SETTING))
+                    .add("write", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_WRITE_SETTING))
+                    .add("metadata", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_METADATA_SETTING))
                 .endObject()
                 .add("codec", STRING, fromSetting(INDEX_CODEC_SETTING))
                 .startObject("store")
@@ -191,9 +191,9 @@ public class InformationTablesTableInfo {
                     .startObject("allocation")
                         .add("enable", STRING, fromSetting(EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING, EnableAllocationDecider.Allocation::toString))
                         .add("total_shards_per_node", INTEGER, fromSetting(ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING))
-                        .addDynamicObject("require", STRING, fromSetting(IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING))
-                        .addDynamicObject("include", STRING, fromSetting(IndexMetaData.INDEX_ROUTING_INCLUDE_GROUP_SETTING))
-                        .addDynamicObject("exclude", STRING, fromSetting(IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING))
+                        .addDynamicObject("require", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING))
+                        .addDynamicObject("include", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_INCLUDE_GROUP_SETTING))
+                        .addDynamicObject("exclude", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING))
                     .endObject()
                 .endObject()
 
@@ -222,7 +222,7 @@ public class InformationTablesTableInfo {
 
 
                 .startObject("write")
-                    .add("wait_for_active_shards", STRING, fromSetting(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS, ActiveShardCount::toString))
+                    .add("wait_for_active_shards", STRING, fromSetting(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS, ActiveShardCount::toString))
                 .endObject()
 
             .endObject()

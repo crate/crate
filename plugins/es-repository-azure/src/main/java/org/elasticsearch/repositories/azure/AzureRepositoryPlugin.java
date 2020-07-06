@@ -19,7 +19,7 @@
 
 package org.elasticsearch.repositories.azure;
 
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -60,7 +60,7 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
                 }
 
                 @Override
-                public Repository create(RepositoryMetaData metadata) throws Exception {
+                public Repository create(RepositoryMetadata metadata) throws Exception {
                     return new AzureRepository(
                         metadata,
                         env,

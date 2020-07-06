@@ -43,7 +43,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
@@ -219,7 +219,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testValidateMapping() throws Exception {
         // Create valid nested mapping with underscore.
-        Settings settings = Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT).build();
+        Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build();
         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(settings, new ContentPath());
         Mapper outerMapper = new ObjectMapper.Builder("valid")
             .add(new ObjectMapper.Builder("_invalid"))

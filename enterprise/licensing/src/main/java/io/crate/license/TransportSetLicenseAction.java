@@ -26,7 +26,7 @@ import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -71,18 +71,18 @@ public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLice
     protected void masterOperation(final SetLicenseRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) {
-        LicenseKey metaData = request.licenseMetaData();
-        clusterService.submitStateUpdateTask("register license with key [" + metaData.licenseKey() + "]",
+        LicenseKey metadata = request.licenseMetadata();
+        clusterService.submitStateUpdateTask("register license with key [" + metadata.licenseKey() + "]",
             new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    MetaData currentMetaData = currentState.metaData();
-                    if (ignoreNewTrialLicense(metaData, currentMetaData)) {
+                    Metadata currentMetadata = currentState.metadata();
+                    if (ignoreNewTrialLicense(metadata, currentMetadata)) {
                         return currentState;
                     }
-                    MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-                    mdBuilder.putCustom(LicenseKey.WRITEABLE_TYPE, metaData);
-                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+                    mdBuilder.putCustom(LicenseKey.WRITEABLE_TYPE, metadata);
+                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 }
 
                 @Override
@@ -108,8 +108,8 @@ public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLice
     }
 
     static boolean ignoreNewTrialLicense(LicenseKey newLicenseKey,
-                                         MetaData currentMetaData) throws Exception {
-        LicenseKey previousLicenseKey = currentMetaData.custom(LicenseKey.WRITEABLE_TYPE);
+                                         Metadata currentMetadata) throws Exception {
+        LicenseKey previousLicenseKey = currentMetadata.custom(LicenseKey.WRITEABLE_TYPE);
         if (previousLicenseKey != null) {
             License newLicense = decode(newLicenseKey);
             return newLicense.type() == License.Type.TRIAL;

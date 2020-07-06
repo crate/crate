@@ -39,7 +39,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.lucene.util.IOUtils;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.junit.After;
@@ -88,11 +88,11 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         BlobAdminClient blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
 
         Settings indexSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2)
             // SETTING_AUTO_EXPAND_REPLICAS is enabled by default
             // but for this test it needs to be disabled so we can have 0 replicas
-            .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")
+            .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
             .build();
         blobAdminClient.createBlobTable("test", indexSettings).get();
         blobAdminClient.createBlobTable("test_blobs2", indexSettings).get();

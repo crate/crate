@@ -24,7 +24,7 @@ package io.crate.execution.ddl.views;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.view.ViewsMetadata;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -32,7 +32,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
@@ -83,12 +83,12 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
 
                 @Override
                 public ClusterState execute(ClusterState currentState) {
-                    ViewsMetaData views = currentState.metaData().custom(ViewsMetaData.TYPE);
+                    ViewsMetadata views = currentState.metadata().custom(ViewsMetadata.TYPE);
                     if (views == null) {
                         missing = request.names();
                         return currentState;
                     }
-                    ViewsMetaData.RemoveResult removeResult = views.remove(request.names());
+                    ViewsMetadata.RemoveResult removeResult = views.remove(request.names());
                     missing = removeResult.missing();
                     if (!removeResult.missing().isEmpty() && !request.ifExists()) {
                         // We missed a view -> This is an error case so we must not update the cluster state
@@ -96,9 +96,9 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
                     }
                     currentState = ddlClusterStateService.onDropView(currentState, request.names());
                     return ClusterState.builder(currentState)
-                        .metaData(
-                            MetaData.builder(currentState.metaData())
-                                .putCustom(ViewsMetaData.TYPE, removeResult.updatedViews())
+                        .metadata(
+                            Metadata.builder(currentState.metadata())
+                                .putCustom(ViewsMetadata.TYPE, removeResult.updatedViews())
                                 .build()
                         )
                         .build();

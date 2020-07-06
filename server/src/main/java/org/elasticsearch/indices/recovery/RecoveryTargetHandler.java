@@ -23,7 +23,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.store.Store;
-import org.elasticsearch.index.store.StoreFileMetaData;
+import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
 
 import java.io.IOException;
@@ -92,11 +92,11 @@ public interface RecoveryTargetHandler {
      * After all source files has been sent over, this command is sent to the target so it can clean any local
      * files that are not part of the source store
      * @param totalTranslogOps an update number of translog operations that will be replayed later on
-     * @param sourceMetaData meta data of the source store
+     * @param sourceMetadata meta data of the source store
      */
-    void cleanFiles(int totalTranslogOps, Store.MetadataSnapshot sourceMetaData) throws IOException;
+    void cleanFiles(int totalTranslogOps, Store.MetadataSnapshot sourceMetadata) throws IOException;
 
     /** writes a partial file chunk to the target store */
-    void writeFileChunk(StoreFileMetaData fileMetaData, long position, BytesReference content,
+    void writeFileChunk(StoreFileMetadata fileMetadata, long position, BytesReference content,
                         boolean lastChunk, int totalTranslogOps, ActionListener<Void> listener);
 }

@@ -199,9 +199,9 @@ public class Session implements AutoCloseable {
             resultReceiver = new RetryOnFailureResultReceiver(
                 executor.clusterService(),
                 clusterState,
-                // not using planner.currentClusterState().metaData()::hasIndex to make sure the *current*
+                // not using planner.currentClusterState().metadata()::hasIndex to make sure the *current*
                 // clusterState at the time of the index check is used
-                indexName -> clusterState.metaData().hasIndex(indexName),
+                indexName -> clusterState.metadata().hasIndex(indexName),
                 resultReceiver,
                 jobId,
                 (newJobId, retryResultReceiver) -> retryQuery(
@@ -377,6 +377,7 @@ public class Session implements AutoCloseable {
         } else if (analyzedStmt instanceof AnalyzedCommit) {
             currentTransactionState = TransactionState.IDLE;
             resultReceiver.allFinished(false);
+            return resultReceiver.completionFuture();
         } else if (analyzedStmt instanceof AnalyzedDeallocate) {
             String stmtToDeallocate = ((AnalyzedDeallocate) analyzedStmt).preparedStmtName();
             if (stmtToDeallocate != null) {
@@ -584,7 +585,7 @@ public class Session implements AutoCloseable {
             resultReceiver = new RetryOnFailureResultReceiver(
                 executor.clusterService(),
                 clusterState,
-                indexName -> executor.clusterService().state().metaData().hasIndex(indexName),
+                indexName -> executor.clusterService().state().metadata().hasIndex(indexName),
                 resultReceiver,
                 jobId,
                 (newJobId, resultRec) -> retryQuery(

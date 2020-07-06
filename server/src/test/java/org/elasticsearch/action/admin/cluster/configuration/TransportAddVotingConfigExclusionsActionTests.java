@@ -26,11 +26,11 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.ClusterStateObserver.Listener;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.coordination.CoordinationMetaData;
-import org.elasticsearch.cluster.coordination.CoordinationMetaData.VotingConfigExclusion;
-import org.elasticsearch.cluster.coordination.CoordinationMetaData.VotingConfiguration;
+import org.elasticsearch.cluster.coordination.CoordinationMetadata;
+import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
+import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNode.Role;
 import org.elasticsearch.cluster.node.DiscoveryNodes.Builder;
@@ -126,8 +126,8 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         setState(clusterService, builder(new ClusterName("cluster"))
             .nodes(new Builder().add(localNode).add(otherNode1).add(otherNode2).add(otherDataNode)
                 .localNodeId(localNode.getId()).masterNodeId(localNode.getId()))
-            .metaData(MetaData.builder()
-                .coordinationMetaData(CoordinationMetaData.builder().lastAcceptedConfiguration(allNodesConfig)
+            .metadata(Metadata.builder()
+                .coordinationMetadata(CoordinationMetadata.builder().lastAcceptedConfiguration(allNodesConfig)
                     .lastCommittedConfiguration(allNodesConfig).build())));
 
         clusterStateObserver = new ClusterStateObserver(clusterService, null, logger);
@@ -220,8 +220,8 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
     public void testReturnsImmediatelyIfVoteAlreadyWithdrawn() throws InterruptedException {
         final ClusterState state = clusterService.state();
         setState(clusterService, builder(state)
-            .metaData(MetaData.builder(state.metaData())
-                .coordinationMetaData(CoordinationMetaData.builder(state.coordinationMetaData())
+            .metadata(Metadata.builder(state.metadata())
+                .coordinationMetadata(CoordinationMetadata.builder(state.coordinationMetadata())
                     .lastCommittedConfiguration(VotingConfiguration.of(localNode, otherNode2))
                     .lastAcceptedConfiguration(VotingConfiguration.of(localNode, otherNode2))
                 .build())));
@@ -283,9 +283,9 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
     public void testSucceedsEvenIfAllExclusionsAlreadyAdded() throws InterruptedException {
         final ClusterState state = clusterService.state();
         final ClusterState.Builder builder = builder(state);
-        builder.metaData(MetaData.builder(state.metaData()).
-                coordinationMetaData(
-                        CoordinationMetaData.builder(state.coordinationMetaData())
+        builder.metadata(Metadata.builder(state.metadata()).
+                coordinationMetadata(
+                        CoordinationMetadata.builder(state.coordinationMetadata())
                                 .addVotingConfigExclusion(otherNode1Exclusion).
                 build()));
         setState(clusterService, builder);
@@ -306,16 +306,16 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
     }
 
     public void testReturnsErrorIfMaximumExclusionCountExceeded() throws InterruptedException {
-        final MetaData.Builder metaDataBuilder = MetaData.builder(clusterService.state().metaData()).persistentSettings(
-                Settings.builder().put(clusterService.state().metaData().persistentSettings())
+        final Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata()).persistentSettings(
+                Settings.builder().put(clusterService.state().metadata().persistentSettings())
                         .put(MAXIMUM_VOTING_CONFIG_EXCLUSIONS_SETTING.getKey(), 2).build());
-        CoordinationMetaData.Builder coordinationMetaDataBuilder =
-                CoordinationMetaData.builder(clusterService.state().coordinationMetaData())
+        CoordinationMetadata.Builder coordinationMetadataBuilder =
+                CoordinationMetadata.builder(clusterService.state().coordinationMetadata())
                         .addVotingConfigExclusion(localNodeExclusion);
 
         final int existingCount, newCount;
         if (randomBoolean()) {
-            coordinationMetaDataBuilder.addVotingConfigExclusion(otherNode1Exclusion);
+            coordinationMetadataBuilder.addVotingConfigExclusion(otherNode1Exclusion);
             existingCount = 2;
             newCount = 1;
         } else {
@@ -323,9 +323,9 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             newCount = 2;
         }
 
-        metaDataBuilder.coordinationMetaData(coordinationMetaDataBuilder.build());
+        metadataBuilder.coordinationMetadata(coordinationMetadataBuilder.build());
 
-        final ClusterState.Builder builder = builder(clusterService.state()).metaData(metaDataBuilder);
+        final ClusterState.Builder builder = builder(clusterService.state()).metadata(metadataBuilder);
         setState(clusterService, builder);
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -415,8 +415,8 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
                     currentState.getVotingConfigExclusions().forEach(t -> votingNodeIds.remove(t.getNodeId()));
                     final VotingConfiguration votingConfiguration = new VotingConfiguration(votingNodeIds);
                     return builder(currentState)
-                        .metaData(MetaData.builder(currentState.metaData())
-                            .coordinationMetaData(CoordinationMetaData.builder(currentState.coordinationMetaData())
+                        .metadata(Metadata.builder(currentState.metadata())
+                            .coordinationMetadata(CoordinationMetadata.builder(currentState.coordinationMetadata())
                                 .lastAcceptedConfiguration(votingConfiguration)
                                 .lastCommittedConfiguration(votingConfiguration)
                                 .build()))

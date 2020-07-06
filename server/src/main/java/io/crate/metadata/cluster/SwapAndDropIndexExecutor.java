@@ -25,8 +25,8 @@ package io.crate.metadata.cluster;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 
@@ -40,9 +40,9 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
 
     @Override
     public ClusterState execute(ClusterState currentState, SwapAndDropIndexRequest request) throws Exception {
-        final MetaData metaData = currentState.getMetaData();
+        final Metadata metadata = currentState.getMetadata();
         final ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(currentState.blocks());
-        final MetaData.Builder mdBuilder = MetaData.builder(metaData);
+        final Metadata.Builder mdBuilder = Metadata.builder(metadata);
         final RoutingTable.Builder routingBuilder = RoutingTable.builder(currentState.routingTable());
 
         String sourceIndexName = request.source();
@@ -55,19 +55,19 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
         blocksBuilder.removeIndexBlocks(sourceIndexName);
         blocksBuilder.removeIndexBlocks(targetIndexName);
 
-        IndexMetaData sourceIndex = metaData.index(sourceIndexName);
+        IndexMetadata sourceIndex = metadata.index(sourceIndexName);
         if (sourceIndex == null) {
             throw new IllegalArgumentException("Source index must exist: " + sourceIndexName);
         }
 
-        IndexMetaData newIndexMetaData = IndexMetaData.builder(sourceIndex).index(targetIndexName).build();
-        mdBuilder.put(newIndexMetaData, true);
-        routingBuilder.addAsFromCloseToOpen(newIndexMetaData);
-        blocksBuilder.addBlocks(newIndexMetaData);
+        IndexMetadata newIndexMetadata = IndexMetadata.builder(sourceIndex).index(targetIndexName).build();
+        mdBuilder.put(newIndexMetadata, true);
+        routingBuilder.addAsFromCloseToOpen(newIndexMetadata);
+        blocksBuilder.addBlocks(newIndexMetadata);
 
         return allocationService.reroute(
             ClusterState.builder(currentState)
-                .metaData(mdBuilder)
+                .metadata(mdBuilder)
                 .routingTable(routingBuilder.build())
                 .blocks(blocksBuilder)
                 .build(),

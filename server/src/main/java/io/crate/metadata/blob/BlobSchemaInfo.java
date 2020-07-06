@@ -96,14 +96,14 @@ public class BlobSchemaInfo implements SchemaInfo {
 
     @Override
     public void update(ClusterChangedEvent event) {
-        if (event.metaDataChanged()) {
+        if (event.metadataChanged()) {
             cache.invalidateAll();
         }
     }
 
     @Override
     public Iterable<TableInfo> getTables() {
-        return Stream.of(clusterService.state().metaData().getConcreteAllOpenIndices())
+        return Stream.of(clusterService.state().metadata().getConcreteAllOpenIndices())
             .filter(BlobIndex::isBlobIndex)
             .map(BlobIndex::stripPrefix)
             .map(this::getTableInfo)

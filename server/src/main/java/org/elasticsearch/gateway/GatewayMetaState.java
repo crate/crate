@@ -31,10 +31,10 @@ import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.coordination.CoordinationState;
 import org.elasticsearch.cluster.coordination.CoordinationState.PersistedState;
 import org.elasticsearch.cluster.coordination.InMemoryPersistedState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Manifest;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaDataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -47,7 +47,7 @@ import io.crate.common.unit.TimeValue;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.plugins.MetaDataUpgrader;
+import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
@@ -69,8 +69,8 @@ import java.util.function.UnaryOperator;
  * state upgrade if necessary. Also it checks that atomic move is supported on the filesystem level, because it's a must for metadata
  * store algorithm.
  * Please note that the state being loaded when constructing the instance of this class is NOT the state that will be used as a
- * {@link ClusterState#metaData()}. Instead when node is starting up, it calls {@link #getMetaData()} method and if this node is
- * elected as master, it requests metaData from other master eligible nodes. After that, master node performs re-conciliation on the
+ * {@link ClusterState#metadata()}. Instead when node is starting up, it calls {@link #getMetadata()} method and if this node is
+ * elected as master, it requests metadata from other master eligible nodes. After that, master node performs re-conciliation on the
  * gathered results, re-creates {@link ClusterState} and broadcasts this state to other nodes in the cluster.
  */
 public class GatewayMetaState implements ClusterStateApplier, CoordinationState.PersistedState {
@@ -90,7 +90,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
     protected boolean incrementalWrite;
 
     public GatewayMetaState(Settings settings, NodeEnvironment nodeEnv, MetaStateService metaStateService,
-                            MetaDataIndexUpgradeService metaDataIndexUpgradeService, MetaDataUpgrader metaDataUpgrader,
+                            MetadataIndexUpgradeService metadataIndexUpgradeService, MetadataUpgrader metadataUpgrader,
                             TransportService transportService, ClusterService clusterService,
                             IndicesService indicesService) throws IOException {
         this.settings = settings;
@@ -100,7 +100,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
         this.clusterService = clusterService;
         this.indicesService = indicesService;
 
-        upgradeMetaData(metaDataIndexUpgradeService, metaDataUpgrader);
+        upgradeMetadata(metadataIndexUpgradeService, metadataUpgrader);
         initializeClusterState(ClusterName.CLUSTER_NAME_SETTING.get(settings));
         incrementalWrite = false;
     }
@@ -118,14 +118,14 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
 
     private void initializeClusterState(ClusterName clusterName) throws IOException {
         long startNS = System.nanoTime();
-        Tuple<Manifest, MetaData> manifestAndMetaData = metaStateService.loadFullState();
-        previousManifest = manifestAndMetaData.v1();
+        Tuple<Manifest, Metadata> manifestAndMetadata = metaStateService.loadFullState();
+        previousManifest = manifestAndMetadata.v1();
 
-        final MetaData metaData = manifestAndMetaData.v2();
+        final Metadata metadata = manifestAndMetadata.v2();
 
         previousClusterState = ClusterState.builder(clusterName)
                 .version(previousManifest.getClusterStateVersion())
-                .metaData(metaData).build();
+                .metadata(metadata).build();
 
         LOGGER.debug("took {} to load state", TimeValue.timeValueMillis(TimeValue.nsecToMSec(System.nanoTime() - startNS)));
     }
@@ -142,13 +142,13 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
             .apply(previousClusterState);
     }
 
-    protected void upgradeMetaData(MetaDataIndexUpgradeService metaDataIndexUpgradeService, MetaDataUpgrader metaDataUpgrader)
+    protected void upgradeMetadata(MetadataIndexUpgradeService metadataIndexUpgradeService, MetadataUpgrader metadataUpgrader)
             throws IOException {
         if (isMasterOrDataNode()) {
             try {
-                final Tuple<Manifest, MetaData> metaStateAndData = metaStateService.loadFullState();
+                final Tuple<Manifest, Metadata> metaStateAndData = metaStateService.loadFullState();
                 final Manifest manifest = metaStateAndData.v1();
-                final MetaData metaData = metaStateAndData.v2();
+                final Metadata metadata = metaStateAndData.v2();
 
                 // We finished global state validation and successfully checked all indices for backward compatibility
                 // and found no non-upgradable indices, which means the upgrade can continue.
@@ -158,20 +158,20 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
                 // if there is no manifest file (upgrade from 6.x to 7.x) metadata might be missing on some data paths,
                 // but anyway we will re-write it as soon as we receive first ClusterState
                 final AtomicClusterStateWriter writer = new AtomicClusterStateWriter(metaStateService, manifest);
-                final MetaData upgradedMetaData = upgradeMetaData(metaData, metaDataIndexUpgradeService, metaDataUpgrader);
+                final Metadata upgradedMetadata = upgradeMetadata(metadata, metadataIndexUpgradeService, metadataUpgrader);
 
                 final long globalStateGeneration;
-                if (MetaData.isGlobalStateEquals(metaData, upgradedMetaData) == false) {
-                    globalStateGeneration = writer.writeGlobalState("upgrade", upgradedMetaData);
+                if (Metadata.isGlobalStateEquals(metadata, upgradedMetadata) == false) {
+                    globalStateGeneration = writer.writeGlobalState("upgrade", upgradedMetadata);
                 } else {
                     globalStateGeneration = manifest.getGlobalGeneration();
                 }
 
                 Map<Index, Long> indices = new HashMap<>(manifest.getIndexGenerations());
-                for (IndexMetaData indexMetaData : upgradedMetaData) {
-                    if (metaData.hasIndexMetaData(indexMetaData) == false) {
-                        final long generation = writer.writeIndex("upgrade", indexMetaData);
-                        indices.put(indexMetaData.getIndex(), generation);
+                for (IndexMetadata indexMetadata : upgradedMetadata) {
+                    if (metadata.hasIndexMetadata(indexMetadata) == false) {
+                        final long generation = writer.writeIndex("upgrade", indexMetadata);
+                        indices.put(indexMetadata.getIndex(), generation);
                     }
                 }
 
@@ -189,8 +189,8 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
         return DiscoveryNode.isMasterNode(settings) || DiscoveryNode.isDataNode(settings);
     }
 
-    public MetaData getMetaData() {
-        return previousClusterState.metaData();
+    public Metadata getMetadata() {
+        return previousClusterState.metadata();
     }
 
     @Override
@@ -259,7 +259,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
     }
 
     /**
-     * This class is used to write changed global {@link MetaData}, {@link IndexMetaData} and {@link Manifest} to disk.
+     * This class is used to write changed global {@link Metadata}, {@link IndexMetadata} and {@link Manifest} to disk.
      * This class delegates <code>write*</code> calls to corresponding write calls in {@link MetaStateService} and
      * additionally it keeps track of cleanup actions to be performed if transaction succeeds or fails.
      */
@@ -280,11 +280,11 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
             this.finished = false;
         }
 
-        long writeGlobalState(String reason, MetaData metaData) throws WriteStateException {
+        long writeGlobalState(String reason, Metadata metadata) throws WriteStateException {
             assert finished == false : FINISHED_MSG;
             try {
                 rollbackCleanupActions.add(() -> metaStateService.cleanupGlobalState(previousManifest.getGlobalGeneration()));
-                long generation = metaStateService.writeGlobalState(reason, metaData);
+                long generation = metaStateService.writeGlobalState(reason, metadata);
                 commitCleanupActions.add(() -> metaStateService.cleanupGlobalState(generation));
                 return generation;
             } catch (WriteStateException e) {
@@ -293,10 +293,10 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
             }
         }
 
-        long writeIndex(String reason, IndexMetaData metaData) throws WriteStateException {
+        long writeIndex(String reason, IndexMetadata metadata) throws WriteStateException {
             assert finished == false : FINISHED_MSG;
             try {
-                Index index = metaData.getIndex();
+                Index index = metadata.getIndex();
                 Long previousGeneration = previousManifest.getIndexGenerations().get(index);
                 if (previousGeneration != null) {
                     // we prefer not to clean-up index metadata in case of rollback,
@@ -304,7 +304,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
                     // not to break dangling indices functionality
                     rollbackCleanupActions.add(() -> metaStateService.cleanupIndex(index, previousGeneration));
                 }
-                long generation = metaStateService.writeIndex(reason, metaData);
+                long generation = metaStateService.writeIndex(reason, metadata);
                 commitCleanupActions.add(() -> metaStateService.cleanupIndex(index, generation));
                 return generation;
             } catch (WriteStateException e) {
@@ -349,10 +349,10 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
      */
     protected void updateClusterState(ClusterState newState, ClusterState previousState)
             throws WriteStateException {
-        MetaData newMetaData = newState.metaData();
+        Metadata newMetadata = newState.metadata();
 
         final AtomicClusterStateWriter writer = new AtomicClusterStateWriter(metaStateService, previousManifest);
-        long globalStateGeneration = writeGlobalState(writer, newMetaData);
+        long globalStateGeneration = writeGlobalState(writer, newMetadata);
         Map<Index, Long> indexGenerations = writeIndicesMetadata(writer, newState, previousState);
         Manifest manifest = new Manifest(previousManifest.getCurrentTerm(), newState.version(), globalStateGeneration, indexGenerations);
         writeManifest(writer, manifest);
@@ -374,11 +374,11 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
 
         Map<Index, Long> newIndices = new HashMap<>();
 
-        MetaData previousMetaData = incrementalWrite ? previousState.metaData() : null;
-        Iterable<IndexMetaDataAction> actions = resolveIndexMetaDataActions(previouslyWrittenIndices, relevantIndices, previousMetaData,
-                newState.metaData());
+        Metadata previousMetadata = incrementalWrite ? previousState.metadata() : null;
+        Iterable<IndexMetadataAction> actions = resolveIndexMetadataActions(previouslyWrittenIndices, relevantIndices, previousMetadata,
+                newState.metadata());
 
-        for (IndexMetaDataAction action : actions) {
+        for (IndexMetadataAction action : actions) {
             long generation = action.execute(writer);
             newIndices.put(action.getIndex(), generation);
         }
@@ -386,10 +386,10 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
         return newIndices;
     }
 
-    private long writeGlobalState(AtomicClusterStateWriter writer, MetaData newMetaData)
+    private long writeGlobalState(AtomicClusterStateWriter writer, Metadata newMetadata)
             throws WriteStateException {
-        if (incrementalWrite == false || MetaData.isGlobalStateEquals(previousClusterState.metaData(), newMetaData) == false) {
-            return writer.writeGlobalState("changed", newMetaData);
+        if (incrementalWrite == false || Metadata.isGlobalStateEquals(previousClusterState.metadata(), newMetadata) == false) {
+            return writer.writeGlobalState("changed", newMetadata);
         }
         return previousManifest.getGlobalGeneration();
     }
@@ -412,35 +412,35 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
 
     /**
      * Elasticsearch 2.0 removed several deprecated features and as well as support for Lucene 3.x. This method calls
-     * {@link MetaDataIndexUpgradeService} to makes sure that indices are compatible with the current version. The
-     * MetaDataIndexUpgradeService might also update obsolete settings if needed.
-     * Allows upgrading global custom meta data via {@link MetaDataUpgrader#customMetaDataUpgraders}
+     * {@link MetadataIndexUpgradeService} to makes sure that indices are compatible with the current version. The
+     * MetadataIndexUpgradeService might also update obsolete settings if needed.
+     * Allows upgrading global custom meta data via {@link MetadataUpgrader#customMetadataUpgraders}
      *
-     * @return input <code>metaData</code> if no upgrade is needed or an upgraded metaData
+     * @return input <code>metadata</code> if no upgrade is needed or an upgraded metadata
      */
-    static MetaData upgradeMetaData(MetaData metaData,
-                                    MetaDataIndexUpgradeService metaDataIndexUpgradeService,
-                                    MetaDataUpgrader metaDataUpgrader) {
+    static Metadata upgradeMetadata(Metadata metadata,
+                                    MetadataIndexUpgradeService metadataIndexUpgradeService,
+                                    MetadataUpgrader metadataUpgrader) {
         // upgrade index meta data
         boolean changed = false;
-        final MetaData.Builder upgradedMetaData = MetaData.builder(metaData);
-        for (IndexMetaData indexMetaData : metaData) {
-            IndexMetaData newMetaData = metaDataIndexUpgradeService.upgradeIndexMetaData(indexMetaData,
+        final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
+        for (IndexMetadata indexMetadata : metadata) {
+            IndexMetadata newMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(indexMetadata,
                     Version.CURRENT.minimumIndexCompatibilityVersion());
-            changed |= indexMetaData != newMetaData;
-            upgradedMetaData.put(newMetaData, false);
+            changed |= indexMetadata != newMetadata;
+            upgradedMetadata.put(newMetadata, false);
         }
         // upgrade global custom meta data
-        if (applyPluginUpgraders(metaData.getCustoms(), metaDataUpgrader.customMetaDataUpgraders,
-                upgradedMetaData::removeCustom, upgradedMetaData::putCustom)) {
+        if (applyPluginUpgraders(metadata.getCustoms(), metadataUpgrader.customMetadataUpgraders,
+                upgradedMetadata::removeCustom, upgradedMetadata::putCustom)) {
             changed = true;
         }
         // upgrade current templates
-        if (applyPluginUpgraders(metaData.getTemplates(), metaDataUpgrader.indexTemplateMetaDataUpgraders,
-                upgradedMetaData::removeTemplate, (s, indexTemplateMetaData) -> upgradedMetaData.put(indexTemplateMetaData))) {
+        if (applyPluginUpgraders(metadata.getTemplates(), metadataUpgrader.indexTemplateMetadataUpgraders,
+                upgradedMetadata::removeTemplate, (s, indexTemplateMetadata) -> upgradedMetadata.put(indexTemplateMetadata))) {
             changed = true;
         }
-        return changed ? upgradedMetaData.build() : metaData;
+        return changed ? upgradedMetadata.build() : metadata;
     }
 
     private static <Data> boolean applyPluginUpgraders(ImmutableOpenMap<String, Data> existingData,
@@ -466,7 +466,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
     }
 
     /**
-     * Returns list of {@link IndexMetaDataAction} for each relevant index.
+     * Returns list of {@link IndexMetadataAction} for each relevant index.
      * For each relevant index there are 3 options:
      * <ol>
      * <li>
@@ -474,33 +474,33 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
      * action is required.
      * </li>
      * <li>
-     * {@link WriteNewIndexMetaData} - there is no index metadata on disk and index metadata for this index should be written.
+     * {@link WriteNewIndexMetadata} - there is no index metadata on disk and index metadata for this index should be written.
      * </li>
      * <li>
-     * {@link WriteChangedIndexMetaData} - index metadata is already on disk, but index metadata version has changed. Updated
+     * {@link WriteChangedIndexMetadata} - index metadata is already on disk, but index metadata version has changed. Updated
      * index metadata should be written to disk.
      * </li>
      * </ol>
      *
      * @param previouslyWrittenIndices A list of indices for which the state was already written before
      * @param relevantIndices          The list of indices for which state should potentially be written
-     * @param previousMetaData         The last meta data we know of
-     * @param newMetaData              The new metadata
-     * @return list of {@link IndexMetaDataAction} for each relevant index.
+     * @param previousMetadata         The last meta data we know of
+     * @param newMetadata              The new metadata
+     * @return list of {@link IndexMetadataAction} for each relevant index.
      */
-    public static List<IndexMetaDataAction> resolveIndexMetaDataActions(Map<Index, Long> previouslyWrittenIndices,
+    public static List<IndexMetadataAction> resolveIndexMetadataActions(Map<Index, Long> previouslyWrittenIndices,
                                                                         Set<Index> relevantIndices,
-                                                                        MetaData previousMetaData,
-                                                                        MetaData newMetaData) {
-        List<IndexMetaDataAction> actions = new ArrayList<>();
+                                                                        Metadata previousMetadata,
+                                                                        Metadata newMetadata) {
+        List<IndexMetadataAction> actions = new ArrayList<>();
         for (Index index : relevantIndices) {
-            IndexMetaData newIndexMetaData = newMetaData.getIndexSafe(index);
-            IndexMetaData previousIndexMetaData = previousMetaData == null ? null : previousMetaData.index(index);
+            IndexMetadata newIndexMetadata = newMetadata.getIndexSafe(index);
+            IndexMetadata previousIndexMetadata = previousMetadata == null ? null : previousMetadata.index(index);
 
-            if (previouslyWrittenIndices.containsKey(index) == false || previousIndexMetaData == null) {
-                actions.add(new WriteNewIndexMetaData(newIndexMetaData));
-            } else if (previousIndexMetaData.getVersion() != newIndexMetaData.getVersion()) {
-                actions.add(new WriteChangedIndexMetaData(previousIndexMetaData, newIndexMetaData));
+            if (previouslyWrittenIndices.containsKey(index) == false || previousIndexMetadata == null) {
+                actions.add(new WriteNewIndexMetadata(newIndexMetadata));
+            } else if (previousIndexMetadata.getVersion() != newIndexMetadata.getVersion()) {
+                actions.add(new WriteChangedIndexMetadata(previousIndexMetadata, newIndexMetadata));
             } else {
                 actions.add(new KeepPreviousGeneration(index, previouslyWrittenIndices.get(index)));
             }
@@ -520,16 +520,16 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
         }
         // we have to check the meta data also: closed indices will not appear in the routing table, but we must still write the state if
         // we have it written on disk previously
-        for (IndexMetaData indexMetaData : state.metaData()) {
-            boolean isOrWasClosed = indexMetaData.getState().equals(IndexMetaData.State.CLOSE);
+        for (IndexMetadata indexMetadata : state.metadata()) {
+            boolean isOrWasClosed = indexMetadata.getState().equals(IndexMetadata.State.CLOSE);
             // if the index is open we might still have to write the state if it just transitioned from closed to open
             // so we have to check for that as well.
-            IndexMetaData previousMetaData = previousState.metaData().index(indexMetaData.getIndex());
-            if (previousMetaData != null) {
-                isOrWasClosed = isOrWasClosed || previousMetaData.getState().equals(IndexMetaData.State.CLOSE);
+            IndexMetadata previousMetadata = previousState.metadata().index(indexMetadata.getIndex());
+            if (previousMetadata != null) {
+                isOrWasClosed = isOrWasClosed || previousMetadata.getState().equals(IndexMetadata.State.CLOSE);
             }
-            if (previouslyWrittenIndices.contains(indexMetaData.getIndex()) && isOrWasClosed) {
-                indices.add(indexMetaData.getIndex());
+            if (previouslyWrittenIndices.contains(indexMetadata.getIndex()) && isOrWasClosed) {
+                indices.add(indexMetadata.getIndex());
             }
         }
         return indices;
@@ -539,8 +539,8 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
         Set<Index> relevantIndices;
         relevantIndices = new HashSet<>();
         // we have to iterate over the metadata to make sure we also capture closed indices
-        for (IndexMetaData indexMetaData : state.metaData()) {
-            relevantIndices.add(indexMetaData.getIndex());
+        for (IndexMetadata indexMetadata : state.metadata()) {
+            relevantIndices.add(indexMetadata.getIndex());
         }
         return relevantIndices;
     }
@@ -548,7 +548,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
     /**
      * Action to perform with index metadata.
      */
-    public interface IndexMetaDataAction {
+    public interface IndexMetadataAction {
         /**
          * @return index for index metadata.
          */
@@ -563,7 +563,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
         long execute(AtomicClusterStateWriter writer) throws WriteStateException;
     }
 
-    public static class KeepPreviousGeneration implements IndexMetaDataAction {
+    public static class KeepPreviousGeneration implements IndexMetadataAction {
         private final Index index;
         private final long generation;
 
@@ -583,43 +583,43 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
         }
     }
 
-    public static class WriteNewIndexMetaData implements IndexMetaDataAction {
-        private final IndexMetaData indexMetaData;
+    public static class WriteNewIndexMetadata implements IndexMetadataAction {
+        private final IndexMetadata indexMetadata;
 
-        WriteNewIndexMetaData(IndexMetaData indexMetaData) {
-            this.indexMetaData = indexMetaData;
+        WriteNewIndexMetadata(IndexMetadata indexMetadata) {
+            this.indexMetadata = indexMetadata;
         }
 
         @Override
         public Index getIndex() {
-            return indexMetaData.getIndex();
+            return indexMetadata.getIndex();
         }
 
         @Override
         public long execute(AtomicClusterStateWriter writer) throws WriteStateException {
-            return writer.writeIndex("freshly created", indexMetaData);
+            return writer.writeIndex("freshly created", indexMetadata);
         }
     }
 
-    public static class WriteChangedIndexMetaData implements IndexMetaDataAction {
-        private final IndexMetaData newIndexMetaData;
-        private final IndexMetaData oldIndexMetaData;
+    public static class WriteChangedIndexMetadata implements IndexMetadataAction {
+        private final IndexMetadata newIndexMetadata;
+        private final IndexMetadata oldIndexMetadata;
 
-        WriteChangedIndexMetaData(IndexMetaData oldIndexMetaData, IndexMetaData newIndexMetaData) {
-            this.oldIndexMetaData = oldIndexMetaData;
-            this.newIndexMetaData = newIndexMetaData;
+        WriteChangedIndexMetadata(IndexMetadata oldIndexMetadata, IndexMetadata newIndexMetadata) {
+            this.oldIndexMetadata = oldIndexMetadata;
+            this.newIndexMetadata = newIndexMetadata;
         }
 
         @Override
         public Index getIndex() {
-            return newIndexMetaData.getIndex();
+            return newIndexMetadata.getIndex();
         }
 
         @Override
         public long execute(AtomicClusterStateWriter writer) throws WriteStateException {
             return writer.writeIndex(
-                    "version changed from [" + oldIndexMetaData.getVersion() + "] to [" + newIndexMetaData.getVersion() + "]",
-                    newIndexMetaData);
+                    "version changed from [" + oldIndexMetadata.getVersion() + "] to [" + newIndexMetadata.getVersion() + "]",
+                    newIndexMetadata);
         }
     }
 }

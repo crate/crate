@@ -19,10 +19,10 @@
 package io.crate.auth.user;
 
 import io.crate.metadata.RelationName;
-import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.UsersPrivilegesMetadata;
 import io.crate.metadata.cluster.DDLClusterStateModifier;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 
 import java.util.List;
 
@@ -46,65 +46,65 @@ public class UserManagerDDLModifier implements DDLClusterStateModifier {
                                       RelationName sourceRelationName,
                                       RelationName targetRelationName,
                                       boolean isPartitionedTable) {
-        MetaData currentMetaData = currentState.metaData();
-        MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
+        Metadata currentMetadata = currentState.metadata();
+        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
         if (transferTablePrivileges(mdBuilder, sourceRelationName, targetRelationName)) {
-            return ClusterState.builder(currentState).metaData(mdBuilder).build();
+            return ClusterState.builder(currentState).metadata(mdBuilder).build();
         }
         return currentState;
     }
 
     @Override
     public ClusterState onSwapRelations(ClusterState currentState, RelationName source, RelationName target) {
-        MetaData currentMetaData = currentState.metaData();
-        UsersPrivilegesMetaData userPrivileges = currentMetaData.custom(UsersPrivilegesMetaData.TYPE);
+        Metadata currentMetadata = currentState.metadata();
+        UsersPrivilegesMetadata userPrivileges = currentMetadata.custom(UsersPrivilegesMetadata.TYPE);
         if (userPrivileges == null) {
             return currentState;
         }
-        UsersPrivilegesMetaData updatedPrivileges = UsersPrivilegesMetaData.swapPrivileges(userPrivileges, source, target);
+        UsersPrivilegesMetadata updatedPrivileges = UsersPrivilegesMetadata.swapPrivileges(userPrivileges, source, target);
         return ClusterState.builder(currentState)
-            .metaData(MetaData.builder(currentMetaData)
-                .putCustom(UsersPrivilegesMetaData.TYPE, updatedPrivileges)
+            .metadata(Metadata.builder(currentMetadata)
+                .putCustom(UsersPrivilegesMetadata.TYPE, updatedPrivileges)
                 .build())
             .build();
     }
 
     private ClusterState dropPrivilegesForTableOrView(ClusterState currentState, RelationName relationName) {
-        MetaData currentMetaData = currentState.metaData();
-        MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
+        Metadata currentMetadata = currentState.metadata();
+        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
 
         if (dropPrivileges(mdBuilder, relationName) == false) {
             // if nothing is affected, don't modify the state and just return the given currentState
             return currentState;
         }
 
-        return ClusterState.builder(currentState).metaData(mdBuilder).build();
+        return ClusterState.builder(currentState).metadata(mdBuilder).build();
     }
 
-    private static boolean dropPrivileges(MetaData.Builder mdBuilder, RelationName relationName) {
+    private static boolean dropPrivileges(Metadata.Builder mdBuilder, RelationName relationName) {
         // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.copyOf(
-            (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
+        UsersPrivilegesMetadata newMetadata = UsersPrivilegesMetadata.copyOf(
+            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
 
-        long affectedRows = newMetaData.dropTableOrViewPrivileges(relationName.fqn());
-        mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);
+        long affectedRows = newMetadata.dropTableOrViewPrivileges(relationName.fqn());
+        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, newMetadata);
         return affectedRows > 0L;
     }
 
-    private static boolean transferTablePrivileges(MetaData.Builder mdBuilder,
+    private static boolean transferTablePrivileges(Metadata.Builder mdBuilder,
                                                 RelationName sourceRelationName,
                                                 RelationName targetRelationName) {
-        UsersPrivilegesMetaData oldMetaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
-        if (oldMetaData == null) {
+        UsersPrivilegesMetadata oldMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        if (oldMetadata == null) {
             return false;
         }
 
         // create a new instance of the metadata if privileges were changed, to guarantee the cluster changed action.
-        UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.maybeCopyAndReplaceTableIdents(
-            oldMetaData, sourceRelationName.fqn(), targetRelationName.fqn());
+        UsersPrivilegesMetadata newMetadata = UsersPrivilegesMetadata.maybeCopyAndReplaceTableIdents(
+            oldMetadata, sourceRelationName.fqn(), targetRelationName.fqn());
 
-        if (newMetaData != null) {
-            mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);
+        if (newMetadata != null) {
+            mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, newMetadata);
             return true;
         }
         return false;

@@ -27,7 +27,7 @@ import io.crate.metadata.settings.NumberOfReplicasSetting;
 import io.crate.metadata.settings.Validators;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
@@ -78,11 +78,11 @@ public class TableParameters {
         List.of(
             NUMBER_OF_REPLICAS,
             IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
-            IndexMetaData.INDEX_READ_ONLY_SETTING,
-            IndexMetaData.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
-            IndexMetaData.INDEX_BLOCKS_READ_SETTING,
-            IndexMetaData.INDEX_BLOCKS_WRITE_SETTING,
-            IndexMetaData.INDEX_BLOCKS_METADATA_SETTING,
+            IndexMetadata.INDEX_READ_ONLY_SETTING,
+            IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
+            IndexMetadata.INDEX_BLOCKS_READ_SETTING,
+            IndexMetadata.INDEX_BLOCKS_WRITE_SETTING,
+            IndexMetadata.INDEX_BLOCKS_METADATA_SETTING,
             IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING,
             EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING,
             IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING,
@@ -91,27 +91,27 @@ public class TableParameters {
             MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
             IndexSettings.INDEX_WARMER_ENABLED_SETTING,
             UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
-            IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS,
+            IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
             MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
             IndexSettings.MAX_NGRAM_DIFF_SETTING,
             IndexSettings.MAX_SHINGLE_DIFF_SETTING,
-            IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
-            IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING,
-            IndexMetaData.INDEX_ROUTING_INCLUDE_GROUP_SETTING,
-            IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING,
+            IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
+            IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING,
+            IndexMetadata.INDEX_ROUTING_INCLUDE_GROUP_SETTING,
+            IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING,
             EngineConfig.INDEX_CODEC_SETTING,
             IndexModule.INDEX_STORE_TYPE_SETTING,
             MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
 
-            // this setting is needed for tests and is not documented. see ClusterDisruptionIT for usages.
-            IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING
+                // this setting is needed for tests and is not documented. see ClusterDisruptionIT for usages.
+                IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING
         );
 
     /**
      * Settings which are not included in table default settings
      */
     static final Set<Setting> SETTINGS_NOT_INCLUDED_IN_DEFAULT = Set.of(
-        IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
+        IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
         IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
         MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING
@@ -127,7 +127,7 @@ public class TableParameters {
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
         = ImmutableMap.<String, Setting<?>>builder()
             .putAll(SUPPORTED_SETTINGS_DEFAULT)
-            .put(stripIndexPrefix(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING)
+            .put(stripIndexPrefix(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING)
             .build();
 
     private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
@@ -181,8 +181,8 @@ public class TableParameters {
     }
 
     public static String stripIndexPrefix(String key) {
-        if (key.startsWith(IndexMetaData.INDEX_SETTING_PREFIX)) {
-            return key.substring(IndexMetaData.INDEX_SETTING_PREFIX.length());
+        if (key.startsWith(IndexMetadata.INDEX_SETTING_PREFIX)) {
+            return key.substring(IndexMetadata.INDEX_SETTING_PREFIX.length());
         }
         return key;
     }
@@ -194,7 +194,7 @@ public class TableParameters {
         return key;
     }
 
-    public static Map<String, Object> tableParametersFromIndexMetaData(Settings settings) {
+    public static Map<String, Object> tableParametersFromIndexMetadata(Settings settings) {
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
         for (Setting<?> setting : SUPPORTED_SETTINGS) {
             boolean shouldBeExcluded = EXCLUDED_SETTING_FOR_METADATA_IMPORT.contains(setting);

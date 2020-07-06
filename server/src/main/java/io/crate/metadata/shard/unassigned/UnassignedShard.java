@@ -91,7 +91,7 @@ public final class UnassignedShard {
         this.tableName = indexParts.getTable();
         this.partitionIdent = indexParts.getPartitionIdent();
         this.orphanedPartition = indexParts.isPartitioned()
-                                 && !clusterService.state().metaData().hasConcreteIndex(tableName);
+                                 && !clusterService.state().metadata().hasConcreteIndex(tableName);
         this.primary = primary;
         this.id = shardId;
         this.state = state == ShardRoutingState.UNASSIGNED ? UNASSIGNED : INITIALIZING;

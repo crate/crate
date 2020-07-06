@@ -41,25 +41,25 @@ import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.license.CeLicenseModule;
 import io.crate.license.LicenseExtension;
 import io.crate.lucene.ArrayMapperService;
-import io.crate.metadata.CustomMetaDataUpgraderLoader;
+import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.DefaultTemplateService;
-import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.MetadataModule;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.blob.MetaDataBlobModule;
-import io.crate.metadata.information.MetaDataInformationModule;
+import io.crate.metadata.blob.MetadataBlobModule;
+import io.crate.metadata.information.MetadataInformationModule;
 import io.crate.metadata.pgcatalog.PgCatalogModule;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.session.SessionSettingModule;
-import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.sys.MetadataSysModule;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
-import io.crate.metadata.upgrade.MetaDataIndexUpgrader;
-import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.upgrade.MetadataIndexUpgrader;
+import io.crate.metadata.view.ViewsMetadata;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -71,10 +71,10 @@ import io.crate.user.UserExtension;
 import io.crate.user.UserFallbackModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaData.Custom;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.Metadata.Custom;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -187,11 +187,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new JobModule());
         modules.add(new CollectOperationModule());
         modules.add(new FileCollectModule());
-        modules.add(new MetaDataModule());
-        modules.add(new MetaDataSysModule());
-        modules.add(new MetaDataBlobModule());
+        modules.add(new MetadataModule());
+        modules.add(new MetadataSysModule());
+        modules.add(new MetadataBlobModule());
         modules.add(new PgCatalogModule());
-        modules.add(new MetaDataInformationModule());
+        modules.add(new MetadataInformationModule());
         modules.add(new OperatorModule());
         modules.add(new PredicateModule());
         modules.add(new MonitorModule());
@@ -235,24 +235,24 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
         List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedWriteableRegistry.Entry(
-            MetaData.Custom.class,
-            UserDefinedFunctionsMetaData.TYPE,
-            UserDefinedFunctionsMetaData::new
+            Metadata.Custom.class,
+            UserDefinedFunctionsMetadata.TYPE,
+            UserDefinedFunctionsMetadata::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
-            MetaData.Custom.class,
-            ViewsMetaData.TYPE,
-            ViewsMetaData::new
-        ));
-        entries.add(new NamedWriteableRegistry.Entry(
-            NamedDiff.class,
-            UserDefinedFunctionsMetaData.TYPE,
-            in -> UserDefinedFunctionsMetaData.readDiffFrom(MetaData.Custom.class, UserDefinedFunctionsMetaData.TYPE, in)
+            Metadata.Custom.class,
+            ViewsMetadata.TYPE,
+            ViewsMetadata::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
-            ViewsMetaData.TYPE,
-            in -> ViewsMetaData.readDiffFrom(MetaData.Custom.class, ViewsMetaData.TYPE, in)
+            UserDefinedFunctionsMetadata.TYPE,
+            in -> UserDefinedFunctionsMetadata.readDiffFrom(Metadata.Custom.class, UserDefinedFunctionsMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            ViewsMetadata.TYPE,
+            in -> ViewsMetadata.readDiffFrom(Metadata.Custom.class, ViewsMetadata.TYPE, in)
         ));
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedWriteables());
@@ -267,14 +267,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     public List<NamedXContentRegistry.Entry> getNamedXContent() {
         List<NamedXContentRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedXContentRegistry.Entry(
-            MetaData.Custom.class,
-            new ParseField(UserDefinedFunctionsMetaData.TYPE),
-            UserDefinedFunctionsMetaData::fromXContent
+            Metadata.Custom.class,
+            new ParseField(UserDefinedFunctionsMetadata.TYPE),
+            UserDefinedFunctionsMetadata::fromXContent
         ));
         entries.add(new NamedXContentRegistry.Entry(
-            MetaData.Custom.class,
-            new ParseField(ViewsMetaData.TYPE),
-            ViewsMetaData::fromXContent
+            Metadata.Custom.class,
+            new ParseField(ViewsMetadata.TYPE),
+            ViewsMetadata::fromXContent
         ));
 
         if (userExtension != null) {
@@ -287,17 +287,17 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     }
 
     @Override
-    public UnaryOperator<IndexMetaData> getIndexMetaDataUpgrader() {
-        return new MetaDataIndexUpgrader();
+    public UnaryOperator<IndexMetadata> getIndexMetadataUpgrader() {
+        return new MetadataIndexUpgrader();
     }
 
     @Override
-    public UnaryOperator<Map<String, Custom>> getCustomMetaDataUpgrader() {
-        return new CustomMetaDataUpgraderLoader(settings);
+    public UnaryOperator<Map<String, Custom>> getCustomMetadataUpgrader() {
+        return new CustomMetadataUpgraderLoader(settings);
     }
 
     @Override
-    public UnaryOperator<Map<String, IndexTemplateMetaData>> getIndexTemplateMetaDataUpgrader() {
+    public UnaryOperator<Map<String, IndexTemplateMetadata>> getIndexTemplateMetadataUpgrader() {
         return new IndexTemplateUpgrader();
     }
 

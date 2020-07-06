@@ -28,8 +28,8 @@ import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -60,8 +60,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
     public ColumnPolicyIntegrationTest() throws URISyntaxException {
     }
 
-    private MappingMetaData getMappingMetadata(String index) {
-        return clusterService().state().metaData().indices()
+    private MappingMetadata getMappingMetadata(String index) {
+        return clusterService().state().metadata().indices()
             .get(index)
             .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
     }
@@ -383,7 +383,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers"))
             .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
-        IndexTemplateMetaData template = response.getIndexTemplates().get(0);
+        IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
         Tuple<XContentType, Map<String, Object>> typeAndMap =
@@ -419,7 +419,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers"))
             .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
-        IndexTemplateMetaData template = response.getIndexTemplates().get(0);
+        IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
         Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
@@ -454,7 +454,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers"))
             .execute().actionGet();
         assertThat(templateResponse.getIndexTemplates().size(), is(1));
-        IndexTemplateMetaData template = templateResponse.getIndexTemplates().get(0);
+        IndexTemplateMetadata template = templateResponse.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
         Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
@@ -580,7 +580,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "dynamic_table"))
             .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
-        IndexTemplateMetaData template = response.getIndexTemplates().get(0);
+        IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
         Tuple<XContentType, Map<String, Object>> typeAndMap =

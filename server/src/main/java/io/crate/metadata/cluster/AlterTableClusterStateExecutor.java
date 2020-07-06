@@ -35,13 +35,13 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsCluster
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaDataCreateIndexService;
-import org.elasticsearch.cluster.metadata.MetaDataMappingService;
-import org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataMappingService;
+import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.ValidationException;
@@ -66,7 +66,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService.maybeUpdateClusterBlock;
+import static org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService.maybeUpdateClusterBlock;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.elasticsearch.index.IndexSettings.same;
 
@@ -75,25 +75,25 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     private static final IndicesOptions FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING = IndicesOptions.fromOptions(
         true, true, true, true);
 
-    private final MetaDataMappingService metaDataMappingService;
+    private final MetadataMappingService metadataMappingService;
     private final IndicesService indicesService;
     private final AllocationService allocationService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final IndexScopedSettings indexScopedSettings;
-    private final MetaDataCreateIndexService metaDataCreateIndexService;
+    private final MetadataCreateIndexService metadataCreateIndexService;
 
-    public AlterTableClusterStateExecutor(MetaDataMappingService metaDataMappingService,
+    public AlterTableClusterStateExecutor(MetadataMappingService metadataMappingService,
                                           IndicesService indicesService,
                                           AllocationService allocationService,
                                           IndexScopedSettings indexScopedSettings,
                                           IndexNameExpressionResolver indexNameExpressionResolver,
-                                          MetaDataCreateIndexService metaDataCreateIndexService) {
-        this.metaDataMappingService = metaDataMappingService;
+                                          MetadataCreateIndexService metadataCreateIndexService) {
+        this.metadataMappingService = metadataMappingService;
         this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
         this.allocationService = allocationService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.metaDataCreateIndexService = metaDataCreateIndexService;
+        this.metadataCreateIndexService = metadataCreateIndexService;
     }
 
     @Override
@@ -113,7 +113,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     (name, settings) -> validateSettings(name,
                                                          settings,
                                                          indexScopedSettings,
-                                                         metaDataCreateIndexService),
+                                                         metadataCreateIndexService),
                     indexScopedSettings);
 
                 if (!request.excludePartitions()) {
@@ -128,7 +128,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                         .collect(Collectors.toList());
 
                     // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
-                    supportedSettings.add(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
+                    supportedSettings.add(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS);
 
                     currentState = updateSettings(currentState, filterSettings(request.settings(), supportedSettings), concreteIndices);
                     currentState = updateMapping(currentState, request, concreteIndices);
@@ -150,12 +150,12 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
         Map<Index, MapperService> indexMapperServices = new HashMap<>();
         for (Index index : concreteIndices) {
-            final IndexMetaData indexMetaData = currentState.metaData().getIndexSafe(index);
-            if (indexMapperServices.containsKey(indexMetaData.getIndex()) == false) {
-                MapperService mapperService = indicesService.createIndexMapperService(indexMetaData);
+            final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
+            if (indexMapperServices.containsKey(indexMetadata.getIndex()) == false) {
+                MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
                 indexMapperServices.put(index, mapperService);
                 // add mappings for all types, we need them for cross-type validation
-                mapperService.merge(indexMetaData, MapperService.MergeReason.MAPPING_RECOVERY, false);
+                mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY, false);
             }
         }
 
@@ -164,17 +164,17 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             .indices(concreteIndices).type(Constants.DEFAULT_MAPPING_TYPE)
             .source(request.mappingDelta());
 
-        return metaDataMappingService.putMappingExecutor.applyRequest(currentState, updateRequest, indexMapperServices);
+        return metadataMappingService.putMappingExecutor.applyRequest(currentState, updateRequest, indexMapperServices);
     }
 
     /**
-     * The logic is taken over from {@link MetaDataUpdateSettingsService#updateSettings(UpdateSettingsClusterStateUpdateRequest, ActionListener)}
+     * The logic is taken over from {@link MetadataUpdateSettingsService#updateSettings(UpdateSettingsClusterStateUpdateRequest, ActionListener)}
      */
     private ClusterState updateSettings(final ClusterState currentState, final Settings settings, Index[] concreteIndices) {
 
         final Settings normalizedSettings = Settings.builder()
             .put(markArchivedSettings(settings))
-            .normalizePrefix(IndexMetaData.INDEX_SETTING_PREFIX)
+            .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
             .build();
 
         Settings.Builder settingsForClosedIndices = Settings.builder();
@@ -199,7 +199,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         final Settings openSettings = settingsForOpenIndices.build();
 
         final RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
-        final MetaData.Builder metaDataBuilder = MetaData.builder(currentState.metaData());
+        final Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         // allow to change any settings to a close index, and only allow dynamic settings to be changed
         // on an open index
         Set<Index> openIndices = new HashSet<>();
@@ -208,8 +208,8 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         for (int i = 0; i < concreteIndices.length; i++) {
             Index index = concreteIndices[i];
             actualIndices[i] = index.getName();
-            final IndexMetaData metaData = currentState.metaData().getIndexSafe(index);
-            if (metaData.getState() == IndexMetaData.State.OPEN) {
+            final IndexMetadata metadata = currentState.metadata().getIndexSafe(index);
+            if (metadata.getState() == IndexMetadata.State.OPEN) {
                 openIndices.add(index);
             } else {
                 closeIndices.add(index);
@@ -223,100 +223,100 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                                                              openIndices));
         }
 
-        int updatedNumberOfReplicas = openSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, -1);
+        int updatedNumberOfReplicas = openSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, -1);
 
         if (updatedNumberOfReplicas != -1) {
             // we do *not* update the in sync allocation ids as they will be removed upon the first index
             // operation which make these copies stale
             // TODO: update the list once the data is deleted by the node?
             routingTableBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
-            metaDataBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
+            metadataBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
         }
 
         ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
         maybeUpdateClusterBlock(actualIndices,
                                 blocks,
-                                IndexMetaData.INDEX_READ_ONLY_BLOCK,
-                                IndexMetaData.INDEX_READ_ONLY_SETTING,
+                                IndexMetadata.INDEX_READ_ONLY_BLOCK,
+                                IndexMetadata.INDEX_READ_ONLY_SETTING,
                                 openSettings);
         maybeUpdateClusterBlock(actualIndices,
                                 blocks,
-                                IndexMetaData.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK,
-                                IndexMetaData.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
+                                IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK,
+                                IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
                                 openSettings);
         maybeUpdateClusterBlock(actualIndices,
                                 blocks,
-                                IndexMetaData.INDEX_METADATA_BLOCK,
-                                IndexMetaData.INDEX_BLOCKS_METADATA_SETTING,
+                                IndexMetadata.INDEX_METADATA_BLOCK,
+                                IndexMetadata.INDEX_BLOCKS_METADATA_SETTING,
                                 openSettings);
         maybeUpdateClusterBlock(actualIndices,
                                 blocks,
-                                IndexMetaData.INDEX_WRITE_BLOCK,
-                                IndexMetaData.INDEX_BLOCKS_WRITE_SETTING,
+                                IndexMetadata.INDEX_WRITE_BLOCK,
+                                IndexMetadata.INDEX_BLOCKS_WRITE_SETTING,
                                 openSettings);
         maybeUpdateClusterBlock(actualIndices,
                                 blocks,
-                                IndexMetaData.INDEX_READ_BLOCK,
-                                IndexMetaData.INDEX_BLOCKS_READ_SETTING,
+                                IndexMetadata.INDEX_READ_BLOCK,
+                                IndexMetadata.INDEX_BLOCKS_READ_SETTING,
                                 openSettings);
 
         if (!openIndices.isEmpty()) {
             for (Index index : openIndices) {
-                IndexMetaData indexMetaData = metaDataBuilder.getSafe(index);
+                IndexMetadata indexMetadata = metadataBuilder.getSafe(index);
                 Settings.Builder updates = Settings.builder();
-                Settings.Builder indexSettings = Settings.builder().put(indexMetaData.getSettings());
+                Settings.Builder indexSettings = Settings.builder().put(indexMetadata.getSettings());
                 if (indexScopedSettings.updateDynamicSettings(openSettings, indexSettings, updates, index.getName())) {
                     Settings finalSettings = indexSettings.build();
                     indexScopedSettings.validate(finalSettings.filter(k -> indexScopedSettings.isPrivateSetting(k) ==
                                                                            false), true);
-                    metaDataBuilder.put(IndexMetaData.builder(indexMetaData).settings(finalSettings));
+                    metadataBuilder.put(IndexMetadata.builder(indexMetadata).settings(finalSettings));
                 }
             }
         }
 
         if (!closeIndices.isEmpty()) {
             for (Index index : closeIndices) {
-                IndexMetaData indexMetaData = metaDataBuilder.getSafe(index);
+                IndexMetadata indexMetadata = metadataBuilder.getSafe(index);
                 Settings.Builder updates = Settings.builder();
-                Settings.Builder indexSettings = Settings.builder().put(indexMetaData.getSettings());
+                Settings.Builder indexSettings = Settings.builder().put(indexMetadata.getSettings());
                 if (indexScopedSettings.updateSettings(closedSettings, indexSettings, updates, index.getName())) {
                     Settings finalSettings = indexSettings.build();
                     indexScopedSettings.validate(finalSettings.filter(k -> indexScopedSettings.isPrivateSetting(k) ==
                                                                            false), true);
-                    metaDataBuilder.put(IndexMetaData.builder(indexMetaData).settings(finalSettings));
+                    metadataBuilder.put(IndexMetadata.builder(indexMetadata).settings(finalSettings));
                 }
             }
         }
 
         // increment settings versions
         for (final String index : actualIndices) {
-            if (same(currentState.metaData().index(index).getSettings(), metaDataBuilder.get(index).getSettings()) ==
+            if (same(currentState.metadata().index(index).getSettings(), metadataBuilder.get(index).getSettings()) ==
                 false) {
-                final IndexMetaData.Builder builder = IndexMetaData.builder(metaDataBuilder.get(index));
+                final IndexMetadata.Builder builder = IndexMetadata.builder(metadataBuilder.get(index));
                 builder.settingsVersion(1 + builder.settingsVersion());
-                metaDataBuilder.put(builder);
+                metadataBuilder.put(builder);
             }
         }
 
-        ClusterState updatedState = ClusterState.builder(currentState).metaData(metaDataBuilder).routingTable(
+        ClusterState updatedState = ClusterState.builder(currentState).metadata(metadataBuilder).routingTable(
             routingTableBuilder.build()).blocks(blocks).build();
 
         // now, reroute in case things change that require it (like number of replicas)
         updatedState = allocationService.reroute(updatedState, "settings update");
         try {
             for (Index index : openIndices) {
-                final IndexMetaData currentMetaData = currentState.getMetaData().getIndexSafe(index);
-                final IndexMetaData updatedMetaData = updatedState.metaData().getIndexSafe(index);
-                indicesService.verifyIndexMetadata(currentMetaData, updatedMetaData);
+                final IndexMetadata currentMetadata = currentState.getMetadata().getIndexSafe(index);
+                final IndexMetadata updatedMetadata = updatedState.metadata().getIndexSafe(index);
+                indicesService.verifyIndexMetadata(currentMetadata, updatedMetadata);
             }
             for (Index index : closeIndices) {
-                final IndexMetaData currentMetaData = currentState.getMetaData().getIndexSafe(index);
-                final IndexMetaData updatedMetaData = updatedState.metaData().getIndexSafe(index);
+                final IndexMetadata currentMetadata = currentState.getMetadata().getIndexSafe(index);
+                final IndexMetadata updatedMetadata = updatedState.metadata().getIndexSafe(index);
                 // Verifies that the current index settings can be updated with the updated dynamic settings.
-                indicesService.verifyIndexMetadata(currentMetaData, updatedMetaData);
+                indicesService.verifyIndexMetadata(currentMetadata, updatedMetadata);
                 // Now check that we can create the index with the updated settings (dynamic and non-dynamic).
                 // This step is mandatory since we allow to update non-dynamic settings on closed indices.
-                indicesService.verifyIndexMetadata(updatedMetaData, updatedMetaData);
+                indicesService.verifyIndexMetadata(updatedMetadata, updatedMetadata);
             }
         } catch (IOException ex) {
             throw ExceptionsHelper.convertToElastic(ex);
@@ -333,9 +333,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
         String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
 
-        IndexTemplateMetaData indexTemplateMetaData = currentState.metaData().templates().get(templateName);
-        IndexTemplateMetaData newIndexTemplateMetaData = DDLClusterStateHelpers.updateTemplate(
-            indexTemplateMetaData,
+        IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
+        IndexTemplateMetadata newIndexTemplateMetadata = DDLClusterStateHelpers.updateTemplate(
+            indexTemplateMetadata,
             newMapping,
             Collections.emptyMap(),
             newSetting,
@@ -343,14 +343,14 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             k -> indexScopedSettings.isPrivateSetting(k) == false
             );
 
-        final MetaData.Builder metaData = MetaData.builder(currentState.metaData()).put(newIndexTemplateMetaData);
-        return ClusterState.builder(currentState).metaData(metaData).build();
+        final Metadata.Builder metadata = Metadata.builder(currentState.metadata()).put(newIndexTemplateMetadata);
+        return ClusterState.builder(currentState).metadata(metadata).build();
     }
 
     private static void validateSettings(String name,
                                          Settings settings,
                                          IndexScopedSettings indexScopedSettings,
-                                         MetaDataCreateIndexService metaDataCreateIndexService) {
+                                         MetadataCreateIndexService metadataCreateIndexService) {
         List<String> validationErrors = new ArrayList<>();
         try {
             indexScopedSettings.validate(settings, true); // templates must be consistent with regards to dependencies
@@ -360,7 +360,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 validationErrors.add(t.getMessage());
             }
         }
-        List<String> indexSettingsValidation = metaDataCreateIndexService.getIndexSettingsValidationErrors(settings, true);
+        List<String> indexSettingsValidation = metadataCreateIndexService.getIndexSettingsValidationErrors(settings, true);
         validationErrors.addAll(indexSettingsValidation);
         if (!validationErrors.isEmpty()) {
             ValidationException validationException = new ValidationException();

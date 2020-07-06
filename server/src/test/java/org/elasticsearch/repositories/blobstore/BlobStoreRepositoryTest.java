@@ -27,17 +27,16 @@ import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.blobstore.BlobMetaData;
+import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
-import org.elasticsearch.common.blobstore.support.PlainBlobMetaData;
+import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.ShardGenerations;
-import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -48,8 +47,6 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -113,12 +110,12 @@ public class BlobStoreRepositoryTest extends SQLTransportIntegrationTest {
         assertBlobsByPrefix(repo.basePath(), "fo", Collections.emptyMap());
         assertChildren(repo.basePath().add("foo"), List.of("nested", "nested2"));
         assertBlobsByPrefix(repo.basePath().add("foo"), "nest",
-                            Collections.singletonMap("nested-blob", new PlainBlobMetaData("nested-blob", testBlobLen)));
+                            Collections.singletonMap("nested-blob", new PlainBlobMetadata("nested-blob", testBlobLen)));
         assertChildren(repo.basePath().add("foo").add("nested"), Collections.emptyList());
     }
 
-    void assertBlobsByPrefix(BlobPath path, String prefix, Map<String, BlobMetaData> blobs) throws Exception {
-        final PlainActionFuture<Map<String, BlobMetaData>> future = PlainActionFuture.newFuture();
+    void assertBlobsByPrefix(BlobPath path, String prefix, Map<String, BlobMetadata> blobs) throws Exception {
+        final PlainActionFuture<Map<String, BlobMetadata>> future = PlainActionFuture.newFuture();
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
             @Override
@@ -127,12 +124,12 @@ public class BlobStoreRepositoryTest extends SQLTransportIntegrationTest {
                 future.onResponse(blobStore.blobContainer(path).listBlobsByPrefix(prefix));
             }
         });
-        Map<String, BlobMetaData> foundBlobs = future.actionGet();
+        Map<String, BlobMetadata> foundBlobs = future.actionGet();
         if (blobs.isEmpty()) {
             assertThat(foundBlobs.keySet(), empty());
         } else {
             assertThat(foundBlobs.keySet(), containsInAnyOrder(blobs.keySet().toArray(Strings.EMPTY_ARRAY)));
-            for (Map.Entry<String, BlobMetaData> entry : foundBlobs.entrySet()) {
+            for (Map.Entry<String, BlobMetadata> entry : foundBlobs.entrySet()) {
                 assertEquals(entry.getValue().length(), blobs.get(entry.getKey()).length());
             }
         }

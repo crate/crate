@@ -31,7 +31,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.TableInfo;
 import io.crate.testing.SqlExpressions;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -54,8 +54,8 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         CountOperation countOperation = internalCluster().getDataNodeInstance(CountOperation.class);
         ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        MetaData metaData = clusterService.state().getMetaData();
-        Index index = metaData.index(getFqn("t")).getIndex();
+        Metadata metadata = clusterService.state().getMetadata();
+        Index index = metadata.index(getFqn("t")).getIndex();
         assertThat(countOperation.count(txnCtx, index, 0, Literal.BOOLEAN_TRUE), is(3L));
 
         Schemas schemas = internalCluster().getInstance(Schemas.class);

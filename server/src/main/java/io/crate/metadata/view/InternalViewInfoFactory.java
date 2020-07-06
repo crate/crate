@@ -53,11 +53,11 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
 
     @Override
     public ViewInfo create(RelationName ident, ClusterState state) {
-        ViewsMetaData meta = state.metaData().custom(ViewsMetaData.TYPE);
+        ViewsMetadata meta = state.metadata().custom(ViewsMetadata.TYPE);
         if (meta == null) {
             return null;
         }
-        ViewMetaData view = meta.getView(ident);
+        ViewMetadata view = meta.getView(ident);
         if (view == null) {
             return null;
         }

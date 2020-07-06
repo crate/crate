@@ -29,7 +29,7 @@ import org.elasticsearch.action.support.nodes.BaseNodesRequest;
 import org.elasticsearch.action.support.nodes.BaseNodesResponse;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -42,7 +42,7 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardPath;
-import org.elasticsearch.index.shard.ShardStateMetaData;
+import org.elasticsearch.index.shard.ShardStateMetadata;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -124,19 +124,19 @@ public class TransportNodesListGatewayStartedShards extends
         try {
             final ShardId shardId = request.getShardId();
             logger.trace("{} loading local shard state info", shardId);
-            ShardStateMetaData shardStateMetaData = ShardStateMetaData.FORMAT.loadLatestState(logger, namedXContentRegistry,
+            ShardStateMetadata shardStateMetadata = ShardStateMetadata.FORMAT.loadLatestState(logger, namedXContentRegistry,
                 nodeEnv.availableShardPaths(request.shardId));
-            if (shardStateMetaData != null) {
-                IndexMetaData metaData = clusterService.state().metaData().index(shardId.getIndex());
-                if (metaData == null) {
+            if (shardStateMetadata != null) {
+                IndexMetadata metadata = clusterService.state().metadata().index(shardId.getIndex());
+                if (metadata == null) {
                     // we may send this requests while processing the cluster state that recovered the index
                     // sometimes the request comes in before the local node processed that cluster state
                     // in such cases we can load it from disk
-                    metaData = IndexMetaData.FORMAT.loadLatestState(logger, namedXContentRegistry,
+                    metadata = IndexMetadata.FORMAT.loadLatestState(logger, namedXContentRegistry,
                         nodeEnv.indexPaths(shardId.getIndex()));
                 }
-                if (metaData == null) {
-                    ElasticsearchException e = new ElasticsearchException("failed to find local IndexMetaData");
+                if (metadata == null) {
+                    ElasticsearchException e = new ElasticsearchException("failed to find local IndexMetadata");
                     e.setShard(request.shardId);
                     throw e;
                 }
@@ -145,7 +145,7 @@ public class TransportNodesListGatewayStartedShards extends
                     // we don't have an open shard on the store, validate the files on disk are openable
                     ShardPath shardPath = null;
                     try {
-                        IndexSettings indexSettings = new IndexSettings(metaData, settings);
+                        IndexSettings indexSettings = new IndexSettings(metadata, settings);
                         shardPath = ShardPath.loadShardPath(logger, nodeEnv, shardId, indexSettings);
                         if (shardPath == null) {
                             throw new IllegalStateException(shardId + " no shard path found");
@@ -156,20 +156,20 @@ public class TransportNodesListGatewayStartedShards extends
                         logger.trace(() -> new ParameterizedMessage(
                                 "{} can't open index for shard [{}] in path [{}]",
                                 shardId,
-                                shardStateMetaData,
+                                shardStateMetadata,
                                 (finalShardPath != null) ? finalShardPath.resolveIndex() : ""),
                             exception);
-                        String allocationId = shardStateMetaData.allocationId != null ?
-                            shardStateMetaData.allocationId.getId() : null;
-                        return new NodeGatewayStartedShards(clusterService.localNode(), allocationId, shardStateMetaData.primary,
+                        String allocationId = shardStateMetadata.allocationId != null ?
+                            shardStateMetadata.allocationId.getId() : null;
+                        return new NodeGatewayStartedShards(clusterService.localNode(), allocationId, shardStateMetadata.primary,
                             exception);
                     }
                 }
 
-                logger.debug("{} shard state info found: [{}]", shardId, shardStateMetaData);
-                String allocationId = shardStateMetaData.allocationId != null ?
-                    shardStateMetaData.allocationId.getId() : null;
-                return new NodeGatewayStartedShards(clusterService.localNode(), allocationId, shardStateMetaData.primary);
+                logger.debug("{} shard state info found: [{}]", shardId, shardStateMetadata);
+                String allocationId = shardStateMetadata.allocationId != null ?
+                    shardStateMetadata.allocationId.getId() : null;
+                return new NodeGatewayStartedShards(clusterService.localNode(), allocationId, shardStateMetadata.primary);
             }
             logger.trace("{} no local shard info found", shardId);
             return new NodeGatewayStartedShards(clusterService.localNode(), null, false);

@@ -813,7 +813,7 @@ public class JobSetup {
                 phase,
                 localNodeId,
                 context.sharedShardContexts,
-                clusterService.state().metaData(),
+                clusterService.state().metadata(),
                 relationName -> schemas.getTableInfo(relationName, Operation.READ),
                 routings));
             return true;

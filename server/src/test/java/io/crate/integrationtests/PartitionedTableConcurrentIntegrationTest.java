@@ -31,7 +31,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -314,9 +314,9 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
             boolean deleted = false;
             while (!deleted) {
                 try {
-                    MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
-                        .getState().metaData();
-                    if (metaData.indices().get(partitionName) != null) {
+                    Metadata metadata = client().admin().cluster().prepareState().execute().actionGet()
+                        .getState().metadata();
+                    if (metadata.indices().get(partitionName) != null) {
                         execute("delete from parted where id = ?", deleteArgs);
                         deleted = true;
                     }

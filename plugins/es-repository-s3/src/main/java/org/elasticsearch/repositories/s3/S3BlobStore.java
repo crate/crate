@@ -25,7 +25,7 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
@@ -44,7 +44,7 @@ class S3BlobStore implements BlobStore {
     private final boolean serverSideEncryption;
     private final CannedAccessControlList cannedACL;
     private final StorageClass storageClass;
-    private final RepositoryMetaData metadata;
+    private final RepositoryMetadata metadata;
 
     S3BlobStore(S3Service service,
                 String bucket,
@@ -52,7 +52,7 @@ class S3BlobStore implements BlobStore {
                 ByteSizeValue bufferSize,
                 String cannedACL,
                 String storageClass,
-                RepositoryMetaData metadata) {
+                RepositoryMetadata metadata) {
         this.service = service;
         this.bucket = bucket;
         this.serverSideEncryption = serverSideEncryption;

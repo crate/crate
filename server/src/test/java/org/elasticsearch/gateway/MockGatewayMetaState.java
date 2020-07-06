@@ -19,14 +19,14 @@
 
 package org.elasticsearch.gateway;
 
-import org.elasticsearch.cluster.metadata.MetaDataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.plugins.MetaDataUpgrader;
+import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
@@ -47,15 +47,15 @@ public class MockGatewayMetaState extends GatewayMetaState {
     public MockGatewayMetaState(Settings settings, NodeEnvironment nodeEnvironment,
                                 NamedXContentRegistry xContentRegistry, DiscoveryNode localNode) throws IOException {
         super(settings, nodeEnvironment, new MetaStateService(nodeEnvironment, xContentRegistry),
-                mock(MetaDataIndexUpgradeService.class), mock(MetaDataUpgrader.class),
-                mock(TransportService.class), mock(ClusterService.class),
-                mock(IndicesService.class));
+              mock(MetadataIndexUpgradeService.class), mock(MetadataUpgrader.class),
+              mock(TransportService.class), mock(ClusterService.class),
+              mock(IndicesService.class));
         this.localNode = localNode;
     }
 
     @Override
-    protected void upgradeMetaData(MetaDataIndexUpgradeService metaDataIndexUpgradeService, MetaDataUpgrader metaDataUpgrader) {
-        // MetaData upgrade is tested in GatewayMetaStateTests, we override this method to NOP to make mocking easier
+    protected void upgradeMetadata(MetadataIndexUpgradeService metadataIndexUpgradeService, MetadataUpgrader metadataUpgrader) {
+        // Metadata upgrade is tested in GatewayMetaStateTests, we override this method to NOP to make mocking easier
     }
 
     @Override

@@ -29,11 +29,11 @@ import io.crate.metadata.cluster.DDLClusterStateService;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
@@ -79,7 +79,7 @@ public class SwapRelationsOperation {
 
     private UpdatedState applyDropRelations(ClusterState state, UpdatedState updatedState, List<RelationName> dropRelations) {
         ClusterState stateAfterRename = updatedState.newState;
-        MetaData.Builder updatedMetaData = MetaData.builder(stateAfterRename.metaData());
+        Metadata.Builder updatedMetadata = Metadata.builder(stateAfterRename.metadata());
         RoutingTable.Builder routingBuilder = RoutingTable.builder(stateAfterRename.routingTable());
 
         for (RelationName dropRelation : dropRelations) {
@@ -87,14 +87,14 @@ public class SwapRelationsOperation {
                 state, IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())) {
 
                 String indexName = index.getName();
-                updatedMetaData.remove(indexName);
+                updatedMetadata.remove(indexName);
                 routingBuilder.remove(indexName);
                 updatedState.newIndices.remove(indexName);
             }
         }
         ClusterState stateAfterDropRelations = ClusterState
             .builder(stateAfterRename)
-            .metaData(updatedMetaData)
+            .metadata(updatedMetadata)
             .routingTable(routingBuilder.build())
             .build();
         return new UpdatedState(
@@ -118,26 +118,26 @@ public class SwapRelationsOperation {
     private UpdatedState applyRenameActions(ClusterState state,
                                             SwapRelationsRequest swapRelationsRequest) {
         HashSet<String> newIndexNames = new HashSet<>();
-        MetaData metaData = state.getMetaData();
-        MetaData.Builder updatedMetaData = MetaData.builder(state.getMetaData());
+        Metadata metadata = state.getMetadata();
+        Metadata.Builder updatedMetadata = Metadata.builder(state.getMetadata());
         RoutingTable.Builder routingBuilder = RoutingTable.builder(state.routingTable());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(state.blocks());
 
         // Remove all involved indices first so that rename operations are independent of each other
         for (RelationNameSwap swapAction : swapRelationsRequest.swapActions()) {
-            removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetaData, swapAction.source());
-            removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetaData, swapAction.target());
+            removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.source());
+            removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.target());
         }
         for (RelationNameSwap relationNameSwap : swapRelationsRequest.swapActions()) {
             RelationName source = relationNameSwap.source();
             RelationName target = relationNameSwap.target();
             addSourceIndicesRenamedToTargetName(
-                state, metaData, updatedMetaData, blocksBuilder, routingBuilder, source, target, newIndexNames::add);
+                state, metadata, updatedMetadata, blocksBuilder, routingBuilder, source, target, newIndexNames::add);
             addSourceIndicesRenamedToTargetName(
-                state, metaData, updatedMetaData, blocksBuilder, routingBuilder, target, source, newIndexNames::add);
+                state, metadata, updatedMetadata, blocksBuilder, routingBuilder, target, source, newIndexNames::add);
         }
         ClusterState stateAfterSwap = ClusterState.builder(state)
-            .metaData(updatedMetaData)
+            .metadata(updatedMetadata)
             .routingTable(routingBuilder.build())
             .blocks(blocksBuilder)
             .build();
@@ -159,7 +159,7 @@ public class SwapRelationsOperation {
     private void removeOccurrences(ClusterState state,
                                    ClusterBlocks.Builder blocksBuilder,
                                    RoutingTable.Builder routingBuilder,
-                                   MetaData.Builder updatedMetaData,
+                                   Metadata.Builder updatedMetadata,
                                    RelationName name) {
         String aliasOrIndexName = name.indexNameOrAlias();
         String templateName = PartitionName.templateName(name.schema(), name.name());
@@ -168,31 +168,31 @@ public class SwapRelationsOperation {
 
             String indexName = index.getName();
             routingBuilder.remove(indexName);
-            updatedMetaData.remove(indexName);
+            updatedMetadata.remove(indexName);
             blocksBuilder.removeIndexBlocks(indexName);
         }
-        updatedMetaData.removeTemplate(templateName);
+        updatedMetadata.removeTemplate(templateName);
     }
 
     private void addSourceIndicesRenamedToTargetName(ClusterState state,
-                                                     MetaData metaData,
-                                                     MetaData.Builder updatedMetaData,
+                                                     Metadata metadata,
+                                                     Metadata.Builder updatedMetadata,
                                                      ClusterBlocks.Builder blocksBuilder,
                                                      RoutingTable.Builder routingBuilder,
                                                      RelationName source,
                                                      RelationName target,
                                                      Consumer<String> onProcessedIndex) {
         String sourceTemplateName = PartitionName.templateName(source.schema(), source.name());
-        IndexTemplateMetaData sourceTemplate = metaData.templates().get(sourceTemplateName);
+        IndexTemplateMetadata sourceTemplate = metadata.templates().get(sourceTemplateName);
 
         for (Index sourceIndex : indexNameResolver.concreteIndices(
             state, IndicesOptions.LENIENT_EXPAND_OPEN, source.indexNameOrAlias())) {
 
             String sourceIndexName = sourceIndex.getName();
-            IndexMetaData sourceMd = metaData.getIndexSafe(sourceIndex);
-            IndexMetaData targetMd;
+            IndexMetadata sourceMd = metadata.getIndexSafe(sourceIndex);
+            IndexMetadata targetMd;
             if (sourceTemplate == null) {
-                targetMd = IndexMetaData.builder(sourceMd)
+                targetMd = IndexMetadata.builder(sourceMd)
                     .removeAllAliases()
                     .index(target.indexNameOrAlias())
                     .build();
@@ -200,20 +200,20 @@ public class SwapRelationsOperation {
             } else {
                 PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndexName);
                 String targetIndexName = IndexParts.toIndexName(target, partitionName.ident());
-                targetMd = IndexMetaData.builder(sourceMd)
+                targetMd = IndexMetadata.builder(sourceMd)
                     .removeAllAliases()
-                    .putAlias(AliasMetaData.builder(target.indexNameOrAlias()).build())
+                    .putAlias(AliasMetadata.builder(target.indexNameOrAlias()).build())
                     .index(targetIndexName)
                     .build();
                 onProcessedIndex.accept(targetIndexName);
             }
-            updatedMetaData.put(targetMd, true);
+            updatedMetadata.put(targetMd, true);
             blocksBuilder.addBlocks(targetMd);
             routingBuilder.addAsFromCloseToOpen(targetMd);
         }
         if (sourceTemplate != null) {
-            IndexTemplateMetaData.Builder templateBuilder = Templates.copyWithNewName(sourceTemplate, target);
-            updatedMetaData.put(templateBuilder);
+            IndexTemplateMetadata.Builder templateBuilder = Templates.copyWithNewName(sourceTemplate, target);
+            updatedMetadata.put(templateBuilder);
         }
     }
 }

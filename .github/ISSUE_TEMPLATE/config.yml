@@ -1,0 +1,6 @@
+---
+blank_issues_enabled: true
+contact_links:
+  - name: GitHub Community Support
+    url: https://github.com/crate/crate/discussions
+    about: Please ask and answer questions here.

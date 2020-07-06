@@ -36,7 +36,7 @@ import org.elasticsearch.action.support.master.AcknowledgedRequestBuilder;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -46,25 +46,20 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.NotEqualMessageBuilder;
 import org.hamcrest.CoreMatchers;
-import org.hamcrest.Matcher;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
@@ -190,8 +185,8 @@ public class ElasticsearchAssertions {
      */
     public static void assertIndexTemplateMissing(GetIndexTemplatesResponse templatesResponse, String name) {
         List<String> templateNames = new ArrayList<>();
-        for (IndexTemplateMetaData indexTemplateMetaData : templatesResponse.getIndexTemplates()) {
-            templateNames.add(indexTemplateMetaData.name());
+        for (IndexTemplateMetadata indexTemplateMetadata : templatesResponse.getIndexTemplates()) {
+            templateNames.add(indexTemplateMetadata.name());
         }
         assertThat(templateNames, not(hasItem(name)));
     }
@@ -201,8 +196,8 @@ public class ElasticsearchAssertions {
      */
     public static void assertIndexTemplateExists(GetIndexTemplatesResponse templatesResponse, String name) {
         List<String> templateNames = new ArrayList<>();
-        for (IndexTemplateMetaData indexTemplateMetaData : templatesResponse.getIndexTemplates()) {
-            templateNames.add(indexTemplateMetaData.name());
+        for (IndexTemplateMetadata indexTemplateMetadata : templatesResponse.getIndexTemplates()) {
+            templateNames.add(indexTemplateMetadata.name());
         }
         assertThat(templateNames, hasItem(name));
     }

@@ -30,8 +30,8 @@ import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
 import org.elasticsearch.common.lucene.Lucene;
@@ -98,7 +98,7 @@ final class StoreRecovery {
         return false;
     }
 
-    boolean recoverFromLocalShards(BiConsumer<String, MappingMetaData> mappingUpdateConsumer, final IndexShard indexShard, final List<LocalShardSnapshot> shards) throws IOException {
+    boolean recoverFromLocalShards(BiConsumer<String, MappingMetadata> mappingUpdateConsumer, final IndexShard indexShard, final List<LocalShardSnapshot> shards) throws IOException {
         if (canRecover(indexShard)) {
             RecoverySource.Type recoveryType = indexShard.recoveryState().getRecoverySource().getType();
             assert
@@ -111,13 +111,13 @@ final class StoreRecovery {
             if (indices.size() > 1) {
                 throw new IllegalArgumentException("can't add shards from more than one index");
             }
-            IndexMetaData sourceMetaData = shards.get(0).getIndexMetaData();
-            for (ObjectObjectCursor<String, MappingMetaData> mapping : sourceMetaData.getMappings()) {
+            IndexMetadata sourceMetadata = shards.get(0).getIndexMetadata();
+            for (ObjectObjectCursor<String, MappingMetadata> mapping : sourceMetadata.getMappings()) {
                 mappingUpdateConsumer.accept(mapping.key, mapping.value);
             }
-            indexShard.mapperService().merge(sourceMetaData, MapperService.MergeReason.MAPPING_RECOVERY, true);
+            indexShard.mapperService().merge(sourceMetadata, MapperService.MergeReason.MAPPING_RECOVERY, true);
             // now that the mapping is merged we can validate the index sort configuration.
-            final boolean isSplit = sourceMetaData.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
+            final boolean isSplit = sourceMetadata.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
             return executeRecovery(indexShard, () -> {
                 logger.debug("starting recovery from local shards {}", shards);
                 try {
@@ -127,7 +127,7 @@ final class StoreRecovery {
                     final long maxUnsafeAutoIdTimestamp =
                             shards.stream().mapToLong(LocalShardSnapshot::maxUnsafeAutoIdTimestamp).max().getAsLong();
                     addIndices(indexShard.recoveryState().getIndex(), directory, sources, maxSeqNo, maxUnsafeAutoIdTimestamp,
-                        indexShard.indexSettings().getIndexMetaData(), indexShard.shardId().id(), isSplit);
+                        indexShard.indexSettings().getIndexMetadata(), indexShard.shardId().id(), isSplit);
                     internalRecoverFromStore(indexShard);
                     // just trigger a merge to do housekeeping on the
                     // copied segments - we will also see them in stats etc.
@@ -146,7 +146,7 @@ final class StoreRecovery {
                     final Directory[] sources,
                     final long maxSeqNo,
                     final long maxUnsafeAutoIdTimestamp,
-                    IndexMetaData indexMetaData,
+                    IndexMetadata indexMetadata,
                     int shardId,
                     boolean split) throws IOException {
 
@@ -170,7 +170,7 @@ final class StoreRecovery {
         try (IndexWriter writer = new IndexWriter(new StatsDirectoryWrapper(hardLinkOrCopyTarget, indexRecoveryStats), iwc)) {
             writer.addIndexes(sources);
             if (split) {
-                writer.deleteDocuments(new ShardSplittingQuery(indexMetaData, shardId));
+                writer.deleteDocuments(new ShardSplittingQuery(indexMetadata, shardId));
             }
             /*
              * We set the maximum sequence number and the local checkpoint on the target to the maximum of the maximum sequence numbers on
@@ -461,7 +461,7 @@ final class StoreRecovery {
             ShardId snapshotShardId = shardId;
             final String indexName = restoreSource.index();
             if (!shardId.getIndexName().equals(indexName)) {
-                snapshotShardId = new ShardId(indexName, IndexMetaData.INDEX_UUID_NA_VALUE, shardId.id());
+                snapshotShardId = new ShardId(indexName, IndexMetadata.INDEX_UUID_NA_VALUE, shardId.id());
             }
             final IndexId indexId = repository.getRepositoryData().resolveIndexId(indexName);
             repository.restoreShard(indexShard.store(), restoreSource.snapshot().getSnapshotId(),
