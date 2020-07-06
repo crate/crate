@@ -377,6 +377,7 @@ public class Session implements AutoCloseable {
         } else if (analyzedStmt instanceof AnalyzedCommit) {
             currentTransactionState = TransactionState.IDLE;
             resultReceiver.allFinished(false);
+            return resultReceiver.completionFuture();
         } else if (analyzedStmt instanceof AnalyzedDeallocate) {
             String stmtToDeallocate = ((AnalyzedDeallocate) analyzedStmt).preparedStmtName();
             if (stmtToDeallocate != null) {
