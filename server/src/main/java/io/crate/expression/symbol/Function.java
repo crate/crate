@@ -35,6 +35,7 @@ import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.scalar.SubscriptRecordFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
@@ -278,10 +279,14 @@ public class Function extends Symbol implements Cloneable {
     @Override
     public String toString(Style style) {
         StringBuilder builder = new StringBuilder();
-        String name = info.ident().name();
+        String name = signature.getName().name();
         switch (name) {
             case MatchPredicate.NAME:
                 MatchPrinter.printMatchPredicate(this, style, builder);
+                break;
+
+            case NegateFunctions.NAME:
+                printNegate(builder, style);
                 break;
 
             case SubscriptFunction.NAME:
@@ -369,6 +374,11 @@ public class Function extends Symbol implements Cloneable {
         return builder.toString();
     }
 
+    private void printNegate(StringBuilder builder, Style style) {
+        builder.append("- ");
+        builder.append(arguments.get(0).toString(style));
+    }
+
     private void printSubscriptRecord(StringBuilder builder, Style style) {
         builder.append("(");
         builder.append(arguments.get(0).toString(style));
@@ -377,7 +387,7 @@ public class Function extends Symbol implements Cloneable {
     }
 
     private void printAnyOperator(StringBuilder builder, Style style) {
-        String name = info.ident().name();
+        String name = signature.getName().name();
         assert name.startsWith(AnyOperator.OPERATOR_PREFIX) : "function for printAnyOperator must start with any prefix";
         assert arguments.size() == 2 : "function's number of arguments must be 2";
         String operatorName = name.substring(4).replace('_', ' ').toUpperCase(Locale.ENGLISH);

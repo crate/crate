@@ -711,7 +711,7 @@ across generic attributes associated with nodes.
   configured an awareness attribute ``zone`` and the values ``zone1, zone2``
   here, start 2 nodes with ``node.attr.zone`` set to ``zone1`` and create a
   table with 5 shards and 1 replica. The table will be created, but only 5
-  shards will be allocated (with no replicas). Only when we start more shards
+  shards will be allocated (with no replicas). Only when we start more nodes
   with ``node.attr.zone`` set to ``zone2`` the replicas will be allocated.
 
 Balanced shards
