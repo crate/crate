@@ -47,8 +47,8 @@ public final class NegateFunctions {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("float"),
-                parseTypeSignature("float")
+                DataTypes.FLOAT.getTypeSignature(),
+                DataTypes.FLOAT.getTypeSignature()
             )
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
