@@ -752,12 +752,10 @@ public class PostgresWireProtocol {
                 );
                 execute = session.execute("", 0, resultSetReceiver);
             }
-            if (execute == null) {
-                return session.sync();
-            } else {
+            if (execute != null) {
                 channel.delayWritesUntil(execute);
-                return execute.thenCompose(ignored -> session.sync());
             }
+            return session.sync();
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, t);
             result.completeExceptionally(t);
