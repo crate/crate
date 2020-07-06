@@ -50,7 +50,7 @@ public final class Filter extends ForwardingLogicalPlan {
             return source;
         }
         assert query.valueType().equals(DataTypes.BOOLEAN)
-            : "query must have a boolean result type, got: " + query.valueType();
+            : "query must have a boolean result type, got query `" + query + "` with result type: " + query.valueType();
         if (isMatchAll(query)) {
             return source;
         }
