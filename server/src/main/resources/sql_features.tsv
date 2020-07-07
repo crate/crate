@@ -63,7 +63,7 @@ E051	Basic query specification	5	Select list items can be renamed	YES
 E051	Basic query specification	6	HAVING clause	YES		
 E051	Basic query specification	7	Qualified * in select list	YES		
 E051	Basic query specification	8	Correlation names in the FROM clause	YES		
-E051	Basic query specification	9	Rename columns in the FROM clause	NO		
+E051	Basic query specification	9	Rename columns in the FROM clause	YES		
 E061	Basic predicates and search conditions			NO		
 E061	Basic predicates and search conditions	1	Comparison predicate	YES		
 E061	Basic predicates and search conditions	2	BETWEEN predicate	YES		
@@ -73,9 +73,9 @@ E061	Basic predicates and search conditions	5	LIKE predicate ESCAPE clause	NO
 E061	Basic predicates and search conditions	6	NULL predicate	YES		
 E061	Basic predicates and search conditions	7	Quantified comparison predicate	NO		only ANY(array) 
 E061	Basic predicates and search conditions	8	EXISTS predicate	NO		
-E061	Basic predicates and search conditions	9	Subqueries in comparison predicate	NO		
+E061	Basic predicates and search conditions	9	Subqueries in comparison predicate	YES		
 E061	Basic predicates and search conditions	11	Subqueries in IN predicate	YES		
-E061	Basic predicates and search conditions	12	Subqueries in quantified comparison predicate	NO		
+E061	Basic predicates and search conditions	12	Subqueries in quantified comparison predicate	YES		
 E061	Basic predicates and search conditions	13	Correlated subqueries	NO		
 E061	Basic predicates and search conditions	14	Search condition	YES		
 E071	Basic query expressions			NO		
@@ -124,16 +124,16 @@ E141	Basic integrity constraints	1	NOT NULL constraints	YES
 E141	Basic integrity constraints	2	UNIQUE constraints of NOT NULL columns	NO		
 E141	Basic integrity constraints	3	PRIMARY KEY constraints	YES		
 E141	Basic integrity constraints	4	Basic FOREIGN KEY constraint with the NO ACTION default for both referential delete action and referential update action	NO		
-E141	Basic integrity constraints	6	CHECK constraints	NO		
+E141	Basic integrity constraints	6	CHECK constraints	YES		
 E141	Basic integrity constraints	7	Column defaults	YES		
 E141	Basic integrity constraints	8	NOT NULL inferred on PRIMARY KEY	YES		
 E141	Basic integrity constraints	10	Names in a foreign key can be specified in any order	NO		
 E151	Transaction support			NO		
 E151	Transaction support	1	COMMIT statement	YES		
 E151	Transaction support	2	ROLLBACK statement	NO		
-E152	Basic SET TRANSACTION statement			NO		
-E152	Basic SET TRANSACTION statement	1	SET TRANSACTION statement: ISOLATION LEVEL SERIALIZABLE clause	NO		
-E152	Basic SET TRANSACTION statement	2	SET TRANSACTION statement: READ ONLY and READ WRITE clauses	NO		
+E152	Basic SET TRANSACTION statement			YES		
+E152	Basic SET TRANSACTION statement	1	SET TRANSACTION statement: ISOLATION LEVEL SERIALIZABLE clause	YES		Is ignored
+E152	Basic SET TRANSACTION statement	2	SET TRANSACTION statement: READ ONLY and READ WRITE clauses	YES		Is ignored
 E153	Updatable queries with subqueries			NO		
 E161	SQL comments using leading double minus			YES		
 E171	SQLSTATE support			NO		
@@ -176,15 +176,15 @@ F051	Basic date and time	5	Explicit CAST between datetime types and character st
 F051	Basic date and time	6	CURRENT_DATE	NO		current_timestamp
 F051	Basic date and time	7	LOCALTIME	NO		
 F051	Basic date and time	8	LOCALTIMESTAMP	NO		
-F052	Intervals and datetime arithmetic			NO		
+F052	Intervals and datetime arithmetic			YES		
 F053	OVERLAPS predicate			NO		
 F054	TIMESTAMP in DATE type precedence list			NO		
 F081	UNION and EXCEPT in views			NO		
 F111	Isolation levels other than SERIALIZABLE			-		
 F531	Temporary tables			NO		
-F111	Isolation levels other than SERIALIZABLE	1	READ UNCOMMITTED isolation level	NO		
-F111	Isolation levels other than SERIALIZABLE	2	READ COMMITTED isolation level	NO		
-F111	Isolation levels other than SERIALIZABLE	3	REPEATABLE READ isolation level	NO		
+F111	Isolation levels other than SERIALIZABLE	1	READ UNCOMMITTED isolation level	YES		Is ignored
+F111	Isolation levels other than SERIALIZABLE	2	READ COMMITTED isolation level	YES		Is ignored
+F111	Isolation levels other than SERIALIZABLE	3	REPEATABLE READ isolation level	YES		Is ignored
 F121	Basic diagnostics management			NO		
 F121	Basic diagnostics management	1	GET DIAGNOSTICS statement	NO		
 F121	Basic diagnostics management	2	SET TRANSACTION statement: DIAGNOSTICS SIZE clause	NO		
@@ -202,8 +202,8 @@ F191	Referential delete actions			NO
 F200	TRUNCATE TABLE statement			NO		
 F201	CAST function			YES		
 F202	TRUNCATE TABLE: identity column restart option			NO		
-F221	Explicit defaults			NO		
-F222	INSERT statement: DEFAULT VALUES clause			NO		
+F221	Explicit defaults			YES		
+F222	INSERT statement: DEFAULT VALUES clause			YES		
 F231	Privilege tables			NO		
 F231	Privilege tables	1	TABLE_PRIVILEGES view	NO		
 F231	Privilege tables	2	COLUMN_PRIVILEGES view	NO		
@@ -268,7 +268,7 @@ F441	Extended set function support			NO
 F442	Mixed column references in set functions			NO		
 F451	Character set definition			NO		
 F461	Named character sets			NO		
-F471	Scalar subquery values			NO		
+F471	Scalar subquery values			YES		
 F481	Expanded NULL predicate			YES		
 F491	Constraint management			NO		
 F492	Optional table constraint enforcement			NO		
@@ -323,7 +323,7 @@ F845	TRANSLATE_REGEX function			NO
 F846	Octet support in regular expression operators			NO		
 F847	Nonconstant regular expressions			NO		
 F850	Top-level <order by clause> in <query expression>			YES		
-F851	<order by clause> in subqueries			NO		
+F851	<order by clause> in subqueries			YES		
 F852	Top-level <order by clause> in views			NO		
 F855	Nested <order by clause> in <query expression>			YES		
 F856	Nested <fetch first clause> in <query expression>			NO		
@@ -351,8 +351,8 @@ S043	Enhanced reference types			NO
 S051	Create table of type			NO		
 S071	SQL paths in function and type name resolution			NO		
 S081	Subtables			NO		
-S091	Basic array support			NO		special syntax
-S091	Basic array support	1	Arrays of built-in data types	NO		
+S091	Basic array support			YES		special syntax
+S091	Basic array support	1	Arrays of built-in data types	YES		special syntax
 S091	Basic array support	2	Arrays of distinct types	NO		
 S091	Basic array support	3	Array expressions	NO		
 S092	Arrays of user-defined types			NO		
@@ -360,7 +360,7 @@ S094	Arrays of reference types			NO
 S095	Array constructors by query			NO		
 S096	Optional array bounds			NO		
 S097	Array element assignment			NO		
-S098	ARRAY_AGG			NO		
+S098	ARRAY_AGG			YES		
 S111	ONLY in query expressions			NO		
 S151	Type predicate			NO		
 S161	Subtype treatment			NO		
@@ -403,11 +403,11 @@ T041	Basic LOB data type support	5	LOB locator: non-holdable	NO
 T042	Extended LOB data type support			NO		
 T043	Multiplier T			NO		
 T044	Multiplier P			NO		
-T051	Row types			NO		
+T051	Row types			YES		Limited to built-in table functions
 T052	MAX and MIN for row types			NO		
 T053	Explicit aliases for all-fields reference			NO		
 T061	UCS support			NO		
-T071	BIGINT data type			NO		see LONG
+T071	BIGINT data type			YES		
 T101	Enhanced nullability determination			NO		
 T111	Updatable joins, unions, and columns			NO		
 T121	WITH (excluding RECURSIVE) in query expression			NO		
@@ -471,9 +471,9 @@ T431	Extended grouping capabilities			NO
 T432	Nested and concatenated GROUPING SETS			NO		
 T433	Multiargument GROUPING function			NO		
 T434	GROUP BY DISTINCT			NO		
-T441	ABS and MOD functions			NO		mod is missing
-T461	Symmetric BETWEEN predicate			NO		
-T471	Result sets return value			NO		
+T441	ABS and MOD functions			YES		
+T461	Symmetric BETWEEN predicate			YES		
+T471	Result sets return value			YES		
 T472	DESCRIBE CURSOR			NO		
 T491	LATERAL derived table			NO		
 T495	Combined data change and retrieval			NO		
