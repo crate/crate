@@ -1,0 +1,43 @@
+.. _version_4.1.8:
+
+=============
+Version 4.1.8
+=============
+
+Released on 2020-07-07.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.1.8.
+
+    We recommend that you upgrade to the latest 4.0 release before moving to
+    4.1.8.
+
+    A rolling upgrade to 4.1.8 from 4.0.2+ is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.1.0` release notes for a full list of changes in the
+4.1 series.
+
+
+Fixes
+=====
+
+- Fixed an issue where ``access_key`` and ``secret_key`` settings for
+  :ref:`s3 repositories <ref-create-repository-types-s3>` were exposed as
+  unmasked settings.
+
+- Fixed an issue that would prevent the :ref:`pg_stats <pg_stats>` table from
+  querying if the ``most_common_vals`` or ``histogram_bounds`` columns contain
+  values of the ``OBJECT`` or ``ARRAY`` types.
