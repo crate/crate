@@ -57,10 +57,4 @@ None
 Fixes
 =====
 
-- Fixed an issue where ``access_key`` and ``secret_key`` settings for
-  :ref:`s3 repositories <ref-create-repository-types-s3>` were exposed as
-  unmasked settings.
-
-- Fixed an issue that would prevent the :ref:`pg_stats <pg_stats>` table from
-  querying if the ``most_common_vals`` or ``histogram_bounds`` columns contain
-  values of the ``OBJECT`` or ``ARRAY`` types.
+None
