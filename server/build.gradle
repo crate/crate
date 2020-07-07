@@ -100,7 +100,7 @@ task getVersion(dependsOn: 'classes') {
 
         ext.buildDate = new Date().format('yyyyMMddHHmm')
         ext.buildShortHash = "git rev-parse --short HEAD".execute().text.trim()
-        if (gradle.taskGraph.hasTask(':app:release')) {
+        if (gradle.taskGraph.hasTask(':app:release') || gradle.taskGraph.hasTask(':app:releaseZip')) {
             assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
         } else {
 
