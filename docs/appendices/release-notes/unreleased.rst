@@ -268,4 +268,5 @@ Performance improvements
 Fixes
 =====
 
-None
+- Fixed an issue that could lead to a ``Field is not streamable`` error message
+  when using window functions.

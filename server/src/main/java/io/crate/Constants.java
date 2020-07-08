@@ -25,6 +25,8 @@ public class Constants {
 
     public static final String DB_NAME = "crate";
 
+    public static final String ISSUE_URL = "https://github.com/crate/crate/issues/new/choose";
+
     // Mapping Type that contains table definitions
     public static final String DEFAULT_MAPPING_TYPE = "default";
 
