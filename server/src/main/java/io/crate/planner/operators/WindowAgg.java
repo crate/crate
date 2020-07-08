@@ -22,6 +22,19 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.common.collections.Lists2;
@@ -32,11 +45,9 @@ import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.expression.symbol.WindowFunctionContext;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -44,17 +55,6 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
 
 public class WindowAgg extends ForwardingLogicalPlan {
 
@@ -98,7 +98,10 @@ public class WindowAgg extends ForwardingLogicalPlan {
         return lastWindowAgg;
     }
 
-    private WindowAgg(LogicalPlan source, WindowDefinition windowDefinition, List<WindowFunction> windowFunctions, List<Symbol> standalone) {
+    private WindowAgg(LogicalPlan source,
+                      WindowDefinition windowDefinition,
+                      List<WindowFunction> windowFunctions,
+                      List<Symbol> standalone) {
         super(source);
         this.outputs = Lists2.concat(standalone, windowFunctions);
         this.windowDefinition = windowDefinition;
@@ -138,33 +141,16 @@ public class WindowAgg extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
-        ArrayList<WindowFunctionContext> windowFunctionContexts =
-            new ArrayList<>(windowFunctions.size());
 
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        for (var windowFunction : windowFunctions) {
-            var boundWindowFunction = (WindowFunction) binder.apply(windowFunction);
+        Function<Symbol, Symbol> toInputCols = binder.andThen(s -> InputColumns.create(s, sourceSymbols));
 
-            List<Symbol> inputs = InputColumns.create(
-                boundWindowFunction.arguments(),
-                sourceSymbols);
 
-            Symbol filter = boundWindowFunction.filter();
-            Symbol filterInput;
-            if (filter != null) {
-                filterInput = InputColumns.create(filter, sourceSymbols);
-            } else {
-                filterInput = Literal.BOOLEAN_TRUE;
-            }
-            windowFunctionContexts.add(new WindowFunctionContext(
-                boundWindowFunction,
-                inputs,
-                filterInput));
-        }
+        List<WindowFunction> boundWindowFunctions = (List<WindowFunction>)(List) Lists2.map(windowFunctions, toInputCols);
         List<Projection> projections = new ArrayList<>();
         WindowAggProjection windowAggProjection = new WindowAggProjection(
-            windowDefinition.map(binder.andThen(s -> InputColumns.create(s, sourceSymbols))),
-            windowFunctionContexts,
+            windowDefinition.map(toInputCols),
+            boundWindowFunctions,
             InputColumns.create(this.standalone, sourceSymbols)
         );
         projections.add(windowAggProjection);

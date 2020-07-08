@@ -21,6 +21,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.Constants;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
@@ -85,7 +86,9 @@ public final class ScopedSymbol extends Symbol {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException("ScopedSymbol is not streamable");
+        throw new UnsupportedOperationException(
+            "ScopedSymbol `" + toString(Style.QUALIFIED) + "` is not streamable. " +
+            "This error is a bug. Please create an issue in " + Constants.ISSUE_URL);
     }
 
     @Override

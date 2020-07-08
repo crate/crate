@@ -35,6 +35,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
@@ -71,30 +72,32 @@ public class WindowProjector {
                                            Version indexVersionCreated,
                                            IntSupplier numThreads,
                                            Executor executor) {
-        var windowFunctionContexts = projection.windowFunctionContexts();
-        var numWindowFunctions = windowFunctionContexts.size();
+        var windowFunctionSymbols = projection.windowFunctions();
+        var numWindowFunctions = windowFunctionSymbols.size();
 
         ArrayList<WindowFunction> windowFunctions = new ArrayList<>(numWindowFunctions);
         ArrayList<CollectExpression<Row, ?>> windowFuncArgsExpressions = new ArrayList<>(numWindowFunctions);
         Input[][] windowFuncArgsInputs = new Input[numWindowFunctions][];
 
         for (int idx = 0; idx < numWindowFunctions; idx++) {
-            var windowFunctionContext = windowFunctionContexts.get(idx);
+            var windowFunctionSymbol = windowFunctionSymbols.get(idx);
 
             InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
-            ctx.add(windowFunctionContext.inputs());
+            ctx.add(windowFunctionSymbol.arguments());
 
-            var function = windowFunctionContext.function();
             FunctionImplementation impl = functions.getQualified(
-                function,
+                windowFunctionSymbol,
                 txnCtx.sessionSettings().searchPath()
             );
             assert impl != null : "Function implementation not found using full qualified lookup";
             if (impl instanceof AggregationFunction) {
                 var filterInputFactoryCtx = inputFactory.ctxForInputColumns(txnCtx);
+                var filterSymbol = windowFunctionSymbol.filter();
+
                 //noinspection unchecked
-                Input<Boolean> filterInput =
-                    (Input<Boolean>) filterInputFactoryCtx.add(windowFunctionContext.filter());
+                Input<Boolean> filterInput = filterSymbol == null
+                    ? Literal.BOOLEAN_TRUE
+                    : (Input<Boolean>) filterInputFactoryCtx.add(filterSymbol);
 
                 ExpressionsInput<Row, Boolean> filter = new ExpressionsInput<>(
                     filterInput,
