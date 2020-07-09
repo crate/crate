@@ -34,6 +34,8 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
+
+import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Assert;
 import org.junit.Before;
@@ -84,6 +86,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 "  owner text default 'crate' primary key," +
                 "  two int default 1+1" +
                 ")")
+            .addTable("create table doc.nested (o object as (id int primary key), x int)")
             .build();
     }
 
@@ -100,6 +103,26 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 is(true)
             );
         }
+    }
+
+    @Test
+    public void test_nested_primary_key_can_be_used_as_conflict_target_with_subscript_notation() throws Exception {
+        AnalyzedInsertStatement insert =
+            e.analyze("insert into doc.nested (o) values (?) on conflict (o['id']) do update set x = x + 1");
+        assertThat(
+            insert.onDuplicateKeyAssignments(),
+            Matchers.hasKey(isReference("x"))
+        );
+    }
+
+    @Test
+    public void test_nested_primary_key_can_be_used_as_conflict_target_with_dotted_column_name() throws Exception {
+        AnalyzedInsertStatement insert =
+            e.analyze("insert into doc.nested (o) values (?) on conflict (\"o.id\") do update set x = x + 1");
+        assertThat(
+            insert.onDuplicateKeyAssignments(),
+            Matchers.hasKey(isReference("x"))
+        );
     }
 
     @Test
@@ -287,21 +310,21 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFromQueryWithInvalidConflictTarget() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Conflict target ([id2]) did not match the primary key columns ([id])");
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id2) do update set name = excluded.name");
+        expectedException.expectMessage("Conflict target (name) did not match the primary key columns ([id])");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (name) do update set name = excluded.name");
     }
 
     @Test
     public void testFromQueryWithConflictTargetNotMatchingPK() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Number of conflict targets ([id, id2]) did not match the number of primary key columns ([id])");
+        expectedException.expectMessage("Number of conflict targets ([\"id\", \"id2\"]) did not match the number of primary key columns ([id])");
         e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id, id2) do update set name = excluded.name");
     }
 
     @Test
     public void testInsertFromValuesWithConflictTargetNotMatchingMultiplePKs() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Number of conflict targets ([a, b]) did not match the number of primary key columns ([a, b, c])");
+        expectedException.expectMessage("Number of conflict targets ([\"a\", \"b\"]) did not match the number of primary key columns ([a, b, c])");
         e.analyze("insert into three_pk (a, b, c) (select 1, 2, 3) " +
                   "on conflict (a, b) do update set d = 1");
     }
@@ -316,21 +339,27 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFromQueryWithInvalidConflictTargetDoNothing() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Conflict target ([id2]) did not match the primary key columns ([id])");
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id2) DO NOTHING");
+        expectedException.expectMessage("Conflict target (name) did not match the primary key columns ([id])");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (name) DO NOTHING");
+    }
+
+    @Test
+    public void test_query_with_column_that_does_not_exist_as_on_conflict_target() {
+        expectedException.expect(ColumnUnknownException.class);
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (invalid_col) DO NOTHING");
     }
 
     @Test
     public void testFromQueryWithConflictTargetDoNothingNotMatchingPK() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Number of conflict targets ([id, id2]) did not match the number of primary key columns ([id])");
+        expectedException.expectMessage("Number of conflict targets ([\"id\", \"id2\"]) did not match the number of primary key columns ([id])");
         e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id, id2) DO NOTHING");
     }
 
     @Test
     public void testInsertFromValuesWithConflictTargetDoNothingNotMatchingMultiplePKs() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Number of conflict targets ([a, b]) did not match the number of primary key columns ([a, b, c])");
+        expectedException.expectMessage("Number of conflict targets ([\"a\", \"b\"]) did not match the number of primary key columns ([a, b, c])");
         e.analyze("insert into three_pk (a, b, c) (select 1, 2, 3) " +
                   "on conflict (a, b) DO NOTHING");
     }
@@ -407,4 +436,18 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stmt.outputs().size(), is(17));
     }
 
+    @Test
+    public void test_unquoted_on_conflict_columns_are_treated_case_insensitive() {
+        //should not throw a ColumnUnknownException
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (ID) do update set name = excluded.name");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id) do update set NAME = excluded.name");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (\"id\") do update set NAME = excluded.name");
+    }
+
+
+    @Test
+    public void test_quoted_on_conflict_columns_are_treated_case_sensitive() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (\"ID\") do update set NAME = excluded.name");
+    }
 }

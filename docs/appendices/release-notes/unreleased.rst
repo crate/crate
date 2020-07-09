@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that prevented the use of subscript expressions as conflict
+  target in ``ON CONFLICT`` clauses of ``INSERT`` statements.
+
 - Fixed an issue where :ref:`drop snapshot <ref-drop-snapshot>` on an
   :ref:`azure repository <ref-create-repository-types-azure>` would not delete
   all the related data.

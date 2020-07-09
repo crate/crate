@@ -1072,6 +1072,8 @@ public class TestStatementBuilder {
 
         printStatement("insert into t (a, b) values (1, 2) on conflict do nothing");
         printStatement("insert into t (a, b) values (1, 2) on conflict (a,b) do nothing");
+        printStatement("insert into t (a, b) values (1, 2) on conflict (o['id'], b) do nothing");
+        printStatement("insert into t (a, b) values (1, 2) on conflict (a, o['x']['y']) do nothing");
         printStatement("insert into t (a, b) values (1, 2) on conflict (a) do update set b = b + 1");
         printStatement("insert into t (a, b, c) values (1, 2, 3) on conflict (a, b) do update set a = a + 1, b = 3");
         printStatement("insert into t (a, b, c) values (1, 2), (3, 4) on conflict (c) do update set a = excluded.a + 1, b = 4");
