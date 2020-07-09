@@ -6,8 +6,8 @@
 # <https://crate.io/docs/>
 
 # Use this file to fine-tune your CrateDB cluster. If you have any questions
-# you are very welcome to contact us on our Community Channel on Slack
-# <https://crate.io/docs/support/slackin/>.
+# you are welcome to contact us on Github
+# <https://github.com/crate/crate/discussions>.
 
 
 ################################ Quick Settings ##############################
@@ -16,6 +16,10 @@
 # - set the environment variable CRATE_HEAP_SIZE to half of your memory
 #   (e.g. 26G, but not more than ~30G to benefit from CompressedOops).
 #   Depending on the OS update '/etc/default/crate' or '/etc/sysconfig/crate'
+#
+#   See https://crate.io/docs/crate/howtos/en/latest/performance/memory.html
+#   for more details.
+#
 # - disable swapping
 #bootstrap.memory_lock : true
 
@@ -60,7 +64,8 @@
 
 #/////////////////////////// JMX Monitoring Plugin ///////////////////////////
 
-# The JMX monitoring plugin requires that stat collection is enabled.
+# Enables the `sys.jobs`, `sys.operations`, `sys.jobs_log` and
+# `sys.operations_log` tables
 #stats.enabled: true
 
 #//////////////////////// Database Administration ////////////////////////////
@@ -103,8 +108,6 @@ auth:
 # follows. Default is enabled:
 #lang.js.enabled: false
 
-# The Javascript language is an experimental feature and is not securely
-# sandboxed, so it is disabled by default.
 #/////////////////////////////////  SSL //////////////////////////////////////
 
 # Enable encrypted communication for the HTTP endpoints:
@@ -242,13 +245,6 @@ auth:
 #blobs.path: /path/to/blobs
 
 
-#################################### Plugin ##################################
-
-# If a plugin listed here is not installed for current node, the node will not
-# start.
-#plugin.mandatory: mapper-attachments,lang-groovy
-
-
 ################################### Memory ###################################
 
 # CrateDB performs poorly when JVM starts swapping: you should ensure that
@@ -339,35 +335,9 @@ auth:
 # 2. During adding/removing nodes, rebalancing, etc
 #cluster.routing.allocation.node_concurrent_recoveries: 2
 
-# Set to throttle throughput when recovering (eg. 100mb, by default
-# unlimited):
-#indices.recovery.max_size_per_sec: 40mb
-
-# Set to limit the number of open concurrent streams when recovering a shard
-# from a peer:
-#indices.recovery.concurrent_streams: 5
-
-# Specifies the chunk size used to copy the shard data from the source shard.
-#indices.recovery.file_chunk_size: 512kb
-
-# Specifies how many transaction log lines should be transfered between shards
-# in a single request during the recovery process. Ignored if
-# indices.recovery.translog_size is reached first.
-#indices.recovery.translog_ops: 1000
-
-# Specifies how much data of the transaction log should be transfered between
-# shards in a single request during the recovery process.
-#indices.recovery.translog_size: 512kb
-
-# Define if transferred data should be compressed during the
-# recovery process.
-#indices.recovery.compress: true
-
 # Specifies the maximum number of bytes that can be transferred during shard
-# recovery per seconds. Limiting can be disabled by setting it to `0`. Higher
-# values may result in higher network utilization, but also faster recovery
-# process.
-#indices.recovery.max_bytes_per_sec: 20mb
+# recovery per seconds. (by default 40mb):
+#indices.recovery.max_bytes_per_sec: 40mb
 
 # Specifies the time to wait after an issue caused by cluster state syncing
 # before retrying to recover.
@@ -378,14 +348,14 @@ auth:
 #indices.recovery.retry_delay_network: 5s
 
 # Specifies the interval after which idle recoveries will be failed.
-#indices.recovery.retry_activity_timeout: 15m
+#indices.recovery.recovery_activity_timeout: 15m
 
 # Specifies the timeout for internal requests made as part of the recovery.
-#indices.recovery.retry_internal_action_timeout: 15m
+#indices.recovery.internal_action_timeout: 15m
 
 # Specifies the timeout for internal requests made as part of the recovery
 # that are expected to take a long time.
-#indices.recovery.retry_internal_long_action_timeout: 30m
+#indices.recovery.internal_long_action_timeout: 30m
 
 # Controls the number of file chunk requests that can be sent
 # in parallel per recovery.
@@ -695,7 +665,7 @@ auth:
 # Paths where Repositories of type fs may be created:
 #path.repo: /path/to/shared/fs,/other/shared/fs
 
-# Whitelist for urls that can be used with the url repository type
+# List of urls that can be used with the url repository type
 # Wildcards are supported in the host, path, query and fragment parts.
 #
 # Supported protocols are: "http", "https", "ftp", "file" and "jar"
@@ -707,7 +677,7 @@ auth:
 ###################### POSTGRES WIRE PROTOCOL SUPPORT ########################
 
 # CrateDB supports the PostgreSQL wire protocol v3 and emulates a PostgreSQL
-# server v9.5. For further information read our documentation:
+# server v10.5. For further information read our documentation:
 # https://crate.io/docs/reference/en/latest/protocols/postgres.html
 #
 # This allows you to connect to CrateDB using one of the many Postgres tools
