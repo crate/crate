@@ -190,9 +190,9 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
 
     @Override
     public Symbol visitWindowFunction(WindowFunction windowFunction, SourceSymbols sourceSymbols) {
-        Symbol replacement = getFunctionReplacementOrNull(windowFunction, sourceSymbols);
-        if (replacement != null) {
-            return replacement;
+        Symbol functionFromSource = getFunctionReplacementOrNull(windowFunction, sourceSymbols);
+        if (functionFromSource != null) {
+            return functionFromSource;
         }
         ArrayList<Symbol> replacedFunctionArgs = getProcessedArgs(windowFunction.arguments(), sourceSymbols);
         Symbol filterWithReplacedArgs;
@@ -207,7 +207,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             replacedFunctionArgs,
             windowFunction.valueType(),
             filterWithReplacedArgs,
-            windowFunction.windowDefinition()
+            windowFunction.windowDefinition().map(x -> x.accept(this, sourceSymbols))
         );
     }
 
