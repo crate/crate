@@ -10,6 +10,7 @@ tqdm==4.24.0
 sphinx-csv-filter>=0.2.0
 pycodestyle==2.4.0
 zc.customdoctests==1.0.1
+minio>=5.0.0
 
 # packages for local dev
 

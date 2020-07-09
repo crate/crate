@@ -26,6 +26,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +43,7 @@ public class AzureSnapshotIntegrationTest extends SQLTransportIntegrationTest {
     private static final String CONTAINER_NAME = "crate_snapshots";
 
     private HttpServer httpServer;
+    private AzureHttpHandler handler;
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -53,8 +55,9 @@ public class AzureSnapshotIntegrationTest extends SQLTransportIntegrationTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        handler = new AzureHttpHandler(CONTAINER_NAME);
         httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 10001), 0);
-        httpServer.createContext("/" + CONTAINER_NAME, new AzureHttpHandler(CONTAINER_NAME));
+        httpServer.createContext("/" + CONTAINER_NAME, handler);
         httpServer.start();
     }
 
@@ -90,6 +93,9 @@ public class AzureSnapshotIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("SELECT COUNT(*) FROM t1");
         assertThat(response.rows()[0][0], is(numberOfDocs));
+
+        execute("DROP SNAPSHOT r1.s1");
+        handler.blobs().keySet().forEach(x -> assertThat(x.endsWith("dat"), is(false)));
     }
 
     private String httpServerUrl() {

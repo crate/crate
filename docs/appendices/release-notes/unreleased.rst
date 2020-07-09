@@ -268,4 +268,9 @@ Performance improvements
 Fixes
 =====
 
-None
+- Fixed an issue where :ref:`drop snapshot <ref-drop-snapshot>` on an
+  :ref:`azure repository <ref-create-repository-types-azure>` would not delete
+  all the related data.
+
+- Fixed an issue that could lead to a ``Field is not streamable`` error message
+  when using window functions.

@@ -22,6 +22,16 @@
 
 package io.crate.execution.dsl.projection;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.analyze.WindowDefinition;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
@@ -29,62 +39,50 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.expression.symbol.WindowFunctionContext;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class WindowAggProjection extends Projection {
 
     private final WindowDefinition windowDefinition;
     private final List<Symbol> standaloneWithInputs;
     private final ArrayList<Symbol> outputs;
-    private final ArrayList<WindowFunctionContext> windowFunctionContexts;
-    private final ArrayList<WindowFunction> windowFunctions;
+    private final List<WindowFunction> windowFunctions;
 
     public WindowAggProjection(WindowDefinition windowDefinition,
-                               ArrayList<WindowFunctionContext> windowFunctionContexts,
+                               List<WindowFunction> windowFunctions,
                                List<Symbol> standaloneWithInputs) {
-        this.windowFunctions = windowFunctionContexts.stream()
-            .map(WindowFunctionContext::function)
-            .collect(Collectors.toCollection(ArrayList::new));
+        this.windowFunctions = windowFunctions;
         assert windowFunctions.stream().noneMatch(Symbols.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + windowFunctions;
         assert standaloneWithInputs.stream().noneMatch(Symbols.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + standaloneWithInputs;
         this.windowDefinition = windowDefinition;
-        this.windowFunctionContexts = windowFunctionContexts;
         this.standaloneWithInputs = standaloneWithInputs;
         outputs = new ArrayList<>(standaloneWithInputs);
         outputs.addAll(windowFunctions);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     WindowAggProjection(StreamInput in) throws IOException {
         windowDefinition = new WindowDefinition(in);
         standaloneWithInputs = Symbols.listFromStream(in);
-        int functionsCount = in.readVInt();
-        windowFunctionContexts = new ArrayList<>(functionsCount);
-        windowFunctions = new ArrayList<>(functionsCount);
-        boolean onOrAfter4_1_0 = in.getVersion().onOrAfter(Version.V_4_1_0);
-        for (int i = 0; i < functionsCount; i++) {
-            WindowFunction function = (WindowFunction) Symbols.fromStream(in);
-            Symbol filter;
-            if (onOrAfter4_1_0) {
-                filter = Symbols.fromStream(in);
-            } else {
-                filter = Literal.BOOLEAN_TRUE;
+
+        Version version = in.getVersion();
+        if (version.onOrAfter(Version.V_4_2_1)) {
+            windowFunctions = (List<WindowFunction>) (List)Symbols.listFromStream(in);
+        } else {
+            boolean onOrAfter4_1_0 = version.onOrAfter(Version.V_4_1_0);
+            int functionsCount = in.readVInt();
+            windowFunctions = new ArrayList<>();
+            for (int i = 0; i < functionsCount; i++) {
+                WindowFunction function = (WindowFunction) Symbols.fromStream(in);
+                if (onOrAfter4_1_0) {
+                    // used to be the filter
+                    Symbols.fromStream(in);
+                }
+                // used to be the inputs (arguments of the window function)
+                Symbols.listFromStream(in);
+                windowFunctions.add(function);
             }
-            List<Symbol> inputs = Symbols.listFromStream(in);
-            windowFunctionContexts.add(
-                new WindowFunctionContext(function, inputs, filter));
-            windowFunctions.add(function);
         }
         outputs = new ArrayList<>(standaloneWithInputs);
         outputs.addAll(windowFunctions);
@@ -94,8 +92,8 @@ public class WindowAggProjection extends Projection {
         return windowDefinition;
     }
 
-    public List<WindowFunctionContext> windowFunctionContexts() {
-        return windowFunctionContexts;
+    public List<WindowFunction> windowFunctions() {
+        return windowFunctions;
     }
 
     public List<Symbol> standalone() {
@@ -112,12 +110,12 @@ public class WindowAggProjection extends Projection {
         }
         WindowAggProjection that = (WindowAggProjection) o;
         return Objects.equals(windowDefinition, that.windowDefinition) &&
-               Objects.equals(windowFunctionContexts, that.windowFunctionContexts);
+               Objects.equals(windowFunctions, that.windowFunctions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), windowDefinition, windowFunctionContexts);
+        return Objects.hash(super.hashCode(), windowDefinition, windowFunctions);
     }
 
     @Override
@@ -145,14 +143,21 @@ public class WindowAggProjection extends Projection {
     public void writeTo(StreamOutput out) throws IOException {
         windowDefinition.writeTo(out);
         Symbols.toStream(standaloneWithInputs, out);
-        out.writeVInt(windowFunctionContexts.size());
-        boolean onOrAfter4_1_0 = out.getVersion().onOrAfter(Version.V_4_1_0);
-        for (var windowFunctionContext : windowFunctionContexts) {
-            Symbols.toStream(windowFunctionContext.function(), out);
-            if (onOrAfter4_1_0) {
-                Symbols.toStream(windowFunctionContext.filter(), out);
+
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_4_2_1)) {
+            Symbols.toStream(windowFunctions, out);
+        } else {
+            boolean onOrAfter4_1_0 = version.onOrAfter(Version.V_4_1_0);
+            out.writeVInt(windowFunctions.size());
+            for (var windowFunction : windowFunctions) {
+                Symbols.toStream(windowFunction, out);
+                if (onOrAfter4_1_0) {
+                    Symbol filter = windowFunction.filter();
+                    Symbols.toStream(filter == null ? Literal.BOOLEAN_TRUE : filter, out);
+                }
+                Symbols.toStream(windowFunction.arguments(), out);
             }
-            Symbols.toStream(windowFunctionContext.inputs(), out);
         }
     }
 
