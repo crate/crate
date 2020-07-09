@@ -88,7 +88,7 @@ will be used.
     the file URI.
 
     For example, the above file URI should instead be written as
-    ``file://C:\/tmp/import_data/quotes.json``.
+    ``file:///C://tmp/import_data/quotes.json``.
 
     Consult the `Windows documentation`_ for more information.
 
