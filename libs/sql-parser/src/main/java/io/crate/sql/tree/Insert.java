@@ -119,11 +119,11 @@ public final class Insert<T> extends Statement {
 
         private final Type type;
         private final List<Assignment<T>> onDuplicateKeyAssignments;
-        private final List<String> constraintColumns;
+        private final List<T> constraintColumns;
 
         public DuplicateKeyContext(Type type,
                                    List<Assignment<T>> onDuplicateKeyAssignments,
-                                   List<String> constraintColumns) {
+                                   List<T> constraintColumns) {
             this.type = type;
             this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
             this.constraintColumns = constraintColumns;
@@ -137,7 +137,7 @@ public final class Insert<T> extends Statement {
             return onDuplicateKeyAssignments;
         }
 
-        public List<String> getConstraintColumns() {
+        public List<T> getConstraintColumns() {
             return constraintColumns;
         }
 

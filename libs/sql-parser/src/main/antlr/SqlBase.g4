@@ -456,7 +456,7 @@ onConflict
    ;
 
 conflictTarget
-   : '(' ident (',' ident)* ')'
+   : '(' subscriptSafe (',' subscriptSafe)* ')'
    ;
 
 values

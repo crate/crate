@@ -21,6 +21,17 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
@@ -34,6 +45,7 @@ import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalyzer;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.DynamicReference;
@@ -54,19 +66,10 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Insert;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 class InsertAnalyzer {
 
@@ -119,15 +122,23 @@ class InsertAnalyzer {
         ensureClusteredByPresentOrNotRequired(targetColumns, tableInfo);
         checkSourceAndTargetColsForLengthAndTypesCompatibility(targetColumns, subQueryRelation.outputs());
 
-        verifyOnConflictTargets(insert.duplicateKeyContext(), tableInfo);
-
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+        NameFieldProvider fieldProvider = new NameFieldProvider(tableRelation);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            txnCtx,
+            typeHints,
+            fieldProvider,
+            null,
+            Operation.READ
+        );
+        verifyOnConflictTargets(expressionAnalyzer, tableInfo, insert.duplicateKeyContext());
         Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
             targetColumns,
             typeHints,
             txnCtx,
-            new NameFieldProvider(tableRelation),
+            fieldProvider,
             insert.duplicateKeyContext()
         );
 
@@ -169,12 +180,14 @@ class InsertAnalyzer {
         );
     }
 
-    private static void verifyOnConflictTargets(Insert.DuplicateKeyContext<?> duplicateKeyContext, DocTableInfo docTableInfo) {
-        List<String> constraintColumns = duplicateKeyContext.getConstraintColumns();
+    private static void verifyOnConflictTargets(ExpressionAnalyzer expressionAnalyzer,
+                                                DocTableInfo docTable,
+                                                Insert.DuplicateKeyContext<Expression> duplicateKeyContext) {
+        List<Expression> constraintColumns = duplicateKeyContext.getConstraintColumns();
         if (constraintColumns.isEmpty()) {
             return;
         }
-        List<ColumnIdent> pkColumnIdents = docTableInfo.primaryKey();
+        List<ColumnIdent> pkColumnIdents = docTable.primaryKey();
         if (constraintColumns.size() != pkColumnIdents.size()) {
             throw new IllegalArgumentException(
                 String.format(
@@ -182,14 +195,31 @@ class InsertAnalyzer {
                     "Number of conflict targets (%s) did not match the number of primary key columns (%s)",
                     constraintColumns, pkColumnIdents));
         }
-        Collection<Reference> constraintRefs = resolveTargetColumns(constraintColumns, docTableInfo);
-        for (Reference constraintRef : constraintRefs) {
-            if (!pkColumnIdents.contains(constraintRef.column())) {
+
+        ExpressionAnalysisContext ctx = new ExpressionAnalysisContext();
+        List<Symbol> conflictTargets = Lists2.map(constraintColumns, x -> {
+            try {
+                return expressionAnalyzer.convert(x, ctx);
+            } catch (ColumnUnknownException e) {
+                // Needed for BWC; to keep supporting `\"o.id\"` style subscript definition
+                // Going through ExpressionAnalyzer again to still have a "column must exist" validation
+                if (x instanceof QualifiedNameReference) {
+                    QualifiedName name = ((QualifiedNameReference) x).getName();
+                    Expression subscriptExpression = MetadataToASTNodeResolver.expressionFromColumn(
+                        ColumnIdent.fromPath(name.toString())
+                    );
+                    return expressionAnalyzer.convert(subscriptExpression, ctx);
+                }
+                throw e;
+            }
+        });
+        for (Symbol conflictTarget : conflictTargets) {
+            if (!pkColumnIdents.contains(Symbols.pathFromSymbol(conflictTarget))) {
                 throw new IllegalArgumentException(
                     String.format(
                         Locale.ENGLISH,
                         "Conflict target (%s) did not match the primary key columns (%s)",
-                        constraintColumns, pkColumnIdents));
+                        conflictTarget, pkColumnIdents));
             }
         }
     }

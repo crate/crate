@@ -46,6 +46,7 @@ import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.ConflictTargetContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.DiscardContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.IsolationLevelContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.SetTransactionContext;
@@ -605,13 +606,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     private Insert.DuplicateKeyContext createDuplicateKeyContext(SqlBaseParser.InsertContext context) {
         if (context.onConflict() != null) {
             SqlBaseParser.OnConflictContext onConflictContext = context.onConflict();
-            final List<String> conflictColumns;
-            if (onConflictContext.conflictTarget() != null) {
-                conflictColumns = onConflictContext.conflictTarget().ident().stream()
-                    .map(this::getIdentText)
-                    .collect(toList());
+            ConflictTargetContext conflictTarget = onConflictContext.conflictTarget();
+            final List<Expression> conflictColumns;
+            if (conflictTarget == null) {
+                conflictColumns = List.of();
             } else {
-                conflictColumns = emptyList();
+                conflictColumns = visitCollection(conflictTarget.subscriptSafe(), Expression.class);
             }
             if (onConflictContext.NOTHING() != null) {
                 return new Insert.DuplicateKeyContext<>(

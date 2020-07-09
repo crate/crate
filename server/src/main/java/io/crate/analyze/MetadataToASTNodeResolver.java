@@ -78,6 +78,14 @@ public class MetadataToASTNodeResolver {
         return extractor.extractCreateTable();
     }
 
+    public static Expression expressionFromColumn(ColumnIdent ident) {
+        Expression fqn = new QualifiedNameReference(QualifiedName.of(ident.getRoot().fqn()));
+        for (String child : ident.path()) {
+            fqn = new SubscriptExpression(fqn, Literal.fromObject(child));
+        }
+        return fqn;
+    }
+
     private static class Extractor {
 
         private final DocTableInfo tableInfo;
@@ -287,13 +295,6 @@ public class MetadataToASTNodeResolver {
             return new CreateTable<>(table, tableElements, partitionedBy, clusteredBy, extractTableProperties(), true);
         }
 
-        private Expression expressionFromColumn(ColumnIdent ident) {
-            Expression fqn = new QualifiedNameReference(QualifiedName.of(ident.getRoot().fqn()));
-            for (String child : ident.path()) {
-                fqn = new SubscriptExpression(fqn, Literal.fromObject(child));
-            }
-            return fqn;
-        }
 
         private List<Expression> expressionsFromReferences(List<Reference> columns) {
             List<Expression> expressions = new ArrayList<>(columns.size());
