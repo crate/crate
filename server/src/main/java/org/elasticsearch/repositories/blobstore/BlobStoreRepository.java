@@ -1371,48 +1371,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }
     }
 
-
-    /**
-     * Writes a new index file for the shard and removes all unreferenced files from the repository.
-     *
-     * We need to be really careful in handling index files in case of failures to make sure we don't
-     * have index file that points to files that were deleted.
-     *
-     * @param snapshots          list of active snapshots in the container
-     * @param fileListGeneration the generation number of the current snapshot index file
-     * @param blobs              list of blobs in the container
-     * @param reason             a reason explaining why the shard index file is written
-     */
-    private void finalizeShard(List<SnapshotFiles> snapshots, long fileListGeneration, Map<String, BlobMetadata> blobs,
-                               String reason, BlobContainer shardContainer, ShardId shardId, SnapshotId snapshotId) {
-        final String indexGeneration = Long.toString(fileListGeneration + 1);
-        try {
-            final List<String> blobsToDelete;
-            if (snapshots.isEmpty()) {
-                // If we deleted all snapshots, we don't need to create a new index file and simply delete all the blobs we found
-                blobsToDelete = List.copyOf(blobs.keySet());
-            } else {
-                final BlobStoreIndexShardSnapshots updatedSnapshots = new BlobStoreIndexShardSnapshots(snapshots);
-                indexShardSnapshotsFormat.writeAtomic(updatedSnapshots, shardContainer, indexGeneration);
-                // Delete all previous index-N, data-blobs that are not referenced by the new index-N and temporary blobs
-                blobsToDelete = blobs.keySet().stream().filter(blob ->
-                                                                   blob.startsWith(SNAPSHOT_INDEX_PREFIX)
-                                                                   || blob.startsWith(DATA_BLOB_PREFIX) && updatedSnapshots.findNameFile(canonicalName(blob)) == null
-                                                                   || FsBlobContainer.isTempBlobName(blob)).collect(Collectors.toList());
-            }
-            try {
-                shardContainer.deleteBlobsIgnoringIfNotExists(blobsToDelete);
-            } catch (IOException e) {
-                LOGGER.warn(() -> new ParameterizedMessage("[{}][{}] failed to delete blobs during finalization",
-                                                           snapshotId, shardId), e);
-            }
-        } catch (IOException e) {
-            String message =
-                "Failed to finalize " + reason + " with shard index [" + indexShardSnapshotsFormat.blobName(indexGeneration) + "]";
-            throw new IndexShardSnapshotFailedException(shardId, message, e);
-        }
-    }
-
     /**
      * Loads all available snapshots in the repository using the given {@code generation} or falling back to trying to determine it from
      * the given list of blobs in the shard container.
