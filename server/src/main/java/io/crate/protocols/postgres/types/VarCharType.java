@@ -84,9 +84,7 @@ class VarCharType extends PGType<Object> {
 
     @Override
     public String readBinaryValue(ByteBuf buffer, int valueLength) {
-        byte[] utf8 = new byte[valueLength];
-        buffer.readBytes(utf8);
-        return new String(utf8, StandardCharsets.UTF_8);
+        return buffer.toString(buffer.readerIndex(), valueLength, StandardCharsets.UTF_8);
     }
 
     @Override

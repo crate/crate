@@ -37,7 +37,7 @@ class SQLArgsParseElement implements SQLParseElement {
         context.args(parseSubArray(parser));
     }
 
-    ArrayList<Object> parseSubArray(XContentParser parser) throws IOException {
+    static ArrayList<Object> parseSubArray(XContentParser parser) throws IOException {
         XContentParser.Token token;
         ArrayList<Object> args = new ArrayList<>();
         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {

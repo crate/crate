@@ -27,11 +27,14 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 
@@ -75,7 +78,7 @@ class JsonType extends PGType<Object> {
         try {
             XContentBuilder builder = JsonXContent.contentBuilder();
             if (value instanceof List) {
-                List values = ((List) value);
+                List<?> values = ((List<?>) value);
                 builder.startArray();
                 for (Object o : values) {
                     builder.value(o);
@@ -93,9 +96,18 @@ class JsonType extends PGType<Object> {
 
     @Override
     public Object readBinaryValue(ByteBuf buffer, int valueLength) {
-        byte[] bytes = new byte[valueLength];
-        buffer.readBytes(bytes);
-        return decodeUTF8Text(bytes);
+        try {
+            int readerIndex = buffer.readerIndex();
+            int readableBytes = buffer.readableBytes();
+            XContentParser parser = XContentHelper.createParser(buffer, XContentType.JSON);
+            if (readableBytes > 1 && buffer.getByte(readerIndex) == '[') {
+                parser.nextToken();
+                return parser.list();
+            }
+            return parser.map();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override

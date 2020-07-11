@@ -21,17 +21,16 @@
 
 package io.crate.action.sql.parser;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.exceptions.SQLParseException;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import java.io.IOException;
+import io.crate.exceptions.SQLParseException;
+import io.netty.buffer.ByteBuf;
 
 /**
  * Parser for SQL statements in JSON and other XContent formats
@@ -50,7 +49,7 @@ public final class SQLRequestParser {
         static final String BULK_ARGS = "bulk_args";
     }
 
-    private static final ImmutableMap<String, SQLParseElement> ELEMENT_PARSERS = ImmutableMap.of(
+    private static final Map<String, SQLParseElement> ELEMENT_PARSERS = Map.of(
         Fields.STMT, (SQLParseElement) new SQLStmtParseElement(),
         Fields.ARGS, (SQLParseElement) new SQLArgsParseElement(),
         Fields.BULK_ARGS, (SQLParseElement) new SQLBulkArgsParseElement()
@@ -59,31 +58,20 @@ public final class SQLRequestParser {
     private SQLRequestParser() {
     }
 
-    private static void validate(SQLRequestParseContext parseContext) throws SQLParseSourceException {
-        if (parseContext.stmt() == null) {
-            throw new SQLParseSourceException("Field [stmt] was not defined");
-        }
-    }
-
-    public static SQLRequestParseContext parseSource(BytesReference source) throws IOException {
-        if (source.length() == 0) {
+    public static SQLRequestParseContext parseSource(ByteBuf source) throws IOException {
+        if (source.readableBytes() == 0) {
             throw new SQLParseException("Missing request body");
         }
         XContentParser parser = null;
         try {
             SQLRequestParseContext parseContext = new SQLRequestParseContext();
-            parser = XContentFactory.xContent(XContentType.JSON).createParser(
-                NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source));
-            parse(parseContext, parser);
-            validate(parseContext);
+            parse(parseContext, XContentHelper.createParser(source, XContentType.JSON));
+            if (parseContext.stmt() == null) {
+                throw new SQLParseSourceException("Field [stmt] was not defined");
+            }
             return parseContext;
         } catch (Exception e) {
-            String sSource = "_na_";
-            try {
-                sSource = XContentHelper.convertToJson(source, XContentType.JSON);
-            } catch (Throwable e1) {
-                // ignore
-            }
+            String sSource = source.toString(StandardCharsets.UTF_8);
             throw new SQLParseException("Failed to parse source [" + sSource + "]", e);
         } finally {
             if (parser != null) {

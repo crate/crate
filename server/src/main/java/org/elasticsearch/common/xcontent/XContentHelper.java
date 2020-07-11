@@ -24,6 +24,8 @@ import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import io.crate.common.collections.Tuple;
+import io.netty.buffer.ByteBuf;
+
 import org.elasticsearch.common.compress.Compressor;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.xcontent.ToXContent.Params;
@@ -59,6 +61,26 @@ public class XContentHelper {
             return XContentFactory.xContent(contentType).createParser(xContentRegistry, deprecationHandler, compressedInput);
         } else {
             return XContentFactory.xContent(xContentType(bytes)).createParser(xContentRegistry, deprecationHandler, bytes.streamInput());
+        }
+    }
+
+    public static XContentParser createParser(ByteBuf bytes, XContentType xContentType) throws IOException {
+        if (bytes.hasArray()) {
+            return xContentType.xContent().createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                bytes.array(),
+                bytes.readerIndex() + bytes.arrayOffset(),
+                bytes.readableBytes()
+            );
+        } else {
+            byte[] copy = new byte[bytes.readableBytes()];
+            bytes.getBytes(bytes.readerIndex(), copy);
+            return xContentType.xContent().createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                copy
+            );
         }
     }
 

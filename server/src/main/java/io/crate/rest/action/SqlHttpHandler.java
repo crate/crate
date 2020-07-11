@@ -192,7 +192,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private CompletableFuture<XContentBuilder> handleSQLRequest(Session session, ByteBuf content, boolean includeTypes) {
         SQLRequestParseContext parseContext;
         try {
-            parseContext = SQLRequestParser.parseSource(Netty4Utils.toBytesReference(content));
+            parseContext = SQLRequestParser.parseSource(content);
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
         }
