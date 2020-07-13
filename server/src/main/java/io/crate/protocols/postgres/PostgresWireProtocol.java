@@ -234,13 +234,15 @@ public class PostgresWireProtocol {
     }
 
     @Nullable
-    static String readCString(ByteBuf buffer) {
-        byte[] bytes = new byte[buffer.bytesBefore((byte) 0) + 1];
-        if (bytes.length == 0) {
+    @VisibleForTesting
+    public static String readCString(ByteBuf buffer) {
+        int len = buffer.bytesBefore((byte) 0);
+        if (len == -1) {
             return null;
         }
-        buffer.readBytes(bytes);
-        return new String(bytes, 0, bytes.length - 1, StandardCharsets.UTF_8);
+        int readerIndex = buffer.readerIndex();
+        buffer.readerIndex(readerIndex + len + 1); // toString does not increase readerIndex
+        return buffer.toString(readerIndex, len, StandardCharsets.UTF_8);
     }
 
     @Nullable
