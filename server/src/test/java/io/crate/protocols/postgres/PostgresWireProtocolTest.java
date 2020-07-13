@@ -247,6 +247,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             channel.releaseInbound();
 
             // we should get back a RowDescription message
+            channel.flushOutbound();
             ByteBuf response = channel.readOutbound();
             try {
                 assertThat(response.readByte(), is((byte) 'T'));
@@ -297,6 +298,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             channel.releaseInbound();
 
             // we should get back a ParameterDescription message
+            channel.flushOutbound();
             ByteBuf response = channel.readOutbound();
             try {
                 assertThat(response.readByte(), is((byte) 't'));

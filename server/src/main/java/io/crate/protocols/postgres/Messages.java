@@ -416,7 +416,7 @@ public class Messages {
         }
 
         buffer.setInt(1, length);
-        ChannelFuture channelFuture = channel.writeAndFlush(buffer);
+        ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentRowDescription"));
         }
