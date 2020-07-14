@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Fixed an issue with the :ref:`quote_ident <scalar-quote-ident>` scalar
+  function that caused it to quote subscript expressions like ``"col['x']"``
+  instead of ``"col"['x']``.
+
 - Fixed an issue that prevented the use of subscript expressions as conflict
   target in ``ON CONFLICT`` clauses of ``INSERT`` statements.
 
