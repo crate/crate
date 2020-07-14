@@ -22,12 +22,6 @@
 
 package io.crate.sql;
 
-import io.crate.sql.parser.ParsingException;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
-import io.crate.sql.tree.QualifiedNameReference;
-import org.antlr.v4.runtime.Vocabulary;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
@@ -35,6 +29,13 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.antlr.v4.runtime.Vocabulary;
+
+import io.crate.sql.parser.ParsingException;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
+import io.crate.sql.tree.QualifiedNameReference;
 
 public class Identifiers {
 
@@ -79,13 +80,59 @@ public class Identifiers {
      * i.e. when it contain a double-quote, has upper case letters or is a SQL keyword
      */
     public static String quoteIfNeeded(String identifier) {
-        if (areQuotesRequired(identifier)) {
+        if (quotesRequired(identifier)) {
             return quote(identifier);
         }
         return identifier;
     }
 
-    private static boolean areQuotesRequired(String identifier) {
+    /**
+     * Similar to {@link Identifiers#quoteIfNeeded}
+     */
+    public static String maybeQuoteExpression(String expression) {
+        int length = expression.length();
+        if (length == 0) {
+            return "\"\"";
+        }
+        if (isKeyWord(expression)) {
+            return '"' + expression + '"';
+        }
+        StringBuilder sb = new StringBuilder();
+        boolean addQuotes = false;
+        int subscriptStartPos = -1;
+        for (int i = 0; i < length; i++) {
+            char c = expression.charAt(i);
+            if (c == '"') {
+                sb.append('"');
+            }
+            sb.append(c);
+            if (subscriptStartPos == -1) {
+                if (c == '[' && i + 1 < length && expression.charAt(i + 1) == '\'') {
+                    subscriptStartPos = i;
+                } else {
+                    addQuotes = addQuotes || charIsOutsideSafeRange(i, c);
+                }
+            }
+        }
+        if (addQuotes) {
+            sb.insert(0, '"');
+            if (subscriptStartPos == -1) {
+                sb.append('"');
+            } else {
+                sb.insert(subscriptStartPos + 1, '"');
+            }
+        }
+        return sb.toString();
+    }
+
+    private static boolean charIsOutsideSafeRange(int i, char c) {
+        if (i == 0) {
+            return c != '_' && (c < 'a' || c > 'z');
+        }
+        return c != '_' && (c < 'a' || c > 'z') && (c < '0' || c > '9');
+    }
+
+    private static boolean quotesRequired(String identifier) {
         return isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
     }
 

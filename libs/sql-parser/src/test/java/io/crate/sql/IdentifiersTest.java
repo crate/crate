@@ -28,6 +28,8 @@ import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
+import java.util.List;
+
 public class IdentifiersTest {
 
     @Test
@@ -73,5 +75,37 @@ public class IdentifiersTest {
         assertThat(Identifiers.quoteIfNeeded("_col"), is("_col"));
         assertThat(Identifiers.quoteIfNeeded("col_1"), is("col_1"));
         assertThat(Identifiers.quoteIfNeeded("col['a']"), is("\"col['a']\""));
+    }
+
+    @Test
+    public void test_maybe_quote_expression_behaves_like_quote_if_needed_for_non_subscripts() throws Exception {
+        for (String candidate : List.of(
+            (""),
+            ("\""),
+            ("fhjgadhjgfhs"),
+            ("fhjgadhjgfhsÖ"),
+            ("ABC"),
+            ("abc\""),
+            ("select"),
+            ("1column"),
+            ("column name"),
+            ("col1a"),
+            ("_col"),
+            ("col_1")
+        )) {
+            assertThat(Identifiers.maybeQuoteExpression(candidate), is(Identifiers.quoteIfNeeded(candidate)));
+        }
+    }
+
+    @Test
+    public void test_quote_expression_quotes_only_base_part_of_subscript_expression() throws Exception {
+        assertThat(Identifiers.maybeQuoteExpression("col['a']"), is("col['a']"));
+        assertThat(Identifiers.maybeQuoteExpression("Col['a']"), is("\"Col\"['a']"));
+        assertThat(Identifiers.maybeQuoteExpression("col with space['a']"), is("\"col with space\"['a']"));
+    }
+
+    @Test
+    public void test_quote_expression_quotes_keywords() throws Exception {
+        assertThat(Identifiers.maybeQuoteExpression("select"), is("\"select\"")); // keyword
     }
 }
