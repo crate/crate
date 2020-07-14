@@ -7,11 +7,33 @@ Thank you for your interest in contributing.
 This document is a guideline. Don't worry too much about getting everything
 perfect. We are more than happy to work with you on your contribution.
 
-Reporting issues it the easiest way to contribute. But we also accept pull
-requests for the code and for the documentation. For more information on how to
-work on the code or documentation, see our `developer guide`_.
+Upvoting existing issues or reporting new issues it the easiest way to
+contribute. But we also accept pull requests for the code and for the
+documentation. For more information on how to work on the code or
+documentation, see our `developer guide`_.
 
-If you have any questions, please feel free to reach out via any of our `support channels`_.
+If you have any questions, please reach out via any of our `support channels`_.
+
+
+Upvoting Issues
+===============
+
+An easy way to contribute is to upvote existing issues that are relevant to
+you. This will give us a better idea what's important for you and other users.
+
+Please avoid content-less ``+1`` comments but instead use the emoji reaction to
+upvote with a 👍. This allows people to `sort issues by reaction`_ and doesn't
+spam the maintainers.
+
+
+Tell us about your experience
+=============================
+
+You don't have to create a detailed bug report or request a new feature to make
+a valuable contribution. Telling us about your experience with CrateDB is
+incredibly valuable as well. Please `get in touch`_ with us to tell us what you
+like and don't like about CrateDB.
+
 
 Reporting Issues
 ================
@@ -129,5 +151,7 @@ See also: http://www.ericbmerritt.com/2011/09/21/commit-hygiene-and-git.html
 .. _CLA: https://crate.io/community/contribute/agreements/
 .. _Crate.io: http://crate.io/
 .. _developer guide: devs/docs/index.rst
-.. _support channels: https://crate.io/support/ 
+.. _get in touch: https://crate.io/contact/
 .. _search the existing issues: https://github.com/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+user%3Acrate+
+.. _sort issues by reaction: https://github.com/crate/crate/issues?q=is%3Aissue+is%3Aopen+sort%3Areactions-%2B1-desc
+.. _support channels: https://crate.io/support/ 
