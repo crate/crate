@@ -107,7 +107,7 @@ public class LoadedRules implements SessionSettingProvider {
             s -> String.valueOf(rule.isEnabled()),
             () -> String.valueOf(true),
             String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", simpleName),
-            DataTypes.BOOLEAN.getName()
+            DataTypes.BOOLEAN
         );
     }
 

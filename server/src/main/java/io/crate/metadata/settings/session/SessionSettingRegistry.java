@@ -60,7 +60,7 @@ public class SessionSettingRegistry {
                      s -> String.join(", ", s.searchPath()),
                      () -> String.join(", ", SearchPath.pathWithPGCatalogAndDoc()),
                      "Sets the schema search order.",
-                     DataTypes.STRING.getName()))
+                     DataTypes.STRING))
             .put(HASH_JOIN_KEY,
                  new SessionSetting<>(
                      HASH_JOIN_KEY,
@@ -74,7 +74,7 @@ public class SessionSettingRegistry {
                      s -> Boolean.toString(s.hashJoinsEnabled()),
                      () -> String.valueOf(true),
                      "Considers using the Hash Join instead of the Nested Loop Join implementation.",
-                     DataTypes.BOOLEAN.getName()))
+                     DataTypes.BOOLEAN))
             .put(MAX_INDEX_KEYS,
                  new SessionSetting<>(
                      MAX_INDEX_KEYS,
@@ -86,7 +86,7 @@ public class SessionSettingRegistry {
                      s -> String.valueOf(32),
                      () -> String.valueOf(32),
                      "Shows the maximum number of index keys.",
-                     DataTypes.INTEGER.getName()))
+                     DataTypes.INTEGER))
             .put(SERVER_VERSION_NUM,
                  new SessionSetting<>(
                      SERVER_VERSION_NUM,
@@ -98,7 +98,7 @@ public class SessionSettingRegistry {
                      s -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
                      () -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
                      "Reports the emulated PostgreSQL version number",
-                     DataTypes.INTEGER.getName()
+                     DataTypes.INTEGER
                  )
             )
             .put(SERVER_VERSION,
@@ -112,7 +112,7 @@ public class SessionSettingRegistry {
                      s -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
                      () -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
                      "Reports the emulated PostgreSQL version number",
-                     DataTypes.STRING.getName()
+                     DataTypes.STRING
                  )
             );
         for (var providers : sessionSettingProviders) {

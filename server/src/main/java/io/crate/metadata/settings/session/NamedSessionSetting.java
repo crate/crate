@@ -23,6 +23,7 @@
 package io.crate.metadata.settings.session;
 
 import io.crate.metadata.TransactionContext;
+import io.crate.types.DataType;
 
 public class NamedSessionSetting {
 
@@ -57,7 +58,7 @@ public class NamedSessionSetting {
         return sessionSetting.description();
     }
 
-    public String type() {
+    public DataType<?> type() {
         return sessionSetting.type();
     }
 }
