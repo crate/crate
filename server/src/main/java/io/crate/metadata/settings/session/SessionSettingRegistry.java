@@ -22,20 +22,21 @@
 
 package io.crate.metadata.settings.session;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
-import io.crate.metadata.SearchPath;
-import io.crate.protocols.postgres.PostgresWireProtocol;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import static io.crate.metadata.SearchPath.createSearchPathFrom;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import static io.crate.metadata.SearchPath.createSearchPathFrom;
+import com.google.common.collect.ImmutableMap;
+
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
+import io.crate.action.sql.SessionContext;
+import io.crate.metadata.SearchPath;
+import io.crate.protocols.postgres.PostgresWireProtocol;
+import io.crate.types.DataTypes;
 
 @Singleton
 public class SessionSettingRegistry {
@@ -56,8 +57,8 @@ public class SessionSettingRegistry {
                      objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
                      objects -> createSearchPathFrom(objectsToStringArray(objects)),
                      SessionContext::setSearchPath,
-                     s -> iterableToString(s.searchPath()),
-                     () -> iterableToString(SearchPath.pathWithPGCatalogAndDoc()),
+                     s -> String.join(", ", s.searchPath()),
+                     () -> String.join(", ", SearchPath.pathWithPGCatalogAndDoc()),
                      "Sets the schema search order.",
                      DataTypes.STRING.getName()))
             .put(HASH_JOIN_KEY,
@@ -132,17 +133,5 @@ public class SessionSettingRegistry {
             strings[i] = DataTypes.STRING.value(objects[i]);
         }
         return strings;
-    }
-
-    private static String iterableToString(Iterable<String> iterable) {
-        Iterator<String> it = iterable.iterator();
-        StringBuilder sb = new StringBuilder();
-        while (it.hasNext()) {
-            sb.append(it.next());
-            if (it.hasNext()) {
-                sb.append(", ");
-            }
-        }
-        return sb.toString();
     }
 }
