@@ -1,0 +1,50 @@
+.. _version_4.2.1:
+
+=============
+Version 4.2.1
+=============
+
+Released on 2020-07-14.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.2.1.
+
+    We recommend that you upgrade to the latest 4.1 release before moving to
+    4.2.1.
+
+    A rolling upgrade from 4.1.7+ to 4.2.1 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.2.0` release notes for a full list of changes in the
+4.2 series.
+
+
+Fixes
+=====
+
+- Fixed an issue with the :ref:`quote_ident <scalar-quote-ident>` scalar
+  function that caused it to quote subscript expressions like ``"col['x']"``
+  instead of ``"col"['x']``.
+
+- Fixed an issue that prevented the use of subscript expressions as conflict
+  target in ``ON CONFLICT`` clauses of ``INSERT`` statements.
+
+- Fixed an issue where :ref:`drop snapshot <ref-drop-snapshot>` on an
+  :ref:`azure repository <ref-create-repository-types-azure>` would not delete
+  all the related data.
+
+- Fixed an issue that could lead to a ``Field is not streamable`` error message
+  when using window functions.
