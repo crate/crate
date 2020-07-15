@@ -36,6 +36,7 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
+import io.crate.common.MutableDouble;
 import io.crate.common.MutableLong;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -44,7 +45,9 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
 import io.crate.types.FixedWidthType;
+import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
@@ -112,6 +115,49 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
     }
 
+
+    private static class DoubleMax implements DocValueAggregator<MutableDouble> {
+
+        private final String columnName;
+        private final DataType<?> partialType;
+        private SortedNumericDocValues values;
+
+        public DoubleMax(String columnName, DataType<?> partialType) {
+            this.columnName = columnName;
+            this.partialType = partialType;
+        }
+
+        @Override
+        public MutableDouble initialState() {
+            return new MutableDouble();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(MutableDouble state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                long value = values.nextValue();
+                if (value > state.value()) {
+                    state.setValue(value);
+                }
+            }
+        }
+
+        @Override
+        public Object partialResult(MutableDouble state) {
+            if (state.hasValue()) {
+                return partialType.value(state.value());
+            } else {
+                return null;
+            }
+        }
+    }
+
+
     private static class FixedMaximumAggregation extends MaximumAggregation {
 
         private final int size;
@@ -132,6 +178,10 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
                 case TimestampType.ID_WITH_TZ:
                 case TimestampType.ID_WITHOUT_TZ:
                     return new LongMax(fieldTypes.get(0).name(), arg);
+
+                case FloatType.ID:
+                case DoubleType.ID:
+                    return new DoubleMax(fieldTypes.get(0).name(), arg);
 
                 default:
                     return null;
