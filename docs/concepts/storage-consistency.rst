@@ -120,6 +120,9 @@ accesses documents:
   Query by matching against fields of documents across all candidate shards of
   the table.
 
+
+.. _consistency:
+
 Consistency
 ===========
 
