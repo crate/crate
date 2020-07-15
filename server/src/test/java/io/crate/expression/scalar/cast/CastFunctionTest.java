@@ -176,12 +176,22 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testCastBetweenTimestampDataTypesOnReferences() {
-        assertEvaluate("timestamp_tz::timestamp without time zone",
-                       978307261000L,
-                       Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("2001-01-01T01:01:01+01")));
-        assertEvaluate("timestamp::timestamp with time zone",
-                       978310861000L,
-                       Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2001-01-01T01:01:01Z")));
+        assertEvaluate(
+            "timestamp_tz::timestamp without time zone",
+            978307261000L,
+            Literal.of(
+                DataTypes.TIMESTAMPZ,
+                DataTypes.TIMESTAMPZ.implicitCast("2001-01-01T01:01:01+01")
+            )
+        );
+        assertEvaluate(
+            "timestamp::timestamp with time zone",
+            978310861000L,
+            Literal.of(
+                DataTypes.TIMESTAMP,
+                DataTypes.TIMESTAMP.implicitCast("2001-01-01T01:01:01Z")
+            )
+        );
     }
 
     @Test
@@ -194,8 +204,13 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_cast_wkt_point_string_array_to_geo_point_array() {
-        assertEvaluate("['POINT(2 3)','POINT(1 3)']::array(geo_point)",
-            List.of(GEO_POINT.value("POINT(2 3)"), GEO_POINT.value("POINT(1 3)")));
+        assertEvaluate(
+            "['POINT(2 3)','POINT(1 3)']::array(geo_point)",
+            List.of(
+                GEO_POINT.implicitCast("POINT(2 3)"),
+                GEO_POINT.implicitCast("POINT(1 3)")
+            )
+        );
     }
 
     @Test

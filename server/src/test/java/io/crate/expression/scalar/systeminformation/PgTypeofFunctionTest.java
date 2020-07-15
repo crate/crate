@@ -80,17 +80,35 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
                        DataTypes.TIMESTAMPZ.getName());
         assertEvaluate("pg_typeof('1978-02-28T10:00:00+01'::timestamp without time zone)",
                        DataTypes.TIMESTAMP.getName());
-        assertEvaluate("pg_typeof(timestamp)", "timestamp without time zone",
-                       Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("1978-02-28T14:30+05:30")));
-        assertEvaluate("pg_typeof(timestamp_tz)", "timestamp with time zone",
-                       Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("1978-02-28T14:30+05:30")));
+        assertEvaluate(
+            "pg_typeof(timestamp)",
+            "timestamp without time zone",
+            Literal.of(
+                DataTypes.TIMESTAMP,
+                DataTypes.TIMESTAMP.implicitCast("1978-02-28T14:30+05:30")
+            )
+        );
+        assertEvaluate(
+            "pg_typeof(timestamp_tz)",
+            "timestamp with time zone",
+            Literal.of(
+                DataTypes.TIMESTAMPZ,
+                DataTypes.TIMESTAMPZ.implicitCast("1978-02-28T14:30+05:30")
+            )
+        );
     }
 
     @Test
     public void test_geographic_types() {
         assertEvaluate("pg_typeof([1.0, 2.0]::geo_point)", DataTypes.GEO_POINT.getName());
-        assertEvaluate("pg_typeof(geopoint)", DataTypes.GEO_POINT.getName(),
-                       Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value(List.of(1.0, 2.0))));
+        assertEvaluate(
+            "pg_typeof(geopoint)",
+            DataTypes.GEO_POINT.getName(),
+            Literal.of(
+                DataTypes.GEO_POINT,
+                DataTypes.GEO_POINT.sanitizeValue(List.of(1.0, 2.0))
+            )
+        );
 
         assertEvaluate("pg_typeof(" +
                        "{type = 'Polygon', " +

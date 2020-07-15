@@ -33,7 +33,7 @@ public class GeoHashFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateWithGeoPointLiterals() throws Exception {
         assertEvaluate("geohash(geopoint)", "u0qvtty6jk7x",
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(9.7427 47.4050)")));
+            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.implicitCast("POINT(9.7427 47.4050)")));
     }
 
     @Test

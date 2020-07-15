@@ -32,10 +32,22 @@ public class CoordinateFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithGeoPointLiterals() throws Exception {
-        assertEvaluate("longitude(geopoint)", 9.7427,
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(9.7427 47.4050)")));
-        assertEvaluate("latitude(geopoint)", 47.4050,
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(9.7427 47.4050)")));
+        assertEvaluate(
+            "longitude(geopoint)",
+            9.7427,
+            Literal.of(
+                DataTypes.GEO_POINT,
+                DataTypes.GEO_POINT.implicitCast("POINT(9.7427 47.4050)")
+            )
+        );
+        assertEvaluate(
+            "latitude(geopoint)",
+            47.4050,
+            Literal.of(
+                DataTypes.GEO_POINT,
+                DataTypes.GEO_POINT.implicitCast("POINT(9.7427 47.4050)")
+            )
+        );
     }
 
     @Test

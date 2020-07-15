@@ -47,14 +47,14 @@ public class LiteralTest extends CrateUnitTest {
             if (type.id() == BooleanType.ID) {
                 value = true;
             } else if (type.id() == DataTypes.IP.id()) {
-                value = type.value("123.34.243.23");
+                value = type.sanitizeValue("123.34.243.23");
             } else if (type.id() == DataTypes.INTERVAL.id()) {
-                value = type.value(new Period().withSeconds(100));
+                value = type.sanitizeValue(new Period().withSeconds(100));
             } else {
-                value = type.value("0");
+                value = type.implicitCast("0");
             }
             var nestedValue = List.of(List.of(value));
-            Literal nestedLiteral = Literal.ofUnchecked(nestedType, nestedValue);
+            Literal<?> nestedLiteral = Literal.ofUnchecked(nestedType, nestedValue);
             assertThat(nestedLiteral.valueType(), is(nestedType));
             assertThat(nestedLiteral.value(), is(nestedValue));
         }
@@ -71,8 +71,8 @@ public class LiteralTest extends CrateUnitTest {
     public void testCompareArrayValues() throws Exception {
         ArrayType<Integer> intTypeArr = new ArrayType<>(DataTypes.INTEGER);
 
-        Literal val1 = Literal.of(intTypeArr, List.of(1, 2, 3));
-        Literal val2 = Literal.of(intTypeArr, List.of(4,5,6));
+        Literal<?> val1 = Literal.of(intTypeArr, List.of(1, 2, 3));
+        Literal<?> val2 = Literal.of(intTypeArr, List.of(4,5,6));
         assertThat(val1.equals(val2), is(false));
 
         val1 = Literal.of(intTypeArr, List.of(1, 2, 3));
@@ -92,8 +92,8 @@ public class LiteralTest extends CrateUnitTest {
     public void testCompareNestedArrayValues() throws Exception {
         ArrayType<List<Integer>> intTypeNestedArr = new ArrayType<>(new ArrayType<>(DataTypes.INTEGER));
 
-        Literal val1 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
-        Literal val2 = Literal.of(intTypeNestedArr, List.of(List.of(4, 5, 6)));
+        Literal<?> val1 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
+        Literal<?> val2 = Literal.of(intTypeNestedArr, List.of(List.of(4, 5, 6)));
         assertThat(val1.equals(val2), is(false));
 
         val1 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));

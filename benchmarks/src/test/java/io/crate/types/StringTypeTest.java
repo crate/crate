@@ -33,6 +33,6 @@ public class StringTypeTest {
 
     @Benchmark
     public String booleanConversion() throws Exception {
-        return StringType.INSTANCE.value(value);
+        return StringType.INSTANCE.implicitCast(value);
     }
 }

@@ -30,8 +30,8 @@ public class DataTypeTestingTest extends CrateUnitTest {
 
     @Test
     public void testDataGeneratorReturnValidValues() throws Exception {
-        for (DataType type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
-            type.value(DataTypeTesting.getDataGenerator(type).get());
+        for (DataType<?> type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+            type.sanitizeValue(DataTypeTesting.getDataGenerator(type).get());
         }
     }
 }

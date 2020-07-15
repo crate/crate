@@ -31,7 +31,11 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
 
     private void assertEvaluate(String functionExpression, Object expected) {
         assertEvaluate(functionExpression, expected,
-            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value(D_2014_02_15___21_33_23)));
+            Literal.of(
+                DataTypes.TIMESTAMPZ,
+                DataTypes.TIMESTAMPZ.implicitCast(D_2014_02_15___21_33_23)
+            )
+        );
     }
 
     @Test
@@ -53,7 +57,11 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
         assertEvaluate(
             "extract(day from timestamp)",
             25,
-            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-03-25")));
+            Literal.of(
+                DataTypes.TIMESTAMP,
+                DataTypes.TIMESTAMP.implicitCast("2014-03-25")
+            )
+        );
     }
 
     @Test

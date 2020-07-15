@@ -104,8 +104,8 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         task.run();
         assertThat(testServer.responses.size(), is(2));
         for (int i = 0; i < testServer.responses.size(); i++) {
-            String json = testServer.responses.get((int) i);
-            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.value(json);
+            String json = testServer.responses.get(i);
+            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json);
 
             assertThat(map, hasKey("kernel"));
             assertThat(map.get("kernel"), is(notNullValue()));
@@ -115,7 +115,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("master"), is(notNullValue()));
             assertThat(map, hasKey("ping_count"));
             assertThat(map.get("ping_count"), is(notNullValue()));
-            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.value((String) map.get("ping_count"));
+            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.implicitCast(map.get("ping_count"));
 
             assertThat(pingCountMap.get("success"), is(i));
             assertThat(pingCountMap.get("failure"), is(0));
@@ -150,7 +150,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         task.run();
         assertThat(testServer.responses.size(), is(1));
         String json = testServer.responses.get(0);
-        Map<String, Object> map = DataTypes.UNTYPED_OBJECT.value(json);
+        Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json);
 
         assertThat(map, not(hasKey("license_expiry_date")));
         assertThat(map, not(hasKey("license_issued_to")));
@@ -172,8 +172,8 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         assertThat(testServer.responses.size(), is(2));
 
         for (int i = 0; i < testServer.responses.size(); i++) {
-            String json = testServer.responses.get((int) i);
-            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.value(json);
+            String json = testServer.responses.get(i);
+            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json);
 
             assertThat(map, hasKey("kernel"));
             assertThat(map.get("kernel"), is(notNullValue()));
@@ -183,7 +183,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("master"), is(notNullValue()));
             assertThat(map, hasKey("ping_count"));
             assertThat(map.get("ping_count"), is(notNullValue()));
-            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.value((String) map.get("ping_count"));
+            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.implicitCast(map.get("ping_count"));
 
             assertThat(pingCountMap.get("success"), is(0));
             assertThat(pingCountMap.get("failure"), is(i));

@@ -185,7 +185,10 @@ public final class QueryTester implements AutoCloseable {
                         @Override
                         public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Object context) {
                             Object param = params[parameterSymbol.index()];
-                            return Literal.ofUnchecked(parameterSymbol.valueType(), parameterSymbol.valueType().value(param));
+                            return Literal.ofUnchecked(
+                                parameterSymbol.valueType(),
+                                parameterSymbol.valueType().sanitizeValue(param)
+                            );
                         }
                     }, null);
                     return Optimizer.optimizeCasts(expressions.normalize(boundSymbol), plannerContext);
