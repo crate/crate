@@ -26,7 +26,8 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.lucene50.Lucene50StoredFieldsFormat.Mode;
-import org.apache.lucene.codecs.lucene84.Lucene84Codec;
+import org.apache.lucene.codecs.lucene86.Lucene86Codec;
+
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.index.mapper.MapperService;
 
@@ -50,8 +51,8 @@ public class CodecService {
     public CodecService(@Nullable MapperService mapperService, Logger logger) {
         final MapBuilder<String, Codec> codecs = MapBuilder.<String, Codec>newMapBuilder();
         if (mapperService == null) {
-            codecs.put(DEFAULT_CODEC, new Lucene84Codec());
-            codecs.put(BEST_COMPRESSION_CODEC, new Lucene84Codec(Mode.BEST_COMPRESSION));
+            codecs.put(DEFAULT_CODEC, new Lucene86Codec());
+            codecs.put(BEST_COMPRESSION_CODEC, new Lucene86Codec(Mode.BEST_COMPRESSION));
         } else {
             codecs.put(DEFAULT_CODEC,
                 new PerFieldMappingPostingFormatCodec(Mode.BEST_SPEED, mapperService, logger));
