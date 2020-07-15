@@ -54,4 +54,6 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that prevented ``ALTER TABLE .. ADD COLUMN`` statements from
+  working on tables containing a ``PRIMARY KEY`` column with a ``INDEX OFF``
+  definition.
