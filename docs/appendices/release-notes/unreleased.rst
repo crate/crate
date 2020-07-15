@@ -48,6 +48,9 @@ None
 Changes
 =======
 
+- Changed the privileges for ``KILL``, all users are now allowed to kill their
+  own statements.
+
 - Added the `pg_catalog.pg_roles table <postgres_pg_catalog>`
 
 

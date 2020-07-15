@@ -65,6 +65,7 @@ public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
         KillPlan killPlan = new KillPlan(null);
         killPlan.execute(
             null,
+            "dummy-user",
             killAllNodeAction,
             mock(TransportKillJobsNodeAction.class),
             new TestingRowConsumer());

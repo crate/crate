@@ -198,7 +198,12 @@ public final class JobLauncher {
         List<Tuple<ExecutionPhase, RowConsumer>> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
             handlerPhases, handlerConsumers, initializationTracker);
 
-        RootTask.Builder builder = tasksService.newBuilder(jobId, localNodeId, operationByServer.keySet());
+        RootTask.Builder builder = tasksService.newBuilder(
+            jobId,
+            txnCtx.sessionSettings().userName(),
+            localNodeId,
+            operationByServer.keySet()
+        );
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(builder);
         List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnHandler(
             txnCtx.sessionSettings(),

@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.distribution;
 
+import io.crate.auth.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.JobKilledException;
@@ -186,6 +187,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
              */
             KillJobsRequest killRequest = new KillJobsRequest(
                 List.of(request.jobId()),
+                User.CRATE_USER.name(),
                 "Received data for job=" + request.jobId() + " but there is no job context present. " +
                 "This can happen due to bad network latency or if individual nodes are unresponsive due to high load"
             );

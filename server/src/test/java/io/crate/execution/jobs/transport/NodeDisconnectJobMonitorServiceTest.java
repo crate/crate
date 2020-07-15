@@ -80,13 +80,13 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
         DiscoveryNode coordinator = newNode("coordinator");
         DiscoveryNode dataNode = newNode("dataNode");
 
-        RootTask.Builder builder = tasksService.newBuilder(UUID.randomUUID(), coordinator.getId(), Arrays.asList(coordinator.getId(), dataNode.getId()));
+        RootTask.Builder builder = tasksService.newBuilder(UUID.randomUUID(), "dummy-user", coordinator.getId(), Arrays.asList(coordinator.getId(), dataNode.getId()));
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
 
         // add a second job that is coordinated by the other node to make sure the the broadcast logic is run
         // even though there are jobs coordinated by the disconnected node
-        builder = tasksService.newBuilder(UUID.randomUUID(), dataNode.getId(), Collections.emptySet());
+        builder = tasksService.newBuilder(UUID.randomUUID(), "dummy-user", dataNode.getId(), Collections.emptySet());
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
 

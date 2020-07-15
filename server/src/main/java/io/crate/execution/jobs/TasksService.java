@@ -21,24 +21,6 @@
 
 package io.crate.execution.jobs;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.ImmutableList;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CountdownFutureCallback;
-import io.crate.exceptions.TaskMissing;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.jobs.kill.KillAllListener;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +32,28 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableList;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+
+import io.crate.auth.user.User;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.concurrent.CountdownFutureCallback;
+import io.crate.exceptions.TaskMissing;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.kill.KillAllListener;
 
 @Singleton
 public class TasksService extends AbstractLifecycleComponent {
@@ -122,11 +126,20 @@ public class TasksService extends AbstractLifecycleComponent {
 
     @VisibleForTesting
     public RootTask.Builder newBuilder(UUID jobId) {
-        return new RootTask.Builder(LOGGER, jobId, clusterService.localNode().getId(), Collections.emptySet(), jobsLogs);
+        return new RootTask.Builder(
+            LOGGER,
+            jobId,
+            User.CRATE_USER.name(),
+            clusterService.localNode().getId(),
+            Collections.emptySet(),
+            jobsLogs);
     }
 
-    public RootTask.Builder newBuilder(UUID jobId, String coordinatorNodeId, Collection<String> participatingNodes) {
-        return new RootTask.Builder(LOGGER, jobId, coordinatorNodeId, participatingNodes, jobsLogs);
+    public RootTask.Builder newBuilder(UUID jobId,
+                                       String user,
+                                       String coordinatorNodeId,
+                                       Collection<String> participatingNodes) {
+        return new RootTask.Builder(LOGGER, jobId, user, coordinatorNodeId, participatingNodes, jobsLogs);
     }
 
     public int numActive() {
@@ -157,32 +170,41 @@ public class TasksService extends AbstractLifecycleComponent {
 
 
     /**
-     * kills all tasks which are active at the time of the call of this method.
+     * kills all tasks which the user is allowed to kill and are active at the time of the call of this method.
+     * The super-user can kill any tasks, other users can only kill their own tasks.
      *
      * @return a future holding the number of tasks kill was called on, the future is finished when all tasks
      * are completed and never fails.
      */
-    public CompletableFuture<Integer> killAll() {
-        for (KillAllListener killAllListener : killAllListeners) {
-            try {
-                killAllListener.killAllJobs();
-            } catch (Throwable t) {
-                LOGGER.error("Failed to call killAllJobs on listener={} error={}", killAllListener, t);
+    public CompletableFuture<Integer> killAll(String userName) {
+        boolean isSuperUser = userName.equals(User.CRATE_USER.name());
+        if (isSuperUser) {
+            for (KillAllListener killAllListener : killAllListeners) {
+                try {
+                    killAllListener.killAllJobs();
+                } catch (Throwable t) {
+                    LOGGER.error("Failed to call killAllJobs on listener={} error={}", killAllListener, t);
+                }
             }
         }
         Collection<UUID> toKill = ImmutableList.copyOf(activeTasks.keySet());
         if (toKill.isEmpty()) {
             return CompletableFuture.completedFuture(0);
         }
-        return killTasks(toKill, null);
+        return killTasks(toKill, userName, null);
     }
 
-    private CompletableFuture<Integer> killTasks(Collection<UUID> toKill, @Nullable String reason) {
+    private CompletableFuture<Integer> killTasks(Collection<UUID> toKill, String userName, @Nullable String reason) {
         assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
         CountdownFutureCallback countDownFuture = new CountdownFutureCallback(toKill.size());
+        boolean isSuperUser = userName.equals(User.CRATE_USER.name());
         for (UUID jobId : toKill) {
             RootTask ctx = activeTasks.get(jobId);
+            if (!isSuperUser && !ctx.userName().equals(userName)) {
+                countDownFuture.onSuccess();
+                continue;
+            }
             if (ctx != null) {
                 recentlyFailed.put(jobId, failedSentinel);
                 ctx.completionFuture().whenComplete(countDownFuture);
@@ -197,17 +219,20 @@ public class TasksService extends AbstractLifecycleComponent {
         return countDownFuture.handle((r, f) -> finalNumKilled);
     }
 
-    public CompletableFuture<Integer> killJobs(Collection<UUID> toKill, @Nullable String reason) {
-        for (KillAllListener killAllListener : killAllListeners) {
-            for (UUID job : toKill) {
-                try {
-                    killAllListener.killJob(job);
-                } catch (Throwable t) {
-                    LOGGER.error("Failed to call killJob on listener={}, err={}", killAllListener, t);
+    public CompletableFuture<Integer> killJobs(Collection<UUID> toKill, String userName, @Nullable String reason) {
+        boolean isSuperUser = userName.equals(User.CRATE_USER.name());
+        if (isSuperUser) {
+            for (KillAllListener killAllListener : killAllListeners) {
+                for (UUID job : toKill) {
+                    try {
+                        killAllListener.killJob(job);
+                    } catch (Throwable t) {
+                        LOGGER.error("Failed to call killJob on listener={}, err={}", killAllListener, t);
+                    }
                 }
             }
         }
-        return killTasks(toKill, reason);
+        return killTasks(toKill, userName, reason);
     }
 
     /**
