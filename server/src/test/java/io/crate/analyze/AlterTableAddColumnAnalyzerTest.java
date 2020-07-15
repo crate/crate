@@ -62,6 +62,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
                       "     pk object as (a int, b object as (c int))," +
                       "     primary key (pk['a'], pk['b']['c'])" +
                       ")")
+            .addTable("create table tbl_index_off (num bigint index off, primary key (num))")
             .build();
         plannerContext = e.getPlannerContext(clusterService.state());
     }
@@ -418,5 +419,12 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(mapToSortedString(mapping),
             is("_meta={primary_keys=[id]}, properties={id={type=long}, " +
                "string_no_docvalues={doc_values=false, position=18, type=keyword}}"));
+    }
+
+    @Test
+    public void test_primary_key_contains_index_definitions_on_alter_table_new_column() throws Exception {
+        BoundAddColumn addColumn = analyze("alter table tbl_index_off add column browser text");
+        Map<String, Object> mapping = (Map<String, Object>) addColumn.mapping().get("properties");
+        assertThat(mapping, Matchers.hasEntry(is("num"), is(Map.of("index", false, "type", "long"))));
     }
 }

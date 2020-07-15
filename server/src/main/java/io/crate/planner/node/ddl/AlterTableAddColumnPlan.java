@@ -46,6 +46,8 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.CheckConstraint;
+import io.crate.types.ObjectType;
+
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
@@ -104,22 +106,20 @@ public class AlterTableAddColumnPlan implements Plan {
             subQueryResults
         );
         DocTableInfo tableInfo = alterTable.tableInfo();
+        AnalyzedTableElements<Object> tableElements = alterTable.analyzedTableElements().map(eval);
 
-        AnalyzedTableElements<Symbol> tableElementsUnbound = alterTable.analyzedTableElements();
-        AnalyzedTableElements<Object> tableElementsBound = tableElementsUnbound.map(eval);
-
-        for (AnalyzedColumnDefinition<Object> column : tableElementsBound.columns()) {
+        for (AnalyzedColumnDefinition<Object> column : tableElements.columns()) {
             ensureColumnLeafsAreNew(column, tableInfo);
         }
-        addExistingPrimaryKeys(tableInfo, tableElementsBound);
-        ensureNoIndexDefinitions(tableElementsBound.columns());
-        addExistingCheckConstraints(tableInfo, tableElementsBound);
+        addExistingPrimaryKeys(tableInfo, tableElements);
+        ensureNoIndexDefinitions(tableElements.columns());
+        addExistingCheckConstraints(tableInfo, tableElements);
         // validate table elements
         AnalyzedTableElements<Symbol> tableElementsUnboundWithExpressions = alterTable.analyzedTableElementsWithExpressions();
         Map<String, Object> mapping = AnalyzedTableElements.finalizeAndValidate(
             tableInfo.ident(),
             tableElementsUnboundWithExpressions,
-            tableElementsBound
+            tableElements
         );
 
 
@@ -129,13 +129,13 @@ public class AlterTableAddColumnPlan implements Plan {
         }
 
         Settings tableSettings = AnalyzedTableElements.validateAndBuildSettings(
-            tableElementsBound, fulltextAnalyzerResolver);
+            tableElements, fulltextAnalyzerResolver);
 
-        boolean hasNewPrimaryKeys = AnalyzedTableElements.primaryKeys(tableElementsBound).size() > numCurrentPks;
+        boolean hasNewPrimaryKeys = AnalyzedTableElements.primaryKeys(tableElements).size() > numCurrentPks;
         boolean hasGeneratedColumns = tableElementsUnboundWithExpressions.hasGeneratedColumns();
         return new BoundAddColumn(
             tableInfo,
-            tableElementsBound,
+            tableElements,
             tableSettings,
             mapping,
             hasNewPrimaryKeys,
@@ -184,6 +184,10 @@ public class AlterTableAddColumnPlan implements Plan {
             Reference reference = Objects.requireNonNull(
                 tableInfo.getReference(column),
                 "Must be able to retrieve Reference for any column that is part of `primaryKey()`");
+
+            if (reference.valueType().id() != ObjectType.ID) {
+                columnDef.indexConstraint(reference.indexType());
+            }
             columnDef.dataType(reference.valueType().getName());
             if (parentDef != null) {
                 parentDef.addChild(columnDef);
