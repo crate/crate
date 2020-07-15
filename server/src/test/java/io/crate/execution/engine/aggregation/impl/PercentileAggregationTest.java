@@ -91,8 +91,8 @@ public class PercentileAggregationTest extends AggregationTest {
             Object[][] rowsWithSingleFraction = new Object[10][];
             Object[][] rowsWithFractionsArray = new Object[10][];
             for (int i = 0; i < rowsWithSingleFraction.length; i++) {
-                rowsWithSingleFraction[i] = new Object[]{ valueType.value(i), fractions.get(0) };
-                rowsWithFractionsArray[i] = new Object[]{ valueType.value(i), fractions };
+                rowsWithSingleFraction[i] = new Object[]{ valueType.sanitizeValue(i), fractions.get(0) };
+                rowsWithFractionsArray[i] = new Object[]{ valueType.sanitizeValue(i), fractions };
             }
             Object result = execSingleFractionPercentile(valueType, rowsWithSingleFraction);
             assertEquals(4.5, result);

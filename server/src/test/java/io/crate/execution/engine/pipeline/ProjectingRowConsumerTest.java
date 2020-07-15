@@ -93,7 +93,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
-                r -> Literal.ofUnchecked(r.valueType(), r.valueType().value("1")),
+                r -> Literal.ofUnchecked(r.valueType(), r.valueType().implicitCast("1")),
                 null),
             t -> null,
             t -> null,

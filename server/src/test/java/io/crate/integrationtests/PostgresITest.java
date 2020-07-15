@@ -353,7 +353,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.setArray(2, conn.createArrayOf(
                 "json",
                 new Object[]{
-                    DataTypes.STRING.value(
+                    DataTypes.STRING.implicitCast(
                         Map.of(
                             "coordinates", new double[][]{{0, 0}, {1, 1}},
                             "type", "LineString"

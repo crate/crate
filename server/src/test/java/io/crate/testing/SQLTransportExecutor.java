@@ -351,7 +351,7 @@ public class SQLTransportExecutor {
             return arg;
         }
         if (arg instanceof Map) {
-            return DataTypes.STRING.value(arg);
+            return DataTypes.STRING.implicitCast(arg);
         }
         if (arg.getClass().isArray()) {
             arg = Arrays.asList((Object[]) arg);

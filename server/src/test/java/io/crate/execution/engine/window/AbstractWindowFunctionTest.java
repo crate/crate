@@ -42,7 +42,6 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -197,7 +196,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
     private static void ensureInputRowsHaveCorrectType(List<Symbol> sourceSymbols, Object[][] inputRows) {
         for (int i = 0; i < sourceSymbols.size(); i++) {
             for (Object[] inputRow : inputRows) {
-                inputRow[i] = sourceSymbols.get(i).valueType().value(inputRow[i]);
+                inputRow[i] = sourceSymbols.get(i).valueType().sanitizeValue(inputRow[i]);
             }
         }
     }

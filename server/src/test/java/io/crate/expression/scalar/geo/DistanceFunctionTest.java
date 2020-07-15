@@ -52,9 +52,15 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithTwoGeoPointLiterals() throws Exception {
-        assertEvaluate("distance(geopoint, geopoint)", 144572.67952051832,
+        assertEvaluate(
+            "distance(geopoint, geopoint)",
+            144572.67952051832,
             Literal.of(DataTypes.GEO_POINT, new PointImpl(10.04, 28.02, JtsSpatialContext.GEO)),
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(10.30 29.3)")));
+            Literal.of(
+                DataTypes.GEO_POINT,
+                DataTypes.GEO_POINT.implicitCast("POINT(10.30 29.3)")
+            )
+        );
     }
 
     @Test
@@ -77,11 +83,23 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testWithNullValue() throws Exception {
-        assertEvaluate("distance(geopoint, geopoint)", null,
+        assertEvaluate(
+            "distance(geopoint, geopoint)",
+            null,
             Literal.of(DataTypes.GEO_POINT, null),
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")));
-        assertEvaluate("distance(geopoint, geopoint)", null,
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
-            Literal.of(DataTypes.GEO_POINT, null));
+            Literal.of(
+                DataTypes.GEO_POINT,
+                DataTypes.GEO_POINT.implicitCast("POINT (10 20)")
+            )
+        );
+        assertEvaluate(
+            "distance(geopoint, geopoint)",
+            null,
+            Literal.of(
+                DataTypes.GEO_POINT,
+                DataTypes.GEO_POINT.implicitCast("POINT (10 20)")
+            ),
+            Literal.of(DataTypes.GEO_POINT, null)
+        );
     }
 }

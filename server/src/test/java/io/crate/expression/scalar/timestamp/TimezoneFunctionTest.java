@@ -115,12 +115,22 @@ public class TimezoneFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("timezone(name, '1978-02-28T14:30+05:30'::timestamp without time zone)",
                        257520600000L,
                        Literal.of("Europe/Madrid"));
-        assertEvaluate("timezone('Europe/Madrid', timestamp_tz)",
-                       257508000000L,
-                       Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("1978-02-28T14:30+05:30")));
-        assertEvaluate("timezone('Europe/Madrid', timestamp)",
-                       257520600000L,
-                       Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("1978-02-28T14:30+05:30")));
+        assertEvaluate(
+            "timezone('Europe/Madrid', timestamp_tz)",
+            257508000000L,
+            Literal.of(
+                DataTypes.TIMESTAMPZ,
+                DataTypes.TIMESTAMPZ.implicitCast("1978-02-28T14:30+05:30")
+            )
+        );
+        assertEvaluate(
+            "timezone('Europe/Madrid', timestamp)",
+            257520600000L,
+            Literal.of(
+                DataTypes.TIMESTAMP,
+                DataTypes.TIMESTAMP.implicitCast("1978-02-28T14:30+05:30")
+            )
+        );
         assertEvaluate("timezone('Europe/Madrid', x)", 257484600000L, Literal.of(257488200000L));
     }
 }

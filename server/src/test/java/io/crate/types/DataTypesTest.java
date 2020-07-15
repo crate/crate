@@ -206,16 +206,23 @@ public class DataTypesTest extends CrateUnitTest {
     }
 
     private static void assertCompareValueTo(Object val1, Object val2, int expected) {
-        DataType type = DataTypes.guessType(Objects.requireNonNullElse(val1, val2));
+        DataType<?> type = DataTypes.guessType(Objects.requireNonNullElse(val1, val2));
         assertThat(type, not(instanceOf(DataTypes.UNDEFINED.getClass())));
         assertCompareValueTo(type, val1, val2, expected);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static void assertCompareValueTo(DataType dt, Object val1, Object val2, int expected) {
         if (val1 == null || val2 == null) {
-            assertThat(Comparator.nullsFirst(dt).compare(dt.value(val1), dt.value(val2)), is(expected));
+            assertThat(
+                Comparator.nullsFirst(dt).compare(
+                    dt.sanitizeValue(val1),
+                    dt.sanitizeValue(val2)
+                ),
+                is(expected)
+            );
         } else {
-            assertThat(dt.compare(dt.value(val1), dt.value(val2)), is(expected));
+            assertThat(dt.compare(dt.sanitizeValue(val1), dt.sanitizeValue(val2)), is(expected));
         }
     }
 }
