@@ -469,7 +469,8 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitKillAnalyzedStatement(AnalyzedKill analysis, User user) {
-            throwRequiresSuperUserPermission(user.name());
+            // All users can kill their own statements.
+            // If the user doesn't have privileges to kill a certain job-id the row-count will be lower or 0
             return null;
         }
 

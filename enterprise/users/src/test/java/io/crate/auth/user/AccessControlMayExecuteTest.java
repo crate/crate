@@ -196,10 +196,8 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testKillNotAllowedAsNormalUser() throws Exception {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
-                                        "Superuser permissions are required");
+    public void test_kill_is_allowed_for_any_user() throws Exception {
+        // Only kills their own statements
         analyze("kill all");
     }
 

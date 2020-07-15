@@ -22,6 +22,7 @@
 
 package io.crate.execution.jobs.transport;
 
+import io.crate.auth.user.User;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
@@ -118,7 +119,11 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
                 deadNode.getId());
         }
         List<String> excludedNodeIds = Collections.singletonList(deadNode.getId());
-        KillJobsRequest killRequest = new KillJobsRequest(affectedJobs, "Participating node=" + deadNode.getName() + " disconnected.");
+        KillJobsRequest killRequest = new KillJobsRequest(
+            affectedJobs,
+            User.CRATE_USER.name(),
+            "Participating node=" + deadNode.getName() + " disconnected."
+        );
         killJobsNodeAction.broadcast(killRequest, new ActionListener<>() {
             @Override
             public void onResponse(Long numKilled) {
@@ -151,7 +156,11 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
         if (jobsStartedByDeadNode.isEmpty()) {
             return;
         }
-        tasksService.killJobs(jobsStartedByDeadNode, "Participating node=" + deadNode.getName() + " disconnected.");
+        tasksService.killJobs(
+            jobsStartedByDeadNode,
+            User.CRATE_USER.name(),
+            "Participating node=" + deadNode.getName() + " disconnected."
+        );
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Killed {} jobs started by disconnected node={}", jobsStartedByDeadNode.size(), deadNode.getId());
         }

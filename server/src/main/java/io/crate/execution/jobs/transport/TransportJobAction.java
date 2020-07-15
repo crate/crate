@@ -83,7 +83,11 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     @Override
     public CompletableFuture<JobResponse> nodeOperation(final JobRequest request) {
         RootTask.Builder contextBuilder = tasksService.newBuilder(
-            request.jobId(), request.coordinatorNodeId(), Collections.emptySet());
+            request.jobId(),
+            request.sessionSettings().userName(),
+            request.coordinatorNodeId(),
+            Collections.emptySet()
+        );
 
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(request.enableProfiling(), contextBuilder);
 

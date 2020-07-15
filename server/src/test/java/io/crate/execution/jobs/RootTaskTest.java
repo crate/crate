@@ -69,7 +69,7 @@ public class RootTaskTest extends CrateUnitTest {
     @Test
     public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
         RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
         builder.addTask(new AbstractTaskTest.TestingTask());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Task for 0 already added");
@@ -80,7 +80,7 @@ public class RootTaskTest extends CrateUnitTest {
     @Test
     public void testKillPropagatesToSubContexts() throws Exception {
         RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
 
 
         AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);
@@ -101,7 +101,7 @@ public class RootTaskTest extends CrateUnitTest {
     public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Exception {
         JobsLogs jobsLogs = mock(JobsLogs.class);
         RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), jobsLogs);
+            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), jobsLogs);
 
         Task task = new AbstractTask(0) {
             @Override
@@ -131,7 +131,7 @@ public class RootTaskTest extends CrateUnitTest {
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
 
         RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
 
         CollectTask collectChildTask = new CollectTask(
             collectPhase,
@@ -180,7 +180,7 @@ public class RootTaskTest extends CrateUnitTest {
     @Test
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
         RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
         ProfilingContext profilingContext = new ProfilingContext(Collections::emptyList);
         builder.profilingContext(profilingContext);
 

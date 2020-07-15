@@ -23,8 +23,15 @@ Synopsis
 Description
 ===========
 
-The ``KILL ALL`` statement kills all active jobs within the CrateDB cluster.
-The statement ``KILL job_id`` kills the job with a specified ``job_id``.
+The ``KILL ALL`` statement kills all active jobs within the CrateDB cluster
+which are owned by the current user.
+
+The statement ``KILL job_id`` kills the job with a specified ``job_id`` if the
+job was started by the current user.
+
+An exception to this is the ``CRATE`` super-user, which can also kill
+statements of other users.
+
 
 Be aware that CrateDB doesn't have transactions. If an operation which modifies
 data is killed, it won't rollback. For example if a update operation is killed
