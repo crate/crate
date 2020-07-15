@@ -493,7 +493,7 @@ def load_tests(loader, suite, ignore):
                             'sql/statements/values.rst'):
         tests.append(docsuite(fn, setUp=setUpLocationsAndQuotes))
 
-    for fn in doctest_files('general/occ.rst'):
+    for fn in doctest_files('general/occ.rst', 'sql/statements/refresh.rst'):
         tests.append(docsuite(fn, setUp=setUp))
 
     for fn in doctest_files('general/dql/geo.rst',):
