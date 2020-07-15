@@ -48,7 +48,7 @@ None
 Changes
 =======
 
-None
+- Added the `pg_catalog.pg_roles table <postgres_pg_catalog>`
 
 
 Fixes
