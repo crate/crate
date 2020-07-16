@@ -60,7 +60,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
     public static void register(ScalarFunctionModule module) {
         List<DataType<?>> supportedTimestampTypes = List.of(
-            DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ, DataTypes.LONG, DataTypes.STRING);
+            DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ, DataTypes.LONG);
         for (DataType<?> dataType : supportedTimestampTypes) {
             module.register(
                 Signature.scalar(

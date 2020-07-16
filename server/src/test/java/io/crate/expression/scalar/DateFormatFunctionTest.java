@@ -124,7 +124,7 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidTimestamp() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Text 'NO TIMESTAMP' could not be parsed");
+        expectedException.expectMessage("Cannot cast `'NO TIMESTAMP'` of type `text` to type `timestamp with time zone`");
         assertEvaluate("date_format('%d.%m.%Y', 'NO TIMESTAMP')", null);
     }
 
