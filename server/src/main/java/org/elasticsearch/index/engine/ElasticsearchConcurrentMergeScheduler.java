@@ -19,16 +19,19 @@
 
 package org.elasticsearch.index.engine;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Set;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.ConcurrentMergeScheduler;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.MergeScheduler;
 import org.apache.lucene.index.OneMergeHelper;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.IndexSettings;
@@ -36,10 +39,7 @@ import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.merge.OnGoingMerge;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Set;
+import io.crate.common.unit.TimeValue;
 
 /**
  * An extension to the {@link ConcurrentMergeScheduler} that provides tracking on merge times, total
@@ -68,7 +68,7 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
     }
 
     @Override
-    protected void doMerge(IndexWriter writer, MergePolicy.OneMerge merge) throws IOException {
+    protected void doMerge(MergeSource mergeSource, MergePolicy.OneMerge merge) throws IOException {
         int totalNumDocs = merge.totalNumDocs();
         long totalSizeInBytes = merge.totalBytesSize();
         long timeNS = System.nanoTime();
@@ -80,7 +80,7 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
         }
         try {
             beforeMerge(onGoingMerge);
-            super.doMerge(writer, merge);
+            super.doMerge(mergeSource, merge);
         } finally {
             long tookMS = TimeValue.nsecToMSec(System.nanoTime() - timeNS);
 
@@ -139,15 +139,15 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
 
     @Override
     @SuppressWarnings("sync-override")
-    protected boolean maybeStall(IndexWriter writer) {
+    protected boolean maybeStall(MergeSource mergeSource) {
         // Don't stall here, because we do our own index throttling (in InternalEngine.IndexThrottle) when merges can't keep up
         return true;
     }
 
     @Override
     @SuppressWarnings("sync-override")
-    protected MergeThread getMergeThread(IndexWriter writer, MergePolicy.OneMerge merge) throws IOException {
-        MergeThread thread = super.getMergeThread(writer, merge);
+    protected MergeThread getMergeThread(MergeSource mergeSource, MergePolicy.OneMerge merge) throws IOException {
+        MergeThread thread = super.getMergeThread(mergeSource, merge);
         thread.setName(EsExecutors.threadName(indexSettings, "[" + shardId.getIndexName() + "][" + shardId.id() + "]: " + thread.getName()));
         return thread;
     }
