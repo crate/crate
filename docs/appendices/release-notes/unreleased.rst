@@ -57,6 +57,8 @@ Changes
 Fixes
 =====
 
+- Updated the bundled JDK to 14.0.2-12
+
 - Fixed an issue that caused ``SHOW CREATE TABLE`` to print columns of type
   ``VARCHAR(n)`` as ``TEXT``, leading to a loss of the length information when
   using the ``SHOW CREATE TABLE`` statement to re-create a table.
