@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused ``SHOW CREATE TABLE`` to print columns of type
+  ``VARCHAR(n)`` as ``TEXT``, leading to a loss of the length information when
+  using the ``SHOW CREATE TABLE`` statement to re-create a table.
+
 - Fixed an issue that prevented ``ALTER TABLE .. ADD COLUMN`` statements from
   working on tables containing a ``PRIMARY KEY`` column with a ``INDEX OFF``
   definition.
