@@ -54,6 +54,8 @@ None
 Fixes
 =====
 
+- Updated the bundled JDK to 14.0.2-12
+
 - Increased the default interval for `stats.service.interval
   <stats.service.interval>` from one hour to 24 hours because invoking it every
   hour caused significant extra load on a cluster.
