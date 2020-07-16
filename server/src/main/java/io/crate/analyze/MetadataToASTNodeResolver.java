@@ -21,6 +21,16 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
@@ -37,6 +47,7 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
@@ -61,14 +72,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
+import io.crate.types.StringType;
 
 
 public class MetadataToASTNodeResolver {
@@ -84,6 +88,32 @@ public class MetadataToASTNodeResolver {
             fqn = new SubscriptExpression(fqn, Literal.fromObject(child));
         }
         return fqn;
+    }
+
+    static ColumnType<Expression> dataTypeToColumnType(ColumnIdent column,
+                                                       DataType<?> type,
+                                                       ColumnPolicy columnPolicy,
+                                                       Function<ColumnIdent, List<ColumnDefinition<Expression>>> convertChildColumn) {
+        if (type.id() == ObjectType.ID) {
+            return new ObjectColumnType<>(columnPolicy.name(), convertChildColumn.apply(column));
+        } else if (type.id() == ArrayType.ID) {
+            DataType<?> innerType = ((ArrayType<?>) type).innerType();
+            return new CollectionColumnType<>(dataTypeToColumnType(
+                column,
+                innerType,
+                columnPolicy,
+                convertChildColumn
+            ));
+        } else if (type.id() == StringType.ID) {
+            StringType stringType = (StringType) type;
+            if (stringType.unbound()) {
+                return new ColumnType<>(type.getName());
+            } else {
+                return new ColumnType<>("VARCHAR", List.of(stringType.lengthLimit()));
+            }
+        } else {
+            return new ColumnType<>(type.getName());
+        }
     }
 
     private static class Extractor {
@@ -131,22 +161,12 @@ public class MetadataToASTNodeResolver {
                     if (ident.getParent().compareTo(parent) > 0) continue;
                 }
 
-                ColumnType columnType;
-                if (info.valueType().id() == ObjectType.ID) {
-                    columnType = new ObjectColumnType<>(info.columnPolicy().name(), extractColumnDefinitions(ident));
-                } else if (info.valueType().id() == ArrayType.ID) {
-                    DataType innerType = ((ArrayType) info.valueType()).innerType();
-                    ColumnType innerColumnType;
-                    if (innerType.id() == ObjectType.ID) {
-                        innerColumnType = new ObjectColumnType<>(info.columnPolicy().name(), extractColumnDefinitions(ident));
-                    } else {
-                        innerColumnType = new ColumnType(innerType.getName());
-                    }
-                    columnType = new CollectionColumnType(innerColumnType);
-                } else {
-                    columnType = new ColumnType(info.valueType().getName());
-                }
-
+                final ColumnType<Expression> columnType = dataTypeToColumnType(
+                    ident,
+                    info.valueType(),
+                    info.columnPolicy(),
+                    this::extractColumnDefinitions
+                );
                 List<ColumnConstraint<Expression>> constraints = new ArrayList<>();
                 if (!info.isNullable()) {
                     constraints.add(new NotNullColumnConstraint<>());
