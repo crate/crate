@@ -23,40 +23,31 @@ package io.crate.expression.scalar.geo;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import org.elasticsearch.common.geo.GeoHashUtils;
 import org.locationtech.spatial4j.shape.Point;
 
-import java.util.List;
-
 import static io.crate.metadata.functions.Signature.scalar;
 
 public final class GeoHashFunction {
 
-    private static final List<DataType<?>> SUPPORTED_INPUT_TYPES =
-        List.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
-
     public static void register(ScalarFunctionModule module) {
-        for (var inputType : SUPPORTED_INPUT_TYPES) {
-            module.register(
-                scalar(
-                    "geohash",
-                    inputType.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ),
-                (signature, boundSignature) ->
-                    new UnaryScalar<>(
-                        signature,
-                        boundSignature,
-                        inputType,
-                        GeoHashFunction::getGeoHash
-                    )
-            );
-        }
+        module.register(
+            scalar(
+                "geohash",
+                DataTypes.GEO_POINT.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new UnaryScalar<>(
+                    signature,
+                    boundSignature,
+                    DataTypes.GEO_POINT,
+                    GeoHashFunction::getGeoHash
+                )
+        );
     }
-
 
     private static String getGeoHash(Object value) {
         Point geoValue = GeoPointType.INSTANCE.value(value);
