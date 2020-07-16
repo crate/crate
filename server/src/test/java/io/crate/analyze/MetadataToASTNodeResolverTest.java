@@ -26,6 +26,8 @@ import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitTest {
@@ -496,5 +498,15 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"write.wait_for_active_shards\" = '1'\n" +
                      ")",
                      SqlFormatter.formatSql(node));
+    }
+
+    @Test
+    public void test_varchar_with_length_limit_is_printed_as_varchar_with_length_in_show_create_table() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (name varchar(10))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        CreateTable<?> node = MetadataToASTNodeResolver.resolveCreateTable(table);
+        assertThat(SqlFormatter.formatSql(node), Matchers.containsString("\"name\" VARCHAR(10)"));
     }
 }
