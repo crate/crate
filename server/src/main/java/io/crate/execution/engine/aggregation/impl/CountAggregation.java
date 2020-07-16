@@ -218,11 +218,6 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         }
 
         @Override
-        public LongState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (LongState) value;
-        }
-
-        @Override
         public LongState sanitizeValue(Object value) {
             return (LongState) value;
         }

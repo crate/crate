@@ -75,21 +75,6 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
-    public Byte value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof String) {
-            return Byte.parseByte((String) value);
-        }
-        int val = ((Number) value).intValue();
-        if (val < Byte.MIN_VALUE || Byte.MAX_VALUE < val) {
-            throw new IllegalArgumentException("byte value out of range: " + val);
-        }
-        return (byte) val;
-    }
-
-    @Override
     public Byte sanitizeValue(Object value) {
         if (value == null) {
             return null;

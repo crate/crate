@@ -128,11 +128,6 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public List<T> value(Object value) {
-        return convert(value, innerType::value);
-    }
-
-    @Override
     public List<T> sanitizeValue(Object value) {
         return convert(value, innerType::sanitizeValue);
     }

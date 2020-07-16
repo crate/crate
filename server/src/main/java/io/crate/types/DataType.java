@@ -124,8 +124,6 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return (T) value;
     }
 
-    public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
-
     /**
      * Fixes the {@link DataType} of the input {@code value} when its type is
      * slightly different the target {@link DataType}.

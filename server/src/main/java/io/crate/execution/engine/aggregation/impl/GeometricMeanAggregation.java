@@ -153,11 +153,6 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         }
 
         @Override
-        public GeometricMeanState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (GeometricMeanState) value;
-        }
-
-        @Override
         public GeometricMeanState sanitizeValue(Object value) {
             return (GeometricMeanState) value;
         }

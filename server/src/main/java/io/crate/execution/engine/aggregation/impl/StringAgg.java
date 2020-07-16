@@ -116,11 +116,6 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         }
 
         @Override
-        public StringAggState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (StringAggState) value;
-        }
-
-        @Override
         public StringAggState sanitizeValue(Object value) {
             return (StringAggState) value;
         }

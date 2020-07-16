@@ -70,20 +70,6 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     }
 
     @Override
-    public Long value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Long) {
-            return (Long) value;
-        }
-        if (value instanceof String) {
-            return Long.valueOf((String) value);
-        }
-        return ((Number) value).longValue();
-    }
-
-    @Override
     public Long sanitizeValue(Object value) {
         if (value == null) {
             return null;

@@ -73,24 +73,6 @@ public class IpType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public String value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof String) {
-            validate((String) value);
-            return (String) value;
-        } else {
-            long longIp = ((Number) value).longValue();
-            if (longIp < 0) {
-                throw new IllegalArgumentException(
-                    "Failed to convert long value: " + longIp + " to ipv4 address");
-            }
-            return longToIp(longIp);
-        }
-    }
-
-    @Override
     public String sanitizeValue(Object value) {
         if (value == null) {
             return null;

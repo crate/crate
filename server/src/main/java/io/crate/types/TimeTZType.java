@@ -109,14 +109,6 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     }
 
     @Override
-    public TimeTZ value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        return (TimeTZ) value;
-    }
-
-    @Override
     public TimeTZ sanitizeValue(Object value) {
         if (value == null) {
             return null;

@@ -62,11 +62,6 @@ public class NotSupportedType extends DataType<Void> {
     }
 
     @Override
-    public Void value(Object value) {
-        return null;
-    }
-
-    @Override
     public Void sanitizeValue(Object value) {
         return null;
     }
