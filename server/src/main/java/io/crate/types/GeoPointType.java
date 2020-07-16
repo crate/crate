@@ -102,43 +102,6 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     @Override
-    public Point value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Point) {
-            return ((Point) value);
-        }
-        if (value instanceof Double[]) {
-            Double[] doubles = (Double[]) value;
-            checkLengthIs2(doubles.length);
-            ensurePointsInRange(doubles[0], doubles[1]);
-            return new PointImpl(doubles[0], doubles[1], JtsSpatialContext.GEO);
-        }
-        if (value instanceof String) {
-            return pointFromString((String) value);
-        }
-        if (value instanceof List) {
-            List<?> values = (List<?>) value;
-            checkLengthIs2(values.size());
-            PointImpl point = new PointImpl(
-                ((Number) values.get(0)).doubleValue(),
-                ((Number) values.get(1)).doubleValue(),
-                JtsSpatialContext.GEO);
-            ensurePointsInRange(point.getX(), point.getY());
-            return point;
-        }
-        Object[] values = (Object[]) value;
-        checkLengthIs2(values.length);
-        PointImpl point = new PointImpl(
-            ((Number) values[0]).doubleValue(),
-            ((Number) values[1]).doubleValue(),
-            JtsSpatialContext.GEO);
-        ensurePointsInRange(point.getX(), point.getY());
-        return point;
-    }
-
-    @Override
     public Point sanitizeValue(Object value) {
         if (value == null) {
             return null;

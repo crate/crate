@@ -61,11 +61,6 @@ public class OidVectorType extends DataType<List<Integer>> {
     }
 
     @Override
-    public List<Integer> value(Object value) throws IllegalArgumentException, ClassCastException {
-        return (List<Integer>) value;
-    }
-
-    @Override
     public List<Integer> sanitizeValue(Object value) {
         return (List<Integer>) value;
     }

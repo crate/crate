@@ -140,11 +140,6 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
 
         @Override
-        public AverageState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (AverageState) value;
-        }
-
-        @Override
         public AverageState sanitizeValue(Object value) {
             return (AverageState) value;
         }

@@ -134,11 +134,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public Map<String, Object> value(Object value) {
-        return convert(value, DataType::value);
-    }
-
-    @Override
     public Map<String, Object> sanitizeValue(Object value) {
         return convert(value, DataType::sanitizeValue);
     }
@@ -257,7 +252,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                 out.writeString(key);
                 DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
                 //noinspection unchecked
-                innerType.streamer().writeValueTo(out, innerType.value(entry.getValue()));
+                innerType.streamer().writeValueTo(out, innerType.implicitCast(entry.getValue()));
             }
         }
     }

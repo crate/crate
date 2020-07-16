@@ -68,11 +68,6 @@ class TDigestStateType extends DataType<TDigestState> implements Streamer<TDiges
     }
 
     @Override
-    public TDigestState value(Object value) throws IllegalArgumentException, ClassCastException {
-        return (TDigestState) value;
-    }
-
-    @Override
     public TDigestState sanitizeValue(Object value) {
         return (TDigestState) value;
     }

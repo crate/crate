@@ -74,14 +74,6 @@ public class RegprocType extends DataType<Regproc> implements Streamer<Regproc> 
     }
 
     @Override
-    public Regproc value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        return (Regproc) value;
-    }
-
-    @Override
     public Regproc sanitizeValue(Object value) {
         if (value == null) {
             return null;

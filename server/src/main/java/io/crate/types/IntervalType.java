@@ -31,7 +31,6 @@ import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
 import java.io.IOException;
-import java.util.Locale;
 
 public class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
 
@@ -92,23 +91,6 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
-    }
-
-    @Override
-    public Period value(Object value) throws IllegalArgumentException, ClassCastException {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Period) {
-            return (Period) value;
-        }
-
-        if (value instanceof String) {
-            return IntervalParser.apply((String) value);
-        }
-
-        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Cannot convert %s to interval", value));
     }
 
     @Override

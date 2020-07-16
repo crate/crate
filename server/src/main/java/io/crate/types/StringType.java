@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -136,8 +135,32 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
+        } else if (value instanceof String) {
+            return (String) value;
+        } else if (value instanceof BytesRef) {
+            return ((BytesRef) value).utf8ToString();
+        } else if (value instanceof Boolean) {
+            return (boolean) value ? T : F;
+        } else if (value instanceof Map) {
+            try {
+                //noinspection unchecked
+                return Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) value));
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Cannot cast `" + value + "` to type TEXT", e);
+            }
+        } else if (value instanceof Collection) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", value));
+        } else if (value.getClass().isArray()) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", Arrays.toString((Object[]) value)));
+        } else if (value instanceof TimeValue) {
+            return ((TimeValue) value).getStringRep();
+        } else if (value instanceof Regproc) {
+            return ((Regproc) value).name();
+        } else {
+            return value.toString();
         }
-        return convert(value);
     }
 
     @Override
@@ -145,7 +168,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
         if (value == null) {
             return null;
         }
-        var string = convert(value);
+        var string = implicitCast(value);
         if (unbound() || string.length() <= lengthLimit) {
             return string;
         } else {
@@ -177,14 +200,6 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public String value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        return convert(value);
-    }
-
-    @Override
     public String sanitizeValue(Object value) {
         if (value == null) {
             return null;
@@ -194,37 +209,6 @@ public class StringType extends DataType<String> implements Streamer<String> {
             return (String) value;
         }
     }
-
-    @Nonnull
-    private String convert(@Nonnull Object value) throws IllegalArgumentException {
-        if (value instanceof String) {
-            return (String) value;
-        } else if (value instanceof BytesRef) {
-            return ((BytesRef) value).utf8ToString();
-        } else if (value instanceof Boolean) {
-            return (boolean) value ? T : F;
-        } else if (value instanceof Map) {
-            try {
-                //noinspection unchecked
-                return Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) value));
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Cannot cast `" + value + "` to type TEXT", e);
-            }
-        } else if (value instanceof Collection) {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", value));
-        } else if (value.getClass().isArray()) {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", Arrays.toString((Object[]) value)));
-        } else if (value instanceof TimeValue) {
-            return ((TimeValue) value).getStringRep();
-        } else if (value instanceof Regproc) {
-            return ((Regproc) value).name();
-        } else {
-            return value.toString();
-        }
-    }
-
 
     @Override
     public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {

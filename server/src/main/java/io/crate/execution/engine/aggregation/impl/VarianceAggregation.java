@@ -91,11 +91,6 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
 
         @Override
-        public Variance value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (Variance) value;
-        }
-
-        @Override
         public Variance sanitizeValue(Object value) {
             return (Variance) value;
         }

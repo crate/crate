@@ -76,12 +76,6 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public Map<Object, Object> value(Object value) {
-        return (Map<Object, Object>) value;
-    }
-
-    @Override
     public Map<Object, Object> sanitizeValue(Object value) {
         //noinspection unchecked
         return (Map<Object, Object>) value;

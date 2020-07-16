@@ -83,32 +83,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
-    public Map<String, Object> value(Object value) throws IllegalArgumentException, ClassCastException {
-        if (value == null) {
-            return null;
-        }
-        try {
-            if (value instanceof String) {
-                return GeoJSONUtils.wkt2Map(BytesRefs.toString(value));
-            }
-            if (value instanceof Point) {
-                Point point = (Point) value;
-                return GeoJSONUtils.shape2Map(SpatialContext.GEO.getShapeFactory().pointXY(point.getX(), point.getY()));
-            }
-            if (value instanceof Shape) {
-                return GeoJSONUtils.shape2Map((Shape) value);
-            }
-            if (value instanceof Map) {
-                GeoJSONUtils.validateGeoJson((Map) value);
-                return (Map<String, Object>) value;
-            }
-        } catch (Throwable e) {
-            throw new IllegalArgumentException(invalidMsg(value), e);
-        }
-        throw new IllegalArgumentException(invalidMsg(value));
-    }
-
-    @Override
     public Map<String, Object> sanitizeValue(Object value) {
         if (value == null) {
             return null;

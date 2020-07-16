@@ -62,11 +62,6 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
     }
 
     @Override
-    public Object value(Object value) {
-        return value;
-    }
-
-    @Override
     public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
         return true;
     }

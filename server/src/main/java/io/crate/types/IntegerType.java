@@ -79,25 +79,6 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     }
 
     @Override
-    public Integer value(Object value) {
-        if (value == null) {
-            return null;
-        } else if (value instanceof Integer) {
-            return (Integer) value;
-        } else if (value instanceof String) {
-            return Integer.parseInt((String) value);
-        } else if (value instanceof Regproc) {
-            return ((Regproc) value).oid();
-        }
-
-        long longVal = ((Number) value).longValue();
-        if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {
-            throw new IllegalArgumentException("integer value out of range: " + longVal);
-        }
-        return ((Number) value).intValue();
-    }
-
-    @Override
     public Integer sanitizeValue(Object value) {
         if (value == null) {
             return null;

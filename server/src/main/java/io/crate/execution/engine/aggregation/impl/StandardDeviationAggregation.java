@@ -91,11 +91,6 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public StandardDeviation value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (StandardDeviation) value;
-        }
-
-        @Override
         public StandardDeviation sanitizeValue(Object value) {
             return (StandardDeviation) value;
         }

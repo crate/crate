@@ -77,24 +77,6 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     }
 
     @Override
-    public Short value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Short) {
-            return (Short) value;
-        }
-        if (value instanceof String) {
-            return Short.valueOf((String) value);
-        }
-        int intVal = ((Number) value).intValue();
-        if (intVal < Short.MIN_VALUE || Short.MAX_VALUE < intVal) {
-            throw new IllegalArgumentException("short value out of range: " + intVal);
-        }
-        return ((Number) value).shortValue();
-    }
-
-    @Override
     public Short sanitizeValue(Object value) {
         if (value == null) {
             return null;

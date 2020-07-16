@@ -80,20 +80,6 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     }
 
     @Override
-    public Boolean value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof String) {
-            return booleanFromString((String) value);
-        }
-        if (value instanceof Number) {
-            return booleanFromNumber((Number) value);
-        }
-        return (Boolean) value;
-    }
-
-    @Override
     public Boolean sanitizeValue(Object value) {
         if (value == null) {
             return null;

@@ -113,28 +113,6 @@ public final class TimestampType extends DataType<Long>
     }
 
     @Override
-    public Long value(Object value) throws ClassCastException {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof String) {
-            return parse.apply((String) value);
-        }
-        // we treat float and double values as seconds with milliseconds as fractions
-        // see timestamp documentation
-        if (value instanceof Double) {
-            return ((Number) (((Double) value) * 1000)).longValue();
-        }
-        if (value instanceof Float) {
-            return ((Number) (((Float) value) * 1000)).longValue();
-        }
-        if (!(value instanceof Long)) {
-            return ((Number) value).longValue();
-        }
-        return (Long) value;
-    }
-
-    @Override
     public Long sanitizeValue(Object value) {
         if (value == null) {
             return null;
