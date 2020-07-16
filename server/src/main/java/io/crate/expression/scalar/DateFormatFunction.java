@@ -22,7 +22,6 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -34,8 +33,6 @@ import org.joda.time.DateTimeZone;
 
 import java.util.List;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 public class DateFormatFunction extends Scalar<String, Object> {
 
     public static final String NAME = "date_format";
@@ -43,43 +40,36 @@ public class DateFormatFunction extends Scalar<String, Object> {
 
     public static void register(ScalarFunctionModule module) {
         List<DataType<?>> supportedTimestampTypes = List.of(
-            DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
+            DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.LONG);
         for (DataType<?> dataType : supportedTimestampTypes) {
             // without format
             module.register(
-                Signature.builder()
-                    .name(NAME)
-                    .kind(FunctionType.SCALAR)
-                    .argumentTypes(parseTypeSignature(dataType.getName()))
-                    .returnType(parseTypeSignature("text"))
-                    .build(),
-                DateFormatFunction::new
+                Signature.scalar(
+                    NAME,
+                    dataType.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ), DateFormatFunction::new
             );
 
             // with format
             module.register(
-                Signature.builder()
-                    .name(NAME)
-                    .kind(FunctionType.SCALAR)
-                    .argumentTypes(parseTypeSignature("text"), parseTypeSignature(dataType.getName()))
-                    .returnType(parseTypeSignature("text"))
-                    .build(),
-                DateFormatFunction::new
+                Signature.scalar(
+                    NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    dataType.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ), DateFormatFunction::new
             );
 
             // time zone aware variant
             module.register(
-                Signature.builder()
-                    .name(NAME)
-                    .kind(FunctionType.SCALAR)
-                    .argumentTypes(
-                        parseTypeSignature("text"),
-                        parseTypeSignature("text"),
-                        parseTypeSignature(dataType.getName())
-                    )
-                    .returnType(parseTypeSignature("text"))
-                    .build(),
-                DateFormatFunction::new
+                Signature.scalar(
+                    NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    dataType.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ), DateFormatFunction::new
             );
         }
     }
