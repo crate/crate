@@ -23,48 +23,49 @@ package io.crate.expression.scalar.geo;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.GeoPointType;
-
-import java.util.List;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
 public final class CoordinateFunction {
 
-    private static final List<DataType<?>> SUPPORTED_INPUT_TYPES =
-        List.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
-
     public static void register(ScalarFunctionModule module) {
-        for (var inputType : SUPPORTED_INPUT_TYPES) {
-            module.register(
-                scalar(
-                    "latitude",
-                    inputType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ),
-                (signature, boundSignature) ->
-                    new UnaryScalar<>(signature, boundSignature, inputType, CoordinateFunction::getLatitude)
-            );
-            module.register(
-                scalar(
-                    "longitude",
-                    inputType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ),
-                (signature, boundSignature) ->
-                    new UnaryScalar<>(signature, boundSignature, inputType, CoordinateFunction::getLongitude)
-            );
-        }
+        module.register(
+            scalar(
+                "latitude",
+                DataTypes.GEO_POINT.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new UnaryScalar<>(
+                    signature,
+                    boundSignature,
+                    DataTypes.GEO_POINT,
+                    CoordinateFunction::getLatitude
+                )
+        );
+        module.register(
+            scalar(
+                "longitude",
+                DataTypes.GEO_POINT.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new UnaryScalar<>(
+                    signature,
+                    boundSignature,
+                    DataTypes.GEO_POINT,
+                    CoordinateFunction::getLongitude
+                )
+        );
     }
 
 
     private static Double getLatitude(Object value) {
-        return (GeoPointType.INSTANCE.value(value)).getY();
+        return (DataTypes.GEO_POINT.value(value)).getY();
     }
 
     private static Double getLongitude(Object value) {
-        return (GeoPointType.INSTANCE.value(value)).getX();
+        return (DataTypes.GEO_POINT.value(value)).getX();
     }
 }

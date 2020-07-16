@@ -68,15 +68,16 @@ public class CoordinateFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert \"1\" to geo_point. Unknown Shape definition");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(
+            "Unknown function: longitude(1), no overload found for matching argument types: (integer)");
         assertEvaluate("longitude(1)", null);
     }
 
     @Test
     public void testWithInvalidStringReferences() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert \"POINT (foo)\" to geo_point. Expected a number");
+        expectedException.expectMessage("Cannot cast `'POINT (foo)'` of type `text` to type `geo_point`");
         assertEvaluate("longitude('POINT (foo)')", null);
     }
 }
