@@ -27,6 +27,10 @@ public final class MutableLong {
     private long value;
     private boolean hasValue = false;
 
+    public MutableLong(long value) {
+        this.value = value;
+    }
+
     public boolean hasValue() {
         return hasValue;
     }
