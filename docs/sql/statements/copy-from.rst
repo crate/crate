@@ -176,6 +176,14 @@ Using the ``s3://`` schema automatically sets the `shared`_ to true.
    as '/', '+' or '='. These characters must be `URL encoded`_. For a detailed
    explanation read the official `AWS documentation`_.
 
+   To escape a secret key, you can use a snippet like this:
+
+   .. code-block:: console
+
+      sh$ python -c "from getpass import getpass; from urllib.parse import quote_plus; print(quote_plus(getpass('secret_key: ')))"
+
+   This will prompt for the secret key and print the encoded variant.
+
    Additionally, versions prior to 0.51.x use HTTP for connections to S3. Since
    0.51.x these connections are using the HTTPS protocol. Please make sure you
    update your firewall rules to allow outgoing connections on port ``443``.
