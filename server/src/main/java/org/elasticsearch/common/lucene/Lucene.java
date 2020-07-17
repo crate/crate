@@ -77,7 +77,7 @@ import java.util.Map;
 public class Lucene {
     public static final String LATEST_DOC_VALUES_FORMAT = "Lucene80";
     public static final String LATEST_POSTINGS_FORMAT = "Lucene50";
-    public static final String LATEST_CODEC = "Lucene84";
+    public static final String LATEST_CODEC = "Lucene86";
 
     static {
         Deprecated annotation = PostingsFormat.forName(LATEST_POSTINGS_FORMAT).getClass().getAnnotation(Deprecated.class);
