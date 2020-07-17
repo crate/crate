@@ -26,6 +26,10 @@ public final class MutableDouble {
     private double value;
     private boolean hasValue = false;
 
+    public MutableDouble(double value) {
+        this.value = value;
+    }
+
     public boolean hasValue() {
         return hasValue;
     }

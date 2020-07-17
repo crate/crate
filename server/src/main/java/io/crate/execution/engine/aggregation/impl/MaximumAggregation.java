@@ -87,7 +87,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
         @Override
         public MutableLong initialState() {
-            return new MutableLong();
+            return new MutableLong(Long.MIN_VALUE);
         }
 
         @Override
@@ -129,7 +129,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
         @Override
         public MutableDouble initialState() {
-            return new MutableDouble();
+            return new MutableDouble(Double.MIN_VALUE);
         }
 
         @Override
