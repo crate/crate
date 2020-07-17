@@ -57,6 +57,10 @@ Changes
 Fixes
 =====
 
+- Increased the default interval for `stats.service.interval
+  <stats.service.interval>` from one hour to 24 hours because invoking it every
+  hour caused significant extra load on a cluster.
+
 - Updated the bundled JDK to 14.0.2-12
 
 - Fixed an issue that caused ``SHOW CREATE TABLE`` to print columns of type
