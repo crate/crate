@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
+- Allow all users to execute ``DISCARD`` and ``SET TRANSACTION`` statement.
+  These are session local statements and shouldn't require special privileges.
+
 - Updated the bundled JDK to 14.0.2-12
 
 - Increased the default interval for `stats.service.interval
