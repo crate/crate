@@ -57,6 +57,9 @@ Changes
 Fixes
 =====
 
+- Allow all users to execute ``DISCARD`` and ``SET TRANSACTION`` statement.
+  These are session local statements and shouldn't require special privileges.
+
 - Increased the default interval for `stats.service.interval
   <stats.service.interval>` from one hour to 24 hours because invoking it every
   hour caused significant extra load on a cluster.
