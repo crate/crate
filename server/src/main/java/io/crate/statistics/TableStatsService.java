@@ -54,7 +54,7 @@ public class TableStatsService implements Runnable {
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
     public static final CrateSetting<TimeValue> STATS_SERVICE_REFRESH_INTERVAL_SETTING = CrateSetting.of(Setting.timeSetting(
-        "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic),
+        "stats.service.interval", TimeValue.timeValueHours(24), Setting.Property.NodeScope, Setting.Property.Dynamic),
         DataTypes.STRING);
 
     static final String STMT = "ANALYZE";
