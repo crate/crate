@@ -66,7 +66,7 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Symbol toSourceLookup(Symbol tree, Predicate<Reference> condition) {
+    public static Symbol toSourceLookup(Symbol tree, Predicate<? super Reference> condition) {
         return RefReplacer.replaceRefs(tree, r -> toSourceLookup(r, condition));
     }
 
@@ -82,7 +82,7 @@ public final class DocReferences {
         return toSourceLookup(reference, r -> true);
     }
 
-    private static Reference toSourceLookup(Reference reference, Predicate<Reference> condition) {
+    private static Reference toSourceLookup(Reference reference, Predicate<? super Reference> condition) {
         ReferenceIdent ident = reference.ident();
         if (ident.columnIdent().isSystemColumn()) {
             return reference;

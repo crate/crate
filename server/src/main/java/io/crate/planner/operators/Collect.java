@@ -145,7 +145,8 @@ public class Collect implements LogicalPlan {
         );
         var binder = new SubQueryAndParamBinder(params, subQueryResults)
             .andThen(x -> normalizer.normalize(x, plannerContext.transactionContext()));
-        RoutedCollectPhase collectPhase = createPhase(plannerContext, binder);
+        List<Symbol> orderBySymbols = order == null ? List.of() : Lists2.map(order.orderBySymbols(), binder);
+        RoutedCollectPhase collectPhase = createPhase(plannerContext, binder, orderBySymbols);
         PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
         if (positionalOrderBy != null) {
             collectPhase.orderBy(
@@ -227,7 +228,9 @@ public class Collect implements LogicalPlan {
         }
     }
 
-    private RoutedCollectPhase createPhase(PlannerContext plannerContext, java.util.function.Function<Symbol, Symbol> binder) {
+    private RoutedCollectPhase createPhase(PlannerContext plannerContext,
+                                           java.util.function.Function<Symbol, Symbol> binder,
+                                           List<Symbol> orderBySymbols) {
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
 
         // bind all parameters and possible subQuery values and re-analyze the query
@@ -246,6 +249,9 @@ public class Collect implements LogicalPlan {
         }
 
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
+        List<Symbol> toCollect = preferSourceLookup && tableInfo instanceof DocTableInfo
+            ? Lists2.map(boundOutputs, x -> orderBySymbols.contains(x) ? x : DocReferences.toSourceLookup(x))
+            : boundOutputs;
         return new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -256,9 +262,7 @@ public class Collect implements LogicalPlan {
                 RoutingProvider.ShardSelection.ANY,
                 sessionContext),
             tableInfo.rowGranularity(),
-            preferSourceLookup && tableInfo instanceof DocTableInfo
-                ? Lists2.map(boundOutputs, DocReferences::toSourceLookup)
-                : boundOutputs,
+            toCollect,
             Collections.emptyList(),
             Optimizer.optimizeCasts(where.queryOrFallback(), plannerContext),
             DistributionInfo.DEFAULT_BROADCAST

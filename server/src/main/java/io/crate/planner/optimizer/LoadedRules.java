@@ -50,6 +50,7 @@ import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
+import io.crate.planner.optimizer.rule.RewriteToSourceLookupWithoutAggregates;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -86,7 +87,8 @@ public class LoadedRules implements SessionSettingProvider {
         new RewriteCollectToGet(),
         new RewriteGroupByKeysLimitToTopNDistinct(),
         new RewriteInsertFromSubQueryToInsertFromValues(),
-        new RewriteToQueryThenFetch()
+        new RewriteToQueryThenFetch(),
+        new RewriteToSourceLookupWithoutAggregates()
     );
 
     @Override

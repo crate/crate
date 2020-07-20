@@ -68,6 +68,7 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
@@ -1006,5 +1007,23 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         // this must not fail
         e.plan(stmt, UUID.randomUUID(), 0, new RowN("foo"));
+    }
+
+    @Test
+    public void test_order_by_without_limit_on_doc_table_uses_source_lookups() throws Exception {
+        String stmt = "select id, name, text from users order by name";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "OrderBy[name ASC]\n  " +
+            "└ Collect[doc.users | [id, name, text] | true]";
+        assertThat(plan, isPlan(expectedPlan));
+
+        Merge merge = e.plan(stmt);
+        Collect collect = (Collect) merge.subPlan();
+        assertThat(collect.collectPhase().toCollect(), contains(
+            SymbolMatchers.isReference("_doc['id']"),
+            SymbolMatchers.isReference("name"),
+            SymbolMatchers.isReference("_doc['text']")
+        ));
     }
 }

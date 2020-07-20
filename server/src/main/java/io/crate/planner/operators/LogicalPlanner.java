@@ -86,6 +86,7 @@ import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
+import io.crate.planner.optimizer.rule.RewriteToSourceLookupWithoutAggregates;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -141,7 +142,8 @@ public class LogicalPlanner {
                     MoveOrderBeneathRename.class,
                     DeduplicateOrder.class,
                     RewriteCollectToGet.class,
-                    RewriteGroupByKeysLimitToTopNDistinct.class
+                    RewriteGroupByKeysLimitToTopNDistinct.class,
+                    RewriteToSourceLookupWithoutAggregates.class
                 )
             )
         );
