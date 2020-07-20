@@ -201,6 +201,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
                                         "Superuser permissions are required");
         analyze("kill all");
+        assertThat(validationCallArguments.size(), is(0));
     }
 
     @Test
@@ -486,6 +487,18 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_a_user_with_al_can_revoke_privileges_from_users() {
         analyze("REVOKE DQL ON SCHEMA foo FROM joe");
         assertAskedForCluster(Privilege.Type.AL);
+    }
+
+    @Test
+    public void test_any_user_can_execute_discard() throws Exception {
+        analyze("discard all");
+        assertThat(validationCallArguments.size(), is(0));
+    }
+
+    @Test
+    public void test_any_user_can_execute_set_transaction() throws Exception {
+        analyze("SET TRANSACTION READ ONLY");
+        assertThat(validationCallArguments.size(), is(0));
     }
 }
 
