@@ -48,6 +48,8 @@ None
 Changes
 =======
 
+- Added table function :ref:`generate_subscripts <table-functions-generate-subscripts>`
+
 - Changed the privileges for ``KILL``, all users are now allowed to kill their
   own statements.
 
