@@ -22,6 +22,20 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import org.elasticsearch.Version;
+
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -88,19 +102,6 @@ import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
 /**
  * Planner which can create a {@link ExecutionPlan} using intermediate {@link LogicalPlan} nodes.
@@ -185,14 +186,14 @@ public class LogicalPlanner {
         }
         PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, fetchSize);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
-        LogicalPlan plan = plan(
-            relation,
+        var planBuilder = new PlanBuilder(
             subqueryPlanner,
             txnCtx,
             Set.of(),
             tableStats,
             subSelectPlannerContext.params()
         );
+        LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
         LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), tableStats, txnCtx);
@@ -218,40 +219,36 @@ public class LogicalPlanner {
     }
 
 
-    public LogicalPlan normalizeAndPlan(AnalyzedRelation relation,
-                                        PlannerContext plannerContext,
-                                        SubqueryPlanner subqueryPlanner,
-                                        Set<PlanHint> hints) {
+    public LogicalPlan plan(AnalyzedRelation relation,
+                            PlannerContext plannerContext,
+                            SubqueryPlanner subqueryPlanner,
+                            Set<PlanHint> hints) {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
-        LogicalPlan logicalPlan = plan(
-            relation,
+        var planBuilder = new PlanBuilder(
             subqueryPlanner,
             coordinatorTxnCtx,
             hints,
             tableStats,
-            plannerContext.params());
+            plannerContext.params()
+        );
+        LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
-        return fetchOptimizer.optimize(
-            optimizedPlan.pruneOutputsExcept(tableStats, relation.outputs()),
+        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(tableStats, relation.outputs());
+        LogicalPlan fetchOptimized = fetchOptimizer.optimize(
+            prunedPlan,
             tableStats,
             coordinatorTxnCtx
         );
-    }
-
-    static LogicalPlan plan(AnalyzedRelation relation,
-                            SubqueryPlanner subqueryPlanner,
-                            CoordinatorTxnCtx txnCtx,
-                            Set<PlanHint> hints,
-                            TableStats tableStats,
-                            Row params) {
-        var planBuilder = new PlanBuilder(
-            subqueryPlanner,
-            txnCtx,
-            hints,
-            tableStats,
-            params
-        );
-        return relation.accept(planBuilder, relation.outputs());
+        if (fetchOptimized != prunedPlan || hints.contains(PlanHint.AVOID_TOP_LEVEL_FETCH)) {
+            return fetchOptimized;
+        }
+        // Doing a second pass here to also rewrite additional plan patterns to "Fetch"
+        // The `fetchOptimizer` operators on `Limit - X` fragments of a tree.
+        // This here instead operators on a narrow selection of top-level patterns
+        //
+        // The reason for this is that some plans are cheaper to execute as fetch
+        // even if there is no operator that reduces the number of records
+        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized, tableStats);
     }
 
     static class PlanBuilder extends AnalyzedRelationVisitor<List<Symbol>, LogicalPlan> {
@@ -542,7 +539,7 @@ public class LogicalPlanner {
         @Override
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
-            LogicalPlan logicalPlan = normalizeAndPlan(relation, context, subqueryPlanner, Set.of());
+            LogicalPlan logicalPlan = plan(relation, context, subqueryPlanner, Set.of());
             return new RootRelationBoundary(logicalPlan);
         }
 

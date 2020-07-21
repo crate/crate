@@ -28,7 +28,9 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -36,6 +38,8 @@ import io.crate.planner.PositionalOrderBy;
 import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -108,14 +112,20 @@ public final class Eval extends ForwardingLogicalPlan {
         if (fetchRewrite == null) {
             return null;
         }
+        LogicalPlan newSource = fetchRewrite.newPlan();
         Function<Symbol, Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
         LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>();
+        ArrayList<Symbol> newOutputs = new ArrayList<>();
+        for (Symbol sourceOutput : newSource.outputs()) {
+            if (sourceOutput instanceof FetchMarker) {
+                newOutputs.add(sourceOutput);
+            }
+        }
         for (Symbol output : outputs) {
             newReplacedOutputs.put(output, mapToFetchStubs.apply(output));
+            SymbolVisitors.intersection(output, newSource.outputs(), newOutputs::add);
         }
-        // Skip the Eval operator,
-        // the evaluations that the `Eval` operator took care of are now part of the replacedOutputs.
-        return new FetchRewrite(newReplacedOutputs, fetchRewrite.newPlan());
+        return new FetchRewrite(newReplacedOutputs, Eval.create(newSource, newOutputs));
     }
 
     private ExecutionPlan addEvalProjection(PlannerContext plannerContext,

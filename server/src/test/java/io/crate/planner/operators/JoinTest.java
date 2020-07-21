@@ -111,7 +111,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.from(),
             mss.where(),
             mss.joinPairs(),
-            rel -> logicalPlanner.normalizeAndPlan(rel, plannerCtx, subqueryPlanner, Set.of()),
+            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, Set.of()),
             txnCtx.sessionContext().isHashJoinEnabled()
         );
     }
@@ -202,7 +202,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.from(),
             mss.where(),
             mss.joinPairs(),
-            rel -> logicalPlanner.normalizeAndPlan(rel, plannerCtx, subqueryPlanner, Set.of()),
+            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, Set.of()),
             false
         );
         Join nl = (Join) operator.build(

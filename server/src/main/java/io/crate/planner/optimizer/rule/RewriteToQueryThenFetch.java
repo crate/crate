@@ -22,6 +22,14 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -29,22 +37,31 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.fetch.FetchSource;
+import io.crate.planner.operators.Collect;
+import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Fetch;
 import io.crate.planner.operators.FetchRewrite;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.Order;
+import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-
 public final class RewriteToQueryThenFetch implements Rule<Limit> {
+
+    private static final Pattern<Order> ORDER_COLLECT = typeOf(Order.class)
+        .with(source(), typeOf(Collect.class));
+
+    private static final Pattern<Rename> RENAME_ORDER_COLLECT = typeOf(Rename.class)
+        .with(
+            source(),
+            typeOf(Order.class)
+                .with(source(), typeOf(Collect.class))
+        );
 
     private final Pattern<Limit> pattern;
     private volatile boolean enabled = true;
@@ -89,5 +106,35 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
             fetchSourceByRelation,
             limit.replaceSources(List.of(fetchRewrite.newPlan()))
         );
+    }
+
+
+    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats) {
+        Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty());
+        if (match.isPresent()) {
+            return doRewrite(relation, plan, tableStats);
+        }
+        match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty());
+        if (match.isPresent()) {
+            return doRewrite(relation, plan, tableStats);
+        }
+        return plan;
+    }
+
+    private static LogicalPlan doRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats) {
+        FetchRewrite fetchRewrite = plan.rewriteToFetch(tableStats, List.of());
+        if (fetchRewrite == null) {
+            return plan;
+        }
+        List<Reference> fetchRefs = fetchRewrite.extractFetchRefs();
+        Map<RelationName, FetchSource> fetchSourceByRelation = fetchRewrite.createFetchSources();
+        Fetch fetch = new Fetch(
+            fetchRewrite.replacedOutputs(),
+            fetchRefs,
+            fetchSourceByRelation,
+            fetchRewrite.newPlan()
+
+        );
+        return Eval.create(fetch, relation.outputs());
     }
 }
