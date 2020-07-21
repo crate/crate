@@ -22,8 +22,8 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -43,7 +43,7 @@ public interface InsertSourceGen {
     Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException;
 
     static InsertSourceGen of(TransactionContext txnCtx,
-                              Functions functions,
+                              NodeContext nodeCtx,
                               DocTableInfo table,
                               String indexName,
                               GeneratedColumns.Validation validation,
@@ -52,9 +52,9 @@ public interface InsertSourceGen {
             if (table.generatedColumns().isEmpty() && table.defaultExpressionColumns().isEmpty()) {
                 return new FromRawInsertSource();
             } else {
-                return new GeneratedColsFromRawInsertSource(txnCtx, functions, table.generatedColumns(), table.defaultExpressionColumns());
+                return new GeneratedColsFromRawInsertSource(txnCtx, nodeCtx, table.generatedColumns(), table.defaultExpressionColumns());
             }
         }
-        return new InsertSourceFromCells(txnCtx, functions, table, indexName, validation, targets);
+        return new InsertSourceFromCells(txnCtx, nodeCtx, table, indexName, validation, targets);
     }
 }

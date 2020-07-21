@@ -28,7 +28,6 @@ import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -61,7 +60,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
@@ -74,8 +72,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "locations");
 
     private SQLExecutor e;
-    private Functions functions = getFunctions();
-    private ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
+    private ProjectionBuilder projectionBuilder;
     private PlannerContext plannerCtx;
     private CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
@@ -89,6 +86,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T3_DEFINITION)
             .addTable(T3.T4_DEFINITION)
             .build();
+        projectionBuilder = new ProjectionBuilder(e.nodeCtx);
         plannerCtx = e.getPlannerContext(clusterService.state());
     }
 
@@ -99,7 +97,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     private LogicalPlan createLogicalPlan(QueriedSelectRelation mss, TableStats tableStats) {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
-            functions,
+            e.nodeCtx,
             tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
@@ -189,7 +187,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
         LogicalPlanner logicalPlanner = new LogicalPlanner(
-            functions,
+            e.nodeCtx,
             tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
@@ -219,7 +217,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext context = e.getPlannerContext(clusterService.state());
         context.transactionContext().sessionContext().setHashJoinEnabled(false);
         LogicalPlanner logicalPlanner = new LogicalPlanner(
-            functions,
+            e.nodeCtx,
             tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
@@ -412,7 +410,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         QueriedSelectRelation mss = e.analyze("select * from t1, t4 order by t1.x");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
-            functions,
+            e.nodeCtx,
             tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
@@ -431,7 +429,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "JOIN t2 t2 on t1.a = t2.b " +
                                               "JOIN t3 t3 on t3.c = t2.b");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
-            functions,
+            e.nodeCtx,
             new TableStats(),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );

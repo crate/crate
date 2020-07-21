@@ -24,6 +24,7 @@ package io.crate.expression.scalar.string;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -51,7 +52,7 @@ public final class ChrFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         assert args.length == 1 : "chr takes exactly one argument";
         var value = args[0].value();
         if (value == null) {

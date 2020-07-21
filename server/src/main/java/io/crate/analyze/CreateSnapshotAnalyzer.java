@@ -29,7 +29,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
@@ -45,11 +45,11 @@ import java.util.UUID;
 class CreateSnapshotAnalyzer {
 
     private final RepositoryService repositoryService;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
-    CreateSnapshotAnalyzer(RepositoryService repositoryService, Functions functions) {
+    CreateSnapshotAnalyzer(RepositoryService repositoryService, NodeContext nodeCtx) {
         this.repositoryService = repositoryService;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
     }
 
     public AnalyzedCreateSnapshot analyze(CreateSnapshot<Expression> createSnapshot,
@@ -68,9 +68,9 @@ class CreateSnapshotAnalyzer {
 
         var exprCtx = new ExpressionAnalysisContext();
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
 
         List<Table<Symbol>> tables = Lists2.map(
             createSnapshot.tables(),

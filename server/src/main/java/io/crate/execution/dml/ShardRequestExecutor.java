@@ -32,8 +32,8 @@ import io.crate.data.RowN;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -65,7 +65,7 @@ public class ShardRequestExecutor<Req> {
 
     private final ClusterService clusterService;
     private final TransactionContext txnCtx;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final DocTableInfo table;
     private final RequestGrouper<Req> grouper;
     private final BiConsumer<Req, ActionListener<ShardResponse>> transportAction;
@@ -89,14 +89,14 @@ public class ShardRequestExecutor<Req> {
 
     public ShardRequestExecutor(ClusterService clusterService,
                                 TransactionContext txnCtx,
-                                Functions functions,
+                                NodeContext nodeCtx,
                                 DocTableInfo table,
                                 RequestGrouper<Req> grouper,
                                 BiConsumer<Req, ActionListener<ShardResponse>> transportAction,
                                 DocKeys docKeys) {
         this.clusterService = clusterService;
         this.txnCtx = txnCtx;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.table = table;
         this.grouper = grouper;
         this.transportAction = transportAction;
@@ -147,12 +147,12 @@ public class ShardRequestExecutor<Req> {
 
     private int addRequests(int location, Row parameters, Map<ShardId, Req> requests, SubQueryResults subQueryResults) {
         for (DocKeys.DocKey docKey : docKeys) {
-            String id = docKey.getId(txnCtx, functions, parameters, subQueryResults);
+            String id = docKey.getId(txnCtx, nodeCtx, parameters, subQueryResults);
             if (id == null) {
                 continue;
             }
-            String routing = docKey.getRouting(txnCtx, functions, parameters, subQueryResults);
-            List<String> partitionValues = docKey.getPartitionValues(txnCtx, functions, parameters, subQueryResults);
+            String routing = docKey.getRouting(txnCtx, nodeCtx, parameters, subQueryResults);
+            List<String> partitionValues = docKey.getPartitionValues(txnCtx, nodeCtx, parameters, subQueryResults);
             final String indexName;
             if (partitionValues == null) {
                 indexName = table.ident().indexNameOrAlias();
@@ -173,9 +173,9 @@ public class ShardRequestExecutor<Req> {
                 request = grouper.newRequest(shardId);
                 requests.put(shardId, request);
             }
-            Long version = docKey.version(txnCtx, functions, parameters, subQueryResults).orElse(null);
-            Long seqNo = docKey.sequenceNo(txnCtx, functions, parameters, subQueryResults).orElse(null);
-            Long primaryTerm = docKey.primaryTerm(txnCtx, functions, parameters, subQueryResults).orElse(null);
+            Long version = docKey.version(txnCtx, nodeCtx, parameters, subQueryResults).orElse(null);
+            Long seqNo = docKey.sequenceNo(txnCtx, nodeCtx, parameters, subQueryResults).orElse(null);
+            Long primaryTerm = docKey.primaryTerm(txnCtx, nodeCtx, parameters, subQueryResults).orElse(null);
             grouper.addItem(request, location, id, version, seqNo, primaryTerm);
             location++;
         }

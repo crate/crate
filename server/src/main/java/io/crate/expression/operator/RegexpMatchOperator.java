@@ -22,6 +22,7 @@
 package io.crate.expression.operator;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -64,7 +65,7 @@ public class RegexpMatchOperator extends Operator<String> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<String>[] args) {
+    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) {
         assert args.length == 2 : "invalid number of arguments";
         String source = args[0].value();
         if (source == null) {

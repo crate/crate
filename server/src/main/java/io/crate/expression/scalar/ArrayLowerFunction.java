@@ -23,6 +23,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -70,7 +71,7 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
     }
 
     @Override
-    public Integer evaluate(TransactionContext txnCtx, Input[] args) {
+    public Integer evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         @SuppressWarnings("unchecked")
         List<Object> values = (List<Object>) args[0].value();
         Object dimension1Indexed = args[1].value();

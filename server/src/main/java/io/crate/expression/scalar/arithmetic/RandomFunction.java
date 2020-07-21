@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -59,7 +60,7 @@ public class RandomFunction extends Scalar<Double, Void> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
         /* There is no evaluation here, so the function is executed
            per row. Else every row would contain the same random value*/
         assert symbol.arguments().size() == 0 : "function's number of arguments must be 0";
@@ -78,7 +79,7 @@ public class RandomFunction extends Scalar<Double, Void> {
     }
 
     @Override
-    public Double evaluate(TransactionContext txnCtx, Input[] args) {
+    public Double evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 0 : "number of args must be 0";
         return this.random.nextDouble();
     }

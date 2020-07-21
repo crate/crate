@@ -38,7 +38,7 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
@@ -86,7 +86,7 @@ public class AlterTableReroutePlan implements Plan {
         var rerouteCommand = createRerouteCommand(
             rerouteStatement,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            dependencies.nodeContext(),
             params,
             subQueryResults,
             dependencies.clusterService().state().nodes());
@@ -103,13 +103,13 @@ public class AlterTableReroutePlan implements Plan {
     @VisibleForTesting
     public static AllocationCommand createRerouteCommand(AnalyzedStatement reroute,
                                                          CoordinatorTxnCtx txnCtx,
-                                                         Functions functions,
+                                                         NodeContext nodeCtx,
                                                          Row parameters,
                                                          SubQueryResults subQueryResults,
                                                          DiscoveryNodes nodes) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
-            functions,
+            nodeCtx,
             x,
             parameters,
             subQueryResults

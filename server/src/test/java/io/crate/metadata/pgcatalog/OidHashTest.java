@@ -28,10 +28,13 @@ import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
 import static io.crate.metadata.pgcatalog.OidHash.relationOid;
@@ -69,5 +72,16 @@ public class OidHashTest extends CrateDummyClusterServiceUnitTest {
     public void testConstraintOid() {
         assertThat(constraintOid(T1.fqn(), "id_pk", ConstraintInfo.Type.PRIMARY_KEY.toString()),
             is(279835673));
+    }
+
+    @Test
+    public void test_argTypesToStr() {
+        assertThat(OidHash
+                       .argTypesToStr(List.of(
+                           TypeSignature.parseTypeSignature("array(array(E))"),
+                           TypeSignature.parseTypeSignature("array(Q)"),
+                           TypeSignature.parseTypeSignature("P"),
+                           DataTypes.INTEGER.getTypeSignature()
+                       )), is("array_array_E array_Q P integer"));
     }
 }

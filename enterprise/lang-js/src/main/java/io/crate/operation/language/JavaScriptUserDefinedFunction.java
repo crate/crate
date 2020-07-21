@@ -20,6 +20,7 @@ package io.crate.operation.language;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -60,7 +61,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         try {
             var function = resolvePolyglotFunctionValue(signature.getName().name(), script);
             var polyglotValueArgs = PolyglotValuesConverter.toPolyglotValues(args);
@@ -96,7 +97,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         }
 
         @Override
-        public final Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+        public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
             var polyglotValueArgs = PolyglotValuesConverter.toPolyglotValues(args);
             try {
                 return toCrateObject(

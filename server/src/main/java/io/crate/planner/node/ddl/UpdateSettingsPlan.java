@@ -75,7 +75,7 @@ public final class UpdateSettingsPlan implements Plan {
                               SubQueryResults subQueryResults) {
 
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(plannerContext.transactionContext(),
-                                                                              plannerContext.functions(),
+                                                                              plannerContext.nodeContext(),
                                                                               x,
                                                                               params,
                                                                               subQueryResults);

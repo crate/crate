@@ -26,6 +26,7 @@ import com.google.common.collect.Iterators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -149,7 +150,7 @@ public class UnnestFunction {
          */
         @SafeVarargs
         @Override
-        public final Iterable<Row> evaluate(TransactionContext txnCtx, Input<List<Object>>... arguments) {
+        public final Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... arguments) {
             ArrayList<List<Object>> valuesPerColumn = new ArrayList<>(arguments.length);
             for (Input<List<Object>> argument : arguments) {
                 valuesPerColumn.add(argument.value());

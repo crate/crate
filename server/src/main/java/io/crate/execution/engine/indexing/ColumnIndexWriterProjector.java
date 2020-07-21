@@ -37,7 +37,7 @@ import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -61,7 +61,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       ScheduledExecutorService scheduler,
                                       Executor executor,
                                       TransactionContext txnCtx,
-                                      Functions functions,
+                                      NodeContext nodeCtx,
                                       Settings settings,
                                       int targetTableNumShards,
                                       int targetTableNumReplicas,
@@ -82,7 +82,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       UUID jobId
                                       ) {
         RowShardResolver rowShardResolver = new RowShardResolver(
-            txnCtx, functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+            txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         assert columnReferences.size() == insertInputs.size()
             : "number of insert inputs must be equal to the number of columns";
 
@@ -92,7 +92,7 @@ public class ColumnIndexWriterProjector implements Projector {
             updateColumnNames = null;
             assignments = null;
         } else {
-            Assignments convert = Assignments.convert(updateAssignments, functions);
+            Assignments convert = Assignments.convert(updateAssignments, nodeCtx);
             updateColumnNames = convert.targetNames();
             assignments = convert.sources();
         }

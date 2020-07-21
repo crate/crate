@@ -23,6 +23,7 @@
 package io.crate.expression;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 
@@ -33,16 +34,21 @@ public final class FunctionExpression<ReturnType, InputType> implements Input<Re
     private final Input<InputType>[] arguments;
     private final Scalar<ReturnType, InputType> scalar;
     private final TransactionContext txnCtx;
+    private final NodeContext nodeCtx;
 
-    public FunctionExpression(TransactionContext txnCtx, Scalar<ReturnType, InputType> scalar, Input<InputType>[] arguments) {
+    public FunctionExpression(TransactionContext txnCtx,
+                              NodeContext nodeCtx,
+                              Scalar<ReturnType, InputType> scalar,
+                              Input<InputType>[] arguments) {
         this.txnCtx = txnCtx;
+        this.nodeCtx = nodeCtx;
         this.scalar = scalar;
         this.arguments = arguments;
     }
 
     @Override
     public ReturnType value() {
-        return scalar.evaluate(txnCtx, arguments);
+        return scalar.evaluate(txnCtx, nodeCtx, arguments);
     }
 
     @Override

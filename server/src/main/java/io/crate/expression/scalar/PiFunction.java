@@ -23,6 +23,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -52,7 +53,7 @@ public final class PiFunction extends Scalar<Double, Object> {
 
     @Override
     @SafeVarargs
-    public final Double evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public final Double evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         return Math.PI;
     }
 

@@ -23,6 +23,7 @@
 package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -50,7 +51,7 @@ abstract class ConditionalCompareFunction extends Scalar<Object, Object> impleme
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         assert args != null : "args must not be null";
         assert args.length > 0 : "number of args must be > 1";
 

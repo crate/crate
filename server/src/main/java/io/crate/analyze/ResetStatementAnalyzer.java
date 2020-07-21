@@ -26,7 +26,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ResetStatement;
 
@@ -34,18 +34,18 @@ import java.util.HashSet;
 
 public class ResetStatementAnalyzer {
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
-    public ResetStatementAnalyzer(Functions functions) {
-        this.functions = functions;
+    public ResetStatementAnalyzer(NodeContext nodeCtx) {
+        this.nodeCtx = nodeCtx;
     }
 
     public AnalyzedResetStatement analyze(ResetStatement<Expression> node,
                                           ParamTypeHints typeHints,
                                           CoordinatorTxnCtx txnCtx) {
         var exprAnalyzer = new ExpressionAnalyzer(
-            functions,
             txnCtx,
+            nodeCtx,
             typeHints,
             FieldProvider.FIELDS_AS_LITERAL,
             null

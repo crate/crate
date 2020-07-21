@@ -23,6 +23,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -59,7 +60,7 @@ public final class DoubleScalar extends Scalar<Double, Number> {
 
     @SafeVarargs
     @Override
-    public final Double evaluate(TransactionContext txnCtx, Input<Number>... args) {
+    public final Double evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Number>... args) {
         assert args.length == 1 : "DoubleScalar expects exactly 1 argument, got: " + args.length;
         Number value = args[0].value();
         if (value == null) {

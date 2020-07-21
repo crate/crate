@@ -72,7 +72,7 @@ public class SetSessionPlan implements Plan {
                               SubQueryResults subQueryResults) throws Exception {
 
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(plannerContext.transactionContext(),
-                                                                              plannerContext.functions(),
+                                                                              plannerContext.nodeContext(),
                                                                               x,
                                                                               params,
                                                                               subQueryResults);

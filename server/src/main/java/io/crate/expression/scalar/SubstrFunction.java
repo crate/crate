@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -75,7 +76,7 @@ public class SubstrFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, Input[] args) {
+    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 2 || args.length == 3 : "number of arguments must be 2 or 3";
         String val = (String) args[0].value();
         if (val == null) {

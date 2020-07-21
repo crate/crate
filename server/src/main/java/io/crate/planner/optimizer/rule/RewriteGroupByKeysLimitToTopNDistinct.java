@@ -25,7 +25,7 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import org.elasticsearch.Version;
 
 import io.crate.expression.symbol.Literal;
@@ -164,7 +164,7 @@ public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> 
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             Functions functions) {
+                             NodeContext nodeCtx) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
         if (!eagerTerminateIsLikely(limit, groupBy)) {
             return null;

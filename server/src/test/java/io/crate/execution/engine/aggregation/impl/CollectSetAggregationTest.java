@@ -57,7 +57,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionImplementation collectSet = functions.get(
+        FunctionImplementation collectSet = nodeCtx.functions().get(
             null, "collect_set", ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
         assertEquals(new ArrayType<>(DataTypes.INTEGER), collectSet.info().returnType());
     }
@@ -71,7 +71,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testLongSerialization() throws Exception {
-        AggregationFunction impl = (AggregationFunction) functions.get(
+        AggregationFunction impl = (AggregationFunction) nodeCtx.functions().get(
                 null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
 
         Object state = impl.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
@@ -85,7 +85,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void test_value_adding_and_removal() {
-        AggregationFunction impl = (AggregationFunction) functions.get(
+        AggregationFunction impl = (AggregationFunction) nodeCtx.functions().get(
             null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
         AggregationFunction aggregationFunction = impl.optimizeForExecutionAsWindowFunction();
 

@@ -27,6 +27,7 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -178,7 +179,7 @@ public final class TrimFunctions {
         }
 
         @Override
-        public String evaluate(TransactionContext txnCtx, Input<String>[] args) {
+        public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) {
             assert args.length == 3 : "number of args must be 3";
             String target = args[0].value();
             if (target == null) {
@@ -218,7 +219,7 @@ public final class TrimFunctions {
         }
 
         @Override
-        public String evaluate(TransactionContext txnCtx, Input<String>[] args) {
+        public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) {
             String target = args[0].value();
             if (target == null) {
                 return null;
@@ -264,7 +265,7 @@ public final class TrimFunctions {
         }
 
         @Override
-        public String evaluate(TransactionContext txnCtx, Input<String>[] args) {
+        public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) {
             assert args.length == 1 || args.length == 2 : "number of args must be 1 or 2";
 
             String target = args[0].value();

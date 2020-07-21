@@ -24,7 +24,6 @@ package io.crate.execution.engine.collect.stats;
 
 import static io.crate.planner.Plan.StatementType.SELECT;
 import static io.crate.planner.Plan.StatementType.UNDEFINED;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -47,6 +46,7 @@ import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import io.crate.metadata.NodeContext;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -69,17 +69,21 @@ import io.crate.planner.operators.StatementClassifier.Classification;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     private ScheduledExecutorService scheduler;
     private HierarchyCircuitBreakerService breakerService;
     private ClusterSettings clusterSettings;
+    private NodeContext nodeCtx;
 
     @Before
     public void createScheduler() {
         clusterSettings = clusterService.getClusterSettings();
         breakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, clusterSettings);
         scheduler = Executors.newSingleThreadScheduledExecutor();
+        nodeCtx = createNodeContext();
     }
 
     @After
@@ -95,7 +99,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDefaultSettings() {
-        JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterService::localNode, clusterSettings, getFunctions(), scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
         assertThat(stats.isEnabled(), is(true));
         assertThat(stats.jobsLogSize, is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault()));
         assertThat(stats.operationsLogSize, is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
@@ -111,7 +115,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "stmt like 'select%'")
             .build();
         JobsLogService stats = new JobsLogService(
-            settings, clusterService::localNode, clusterSettings, getFunctions(), scheduler, breakerService);
+            settings, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
         LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
         jobsLogSink.add(new JobContextLog(
@@ -125,7 +129,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFilterIsValidatedOnUpdate() {
         // creating the service registers the update listener
-        new JobsLogService(Settings.EMPTY, clusterService::localNode, clusterSettings, getFunctions(), scheduler, breakerService);
+        new JobsLogService(Settings.EMPTY, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
 
         expectedException.expectMessage("illegal value can't update [stats.jobs_log_filter] from [true] to [statement = 'x']");
         clusterSettings.applySettings(
@@ -139,7 +143,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         expectedException.expectMessage("Invalid filter expression: invalid_column = 10: Column invalid_column unknown");
-        new JobsLogService(settings, clusterService::localNode, clusterSettings, getFunctions(), scheduler, breakerService);
+        new JobsLogService(settings, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
     }
 
     @Test
@@ -154,7 +158,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
         JobsLogService stats = new JobsLogService(
-            settings, clusterService::localNode, clusterSettings, getFunctions(), scheduler, breakerService);
+            settings, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
         LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
         LogSink<OperationContextLog> operationsLogSink = (LogSink<OperationContextLog>) stats.get().operationsLog();
 
@@ -183,7 +187,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
         JobsLogService stats = new JobsLogService(
-            settings, clusterService::localNode, clusterSettings, getFunctions(), scheduler, breakerService);
+            settings, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
         Supplier<LogSink<JobContextLog>> jobsLogSink = () -> (LogSink<JobContextLog>) stats.get().jobsLog();
         Supplier<LogSink<OperationContextLog>> operationsLogSink = () -> (LogSink<OperationContextLog>) stats.get().operationsLog();
 
@@ -252,7 +256,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
         JobsLogService stats = new JobsLogService(
-            settings, clusterService::localNode, clusterSettings, getFunctions(), scheduler, breakerService);
+            settings, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
         LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
         LogSink<OperationContextLog> operationsLogSink = (LogSink<OperationContextLog>) stats.get().operationsLog();
 
@@ -287,7 +291,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
         JobsLogService jobsLogService = new JobsLogService(
-            settings, clusterService::localNode, clusterSettings, getFunctions(), scheduler, breakerService);
+            settings, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
         JobsLogs jobsLogs = jobsLogService.get();
 
         Classification classification =
@@ -333,7 +337,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
         JobsLogService jobsLogService = new JobsLogService(
-            settings, clusterService::localNode, clusterSettings, getFunctions(), scheduler, breakerService);
+            settings, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
         JobsLogs jobsLogs = jobsLogService.get();
 
         CountDownLatch latch = new CountDownLatch(2);

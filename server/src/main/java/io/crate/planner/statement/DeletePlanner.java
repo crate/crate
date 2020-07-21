@@ -42,7 +42,6 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -78,20 +77,19 @@ import static java.util.Objects.requireNonNull;
 
 public final class DeletePlanner {
 
-    public static Plan planDelete(Functions functions,
-                                  AnalyzedDeleteStatement delete,
+    public static Plan planDelete(AnalyzedDeleteStatement delete,
                                   SubqueryPlanner subqueryPlanner,
                                   PlannerContext context) {
-        Plan plan = planDelete(functions, delete, context);
+        Plan plan = planDelete(delete, context);
         return MultiPhasePlan.createIfNeeded(plan, subqueryPlanner.planSubQueries(delete));
     }
 
-    private static Plan planDelete(Functions functions, AnalyzedDeleteStatement delete, PlannerContext context) {
+    private static Plan planDelete(AnalyzedDeleteStatement delete, PlannerContext context) {
         DocTableRelation tableRel = delete.relation();
         DocTableInfo table = tableRel.tableInfo();
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(context.nodeContext());
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-            normalizer, delete.query(), table, context.transactionContext(), context.functions());
+            normalizer, delete.query(), table, context.transactionContext(), context.nodeContext());
 
         if (!detailedQuery.partitions().isEmpty()) {
             return new DeletePartitions(table.ident(), detailedQuery.partitions());
@@ -131,11 +129,10 @@ public final class DeletePlanner {
 
             WhereClause where = detailedQuery.toBoundWhereClause(
                 table.tableInfo(),
-                executor.functions(),
                 params,
                 subQueryResults,
-                plannerContext.transactionContext()
-            );
+                plannerContext.transactionContext(),
+                executor.nodeContext());
             if (!where.partitions().isEmpty() && !where.hasQuery()) {
                 DeleteIndexRequest request = new DeleteIndexRequest(where.partitions().toArray(new String[0]));
                 request.indicesOptions(IndicesOptions.lenientExpandOpen());
@@ -160,10 +157,10 @@ public final class DeletePlanner {
             for (Row params : bulkParams) {
                 WhereClause where = detailedQuery.toBoundWhereClause(
                     table.tableInfo(),
-                    executor.functions(),
                     params,
                     subQueryResults,
-                    plannerContext.transactionContext());
+                    plannerContext.transactionContext(),
+                    executor.nodeContext());
                 ExecutionPlan executionPlan = deleteByQuery(table, plannerContext, where);
                 nodeOperationTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
             }

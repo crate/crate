@@ -23,6 +23,7 @@ package io.crate.expression.scalar.timestamp;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -66,7 +67,7 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
 
     @Override
     @SafeVarargs
-    public final TimeTZ evaluate(TransactionContext txnCtx, Input<Integer>... args) {
+    public final TimeTZ evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Integer>... args) {
         Integer precision = MICRO_PRECISION;
         if (args.length == 1) {
             precision = args[0].value();

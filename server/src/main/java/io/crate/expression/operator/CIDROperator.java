@@ -24,6 +24,7 @@ package io.crate.expression.operator;
 
 import io.crate.common.collections.Tuple;
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -106,7 +107,7 @@ public final class CIDROperator {
         }
 
         @Override
-        public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+        public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
             assert args.length == 2 : "number of args must be 2";
             String left = (String) args[0].value();
             if (null == left) {

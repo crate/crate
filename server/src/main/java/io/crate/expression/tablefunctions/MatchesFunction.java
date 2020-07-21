@@ -28,6 +28,7 @@ import io.crate.data.RowN;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -139,7 +140,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
     }
 
     @Override
-    public Iterable<Row> evaluate(TransactionContext txnCtx, Input[] args) {
+    public Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 2 || args.length == 3 : "number of args must be 2 or 3";
 
         String value = (String) args[0].value();

@@ -24,6 +24,7 @@ package io.crate.expression.scalar.timestamp;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -89,7 +90,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public Long evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args.length == 2 : String.format(Locale.ENGLISH,
                                                 "number of arguments must be 2, got %d instead",
                                                 args.length);

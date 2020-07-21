@@ -70,7 +70,7 @@ public class RefreshTablePlan implements Plan {
 
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             x,
             parameters,
             subQueryResults

@@ -58,7 +58,7 @@ public class PgProcTable {
 
     public static SystemTable<Entry> create() {
         return SystemTable.<Entry>builder(IDENT)
-            .add("oid", INTEGER, x -> OidHash.functionOid(x.functionName))
+            .add("oid", INTEGER, x -> OidHash.regprocOid(x.functionName))
             .add("proname", STRING, x -> x.signature.getName().name())
             .add("pronamespace", INTEGER, x -> OidHash.schemaOid(x.functionName.schema()))
             .add("proowner", INTEGER, x -> null)

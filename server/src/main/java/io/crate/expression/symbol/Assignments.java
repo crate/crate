@@ -28,7 +28,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
@@ -61,7 +61,7 @@ public final class Assignments {
      *
      * @return a tuple or null if the input is null.
      */
-    public static Assignments convert(@Nonnull Map<Reference, ? extends Symbol> assignments, Functions functions) {
+    public static Assignments convert(@Nonnull Map<Reference, ? extends Symbol> assignments, NodeContext nodeCtx) {
         String[] targetNames = new String[assignments.size()];
         Reference[] targetColumns = new Reference[assignments.size()];
         Symbol[] assignmentSymbols = new Symbol[assignments.size()];
@@ -73,14 +73,14 @@ public final class Assignments {
             targetColumns[i] = key;
             i++;
         }
-        return new Assignments(targetNames, targetColumns, assignmentSymbols, functions);
+        return new Assignments(targetNames, targetColumns, assignmentSymbols, nodeCtx);
     }
 
-    private Assignments(String[] targetNames, Reference[] targetColumns, Symbol[] sources, Functions functions) {
+    private Assignments(String[] targetNames, Reference[] targetColumns, Symbol[] sources, NodeContext nodeCtx) {
         this.targetNames = targetNames;
         this.targetColumns = targetColumns;
         this.sources = sources;
-        this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
+        this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
     }
 
     public String[] targetNames() {

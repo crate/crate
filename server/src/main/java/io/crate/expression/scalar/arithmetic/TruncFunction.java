@@ -24,6 +24,7 @@ package io.crate.expression.scalar.arithmetic;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -93,7 +94,7 @@ public final class TruncFunction {
             }
 
             @Override
-            public Number evaluate(TransactionContext txnCtx, Input<Number>... args) {
+            public Number evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Number>... args) {
                 Number n = args[0].value();
                 Number nd = args[1].value();
                 if (null == n || null == nd) {

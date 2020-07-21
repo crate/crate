@@ -23,6 +23,7 @@ package io.crate.expression.operator.any;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -76,7 +77,7 @@ public final class AnyOperator extends Operator<Object> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null : "1st argument must not be null";

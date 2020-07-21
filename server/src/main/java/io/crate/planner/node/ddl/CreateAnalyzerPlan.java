@@ -35,7 +35,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -80,7 +80,7 @@ public class CreateAnalyzerPlan implements Plan {
         ClusterUpdateSettingsRequest request = createRequest(
             createAnalyzer,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            dependencies.nodeContext(),
             params,
             subQueryResults,
             dependencies.fulltextAnalyzerResolver());
@@ -94,13 +94,13 @@ public class CreateAnalyzerPlan implements Plan {
     @VisibleForTesting
     public static ClusterUpdateSettingsRequest createRequest(AnalyzedCreateAnalyzer createAnalyzer,
                                                              CoordinatorTxnCtx txnCtx,
-                                                             Functions functions,
+                                                             NodeContext nodeCtx,
                                                              Row parameters,
                                                              SubQueryResults subQueryResults,
                                                              FulltextAnalyzerResolver ftResolver) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
-            functions,
+            nodeCtx,
             x,
             parameters,
             subQueryResults

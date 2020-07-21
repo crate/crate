@@ -25,6 +25,7 @@ package io.crate.expression.scalar.systeminformation;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -70,7 +71,7 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
 
     @SafeVarargs
     @Override
-    public final List<String> evaluate(TransactionContext txnCtx, Input<Boolean>... args) {
+    public final List<String> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Boolean>... args) {
         assert args.length == 1 : "expecting 1 boolean argument";
 
         Boolean includeImplicitSchemas = args[0].value();

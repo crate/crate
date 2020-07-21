@@ -85,7 +85,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             plan.copyTo(),
             e.getPlannerContext(clusterService.state()),
             new TableStats(),
-            new ProjectionBuilder(e.functions()),
+            new ProjectionBuilder(e.nodeCtx),
             Row.EMPTY,
             SubQueryResults.EMPTY);
     }

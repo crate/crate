@@ -24,7 +24,7 @@ package io.crate.planner.optimizer;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -45,14 +45,14 @@ public class Optimizer {
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
-    public Optimizer(Functions functions,
+    public Optimizer(NodeContext nodeCtx,
                      Supplier<Version> minNodeVersionInCluster,
                      List<Rule<?>> rules) {
         this.rules = rules;
         this.minNodeVersionInCluster = minNodeVersionInCluster;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
     }
 
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
@@ -106,7 +106,7 @@ public class Optimizer {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
                     }
                     @SuppressWarnings("unchecked")
-                    LogicalPlan transformedPlan = rule.apply(match.value(), match.captures(), tableStats, txnCtx, functions);
+                    LogicalPlan transformedPlan = rule.apply(match.value(), match.captures(), tableStats, txnCtx, nodeCtx);
                     if (transformedPlan != null) {
                         if (isTraceEnabled) {
                             LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");

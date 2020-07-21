@@ -23,7 +23,7 @@
 package io.crate.metadata.doc;
 
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -41,10 +41,10 @@ public class TestingDocTableInfoFactory implements DocTableInfoFactory {
     }
 
     public TestingDocTableInfoFactory(Map<RelationName, DocTableInfo> tables,
-                                      Functions functions,
+                                      NodeContext nodeCtx,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         this.tables = tables;
-        this.internalFactory = new InternalDocTableInfoFactory(functions, indexNameExpressionResolver);
+        this.internalFactory = new InternalDocTableInfoFactory(nodeCtx, indexNameExpressionResolver);
     }
 
     @Override

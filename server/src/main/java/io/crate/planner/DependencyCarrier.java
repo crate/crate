@@ -26,6 +26,7 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.RepositoryService;
+import io.crate.metadata.NodeContext;
 import io.crate.statistics.TransportAnalyzeAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableOperation;
@@ -38,7 +39,6 @@ import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.license.LicenseService;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -61,7 +61,7 @@ public class DependencyCarrier {
     private final PhasesTaskFactory phasesTaskFactory;
     private final ThreadPool threadPool;
     private final Schemas schemas;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final ClusterService clusterService;
     private final DCLStatementDispatcher dclStatementDispatcher;
     private final TransportDropTableAction transportDropTableAction;
@@ -85,7 +85,7 @@ public class DependencyCarrier {
                              PhasesTaskFactory phasesTaskFactory,
                              ThreadPool threadPool,
                              Schemas schemas,
-                             Functions functions,
+                             NodeContext nodeCtx,
                              ClusterService clusterService,
                              LicenseService licenseService,
                              DCLStatementDispatcher dclStatementDispatcher,
@@ -106,12 +106,12 @@ public class DependencyCarrier {
         this.phasesTaskFactory = phasesTaskFactory;
         this.threadPool = threadPool;
         this.schemas = schemas;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.clusterService = clusterService;
         this.licenseService = licenseService;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
-        projectionBuilder = new ProjectionBuilder(functions);
+        projectionBuilder = new ProjectionBuilder(nodeCtx);
         this.createViewAction = createViewAction;
         this.dropViewAction = dropViewAction;
         this.swapRelationsAction = swapRelationsAction;
@@ -137,8 +137,8 @@ public class DependencyCarrier {
         return dclStatementDispatcher;
     }
 
-    public Functions functions() {
-        return functions;
+    public NodeContext nodeContext() {
+        return nodeCtx;
     }
 
     public TransportActionProvider transportActionProvider() {

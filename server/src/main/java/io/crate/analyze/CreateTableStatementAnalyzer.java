@@ -27,7 +27,7 @@ import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.EnsureNoMatchPredicate;
 import io.crate.sql.tree.CheckColumnConstraint;
@@ -46,10 +46,10 @@ import java.util.function.Function;
 
 public final class CreateTableStatementAnalyzer {
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
-    public CreateTableStatementAnalyzer(Functions functions) {
-        this.functions = functions;
+    public CreateTableStatementAnalyzer(NodeContext nodeCtx) {
+        this.nodeCtx = nodeCtx;
     }
 
     public AnalyzedCreateTable analyze(CreateTable<Expression> createTable,
@@ -60,9 +60,9 @@ public final class CreateTableStatementAnalyzer {
         relationName.ensureValidForRelationCreation();
 
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
         Function<Expression, Symbol> exprMapper = y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx);
 
@@ -124,7 +124,7 @@ public final class CreateTableStatementAnalyzer {
         //   - check constraints
         TableReferenceResolver referenceResolver = analyzedTableElements.referenceResolver(relationName);
         var exprAnalyzerWithReferences = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, referenceResolver, null);
+            txnCtx, nodeCtx, paramTypeHints, referenceResolver, null);
         List<TableElement<Symbol>> tableElementsWithExpressions = new ArrayList<>();
         for (int i = 0; i < analyzedCreateTable.tableElements().size(); i++) {
             TableElement<Symbol> elementSymbol = analyzedCreateTable.tableElements().get(i);

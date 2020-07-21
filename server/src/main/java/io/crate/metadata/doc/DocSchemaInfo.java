@@ -29,8 +29,8 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -118,7 +118,7 @@ public class DocSchemaInfo implements SchemaInfo {
     private final ClusterService clusterService;
     private final DocTableInfoFactory docTableInfoFactory;
     private final ViewInfoFactory viewInfoFactory;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final UserDefinedFunctionService udfService;
 
     private final ConcurrentHashMap<String, DocTableInfo> docTableByName = new ConcurrentHashMap<>();
@@ -133,11 +133,11 @@ public class DocSchemaInfo implements SchemaInfo {
      */
     public DocSchemaInfo(final String schemaName,
                          ClusterService clusterService,
-                         Functions functions,
+                         NodeContext nodeCtx,
                          UserDefinedFunctionService udfService,
                          ViewInfoFactory viewInfoFactory,
                          DocTableInfoFactory docTableInfoFactory) {
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.schemaName = schemaName;
         this.clusterService = clusterService;
         this.udfService = udfService;
@@ -333,6 +333,6 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public void close() throws Exception {
-        functions.deregisterUdfResolversForSchema(schemaName);
+        nodeCtx.functions().deregisterUdfResolversForSchema(schemaName);
     }
 }

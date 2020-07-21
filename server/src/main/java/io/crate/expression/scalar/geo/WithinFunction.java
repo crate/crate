@@ -27,6 +27,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -78,7 +79,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input[] args) {
+    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 2 : "number of args must be 2";
         return evaluate(args[0], args[1]);
     }
@@ -130,7 +131,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
         Symbol left = symbol.arguments().get(0);
         Symbol right = symbol.arguments().get(1);
 

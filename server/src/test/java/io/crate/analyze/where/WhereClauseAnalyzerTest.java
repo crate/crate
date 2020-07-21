@@ -55,7 +55,6 @@ import java.util.List;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -141,24 +140,23 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private WhereClause analyzeSelectWhere(String stmt) {
         AnalyzedRelation rel = e.analyze(stmt);
+
         if (rel instanceof QueriedSelectRelation) {
             QueriedSelectRelation queriedRelation = ((QueriedSelectRelation) rel);
             if (queriedRelation.from().get(0) instanceof DocTableRelation) {
                 DocTableRelation docTableRelation = (DocTableRelation) queriedRelation.from().get(0);
                 WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-                    new EvaluatingNormalizer(getFunctions(), RowGranularity.CLUSTER, null, docTableRelation),
+                    new EvaluatingNormalizer(e.nodeCtx, RowGranularity.CLUSTER, null, docTableRelation),
                     queriedRelation.where(),
                     docTableRelation.tableInfo(),
                     coordinatorTxnCtx,
-                    e.functions()
-                );
+                    e.nodeCtx);
                 return detailedQuery.toBoundWhereClause(
                     docTableRelation.tableInfo(),
-                    getFunctions(),
                     Row.EMPTY,
                     SubQueryResults.EMPTY,
-                    coordinatorTxnCtx
-                );
+                    coordinatorTxnCtx,
+                    e.nodeCtx);
             }
             return new WhereClause(queriedRelation.where());
         } else {

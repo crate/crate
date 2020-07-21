@@ -24,6 +24,7 @@ package io.crate.expression.tablefunctions;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -67,7 +68,7 @@ public class EmptyRowTableFunction {
 
         @Override
         @SafeVarargs
-        public final Iterable<Row> evaluate(TransactionContext txnCtx, Input<Object>... args) {
+        public final Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
             return List.of(Row.EMPTY);
         }
 

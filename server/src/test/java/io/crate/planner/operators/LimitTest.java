@@ -77,7 +77,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext ctx = e.getPlannerContext(clusterService.state());
         Merge merge = (Merge) plan.build(
             ctx,
-            new ProjectionBuilder(e.functions()),
+            new ProjectionBuilder(e.nodeCtx),
             TopN.NO_LIMIT,
             0,
             null,

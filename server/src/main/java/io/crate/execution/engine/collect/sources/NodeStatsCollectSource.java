@@ -38,8 +38,8 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.MapBackedRefResolver;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -61,17 +61,17 @@ public class NodeStatsCollectSource implements CollectSource {
 
     private final TransportNodeStatsAction nodeStatsAction;
     private final ClusterService clusterService;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final InputFactory inputFactory;
 
     @Inject
     public NodeStatsCollectSource(TransportNodeStatsAction nodeStatsAction,
                                   ClusterService clusterService,
-                                  Functions functions) {
+                                  NodeContext nodeCtx) {
         this.nodeStatsAction = nodeStatsAction;
         this.clusterService = clusterService;
-        this.inputFactory = new InputFactory(functions);
-        this.functions = functions;
+        this.inputFactory = new InputFactory(nodeCtx);
+        this.nodeCtx = nodeCtx;
     }
 
     @Override
@@ -86,14 +86,14 @@ public class NodeStatsCollectSource implements CollectSource {
         Collection<DiscoveryNode> nodes = filterNodes(
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             collectPhase.where(),
-            functions);
+            nodeCtx);
         if (nodes.isEmpty()) {
             return completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
         }
         return completedFuture(NodeStats.newInstance(nodeStatsAction, collectPhase, nodes, txnCtx, inputFactory));
     }
 
-    static Collection<DiscoveryNode> filterNodes(Collection<DiscoveryNode> nodes, Symbol predicate, Functions functions) {
+    static Collection<DiscoveryNode> filterNodes(Collection<DiscoveryNode> nodes, Symbol predicate, NodeContext nodeCtx) {
         var expressions = SysNodesTableInfo.create().expressions();
         var nameExpr = expressions.get(SysNodesTableInfo.Columns.NAME).create();
         var idExpr = expressions.get(SysNodesTableInfo.Columns.ID).create();
@@ -102,7 +102,7 @@ public class NodeStatsCollectSource implements CollectSource {
             SysNodesTableInfo.Columns.ID, idExpr)
         );
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions,
+            nodeCtx,
             RowGranularity.DOC,
             referenceResolver,
             null

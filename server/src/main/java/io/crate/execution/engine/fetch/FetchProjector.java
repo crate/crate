@@ -28,18 +28,18 @@ import io.crate.data.BatchIterators;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.FetchProjection;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 
 public final class FetchProjector {
 
     public static Projector create(FetchProjection projection,
                                    TransactionContext txnCtx,
-                                   Functions functions,
+                                   NodeContext nodeCtx,
                                    FetchOperation fetchOperation) {
         final FetchRows fetchRows = FetchRows.create(
             txnCtx,
-            functions,
+            nodeCtx,
             projection.fetchSources(),
             projection.outputSymbols()
         );

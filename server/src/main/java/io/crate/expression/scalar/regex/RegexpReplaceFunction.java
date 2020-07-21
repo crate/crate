@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -92,8 +93,8 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
-        return evaluateIfLiterals(this, txnCtx, symbol);
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
+        return evaluateIfLiterals(this, txnCtx, nodeCtx, symbol);
     }
 
     @Override
@@ -118,7 +119,7 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, Input<String>[] args) {
+    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) {
         assert args.length == 3 || args.length == 4 : "number of args must be 3 or 4";
         String value = args[0].value();
         String pattern = args[1].value();

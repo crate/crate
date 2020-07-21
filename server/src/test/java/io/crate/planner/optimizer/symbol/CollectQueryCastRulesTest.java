@@ -36,7 +36,6 @@ import io.crate.expression.operator.Operators;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
-import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -54,14 +53,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.is;
 
 public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions e;
-    private Functions functions = getFunctions();
     private AbstractTableRelation<?> tr1;
     private PlannerContext plannerContext;
 
@@ -102,7 +99,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
         );
         var plan = (io.crate.planner.node.dql.Collect) collect.build(
             plannerContext,
-            new ProjectionBuilder(functions),
+            new ProjectionBuilder(e.nodeCtx),
             TopN.NO_LIMIT,
             0,
             null,

@@ -59,7 +59,7 @@ public class CreateUserPlan implements Plan {
             createUser.properties(),
             params,
             plannerContext.transactionContext(),
-            plannerContext.functions());
+            plannerContext.nodeContext());
 
         userManager.createUser(createUser.userName(), newPassword)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));

@@ -49,7 +49,7 @@ public class ArbitraryAggregationTest extends AggregationTest {
 
     @Test
     public void test_return_type_must_be_equal_to_argument_type() {
-        var arbitraryFunction = functions.get(
+        var arbitraryFunction = nodeCtx.functions().get(
             null,
             ArbitraryAggregation.NAME,
             List.of(Literal.of(DataTypes.INTEGER, null)),

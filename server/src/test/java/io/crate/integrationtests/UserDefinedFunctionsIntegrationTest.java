@@ -27,17 +27,24 @@
 package io.crate.integrationtests;
 
 import io.crate.data.Input;
+import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,7 +86,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         }
 
         @Override
-        public String evaluate(TransactionContext txnCtx, Input<InputType>... args) {
+        public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<InputType>... args) {
             // dummy-lang functions simple print the type of the only argument
             return "DUMMY EATS " + metadata.argumentTypes().get(0).getName();
         }
@@ -263,5 +270,51 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             name, types.stream().map(DataType::getName).collect(Collectors.joining(", "))));
         assertThat(response.rowCount(), is(1L));
         assertFunctionIsDeletedOnAll(sqlExecutor.getCurrentSchema(), name, arguments);
+    }
+
+    @Test
+    public void test_pg_function_is_visible() throws Exception {
+        Signature signature = Signature
+            .builder()
+            .kind(FunctionType.SCALAR)
+            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"))
+            .argumentTypes(
+                TypeSignature.parseTypeSignature("array(array(integer))"),
+                TypeSignature.parseTypeSignature("integer"),
+                TypeSignature.parseTypeSignature("text"))
+            .returnType(TypeSignature.parseTypeSignature("text"))
+            .build();
+        int functionOid = OidHash.functionOid(signature);
+
+        execute("select pg_function_is_visible(" + functionOid + ")");
+        assertThat(response.rows()[0][0], is(false));
+
+        execute("create function doc.my_func(array(array(integer)), integer, text) returns text language dummy_lang as '42'");
+
+        execute("select pg_function_is_visible(" + functionOid + ")");
+        assertThat(response.rows()[0][0], is(true));
+
+        execute("drop function doc.my_func(array(array(integer)), integer, text)");
+        execute("select pg_function_is_visible(" + functionOid + ")");
+        assertThat(response.rows()[0][0], is(false));
+    }
+
+    @Test
+    public void test_pg_function_is_visible_when_oid_is_retrieved_from_column() throws Exception {
+        Signature signature = Signature
+            .builder()
+            .kind(FunctionType.SCALAR)
+            .name(new FunctionName(null, CurrentTimeFunction.NAME))
+            .argumentTypes()
+            .returnType(DataTypes.TIMETZ.getTypeSignature())
+            .build();
+        int functionOid = OidHash.functionOid(signature);
+
+        execute("create table oid_test(oid integer)");
+        execute("insert into oid_test values(" + functionOid + ")");
+        execute("refresh table oid_test");
+        execute("select pg_function_is_visible(t.oid) from oid_test t");
+        assertThat(response.rows()[0][0], is(true));
+        execute("drop table oid_test");
     }
 }

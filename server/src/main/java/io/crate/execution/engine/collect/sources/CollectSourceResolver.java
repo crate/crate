@@ -40,8 +40,8 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -74,7 +74,7 @@ public class CollectSourceResolver {
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
                                  NodeJobsCounter nodeJobsCounter,
-                                 Functions functions,
+                                 NodeContext nodeCtx,
                                  Settings settings,
                                  ThreadPool threadPool,
                                  TransportActionProvider transportActionProvider,
@@ -88,15 +88,15 @@ public class CollectSourceResolver {
                                  NodeStatsCollectSource nodeStatsCollectSource) {
         this.clusterService = clusterService;
 
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
-            functions,
+            nodeCtx,
             threadPool,
             settings,
             transportActionProvider,
-            new InputFactory(functions),
+            new InputFactory(nodeCtx),
             normalizer,
             systemCollectSource::getRowUpdater,
             systemCollectSource::tableDefinition

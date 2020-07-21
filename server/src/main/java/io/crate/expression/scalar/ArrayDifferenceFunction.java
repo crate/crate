@@ -24,6 +24,7 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -113,7 +114,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     @Override
-    public List<Object> evaluate(TransactionContext txnCtx, Input[] args) {
+    public List<Object> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         List<Object> inputValues = (List<Object>) args[0].value();
         if (inputValues == null) {
             return null;

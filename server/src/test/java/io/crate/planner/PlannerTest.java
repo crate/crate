@@ -54,8 +54,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList()),
             UUID.randomUUID(),
-            e.functions(),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext()),
+            e.nodeCtx,
             0,
             null
         );

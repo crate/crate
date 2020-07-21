@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -61,7 +62,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args.length == 2 : "Invalid number of Arguments";
         Object left = args[0].value();
         if (left == null) {
@@ -87,7 +88,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
         Symbol left = symbol.arguments().get(0);
         Symbol right = symbol.arguments().get(1);
         int numLiterals = 0;
@@ -101,7 +102,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         }
 
         if (numLiterals == 2) {
-            return Literal.of(evaluate(txnCtx, (Input) left, (Input) right));
+            return Literal.of(evaluate(txnCtx, nodeCtx, (Input) left, (Input) right));
         }
 
         return symbol;

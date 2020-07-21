@@ -71,7 +71,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         return CreateBlobTablePlan.buildSettings(
             blobTable.createBlobTable(),
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             new RowN(arguments),
             SubQueryResults.EMPTY,
             new NumberOfShards(clusterService));

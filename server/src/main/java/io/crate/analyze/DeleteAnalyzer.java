@@ -34,7 +34,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Delete;
@@ -43,11 +43,11 @@ import java.util.Objects;
 
 final class DeleteAnalyzer {
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final RelationAnalyzer relationAnalyzer;
 
-    DeleteAnalyzer(Functions functions, RelationAnalyzer relationAnalyzer) {
-        this.functions = functions;
+    DeleteAnalyzer(NodeContext nodeCtx, RelationAnalyzer relationAnalyzer) {
+        this.nodeCtx = nodeCtx;
         this.relationAnalyzer = relationAnalyzer;
     }
 
@@ -64,10 +64,10 @@ final class DeleteAnalyzer {
             throw new UnsupportedOperationException("Cannot delete from relations other than base tables");
         }
         DocTableRelation table = (DocTableRelation) relation;
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, table);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, table);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             txnContext,
+            nodeCtx,
             typeHints,
             new FullQualifiedNameFieldProvider(
                 relationCtx.sources(),

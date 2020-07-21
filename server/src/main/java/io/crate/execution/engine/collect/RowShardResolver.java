@@ -28,8 +28,8 @@ import io.crate.data.Row;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Functions;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -52,12 +52,12 @@ public class RowShardResolver {
 
 
     public RowShardResolver(TransactionContext txnCtx,
-                            Functions functions,
+                            NodeContext nodeCtx,
                             List<ColumnIdent> pkColumns,
                             List<? extends Symbol> primaryKeySymbols,
                             @Nullable ColumnIdent clusteredByColumn,
                             @Nullable Symbol routingSymbol) {
-        InputFactory inputFactory = new InputFactory(functions);
+        InputFactory inputFactory = new InputFactory(nodeCtx);
         InputFactory.Context<CollectExpression<Row, ?>> context = inputFactory.ctxForInputColumns(txnCtx);
         idFunction = Id.compileWithNullValidation(pkColumns, clusteredByColumn);
         if (routingSymbol == null) {

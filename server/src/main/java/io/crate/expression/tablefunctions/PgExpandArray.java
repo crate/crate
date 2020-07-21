@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -72,7 +73,7 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
 
     @Override
     @SafeVarargs
-    public final Iterable<Row> evaluate(TransactionContext txnCtx, Input<List<Object>>... args) {
+    public final Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... args) {
         List<Object> values = args[0].value();
         if (values == null) {
             return List.of();

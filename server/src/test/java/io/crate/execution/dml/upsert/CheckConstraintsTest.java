@@ -60,7 +60,7 @@ public class CheckConstraintsTest extends CrateDummyClusterServiceUnitTest {
         TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         checkConstraints = new CheckConstraints(
             txnCtx,
-            new InputFactory(sqlExecutor.functions()),
+            new InputFactory(sqlExecutor.nodeCtx),
             FromSourceRefResolver.WITHOUT_PARTITIONED_BY_REFS,
             docTableInfo);
     }

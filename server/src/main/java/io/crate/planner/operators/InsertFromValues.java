@@ -162,7 +162,7 @@ public class InsertFromValues implements LogicalPlan {
         //   column      +-------------------+     |          symbols
         //   symbols     +-------------------------+
 
-        InputFactory inputFactory = new InputFactory(dependencies.functions());
+        InputFactory inputFactory = new InputFactory(dependencies.nodeContext());
         InputFactory.Context<CollectExpression<Row, ?>> context =
             inputFactory.ctxForInputColumns(plannerContext.transactionContext());
 
@@ -200,7 +200,7 @@ public class InsertFromValues implements LogicalPlan {
         } else {
             Assignments assignments = Assignments.convert(
                 writerProjection.onDuplicateKeyAssignments(),
-                plannerContext.functions()
+                dependencies.nodeContext()
             );
             assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
             updateColumnNames = assignments.targetNames();
@@ -309,11 +309,11 @@ public class InsertFromValues implements LogicalPlan {
             assignments = null;
             updateColumnNames = null;
         } else {
-            assignments = Assignments.convert(writerProjection.onDuplicateKeyAssignments(), plannerContext.functions());
+            assignments = Assignments.convert(writerProjection.onDuplicateKeyAssignments(), dependencies.nodeContext());
             updateColumnNames = assignments.targetNames();
         }
 
-        InputFactory inputFactory = new InputFactory(dependencies.functions());
+        InputFactory inputFactory = new InputFactory(dependencies.nodeContext());
         InputFactory.Context<CollectExpression<Row, ?>> context =
             inputFactory.ctxForInputColumns(plannerContext.transactionContext());
 
@@ -461,7 +461,7 @@ public class InsertFromValues implements LogicalPlan {
 
         var rowShardResolver = new RowShardResolver(
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             writerProjection.primaryKeys(),
             writerProjection.ids(),
             writerProjection.clusteredByIdent(),
@@ -500,7 +500,7 @@ public class InsertFromValues implements LogicalPlan {
             indexName,
             index -> new InsertSourceFromCells(
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 tableInfo,
                 index,
                 GeneratedColumns.Validation.VALUE_MATCH,
@@ -517,7 +517,7 @@ public class InsertFromValues implements LogicalPlan {
                                                             SubQueryResults subQueryResults) {
         SymbolEvaluator symbolEval = new SymbolEvaluator(
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             subQueryResults);
         Function<? super Symbol, Input<?>> eval = (symbol) -> symbol.accept(symbolEval, params);
 
@@ -528,6 +528,7 @@ public class InsertFromValues implements LogicalPlan {
         //noinspection unchecked
         Iterable<Row> rows = funcImplementation.evaluate(
             plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
             boundArguments.toArray(new Input[0]));
 
         return StreamSupport.stream(rows.spliterator(), false)

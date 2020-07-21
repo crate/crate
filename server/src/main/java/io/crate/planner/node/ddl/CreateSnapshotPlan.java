@@ -37,7 +37,7 @@ import io.crate.exceptions.ResourceUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -89,7 +89,7 @@ public class CreateSnapshotPlan implements Plan {
         CreateSnapshotRequest request = createRequest(
             createSnapshot,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            dependencies.nodeContext(),
             parameters,
             subQueryResults,
             dependencies.schemas());
@@ -118,13 +118,13 @@ public class CreateSnapshotPlan implements Plan {
     @VisibleForTesting
     public static CreateSnapshotRequest createRequest(AnalyzedCreateSnapshot createSnapshot,
                                                       CoordinatorTxnCtx txnCtx,
-                                                      Functions functions,
+                                                      NodeContext nodeCtx,
                                                       Row parameters,
                                                       SubQueryResults subQueryResults,
                                                       Schemas schemas) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
-            functions,
+            nodeCtx,
             x,
             parameters,
             subQueryResults

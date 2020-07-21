@@ -85,7 +85,7 @@ import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.MemoryManagerFactory;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
@@ -157,7 +157,7 @@ public class JobSetup {
                     DistributingConsumerFactory distributingConsumerFactory,
                     TransportActionProvider transportActionProvider,
                     IndicesService indicesService,
-                    Functions functions,
+                    NodeContext nodeCtx,
                     SystemCollectSource systemCollectSource,
                     ShardCollectSource shardCollectSource,
                     MemoryManagerFactory memoryManagerFactory) {
@@ -171,13 +171,13 @@ public class JobSetup {
         this.pkLookupOperation = new PKLookupOperation(indicesService, shardCollectSource);
         this.distributingConsumerFactory = distributingConsumerFactory;
         innerPreparer = new InnerPreparer();
-        inputFactory = new InputFactory(functions);
+        inputFactory = new InputFactory(nodeCtx);
         searchTp = threadPool.executor(ThreadPool.Names.SEARCH);
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
-            functions,
+            nodeCtx,
             threadPool,
             settings,
             transportActionProvider,

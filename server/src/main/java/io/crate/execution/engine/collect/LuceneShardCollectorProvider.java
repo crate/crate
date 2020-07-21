@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import io.crate.metadata.NodeContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -56,7 +57,6 @@ import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
@@ -69,7 +69,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
     private final Supplier<String> localNodeId;
     private final LuceneQueryBuilder luceneQueryBuilder;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final IndexShard indexShard;
     private final DocInputFactory docInputFactory;
     private final BigArrays bigArrays;
@@ -80,7 +80,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         LuceneQueryBuilder luceneQueryBuilder,
                                         ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
-                                        Functions functions,
+                                        NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -90,7 +90,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             clusterService,
             schemas,
             nodeJobsCounter,
-            functions,
+            nodeCtx,
             threadPool,
             settings,
             transportActionProvider,
@@ -98,7 +98,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             new ShardRowContext(indexShard, clusterService)
         );
         this.luceneQueryBuilder = luceneQueryBuilder;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.indexShard = indexShard;
         this.localNodeId = () -> clusterService.localNode().getId();
         var mapperService = indexShard.mapperService();
@@ -106,7 +106,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
         this.table = schemas.getTableInfo(relationName, Operation.READ);
         this.docInputFactory = new DocInputFactory(
-            functions,
+            nodeCtx,
             new LuceneReferenceResolver(
                 indexShard.shardId().getIndexName(),
                 fieldTypeLookup,
@@ -163,7 +163,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             luceneQueryBuilder,
             fieldTypeLookup,
             bigArrays,
-            new InputFactory(functions),
+            new InputFactory(nodeCtx),
             docInputFactory,
             normalizedPhase,
             collectTask
@@ -172,7 +172,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             return it;
         }
         return DocValuesAggregates.tryOptimize(
-            functions,
+            nodeCtx,
             indexShard,
             table,
             luceneQueryBuilder,

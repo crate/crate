@@ -96,7 +96,7 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     public void test_function_return_type_of_the_next_nested_item() {
         Function function = (Function) sqlExpressions.asSymbol("_values([['a', 'b']])");
 
-        var funcImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+        var funcImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
             function,
             txnCtx.sessionSettings().searchPath()
         );
@@ -117,7 +117,7 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_bound_signature_return_type_resolves_correct_row_type_parameters() {
         var function = (Function) sqlExpressions.asSymbol("_values([1], ['a'], [{}])");
-        var functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+        var functionImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
             function,
             txnCtx.sessionSettings().searchPath()
         );

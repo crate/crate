@@ -128,6 +128,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         DependencyCarrier executor = mock(DependencyCarrier.class);
         Session session = new Session(
+            sqlExecutor.nodeCtx,
             sqlExecutor.analyzer,
             sqlExecutor.planner,
             new JobsLogs(() -> false),
@@ -155,6 +156,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void test_select_query_executed_on_session_execute_method() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
         Session session = Mockito.spy(new Session(
+            sqlExecutor.nodeCtx,
             sqlExecutor.analyzer,
             sqlExecutor.planner,
             new JobsLogs(() -> false),
@@ -326,6 +328,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         DependencyCarrier executor = mock(DependencyCarrier.class);
         Session session = new Session(
+            sqlExecutor.nodeCtx,
             sqlExecutor.analyzer,
             sqlExecutor.planner,
             new JobsLogs(() -> false),
@@ -361,6 +364,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         DependencyCarrier executor = mock(DependencyCarrier.class);
         when(executor.threadPool()).thenReturn(mock(ThreadPool.class));
         Session session = new Session(
+            sqlExecutor.nodeCtx,
             sqlExecutor.analyzer,
             sqlExecutor.planner,
             new JobsLogs(() -> false),
@@ -388,6 +392,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         DependencyCarrier executor = mock(DependencyCarrier.class);
         when(executor.threadPool()).thenReturn(mock(ThreadPool.class));
         Session session = new Session(
+            sqlExecutor.nodeCtx,
             sqlExecutor.analyzer,
             sqlExecutor.planner,
             new JobsLogs(() -> false),
@@ -414,6 +419,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
         DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         Session session = new Session(
+            sqlExecutor.nodeCtx,
             sqlExecutor.analyzer,
             sqlExecutor.planner,
             new JobsLogs(() -> false),
@@ -438,6 +444,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
         DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         Session session = new Session(
+            sqlExecutor.nodeCtx,
             sqlExecutor.analyzer,
             sqlExecutor.planner,
             new JobsLogs(() -> false),
@@ -487,6 +494,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             );
         JobsLogs jobsLogs = new JobsLogs(() -> true);
         Session session = new Session(
+            sqlExecutor.nodeCtx,
             sqlExecutor.analyzer,
             planner,
             jobsLogs,

@@ -24,6 +24,7 @@ package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -65,7 +66,7 @@ public class NullIfFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         Object arg0Value = args[0].value();
         return arg0Value != null && arg0Value.equals(args[1].value()) ? null : arg0Value;
     }

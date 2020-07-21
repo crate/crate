@@ -27,7 +27,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.planner.optimizer.LoadedRules;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,23 +39,20 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 
 public class SessionSettingRegistryTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
     private SessionContext sessionContext = SessionContext.systemSessionContext();
-
-    private Functions functions = getFunctions();
+    private NodeContext nodeCtx = createNodeContext();
     private Function<Symbol, Object> eval = s -> SymbolEvaluator.evaluateWithoutParams(
         CoordinatorTxnCtx.systemTransactionContext(),
-        functions,
+        nodeCtx,
         s
     );
 

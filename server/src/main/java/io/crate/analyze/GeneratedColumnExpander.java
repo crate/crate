@@ -40,8 +40,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
@@ -89,20 +89,20 @@ public final class GeneratedColumnExpander {
     public static Symbol maybeExpand(Symbol symbol,
                                      List<GeneratedReference> generatedCols,
                                      List<Reference> expansionCandidates,
-                                     Functions functions) {
-        return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, generatedCols, expansionCandidates, functions);
+                                     NodeContext nodeCtx) {
+        return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, generatedCols, expansionCandidates, nodeCtx);
     }
 
     private static class ComparisonReplaceVisitor extends FunctionCopyVisitor<ComparisonReplaceVisitor.Context> {
 
         static class Context {
             private final HashMap<Reference, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn;
-            private final Functions functions;
+            private final NodeContext nodeCtx;
 
             public Context(HashMap<Reference, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn,
-                           Functions functions) {
+                           NodeContext nodeCtx) {
                 this.referencedRefsToGeneratedColumn = referencedRefsToGeneratedColumn;
-                this.functions = functions;
+                this.nodeCtx = nodeCtx;
             }
         }
 
@@ -113,13 +113,13 @@ public final class GeneratedColumnExpander {
         Symbol addComparisons(Symbol symbol,
                               List<GeneratedReference> generatedCols,
                               List<Reference> expansionCandidates,
-                              Functions functions) {
+                              NodeContext nodeCtx) {
             HashMap<Reference, ArrayList<GeneratedReference>> referencedSingleReferences =
                 extractGeneratedReferences(generatedCols, expansionCandidates);
             if (referencedSingleReferences.isEmpty()) {
                 return symbol;
             } else {
-                Context ctx = new Context(referencedSingleReferences, functions);
+                Context ctx = new Context(referencedSingleReferences, nodeCtx);
                 return symbol.accept(this, ctx);
             }
         }
@@ -158,7 +158,7 @@ public final class GeneratedColumnExpander {
                     function,
                     genColInfo,
                     comparedAgainst,
-                    context.functions
+                    context.nodeCtx
                 );
                 if (comparison != null) {
                     comparisonsToAdd.add(comparison);
@@ -171,7 +171,7 @@ public final class GeneratedColumnExpander {
         private Function createAdditionalComparison(Function function,
                                                     GeneratedReference generatedReference,
                                                     Symbol comparedAgainst,
-                                                    Functions functions) {
+                                                    NodeContext nodeCtx) {
             if (generatedReference != null &&
                 generatedReference.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
 
@@ -192,7 +192,7 @@ public final class GeneratedColumnExpander {
                 }
 
                 Symbol wrapped = wrapInGenerationExpression(comparedAgainst, generatedReference);
-                var funcImpl = functions.get(
+                var funcImpl = nodeCtx.functions().get(
                     null,
                     operatorName,
                     List.of(generatedReference, wrapped),

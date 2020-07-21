@@ -29,7 +29,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
@@ -50,12 +50,12 @@ import static io.crate.metadata.RelationName.fromBlobTable;
 
 public class AlterTableRerouteAnalyzer {
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final Schemas schemas;
     private final RerouteOptionVisitor rerouteOptionVisitor;
 
-    AlterTableRerouteAnalyzer(Functions functions, Schemas schemas) {
-        this.functions = functions;
+    AlterTableRerouteAnalyzer(NodeContext nodeCtx, Schemas schemas) {
+        this.nodeCtx = nodeCtx;
         this.schemas = schemas;
         this.rerouteOptionVisitor = new RerouteOptionVisitor();
     }
@@ -80,8 +80,8 @@ public class AlterTableRerouteAnalyzer {
             new Context(
                 tableInfo,
                 alterTableReroute.table().partitionProperties(),
-                functions,
                 transactionContext,
+                nodeCtx,
                 paramTypeHints
             ));
     }
@@ -96,16 +96,16 @@ public class AlterTableRerouteAnalyzer {
 
         private Context(ShardedTable tableInfo,
                         List<Assignment<Expression>> partitionProperties,
-                        Functions functions,
                         CoordinatorTxnCtx txnCtx,
+                        NodeContext nodeCtx,
                         ParamTypeHints paramTypeHints) {
             this.tableInfo = tableInfo;
             this.partitionProperties = partitionProperties;
             this.exprCtx = new ExpressionAnalysisContext();
             this.exprAnalyzer = new ExpressionAnalyzer(
-                functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
+                txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
             this.exprAnalyzerWithFields = new ExpressionAnalyzer(
-                functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+                txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         }
     }
 

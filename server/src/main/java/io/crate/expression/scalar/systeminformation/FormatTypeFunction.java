@@ -25,6 +25,7 @@ package io.crate.expression.scalar.systeminformation;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -69,7 +70,7 @@ public final class FormatTypeFunction extends Scalar<String, Object> {
 
     @Override
     @SafeVarargs
-    public final String evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         var typeOid = (Integer) args[0].value();
         if (typeOid == null) {
             return null;

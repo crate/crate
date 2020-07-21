@@ -46,20 +46,20 @@ public class RandomFunctionTest extends AbstractScalarFunctionsTest {
 
     @Before
     public void prepareRandom() {
-        random = (RandomFunction) functions.get(
+        random = (RandomFunction) sqlExpressions.nodeCtx.functions().get(
             null, RandomFunction.NAME, Collections.emptyList(), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test
     public void testEvaluateRandom() {
-        assertThat(random.evaluate(txnCtx, new Input[0]),
+        assertThat(random.evaluate(txnCtx, sqlExpressions.nodeCtx, new Input[0]),
             is(allOf(greaterThanOrEqualTo(0.0), lessThan(1.0))));
     }
 
     @Test
     public void normalizeReference() {
         Function function = new Function(random.signature(), Collections.emptyList(), DataTypes.DOUBLE);
-        Function normalized = (Function) random.normalizeSymbol(function, txnCtx);
+        Function normalized = (Function) random.normalizeSymbol(function, txnCtx, sqlExpressions.nodeCtx);
         assertThat(normalized, sameInstance(function));
     }
 

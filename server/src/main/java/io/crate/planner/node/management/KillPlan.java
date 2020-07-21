@@ -33,7 +33,7 @@ import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -68,7 +68,7 @@ public class KillPlan implements Plan {
             boundJobId(
                 jobId,
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                dependencies.nodeContext(),
                 params,
                 subQueryResults),
             plannerContext.transactionContext().sessionSettings().userName(),
@@ -82,7 +82,7 @@ public class KillPlan implements Plan {
     @Nullable
     public static UUID boundJobId(@Nullable Symbol jobId,
                                   CoordinatorTxnCtx txnCtx,
-                                  Functions functions,
+                                  NodeContext nodeCtx,
                                   Row parameters,
                                   SubQueryResults subQueryResults) {
         if (jobId != null) {
@@ -91,7 +91,7 @@ public class KillPlan implements Plan {
                     DataTypes.STRING.sanitizeValue(
                         SymbolEvaluator.evaluate(
                             txnCtx,
-                            functions,
+                            nodeCtx,
                             jobId,
                             parameters,
                             subQueryResults

@@ -31,6 +31,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -53,7 +54,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -71,6 +72,7 @@ public class NodeStatsTest extends ESTestCase {
     private Reference idRef;
     private Reference nameRef;
     private Reference hostnameRef;
+    private NodeContext nodeCtx;
 
     @Before
     public void prepare() {
@@ -100,6 +102,7 @@ public class NodeStatsTest extends ESTestCase {
 
         nodes.add(newNode("nodeOne"));
         nodes.add(newNode("nodeTwo"));
+        nodeCtx = createNodeContext();
     }
 
     @Test
@@ -114,7 +117,7 @@ public class NodeStatsTest extends ESTestCase {
             collectPhase,
             nodes,
             txnCtx,
-            new InputFactory(getFunctions())
+            new InputFactory(nodeCtx)
         );
         iterator.loadNextBatch();
 
@@ -134,7 +137,7 @@ public class NodeStatsTest extends ESTestCase {
             collectPhase,
             nodes,
             txnCtx,
-            new InputFactory(getFunctions())
+            new InputFactory(nodeCtx)
         );
         iterator.loadNextBatch();
         verifyNoMoreInteractions(transportNodeStatsAction);
@@ -153,7 +156,7 @@ public class NodeStatsTest extends ESTestCase {
             collectPhase,
             nodes,
             txnCtx,
-            new InputFactory(getFunctions())
+            new InputFactory(nodeCtx)
         );
         iterator.loadNextBatch();
 
@@ -182,7 +185,7 @@ public class NodeStatsTest extends ESTestCase {
             collectPhase,
             nodes,
             txnCtx,
-            new InputFactory(getFunctions())
+            new InputFactory(nodeCtx)
         ));
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

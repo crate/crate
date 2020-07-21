@@ -89,7 +89,7 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
             return (S) CreateRepositoryPlan.createRequest(
                 (AnalyzedCreateRepository) analyzedStatement,
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 Row.EMPTY,
                 SubQueryResults.EMPTY,
                 repositoryParamValidator);

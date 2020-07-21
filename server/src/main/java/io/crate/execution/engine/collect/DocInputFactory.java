@@ -27,7 +27,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
 
@@ -41,9 +41,9 @@ public class DocInputFactory {
     private final ReferenceResolver<? extends LuceneCollectorExpression<?>> referenceResolver;
     private final InputFactory inputFactory;
 
-    public DocInputFactory(Functions functions,
+    public DocInputFactory(NodeContext nodeCtx,
                            ReferenceResolver<? extends LuceneCollectorExpression<?>> referenceResolver) {
-        this.inputFactory = new InputFactory(functions);
+        this.inputFactory = new InputFactory(nodeCtx);
         this.referenceResolver = referenceResolver;
     }
 

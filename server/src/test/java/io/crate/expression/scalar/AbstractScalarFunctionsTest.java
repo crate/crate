@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
@@ -36,7 +35,6 @@ import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
@@ -66,7 +64,6 @@ import static org.hamcrest.core.Is.is;
 public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServiceUnitTest {
 
     protected SqlExpressions sqlExpressions;
-    protected Functions functions;
     protected Map<RelationName, AnalyzedRelation> tableSources;
     protected TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private InputFactory inputFactory;
@@ -117,8 +114,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         tableSources = Map.of(tableInfo.ident(), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);
-        functions = sqlExpressions.functions();
-        inputFactory = new InputFactory(functions);
+        inputFactory = new InputFactory(sqlExpressions.nodeCtx);
     }
 
     /**
@@ -140,7 +136,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             return;
         }
         Function function = (Function) functionSymbol;
-        FunctionImplementation impl = functions.getQualified(function, txnCtx.sessionSettings().searchPath());
+        FunctionImplementation impl = sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", impl, Matchers.notNullValue());
 
         Symbol normalized = sqlExpressions.normalize(function);
@@ -155,8 +151,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
                 inputs[i] = ((Input) function.arguments().get(i));
             }
             Object expectedValue = ((Input) normalized).value();
-            assertThat(((Scalar) impl).evaluate(txnCtx, inputs), is(expectedValue));
-            assertThat(((Scalar) impl).compile(function.arguments()).evaluate(txnCtx, inputs), is(expectedValue));
+            assertThat(((Scalar) impl).evaluate(txnCtx, null, inputs), is(expectedValue));
+            assertThat(((Scalar) impl).compile(function.arguments()).evaluate(txnCtx, sqlExpressions.nodeCtx, inputs), is(expectedValue));
         }
     }
 
@@ -190,7 +186,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             }
             return literal;
         });
-        Scalar scalar = (Scalar) functions.getQualified(function, txnCtx.sessionSettings().searchPath());
+        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
         AssertMax1ValueCallInput[] arguments = new AssertMax1ValueCallInput[function.arguments().size()];
@@ -200,7 +196,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             Input<?> input = ctx.add(arg);
             arguments[i] = new AssertMax1ValueCallInput(input);
         }
-        Object actualValue = scalar.compile(function.arguments()).evaluate(txnCtx, (Input[]) arguments);
+        Object actualValue = scalar.compile(function.arguments()).evaluate(txnCtx, sqlExpressions.nodeCtx, (Input[]) arguments);
         assertThat((T) actualValue, expectedValue);
 
         // Reset calls
@@ -208,7 +204,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             argument.calls = 0;
         }
 
-        actualValue = scalar.evaluate(txnCtx, arguments);
+        actualValue = scalar.evaluate(txnCtx, sqlExpressions.nodeCtx, arguments);
         assertThat((T) actualValue, expectedValue);
     }
 
@@ -238,7 +234,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
         Function function = (Function) functionSymbol;
-        Scalar scalar = (Scalar) functions.getQualified(function, txnCtx.sessionSettings().searchPath());
+        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
         Scalar compiled = scalar.compile(function.arguments());
@@ -260,7 +256,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
     }
 
     protected FunctionImplementation getFunction(String functionName, List<DataType> argTypes) {
-        return functions.get(
+        return sqlExpressions.nodeCtx.functions().get(
             null, functionName, Lists2.map(argTypes, t -> new InputColumn(0, t)), SearchPath.pathWithPGCatalogAndDoc());
     }
 

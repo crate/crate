@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -68,7 +69,7 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     }
 
     @Override
-    public Iterable<Row> evaluate(TransactionContext txnCtx, Input<List<Object>>[] args) {
+    public Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>[] args) {
         return () -> Identifiers.KEYWORDS.stream()
             .map(new Function<Identifiers.Keyword, Row>() {
 

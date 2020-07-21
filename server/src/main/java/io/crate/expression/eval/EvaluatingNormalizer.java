@@ -51,17 +51,17 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.NodeContext;
 import io.crate.types.DataTypes;
 
 
 /**
  * The normalizer does several things:
  *
- *  - Convert functions into a simpler form by using {@link FunctionImplementation#normalizeSymbol(Function, TransactionContext)}
+ *  - Convert functions into a simpler form by using {@link FunctionImplementation#normalizeSymbol(Function, TransactionContext, NodeContext)}
  *  - Convert {@link ScopedSymbol} to {@link Reference} if {@link FieldResolver} is available.
  *  - Convert {@link MatchPredicate} to a {@link Function} if {@link FieldResolver} is available
  *  - Convert {@link Reference} into a Literal value if {@link ReferenceResolver} is available
@@ -70,21 +70,21 @@ import io.crate.types.DataTypes;
 public class EvaluatingNormalizer {
 
     private static final Logger LOGGER = LogManager.getLogger(EvaluatingNormalizer.class);
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final RowGranularity granularity;
     private final ReferenceResolver<? extends Input<?>> referenceResolver;
     private final FieldResolver fieldResolver;
     private final BaseVisitor visitor;
     private final Predicate<Function> onFunctionCondition;
 
-    public static EvaluatingNormalizer functionOnlyNormalizer(Functions functions) {
-        return new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, null);
+    public static EvaluatingNormalizer functionOnlyNormalizer(NodeContext nodeCtx) {
+        return new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, null);
     }
 
-    public static EvaluatingNormalizer functionOnlyNormalizer(Functions functions,
+    public static EvaluatingNormalizer functionOnlyNormalizer(NodeContext nodeCtx,
                                                               Predicate<Function> onFunctionCondition) {
         return new EvaluatingNormalizer(
-            functions,
+            nodeCtx,
             RowGranularity.CLUSTER,
             null,
             null,
@@ -92,25 +92,25 @@ public class EvaluatingNormalizer {
         );
     }
 
-    public EvaluatingNormalizer(Functions functions,
+    public EvaluatingNormalizer(NodeContext nodeCtx,
                                 RowGranularity granularity,
                                 @Nullable ReferenceResolver<? extends Input<?>> referenceResolver,
                                 @Nullable FieldResolver fieldResolver) {
-        this(functions, granularity, referenceResolver, fieldResolver, function -> true);
+        this(nodeCtx, granularity, referenceResolver, fieldResolver, function -> true);
     }
 
     /**
-     * @param functions         function resolver
+     * @param nodeCtx           function resolver
      * @param granularity       the maximum row granularity the normalizer should try to normalize
      * @param referenceResolver reference resolver which is used to resolve paths
      * @param fieldResolver     optional field resolver to resolve fields
      */
-    public EvaluatingNormalizer(Functions functions,
+    public EvaluatingNormalizer(NodeContext nodeCtx,
                                 RowGranularity granularity,
                                 @Nullable ReferenceResolver<? extends Input<?>> referenceResolver,
                                 @Nullable FieldResolver fieldResolver,
                                 Predicate<Function> onFunctionCondition) {
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.granularity = granularity;
         this.referenceResolver = referenceResolver;
         this.fieldResolver = fieldResolver;
@@ -156,7 +156,7 @@ public class EvaluatingNormalizer {
                     Literal.of(matchPredicate.matchType()),
                     matchPredicate.options().accept(this, context)
                 );
-                FunctionImplementation implementation = functions.get(
+                FunctionImplementation implementation = nodeCtx.functions().get(
                     null,
                     io.crate.expression.predicate.MatchPredicate.NAME,
                     arguments,
@@ -233,12 +233,12 @@ public class EvaluatingNormalizer {
                 return function;
             }
             function = processAndMaybeCopy(function, context);
-            FunctionImplementation implementation = functions.getQualified(
+            FunctionImplementation implementation = nodeCtx.functions().getQualified(
                 function,
                 context.sessionSettings().searchPath()
             );
             assert implementation != null : "Function implementation not found using full qualified lookup: " + function;
-            return implementation.normalizeSymbol(function, context);
+            return implementation.normalizeSymbol(function, context, nodeCtx);
         }
 
         @Override

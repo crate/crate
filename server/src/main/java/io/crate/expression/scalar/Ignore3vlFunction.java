@@ -23,6 +23,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -63,7 +64,7 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Boolean>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Boolean>... args) {
         assert args.length == 1 : "ignore3vl expects exactly 1 argument, got: " + args.length;
         Boolean value = args[0].value();
         if (value == null) {
