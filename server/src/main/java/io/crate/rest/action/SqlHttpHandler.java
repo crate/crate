@@ -38,7 +38,6 @@ import io.crate.auth.user.UserLookup;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.protocols.http.Headers;
@@ -164,17 +163,16 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            SQLActionException sqlActionException = SQLExceptions.forWireTransmission(
-                getAccessControl.apply(session.sessionContext()), t);
+            HttpError httpError = HttpError.convert(getAccessControl.apply(session.sessionContext()), t);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
-            try (XContentBuilder contentBuilder = HTTPErrorFormatter.convert(sqlActionException, includeErrorTrace)) {
+            try (XContentBuilder contentBuilder = httpError.toXContent(includeErrorTrace)) {
                 content = Netty4Utils.toByteBuf(BytesReference.bytes(contentBuilder));
                 mediaType = contentBuilder.contentType().mediaType();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            resp = new DefaultFullHttpResponse(httpVersion, sqlActionException.status(), content);
+            resp = new DefaultFullHttpResponse(httpVersion, httpError.status(), content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, mediaType);
         }
         Netty4CorsHandler.setCorsResponseHeaders(request, resp, corsConfig);
