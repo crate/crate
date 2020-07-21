@@ -57,6 +57,9 @@ Changes
 Fixes
 =====
 
+- Fixed a performance regression introduced in 4.2.0 which caused queries with
+  a ``ORDER BY`` but without ``LIMIT`` to execute slower than they used to.
+
 - Fixed an issue that prevented queries executed using a ``query-then-fetch``
   strategy from being labelled correctly in the :ref:`sys.jobs_metrics
   <sys-jobs-metrics>` and :ref:`sys.jobs_log <sys-logs>` tables.

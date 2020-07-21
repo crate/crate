@@ -38,10 +38,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
