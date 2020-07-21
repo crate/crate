@@ -26,6 +26,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -48,6 +49,7 @@ public class SQLOperations {
         false,
         Setting.Property.NodeScope);
 
+    private final NodeContext nodeCtx;
     private final Analyzer analyzer;
     private final Planner planner;
     private final Provider<DependencyCarrier> executorProvider;
@@ -58,13 +60,15 @@ public class SQLOperations {
     private volatile boolean disabled;
 
     @Inject
-    public SQLOperations(Analyzer analyzer,
+    public SQLOperations(NodeContext nodeCtx,
+                         Analyzer analyzer,
                          Planner planner,
                          Provider<DependencyCarrier> executorProvider,
                          JobsLogs jobsLogs,
                          Settings settings,
                          ClusterService clusterService,
                          Provider<UserManager> userManagerProvider) {
+        this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
@@ -79,6 +83,7 @@ public class SQLOperations {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
         return new Session(
+            nodeCtx,
             analyzer,
             planner,
             jobsLogs,

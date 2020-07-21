@@ -99,7 +99,7 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
         int limit = DataTypes.INTEGER.sanitizeValue(
             evaluate(
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 this.limit,
                 params,
                 subQueryResults
@@ -108,7 +108,7 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
         int offset = DataTypes.INTEGER.sanitizeValue(
             evaluate(
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 this.offset,
                 params,
                 subQueryResults

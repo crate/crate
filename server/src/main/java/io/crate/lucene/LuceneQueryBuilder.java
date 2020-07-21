@@ -59,7 +59,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -101,11 +101,11 @@ public class LuceneQueryBuilder {
 
     private static final Logger LOGGER = LogManager.getLogger(LuceneQueryBuilder.class);
     private static final Visitor VISITOR = new Visitor();
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
     @Inject
-    public LuceneQueryBuilder(Functions functions) {
-        this.functions = functions;
+    public LuceneQueryBuilder(NodeContext nodeCtx) {
+        this.nodeCtx = nodeCtx;
     }
 
     public Context convert(Symbol query,
@@ -120,10 +120,10 @@ public class LuceneQueryBuilder {
             mapperService::fullName,
             table.partitionedByColumns()
         );
-        var normalizer = new EvaluatingNormalizer(functions, RowGranularity.PARTITION, refResolver, null);
+        var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
         Context ctx = new Context(
             txnCtx,
-            functions,
+            nodeCtx,
             mapperService,
             indexCache,
             queryShardContext,
@@ -165,7 +165,7 @@ public class LuceneQueryBuilder {
         final QueryShardContext queryShardContext;
 
         Context(TransactionContext txnCtx,
-                Functions functions,
+                NodeContext nodeCtx,
                 MapperService mapperService,
                 IndexCache indexCache,
                 QueryShardContext queryShardContext,
@@ -175,7 +175,7 @@ public class LuceneQueryBuilder {
             this.queryShardContext = queryShardContext;
             FieldTypeLookup typeLookup = mapperService::fullName;
             this.docInputFactory = new DocInputFactory(
-                functions,
+                nodeCtx,
                 new LuceneReferenceResolver(
                     indexName,
                     typeLookup,

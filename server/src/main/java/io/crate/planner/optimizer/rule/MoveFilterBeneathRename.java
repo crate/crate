@@ -23,7 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.FieldReplacer;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -60,7 +60,7 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             Functions functions) {
+                             NodeContext nodeCtx) {
         Rename rename = captures.get(renameCapture);
         Filter newFilter = new Filter(
             rename.source(),

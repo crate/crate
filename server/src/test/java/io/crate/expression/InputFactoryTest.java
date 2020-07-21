@@ -35,7 +35,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.RelationName;
@@ -80,7 +79,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableRelation tr1 = (DocTableRelation) sources.get(T3.T1);
         expressions = new SqlExpressions(sources, tr1);
-        factory = new InputFactory(expressions.functions());
+        factory = new InputFactory(expressions.nodeCtx);
     }
 
     @Test
@@ -190,7 +189,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         FunctionImplementation impl = (FunctionImplementation) f.get(expression);
         assertThat(impl.signature(), is(function.signature()));
 
-        FunctionImplementation uncompiled = expressions.functions().getQualified(
+        FunctionImplementation uncompiled = expressions.nodeCtx.functions().getQualified(
             function,
             txnCtx.sessionSettings().searchPath()
         );

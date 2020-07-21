@@ -64,7 +64,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
         return CreateAnalyzerPlan.createRequest(
             analyzedStatement,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             new RowN(arguments),
             SubQueryResults.EMPTY,
             e.fulltextAnalyzerResolver());

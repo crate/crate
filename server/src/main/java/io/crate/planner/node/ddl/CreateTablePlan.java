@@ -42,7 +42,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.planner.DependencyCarrier;
@@ -97,7 +97,7 @@ public class CreateTablePlan implements Plan {
         BoundCreateTable boundCreateTable = bind(
             createTable,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            dependencies.nodeContext(),
             params,
             subQueryResults,
             numberOfShards,
@@ -116,7 +116,7 @@ public class CreateTablePlan implements Plan {
     @VisibleForTesting
     public static BoundCreateTable bind(AnalyzedCreateTable createTable,
                                         CoordinatorTxnCtx txnCtx,
-                                        Functions functions,
+                                        NodeContext nodeCtx,
                                         Row params,
                                         SubQueryResults subQueryResults,
                                         NumberOfShards numberOfShards,
@@ -124,7 +124,7 @@ public class CreateTablePlan implements Plan {
                                         FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
-            functions,
+            nodeCtx,
             x,
             params,
             subQueryResults

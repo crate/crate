@@ -64,7 +64,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         super.setUp();
         udfService = new UserDefinedFunctionService(
             mock(ClusterService.class),
-            functions);
+            sqlExpressions.nodeCtx);
         udfService.registerLanguage(new JavaScriptLanguage(udfService));
     }
 
@@ -86,7 +86,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             var resolvers = functionImplementations.computeIfAbsent(
                 functionName, k -> new ArrayList<>());
             resolvers.add(udfService.buildFunctionResolver(udf));
-            functions.registerUdfFunctionImplementationsForSchema(
+            sqlExpressions.nodeCtx.functions().registerUdfFunctionImplementationsForSchema(
                 Schemas.DOC_SCHEMA_NAME,
                 functionImplementations);
         } else {

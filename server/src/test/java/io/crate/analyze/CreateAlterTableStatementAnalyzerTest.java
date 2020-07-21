@@ -116,7 +116,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             return (S) CreateTablePlan.bind(
                 (AnalyzedCreateTable) analyzedStatement,
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 new RowN(arguments),
                 SubQueryResults.EMPTY,
                 new NumberOfShards(clusterService),
@@ -127,7 +127,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             return (S) AlterTablePlan.bind(
                 (AnalyzedAlterTable) analyzedStatement,
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 new RowN(arguments),
                 SubQueryResults.EMPTY
             );
@@ -135,7 +135,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             return (S) AlterTableAddColumnPlan.bind(
                 (AnalyzedAlterTableAddColumn) analyzedStatement,
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 new RowN(arguments),
                 SubQueryResults.EMPTY,
                 null
@@ -723,7 +723,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         CreateBlobTablePlan.buildSettings(
             blobTable.createBlobTable(),
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             new RowN(new Object[0]),
             SubQueryResults.EMPTY,
             new NumberOfShards(clusterService));

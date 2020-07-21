@@ -51,6 +51,8 @@ Breaking Changes
 Changes
 =======
 
+- Added scalar function :ref:`pg_function_is_visible <pg_function_is_visible>`.
+
 - Added the ``read_only_allow_delete`` setting to the ``settings['blocks']``
   column of the :ref:`information_schema.tables <information_schema_tables>`
   and :ref:`information_schema.table_partitions <is_table_partitions>` tables.

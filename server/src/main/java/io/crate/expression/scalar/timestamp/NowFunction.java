@@ -24,6 +24,7 @@ package io.crate.expression.scalar.timestamp;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -56,7 +57,7 @@ public final class NowFunction extends Scalar<Long, Object> {
 
     @Override
     @SafeVarargs
-    public final Long evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         return ChronoUnit.MILLIS.between(Instant.EPOCH, txnCtx.currentInstant());
     }
 

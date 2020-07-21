@@ -22,7 +22,7 @@
 
 package io.crate.metadata.doc;
 
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -32,20 +32,20 @@ import org.elasticsearch.common.inject.Singleton;
 @Singleton
 public class InternalDocTableInfoFactory implements DocTableInfoFactory {
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     @Inject
-    public InternalDocTableInfoFactory(Functions functions,
+    public InternalDocTableInfoFactory(NodeContext nodeCtx,
                                        IndexNameExpressionResolver indexNameExpressionResolver) {
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override
     public DocTableInfo create(RelationName ident, ClusterState state) {
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
-            functions,
+            nodeCtx,
             ident,
             state,
             indexNameExpressionResolver

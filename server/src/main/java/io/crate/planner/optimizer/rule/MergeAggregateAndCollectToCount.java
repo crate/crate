@@ -24,7 +24,7 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.statistics.TableStats;
@@ -64,7 +64,7 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
                        Captures captures,
                        TableStats tableStats,
                        TransactionContext txnCtx,
-                       Functions functions) {
+                       NodeContext nodeCtx) {
         Collect collect = captures.get(collectCapture);
         var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
         if (countAggregate.filter() != null) {

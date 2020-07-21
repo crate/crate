@@ -54,8 +54,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -73,7 +73,7 @@ import io.crate.types.DataTypes;
 
 class InsertAnalyzer {
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final Schemas schemas;
     private final RelationAnalyzer relationAnalyzer;
 
@@ -99,8 +99,8 @@ class InsertAnalyzer {
         }
     }
 
-    InsertAnalyzer(Functions functions, Schemas schemas, RelationAnalyzer relationAnalyzer) {
-        this.functions = functions;
+    InsertAnalyzer(NodeContext nodeCtx, Schemas schemas, RelationAnalyzer relationAnalyzer) {
+        this.nodeCtx = nodeCtx;
         this.schemas = schemas;
         this.relationAnalyzer = relationAnalyzer;
     }
@@ -125,8 +125,8 @@ class InsertAnalyzer {
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         NameFieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             txnCtx,
+            nodeCtx,
             typeHints,
             fieldProvider,
             null,
@@ -138,6 +138,7 @@ class InsertAnalyzer {
             targetColumns,
             typeHints,
             txnCtx,
+            nodeCtx,
             fieldProvider,
             insert.duplicateKeyContext()
         );
@@ -152,8 +153,8 @@ class InsertAnalyzer {
             var exprCtx = new ExpressionAnalysisContext();
             Map<RelationName, AnalyzedRelation> sources = Map.of(tableRelation.relationName(), tableRelation);
             var sourceExprAnalyzer = new ExpressionAnalyzer(
-                functions,
                 txnCtx,
+                nodeCtx,
                 typeHints,
                 new FullQualifiedNameFieldProvider(
                     sources,
@@ -309,11 +310,11 @@ class InsertAnalyzer {
         }
     }
 
-    private static Map<Reference, Symbol> getUpdateAssignments(Functions functions,
-                                                               DocTableRelation targetTable,
+    private static Map<Reference, Symbol> getUpdateAssignments(DocTableRelation targetTable,
                                                                List<Reference> targetCols,
                                                                ExpressionAnalyzer exprAnalyzer,
                                                                CoordinatorTxnCtx txnCtx,
+                                                               NodeContext nodeCtx,
                                                                ParamTypeHints paramTypeHints,
                                                                Insert.DuplicateKeyContext<Expression> duplicateKeyContext) {
         if (duplicateKeyContext.getAssignments().isEmpty()) {
@@ -328,8 +329,8 @@ class InsertAnalyzer {
         } else {
             fieldProvider = new NameFieldProvider(targetTable);
         }
-        var expressionAnalyzer = new ExpressionAnalyzer(functions, txnCtx, paramTypeHints, fieldProvider, null);
-        var normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, targetTable);
+        var expressionAnalyzer = new ExpressionAnalyzer(txnCtx, nodeCtx, paramTypeHints, fieldProvider, null);
+        var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, targetTable);
         Map<Reference, Symbol> updateAssignments = new HashMap<>(duplicateKeyContext.getAssignments().size());
         for (Assignment<Expression> assignment : duplicateKeyContext.getAssignments()) {
             Reference targetCol = (Reference) exprAnalyzer.convert(assignment.columnName(), exprCtx);
@@ -348,14 +349,15 @@ class InsertAnalyzer {
                                                             List<Reference> targetColumns,
                                                             ParamTypeHints paramTypeHints,
                                                             CoordinatorTxnCtx coordinatorTxnCtx,
+                                                            NodeContext nodeCtx,
                                                             FieldProvider<?> fieldProvider,
                                                             Insert.DuplicateKeyContext<Expression> duplicateKeyContext) {
         if (duplicateKeyContext.getAssignments().isEmpty()) {
             return Collections.emptyMap();
         }
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, coordinatorTxnCtx, paramTypeHints, fieldProvider, null, Operation.UPDATE);
-        return getUpdateAssignments(functions, tableRelation, targetColumns, expressionAnalyzer,
-            coordinatorTxnCtx, paramTypeHints, duplicateKeyContext);
+            coordinatorTxnCtx, nodeCtx, paramTypeHints, fieldProvider, null, Operation.UPDATE);
+        return getUpdateAssignments(tableRelation, targetColumns, expressionAnalyzer,
+            coordinatorTxnCtx, nodeCtx, paramTypeHints, duplicateKeyContext);
     }
 }

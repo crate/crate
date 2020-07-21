@@ -40,7 +40,7 @@ public class RegprocTypeTest extends ESTestCase {
     public void test_implicit_cast_regproc_to_integer() {
         assertThat(
             DataTypes.INTEGER.implicitCast(Regproc.of("func")),
-            is(OidHash.functionOid("func")));
+            is(OidHash.regprocOid("func")));
     }
 
     @Test

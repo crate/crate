@@ -44,7 +44,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
@@ -75,7 +75,7 @@ import java.util.function.Function;
 public class DocValuesAggregates {
 
     @Nullable
-    public static BatchIterator<Row> tryOptimize(Functions functions,
+    public static BatchIterator<Row> tryOptimize(NodeContext nodeCtx,
                                                  IndexShard indexShard,
                                                  DocTableInfo table,
                                                  LuceneQueryBuilder luceneQueryBuilder,
@@ -88,7 +88,7 @@ public class DocValuesAggregates {
             return null;
         }
         var aggregators = createAggregators(
-            functions,
+            nodeCtx,
             aggregateProjection,
             fieldTypeLookup,
             phase.toCollect(),
@@ -158,7 +158,7 @@ public class DocValuesAggregates {
 
     @Nullable
     @SuppressWarnings("rawtypes")
-    private static List<DocValueAggregator> createAggregators(Functions functions,
+    private static List<DocValueAggregator> createAggregators(NodeContext nodeCtx,
                                                               AggregationProjection aggregateProjection,
                                                               FieldTypeLookup fieldTypeLookup,
                                                               List<Symbol> toCollect,
@@ -179,7 +179,7 @@ public class DocValuesAggregates {
                 return null;
             }
 
-            FunctionImplementation func = functions.getQualified(aggregation, searchPath);
+            FunctionImplementation func = nodeCtx.functions().getQualified(aggregation, searchPath);
             if (!(func instanceof AggregationFunction)) {
                 throw new IllegalStateException(
                     "Expected an aggregationFunction for " + aggregation + " got: " + func);

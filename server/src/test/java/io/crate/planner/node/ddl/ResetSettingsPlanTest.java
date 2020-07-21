@@ -27,6 +27,7 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
@@ -111,7 +112,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
     private Function<Symbol, Object> symbolEvaluator(Row row) {
         return x -> SymbolEvaluator.evaluate(
             TransactionContext.of(new SessionSettings("", SearchPath.createSearchPathFrom(""))),
-            new Functions(Map.of()),
+            new NodeContext(new Functions(Map.of())),
             x,
             row,
             SubQueryResults.EMPTY);

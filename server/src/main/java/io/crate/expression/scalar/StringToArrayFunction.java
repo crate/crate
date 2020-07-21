@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -79,7 +80,7 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
     }
 
     @Override
-    public List<String> evaluate(TransactionContext txnCtx, Input<String>[] args) {
+    public List<String> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) {
         assert args.length == 2 || args.length == 3 : "number of args must be 2 or 3";
 
         String str = args[0].value();

@@ -23,6 +23,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -93,7 +94,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         }
 
         @Override
-        public Number evaluate(TransactionContext txnCtx, Input<Number>... args) {
+        public Number evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Number>... args) {
             assert args.length == 2 : "number of args must be 2";
             Number value1 = args[0].value();
             Number value2 = args[1].value();
@@ -131,7 +132,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         }
 
         @Override
-        public Number evaluate(TransactionContext txnCtx, Input<Number>... args) {
+        public Number evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Number>... args) {
             assert args.length == 1 : "number of args must be 1";
             Number value = args[0].value();
             if (value == null) {

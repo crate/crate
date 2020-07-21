@@ -24,6 +24,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -90,7 +91,7 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
     }
 
     @Override
-    public Period evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public Period evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         Period fst = (Period) args[0].value();
         Period snd = (Period) args[1].value();
 

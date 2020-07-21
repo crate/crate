@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -33,11 +34,12 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Optional;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.core.Is.is;
 
 public class DocKeysTest extends ESTestCase {
 
+    private NodeContext nodeCtx = createNodeContext();
 
     @Test
     public void testClusteredIsFirstInId() throws Exception {
@@ -48,8 +50,8 @@ public class DocKeysTest extends ESTestCase {
         DocKeys docKeys = new DocKeys(pks, false, false, 1, null);
         DocKeys.DocKey key = docKeys.getOnlyKey();
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        assertThat(key.getRouting(txnCtx, getFunctions(), Row.EMPTY, SubQueryResults.EMPTY), is("Ford"));
-        assertThat(key.getId(txnCtx, getFunctions(), Row.EMPTY, SubQueryResults.EMPTY), is("AgRGb3JkATE="));
+        assertThat(key.getRouting(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY), is("Ford"));
+        assertThat(key.getId(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY), is("AgRGb3JkATE="));
     }
 
     @Test
@@ -61,10 +63,10 @@ public class DocKeysTest extends ESTestCase {
                                       null);
         DocKeys.DocKey key = docKeys.getOnlyKey();
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        Optional<Long> sequenceNo = key.sequenceNo(txnCtx, getFunctions(), Row.EMPTY, SubQueryResults.EMPTY);
+        Optional<Long> sequenceNo = key.sequenceNo(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(sequenceNo.isPresent(), is(true));
         assertThat(sequenceNo.get(), is(22L));
-        Optional<Long> primaryTerm = key.primaryTerm(txnCtx, getFunctions(), Row.EMPTY, SubQueryResults.EMPTY);
+        Optional<Long> primaryTerm = key.primaryTerm(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(primaryTerm.isPresent(), is(true));
         assertThat(primaryTerm.get(), is(5L));
     }

@@ -50,7 +50,7 @@ public class CountAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() {
-        var countFunction = functions.get(
+        var countFunction = nodeCtx.functions().get(
             null,
             CountAggregation.NAME,
             List.of(Literal.of(DataTypes.INTEGER, null)),

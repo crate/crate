@@ -27,7 +27,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
@@ -67,16 +67,16 @@ public final class RewriteCollectToGet implements Rule<Collect> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             Functions functions) {
+                             NodeContext nodeCtx) {
         var relation = (DocTableRelation) collect.relation();
-        var normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, relation);
+        var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, relation);
         WhereClause where = collect.where();
         var detailedQuery = WhereClauseOptimizer.optimize(
             normalizer,
             where.queryOrFallback(),
             relation.tableInfo(),
             txnCtx,
-            functions
+            nodeCtx
         );
         Optional<DocKeys> docKeys = detailedQuery.docKeys();
         //noinspection OptionalIsPresent no capturing lambda allocation

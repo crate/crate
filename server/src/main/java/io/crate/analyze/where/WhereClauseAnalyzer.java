@@ -32,7 +32,7 @@ import io.crate.expression.reference.partitioned.PartitionExpression;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.Reference;
@@ -56,8 +56,8 @@ public class WhereClauseAnalyzer {
      */
     public static WhereClause resolvePartitions(WhereClause where,
                                                 AbstractTableRelation<?> tableRelation,
-                                                Functions functions,
-                                                CoordinatorTxnCtx coordinatorTxnCtx) {
+                                                CoordinatorTxnCtx coordinatorTxnCtx,
+                                                NodeContext nodeCtx) {
         if (!where.hasQuery() || !(tableRelation instanceof DocTableRelation) || where.query().equals(Literal.BOOLEAN_TRUE)) {
             return where;
         }
@@ -68,7 +68,7 @@ public class WhereClauseAnalyzer {
         if (table.partitions().isEmpty()) {
             return WhereClause.NO_MATCH;
         }
-        PartitionResult partitionResult = resolvePartitions(where.queryOrFallback(), table, functions, coordinatorTxnCtx);
+        PartitionResult partitionResult = resolvePartitions(where.queryOrFallback(), table, coordinatorTxnCtx, nodeCtx);
         if (!where.partitions().isEmpty()
             && !partitionResult.partitions.isEmpty()
             && !partitionResult.partitions.equals(where.partitions())) {
@@ -100,15 +100,15 @@ public class WhereClauseAnalyzer {
 
     public static PartitionResult resolvePartitions(Symbol query,
                                                     DocTableInfo tableInfo,
-                                                    Functions functions,
-                                                    CoordinatorTxnCtx coordinatorTxnCtx) {
+                                                    CoordinatorTxnCtx coordinatorTxnCtx,
+                                                    NodeContext nodeCtx) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
         assert !tableInfo.partitions().isEmpty() : "table must have at least one partition";
 
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
             tableInfo.partitionedByColumns());
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.PARTITION, partitionReferenceResolver, null);
+            nodeCtx, RowGranularity.PARTITION, partitionReferenceResolver, null);
 
         Symbol normalized;
         Map<Symbol, List<Literal>> queryPartitionMap = new HashMap<>();

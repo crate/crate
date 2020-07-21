@@ -23,7 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -61,7 +60,7 @@ public class AnalyzedAlterTableAddColumn implements DDLStatement {
      * metadata in order to evaluate it on every write (generated expression) or read (default expression).
      *
      * Putting all together is done by the
-     * {@link AnalyzedTableElements#finalizeAndValidate(RelationName, AnalyzedTableElements, AnalyzedTableElements, Functions)}
+     * {@link AnalyzedTableElements#finalizeAndValidate(RelationName, AnalyzedTableElements, AnalyzedTableElements)}
      * method which adds the serialized (printed) symbol tree of these expressions to the evaluated table elements.
      */
     public AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions() {

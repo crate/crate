@@ -23,6 +23,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -65,7 +66,7 @@ public final class TripleScalar<R, T> extends Scalar<R, T> {
 
     @SafeVarargs
     @Override
-    public final R evaluate(TransactionContext txnCtx, Input<T>... args) {
+    public final R evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>... args) {
         assert args.length == 3 : "TripleScalar expects exactly 3 arguments, got: " + args.length;
         T value1 = type.sanitizeValue(args[0].value());
         if (value1 == null) {

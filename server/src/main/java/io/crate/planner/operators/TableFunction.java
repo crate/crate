@@ -81,7 +81,7 @@ public final class TableFunction implements LogicalPlan {
         List<Symbol> args = relation.function().arguments();
         ArrayList<Literal<?>> functionArguments = new ArrayList<>(args.size());
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             RowGranularity.CLUSTER,
             null,
             relation
@@ -94,7 +94,7 @@ public final class TableFunction implements LogicalPlan {
                 Literal.ofUnchecked(
                     arg.valueType(),
                     SymbolEvaluator.evaluate(
-                        plannerContext.transactionContext(), plannerContext.functions(), arg, params, subQueryResults)
+                        plannerContext.transactionContext(), plannerContext.nodeContext(), arg, params, subQueryResults)
                 )
             );
         }

@@ -256,7 +256,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
             parseTypeSignature("V"),
             parseTypeSignature("V")
         ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
-        var functionImpl = functions.getQualified(
+        var functionImpl = sqlExpressions.nodeCtx.functions().getQualified(
             signature,
             List.of(DataTypes.UNTYPED_OBJECT, returnType),
             returnType

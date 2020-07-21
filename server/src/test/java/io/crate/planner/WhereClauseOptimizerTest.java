@@ -73,7 +73,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
         QueriedSelectRelation queriedTable = e.analyze(statement);
         DocTableRelation table = ((DocTableRelation) queriedTable.from().get(0));
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            e.functions(),
+            e.nodeCtx,
             RowGranularity.CLUSTER,
             null,
             table
@@ -83,7 +83,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
             queriedTable.where(),
             table.tableInfo(),
             e.getPlannerContext(clusterService.state()).transactionContext(),
-            e.functions()
+            e.nodeCtx
         );
     }
 

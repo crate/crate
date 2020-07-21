@@ -2586,7 +2586,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         DocTableInfo table = executor.resolveTableInfo("test");
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            executor.functions(),
+            executor.nodeCtx,
             RowGranularity.DOC,
             null,
             new DocTableRelation(table)

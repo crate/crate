@@ -45,7 +45,6 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -88,7 +87,6 @@ public final class UpdatePlanner {
     }
 
     public static Plan plan(AnalyzedUpdateStatement update,
-                            Functions functions,
                             PlannerContext plannerCtx,
                             SubqueryPlanner subqueryPlanner) {
 
@@ -105,7 +103,6 @@ public final class UpdatePlanner {
             plan = plan(docTable,
                         update.assignmentByTargetCol(),
                         update.query(),
-                        functions,
                         plannerCtx,
                         update.outputs());
         } else {
@@ -128,13 +125,12 @@ public final class UpdatePlanner {
     private static Plan plan(DocTableRelation docTable,
                              Map<Reference, Symbol> assignmentByTargetCol,
                              Symbol query,
-                             Functions functions,
                              PlannerContext plannerCtx,
                              @Nullable List<Symbol> returnValues) {
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(plannerCtx.nodeContext());
         DocTableInfo tableInfo = docTable.tableInfo();
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-            normalizer, query, tableInfo, plannerCtx.transactionContext(), functions);
+            normalizer, query, tableInfo, plannerCtx.transactionContext(), plannerCtx.nodeContext());
 
         if (detailedQuery.docKeys().isPresent()) {
             return new UpdateById(
@@ -142,13 +138,12 @@ public final class UpdatePlanner {
                 assignmentByTargetCol,
                 detailedQuery.docKeys().get(),
                 returnValues,
-                plannerCtx.functions()
+                plannerCtx.nodeContext()
             );
         }
 
         return new Update((plannerContext, params, subQueryValues) ->
-                              updateByQuery(functions,
-                                            plannerContext,
+                              updateByQuery(plannerContext,
                                             docTable,
                                             assignmentByTargetCol,
                                             detailedQuery,
@@ -253,8 +248,7 @@ public final class UpdatePlanner {
         }
     }
 
-    private static ExecutionPlan updateByQuery(Functions functions,
-                                               PlannerContext plannerCtx,
+    private static ExecutionPlan updateByQuery(PlannerContext plannerCtx,
                                                DocTableRelation table,
                                                Map<Reference, Symbol> assignmentByTargetCol,
                                                WhereClauseOptimizer.DetailedQuery detailedQuery,
@@ -264,7 +258,7 @@ public final class UpdatePlanner {
         DocTableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
                                                "Table must have a _id column");
-        Assignments assignments = Assignments.convert(assignmentByTargetCol, functions);
+        Assignments assignments = Assignments.convert(assignmentByTargetCol, plannerCtx.nodeContext());
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
         Symbol[] outputSymbols;
         if (returnValues == null) {
@@ -285,7 +279,7 @@ public final class UpdatePlanner {
             null);
 
         WhereClause where = detailedQuery.toBoundWhereClause(
-            tableInfo, functions, params, subQueryResults, plannerCtx.transactionContext());
+            tableInfo, params, subQueryResults, plannerCtx.transactionContext(), plannerCtx.nodeContext());
         if (where.hasVersions()) {
             throw VersioninigValidationException.versionInvalidUsage();
         } else if (where.hasSeqNoAndPrimaryTerm()) {

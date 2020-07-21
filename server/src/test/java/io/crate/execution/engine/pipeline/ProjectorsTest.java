@@ -35,7 +35,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
@@ -50,7 +50,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -59,21 +59,22 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
 
     private ProjectionToProjectorVisitor projectorFactory;
     private OnHeapMemoryManager memoryManager;
+    private NodeContext nodeCtx;
 
     @Before
     public void prepare() throws Exception {
-        Functions functions = getFunctions();
+        nodeCtx = createNodeContext();
         memoryManager = new OnHeapMemoryManager(bytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             new NodeJobsCounter(),
-            functions,
+            nodeCtx,
             THREAD_POOL,
             Settings.EMPTY,
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS),
-            new InputFactory(functions),
+            new InputFactory(nodeCtx),
             new EvaluatingNormalizer(
-                functions,
+                nodeCtx,
                 RowGranularity.SHARD,
                 r -> Literal.ofUnchecked(r.valueType(), r.valueType().sanitizeValue("1")),
                 null),

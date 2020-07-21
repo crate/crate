@@ -57,7 +57,7 @@ public class VarianceAggregationTest extends AggregationTest {
     public void testReturnType() throws Exception {
         for (var dataType : VarianceAggregation.SUPPORTED_TYPES) {
             // Return type is fixed to Double
-            var varianceFunction = functions.get(
+            var varianceFunction = nodeCtx.functions().get(
                 null,
                 VarianceAggregation.NAME,
                 List.of(Literal.of(dataType, null)),

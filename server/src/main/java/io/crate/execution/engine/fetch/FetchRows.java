@@ -39,7 +39,7 @@ import io.crate.expression.InputRow;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.fetch.FetchSource;
@@ -83,7 +83,7 @@ import io.crate.planner.node.fetch.FetchSource;
 public final class FetchRows {
 
     public static FetchRows create(TransactionContext txnCtx,
-                                   Functions functions,
+                                   NodeContext nodeCtx,
                                    Map<RelationName, FetchSource> fetchSourceByTable,
                                    List<Symbol> outputSymbols) {
         IntArrayList fetchIdPositions = new IntArrayList();
@@ -98,7 +98,7 @@ public final class FetchRows {
             }
         }
         final UnsafeArrayRow inputRow = new UnsafeArrayRow();
-        var visitor = new BaseImplementationSymbolVisitor<Void>(txnCtx, functions) {
+        var visitor = new BaseImplementationSymbolVisitor<Void>(txnCtx, nodeCtx) {
 
             @Override
             public Input<?> visitInputColumn(final InputColumn inputColumn, final Void context) {

@@ -38,7 +38,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.types.DataType;
@@ -51,10 +51,10 @@ import java.util.Map;
 
 public class ProjectionBuilder {
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
-    public ProjectionBuilder(Functions functions) {
-        this.functions = functions;
+    public ProjectionBuilder(NodeContext nodeCtx) {
+        this.nodeCtx = nodeCtx;
     }
 
     public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
@@ -113,7 +113,7 @@ public class ProjectionBuilder {
                     throw new AssertionError("Invalid mode: " + mode.name());
             }
 
-            AggregationFunction<?, ?> aggregationFunction = (AggregationFunction<?, ?>) this.functions.getQualified(
+            AggregationFunction<?, ?> aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 function,
                 searchPath
             );

@@ -41,7 +41,7 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.reference.sys.check.node.SysNodeChecks;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -78,14 +78,14 @@ public class SystemCollectSource implements CollectSource {
 
     @Inject
     public SystemCollectSource(ClusterService clusterService,
-                               Functions functions,
+                               NodeContext nodeCtx,
                                UserManager userManager,
                                InformationSchemaTableDefinitions informationSchemaTables,
                                SysTableDefinitions sysTableDefinitions,
                                SysNodeChecks sysNodeChecks,
                                PgCatalogTableDefinitions pgCatalogTables) {
         this.clusterService = clusterService;
-        inputFactory = new InputFactory(functions);
+        inputFactory = new InputFactory(nodeCtx);
         this.userLookup = userManager;
         this.informationSchemaTables = informationSchemaTables;
         this.sysTables = sysTableDefinitions;

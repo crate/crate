@@ -29,8 +29,8 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
@@ -72,7 +72,7 @@ public class DeletePartitions implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) {
         ArrayList<String> indexNames = getIndices(
-            plannerContext.transactionContext(), dependencies.functions(), params, subQueryResults);
+            plannerContext.transactionContext(), dependencies.nodeContext(), params, subQueryResults);
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
         dependencies.transportActionProvider().transportDeleteIndexAction()
@@ -80,10 +80,10 @@ public class DeletePartitions implements Plan {
     }
 
     @VisibleForTesting
-    ArrayList<String> getIndices(TransactionContext txnCtx, Functions functions, Row parameters, SubQueryResults subQueryResults) {
+    ArrayList<String> getIndices(TransactionContext txnCtx, NodeContext nodeCtx, Row parameters, SubQueryResults subQueryResults) {
         ArrayList<String> indexNames = new ArrayList<>();
         Function<Symbol, String> symbolToString =
-            s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, functions, s, parameters, subQueryResults));
+            s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, parameters, subQueryResults));
         for (List<Symbol> partitionValues : partitions) {
             List<String> values = Lists2.map(partitionValues, symbolToString);
             String indexName = IndexParts.toIndexName(relationName, PartitionName.encodeIdent(values));

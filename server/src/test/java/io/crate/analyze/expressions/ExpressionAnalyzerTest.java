@@ -44,7 +44,6 @@ import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
@@ -71,7 +70,6 @@ import java.util.Map;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
@@ -90,7 +88,6 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private CoordinatorTxnCtx coordinatorTxnCtx;
     private ExpressionAnalysisContext context;
     private ParamTypeHints paramTypeHints;
-    private Functions functions;
     private SQLExecutor executor;
     private SqlExpressions expressions;
 
@@ -101,7 +98,6 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         dummySources = Map.of(dummyRelation.relationName(), dummyRelation);
         coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         context = new ExpressionAnalysisContext();
-        functions = getFunctions();
         executor = SQLExecutor.builder(clusterService)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
@@ -117,7 +113,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("Unsupported expression current_date");
         SessionContext sessionContext = SessionContext.systemSessionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, coordinatorTxnCtx, paramTypeHints,
+            coordinatorTxnCtx, expressions.nodeCtx, paramTypeHints,
             new FullQualifiedNameFieldProvider(
                 dummySources,
                 ParentRelations.NO_PARENTS,
@@ -133,8 +129,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         SessionContext sessionContext = new SessionContext(
             EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), User.CRATE_USER);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             new CoordinatorTxnCtx(sessionContext),
+            expressions.nodeCtx,
             paramTypeHints,
             new FullQualifiedNameFieldProvider(
                 dummySources,
@@ -176,8 +172,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         SessionContext sessionContext = new SessionContext(
             EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), User.CRATE_USER);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             new CoordinatorTxnCtx(sessionContext),
+            expressions.nodeCtx,
             paramTypeHints,
             new FullQualifiedNameFieldProvider(
                 dummySources,
@@ -209,8 +205,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         SessionContext sessionContext = SessionContext.systemSessionContext();
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             coordinatorTxnCtx,
+            expressions.nodeCtx,
             paramTypeHints,
             new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.searchPath().currentSchema()),
             null
@@ -258,22 +254,22 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             List.of(Literal.BOOLEAN_FALSE),
             null,
             localContext,
-            functions,
-            CoordinatorTxnCtx.systemTransactionContext());
-        Symbol fn2 = ExpressionAnalyzer.allocateFunction(
+            CoordinatorTxnCtx.systemTransactionContext(),
+            expressions.nodeCtx);
+            Symbol fn2 = ExpressionAnalyzer.allocateFunction(
             functionName,
             List.of(Literal.BOOLEAN_FALSE),
             null,
             localContext,
-            functions,
-            CoordinatorTxnCtx.systemTransactionContext());
+            CoordinatorTxnCtx.systemTransactionContext(),
+            expressions.nodeCtx);
         Symbol fn3 = ExpressionAnalyzer.allocateFunction(
             functionName,
             List.of(Literal.BOOLEAN_TRUE),
             null,
             localContext,
-            functions,
-            CoordinatorTxnCtx.systemTransactionContext());
+            CoordinatorTxnCtx.systemTransactionContext(),
+            expressions.nodeCtx);
 
         // different instances
         assertThat(fn1, allOf(

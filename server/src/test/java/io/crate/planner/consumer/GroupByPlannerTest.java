@@ -52,7 +52,6 @@ import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
-import io.crate.planner.operators.LogicalPlannerTest;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
@@ -60,7 +59,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 

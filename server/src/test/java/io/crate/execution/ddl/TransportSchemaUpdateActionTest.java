@@ -61,7 +61,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         BoundAddColumn addXLong = AlterTableAddColumnPlan.bind(
             e.analyze("alter table t add column x long"),
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             Row.EMPTY,
             SubQueryResults.EMPTY,
             null
@@ -69,7 +69,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         BoundAddColumn addXString = AlterTableAddColumnPlan.bind(
             e.analyze("alter table t add column x string"),
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             Row.EMPTY,
             SubQueryResults.EMPTY,
             null

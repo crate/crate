@@ -54,7 +54,7 @@ public class SetLicensePlan implements Plan {
                               SubQueryResults subQueryResults) {
         Object license = SymbolEvaluator.evaluate(
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             stmt.licenseKey(),
             params,
             subQueryResults

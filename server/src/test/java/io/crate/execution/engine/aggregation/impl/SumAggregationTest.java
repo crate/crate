@@ -72,7 +72,7 @@ public class SumAggregationTest extends AggregationTest {
     }
 
     private FunctionImplementation getSum(DataType<?> type) {
-        return functions.get(
+        return nodeCtx.functions().get(
             null,
             "sum",
             List.of(Literal.of(type, null)),

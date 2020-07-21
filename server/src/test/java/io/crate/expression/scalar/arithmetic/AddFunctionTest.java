@@ -33,7 +33,7 @@ public class AddFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTimestampTypeValidation() {
-        functions.get(
+        sqlExpressions.nodeCtx.functions().get(
             null,
             ArithmeticFunctions.Names.ADD,
             List.of(Literal.of(DataTypes.TIMESTAMPZ, null), Literal.of(DataTypes.TIMESTAMPZ, null)),

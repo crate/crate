@@ -30,6 +30,7 @@ import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
@@ -44,13 +45,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 
 public class RoutedCollectPhaseTest extends ESTestCase {
+
+    private NodeContext nodeCtx = createNodeContext();
 
     @Test
     public void testStreaming() throws Exception {
@@ -98,7 +101,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
             DistributionInfo.DEFAULT_SAME_NODE
         );
         collect.orderBy(new OrderBy(Collections.singletonList(toInt10)));
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         RoutedCollectPhase normalizedCollect = collect.normalize(
             normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
@@ -120,7 +123,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
             DistributionInfo.DEFAULT_SAME_NODE
         );
         collect.nodePageSizeHint(10);
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         RoutedCollectPhase normalizedCollect = collect.normalize(
             normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
@@ -140,7 +143,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_SAME_NODE
         );
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         RoutedCollectPhase normalizedCollect = collect.normalize(
             normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 

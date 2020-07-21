@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -91,7 +92,7 @@ public class MapFunction extends Scalar<Object, Object> {
 
     @SafeVarargs
     @Override
-    public final Object evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         Map<String, Object> m = new HashMap<>(args.length / 2, 1.0f);
         for (int i = 0; i < args.length - 1; i += 2) {
             m.put((String) args[i].value(), args[i + 1].value());

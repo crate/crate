@@ -22,11 +22,16 @@
 
 package io.crate.metadata.pgcatalog;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationInfo;
-import org.apache.lucene.util.BytesRef;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.TypeSignature;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.apache.lucene.util.StringHelper.murmurhash3_x86_32;
 
@@ -41,34 +46,53 @@ public final class OidHash {
         PROC
     }
 
+    private static int oid(String key) {
+        byte [] b = key.getBytes(StandardCharsets.UTF_8);
+        return murmurhash3_x86_32(b, 0, b.length, 0);
+    }
+
     public static int relationOid(RelationInfo relationInfo) {
         Type t = relationInfo.relationType() == RelationInfo.RelationType.VIEW ? Type.VIEW : Type.TABLE;
-        BytesRef b = new BytesRef(t.toString() + relationInfo.ident().fqn());
-        return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+        return oid(t.toString() + relationInfo.ident().fqn());
     }
 
     public static int schemaOid(String name) {
-        BytesRef b = new BytesRef(Type.SCHEMA.toString() + name);
-        return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+        return oid(Type.SCHEMA.toString() + name);
     }
 
     public static int primaryKeyOid(RelationInfo relationInfo) {
         var primaryKey = Lists2.joinOn(" ", relationInfo.primaryKey(), ColumnIdent::name);
-        var b = new BytesRef(Type.PRIMARY_KEY.toString() + relationInfo.ident().fqn() + primaryKey);
-        return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+        return oid(Type.PRIMARY_KEY.toString() + relationInfo.ident().fqn() + primaryKey);
     }
 
-    static int constraintOid(String relationName, String constraintName, String constraintType) {
-        BytesRef b = new BytesRef(Type.CONSTRAINT.toString() + relationName + constraintName + constraintType);
-        return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+    public static int constraintOid(String relationName, String constraintName, String constraintType) {
+        return oid(Type.CONSTRAINT.toString() + relationName + constraintName + constraintType);
     }
 
-    public static int functionOid(FunctionName functionName) {
-        BytesRef b = new BytesRef(Type.PROC.toString() + functionName.schema() + functionName.name());
-        return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+    public static int regprocOid(FunctionName name) {
+        return oid(Type.PROC.toString() + name.schema() + name.name());
     }
 
-    public static int functionOid(String functionName) {
-        return functionOid(new FunctionName(null, functionName));
+    public static int regprocOid(String name) {
+        return oid(Type.PROC.toString() + "null" + name);
+    }
+
+    public static int functionOid(Signature sig) {
+        FunctionName name = sig.getName();
+        return oid(Type.PROC.toString() + name.schema() + name.name() + argTypesToStr(sig.getArgumentTypes()));
+    }
+
+    @VisibleForTesting
+    static String argTypesToStr(List<TypeSignature> typeSignatures) {
+        return Lists2.joinOn(" ", typeSignatures, ts -> {
+            try {
+                return ts.createType().getName();
+            } catch (IllegalArgumentException i) {
+                // generic signatures, e.g. E, array(E)
+                String baseName = ts.getBaseTypeName();
+                List<TypeSignature> innerTs = ts.getParameters();
+                return baseName + (innerTs.isEmpty() ? "" : "_" + argTypesToStr(innerTs));
+            }
+        });
     }
 }

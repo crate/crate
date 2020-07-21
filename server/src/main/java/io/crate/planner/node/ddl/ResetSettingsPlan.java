@@ -86,7 +86,7 @@ public final class ResetSettingsPlan implements Plan {
                               SubQueryResults subQueryResults) {
 
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(plannerContext.transactionContext(),
-                                                                              plannerContext.functions(),
+                                                                              plannerContext.nodeContext(),
                                                                               x,
                                                                               params,
                                                                               subQueryResults);

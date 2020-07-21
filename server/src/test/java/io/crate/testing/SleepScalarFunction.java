@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -51,7 +52,7 @@ public class SleepScalarFunction extends Scalar<Boolean, Long> {
 
     @SafeVarargs
     @Override
-    public final Boolean evaluate(TransactionContext txnCtx, Input<Long>... args) {
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Long>... args) {
         long millis = (args.length > 0) ? args[0].value() : 1000L;
         try {
             Thread.sleep(millis);

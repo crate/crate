@@ -27,7 +27,7 @@ import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -77,7 +77,7 @@ public class MoveReferenceCastToLiteralCastInsideOperators implements Rule<Funct
     @Override
     public Symbol apply(Function operator,
                         Captures captures,
-                        Functions functions) {
+                        NodeContext nodeCtx) {
         var literal = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);

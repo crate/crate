@@ -44,7 +44,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.core.Is.is;
 
 public class MapRowUsingInputsTest extends ESTestCase {
@@ -55,7 +55,7 @@ public class MapRowUsingInputsTest extends ESTestCase {
 
     @Before
     public void createInputs() throws Exception {
-        InputFactory inputFactory = new InputFactory(getFunctions());
+        InputFactory inputFactory = new InputFactory(createNodeContext());
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         var addFunction = new Function(
             Signature.scalar(

@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static io.crate.planner.node.ddl.UpdateSettingsPlan.buildSettingsFrom;
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -54,7 +54,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
     private Function<Symbol, Object> symbolEvaluator(Row row) {
         return x -> SymbolEvaluator.evaluate(
             TransactionContext.of(new SessionSettings("", SearchPath.createSearchPathFrom(""))),
-            getFunctions(),
+            createNodeContext(),
             x,
             row,
             SubQueryResults.EMPTY);

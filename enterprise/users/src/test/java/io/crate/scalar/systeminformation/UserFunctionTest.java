@@ -23,6 +23,7 @@ import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.scalar.UsersScalarFunctionModule;
 import io.crate.testing.SqlExpressions;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -32,32 +33,28 @@ public class UserFunctionTest extends AbstractScalarFunctionsTest {
 
     private static final User TEST_USER = User.of("testUser");
 
-    private void setupFunctionsFor(User user) {
-        sqlExpressions = new SqlExpressions(tableSources, null, user, new UsersScalarFunctionModule());
-        functions = sqlExpressions.functions();
+    @Before
+    private void prepare() {
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, new UsersScalarFunctionModule());
     }
 
     @Test
     public void testNormalizeCurrentUser() {
-        setupFunctionsFor(TEST_USER);
         assertNormalize("current_user", isLiteral("testUser"), false);
     }
 
     @Test
     public void testNormalizeSessionUser() {
-        setupFunctionsFor(TEST_USER);
         assertNormalize("session_user", isLiteral("testUser"), false);
     }
 
     @Test
     public void testNormalizeUser() {
-        setupFunctionsFor(TEST_USER);
         assertNormalize("user", isLiteral("testUser"), false);
     }
 
     @Test
     public void testFormatFunctionsWithoutBrackets() {
-        setupFunctionsFor(TEST_USER);
         sqlExpressions.context().allowEagerNormalize(false);
         Symbol f = sqlExpressions.asSymbol("current_user");
         assertThat(f.toString(), is("CURRENT_USER"));

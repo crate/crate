@@ -27,7 +27,7 @@ import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
@@ -59,34 +59,34 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             key = docKeys.get(pos);
         }
 
-        public String getId(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
+        public String getId(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             return idFunction.apply(
                 Lists2.mapLazy(
                     key.subList(0, width),
-                    s -> StringUtils.nullOrString(SymbolEvaluator.evaluate(txnCtx, functions, s, params, subQueryResults))
+                    s -> StringUtils.nullOrString(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, params, subQueryResults))
                 )
             );
         }
 
-        public Optional<Long> version(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
+        public Optional<Long> version(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             if (withVersions && key.get(width) != null) {
-                Object val = SymbolEvaluator.evaluate(txnCtx, functions, key.get(width), params, subQueryResults);
+                Object val = SymbolEvaluator.evaluate(txnCtx, nodeCtx, key.get(width), params, subQueryResults);
                 return Optional.of(DataTypes.LONG.sanitizeValue(val));
             }
             return Optional.empty();
         }
 
-        public Optional<Long> sequenceNo(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
+        public Optional<Long> sequenceNo(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             if (withSequenceVersioning && key.get(width) != null) {
-                Object val = SymbolEvaluator.evaluate(txnCtx, functions, key.get(width), params, subQueryResults);
+                Object val = SymbolEvaluator.evaluate(txnCtx, nodeCtx, key.get(width), params, subQueryResults);
                 return Optional.of(LongType.INSTANCE.sanitizeValue(val));
             }
             return Optional.empty();
         }
 
-        public Optional<Long> primaryTerm(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
+        public Optional<Long> primaryTerm(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             if (withSequenceVersioning && key.get(width + 1) != null) {
-                Object val = SymbolEvaluator.evaluate(txnCtx, functions, key.get(width + 1), params, subQueryResults);
+                Object val = SymbolEvaluator.evaluate(txnCtx, nodeCtx, key.get(width + 1), params, subQueryResults);
                 return Optional.of(LongType.INSTANCE.sanitizeValue(val));
             }
             return Optional.empty();
@@ -96,21 +96,21 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return key;
         }
 
-        public List<String> getPartitionValues(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
+        public List<String> getPartitionValues(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             if (partitionIdx == null || partitionIdx.isEmpty()) {
                 return Collections.emptyList();
             }
             return Lists2.map(
                 partitionIdx,
-                pIdx -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, functions, key.get(pIdx), params, subQueryResults)));
+                pIdx -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, nodeCtx, key.get(pIdx), params, subQueryResults)));
 
         }
 
-        public String getRouting(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
+        public String getRouting(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             if (clusteredByIdx >= 0) {
-                return SymbolEvaluator.evaluate(txnCtx, functions, key.get(clusteredByIdx), params, subQueryResults).toString();
+                return SymbolEvaluator.evaluate(txnCtx, nodeCtx, key.get(clusteredByIdx), params, subQueryResults).toString();
             }
-            return getId(txnCtx, functions, params, subQueryResults);
+            return getId(txnCtx, nodeCtx, params, subQueryResults);
         }
     }
 

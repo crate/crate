@@ -26,6 +26,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.RowType;
@@ -98,7 +99,7 @@ public abstract class TableFunctionImplementation<T> extends Scalar<Iterable<Row
     public abstract boolean hasLazyResultSet();
 
     @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {
         // Never normalize table functions;
         // The RelationAnalyzer expects a function symbol and can't deal with Literals
         return function;

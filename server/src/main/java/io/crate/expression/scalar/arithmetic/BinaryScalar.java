@@ -23,6 +23,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -60,7 +61,7 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
     }
 
     @Override
-    public T evaluate(TransactionContext txnCtx, Input<T>[] args) {
+    public T evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>[] args) {
         T arg0Value = type.sanitizeValue(args[0].value());
         T arg1Value = type.sanitizeValue(args[1].value());
 

@@ -138,7 +138,7 @@ public class Collect implements LogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             RowGranularity.CLUSTER,
             null,
             relation
@@ -237,8 +237,8 @@ public class Collect implements LogicalPlan {
         where = WhereClauseAnalyzer.resolvePartitions(
             where.map(binder),
             relation,
-            plannerContext.functions(),
-            plannerContext.transactionContext());
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext());
         if (where.hasVersions()) {
             throw VersioninigValidationException.versionInvalidUsage();
         } else if (where.hasSeqNoAndPrimaryTerm()) {

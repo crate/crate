@@ -57,8 +57,8 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.license.CeLicenseService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
@@ -120,6 +120,7 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -156,8 +157,8 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION;
 import static io.crate.blob.v2.BlobIndex.fullIndexName;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -170,18 +171,18 @@ import static org.mockito.Mockito.mock;
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.
  *
- * Can be used for unit-tests testss which don't require the full execution-layer/nodes to be started.
+ * Can be used for unit-tests tests which don't require the full execution-layer/nodes to be started.
  */
 public class SQLExecutor {
 
     private static final Logger LOGGER = LogManager.getLogger(SQLExecutor.class);
 
-    private final Functions functions;
     public final Analyzer analyzer;
     public final Planner planner;
     private final RelationAnalyzer relAnalyzer;
     private final SessionContext sessionContext;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
+    public final NodeContext nodeCtx;
     private final Random random;
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -200,8 +201,8 @@ public class SQLExecutor {
             clusterState,
             new RoutingProvider(random.nextInt(), emptyList()),
             UUID.randomUUID(),
-            functions,
             new CoordinatorTxnCtx(sessionContext),
+            nodeCtx,
             -1,
             null
         );
@@ -210,7 +211,7 @@ public class SQLExecutor {
     public static class Builder {
 
         private final ClusterService clusterService;
-        private final Functions functions;
+        private final NodeContext nodeCtx;
         private final AnalysisRegistry analysisRegistry;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
         private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
@@ -230,15 +231,16 @@ public class SQLExecutor {
         private Builder(ClusterService clusterService,
                         int numNodes,
                         Random random,
-                        List<AnalysisPlugin> analysisPlugins) {
+                        List<AnalysisPlugin> analysisPlugins,
+                        AbstractModule... additionalModules) {
             if (numNodes < 1) {
                 throw new IllegalArgumentException("Must have at least 1 node");
             }
             this.random = random;
             this.clusterService = clusterService;
             addNodesToClusterState(numNodes);
-            functions = getFunctions();
-            UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
+            nodeCtx = createNodeContext(additionalModules);
+            UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
             CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, crateSettings, new CeLicenseService()));
@@ -255,13 +257,13 @@ public class SQLExecutor {
 
             Map<RelationName, DocTableInfo> docTables = new HashMap<>();
             DocTableInfoFactory tableInfoFactory = new TestingDocTableInfoFactory(
-                docTables, functions, indexNameExpressionResolver);
+                docTables, nodeCtx, indexNameExpressionResolver);
             ViewInfoFactory testingViewInfoFactory = (ident, state) -> null;
 
             schemas = new Schemas(
                 schemaInfoByName,
                 clusterService,
-                new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, functions, udfService)
+                new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, nodeCtx, udfService)
             );
             schemas.start();  // start listen to cluster state changes
 
@@ -276,10 +278,10 @@ public class SQLExecutor {
                 throw new RuntimeException(e);
             }
             fulltextAnalyzerResolver = new FulltextAnalyzerResolver(clusterService, analysisRegistry);
-            createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
+            createTableStatementAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
             createBlobTableAnalyzer = new CreateBlobTableAnalyzer(
                 schemas,
-                functions
+                nodeCtx
             );
             allocationService = new AllocationService(
                 new AllocationDeciders(
@@ -386,12 +388,12 @@ public class SQLExecutor {
         }
 
         public SQLExecutor build() {
-            RelationAnalyzer relationAnalyzer = new RelationAnalyzer(functions, schemas);
+            RelationAnalyzer relationAnalyzer = new RelationAnalyzer(nodeCtx, schemas);
             return new SQLExecutor(
-                functions,
+                nodeCtx,
                 new Analyzer(
                     schemas,
-                    functions,
+                    nodeCtx,
                     relationAnalyzer,
                     clusterService,
                     analysisRegistry,
@@ -406,7 +408,7 @@ public class SQLExecutor {
                 new Planner(
                     Settings.EMPTY,
                     clusterService,
-                    functions,
+                    nodeCtx,
                     tableStats,
                     null,
                     null,
@@ -447,7 +449,7 @@ public class SQLExecutor {
             BoundCreateTable analyzedStmt = CreateTablePlan.bind(
                 analyzedCreateTable,
                 txnCtx,
-                functions,
+                nodeCtx,
                 Row.EMPTY,
                 SubQueryResults.EMPTY,
                 new NumberOfShards(clusterService),
@@ -505,7 +507,7 @@ public class SQLExecutor {
             BoundCreateTable analyzedStmt = CreateTablePlan.bind(
                 analyzedCreateTable,
                 txnCtx,
-                functions,
+                nodeCtx,
                 Row.EMPTY,
                 SubQueryResults.EMPTY,
                 new NumberOfShards(clusterService),
@@ -583,7 +585,7 @@ public class SQLExecutor {
             Settings settings = CreateBlobTablePlan.buildSettings(
                 analyzedStmt.createBlobTable(),
                 txnCtx,
-                functions,
+                nodeCtx,
                 Row.EMPTY,
                 SubQueryResults.EMPTY,
                 new NumberOfShards(clusterService));
@@ -616,15 +618,16 @@ public class SQLExecutor {
         }
     }
 
-    public static Builder builder(ClusterService clusterService) {
-        return new Builder(clusterService, 1, Randomness.get(), List.of());
+    public static Builder builder(ClusterService clusterService, AbstractModule... additionalModules) {
+        return new Builder(clusterService, 1, Randomness.get(), List.of(), additionalModules);
     }
 
     public static Builder builder(ClusterService clusterService,
                                   int numNodes,
                                   Random random,
-                                  List<AnalysisPlugin> analysisPlugins) {
-        return new Builder(clusterService, numNodes, random, analysisPlugins);
+                                  List<AnalysisPlugin> analysisPlugins,
+                                  AbstractModule... additionalModules) {
+        return new Builder(clusterService, numNodes, random, analysisPlugins, additionalModules);
     }
 
     /**
@@ -633,7 +636,7 @@ public class SQLExecutor {
      *
      * <p>Building a cluster state is a rather expensive operation thus this method should NOT be used when multiple
      * tables are needed (e.g. inside a loop) but instead building the cluster state once containing all tables
-     * using {@link #builder(ClusterService)} and afterwards resolve all table infos manually.</p>
+     * using {@link #builder(ClusterService, AbstractModule...)} and afterwards resolve all table infos manually.</p>
      */
     public static DocTableInfo tableInfo(RelationName name, String stmt, ClusterService clusterService) {
         try {
@@ -660,7 +663,7 @@ public class SQLExecutor {
         }
     }
 
-    private SQLExecutor(Functions functions,
+    private SQLExecutor(NodeContext nodeCtx,
                         Analyzer analyzer,
                         Planner planner,
                         RelationAnalyzer relAnalyzer,
@@ -668,19 +671,15 @@ public class SQLExecutor {
                         Schemas schemas,
                         Random random,
                         FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-        this.functions = functions;
         this.analyzer = analyzer;
         this.planner = planner;
         this.relAnalyzer = relAnalyzer;
         this.sessionContext = sessionContext;
         this.coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
+        this.nodeCtx = nodeCtx;
         this.schemas = schemas;
         this.random = random;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
-    }
-
-    public Functions functions() {
-        return functions;
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
@@ -715,8 +714,8 @@ public class SQLExecutor {
         }
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             coordinatorTxnCtx,
+            nodeCtx,
             ParamTypeHints.EMPTY,
             new FullQualifiedNameFieldProvider(
                 sources.immutableMap(),
@@ -747,8 +746,8 @@ public class SQLExecutor {
             planner.currentClusterState(),
             routingProvider,
             jobId,
-            functions,
             coordinatorTxnCtx,
+            nodeCtx,
             fetchSize,
             null
         );
@@ -756,7 +755,7 @@ public class SQLExecutor {
         if (plan instanceof LogicalPlan) {
             return (T) ((LogicalPlan) plan).build(
                 plannerContext,
-                new ProjectionBuilder(functions),
+                new ProjectionBuilder(nodeCtx),
                 TopN.NO_LIMIT,
                 0,
                 null,

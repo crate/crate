@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -64,7 +65,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
         assert symbol != null : "function must not be null";
         assert symbol.arguments().size() == 1 : "function's number of arguments must be 1";
 
@@ -83,7 +84,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Boolean>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Boolean>... args) {
         assert args.length == 1 : "number of args must be 1";
         Boolean value = args[0].value();
         return value != null ? !value : null;

@@ -24,6 +24,7 @@ package io.crate.expression.operator.any;
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.TriPredicate;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
@@ -81,7 +82,7 @@ public class AnyLikeOperator extends Operator<Object> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         Object value = args[0].value();
         Object collectionReference = args[1].value();
 

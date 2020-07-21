@@ -59,6 +59,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testEachStatementReceivesCorrectParams() throws Throwable {
+
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x int)")
             .build();
@@ -81,7 +82,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
         Planner planner = new Planner(
             Settings.EMPTY,
             clusterService,
-            sqlExecutor.functions(),
+            sqlExecutor.nodeCtx,
             new TableStats(),
             null,
             null,
@@ -99,6 +100,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
 
         DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         Session session = new Session(
+            sqlExecutor.nodeCtx,
             sqlExecutor.analyzer,
             planner,
             new JobsLogs(() -> false),

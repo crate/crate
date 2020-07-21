@@ -34,7 +34,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -80,10 +80,10 @@ final class UpdateSourceGen {
     private final ArrayList<Reference> updateColumns;
     private final CheckConstraints<Doc, CollectExpression<Doc, ?>> checks;
 
-    UpdateSourceGen(Functions functions, TransactionContext txnCtx, DocTableInfo table, String[] updateColumns) {
+    UpdateSourceGen(TransactionContext txnCtx, NodeContext nodeCtx, DocTableInfo table, String[] updateColumns) {
         DocRefResolver refResolver = new DocRefResolver(table.partitionedBy());
-        this.eval = new Evaluator(functions, txnCtx, refResolver);
-        InputFactory inputFactory = new InputFactory(functions);
+        this.eval = new Evaluator(txnCtx, nodeCtx, refResolver);
+        InputFactory inputFactory = new InputFactory(nodeCtx);
         this.checks = new CheckConstraints<>(txnCtx, inputFactory, refResolver, table);
         this.updateColumns = new ArrayList<>(updateColumns.length);
         for (String updateColumn : updateColumns) {
@@ -153,10 +153,10 @@ final class UpdateSourceGen {
 
         private final ReferenceResolver<CollectExpression<Doc, ?>> refResolver;
 
-        private Evaluator(Functions functions,
-                          TransactionContext txnCtx,
+        private Evaluator(TransactionContext txnCtx,
+                          NodeContext nodeCtx,
                           ReferenceResolver<CollectExpression<Doc, ?>> refResolver) {
-            super(txnCtx, functions);
+            super(txnCtx, nodeCtx);
             this.refResolver = refResolver;
         }
 

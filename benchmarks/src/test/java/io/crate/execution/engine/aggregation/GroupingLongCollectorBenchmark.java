@@ -36,7 +36,6 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.netty.util.collection.LongObjectHashMap;
@@ -58,7 +57,6 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -76,8 +74,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.testing.TestingHelpers.getFunctions;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -95,9 +93,8 @@ public class GroupingLongCollectorBenchmark {
     @Setup
     public void createGroupingCollector() throws Exception {
         IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
-        Functions functions = new ModulesBuilder().add(new AggregationImplModule())
-            .createInjector().getInstance(Functions.class);
-        SumAggregation<?> sumAgg = (SumAggregation<?>) getFunctions().getQualified(
+        SumAggregation<?> sumAgg = (SumAggregation<?>) createNodeContext(new AggregationImplModule())
+            .functions().getQualified(
             Signature.aggregate(
                 SumAggregation.NAME,
                 DataTypes.INTEGER.getTypeSignature(),

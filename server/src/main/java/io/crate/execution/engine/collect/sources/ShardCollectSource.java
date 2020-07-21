@@ -58,9 +58,9 @@ import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
@@ -163,7 +163,7 @@ public class ShardCollectSource implements CollectSource {
     public ShardCollectSource(Settings settings,
                               Schemas schemas,
                               IndicesService indicesService,
-                              Functions functions,
+                              NodeContext nodeCtx,
                               ClusterService clusterService,
                               NodeJobsCounter nodeJobsCounter,
                               LuceneQueryBuilder luceneQueryBuilder,
@@ -184,7 +184,7 @@ public class ShardCollectSource implements CollectSource {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         this.availableThreads = numIdleThreads(executor, EsExecutors.numberOfProcessors(settings));
         this.executor = executor;
-        this.inputFactory = new InputFactory(functions);
+        this.inputFactory = new InputFactory(nodeCtx);
         BigArrays bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, HierarchyCircuitBreakerService.QUERY, true);
         this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
             clusterService,
@@ -193,12 +193,12 @@ public class ShardCollectSource implements CollectSource {
             threadPool,
             transportActionProvider,
             blobIndicesService,
-            functions,
+            nodeCtx,
             luceneQueryBuilder,
             nodeJobsCounter,
             bigArrays);
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(
-            functions,
+            nodeCtx,
             RowGranularity.DOC,
             new MapBackedRefResolver(Collections.emptyMap()),
             null);
@@ -206,7 +206,7 @@ public class ShardCollectSource implements CollectSource {
         sharedProjectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
-            functions,
+            nodeCtx,
             threadPool,
             settings,
             transportActionProvider,

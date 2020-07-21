@@ -64,8 +64,11 @@ public interface FunctionImplementation {
      * @param txnCtx context which is shared across normalizeSymbol calls during a statement-lifecycle.
      *                This will only be present if normalizeSymbol is called on the handler node.
      *                normalizeSymbol calls during execution won't receive a StmtCtx
+     *
+     * @param nodeCtx context which is shared across normalizeSymbol calls during a statement-lifecycle.
+     *                Contains a reference to Functions.
      */
-    default Symbol normalizeSymbol(Function function, @Nullable TransactionContext txnCtx) {
+    default Symbol normalizeSymbol(Function function, @Nullable TransactionContext txnCtx, NodeContext nodeCtx) {
         return function;
     }
 }

@@ -72,7 +72,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Before
     public void initFunctions() throws Exception {
-        singleArgPercentile = (PercentileAggregation) functions.getQualified(
+        singleArgPercentile = (PercentileAggregation) nodeCtx.functions().getQualified(
             Signature.aggregate(
                 PercentileAggregation.NAME,
                 DataTypes.DOUBLE.getTypeSignature(),
@@ -82,7 +82,7 @@ public class PercentileAggregationTest extends AggregationTest {
             List.of(DataTypes.DOUBLE, DataTypes.DOUBLE),
             DataTypes.DOUBLE
         );
-        arraysPercentile = (PercentileAggregation) functions.getQualified(
+        arraysPercentile = (PercentileAggregation) nodeCtx.functions().getQualified(
             Signature.aggregate(
                 PercentileAggregation.NAME,
                 DataTypes.DOUBLE.getTypeSignature(),
@@ -225,7 +225,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test
     public void testSingleItemFractionsArgumentResultsInArrayResult() {
-        AggregationFunction impl = (AggregationFunction<?, ?>) functions.getQualified(
+        AggregationFunction impl = (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
             Signature.aggregate(
                 PercentileAggregation.NAME,
                 DataTypes.LONG.getTypeSignature(),

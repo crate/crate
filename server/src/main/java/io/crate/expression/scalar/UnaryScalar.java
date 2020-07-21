@@ -23,6 +23,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -68,7 +69,7 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
 
     @SafeVarargs
     @Override
-    public final R evaluate(TransactionContext txnCtx, Input<T>... args) {
+    public final R evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>... args) {
         assert args.length == 1 : "UnaryScalar expects exactly 1 argument, got: " + args.length;
         T value = type.sanitizeValue(args[0].value());
         if (value == null) {

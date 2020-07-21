@@ -25,6 +25,7 @@ package io.crate.expression.scalar.postgres;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -94,7 +95,7 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args.length == 1 || args.length == 2 : "number of args must be 1 or 2";
 
         final String settingName = (String) args[0].value();

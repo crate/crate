@@ -86,8 +86,8 @@ public class ReturnValueGenTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.builder(clusterService).addTable(CREATE_TEST_TABLE).build();
         AnalyzedUpdateStatement update = executor.analyze(stmt);
         tableInfo = (DocTableInfo) update.table().tableInfo();
-        returnValueGen = new ReturnValueGen(executor.functions(),
-                                            txnCtx,
+        returnValueGen = new ReturnValueGen(txnCtx,
+                                            executor.nodeCtx,
                                             tableInfo,
                                             update.outputs() == null ? null : update.outputs().toArray(new Symbol[0]));
     }

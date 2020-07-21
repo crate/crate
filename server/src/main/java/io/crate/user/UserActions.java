@@ -26,7 +26,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
@@ -48,8 +48,8 @@ public final class UserActions {
     public static SecureHash generateSecureHash(GenericProperties<Symbol> userStmtProperties,
                                                 Row parameters,
                                                 TransactionContext txnCtx,
-                                                Functions functions) throws GeneralSecurityException, IllegalArgumentException {
-        try (SecureString pw = getUserPasswordProperty(userStmtProperties, parameters, txnCtx, functions)) {
+                                                NodeContext nodeCtx) throws GeneralSecurityException, IllegalArgumentException {
+        try (SecureString pw = getUserPasswordProperty(userStmtProperties, parameters, txnCtx, nodeCtx)) {
             if (pw != null) {
                 if (pw.length() == 0) {
                     throw new IllegalArgumentException("Password must not be empty");
@@ -65,10 +65,10 @@ public final class UserActions {
     static SecureString getUserPasswordProperty(GenericProperties<Symbol> userStmtProperties,
                                                 Row parameters,
                                                 TransactionContext txnCtx,
-                                                Functions functions) throws IllegalArgumentException {
+                                                NodeContext nodeCtx) throws IllegalArgumentException {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
-            functions,
+            nodeCtx,
             x,
             parameters,
             SubQueryResults.EMPTY

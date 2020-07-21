@@ -39,10 +39,10 @@ import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -95,7 +95,7 @@ public class DocIndexMetadata {
     private final List<Reference> nestedColumns = new ArrayList<>();
     private final ImmutableList.Builder<GeneratedReference> generatedColumnReferencesBuilder = ImmutableList.builder();
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final RelationName ident;
     private final int numberOfShards;
     private final String numberOfReplicas;
@@ -128,8 +128,8 @@ public class DocIndexMetadata {
      */
     private final ExpressionAnalyzer expressionAnalyzer;
 
-    DocIndexMetadata(Functions functions, IndexMetadata metadata, RelationName ident) throws IOException {
-        this.functions = functions;
+    DocIndexMetadata(NodeContext nodeCtx, IndexMetadata metadata, RelationName ident) throws IOException {
+        this.nodeCtx = nodeCtx;
         this.ident = ident;
         this.numberOfShards = metadata.getNumberOfShards();
         Settings settings = metadata.getSettings();
@@ -150,8 +150,8 @@ public class DocIndexMetadata {
         closed = state == IndexMetadata.State.CLOSE;
 
         this.expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             CoordinatorTxnCtx.systemTransactionContext(),
+            nodeCtx,
             ParamTypeHints.EMPTY,
             FieldProvider.UNSUPPORTED,
             null);
@@ -591,7 +591,7 @@ public class DocIndexMetadata {
         Collection<Reference> references = this.references.values();
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references, ident);
         ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
-            functions, CoordinatorTxnCtx.systemTransactionContext(), ParamTypeHints.EMPTY, tableReferenceResolver, null);
+            CoordinatorTxnCtx.systemTransactionContext(), nodeCtx, ParamTypeHints.EMPTY, tableReferenceResolver, null);
         ExpressionAnalysisContext analysisCtx = new ExpressionAnalysisContext();
 
         ImmutableList.Builder<CheckConstraint<Symbol>> checkConstraintsBuilder = null;

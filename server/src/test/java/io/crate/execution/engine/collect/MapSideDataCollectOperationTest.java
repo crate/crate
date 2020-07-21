@@ -29,7 +29,6 @@ import io.crate.execution.engine.collect.sources.FileCollectSource;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -47,11 +46,12 @@ import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
+
 
 public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUnitTest {
 
@@ -60,8 +60,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testFileUriCollect() throws Exception {
-        Functions functions = getFunctions();
-        FileCollectSource fileCollectSource = new FileCollectSource(functions, clusterService, Collections.emptyMap());
+        FileCollectSource fileCollectSource = new FileCollectSource(createNodeContext(), clusterService, Collections.emptyMap());
 
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {

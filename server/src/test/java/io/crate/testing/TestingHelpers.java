@@ -36,14 +36,13 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingModule;
-import io.crate.metadata.settings.session.SessionSettingProvider;
-import io.crate.planner.optimizer.LoadedRules;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -171,15 +170,21 @@ public class TestingHelpers {
         return MAP_JOINER.join(Sorted.sortRecursive(map));
     }
 
-    public static Functions getFunctions() {
-        return new ModulesBuilder()
+    public static NodeContext createNodeContext(AbstractModule... additionalModules) {
+        ModulesBuilder modulesBuilder = new ModulesBuilder()
             .add(new SessionSettingModule())
+            .add(new OperatorModule())
             .add(new AggregationImplModule())
-            .add(new PredicateModule())
-            .add(new TableFunctionModule())
             .add(new ScalarFunctionModule())
             .add(new WindowFunctionModule())
-            .add(new OperatorModule()).createInjector().getInstance(Functions.class);
+            .add(new TableFunctionModule())
+            .add(new PredicateModule());
+        if (additionalModules != null) {
+            for (AbstractModule module : additionalModules) {
+                modulesBuilder.add(module);
+            }
+        }
+        return new NodeContext(modulesBuilder.createInjector().getInstance(Functions.class));
     }
 
     public static Reference createReference(String columnName, DataType dataType) {

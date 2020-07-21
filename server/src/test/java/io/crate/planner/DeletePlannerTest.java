@@ -88,7 +88,7 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.docKeys().size(), is(2));
         List<String> docKeys = Lists.newArrayList(plan.docKeys())
             .stream()
-            .map(x -> x.getId(txnCtx, e.functions(), Row.EMPTY, SubQueryResults.EMPTY))
+            .map(x -> x.getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY))
             .collect(Collectors.toList());
 
         assertThat(docKeys, Matchers.containsInAnyOrder("1", "2"));

@@ -52,7 +52,7 @@ public class KillAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         return KillPlan.boundJobId(
             analyzedStatement.jobId(),
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             new RowN(arguments),
             SubQueryResults.EMPTY
         );

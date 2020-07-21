@@ -39,6 +39,7 @@ import io.crate.expression.reference.file.SourceLineExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -116,8 +117,8 @@ public class FileReadingCollectorTest extends ESTestCase {
 
     @Before
     public void prepare() throws Exception {
-        Functions functions = new Functions(Map.of());
-        inputFactory = new InputFactory(functions);
+        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()));
+        inputFactory = new InputFactory(nodeCtx);
     }
 
     @AfterClass

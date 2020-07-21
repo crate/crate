@@ -72,7 +72,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         return AlterTableAddColumnPlan.bind(
             e.analyze(stmt),
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             Row.EMPTY,
             SubQueryResults.EMPTY,
             e.fulltextAnalyzerResolver()

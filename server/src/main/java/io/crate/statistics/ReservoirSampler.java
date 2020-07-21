@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
 
+import io.crate.metadata.NodeContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.Collector;
@@ -68,7 +69,6 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -79,19 +79,19 @@ import io.crate.types.DataTypes;
 public final class ReservoirSampler {
 
     private final ClusterService clusterService;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final Schemas schemas;
     private CircuitBreakerService circuitBreakerService;
     private final IndicesService indicesService;
 
     @Inject
     public ReservoirSampler(ClusterService clusterService,
-                            Functions functions,
+                            NodeContext nodeCtx,
                             Schemas schemas,
                             CircuitBreakerService circuitBreakerService,
                             IndicesService indicesService) {
         this.clusterService = clusterService;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.schemas = schemas;
         this.circuitBreakerService = circuitBreakerService;
         this.indicesService = indicesService;
@@ -163,7 +163,7 @@ public final class ReservoirSampler {
             var mapperService = indexService.mapperService();
             FieldTypeLookup fieldTypeLookup = mapperService::fullName;
             var ctx = new DocInputFactory(
-                functions,
+                nodeCtx,
                 new LuceneReferenceResolver(
                     indexService.index().getName(),
                     fieldTypeLookup,

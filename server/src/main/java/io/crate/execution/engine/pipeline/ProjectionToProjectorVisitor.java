@@ -90,7 +90,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -140,7 +140,7 @@ public class ProjectionToProjectorVisitor
 
     private final ClusterService clusterService;
     private final NodeJobsCounter nodeJobsCounter;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final ThreadPool threadPool;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
@@ -155,7 +155,7 @@ public class ProjectionToProjectorVisitor
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
-                                        Functions functions,
+                                        NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -167,7 +167,7 @@ public class ProjectionToProjectorVisitor
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.threadPool = threadPool;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -182,7 +182,7 @@ public class ProjectionToProjectorVisitor
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
-                                        Functions functions,
+                                        NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -192,7 +192,7 @@ public class ProjectionToProjectorVisitor
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter) {
         this(clusterService,
             nodeJobsCounter,
-            functions,
+             nodeCtx,
             threadPool,
             settings,
             transportActionProvider,
@@ -340,7 +340,7 @@ public class ProjectionToProjectorVisitor
 
         projection = projection.normalize(normalizer, context.txnCtx);
         String uri = DataTypes.STRING.sanitizeValue(
-            SymbolEvaluator.evaluate(context.txnCtx, functions, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
+            SymbolEvaluator.evaluate(context.txnCtx, nodeCtx, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
         assert uri != null : "URI must not be null";
 
         StringBuilder sb = new StringBuilder(uri);
@@ -422,7 +422,7 @@ public class ProjectionToProjectorVisitor
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             context.txnCtx,
-            functions,
+            nodeCtx,
             state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,
@@ -470,7 +470,7 @@ public class ProjectionToProjectorVisitor
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             context.txnCtx,
-            functions,
+            nodeCtx,
             state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,
@@ -581,7 +581,7 @@ public class ProjectionToProjectorVisitor
         return FetchProjector.create(
             projection,
             context.txnCtx,
-            functions,
+            nodeCtx,
             new TransportFetchOperation(
                 transportActionProvider.transportFetchNodeAction(),
                 projection.generateStreamersGroupedByReaderAndNode(),
@@ -626,7 +626,7 @@ public class ProjectionToProjectorVisitor
             return new SysUpdateProjector(rowWriter);
         } else {
             InputFactory.Context<NestableCollectExpression<SysNodeCheck, ?>> cntx = new InputFactory(
-                functions).ctxForRefs(
+                nodeCtx).ctxForRefs(
                 context.txnCtx, new StaticTableReferenceResolver<>(SysNodeChecksTableInfo.create().expressions()));
             cntx.add(List.of(projection.returnValues()));
             return new SysUpdateResultSetProjector(rowUpdater,
@@ -660,7 +660,7 @@ public class ProjectionToProjectorVisitor
         var searchThreadPool = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         return WindowProjector.fromProjection(
             windowAgg,
-            functions,
+            nodeCtx,
             inputFactory,
             context.txnCtx,
             context.ramAccounting,

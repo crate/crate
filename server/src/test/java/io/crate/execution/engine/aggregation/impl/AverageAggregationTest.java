@@ -63,7 +63,7 @@ public class AverageAggregationTest extends AggregationTest {
     }
 
     private FunctionImplementation getFunction(String name) {
-        return functions.get(
+        return nodeCtx.functions().get(
             null, name, ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
     }
 

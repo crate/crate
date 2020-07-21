@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -73,7 +74,7 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
 
     @SafeVarargs
     @Override
-    public final List<Object> evaluate(TransactionContext txnCtx, Input<List<Object>>... args) {
+    public final List<Object> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... args) {
         DataType<?> innerType = ((ArrayType<?>) this.boundSignature.getReturnType().createType()).innerType();
         ArrayList<Object> resultList = new ArrayList<>();
         for (Input<List<Object>> arg : args) {

@@ -55,7 +55,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation query = e.analyze("select obj, arr from t");
         DocTableInfo table = ((DocTableRelation) query.from().get(0)).tableInfo();
         GeneratedColumns<Doc> generatedColumns = new GeneratedColumns<>(
-            new InputFactory(e.functions()),
+            new InputFactory(e.nodeCtx),
             CoordinatorTxnCtx.systemTransactionContext(),
             GeneratedColumns.Validation.NONE,
             new DocRefResolver(Collections.emptyList()),

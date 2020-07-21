@@ -62,7 +62,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         return OptimizeTablePlan.bind(
             analyzedStatement,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             new RowN(arguments),
             SubQueryResults.EMPTY
         );

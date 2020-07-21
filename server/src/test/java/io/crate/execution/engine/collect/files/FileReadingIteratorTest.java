@@ -29,6 +29,7 @@ import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -68,8 +69,8 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     @Before
     public void prepare() {
-        Functions functions = new Functions(Map.of());
-        inputFactory = new InputFactory(functions);
+        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()));
+        inputFactory = new InputFactory(nodeCtx);
     }
 
     @Test

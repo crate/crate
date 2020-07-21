@@ -59,7 +59,7 @@ public class AlterUserPlan implements Plan {
                 alterUser.properties(),
                 params,
                 plannerContext.transactionContext(),
-                plannerContext.functions());
+                plannerContext.nodeContext());
 
         userManager.alterUser(alterUser.userName(), newPassword)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));

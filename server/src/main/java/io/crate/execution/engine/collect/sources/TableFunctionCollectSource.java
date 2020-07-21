@@ -36,7 +36,7 @@ import io.crate.execution.engine.collect.ValueAndInputRow;
 import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
@@ -50,11 +50,13 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class TableFunctionCollectSource implements CollectSource {
 
+    private final NodeContext nodeCtx;
     private final InputFactory inputFactory;
 
     @Inject
-    public TableFunctionCollectSource(Functions functions) {
-        inputFactory = new InputFactory(functions);
+    public TableFunctionCollectSource(NodeContext nodeCtx) {
+        this.nodeCtx = nodeCtx;
+        inputFactory = new InputFactory(nodeCtx);
     }
 
     @Override
@@ -87,7 +89,7 @@ public class TableFunctionCollectSource implements CollectSource {
             topLevelInputs.add(ctx.add(symbol));
         }
 
-        Iterable<Row> result = functionImplementation.evaluate(txnCtx, inputs.toArray(new Input[0]));
+        Iterable<Row> result = functionImplementation.evaluate(txnCtx, nodeCtx, inputs.toArray(new Input[0]));
         Iterable<Row> rows = Iterables.transform(
             result,
             new ValueAndInputRow<>(topLevelInputs, ctx.expressions()));
