@@ -22,10 +22,8 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.data.RowN;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -35,14 +33,11 @@ import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 import org.joda.time.Period;
 
-import javax.annotation.Nonnull;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.function.BinaryOperator;
 
 /**
@@ -189,58 +184,28 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     }
 
     @Override
-    public Bucket evaluate(TransactionContext txnCtx, Input<T>... args) {
+    public Iterable<Row> evaluate(TransactionContext txnCtx, Input<T>... args) {
+        assert args.length == 2 || args.length == 3 :
+            "Signature must ensure that there are either two or three arguments";
+
         T startInclusive = args[0].value();
         T stopInclusive = args[1].value();
         T step = args.length == 3 ? args[2].value() : defaultStep;
         if (startInclusive == null || stopInclusive == null || step == null) {
-            return Bucket.EMPTY;
+            return List.of();
         }
         T diff = minus.apply(plus.apply(stopInclusive, step), startInclusive);
         final int numRows = Math.max(0, divide.apply(diff, step).intValue());
-        final boolean reverseCompare = comparator.compare(startInclusive, stopInclusive) > 0 && numRows > 0;
-        final Object[] cells = new Object[1];
-        cells[0] = startInclusive;
-        final RowN rowN = new RowN(cells);
-        return new Bucket() {
-            @Override
-            public int size() {
-                return numRows;
-            }
-
-            @Override
-            @Nonnull
-            public Iterator<Row> iterator() {
-                return new Iterator<>() {
-                    boolean doStep = false;
-                    T val = startInclusive;
-
-                    @Override
-                    public boolean hasNext() {
-                        if (doStep) {
-                            val = plus.apply(val, step);
-                            doStep = false;
-                        }
-                        int compare = comparator.compare(val, stopInclusive);
-                        if (reverseCompare) {
-                            return compare >= 0;
-                        } else {
-                            return compare <= 0;
-                        }
-                    }
-
-                    @Override
-                    public Row next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException("Iterator has no more elements");
-                        }
-                        doStep = true;
-                        cells[0] = val;
-                        return rowN;
-                    }
-                };
-            }
-        };
+        if (numRows == 0) {
+            return List.of();
+        }
+        return new RangeIterable<T>(
+            startInclusive,
+            stopInclusive,
+            value -> plus.apply(value, step),
+            comparator,
+            t -> t
+        );
     }
 
     @Override
@@ -291,44 +256,21 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
             Long stopInclusive = (Long) args[1].value();
             Period step = (Period) args[2].value();
             if (startInclusive == null || stopInclusive == null || step == null) {
-                return Bucket.EMPTY;
+                return List.of();
             }
             ZonedDateTime start = Instant.ofEpochMilli(startInclusive).atZone(ZoneOffset.UTC);
             ZonedDateTime stop = Instant.ofEpochMilli(stopInclusive).atZone(ZoneOffset.UTC);
             boolean reverse = start.compareTo(stop) > 0;
             if (reverse && add(start, step).compareTo(start) >= 0) {
-                return Bucket.EMPTY;
+                return List.of();
             }
-            return () -> new Iterator<>() {
-
-                final Object[] cells = new Object[1];
-                final RowN rowN = new RowN(cells);
-
-                ZonedDateTime value = start;
-                boolean doStep = false;
-
-                @Override
-                public boolean hasNext() {
-                    if (doStep) {
-                        value = add(value, step);
-                        doStep = false;
-                    }
-                    int compare = value.compareTo(stop);
-                    return reverse
-                        ? compare >= 0
-                        : compare <= 0;
-                }
-
-                @Override
-                public Row next() {
-                    if (!hasNext()) {
-                        throw new NoSuchElementException("No more element in generate_series");
-                    }
-                    doStep = true;
-                    cells[0] = (value.toEpochSecond() * 1000);
-                    return rowN;
-                }
-            };
+            return new RangeIterable<>(
+                start,
+                stop,
+                (value) -> add(value, step),
+                ZonedDateTime::compareTo,
+                value -> value.toEpochSecond() * 1000
+            );
         }
 
         private static ZonedDateTime add(ZonedDateTime dateTime, Period step) {

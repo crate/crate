@@ -96,8 +96,8 @@ The columns are named ``colN`` where N is a number starting at 1.
 
 .. _table-functions-generate-series:
 
-``generate_series(start, stop, [step])``
-========================================
+``pg_catalog.generate_series(start, stop, [step])``
+===================================================
 
 Generate a series of values from inclusive start to inclusive stop with
 ``step`` increments.
@@ -139,6 +139,64 @@ The return value always matches the ``start`` / ``stop`` types.
     | 1546516800000 | 2019-01-03, 12:00                 |
     +---------------+-----------------------------------+
     SELECT 3 rows in set (... sec)
+
+.. _table-functions-generate-subscripts:
+
+``pg_catalog.generate_subscripts(array, dim, [reverse])``
+=========================================================
+
+Generate the subscripts for the specified dimension ``dim`` of the given
+``array``. Zero rows are returned for arrays that do not have the requested
+dimension, or for NULL arrays (but valid subscripts are returned for NULL
+array elements).
+
+If ``reverse`` is ``true`` the subscripts will be returned in reverse order.
+
+This example takes a one dimensional array of four elements, where elements
+at positions 1 and 3 are NULL:
+
+::
+
+    cr> SELECT generate_subscripts([NULL, 1, NULL, 2], 1) AS s;
+    +---+
+    | s |
+    +---+
+    | 1 |
+    | 2 |
+    | 3 |
+    | 4 |
+    +---+
+    SELECT 4 rows in set (... sec)
+
+This example returns the reversed list of subscripts for the same array:
+
+::
+
+    cr> SELECT generate_subscripts([NULL, 1, NULL, 2], 1, true) AS s;
+    +---+
+    | s |
+    +---+
+    | 4 |
+    | 3 |
+    | 2 |
+    | 1 |
+    +---+
+    SELECT 4 rows in set (... sec)
+
+This example works on an array of three dimensions. Each of the elements
+within a given level must be either NULL, or an array of the same size as the other
+arrays within the same level.
+
+::
+
+    cr> select generate_subscripts([[[1],[2]], [[3],[4]], [[4],[5]]], 2) as s;
+    +---+
+    | s |
+    +---+
+    | 1 |
+    | 2 |
+    +---+
+    SELECT 2 rows in set (... sec)
 
 
 .. _pg_catalog.pg_get_keywords:
