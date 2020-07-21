@@ -78,7 +78,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         this.name = name;
         this.fieldResolver = fieldResolver;
         assert this.outputs.size() == source.outputs().size()
-            : "Rename operator must have exactly the same number of outputs as the source operator";
+            : "Rename operator must have the same number of outputs as the source. Got " + outputs + " and " + source.outputs();
     }
 
     public RelationName name() {
@@ -155,7 +155,10 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
                 newOutputs.add(newMarker);
                 childToParentMap.put(marker, newMarker);
             } else {
-                Symbol mappedOutput = requireNonNull(childToParentMap.get(output), "Mapping must exist for output from source");
+                Symbol mappedOutput = requireNonNull(
+                    childToParentMap.get(output),
+                    () -> "Mapping must exist for output from source. `" + output + "` is missing in " + childToParentMap
+                );
                 newOutputs.add(mappedOutput);
             }
         }
@@ -164,7 +167,10 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         for (var entry : fetchRewrite.replacedOutputs().entrySet()) {
             Symbol key = entry.getKey();
             Symbol value = entry.getValue();
-            Symbol parentSymbolForKey = requireNonNull(childToParentMap.get(key), "Mapping must exist for output from source");
+            Symbol parentSymbolForKey = requireNonNull(
+                childToParentMap.get(key),
+                () -> "Mapping must exist for output from source. `" + key + "` is missing in " + childToParentMap
+            );
             replacedOutputs.put(parentSymbolForKey, convertChildrenToScopedSymbols.apply(value));
         }
         Rename newRename = new Rename(newOutputs, name, fieldResolver, newSource);
@@ -212,5 +218,10 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
             .text("] AS ")
             .text(name.toString())
             .nest(source::print);
+    }
+
+    @Override
+    public String toString() {
+        return "Rename{name=" + name + ", outputs=" + outputs + ", src=" + source + "}";
     }
 }

@@ -108,8 +108,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testQTFWithOrderBy() throws Exception {
         LogicalPlan plan = plan("select a, x from t1 order by a");
         assertThat(plan, isPlan(
-            "OrderBy[a ASC]\n" +
-            "  └ Collect[doc.t1 | [a, x] | true]"
+            "Fetch[a, x]\n" +
+            "  └ OrderBy[a ASC]\n" +
+            "    └ Collect[doc.t1 | [_fetchid, a] | true]"
         ));
     }
 
@@ -117,9 +118,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testQTFWithOrderByAndAlias() throws Exception {
         LogicalPlan plan = plan("select a, x from t1 as t order by a");
         assertThat(plan, isPlan(
-            "Rename[a, x] AS t\n" +
-            "  └ OrderBy[a ASC]\n" +
-            "    └ Collect[doc.t1 | [a, x] | true]"));
+            "Fetch[a, x]\n" +
+            "  └ Rename[t._fetchid, a] AS t\n" +
+            "    └ OrderBy[a ASC]\n" +
+            "      └ Collect[doc.t1 | [_fetchid, a] | true]"
+        ));
     }
 
     @Test
