@@ -19,35 +19,28 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.jobs.kill;
+package io.crate.common;
 
 
-import com.google.common.collect.ImmutableList;
-import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+public final class MutableLong {
 
-import java.util.UUID;
+    private long value;
+    private boolean hasValue = false;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+    public MutableLong(long value) {
+        this.value = value;
+    }
 
-public class KillJobsRequestTest extends CrateUnitTest {
+    public boolean hasValue() {
+        return hasValue;
+    }
 
-    @Test
-    public void testStreaming() throws Exception {
-        ImmutableList<UUID> toKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID());
-        KillJobsRequest r = new KillJobsRequest(toKill, "dummy-user", "just because");
+    public long value() {
+        return value;
+    }
 
-        BytesStreamOutput out = new BytesStreamOutput();
-        r.writeTo(out);
-
-        StreamInput in = out.bytes().streamInput();
-        KillJobsRequest r2 = new KillJobsRequest(in);
-
-        assertThat(r.toKill(), equalTo(r2.toKill()));
-        assertThat(r.reason(), is(r2.reason()));
-        assertThat(r.userName(), is(r2.userName()));
+    public void setValue(long value) {
+        this.hasValue = true;
+        this.value = value;
     }
 }

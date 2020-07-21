@@ -22,6 +22,8 @@
 package io.crate.execution.jobs;
 
 import com.google.common.collect.ImmutableList;
+
+import io.crate.auth.user.User;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.After;
@@ -130,7 +132,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
         assertThat(activeTasks.size(), is(1));
-        assertThat(tasksService.killAll().get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killAll(User.CRATE_USER.name()).get(5L, TimeUnit.SECONDS), is(1));
 
         assertThat(killCalled.get(), is(true));
         assertThat(activeTasks.size(), is(0));
@@ -167,7 +169,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
         assertThat(activeTasks.size(), is(2));
-        assertThat(tasksService.killJobs(List.of(jobId), null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(List.of(jobId), User.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
 
         assertThat(killCalled.get(), is(true));
         assertThat(kill2Called.get(), is(false));
@@ -207,7 +209,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder.addTask(new DummyTask(1));
         tasksService.createTask(builder);
 
-        assertThat(tasksService.killAll().get(), is(2));
+        assertThat(tasksService.killAll(User.CRATE_USER.name()).get(), is(2));
     }
 
     @Test
@@ -224,6 +226,17 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder = tasksService.newBuilder(UUID.randomUUID());
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
-        assertThat(tasksService.killJobs(jobsToKill, null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(jobsToKill, User.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
+    }
+
+    @Test
+    public void test_normal_user_cannot_kill_job_of_other_user() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        RootTask.Builder builder = tasksService.newBuilder(jobId, "Arthur", "dummyNode", List.of());
+        builder.addTask(new DummyTask());
+        tasksService.createTask(builder);
+
+        assertThat(tasksService.killJobs(List.of(jobId), "Trillian", null).get(5L, TimeUnit.SECONDS), is(0));
+        assertThat(tasksService.killJobs(List.of(jobId), "Arthur", null).get(5L, TimeUnit.SECONDS), is(1));
     }
 }

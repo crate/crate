@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine;
 
+import io.crate.auth.user.User;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -93,6 +94,7 @@ class InterceptingRowConsumer implements RowConsumer {
         } else {
             KillJobsRequest killRequest = new KillJobsRequest(
                 List.of(jobId),
+                User.CRATE_USER.name(),
                 "An error was encountered: " + failure
             );
             transportKillJobsNodeAction.broadcast(

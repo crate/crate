@@ -71,6 +71,7 @@ public class KillPlan implements Plan {
                 plannerContext.functions(),
                 params,
                 subQueryResults),
+            plannerContext.transactionContext().sessionSettings().userName(),
             dependencies.transportActionProvider().transportKillAllNodeAction(),
             dependencies.transportActionProvider().transportKillJobsNodeAction(),
             consumer
@@ -104,16 +105,17 @@ public class KillPlan implements Plan {
 
     @VisibleForTesting
     void execute(@Nullable UUID jobId,
+                 String userName,
                  TransportKillAllNodeAction killAllNodeAction,
                  TransportKillJobsNodeAction killJobsNodeAction,
                  RowConsumer consumer) {
         if (jobId != null) {
             killJobsNodeAction.broadcast(
-                new KillJobsRequest(List.of(jobId), "KILL invoked by user"),
+                new KillJobsRequest(List.of(jobId), userName, "KILL invoked by user: " + userName),
                 new OneRowActionListener<>(consumer, Row1::new));
         } else {
             killAllNodeAction.broadcast(
-                new KillAllRequest(),
+                new KillAllRequest(userName),
                 new OneRowActionListener<>(consumer, Row1::new));
         }
     }

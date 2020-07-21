@@ -48,10 +48,28 @@ None
 Changes
 =======
 
-None
+- Changed the privileges for ``KILL``, all users are now allowed to kill their
+  own statements.
+
+- Added the `pg_catalog.pg_roles table <postgres_pg_catalog>`
 
 
 Fixes
 =====
 
-None
+- Allow all users to execute ``DISCARD`` and ``SET TRANSACTION`` statement.
+  These are session local statements and shouldn't require special privileges.
+
+- Increased the default interval for `stats.service.interval
+  <stats.service.interval>` from one hour to 24 hours because invoking it every
+  hour caused significant extra load on a cluster.
+
+- Updated the bundled JDK to 14.0.2-12
+
+- Fixed an issue that caused ``SHOW CREATE TABLE`` to print columns of type
+  ``VARCHAR(n)`` as ``TEXT``, leading to a loss of the length information when
+  using the ``SHOW CREATE TABLE`` statement to re-create a table.
+
+- Fixed an issue that prevented ``ALTER TABLE .. ADD COLUMN`` statements from
+  working on tables containing a ``PRIMARY KEY`` column with a ``INDEX OFF``
+  definition.

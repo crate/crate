@@ -48,8 +48,8 @@ public class TransportKillAllNodeActionTest extends CrateDummyClusterServiceUnit
                 Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings())
         );
 
-        transportKillAllNodeAction.nodeOperation(new KillAllRequest()).get(5, TimeUnit.SECONDS);
-        verify(tasksService, times(1)).killAll();
+        transportKillAllNodeAction.nodeOperation(new KillAllRequest("dummy-user")).get(5, TimeUnit.SECONDS);
+        verify(tasksService, times(1)).killAll("dummy-user");
     }
 
 }

@@ -19,35 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.jobs.kill;
+package io.crate.common;
 
+public final class MutableDouble {
 
-import com.google.common.collect.ImmutableList;
-import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+    private double value;
+    private boolean hasValue = false;
 
-import java.util.UUID;
+    public MutableDouble(double value) {
+        this.value = value;
+    }
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+    public boolean hasValue() {
+        return hasValue;
+    }
 
-public class KillJobsRequestTest extends CrateUnitTest {
+    public double value() {
+        return value;
+    }
 
-    @Test
-    public void testStreaming() throws Exception {
-        ImmutableList<UUID> toKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID());
-        KillJobsRequest r = new KillJobsRequest(toKill, "dummy-user", "just because");
-
-        BytesStreamOutput out = new BytesStreamOutput();
-        r.writeTo(out);
-
-        StreamInput in = out.bytes().streamInput();
-        KillJobsRequest r2 = new KillJobsRequest(in);
-
-        assertThat(r.toKill(), equalTo(r2.toKill()));
-        assertThat(r.reason(), is(r2.reason()));
-        assertThat(r.userName(), is(r2.userName()));
+    public void setValue(double value) {
+        this.hasValue = true;
+        this.value = value;
     }
 }

@@ -43,7 +43,7 @@ public class TransportKillJobsNodeAction extends TransportKillNodeAction<KillJob
 
     @Override
     protected CompletableFuture<Integer> doKill(KillJobsRequest request) {
-        return tasksService.killJobs(request.toKill(), request.reason());
+        return tasksService.killJobs(request.toKill(), request.userName(), request.reason());
     }
 
     @Override

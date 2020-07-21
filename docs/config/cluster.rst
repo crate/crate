@@ -162,7 +162,7 @@ Collecting stats
 .. _stats.service.interval:
 
 **stats.service.interval**
-  | *Default:*    ``1h``
+  | *Default:*    ``24h``
   | *Runtime:*   ``yes``
 
   Defines the refresh interval to refresh tables statistics used to produce

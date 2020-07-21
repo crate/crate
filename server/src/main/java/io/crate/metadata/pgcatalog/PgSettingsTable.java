@@ -45,7 +45,7 @@ public class PgSettingsTable {
             .add("short_desc", STRING, NamedSessionSetting::description)
             .add("extra_desc", STRING, c -> null)
             .add("context", STRING, c -> null)
-            .add("vartype", STRING, NamedSessionSetting::type)
+            .add("vartype", STRING, c -> c.type().getName())
             .add("source", STRING, c -> null)
             .add("enumvals", STRING_ARRAY, c -> null)
             .add("min_val", STRING, c -> null)

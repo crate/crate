@@ -173,7 +173,10 @@ public class FsDirectoryService extends DirectoryService {
                 // We want to open the terms index and KD-tree index off-heap to save memory, but this only performs
                 // well if using mmap.
                 case "tip":
+                // dim files only apply up to lucene 8.x indices. It can be removed once we are in lucene 10
                 case "dim":
+                case "kdd":
+                case "kdi":
                 // Compound files are tricky because they store all the information for the segment. Benchmarks
                 // suggested that not mapping them hurts performance.
                 case "cfs":

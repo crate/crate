@@ -23,6 +23,7 @@ package io.crate.execution.jobs;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.JobKilledException;
@@ -62,6 +63,7 @@ public class RootTask implements CompletionListenable<Void> {
     private final CompletableFuture<Void> finishedFuture = new CompletableFuture<>();
     private final AtomicBoolean killTasksOngoing = new AtomicBoolean(false);
     private final Collection<String> participatedNodes;
+    private final String user;
 
     @Nullable
     private final ProfilingContext profiler;
@@ -80,6 +82,7 @@ public class RootTask implements CompletionListenable<Void> {
         private final String coordinatorNode;
         private final JobsLogs jobsLogs;
         private final List<Task> tasks = new ArrayList<>();
+        private final String user;
         private final Collection<String> participatingNodes;
 
         @Nullable
@@ -87,11 +90,13 @@ public class RootTask implements CompletionListenable<Void> {
 
         Builder(Logger logger,
                 UUID jobId,
+                String user,
                 String coordinatorNode,
                 Collection<String> participatingNodes,
                 JobsLogs jobsLogs) {
             this.logger = logger;
             this.jobId = jobId;
+            this.user = user;
             this.coordinatorNode = coordinatorNode;
             this.participatingNodes = participatingNodes;
             this.jobsLogs = jobsLogs;
@@ -116,19 +121,28 @@ public class RootTask implements CompletionListenable<Void> {
 
         RootTask build() throws Exception {
             return new RootTask(
-                logger, jobId, coordinatorNode, participatingNodes, jobsLogs, tasks, profilingContext);
+                logger,
+                jobId,
+                user,
+                coordinatorNode,
+                participatingNodes,
+                jobsLogs,
+                tasks,
+                profilingContext
+            );
         }
     }
 
-
     private RootTask(Logger logger,
                      UUID jobId,
+                     String user,
                      String coordinatorNodeId,
                      Collection<String> participatingNodes,
                      JobsLogs jobsLogs,
                      List<Task> orderedTasks,
                      @Nullable ProfilingContext profilingContext) throws Exception {
         this.logger = logger;
+        this.user = user;
         this.coordinatorNodeId = coordinatorNodeId;
         this.participatedNodes = participatingNodes;
         this.jobId = jobId;
@@ -296,6 +310,10 @@ public class RootTask implements CompletionListenable<Void> {
     @Override
     public CompletableFuture<Void> completionFuture() {
         return finishedFuture;
+    }
+
+    public String userName() {
+        return user;
     }
 
     @Override

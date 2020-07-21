@@ -5348,57 +5348,6 @@ public class InternalEngineTests extends EngineTestCase {
         }
     }
 
-    @Test
-    public void testGetReaderAttributes() throws IOException {
-        try (BaseDirectoryWrapper dir = newFSDirectory(createTempDir())) {
-            Directory unwrap = FilterDirectory.unwrap(dir);
-            boolean isMMap = unwrap instanceof MMapDirectory;
-            Map<String, String> readerAttributes = InternalEngine.getReaderAttributes(dir);
-            assertEquals(1, readerAttributes.size());
-            if (isMMap) {
-                assertEquals("OFF_HEAP", readerAttributes.get("blocktree.terms.fst"));
-            } else {
-                assertEquals("ON_HEAP", readerAttributes.get("blocktree.terms.fst"));
-            }
-        }
-
-        try(MMapDirectory dir = new MMapDirectory(createTempDir())) {
-            Map<String, String> readerAttributes =
-                InternalEngine.getReaderAttributes(randomBoolean() ? dir :
-                    new MockDirectoryWrapper(random(), dir));
-            assertEquals(1, readerAttributes.size());
-            assertEquals("OFF_HEAP", readerAttributes.get("blocktree.terms.fst"));
-        }
-
-        Settings.Builder settingsBuilder = Settings.builder()
-            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
-        Settings settings = settingsBuilder.build();
-        IndexSettings indexSettings = IndexSettingsModule.newIndexSettings("foo", settings);
-        Path tempDir = createTempDir().resolve(indexSettings.getUUID()).resolve("0");
-        ShardPath path = new ShardPath(false, tempDir, tempDir, new ShardId(indexSettings.getIndex(), 0));
-        FsDirectoryService service = new FsDirectoryService(indexSettings, path);
-        try (Directory directory = service.newDirectory()) {
-            Map<String, String> readerAttributes =
-                InternalEngine.getReaderAttributes(randomBoolean() ? directory :
-                    new MockDirectoryWrapper(random(), directory));
-            assertEquals(1, readerAttributes.size());
-
-            switch (IndexModule.defaultStoreType(true)) {
-                case HYBRIDFS:
-                case MMAPFS:
-                    assertEquals("OFF_HEAP", readerAttributes.get("blocktree.terms.fst"));
-                    break;
-                case NIOFS:
-                case SIMPLEFS:
-                case FS:
-                    assertEquals("ON_HEAP", readerAttributes.get("blocktree.terms.fst"));
-                    break;
-                    default:
-                        fail("unknownw type");
-            }
-        }
-    }
-
     private static void trimUnsafeCommits(EngineConfig config) throws IOException {
         final Store store = config.getStore();
         final TranslogConfig translogConfig = config.getTranslogConfig();

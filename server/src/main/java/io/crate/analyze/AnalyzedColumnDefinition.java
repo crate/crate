@@ -215,7 +215,7 @@ public class AnalyzedColumnDefinition<T> {
         this.indexMethod = indexMethod;
     }
 
-    void indexConstraint(Reference.IndexType indexType) {
+    public void indexConstraint(Reference.IndexType indexType) {
         this.indexType = indexType;
     }
 

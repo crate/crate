@@ -173,7 +173,12 @@ public class RemoteCollector {
     }
 
     private RootTask.Builder createPageDownstreamContext() {
-        RootTask.Builder builder = tasksService.newBuilder(jobId, localNode, Collections.emptySet());
+        RootTask.Builder builder = tasksService.newBuilder(
+            jobId,
+            sessionSettings.userName(),
+            localNode,
+            Collections.emptySet()
+        );
 
         PassThroughPagingIterator<Integer, Row> pagingIterator;
         if (scrollRequired) {
@@ -201,7 +206,11 @@ public class RemoteCollector {
     }
 
     private void killRemoteContext() {
-        KillJobsRequest killRequest = new KillJobsRequest(List.of(jobId), null);
+        KillJobsRequest killRequest = new KillJobsRequest(
+            List.of(jobId),
+            sessionSettings.userName(),
+            null
+        );
         transportKillJobsNodeAction.broadcast(killRequest, new ActionListener<>() {
 
                 @Override

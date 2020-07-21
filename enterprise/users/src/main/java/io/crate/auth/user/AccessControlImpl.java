@@ -39,6 +39,7 @@ import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
@@ -52,6 +53,7 @@ import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.AnalyzedSetStatement;
+import io.crate.analyze.AnalyzedSetTransaction;
 import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -469,7 +471,8 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitKillAnalyzedStatement(AnalyzedKill analysis, User user) {
-            throwRequiresSuperUserPermission(user.name());
+            // All users can kill their own statements.
+            // If the user doesn't have privileges to kill a certain job-id the row-count will be lower or 0
             return null;
         }
 
@@ -629,6 +632,16 @@ public final class AccessControlImpl implements AccessControl {
                     user,
                     defaultSchema);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitDiscard(AnalyzedDiscard discard, User context) {
+            return null;
+        }
+
+        @Override
+        public Void visitSetTransaction(AnalyzedSetTransaction setTransaction, User context) {
             return null;
         }
     }

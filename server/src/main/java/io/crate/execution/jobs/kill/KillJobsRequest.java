@@ -26,6 +26,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
+import io.crate.auth.user.User;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,12 +37,18 @@ import java.util.UUID;
 public class KillJobsRequest extends TransportRequest {
 
     private final Collection<UUID> toKill;
+    private final String userName;
 
     @Nullable
     private final String reason;
 
-    public KillJobsRequest(Collection<UUID> jobsToKill, @Nullable String reason) {
+
+    /**
+     * @param userName user that invoked the kill. If the kill is system generated use User.CRATE_USER.name()
+     */
+    public KillJobsRequest(Collection<UUID> jobsToKill, String userName, @Nullable String reason) {
         this.toKill = jobsToKill;
+        this.userName = userName;
         this.reason = reason;
     }
 
@@ -61,6 +69,13 @@ public class KillJobsRequest extends TransportRequest {
         } else {
             reason = null;
         }
+        if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
+            userName = in.readString();
+        } else {
+            // Before 4.3 the only user who was allowed to invoke KILL was the super-user
+            // So we know it must have been `crate`
+            userName = User.CRATE_USER.name();
+        }
     }
 
     @Override
@@ -75,6 +90,9 @@ public class KillJobsRequest extends TransportRequest {
         if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
             out.writeOptionalString(reason);
         }
+        if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
+            out.writeString(userName);
+        }
     }
 
     @Override
@@ -85,5 +103,9 @@ public class KillJobsRequest extends TransportRequest {
     @Nullable
     public String reason() {
         return reason;
+    }
+
+    public String userName() {
+        return userName;
     }
 }

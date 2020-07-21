@@ -25,6 +25,7 @@ package io.crate.metadata.settings.session;
 import io.crate.action.sql.SessionContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.types.DataType;
 
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -42,7 +43,7 @@ public class SessionSetting<T> {
     private final Supplier<String> defaultValue;
 
     private final String description;
-    private final String type;
+    private final DataType<?> type;
 
     public SessionSetting(String name,
                    Consumer<Object[]> validator,
@@ -51,7 +52,7 @@ public class SessionSetting<T> {
                    Function<SessionSettings, String> getter,
                    Supplier<String> defaultValue,
                    String description,
-                   String type) {
+                   DataType<?> type) {
         this.name = name;
         this.validator = validator;
         this.converter = converter;
@@ -85,7 +86,7 @@ public class SessionSetting<T> {
         return description;
     }
 
-    public String type() {
+    public DataType<?> type() {
         return type;
     }
 
