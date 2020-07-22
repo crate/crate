@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
+- Fixed a regression introduced in 4.2.0 which caused queries including a
+  virtual table, and both a ``ORDER BY`` and ``LIMIT`` clause to fail.
+
 - Fixed a regression introduced in 4.2.0 that resulted in ``NULL`` values being
   returned for columns used in the ``PARTITIONED BY`` clause instead of the
   actual values.
