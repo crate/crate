@@ -76,11 +76,28 @@ public final class Lists2 {
         if (list.isEmpty()) {
             return List.of();
         }
-        List<O> copy = new ArrayList<>(list.size());
+        ArrayList<O> copy = new ArrayList<>(list.size());
         for (I item : list) {
             copy.add(mapper.apply(item));
         }
         return copy;
+    }
+
+    /**
+     * Like `map` but ensures that the same list is returned if no elements changed
+     */
+    public static <T> List<T> mapIfChange(List<T> list, Function<? super T, ? extends T> mapper) {
+        if (list.isEmpty()) {
+            return list;
+        }
+        ArrayList<T> copy = new ArrayList<>(list.size());
+        boolean changed = false;
+        for (T item : list) {
+            T mapped = mapper.apply(item);
+            changed = changed || item != mapped;
+            copy.add(mapped);
+        }
+        return changed ? copy : list;
     }
 
     /**
