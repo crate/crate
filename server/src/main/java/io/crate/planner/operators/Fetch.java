@@ -22,6 +22,14 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -39,12 +47,6 @@ import io.crate.planner.ReaderAllocations;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 /**
  * <p>
@@ -134,7 +136,17 @@ public final class Fetch extends ForwardingLogicalPlan {
             readerAllocations.tableIndices(),
             fetchRefs
         );
-        List<Symbol> boundOutputs = Lists2.map(replacedOutputs.values(), paramBinder);
+
+        ArrayList<Symbol> boundOutputs = new ArrayList<>(replacedOutputs.size());
+        for (var entry : replacedOutputs.entrySet()) {
+            Symbol key = entry.getKey();
+            Symbol value = entry.getValue();
+            if (source.outputs().contains(key)) {
+                boundOutputs.add(key);
+            } else {
+                boundOutputs.add(paramBinder.apply(value));
+            }
+        }
         List<Symbol> fetchOutputs = InputColumns.create(boundOutputs, new InputColumns.SourceSymbols(source.outputs()));
         FetchProjection fetchProjection = new FetchProjection(
             fetchPhase.phaseId(),
