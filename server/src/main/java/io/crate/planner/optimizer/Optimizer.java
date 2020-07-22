@@ -54,8 +54,9 @@ public class Optimizer {
 
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
         LogicalPlan optimizedRoot = tryApplyRules(plan, tableStats, txnCtx);
+        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx));
         return tryApplyRules(
-            optimizedRoot.replaceSources(Lists2.map(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx))),
+            optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
             tableStats,
             txnCtx
         );
