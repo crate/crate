@@ -38,6 +38,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
@@ -56,6 +60,34 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                "3| Trillian\n" +
                "2| Ford\n" +
                "1| Arthur\n"));
+    }
+
+    @Test
+    public void test_sub_select_order_by_and_limit_using_query_then_fetch() throws Exception {
+        execute("create table doc.tbl (ord int, name text)");
+        execute("insert into doc.tbl (ord, name) values (?, ?)", $$(
+            $(4, "Arthur"),
+            $(3, "Trillian"),
+            $(2, "Ford"),
+            $(1, "Arthur")
+        ));
+        execute("refresh table doc.tbl");
+        execute("explain select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
+        assertThat(printedTable(response.rows()), is(
+            "Fetch[i, name]\n" +
+            "  └ Limit[20::bigint;0]\n" +
+            "    └ Rename[t._fetchid, i] AS t\n" +
+            "      └ OrderBy[ord AS i DESC]\n" +
+            "        └ Collect[doc.tbl | [_fetchid, ord AS i] | true]\n"
+        ));
+
+        execute("select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
+        assertThat(printedTable(response.rows()), is(
+            "4| Arthur\n" +
+            "3| Trillian\n" +
+            "2| Ford\n" +
+            "1| Arthur\n"
+        ));
     }
 
     @Test
