@@ -299,22 +299,24 @@ public class PostgresWireProtocol {
         @Override
         public void channelRead0(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
             assert channel != null : "Channel must be initialized";
-            PGError error;
+            PGError error = null;
             try {
                 dispatchState(buffer, channel);
             } catch (Throwable t) {
                 ignoreTillSync = true;
                 if (session != null) {
                     // Change handling here
-                    error = PGError.convert(getAccessControl.apply(session.sessionContext()), t);
+                    error = PGError.fromThrowable(t, getAccessControl.apply(session.sessionContext()));
                 }
                 try {
                     if (session != null) {
                         AccessControl accessControl = getAccessControl.apply(session.sessionContext());
                         // Change handling here
-                        error = PGError.convert(accessControl, t);
+                        error = PGError.fromThrowable(t, accessControl);
                     }
-                    Messages.sendErrorResponse(channel, t);
+                    if (error != null) {
+                        Messages.sendErrorResponse(channel, error);
+                    }
                 } catch (Throwable ti) {
                     LOGGER.error("Error trying to send error to client: {}", t, ti);
                 }
@@ -381,7 +383,9 @@ public class PostgresWireProtocol {
                     return;
                 default:
                     Messages.sendErrorResponse(channel,
-                        new UnsupportedOperationException("Unsupported messageType: " + msgType));
+                                               new PGError(PGErrorStatus.FEATURE_NOT_SUPPORTED,
+                                                           "Unsupported messageType: " + msgType,
+                                                           null));
             }
         }
 

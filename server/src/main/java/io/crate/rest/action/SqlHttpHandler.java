@@ -163,7 +163,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            HttpError httpError = HttpError.convert(getAccessControl.apply(session.sessionContext()), t);
+            HttpError httpError = HttpError.fromThrowable(t, getAccessControl.apply(session.sessionContext()));
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
             try (XContentBuilder contentBuilder = httpError.toXContent(includeErrorTrace)) {
@@ -172,7 +172,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            resp = new DefaultFullHttpResponse(httpVersion, httpError.status(), content);
+            resp = new DefaultFullHttpResponse
+                (httpVersion,
+                 new HttpResponseStatus(httpError.status().errorCode,
+                                        httpError.status().message),
+                 content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, mediaType);
         }
         Netty4CorsHandler.setCorsResponseHeaders(request, resp, corsConfig);

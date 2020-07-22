@@ -23,7 +23,6 @@
 package io.crate.protocols.postgres;
 
 import io.crate.data.Row;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.protocols.postgres.types.PGType;
@@ -174,40 +173,39 @@ public class Messages {
     static void sendAuthenticationError(Channel channel, String message) {
         LOGGER.warn(message);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
+        byte[] errorCode = PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION.code().getBytes(StandardCharsets.UTF_8);
+
         sendErrorResponse(channel, message, msg, PGError.SEVERITY_FATAL, null, null,
-                          METHOD_NAME_CLIENT_AUTH, PGError.ERROR_CODE_INVALID_AUTHORIZATION_SPECIFICATION);
+                          METHOD_NAME_CLIENT_AUTH, errorCode);
+    }
+
+    static ChannelFuture sendErrorResponse(Channel channel, Throwable throwable) {
+        return sendErrorResponse(channel, PGError.fromThrowable(throwable, null));
     }
 
     static ChannelFuture sendErrorResponse(Channel channel, PGError error) {
-        final String message = SQLExceptions.messageOf(throwable);
-        byte[] msg = message.getBytes(StandardCharsets.UTF_8);
+        byte[] msg = error.message().getBytes(StandardCharsets.UTF_8);
+        byte[] errorCode = error.status().code().getBytes(StandardCharsets.UTF_8);
         byte[] lineNumber = null;
         byte[] fileName = null;
         byte[] methodName = null;
 
-        StackTraceElement[] stackTrace = throwable.getStackTrace();
-        if (stackTrace != null && stackTrace.length > 0) {
-            StackTraceElement stackTraceElement = stackTrace[0];
-            lineNumber = String.valueOf(stackTraceElement.getLineNumber()).getBytes(StandardCharsets.UTF_8);
-            if (stackTraceElement.getFileName() != null) {
-                fileName = stackTraceElement.getFileName().getBytes(StandardCharsets.UTF_8);
-            }
-            if (stackTraceElement.getMethodName() != null) {
-                methodName = stackTraceElement.getMethodName().getBytes(StandardCharsets.UTF_8);
-            }
-        }
+        var throwable = error.throwable();
 
-        // See https://www.postgresql.org/docs/9.2/static/errcodes-appendix.html
-        // need to add a throwable -> error code mapping later on
-        byte[] errorCode;
-        if (throwable instanceof IllegalArgumentException || throwable instanceof UnsupportedOperationException) {
-            // feature_not_supported
-            errorCode = PGError.ERROR_CODE_FEATURE_NOT_SUPPORTED;
-        } else {
-            // internal_error
-            errorCode = PGError.ERROR_CODE_INTERNAL_ERROR;
+        if (throwable != null) {
+            StackTraceElement[] stackTrace = error.throwable().getStackTrace();
+            if (stackTrace != null && stackTrace.length > 0) {
+                StackTraceElement stackTraceElement = stackTrace[0];
+                lineNumber = String.valueOf(stackTraceElement.getLineNumber()).getBytes(StandardCharsets.UTF_8);
+                if (stackTraceElement.getFileName() != null) {
+                    fileName = stackTraceElement.getFileName().getBytes(StandardCharsets.UTF_8);
+                }
+                if (stackTraceElement.getMethodName() != null) {
+                    methodName = stackTraceElement.getMethodName().getBytes(StandardCharsets.UTF_8);
+                }
+            }
         }
-        return sendErrorResponse(channel, message, msg, PGError.SEVERITY_ERROR, lineNumber, fileName, methodName, errorCode);
+        return sendErrorResponse(channel, error.message(), msg, PGError.SEVERITY_ERROR, lineNumber, fileName, methodName, errorCode);
     }
 
     /**

@@ -23,29 +23,28 @@
 package io.crate.rest.action;
 
 import io.crate.auth.user.AccessControl;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
 
 public class HttpError {
 
-    private final HttpResponseStatus status;
+    private final HttpErrorStatus status;
+    @Nullable
     private final Throwable t;
-    private final int errorCode;
 
-    public HttpError(HttpResponseStatus status, int errorCode, Throwable t) {
+    public HttpError(HttpErrorStatus status, @Nullable Throwable t) {
         this.status = status;
-        this.errorCode = errorCode;
         this.t = t;
     }
 
-    static HttpError convert(AccessControl accessControl, Throwable t) {
-        return new HttpError(HttpResponseStatus.INTERNAL_SERVER_ERROR, 5000, t);
+    public HttpErrorStatus status() {
+        return status;
     }
 
     public XContentBuilder toXContent(boolean includeErrorTrace) throws IOException {
@@ -54,7 +53,7 @@ public class HttpError {
             .startObject()
             .startObject("error")
             .field("message", userFriendlyMessageInclNested(t))
-            .field("code", errorCode)
+            .field("code", status.errorCode)
             .endObject();
         // @formatter:on
 
@@ -64,8 +63,8 @@ public class HttpError {
         return builder.endObject();
     }
 
-    public HttpResponseStatus status() {
-        return status;
+    static HttpError fromThrowable(Throwable t, @Nullable AccessControl accessControl) {
+        // Convert from Throwable to HttpError here
+        return null;
     }
-
 }
