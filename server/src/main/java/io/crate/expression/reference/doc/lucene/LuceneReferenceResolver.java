@@ -117,6 +117,12 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             }
 
             default: {
+                int partitionPos = partitionColumns.indexOf(ref);
+                if (partitionPos >= 0) {
+                    return new LiteralValueExpression(
+                        ref.valueType().implicitCast(PartitionName.fromIndexOrTemplate(indexName).values().get(partitionPos))
+                    );
+                }
                 return maybeInjectPartitionValue(
                     typeSpecializedExpression(fieldTypeLookup, ref),
                     indexName,
@@ -152,7 +158,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         if (fieldType == null) {
             return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || isIgnoredDynamicReference(ref)
                 ? DocCollectorExpression.create(toSourceLookup(ref))
-                : new NullValueCollectorExpression();
+                : new LiteralValueExpression(null);
         }
         if (!fieldType.hasDocValues()) {
             return DocCollectorExpression.create(toSourceLookup(ref));
@@ -191,13 +197,20 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         return ref.symbolType() == SymbolType.DYNAMIC_REFERENCE && ref.columnPolicy() == ColumnPolicy.IGNORED;
     }
 
-    private static class NullValueCollectorExpression extends LuceneCollectorExpression<Void> {
+    private static class LiteralValueExpression extends LuceneCollectorExpression<Object> {
+
+        private final Object value;
+
+        public LiteralValueExpression(Object value) {
+            this.value = value;
+        }
 
         @Override
-        public Void value() {
-            return null;
+        public Object value() {
+            return value;
         }
     }
+
 
     static class PartitionValueInjectingExpression extends LuceneCollectorExpression<Object> {
 

@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Fixed a regression introduced in 4.2.0 that resulted in ``NULL`` values being
+  returned for columns used in the ``PARTITIONED BY`` clause instead of the
+  actual values.
+
 - Allow all users to execute ``DISCARD`` and ``SET TRANSACTION`` statement.
   These are session local statements and shouldn't require special privileges.
 
