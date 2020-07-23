@@ -46,6 +46,14 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_classify_qtf_statement_contains_fetch_limit_and_collect() throws Exception {
+        LogicalPlan plan = e.logicalPlan("SELECT * FROM users LIMIT 10");
+        StatementClassifier.Classification classification = StatementClassifier.classify(plan);
+        assertThat(classification.type(), is(Plan.StatementType.SELECT));
+        assertThat(classification.labels(), contains("Collect", "Fetch", "Limit"));
+    }
+
+    @Test
     public void testClassifySelectStatements() {
         LogicalPlan plan = e.logicalPlan("SELECT 1");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
@@ -90,7 +98,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         plan = e.logicalPlan("SELECT * FROM users WHERE id = (SELECT 1) OR name = (SELECT 'Arthur')");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Eval", "Limit", "MultiPhase", "TableFunction"));
+        assertThat(classification.labels(), contains("Collect", "Eval", "Limit", "MultiPhase", "TableFunction"));
     }
 
 

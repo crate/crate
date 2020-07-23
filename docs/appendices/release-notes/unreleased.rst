@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that prevented queries executed using a ``query-then-fetch``
+  strategy from being labelled correctly in the :ref:`sys.jobs_metrics
+  <sys-jobs-metrics>` and :ref:`sys.jobs_log <sys-logs>` tables.
+
 - Fixed a regression introduced in 4.2.0 which caused queries including a
   virtual table, and both a ``ORDER BY`` and ``LIMIT`` clause to fail.
 
