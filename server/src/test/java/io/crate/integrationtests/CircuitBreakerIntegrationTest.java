@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -65,8 +66,8 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
         execute("select text from t1 group by text");
 
         execute("set global \"indices.breaker.query.limit\"='100b'");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for [collect: 0] " +
+        expectedException.expect(CircuitBreakingException.class);
+        expectedException.expectMessage("[query] Data too large, data for [collect: 0] " +
                                         "would be [130/130b], which is larger than the limit of [100/100b]");
         execute("select text from t1 group by text");
     }

@@ -132,7 +132,11 @@ public class SQLExceptions {
         } catch (Exception mpe) {
             unwrappedError = mpe;
         }
-        return new RuntimeException(unwrappedError);
+        if (unwrappedError instanceof RuntimeException) {
+            return (RuntimeException) unwrappedError;
+        } else {
+            return new RuntimeException(unwrappedError);
+        }
     }
 
     public static boolean isDocumentAlreadyExistsException(Throwable e) {

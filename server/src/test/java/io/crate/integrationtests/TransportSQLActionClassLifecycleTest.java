@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -39,6 +40,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.postgresql.util.PSQLException;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -84,7 +86,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage("Relation 'suess.cluster' unknown");
         execute("select count(race), suess.cluster.name from characters");
     }
@@ -192,8 +194,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("RelationUnknown: Relation 'non_existent' unknown");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'non_existent' unknown");
         execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
 
@@ -419,8 +421,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     public void testSetStatementInvalid() throws Exception {
         try {
             execute("set global persistent stats.operations_log_size=-1024");
-            fail("expected SQLActionException, none was thrown");
-        } catch (SQLActionException e) {
+            fail("expected IllegalArgumentException, none was thrown");
+        } catch (IllegalArgumentException e) {
             assertThat(e.getMessage(), containsString("Failed to parse value [-1024] for setting [stats.operations_log_size] must be >= 0"));
 
             SQLResponse response = execute("select settings['stats']['operations_log_size'] from sys.cluster");

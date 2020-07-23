@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
@@ -89,7 +90,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), is(arrayContaining("id", "name")));
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
 
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column boo unknown");
         execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)");
     }
@@ -109,7 +110,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), is(arrayContaining("id", "name")));
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
 
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column boo unknown");
         execute("update strict_table set name='Trillian', boo=true where id=1");
     }
@@ -498,7 +499,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("alter table dynamic_table set (column_policy = 'strict')");
         waitNoPendingTasksOnAll();
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column new_col unknown");
         execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')");
     }

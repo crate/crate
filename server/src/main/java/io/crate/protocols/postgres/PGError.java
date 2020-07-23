@@ -24,7 +24,10 @@ package io.crate.protocols.postgres;
 
 import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.rest.action.CrateErrorStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.ResourceAlreadyExistsException;
+import org.elasticsearch.common.ParsingException;
 
 import javax.annotation.Nullable;
 
@@ -69,8 +72,13 @@ public class PGError  {
         //TODO make sure values are masked using accessControl
         PGErrorStatus status;
         String message = null;
-
-        if (unwrappedError instanceof UnsupportedOperationException) {
+        if (throwable instanceof ParsingException) {
+            status = PGErrorStatus.INTERNAL_ERROR;
+            message = throwable.getMessage();
+        } else if (throwable instanceof IllegalArgumentException) {
+            status = PGErrorStatus.INTERNAL_ERROR;
+            message = throwable.getMessage();
+        } else if (unwrappedError instanceof UnsupportedOperationException) {
             status = PGErrorStatus.FEATURE_NOT_SUPPORTED;
         } else if (unwrappedError instanceof ResourceAlreadyExistsException) {
             var resourceAlreadyExistsException = (ResourceAlreadyExistsException) unwrappedError;
