@@ -66,7 +66,7 @@ public class PGError  {
 
     public static PGError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
         Throwable unwrappedError = SQLExceptions.unwrap(throwable);
-        //TODO make sure values are masked using the accessControl
+        //TODO make sure values are masked using accessControl
         PGErrorStatus status;
         String message = null;
 

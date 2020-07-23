@@ -35,28 +35,28 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
-import static io.crate.rest.action.CrateHttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
-import static io.crate.rest.action.CrateHttpErrorStatus.UNKNOWN_RELATION;
+import static io.crate.rest.action.CrateErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
+import static io.crate.rest.action.CrateErrorStatus.UNKNOWN_RELATION;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 public class HttpError {
 
     private final HttpResponseStatus httpStatus;
-    private final CrateHttpErrorStatus status;
+    private final CrateErrorStatus status;
     private final String message;
 
     @Nullable
     private final Throwable t;
 
-    public HttpError(HttpResponseStatus httpStatus, CrateHttpErrorStatus status, String message, @Nullable Throwable t) {
+    public HttpError(HttpResponseStatus httpStatus, CrateErrorStatus status, String message, @Nullable Throwable t) {
         this.httpStatus = httpStatus;
         this.status = status;
         this.message = message;
         this.t = t;
     }
 
-    public CrateHttpErrorStatus status() {
+    public CrateErrorStatus status() {
         return status;
     }
 
@@ -85,7 +85,7 @@ public class HttpError {
     }
 
     public static HttpError fromThrowable(Throwable t, @Nullable AccessControl accessControl) {
-        //TODO make sure values are masked using the accessControl
+        //TODO make sure values are masked using accessControl
         if (t instanceof SQLActionException) {
             return new HttpError(BAD_REQUEST, STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX, t.getMessage(), t);
         }
@@ -95,6 +95,6 @@ public class HttpError {
         if (t instanceof RelationUnknown) {
             return new HttpError(NOT_FOUND, UNKNOWN_RELATION, t.getMessage(), t);
         }
-        return null;
+        throw new RuntimeException("Unhandled exception type", t);
     }
 }

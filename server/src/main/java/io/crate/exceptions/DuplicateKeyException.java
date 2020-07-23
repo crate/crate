@@ -29,7 +29,7 @@ public class DuplicateKeyException extends ConflictException implements TableSco
 
     private final RelationName relationName;
 
-    public DuplicateKeyException(String indexName, String msg, Throwable e) {
+    DuplicateKeyException(String indexName, String msg, Throwable e) {
         super(msg, e);
         relationName = RelationName.fromIndexName(indexName);
     }

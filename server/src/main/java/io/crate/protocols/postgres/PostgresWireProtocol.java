@@ -383,9 +383,7 @@ public class PostgresWireProtocol {
                     return;
                 default:
                     Messages.sendErrorResponse(channel,
-                                               new PGError(PGErrorStatus.FEATURE_NOT_SUPPORTED,
-                                                           "Unsupported messageType: " + msgType,
-                                                           null));
+                        new UnsupportedOperationException("Unsupported messageType: " + msgType));
             }
         }
 
