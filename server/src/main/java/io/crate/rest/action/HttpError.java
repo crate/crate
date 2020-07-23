@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLParseException;
+import io.crate.exceptions.UnauthorizedException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -35,10 +36,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
-import static io.crate.rest.action.CrateErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
-import static io.crate.rest.action.CrateErrorStatus.UNKNOWN_RELATION;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 public class HttpError {
 
@@ -86,15 +83,23 @@ public class HttpError {
 
     public static HttpError fromThrowable(Throwable t, @Nullable AccessControl accessControl) {
         //TODO make sure values are masked using accessControl
-        if (t instanceof SQLActionException) {
-            return new HttpError(BAD_REQUEST, STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX, t.getMessage(), t);
+        HttpResponseStatus httpStatus;
+        CrateErrorStatus crateErrorStatus;
+        if (t instanceof UnauthorizedException) {
+            httpStatus = HttpResponseStatus.UNAUTHORIZED;
+            crateErrorStatus = CrateErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
+        } else if (t instanceof SQLActionException) {
+            httpStatus = HttpResponseStatus.BAD_REQUEST;
+            crateErrorStatus = CrateErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
+        } else if (t instanceof SQLParseException) {
+            httpStatus = HttpResponseStatus.BAD_REQUEST;
+            crateErrorStatus = CrateErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
+        } else if (t instanceof RelationUnknown) {
+            httpStatus = HttpResponseStatus.NOT_FOUND;
+            crateErrorStatus = CrateErrorStatus.UNKNOWN_RELATION;
+        } else {
+            throw new RuntimeException("Unhandled exception type", t);
         }
-        if (t instanceof SQLParseException) {
-            return new HttpError(BAD_REQUEST, STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX, t.getMessage(), t);
-        }
-        if (t instanceof RelationUnknown) {
-            return new HttpError(NOT_FOUND, UNKNOWN_RELATION, t.getMessage(), t);
-        }
-        throw new RuntimeException("Unhandled exception type", t);
+        return new HttpError(httpStatus, crateErrorStatus, t.getMessage(), t);
     }
 }
