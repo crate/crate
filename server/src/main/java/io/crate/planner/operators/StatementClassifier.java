@@ -109,6 +109,9 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
 
     @Override
     protected Void visitPlan(LogicalPlan logicalPlan, Set<String> context) {
+        for (var source : logicalPlan.sources()) {
+            source.accept(this, context);
+        }
         context.add(logicalPlan.getClass().getSimpleName());
         return null;
     }
@@ -117,51 +120,6 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
     public Void visitRootRelationBoundary(RootRelationBoundary logicalPlan, Set<String> context) {
         logicalPlan.source.accept(this, context);
         return null;
-    }
-
-    @Override
-    public Void visitLimit(Limit limit, Set<String> context) {
-        limit.source.accept(this, context);
-        return visitPlan(limit, context);
-    }
-
-    @Override
-    public Void visitEval(Eval eval, Set<String> context) {
-        eval.source.accept(this, context);
-        return visitPlan(eval, context);
-    }
-
-    @Override
-    public Void visitHashJoin(HashJoin logicalPlan, Set<String> context) {
-        logicalPlan.lhs.accept(this, context);
-        logicalPlan.rhs.accept(this, context);
-        return visitPlan(logicalPlan, context);
-    }
-
-    @Override
-    public Void visitNestedLoopJoin(NestedLoopJoin logicalPlan, Set<String> context) {
-        logicalPlan.lhs.accept(this, context);
-        logicalPlan.rhs.accept(this, context);
-        return visitPlan(logicalPlan, context);
-    }
-
-    @Override
-    public Void visitUnion(Union logicalPlan, Set<String> context) {
-        logicalPlan.lhs.accept(this, context);
-        logicalPlan.rhs.accept(this, context);
-        return visitPlan(logicalPlan, context);
-    }
-
-    @Override
-    public Void visitGroupHashAggregate(GroupHashAggregate logicalPlan, Set<String> context) {
-        logicalPlan.source.accept(this, context);
-        return visitPlan(logicalPlan, context);
-    }
-
-    @Override
-    public Void visitHashAggregate(HashAggregate logicalPlan, Set<String> context) {
-        logicalPlan.source.accept(this, context);
-        return visitPlan(logicalPlan, context);
     }
 
     @Override
@@ -183,34 +141,10 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
     }
 
     @Override
-    public Void visitOrder(Order logicalPlan, Set<String> context) {
-        logicalPlan.source.accept(this, context);
-        return visitPlan(logicalPlan, context);
-    }
-
-    @Override
     public Void visitMultiPhase(MultiPhase logicalPlan, Set<String> context) {
         for (LogicalPlan plan : logicalPlan.dependencies().keySet()) {
             plan.accept(this, context);
         }
         return visitPlan(logicalPlan, context);
-    }
-
-    @Override
-    public Void visitFilter(Filter filter, Set<String> context) {
-        filter.source.accept(this, context);
-        return visitPlan(filter, context);
-    }
-
-    @Override
-    public Void visitProjectSet(ProjectSet projectSet, Set<String> context) {
-        projectSet.source.accept(this, context);
-        return visitPlan(projectSet, context);
-    }
-
-    @Override
-    public Void visitWindowAgg(WindowAgg windowAgg, Set<String> context) {
-        windowAgg.source.accept(this, context);
-        return visitPlan(windowAgg, context);
     }
 }
