@@ -22,7 +22,7 @@
 
 package io.crate.rest.action;
 
-public enum HttpErrorStatus {
+public enum CrateHttpErrorStatus {
 
     STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX(4000, "The statement contains an invalid syntax or unsupported SQL statement"),
     STATEMENT_INVALID_ANALYZER_DEFINITION(4001, "The statement contains an invalid analyzer definition."),
@@ -66,7 +66,7 @@ public enum HttpErrorStatus {
     public final int errorCode;
     public final String message;
 
-    HttpErrorStatus(int erroCode, String message) {
+    CrateHttpErrorStatus(int erroCode, String message) {
         this.errorCode = erroCode;
         this.message = message;
     }
