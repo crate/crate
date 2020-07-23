@@ -310,7 +310,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectFailingArithmeticScalar() throws Exception {
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
 
         execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");

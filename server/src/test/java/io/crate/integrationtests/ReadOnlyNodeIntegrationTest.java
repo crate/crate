@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
+import io.crate.exceptions.ReadOnlyException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseRandomizedSchema;
@@ -118,7 +119,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private void assertReadOnly(String stmt, Object[] args) throws Exception {
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(ReadOnlyException.class);
         expectedException.expectMessage("Only read operations allowed on this node");
         execute(stmt, args);
     }

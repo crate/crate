@@ -337,9 +337,13 @@ public class SQLTransportExecutor {
                     serverErrorMessage.getLine());
                 System.arraycopy(traceToExecWithPg, 0, stacktrace, 1, traceToExecWithPg.length);
             }
-            throw new RuntimeException(e);
+            throw new SQLActionException(
+                e.getMessage(),
+                0,
+                HttpResponseStatus.BAD_REQUEST,
+                stacktrace);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new SQLActionException(e.getMessage(), 0, HttpResponseStatus.BAD_REQUEST);
         }
     }
 

@@ -25,6 +25,7 @@ package io.crate.rest.action;
 import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnauthorizedException;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -81,28 +82,29 @@ public class HttpError {
         return builder.endObject();
     }
 
-    public static HttpError fromThrowable(Throwable t, @Nullable AccessControl accessControl) {
+    public static HttpError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
+        Throwable unwrappedError = SQLExceptions.unwrap(throwable);
         //TODO make sure values are masked using accessControl
         HttpResponseStatus httpStatus;
         CrateErrorStatus crateErrorStatus;
-        if (t instanceof IllegalArgumentException) {
+        if (unwrappedError instanceof IllegalArgumentException) {
             httpStatus = HttpResponseStatus.BAD_REQUEST;
             crateErrorStatus = CrateErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
-        } else if (t instanceof UnauthorizedException) {
+        } else if (unwrappedError instanceof UnauthorizedException) {
             httpStatus = HttpResponseStatus.UNAUTHORIZED;
             crateErrorStatus = CrateErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
-        } else if (t instanceof SQLActionException) {
+        } else if (unwrappedError instanceof SQLActionException) {
             httpStatus = HttpResponseStatus.BAD_REQUEST;
             crateErrorStatus = CrateErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
-        } else if (t instanceof SQLParseException) {
+        } else if (unwrappedError instanceof SQLParseException) {
             httpStatus = HttpResponseStatus.BAD_REQUEST;
             crateErrorStatus = CrateErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
-        } else if (t instanceof RelationUnknown) {
+        } else if (unwrappedError instanceof RelationUnknown) {
             httpStatus = HttpResponseStatus.NOT_FOUND;
             crateErrorStatus = CrateErrorStatus.UNKNOWN_RELATION;
         } else {
-            throw new RuntimeException("Unhandled exception type", t);
+            throw new RuntimeException("Unhandled exception type", unwrappedError);
         }
-        return new HttpError(httpStatus, crateErrorStatus, t.getMessage(), t);
+        return new HttpError(httpStatus, crateErrorStatus, unwrappedError.getMessage(), unwrappedError);
     }
 }
