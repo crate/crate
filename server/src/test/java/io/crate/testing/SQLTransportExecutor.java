@@ -43,6 +43,7 @@ import io.crate.protocols.postgres.types.PgOidVectorType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import jdk.jshell.spi.ExecutionControl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -336,13 +337,9 @@ public class SQLTransportExecutor {
                     serverErrorMessage.getLine());
                 System.arraycopy(traceToExecWithPg, 0, stacktrace, 1, traceToExecWithPg.length);
             }
-            throw new SQLActionException(
-                e.getMessage(),
-                0,
-                HttpResponseStatus.BAD_REQUEST,
-                stacktrace);
+            throw new RuntimeException(e);
         } catch (SQLException e) {
-            throw new SQLActionException(e.getMessage(), 0, HttpResponseStatus.BAD_REQUEST);
+            throw new RuntimeException(e);
         }
     }
 

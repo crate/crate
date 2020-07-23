@@ -71,7 +71,7 @@ public class HttpError {
             .startObject()
             .startObject("error")
             .field("message", userFriendlyMessageInclNested(t))
-            .field("code", status.errorCode)
+            .field("code", status.errorCode())
             .endObject();
         // @formatter:on
 
@@ -85,7 +85,10 @@ public class HttpError {
         //TODO make sure values are masked using accessControl
         HttpResponseStatus httpStatus;
         CrateErrorStatus crateErrorStatus;
-        if (t instanceof UnauthorizedException) {
+        if (t instanceof IllegalArgumentException) {
+            httpStatus = HttpResponseStatus.BAD_REQUEST;
+            crateErrorStatus = CrateErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
+        } else if (t instanceof UnauthorizedException) {
             httpStatus = HttpResponseStatus.UNAUTHORIZED;
             crateErrorStatus = CrateErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
         } else if (t instanceof SQLActionException) {

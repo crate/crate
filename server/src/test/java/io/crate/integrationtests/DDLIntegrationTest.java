@@ -390,7 +390,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                      printedTable(response.rows()));
         execute("insert into t(id, qty) values(-42, 100)");
         expectedException.expectMessage(containsString(
-            "SQLParseException: Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"));
+            "IllegalArgumentException: Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"));
         execute("insert into t(id, qty) values(0, 0)");
     }
 
@@ -446,7 +446,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (id) values(1)");
         refresh();
 
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot add a primary key column to a table that isn't empty");
         execute("alter table t add column name string primary key");
     }
@@ -753,7 +753,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 2, "Now panic", 1395961200000L}
         );
 
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Setting [number_of_shards] cannot be combined with other settings");
         execute("alter table quotes partition (date=1395874800000) " +
                 "set (number_of_shards=1, number_of_replicas='1-all')");

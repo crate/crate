@@ -63,11 +63,19 @@ public enum CrateErrorStatus {
     CREATING_SNAPSHOT_FAILED(5004, "Creating a snapshot failed"),
     QUERY_KILLED_BY_STATEMENT(5004, "The query was killed by a kill statement");
 
-    public final int errorCode;
-    public final String message;
+    private final int errorCode;
+    private final String message;
 
     CrateErrorStatus(int erroCode, String message) {
         this.errorCode = erroCode;
         this.message = message;
+    }
+
+    public int errorCode() {
+        return errorCode;
+    }
+
+    public String message() {
+        return message;
     }
 }

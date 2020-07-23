@@ -28,6 +28,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.common.collections.MapBuilder;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
+import org.postgresql.util.PSQLException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -77,7 +78,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rowCount());
         refresh();
 
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(PSQLException.class);
         expectedException.expectMessage("\"message\" must not be null");
         execute("update test set message=null where id=1");
     }
@@ -92,7 +93,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("\"stuff['level1']\" must not be null");
         execute("update test set stuff['level1']=null");
     }
@@ -109,7 +110,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("\"stuff['level1']['level2']\" must not be null");
         execute("update test set stuff['level1']['level2']=null");
     }
@@ -654,7 +655,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(VersioninigValidationException.class);
         expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         execute("update test set c = 4 where _version in (1,2)");
     }
@@ -765,7 +766,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateSetInvalidGeneratedColumnOnly() {
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Given value 1745 for generated column gen_col does not match calculation extract(YEAR FROM ts) = 1970");
         execute("create table computed (" +
                 " ts timestamp with time zone," +
