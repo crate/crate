@@ -43,8 +43,8 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"" +
-                                            "SQLActionException[SQLParseException: Missing request body]\"," +
-                                            "\"code\":4000},\"error_trace\":\"SQLActionException:"
+                                            "SQLParseException[Missing request body]\"," +
+                                            "\"code\":4000},\"error_trace\":"
         ));
     }
 
@@ -53,8 +53,8 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         CloseableHttpResponse response = post("{\"foo\": \"bar\"}");
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[SQLParseException: Failed to parse source" +
-                                            " [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},\"error_trace\":\"")
+        assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLParseException[Failed to parse source" +
+                                            " [{\\\"foo\\\": \\\"bar\\\"}]\",\"code\":4000},\"error_trace\":\"")
         );
     }
 

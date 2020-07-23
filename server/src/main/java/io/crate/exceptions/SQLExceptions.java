@@ -114,7 +114,7 @@ public class SQLExceptions {
         return e -> createSQLActionException(e, accessControl::ensureMaySee);
     }
 
-    public static SQLActionException forWireTransmission(AccessControl accessControl, Throwable e) {
+    public static RuntimeException forWireTransmission(AccessControl accessControl, Throwable e) {
         return createSQLActionException(e, accessControl::ensureMaySee);
     }
 
@@ -123,110 +123,16 @@ public class SQLExceptions {
      * If concrete {@link ElasticsearchException} is found, first transform it
      * to a {@link CrateException}
      */
-    public static SQLActionException createSQLActionException(Throwable e, Consumer<Throwable> maskSensitiveInformation) {
+    public static RuntimeException createSQLActionException(Throwable e, Consumer<Throwable> maskSensitiveInformation) {
         // ideally this method would be a static factory method in SQLActionException,
         // but that would pull too many dependencies for the client
-
-        if (e instanceof SQLActionException) {
-            return (SQLActionException) e;
-        }
         Throwable unwrappedError = SQLExceptions.unwrap(e);
-        e = esToCrateException(unwrappedError);
         try {
             maskSensitiveInformation.accept(e);
         } catch (Exception mpe) {
-            e = mpe;
+            unwrappedError = mpe;
         }
-
-        int errorCode = 5000;
-        HttpResponseStatus httpStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-        if (e instanceof CrateException) {
-            CrateException crateException = (CrateException) e;
-            if (e instanceof ValidationException) {
-                errorCode = 4000 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.BAD_REQUEST;
-            } else if (e instanceof UnauthorizedException) {
-                errorCode = 4010 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.UNAUTHORIZED;
-            } else if (e instanceof ReadOnlyException) {
-                errorCode = 4030 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.FORBIDDEN;
-            } else if (e instanceof ResourceUnknownException) {
-                errorCode = 4040 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.NOT_FOUND;
-            } else if (e instanceof ConflictException) {
-                errorCode = 4090 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.CONFLICT;
-            } else if (e instanceof UnhandledServerException) {
-                errorCode = 5000 + crateException.errorCode();
-            }
-        } else if (e instanceof ParsingException) {
-            errorCode = 4000;
-            httpStatus = HttpResponseStatus.BAD_REQUEST;
-        } else if (e instanceof MapperParsingException) {
-            errorCode = 4000;
-            httpStatus = HttpResponseStatus.BAD_REQUEST;
-        }
-
-        String message = e.getMessage();
-        if (message == null) {
-            if (e instanceof CrateException && e.getCause() != null) {
-                e = e.getCause();   // use cause because it contains a more meaningful error in most cases
-            }
-            StackTraceElement[] stackTraceElements = e.getStackTrace();
-            if (stackTraceElements.length > 0) {
-                message = String.format(Locale.ENGLISH, "%s in %s", e.getClass().getSimpleName(), stackTraceElements[0]);
-            } else {
-                message = "Error in " + e.getClass().getSimpleName();
-            }
-        } else {
-            message = e.getClass().getSimpleName() + ": " + message;
-        }
-
-        StackTraceElement[] usefulStacktrace =
-            e instanceof MissingPrivilegeException ? e.getStackTrace() : unwrappedError.getStackTrace();
-        return new SQLActionException(message, errorCode, httpStatus, usefulStacktrace);
-    }
-
-    private static Throwable esToCrateException(Throwable unwrappedError) {
-        if (unwrappedError instanceof IllegalArgumentException || unwrappedError instanceof ParsingException) {
-            return new SQLParseException(unwrappedError.getMessage(), (Exception) unwrappedError);
-        } else if (unwrappedError instanceof UnsupportedOperationException) {
-            return new UnsupportedFeatureException(unwrappedError.getMessage(), (Exception) unwrappedError);
-        } else if (isDocumentAlreadyExistsException(unwrappedError)) {
-            return new DuplicateKeyException(
-                ((EngineException) unwrappedError).getIndex().getName(),
-                "A document with the same primary key exists already", unwrappedError);
-        } else if (unwrappedError instanceof ResourceAlreadyExistsException) {
-            return new RelationAlreadyExists(((ResourceAlreadyExistsException) unwrappedError).getIndex().getName(), unwrappedError);
-        } else if ((unwrappedError instanceof InvalidIndexNameException)) {
-            if (unwrappedError.getMessage().contains("already exists as alias")) {
-                // treat an alias like a table as aliases are not officially supported
-                return new RelationAlreadyExists(((InvalidIndexNameException) unwrappedError).getIndex().getName(),
-                    unwrappedError);
-            }
-            return new InvalidRelationName(((InvalidIndexNameException) unwrappedError).getIndex().getName(), unwrappedError);
-        } else if (unwrappedError instanceof InvalidIndexTemplateException) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) unwrappedError).name());
-            return new InvalidRelationName(partitionName.relationName().fqn(), unwrappedError);
-        } else if (unwrappedError instanceof IndexNotFoundException) {
-            return new RelationUnknown(((IndexNotFoundException) unwrappedError).getIndex().getName(), unwrappedError);
-        } else if (unwrappedError instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
-            return new CircuitBreakingException(unwrappedError.getMessage());
-        } else if (unwrappedError instanceof InterruptedException) {
-            return JobKilledException.of(unwrappedError.getMessage());
-        } else if (unwrappedError instanceof RepositoryMissingException) {
-            return new RepositoryUnknownException(((RepositoryMissingException) unwrappedError).repository());
-        } else if (unwrappedError instanceof InvalidSnapshotNameException) {
-            return new SnapshotNameInvalidException(unwrappedError.getMessage());
-        } else if (unwrappedError instanceof SnapshotMissingException) {
-            SnapshotMissingException snapshotException = (SnapshotMissingException) unwrappedError;
-            return new SnapshotUnknownException(snapshotException.getRepositoryName(), snapshotException.getSnapshotName(), unwrappedError);
-        } else if (unwrappedError instanceof SnapshotCreationException) {
-            SnapshotCreationException creationException = (SnapshotCreationException) unwrappedError;
-            return new SnapshotAlreadyExistsException(creationException.getRepositoryName(), creationException.getSnapshotName());
-        }
-        return unwrappedError;
+        return new RuntimeException(unwrappedError);
     }
 
     public static boolean isDocumentAlreadyExistsException(Throwable e) {
@@ -239,6 +145,6 @@ public class SQLExceptions {
      * The message will not contain any information about possible nested exceptions.
      */
     public static String userFriendlyCrateExceptionTopOnly(Throwable e) {
-        return esToCrateException(e).getMessage();
+        return e.getMessage();
     }
 }

@@ -22,7 +22,11 @@
 
 package io.crate.rest.action;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.AccessControl;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.SQLParseException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -31,20 +35,37 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
+import static io.crate.rest.action.CrateHttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
+import static io.crate.rest.action.CrateHttpErrorStatus.UNKNOWN_RELATION;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 public class HttpError {
 
-    private final HttpErrorStatus status;
+    private final HttpResponseStatus httpStatus;
+    private final CrateHttpErrorStatus status;
+    private final String message;
+
     @Nullable
     private final Throwable t;
 
-    public HttpError(HttpErrorStatus status, @Nullable Throwable t) {
+    public HttpError(HttpResponseStatus httpStatus, CrateHttpErrorStatus status, String message, @Nullable Throwable t) {
+        this.httpStatus = httpStatus;
         this.status = status;
+        this.message = message;
         this.t = t;
     }
 
-    public HttpErrorStatus status() {
+    public CrateHttpErrorStatus status() {
         return status;
+    }
+
+    public String message() {
+        return message;
+    }
+
+    public HttpResponseStatus httpStatus() {
+        return httpStatus;
     }
 
     public XContentBuilder toXContent(boolean includeErrorTrace) throws IOException {
@@ -63,8 +84,17 @@ public class HttpError {
         return builder.endObject();
     }
 
-    static HttpError fromThrowable(Throwable t, @Nullable AccessControl accessControl) {
-        // Convert from Throwable to HttpError here
+    public static HttpError fromThrowable(Throwable t, @Nullable AccessControl accessControl) {
+        //TODO make sure values are masked using the accessControl
+        if (t instanceof SQLActionException) {
+            return new HttpError(BAD_REQUEST, STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX, t.getMessage(), t);
+        }
+        if (t instanceof SQLParseException) {
+            return new HttpError(BAD_REQUEST, STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX, t.getMessage(), t);
+        }
+        if (t instanceof RelationUnknown) {
+            return new HttpError(NOT_FOUND, UNKNOWN_RELATION, t.getMessage(), t);
+        }
         return null;
     }
 }

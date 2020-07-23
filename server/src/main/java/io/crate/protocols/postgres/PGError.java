@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 
 import static io.crate.exceptions.SQLExceptions.isDocumentAlreadyExistsException;
 
-public class PGError {
+public class PGError  {
 
     public static final byte[] SEVERITY_FATAL = "FATAL".getBytes(StandardCharsets.UTF_8);
     public static final byte[] SEVERITY_ERROR = "ERROR".getBytes(StandardCharsets.UTF_8);
