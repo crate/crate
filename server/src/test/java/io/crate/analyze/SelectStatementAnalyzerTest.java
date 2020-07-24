@@ -904,7 +904,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.outputs().size(), is(1));
         Symbol s = relation.outputs().get(0);
         assertThat(s, notNullValue());
-        assertThat(s, isFunction(SubscriptFunction.NAME, isField("friends"), isLiteral("id")));
+        assertThat(s, isField("friends['id']"));
     }
 
     @Test
@@ -1942,7 +1942,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation relation = analyze("select s.friends['id'] from (select friends from doc.users) s");
         assertThat(
             relation.outputs(),
-            contains(isFunction(SubscriptFunction.NAME, isField("friends"), isLiteral("id")))
+            contains(isField("friends['id']"))
         );
     }
 
@@ -1959,7 +1959,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_can_access_element_within_object_array_of_derived_table_containing_a_join_with_ambiguous_column_name() {
         expectedException.expect(AmbiguousColumnException.class);
-        expectedException.expectMessage("Column \"friends\" is ambiguous");
+        expectedException.expectMessage("Column \"friends['id']\" is ambiguous");
         analyze("select joined.friends['id'] from " +
                 "(select u1.friends, u2.friends from doc.users u1, doc.users u2) joined");
     }
