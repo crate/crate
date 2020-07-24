@@ -1764,4 +1764,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                "doc| metrics| x| 23| false| -1| 4| 2| NULL| NULL| 0| b\n")
         );
     }
+
+    @Test
+    public void test_subscript_on_ignored_object_does_not_raise_missing_key_error() throws Exception {
+        execute("create table tbl (obj object (ignored))");
+        execute("insert into tbl (obj) values ({a = 10})");
+        execute("refresh table tbl");
+
+        execute("select * from tbl where obj['b'] = 10");
+        assertThat(printedTable(response.rows()), is(""));
+
+        execute("select * from (select * from tbl) as t where obj['b'] = 10");
+        assertThat(printedTable(response.rows()), is(""));
+    }
 }
