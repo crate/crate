@@ -24,8 +24,6 @@ package io.crate.protocols.postgres;
 
 import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.rest.action.CrateErrorStatus;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.common.ParsingException;
 
@@ -66,6 +64,14 @@ public class PGError  {
         return message;
     }
 
+    @Override
+    public String toString() {
+        return "PGError{" +
+               "status=" + status +
+               ", message='" + message + '\'' +
+               ", throwable=" + throwable +
+               '}';
+    }
 
     public static PGError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
         Throwable unwrappedError = SQLExceptions.unwrap(throwable);

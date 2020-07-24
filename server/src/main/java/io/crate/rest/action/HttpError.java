@@ -82,11 +82,23 @@ public class HttpError {
         return builder.endObject();
     }
 
+    @Override
+    public String toString() {
+        return "HttpError{" +
+               "httpStatus=" + httpStatus +
+               ", status=" + status +
+               ", message='" + message + '\'' +
+               ", t=" + t +
+               '}';
+    }
+
     public static HttpError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
         Throwable unwrappedError = SQLExceptions.unwrap(throwable);
         //TODO make sure values are masked using accessControl
         HttpResponseStatus httpStatus;
         CrateErrorStatus crateErrorStatus;
+
+
         if (unwrappedError instanceof IllegalArgumentException) {
             httpStatus = HttpResponseStatus.BAD_REQUEST;
             crateErrorStatus = CrateErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
@@ -103,7 +115,8 @@ public class HttpError {
             httpStatus = HttpResponseStatus.NOT_FOUND;
             crateErrorStatus = CrateErrorStatus.UNKNOWN_RELATION;
         } else {
-            throw new RuntimeException("Unhandled exception type", unwrappedError);
+            httpStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+            crateErrorStatus = CrateErrorStatus.UNHANDLED_SERVER_ERROR;
         }
         return new HttpError(httpStatus, crateErrorStatus, unwrappedError.getMessage(), unwrappedError);
     }

@@ -22,11 +22,15 @@
 
 package io.crate.analysis.common;
 
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.testing.PsqlException;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Test;
@@ -137,7 +141,7 @@ public class FulltextITest extends SQLTransportIntegrationTest{
         execute("select * from matchbox where match(o['m'], 'Ford')");
         assertThat(response.rowCount(), is(1L));
 
-        expectedException.expect(SQLActionException.class);
+        expectedException.expect(anyOf(instanceOf(IllegalArgumentException.class), instanceOf(PsqlException.class)));
         expectedException.expectMessage("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'");
 
         execute("select * from matchbox where match(o_ignored['a'], 'Ford')");

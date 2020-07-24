@@ -22,6 +22,7 @@
 package org.elasticsearch.action.admin.indices.create;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.testing.PsqlException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -41,6 +42,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class TransportCreatePartitionsActionTest extends SQLTransportIntegrationTest {
@@ -127,7 +130,7 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
 
     @Test
     public void testCreateInvalidName() throws Exception {
-        expectedException.expect(InvalidIndexNameException.class);
+        expectedException.expect(anyOf(instanceOf(InvalidIndexNameException.class), instanceOf(PsqlException.class)));
         expectedException.expectMessage("Invalid index name [invalid/#haha], must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]");
 
         CreatePartitionsRequest createPartitionsRequest = new CreatePartitionsRequest(Arrays.asList("valid", "invalid/#haha"), UUID.randomUUID());

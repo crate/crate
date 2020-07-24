@@ -25,7 +25,6 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
@@ -42,8 +41,6 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.postgres.types.PgOidVectorType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import jdk.jshell.spi.ExecutionControl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -99,7 +96,7 @@ import static io.crate.action.sql.Session.UNNAMED;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class SQLTransportExecutor {
+    public class SQLTransportExecutor {
 
     private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
 
@@ -337,13 +334,9 @@ public class SQLTransportExecutor {
                     serverErrorMessage.getLine());
                 System.arraycopy(traceToExecWithPg, 0, stacktrace, 1, traceToExecWithPg.length);
             }
-            throw new SQLActionException(
-                e.getMessage(),
-                0,
-                HttpResponseStatus.BAD_REQUEST,
-                stacktrace);
+            throw new PsqlException(e.getMessage(), stacktrace);
         } catch (SQLException e) {
-            throw new SQLActionException(e.getMessage(), 0, HttpResponseStatus.BAD_REQUEST);
+            throw new PsqlException(e.getMessage());
         }
     }
 
@@ -408,7 +401,9 @@ public class SQLTransportExecutor {
                 columnNames.toArray(new String[0]),
                 rows.toArray(new Object[0][]),
                 dataTypes,
-                rows.size()
+                rows.size(),
+                null,
+                null
             );
         } else {
             int updateCount = preparedStatement.getUpdateCount();
@@ -423,7 +418,9 @@ public class SQLTransportExecutor {
                 new String[0],
                 new Object[0][],
                 new DataType[0],
-                updateCount
+                updateCount,
+                null,
+                null
             );
         }
     }

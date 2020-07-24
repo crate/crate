@@ -24,31 +24,17 @@ package io.crate.exceptions;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.AccessControl;
-import io.crate.metadata.PartitionName;
-import io.crate.sql.parser.ParsingException;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.indices.InvalidIndexNameException;
-import org.elasticsearch.indices.InvalidIndexTemplateException;
-import org.elasticsearch.repositories.RepositoryMissingException;
-import org.elasticsearch.snapshots.InvalidSnapshotNameException;
-import org.elasticsearch.snapshots.SnapshotCreationException;
-import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.transport.TransportException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -124,8 +110,20 @@ public class SQLExceptions {
      * to a {@link CrateException}
      */
     public static RuntimeException createSQLActionException(Throwable e, Consumer<Throwable> maskSensitiveInformation) {
-        // ideally this method would be a static factory method in SQLActionException,
-        // but that would pull too many dependencies for the client
+        Throwable unwrappedError = SQLExceptions.unwrap(e);
+        try {
+            maskSensitiveInformation.accept(e);
+        } catch (Exception mpe) {
+            unwrappedError = mpe;
+        }
+        if (unwrappedError instanceof RuntimeException) {
+            return (RuntimeException) unwrappedError;
+        } else {
+            return new RuntimeException(unwrappedError);
+        }
+    }
+
+    public static Exception convertException(Throwable e, Consumer<Throwable> maskSensitiveInformation) {
         Throwable unwrappedError = SQLExceptions.unwrap(e);
         try {
             maskSensitiveInformation.accept(e);
