@@ -505,8 +505,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         expectedPlan =
             "Eval[name]\n" +
             "  └ HashJoin[(a = address['postcode'])]\n" +
-            "    ├ Rename[name, address] AS u\n" +
-            "    │  └ Collect[doc.users | [name, address] | true]\n" +
+            "    ├ Rename[name, address['postcode']] AS u\n" +
+            "    │  └ Collect[doc.users | [name, address['postcode']] | true]\n" +
             "    └ Collect[doc.t1 | [a] | true]";
         assertThat(logicalPlan, is(isPlan(expectedPlan)));
     }

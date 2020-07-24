@@ -81,7 +81,15 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         }
         ColumnIdent childColumnName = aliasToColumnMapping.get(column);
         if (childColumnName == null) {
-            return null;
+            if (column.isTopLevel()) {
+                return null;
+            }
+            childColumnName = aliasToColumnMapping.get(column.getRoot());
+            if (childColumnName == null) {
+                return null;
+            } else {
+                childColumnName = new ColumnIdent(childColumnName.name(), column.path());
+            }
         }
         Symbol field = relation.getField(childColumnName, operation);
         if (field == null) {
@@ -127,7 +135,14 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         if (!field.relation().equals(alias)) {
             throw new IllegalArgumentException(field + " does not belong to " + relationName());
         }
-        ColumnIdent childColumnName = aliasToColumnMapping.get(field.column());
+        ColumnIdent column = field.column();
+        ColumnIdent childColumnName = aliasToColumnMapping.get(column);
+        if (childColumnName == null && !column.isTopLevel()) {
+            var childCol = aliasToColumnMapping.get(column.getRoot());
+            childColumnName = new ColumnIdent(childCol.name(), column.path());
+        }
+        assert childColumnName != null
+            : "If a ScopedSymbol has been retrieved via `getField`, it must be possible to get the columnIdent";
         var result = relation.getField(childColumnName, Operation.READ);
         if (result == null) {
             throw new IllegalArgumentException(field + " does not belong to " + relationName());
