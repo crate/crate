@@ -59,6 +59,10 @@ Changes
 Fixes
 =====
 
+- Fixed a regression introduced in 4.2.0 that caused subscript lookups on
+  ignored object columns to raise an error instead of a null value if the key
+  doesn't exist.
+
 - Fixed a performance regression introduced in 4.2.0 which caused queries with
   a ``ORDER BY`` but without ``LIMIT`` to execute slower than they used to.
 
