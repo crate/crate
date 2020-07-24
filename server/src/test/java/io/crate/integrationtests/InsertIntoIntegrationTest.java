@@ -414,7 +414,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         };
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column \"pk_col\" is required but is missing from the insert statement");
+        expectedException.expectMessage("Column `pk_col` is required but is missing from the insert statement");
 
         execute("insert into test (message) values (?)", args);
     }
@@ -435,10 +435,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertWithClusteredByWithoutValue() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
+        expectedException.expectMessage("Column `id` is required but is missing from the insert statement");
         execute("insert into quotes (quote) values(?)",
             new Object[]{"I'd far rather be happy than right any day."});
     }
