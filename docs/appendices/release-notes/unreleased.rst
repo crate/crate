@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
+- Fixed a regression that caused ``INSERT INTO`` statements in tables with a
+  nested ``CLUSTERED BY`` column to fail.
+
 - Fixed a regression introduced in 4.2.0 that caused subscript lookups on
   ignored object columns to raise an error instead of a null value if the key
   doesn't exist.

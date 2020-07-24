@@ -45,6 +45,7 @@ import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalyzer;
+import io.crate.common.collections.LazyMapList;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -250,37 +251,36 @@ class InsertAnalyzer {
         return columns;
     }
 
-    private static void ensureClusteredByPresentOrNotRequired(List<Reference> targetColumns, DocTableInfo tableInfo) {
+    private static void ensureClusteredByPresentOrNotRequired(List<Reference> targetColumnRefs, DocTableInfo tableInfo) {
         ColumnIdent clusteredBy = tableInfo.clusteredBy();
-        if (clusteredBy != null &&
-            !clusteredBy.name().equalsIgnoreCase(DocSysColumns.Names.ID) &&
-            !targetColumns.contains(tableInfo.getReference(clusteredBy)) &&
-            !tableInfo.primaryKey().contains(clusteredBy)) {
+        if (clusteredBy == null || clusteredBy.equals(DocSysColumns.ID)) {
+            return;
+        }
+        Reference clusteredByRef = tableInfo.getReference(clusteredBy);
+        if (clusteredByRef.defaultExpression() != null) {
+            return;
+        }
 
-            var clusterByRef = tableInfo.getReference(clusteredBy);
-            if (clusterByRef != null
-                && clusterByRef.defaultExpression() == null
-                && !isGeneratedColumnAndReferencedColumnsArePresent(clusteredBy, tableInfo)) {
-                throw new IllegalArgumentException(
-                    "Clustered by value is required but is missing from the insert statement");
+        // target columns are always top level columns;
+        // so we can compare against clusteredBy-root column in case clustered by is nested
+        // In insert-from-query cases we cannot peek into object values to ensure the value is present
+        // and need to rely on later runtime failures
+        ColumnIdent clusteredByRoot = clusteredBy.getRoot();
+
+        List<ColumnIdent> targetColumns = LazyMapList.of(targetColumnRefs, Reference::column);
+        if (targetColumns.contains(clusteredByRoot)) {
+            return;
+        }
+        if (clusteredByRef instanceof GeneratedReference) {
+            GeneratedReference generatedClusteredBy = (GeneratedReference) clusteredByRef;
+            var topLevelDependencies = LazyMapList.of(generatedClusteredBy.referencedReferences(), x -> x.column().getRoot());
+            if (targetColumns.containsAll(topLevelDependencies)) {
+                return;
             }
         }
-    }
 
-    private static boolean isGeneratedColumnAndReferencedColumnsArePresent(ColumnIdent columnIdent,
-                                                                           DocTableInfo tableInfo) {
-        Reference reference = tableInfo.getReference(columnIdent);
-        if (reference instanceof GeneratedReference) {
-            for (Reference referencedReference : ((GeneratedReference) reference).referencedReferences()) {
-                for (Reference columnRef : tableInfo.columns()) {
-                    if (columnRef.equals(referencedReference) ||
-                        referencedReference.column().isChildOf(columnRef.column())) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+        throw new IllegalArgumentException(
+            "Column `" + clusteredBy + "` is required but is missing from the insert statement");
     }
 
     private static void checkSourceAndTargetColsForLengthAndTypesCompatibility(
