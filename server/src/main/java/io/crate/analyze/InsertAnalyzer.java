@@ -45,7 +45,6 @@ import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalyzer;
-import io.crate.common.collections.LazyMapList;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -267,13 +266,13 @@ class InsertAnalyzer {
         // and need to rely on later runtime failures
         ColumnIdent clusteredByRoot = clusteredBy.getRoot();
 
-        List<ColumnIdent> targetColumns = LazyMapList.of(targetColumnRefs, Reference::column);
+        List<ColumnIdent> targetColumns = Lists2.mapLazy(targetColumnRefs, Reference::column);
         if (targetColumns.contains(clusteredByRoot)) {
             return;
         }
         if (clusteredByRef instanceof GeneratedReference) {
             GeneratedReference generatedClusteredBy = (GeneratedReference) clusteredByRef;
-            var topLevelDependencies = LazyMapList.of(generatedClusteredBy.referencedReferences(), x -> x.column().getRoot());
+            var topLevelDependencies = Lists2.mapLazy(generatedClusteredBy.referencedReferences(), x -> x.column().getRoot());
             if (targetColumns.containsAll(topLevelDependencies)) {
                 return;
             }

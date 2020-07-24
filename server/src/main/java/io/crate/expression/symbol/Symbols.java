@@ -22,7 +22,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.Streamer;
-import io.crate.common.collections.LazyMapList;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -52,11 +52,11 @@ public class Symbols {
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
-        return LazyMapList.of(symbols, Symbol::valueType);
+        return Lists2.mapLazy(symbols, Symbol::valueType);
     }
 
     public static List<TypeSignature> typeSignatureView(List<? extends Symbol> symbols) {
-        return LazyMapList.of(symbols, s -> s.valueType().getTypeSignature());
+        return Lists2.mapLazy(symbols, s -> s.valueType().getTypeSignature());
     }
 
     public static Streamer<?>[] streamerArray(Collection<? extends Symbol> symbols) {

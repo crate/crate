@@ -23,11 +23,14 @@
 package io.crate.common.collections;
 
 import javax.annotation.Nullable;
+
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.RandomAccess;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collector;
@@ -82,6 +85,15 @@ public final class Lists2 {
         }
         return copy;
     }
+
+    /**
+     * Like `map` but ensures that the same list is returned if no elements changed.
+     * But is a view onto the original list and applies the mapper lazy on a need basis.
+     */
+    public static <I, O> List<O> mapLazy(List<I> list, Function<? super I, ? extends O> mapper) {
+        return new LazyMapList<>(list, mapper);
+    }
+
 
     /**
      * Like `map` but ensures that the same list is returned if no elements changed
@@ -280,5 +292,31 @@ public final class Lists2 {
             joiner.add(mapper.apply(item));
         }
         return joiner.toString();
+    }
+
+
+    /**
+    * {@code LazyMapList} is a wrapper around a list that lazily applies
+    * the {@code mapper} {@code Function} on each item when it is accessed.
+    */
+    static class LazyMapList<I, O> extends AbstractList<O> implements RandomAccess {
+
+        private final List<I> list;
+        private final Function<? super I, ? extends O> mapper;
+
+        LazyMapList(List<I> list, Function<? super I, ? extends O> mapper) {
+            this.list = list;
+            this.mapper = mapper;
+        }
+
+        @Override
+        public O get(int index) {
+            return mapper.apply(list.get(index));
+        }
+
+        @Override
+        public int size() {
+            return list.size();
+        }
     }
 }

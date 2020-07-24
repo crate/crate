@@ -23,7 +23,6 @@ package io.crate.analyze.where;
 
 import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.collections.LazyMapList;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
@@ -61,7 +60,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
         public String getId(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
             return idFunction.apply(
-                LazyMapList.of(
+                Lists2.mapLazy(
                     key.subList(0, width),
                     s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, functions, s, params, subQueryResults))
                 )
