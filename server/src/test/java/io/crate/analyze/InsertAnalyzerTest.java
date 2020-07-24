@@ -87,6 +87,11 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 "  two int default 1+1" +
                 ")")
             .addTable("create table doc.nested (o object as (id int primary key), x int)")
+            .addTable(
+                "create table doc.nested_clustered (" +
+                "   obj object(strict) as (id int, name text)" +
+                ") clustered by (obj['id'])"
+            )
             .build();
     }
 
@@ -291,7 +296,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testMissingPrimaryKey() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column \"id\" is required but is missing from the insert statement");
+        expectedException.expectMessage("Column `id` is required but is missing from the insert statement");
         e.analyze("insert into users (name) (select name from users)");
     }
 
@@ -378,7 +383,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_insert_from_query_with_missing_clustered_by_column() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
+        expectedException.expectMessage("Column `id` is required but is missing from the insert statement");
         e.analyze("insert into users_clustered_by_only (name) (select 'user')");
     }
 
@@ -450,4 +455,11 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(ColumnUnknownException.class);
         e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (\"ID\") do update set NAME = excluded.name");
     }
+
+    @Test
+    public void test_insert_into_table_with_clustered_by_on_nested_column() throws Exception {
+        // doesn't raise an error
+        e.analyze("insert into doc.nested_clustered (obj) values ({id=4, name='George'})");
+    }
+
 }
