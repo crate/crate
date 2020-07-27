@@ -368,7 +368,7 @@ public class InternalEngineTests extends EngineTestCase {
             // internal refresh - lets make sure we see those segments in the stats
             ParsedDocument doc5 = testParsedDocument("5", null, testDocumentWithTextField(), B_3, null);
             engine.index(indexForDoc(doc5));
-            engine.refresh("test", Engine.SearcherScope.INTERNAL);
+            engine.refresh("test", Engine.SearcherScope.INTERNAL, true);
 
             segments = engine.segments(false);
             assertThat(segments.size(), equalTo(4));
@@ -1717,7 +1717,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             if (rarely()) {
                 // simulate GC deletes
-                engine.refresh("gc_simulation", Engine.SearcherScope.INTERNAL);
+                engine.refresh("gc_simulation", Engine.SearcherScope.INTERNAL, true);
                 engine.clearDeletedTombstones();
                 if (docDeleted) {
                     lastOpVersion = Versions.NOT_FOUND;
@@ -4167,14 +4167,14 @@ public class InternalEngineTests extends EngineTestCase {
                 engine.index(primaryResponse);
             }
             assertTrue(engine.refreshNeeded());
-            engine.refresh("test", Engine.SearcherScope.INTERNAL);
+            engine.refresh("test", Engine.SearcherScope.INTERNAL, true);
             try (Searcher getSearcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
                  Searcher searchSearcher = engine.acquireSearcher("test", Engine.SearcherScope.EXTERNAL)) {
                 assertEquals(10, getSearcher.reader().numDocs());
                 assertEquals(0, searchSearcher.reader().numDocs());
                 assertNotSameReader(getSearcher, searchSearcher);
             }
-            engine.refresh("test", Engine.SearcherScope.EXTERNAL);
+            engine.refresh("test", Engine.SearcherScope.EXTERNAL, true);
 
             try (Searcher getSearcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
                  Searcher searchSearcher = engine.acquireSearcher("test", Engine.SearcherScope.EXTERNAL)) {
@@ -4190,7 +4190,7 @@ public class InternalEngineTests extends EngineTestCase {
             Engine.Index primaryResponse = indexForDoc(doc);
             engine.index(primaryResponse);
 
-            engine.refresh("test", Engine.SearcherScope.EXTERNAL);
+            engine.refresh("test", Engine.SearcherScope.EXTERNAL, true);
 
             try (Searcher getSearcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
                  Searcher searchSearcher = engine.acquireSearcher("test", Engine.SearcherScope.EXTERNAL)) {
@@ -4200,14 +4200,14 @@ public class InternalEngineTests extends EngineTestCase {
             }
 
             try (Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
-                engine.refresh("test", Engine.SearcherScope.INTERNAL);
+                engine.refresh("test", Engine.SearcherScope.INTERNAL, true);
                 try (Searcher nextSearcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
                     assertSame(searcher.searcher(), nextSearcher.searcher());
                 }
             }
 
             try (Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.EXTERNAL)) {
-                engine.refresh("test", Engine.SearcherScope.EXTERNAL);
+                engine.refresh("test", Engine.SearcherScope.EXTERNAL, true);
                 try (Searcher nextSearcher = engine.acquireSearcher("test", Engine.SearcherScope.EXTERNAL)) {
                     assertSame(searcher.searcher(), nextSearcher.searcher());
                 }
@@ -4386,10 +4386,10 @@ public class InternalEngineTests extends EngineTestCase {
         latch.countDown();
         latch.await();
         while (done.get() == false) {
-            engine.refresh("test", Engine.SearcherScope.INTERNAL);
+            engine.refresh("test", Engine.SearcherScope.INTERNAL, true);
         }
         thread.join();
-        engine.refresh("test", Engine.SearcherScope.INTERNAL);
+        engine.refresh("test", Engine.SearcherScope.INTERNAL, true);
         try (Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
             TopDocs search = searcher.searcher().search(new MatchAllDocsQuery(), searcher.reader().numDocs());
             for (int i = 0; i < search.scoreDocs.length; i++) {
@@ -4947,7 +4947,7 @@ public class InternalEngineTests extends EngineTestCase {
             refreshThreads[i] = new Thread(() -> {
                 while (done.get() == false) {
                     long checkPointBeforeRefresh = engine.getProcessedLocalCheckpoint();
-                    engine.refresh("test", randomFrom(Engine.SearcherScope.values()));
+                    engine.refresh("test", randomFrom(Engine.SearcherScope.values()), true);
                     assertThat(engine.lastRefreshedCheckpoint(), greaterThanOrEqualTo(checkPointBeforeRefresh));
                 }
             });
