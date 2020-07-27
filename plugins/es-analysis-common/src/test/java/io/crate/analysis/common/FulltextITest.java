@@ -143,8 +143,8 @@ public class FulltextITest extends SQLTransportIntegrationTest{
         execute("select * from matchbox where match(o_ignored['a'], 'Ford')");
         var message = "Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'";
         assertThat(response,
-                   anyOf(SQLResponseMatcher.hasPgErrorStatus(message, INTERNAL_ERROR),
-                         SQLResponseMatcher.hasHttpErrorStatus(message, UNHANDLED_SERVER_ERROR))
+                   anyOf(SQLResponseMatcher.isPGError(message, INTERNAL_ERROR),
+                         SQLResponseMatcher.isHttpError(message, UNHANDLED_SERVER_ERROR))
         );
 
         assertThat(response.rowCount(), is(0L));

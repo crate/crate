@@ -35,7 +35,7 @@ public class SQLResponseMatcher {
 
     private SQLResponseMatcher() {}
 
-    public static Matcher<SQLResponse> hasPgErrorStatus(String message, PGErrorStatus pgErrorStatus) {
+    public static Matcher<SQLResponse> isPGError(String message, PGErrorStatus pgErrorStatus) {
         return allOf(
             Matchers.instanceOf(SQLResponse.class),
             withFeature(s -> s.getPgError() == null ? null : s.getPgError().message(), "error message", equalTo(message)),
@@ -43,7 +43,7 @@ public class SQLResponseMatcher {
         );
     }
 
-    public static Matcher<SQLResponse> hasHttpErrorStatus(String message, HttpErrorStatus httpErrorStatus) {
+    public static Matcher<SQLResponse> isHttpError(String message, HttpErrorStatus httpErrorStatus) {
         return allOf(
             Matchers.instanceOf(SQLResponse.class),
             withFeature(s -> s.getHttpError() == null ? null : s.getHttpError().message(), "error message", equalTo(message)),
