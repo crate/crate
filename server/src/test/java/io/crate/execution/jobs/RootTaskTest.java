@@ -46,6 +46,7 @@ import org.mockito.Mockito;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
@@ -181,7 +182,7 @@ public class RootTaskTest extends CrateUnitTest {
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
         RootTask.Builder builder =
             new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
-        ProfilingContext profilingContext = new ProfilingContext(Collections::emptyList);
+        ProfilingContext profilingContext = new ProfilingContext(List.of());
         builder.profilingContext(profilingContext);
 
         AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);

@@ -44,7 +44,6 @@ public class SharedShardContexts {
         this.wrapSearcher = wrapSearcher;
     }
 
-
     public SharedShardContext createContext(ShardId shardId, int readerId) {
         assert !allocatedShards.containsKey(shardId) : "shardId shouldn't have been allocated yet";
         SharedShardContext sharedShardContext = new SharedShardContext(indicesService, shardId, readerId, wrapSearcher);

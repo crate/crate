@@ -59,6 +59,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that occasionally caused :ref:`EXPLAIN ANALYZE <ref-explain>`
+  to return invalid query breakdown results or fail with the index out of
+  bound exception.
+
 - Fixed a regression that caused ``INSERT INTO`` statements in tables with a
   nested ``CLUSTERED BY`` column to fail.
 

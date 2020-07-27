@@ -42,6 +42,7 @@ import org.elasticsearch.search.profile.query.QueryProfiler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -114,13 +115,17 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     private SharedShardContexts maybeInstrumentProfiler(boolean enableProfiling, RootTask.Builder contextBuilder) {
         if (enableProfiling) {
-            QueryProfiler queryProfiler = new QueryProfiler();
-            ProfilingContext profilingContext = new ProfilingContext(queryProfiler::getTree);
+            var profilers = new ArrayList<QueryProfiler>();
+            ProfilingContext profilingContext = new ProfilingContext(profilers);
             contextBuilder.profilingContext(profilingContext);
 
             return new SharedShardContexts(
                 indicesService,
-                indexSearcher -> new InstrumentedIndexSearcher(indexSearcher.getIndexReader(), queryProfiler)
+                indexSearcher -> {
+                    var queryProfiler = new QueryProfiler();
+                    profilers.add(queryProfiler);
+                    return new InstrumentedIndexSearcher(indexSearcher.getIndexReader(), queryProfiler);
+                }
             );
         } else {
             return new SharedShardContexts(indicesService, UnaryOperator.identity());
