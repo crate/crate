@@ -28,7 +28,6 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnauthorizedException;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -40,30 +39,24 @@ import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
 
 public class HttpError {
 
-    private final HttpResponseStatus httpStatus;
-    private final CrateErrorStatus status;
+    private final HttpErrorStatus status;
     private final String message;
 
     @Nullable
     private final Throwable t;
 
-    public HttpError(HttpResponseStatus httpStatus, CrateErrorStatus status, String message, @Nullable Throwable t) {
-        this.httpStatus = httpStatus;
+    public HttpError(HttpErrorStatus status, String message, @Nullable Throwable t) {
         this.status = status;
         this.message = message;
         this.t = t;
     }
 
-    public CrateErrorStatus status() {
+    public HttpErrorStatus status() {
         return status;
     }
 
     public String message() {
         return message;
-    }
-
-    public HttpResponseStatus httpStatus() {
-        return httpStatus;
     }
 
     public XContentBuilder toXContent(boolean includeErrorTrace) throws IOException {
@@ -85,7 +78,6 @@ public class HttpError {
     @Override
     public String toString() {
         return "HttpError{" +
-               "httpStatus=" + httpStatus +
                ", status=" + status +
                ", message='" + message + '\'' +
                ", t=" + t +
@@ -95,29 +87,21 @@ public class HttpError {
     public static HttpError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
         Throwable unwrappedError = SQLExceptions.unwrap(throwable);
         //TODO make sure values are masked using accessControl
-        HttpResponseStatus httpStatus;
-        CrateErrorStatus crateErrorStatus;
-
+        HttpErrorStatus httpErrorStatus;
 
         if (unwrappedError instanceof IllegalArgumentException) {
-            httpStatus = HttpResponseStatus.BAD_REQUEST;
-            crateErrorStatus = CrateErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
+            httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
         } else if (unwrappedError instanceof UnauthorizedException) {
-            httpStatus = HttpResponseStatus.UNAUTHORIZED;
-            crateErrorStatus = CrateErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
+            httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
         } else if (unwrappedError instanceof SQLActionException) {
-            httpStatus = HttpResponseStatus.BAD_REQUEST;
-            crateErrorStatus = CrateErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
+            httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
         } else if (unwrappedError instanceof SQLParseException) {
-            httpStatus = HttpResponseStatus.BAD_REQUEST;
-            crateErrorStatus = CrateErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
+            httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
         } else if (unwrappedError instanceof RelationUnknown) {
-            httpStatus = HttpResponseStatus.NOT_FOUND;
-            crateErrorStatus = CrateErrorStatus.UNKNOWN_RELATION;
+            httpErrorStatus = HttpErrorStatus.UNKNOWN_RELATION;
         } else {
-            httpStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            crateErrorStatus = CrateErrorStatus.UNHANDLED_SERVER_ERROR;
+            httpErrorStatus = HttpErrorStatus.UNHANDLED_SERVER_ERROR;
         }
-        return new HttpError(httpStatus, crateErrorStatus, unwrappedError.getMessage(), unwrappedError);
+        return new HttpError(httpErrorStatus, unwrappedError.getMessage(), unwrappedError);
     }
 }

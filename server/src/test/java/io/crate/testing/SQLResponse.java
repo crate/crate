@@ -31,14 +31,14 @@ import java.util.Arrays;
 
 public class SQLResponse {
 
-    private String[] cols;
-    private DataType[] colTypes;
-    private Object[][] rows;
-    private long rowCount;
+    private final String[] cols;
+    private final DataType[] colTypes;
+    private final Object[][] rows;
+    private final long rowCount;
     @Nullable
-    private PGError pgError;
+    private final PGError pgError;
     @Nullable
-    private HttpError httpError;
+    private final HttpError httpError;
 
     SQLResponse(String[] cols,
                 Object[][] rows,
@@ -73,14 +73,13 @@ public class SQLResponse {
     }
 
     @Nullable
-    public String errorMessage() {
-        if (pgError != null) {
-            return pgError.message();
-        } else if (httpError != null) {
-            return httpError.message();
-        } else {
-            return null;
-        }
+    public PGError getPgError() {
+        return pgError;
+    }
+
+    @Nullable
+    public HttpError getHttpError() {
+        return httpError;
     }
 
     private static String arrayToString(@Nullable Object[] array) {

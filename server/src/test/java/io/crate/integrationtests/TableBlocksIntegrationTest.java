@@ -21,9 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.testing.PsqlException;
-import io.crate.testing.UseJdbc;
+import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
@@ -34,10 +32,6 @@ import org.junit.rules.TemporaryFolder;
 
 import java.util.Locale;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.instanceOf;
-
-@UseJdbc(1)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -66,8 +60,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.write\" = true)");
         ensureYellow();
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow INSERT operations.", sqlExecutor.getCurrentSchema()));
         execute("insert into t1 (id) values (1)");
@@ -78,8 +71,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.write\" = true, \"blocks.read\" = true)");
         ensureYellow();
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow UPDATE operations.", sqlExecutor.getCurrentSchema()));
         execute("update t1 set id = 2");
@@ -90,8 +82,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.write\" = true, \"blocks.read\" = true)");
         ensureYellow();
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow DELETE operations.", sqlExecutor.getCurrentSchema()));
         execute("delete from t1");
@@ -102,8 +93,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.metadata\" = true)");
         ensureYellow();
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow DROP operations.", sqlExecutor.getCurrentSchema()));
         execute("drop table t1");
@@ -114,8 +104,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.metadata\" = true)");
         ensureYellow();
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow ALTER operations.", sqlExecutor.getCurrentSchema()));
         execute("alter table t1 add column name string");
@@ -126,10 +115,9 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.metadata\" = true)");
         ensureYellow();
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or allow ALTER operations.", sqlExecutor.getCurrentSchema()));
-
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow ALTER operations.", sqlExecutor.getCurrentSchema()));
         execute("alter table t1 set (number_of_replicas = 1)");
     }
 
@@ -152,8 +140,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("insert into t1 (id) values (1)");
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow READ operations.", sqlExecutor.getCurrentSchema()));
         execute("select * from t1");
@@ -166,8 +153,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into t1 (id) values (1)");
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow READ operations.", sqlExecutor.getCurrentSchema()));
         execute("insert into t2 (id) (select id from t1)");
@@ -179,8 +165,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t2 (id integer) with (number_of_replicas = 0)");
         ensureYellow();
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow READ operations.", sqlExecutor.getCurrentSchema()));
         execute("select * from t2, t1");
@@ -190,8 +175,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
     public void testCopyToForbidden() throws Exception {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.read\" = true)");
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow COPY TO operations.", sqlExecutor.getCurrentSchema()));
         execute("copy t1 to DIRECTORY '/tmp/'");
@@ -202,8 +186,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.write\" = true)");
         ensureYellow();
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow INSERT operations.", sqlExecutor.getCurrentSchema()));
         execute("copy t1 from '/tmp'");
@@ -216,8 +199,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("CREATE REPOSITORY repo TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow CREATE SNAPSHOT operations.", sqlExecutor.getCurrentSchema()));
         execute("CREATE SNAPSHOT repo.snap TABLE t1 WITH (wait_for_completion=true)");
@@ -230,8 +212,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("CREATE REPOSITORY repo TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(
-            PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
             "The relation \"%s.t1\" doesn't support or allow READ operations.", sqlExecutor.getCurrentSchema()));
         execute("CREATE SNAPSHOT repo.snap ALL WITH (wait_for_completion=true)");
@@ -251,9 +232,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("select settings['blocks']['read_only'] from information_schema.tables where table_name = 't1'");
         assertThat((Boolean) response.rows()[0][0], Is.is(true));
 
-        expectedException.expect(anyOf(instanceOf(OperationOnInaccessibleRelationException.class), instanceOf(PsqlException.class)));
-        expectedException.expectMessage(String.format(Locale.ENGLISH,
-                                                      "The relation \"%s.t1\" doesn't support or allow INSERT operations, " +
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or allow INSERT operations, " +
                                         "as it is read-only.", sqlExecutor.getCurrentSchema()));
         execute("insert into t1 (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 13959981214861L});

@@ -22,21 +22,21 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
-
-import io.crate.testing.PsqlException;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
+import io.crate.testing.SQLResponseMatcher;
+import io.crate.testing.UseJdbc;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
 import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
+@UseJdbc(1)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false, numClientNodes = 0)
 public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -69,13 +69,12 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
         execute("select text from t1 group by text");
 
         execute("set global \"indices.breaker.query.limit\"='100b'");
-
-//        expectedException.expect(anyOf(instanceOf(CircuitBreakingException.class), instanceOf(PsqlException.class)));
-
         execute("select text from t1 group by text");
-        assertThat(response.errorMessage(), is("[query] Data too large, data for [collect: 0] " +
-                                                           "would be [130/130b], which is larger than the limit of [100/100b]");
 
-
+        var message = "[query] Data too large, data for [collect: 0] would be [130/130b], which is larger than the limit of [100/100b]";
+        assertThat(response,
+                   anyOf(SQLResponseMatcher.hasPgErrorStatus(message, INTERNAL_ERROR),
+                         SQLResponseMatcher.hasHttpErrorStatus(message, UNHANDLED_SERVER_ERROR))
+        );
     }
 }

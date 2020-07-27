@@ -36,9 +36,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.protocols.postgres.PGError;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.postgres.types.PgOidVectorType;
+import io.crate.rest.action.HttpError;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
@@ -334,10 +337,29 @@ import static org.junit.Assert.assertThat;
                     serverErrorMessage.getLine());
                 System.arraycopy(traceToExecWithPg, 0, stacktrace, 1, traceToExecWithPg.length);
             }
-            throw new PsqlException(e.getMessage(), stacktrace);
+            return new SQLResponse(
+                EMPTY_NAMES,
+                EMPTY_ROWS,
+                EMPTY_TYPES,
+                0,
+                buildPGError(e),
+                null);
         } catch (SQLException e) {
-            throw new PsqlException(e.getMessage());
+            throw new RuntimeException(e);
         }
+    }
+
+    private PGError buildPGError(PSQLException e) {
+        var message = e.getMessage().replace("ERROR: ", "");
+        var sqlState = e.getServerErrorMessage().getSQLState();
+        PGErrorStatus errorStatus = null;
+        for (var status :PGErrorStatus.values()) {
+            if (status.code().equals(sqlState)) {
+                errorStatus =  status;
+                break;
+            }
+        }
+        return new PGError(errorStatus, message, e);
     }
 
     private static Object toJdbcCompatObject(Connection connection, Object arg) {
@@ -607,15 +629,31 @@ import static org.junit.Assert.assertThat;
                 SQLResponse response = createSqlResponse();
                 listener.onResponse(response);
             } catch (Exception e) {
-                listener.onFailure(e);
+                SQLResponse sqlResponse = new SQLResponse(
+                    EMPTY_NAMES,
+                    EMPTY_ROWS,
+                    EMPTY_TYPES,
+                    0,
+                    null,
+                    HttpError.fromThrowable(e, null)
+                );
+                listener.onResponse(sqlResponse);
             }
             super.allFinished(interrupted);
         }
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t, e -> {}));
-            super.fail(t);
+            SQLResponse sqlResponse = new SQLResponse(
+                EMPTY_NAMES,
+                EMPTY_ROWS,
+                EMPTY_TYPES,
+                0,
+                null,
+                HttpError.fromThrowable(t, null)
+            );
+            listener.onResponse(sqlResponse);
+            super.allFinished(true);
         }
 
         private SQLResponse createSqlResponse() {
@@ -633,7 +671,9 @@ import static org.junit.Assert.assertThat;
                 outputNames,
                 rowsArr,
                 outputTypes,
-                rowsArr.length
+                rowsArr.length,
+                null,
+                null
             );
         }
     }
@@ -663,7 +703,9 @@ import static org.junit.Assert.assertThat;
                 EMPTY_NAMES,
                 EMPTY_ROWS,
                 EMPTY_TYPES,
-                rowCount
+                rowCount,
+                null,
+                null
             );
             listener.onResponse(sqlResponse);
             super.allFinished(interrupted);
@@ -672,8 +714,16 @@ import static org.junit.Assert.assertThat;
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t, e -> {}));
-            super.fail(t);
+            SQLResponse sqlResponse = new SQLResponse(
+                EMPTY_NAMES,
+                EMPTY_ROWS,
+                EMPTY_TYPES,
+                rowCount,
+                null,
+                HttpError.fromThrowable(t, null)
+            );
+            listener.onResponse(sqlResponse);
+            super.allFinished(true);
         }
     }
 

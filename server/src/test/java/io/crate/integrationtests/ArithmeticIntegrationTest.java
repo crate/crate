@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.PsqlException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -30,8 +29,6 @@ import java.util.List;
 import java.util.Locale;
 
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -313,7 +310,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectFailingArithmeticScalar() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
 
         execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
@@ -325,7 +322,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByFailingArithmeticScalar() throws Exception {
-        expectedException.expect(anyOf(instanceOf(IllegalArgumentException.class), instanceOf(PsqlException.class)));
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
 
         execute("create table t (i integer, l long, d double) with (number_of_replicas=0)");
