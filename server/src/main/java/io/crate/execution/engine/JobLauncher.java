@@ -254,12 +254,16 @@ public final class JobLauncher {
 
     private SharedShardContexts maybeInstrumentProfiler(RootTask.Builder builder) {
         if (enableProfiling) {
-            QueryProfiler queryProfiler = new QueryProfiler();
-            ProfilingContext profilingContext = new ProfilingContext(queryProfiler::getTree);
+            var profilers = new ArrayList<QueryProfiler>();
+            ProfilingContext profilingContext = new ProfilingContext(profilers);
             builder.profilingContext(profilingContext);
             return new SharedShardContexts(
                 indicesService,
-                indexSearcher -> new InstrumentedIndexSearcher(indexSearcher.getIndexReader(), queryProfiler)
+                indexSearcher -> {
+                    var queryProfiler = new QueryProfiler();
+                    profilers.add(queryProfiler);
+                    return new InstrumentedIndexSearcher(indexSearcher.getIndexReader(), queryProfiler);
+                }
             );
         } else {
             return new SharedShardContexts(indicesService, UnaryOperator.identity());
