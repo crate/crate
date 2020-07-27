@@ -4911,7 +4911,7 @@ public class InternalEngineTests extends EngineTestCase {
             if (rarely()) {
                 engine.forceMerge(randomBoolean(), 1, false, false, false);
             }
-            try (Closeable ignored = engine.acquireRetentionLockForPeerRecovery()) {
+            try (Closeable ignored = engine.acquireRetentionLock()) {
                 long minRetainSeqNos = engine.getMinRetainedSeqNo();
                 assertThat(minRetainSeqNos, lessThanOrEqualTo(globalCheckpoint.get() + 1));
                 Long[] expectedOps = existingSeqNos.stream().filter(seqno -> seqno >= minRetainSeqNos).toArray(Long[]::new);
