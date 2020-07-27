@@ -30,7 +30,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.util.automaton.RegExp;
 
-import static io.crate.expression.scalar.regex.RegexMatcher.isPcrePattern;
+import static io.crate.expression.RegexpFlags.isPcrePattern;
 
 class RegexpMatchQuery implements FunctionToQuery {
 

@@ -42,7 +42,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- Added support for flag ``g`` to function
+  :ref:`regexp_matches <table-functions-regexp-matches>` and changed
+  its type from ``scalar`` to ``table`` type. It now returns a table where each
+  row contains a single column ``groups`` of type ``array(text)``.
 
 
 Changes
@@ -58,6 +61,10 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue that occasionally caused :ref:`EXPLAIN ANALYZE <ref-explain>`
+  to return invalid query breakdown results or fail with the index out of
+  bound exception.
 
 - Fixed a regression that caused ``INSERT INTO`` statements in tables with a
   nested ``CLUSTERED BY`` column to fail.

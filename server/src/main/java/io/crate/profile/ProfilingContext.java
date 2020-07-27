@@ -23,13 +23,13 @@
 package io.crate.profile;
 
 import org.elasticsearch.search.profile.ProfileResult;
+import org.elasticsearch.search.profile.query.QueryProfiler;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -43,19 +43,20 @@ public class ProfilingContext {
 
     private static final double NS_TO_MS_FACTOR = 1_000_000.0d;
     private final HashMap<String, Double> durationInMSByTimer;
-    private final Supplier<List<ProfileResult>> queryProfilingResults;
+    private final List<QueryProfiler> profilers;
 
-    public ProfilingContext(Supplier<List<ProfileResult>> queryProfilingResults) {
-        this.queryProfilingResults = queryProfilingResults;
+    public ProfilingContext(List<QueryProfiler> profilers) {
+        this.profilers = profilers;
         this.durationInMSByTimer = new HashMap<>();
     }
 
     public Map<String, Object> getDurationInMSByTimer() {
-        HashMap<String, Object> builder = new HashMap<>();
-        builder.putAll(durationInMSByTimer);
+        HashMap<String, Object> builder = new HashMap<>(durationInMSByTimer);
         ArrayList<Map<String, Object>> queryTimings = new ArrayList<>();
-        for (ProfileResult profileResult : queryProfilingResults.get()) {
-            queryTimings.add(resultAsMap(profileResult));
+        for (var profiler : profilers) {
+            for (var profileResult : profiler.getTree()) {
+                queryTimings.add(resultAsMap(profileResult));
+            }
         }
         if (!queryTimings.isEmpty()) {
             builder.put("QueryBreakdown", queryTimings);

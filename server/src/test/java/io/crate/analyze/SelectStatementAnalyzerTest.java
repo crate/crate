@@ -54,7 +54,6 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.sys.SysNodesTableInfo;

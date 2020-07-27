@@ -31,7 +31,7 @@ import org.apache.lucene.util.automaton.RegExp;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static io.crate.expression.scalar.regex.RegexMatcher.isPcrePattern;
+import static io.crate.expression.RegexpFlags.isPcrePattern;
 
 
 public class RegexpMatchOperator extends Operator<String> {
