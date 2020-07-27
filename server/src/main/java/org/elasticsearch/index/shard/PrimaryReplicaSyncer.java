@@ -233,15 +233,16 @@ public class PrimaryReplicaSyncer {
 
             task.setPhase("collecting_ops");
             task.setResyncedOperations(totalSentOps.get());
+            task.setSkippedOperations(totalSkippedOps.get());
 
             Translog.Operation operation;
             while ((operation = snapshot.next()) != null) {
                 final long seqNo = operation.seqNo();
-                if (startingSeqNo >= 0 &&
-                    (seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO || seqNo < startingSeqNo)) {
+                if (seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO || seqNo < startingSeqNo) {
                     totalSkippedOps.incrementAndGet();
                     continue;
                 }
+                assert operation.seqNo() >= 0 : "sending operation with unassigned sequence number [" + operation + "]";
                 operations.add(operation);
                 size += operation.estimateSize();
                 totalSentOps.incrementAndGet();
@@ -299,6 +300,7 @@ public class PrimaryReplicaSyncer {
         private volatile String phase = "starting";
         private volatile int totalOperations;
         private volatile int resyncedOperations;
+        private volatile int skippedOperations;
 
         public ResyncTask(long id, String type, String action, String description, TaskId parentTaskId) {
             super(id, type, action, description, parentTaskId);
@@ -338,6 +340,17 @@ public class PrimaryReplicaSyncer {
 
         public void setResyncedOperations(int resyncedOperations) {
             this.resyncedOperations = resyncedOperations;
+        }
+
+        /**
+         * number of translog operations that have been skipped
+         */
+        public int getSkippedOperations() {
+            return skippedOperations;
+        }
+
+        public void setSkippedOperations(int skippedOperations) {
+            this.skippedOperations = skippedOperations;
         }
     }
 }

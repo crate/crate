@@ -303,7 +303,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         IndexMetadata.Builder metadata = IndexMetadata.builder(shardRouting.getIndexName())
             .settings(indexSettings)
             .primaryTerm(0, primaryTerm)
-            .putMapping("_doc", "{ \"properties\": {} }");
+            .putMapping("default", "{ \"properties\": {} }");
         return newShard(shardRouting, metadata.build(), null, engineFactory, () -> {}, listeners);
     }
 

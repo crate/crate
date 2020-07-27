@@ -388,6 +388,11 @@ public class RecoveryState implements ToXContentFragment, Writeable {
             stopTime = 0;
         }
 
+        // for tests
+        public long getStartNanoTime() {
+            return startNanoTime;
+        }
+
         public Timer(StreamInput in) throws IOException {
             startTime = in.readVLong();
             startNanoTime = in.readVLong();
