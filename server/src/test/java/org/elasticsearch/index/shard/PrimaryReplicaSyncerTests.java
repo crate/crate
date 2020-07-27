@@ -23,10 +23,12 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.action.resync.ResyncReplicationRequest;
@@ -42,8 +44,11 @@ import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine.IndexResult;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.translog.TestTranslog;
+import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.tasks.TaskManager;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
 
@@ -198,5 +203,31 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         } catch (AlreadyClosedException | IndexShardClosedException ignored) {
             // ignore
         }
+    }
+
+    @Test
+    public void testDoNotSendOperationsWithoutSequenceNumber() throws Exception {
+        IndexShard shard = Mockito.spy(newStartedShard(true));
+        Mockito.when(shard.getLastKnownGlobalCheckpoint()).thenReturn(SequenceNumbers.UNASSIGNED_SEQ_NO);
+        int numOps = between(0, 20);
+        List<Translog.Operation> operations = new ArrayList<>();
+        for (int i = 0; i < numOps; i++) {
+            operations.add(new Translog.Index(
+                "default", Integer.toString(i), randomBoolean() ? SequenceNumbers.UNASSIGNED_SEQ_NO : i, primaryTerm, new byte[]{1}));
+        }
+        Mockito.doReturn(TestTranslog.newSnapshotFromOperations(operations)).when(shard).getHistoryOperations(Mockito.anyString(), Mockito.anyLong());
+        TaskManager taskManager = new TaskManager(Settings.EMPTY, threadPool);
+        List<Translog.Operation> sentOperations = new ArrayList<>();
+        PrimaryReplicaSyncer.SyncAction syncAction = (request, parentTask, allocationId, primaryTerm, listener) -> {
+            sentOperations.addAll(Arrays.asList(request.getOperations()));
+            listener.onResponse(new ReplicationResponse());
+        };
+        PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(taskManager, syncAction);
+        syncer.setChunkSize(new ByteSizeValue(randomIntBetween(1, 10)));
+        PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<>();
+        syncer.resync(shard, fut);
+        fut.actionGet();
+        assertThat(sentOperations, equalTo(operations.stream().filter(op -> op.seqNo() >= 0).collect(Collectors.toList())));
+        closeShards(shard);
     }
 }

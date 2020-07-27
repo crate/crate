@@ -192,7 +192,7 @@ public class PrimaryReplicaSyncer {
         private final AtomicBoolean firstMessage = new AtomicBoolean(true);
         private final AtomicInteger totalSentOps = new AtomicInteger();
         private final AtomicInteger totalSkippedOps = new AtomicInteger();
-        private AtomicBoolean closed = new AtomicBoolean();
+        private final AtomicBoolean closed = new AtomicBoolean();
 
         SnapshotSender(Logger logger, SyncAction syncAction, ResyncTask task, ShardId shardId, String primaryAllocationId, long primaryTerm,
                        Translog.Snapshot snapshot, int chunkSizeInBytes, long startingSeqNo, long maxSeqNo,
@@ -224,7 +224,7 @@ public class PrimaryReplicaSyncer {
             }
         }
 
-        private static Translog.Operation[] EMPTY_ARRAY = new Translog.Operation[0];
+        private static final Translog.Operation[] EMPTY_ARRAY = new Translog.Operation[0];
 
         @Override
         protected void doRun() throws Exception {
@@ -252,7 +252,6 @@ public class PrimaryReplicaSyncer {
                     break;
                 }
             }
-
             final long trimmedAboveSeqNo = firstMessage.get() ? maxSeqNo : SequenceNumbers.UNASSIGNED_SEQ_NO;
             // have to send sync request even in case of there are no operations to sync - have to sync trimmedAboveSeqNo at least
             if (!operations.isEmpty() || trimmedAboveSeqNo != SequenceNumbers.UNASSIGNED_SEQ_NO) {

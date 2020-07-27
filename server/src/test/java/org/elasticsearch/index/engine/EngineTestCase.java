@@ -558,8 +558,14 @@ public abstract class EngineTestCase extends ESTestCase {
             internalRefreshListener == null ? emptyList() : Collections.singletonList(internalRefreshListener);
 
         if (globalCheckpointSupplier == null) {
-            globalCheckpointSupplier = new ReplicationTracker(shardId, allocationId.getId(), indexSettings, SequenceNumbers.NO_OPS_PERFORMED, update -> {
-            });
+            globalCheckpointSupplier = new ReplicationTracker(
+                shardId,
+                allocationId.getId(),
+                indexSettings,
+                randomNonNegativeLong(),
+                SequenceNumbers.NO_OPS_PERFORMED,
+                update -> {}
+            );
         }
 
         return new EngineConfig(
