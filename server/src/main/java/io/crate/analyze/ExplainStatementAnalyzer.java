@@ -34,7 +34,7 @@ import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.Statement;
 
-import java.util.Collections;
+import java.util.List;
 
 public class ExplainStatementAnalyzer {
 
@@ -51,7 +51,7 @@ public class ExplainStatementAnalyzer {
         final AnalyzedStatement subStatement;
         ProfilingContext profilingContext;
         if (node.isAnalyze()) {
-            profilingContext = new ProfilingContext(Collections::emptyList);
+            profilingContext = new ProfilingContext(List.of());
             Timer timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
             subStatement = analyzer.analyzedStatement(statement, analysis);
             profilingContext.stopTimerAndStoreDuration(timer);
