@@ -56,7 +56,7 @@ class FetchCollector {
         // use toArray to avoid iterator allocations in docIds loop
         this.collectorExpressions = collectorExpressions.toArray(new LuceneCollectorExpression[0]);
         this.streamers = streamers;
-        this.readerContexts = searcher.searcher().getIndexReader().leaves();
+        this.readerContexts = searcher.getIndexReader().leaves();
         this.ramAccounting = ramAccounting;
         CollectorContext collectorContext = new CollectorContext(readerId);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {

@@ -142,7 +142,16 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         IndexSearcher indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
 
         assertThat(
-            GroupByOptimizedIterator.hasHighCardinalityRatio(() -> new Engine.Searcher("dummy", indexSearcher, () -> {}), "x"),
+            GroupByOptimizedIterator.hasHighCardinalityRatio(
+                () -> new Engine.Searcher(
+                    "dummy",
+                    indexSearcher.getIndexReader(),
+                    indexSearcher.getQueryCache(),
+                    indexSearcher.getQueryCachingPolicy(),
+                    () -> {}
+                ),
+                "x"
+            ),
             is(true)
         );
     }
@@ -162,7 +171,16 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         IndexSearcher indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
 
         assertThat(
-            GroupByOptimizedIterator.hasHighCardinalityRatio(() -> new Engine.Searcher("dummy", indexSearcher, () -> {}), "x"),
+            GroupByOptimizedIterator.hasHighCardinalityRatio(
+                () -> new Engine.Searcher(
+                    "dummy",
+                    indexSearcher.getIndexReader(),
+                    indexSearcher.getQueryCache(),
+                    indexSearcher.getQueryCachingPolicy(),
+                    () -> {}
+                ),
+                "x"
+            ),
             is(false)
         );
     }

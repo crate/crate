@@ -147,7 +147,7 @@ public class InternalCountOperation implements CountOperation {
             if (Thread.interrupted()) {
                 throw new InterruptedException("thread interrupted during count-operation");
             }
-            return searcher.searcher().count(queryCtx.query());
+            return searcher.count(queryCtx.query());
         }
     }
 

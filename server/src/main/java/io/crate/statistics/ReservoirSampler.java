@@ -184,7 +184,7 @@ public final class ReservoirSampler {
                 try {
                     Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
                     searchersToRelease.add(searcher);
-                    totalNumDocs += searcher.reader().numDocs();
+                    totalNumDocs += searcher.getIndexReader().numDocs();
                     totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
                     DocIdToRow docIdToRow = new DocIdToRow(searcher, inputs, expressions);
                     docIdToRowsFunctionPerReader.add(docIdToRow);
@@ -194,7 +194,7 @@ public final class ReservoirSampler {
                         // we do this in 2 phases because the reservoir sampling might override previously seen
                         // items and we want to avoid unnecessary disk-lookup
                         var collector = new ReservoirCollector(fetchIdSamples, searchersToRelease.size() - 1);
-                        searcher.searcher().search(new MatchAllDocsQuery(), collector);
+                        searcher.search(new MatchAllDocsQuery(), collector);
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
                     }
@@ -233,7 +233,7 @@ public final class ReservoirSampler {
 
         @Override
         public Object[] apply(Integer docId) {
-            List<LeafReaderContext> leaves = searcher.reader().leaves();
+            List<LeafReaderContext> leaves = searcher.getIndexReader().leaves();
             int readerIndex = ReaderUtil.subIndex(docId, leaves);
             LeafReaderContext leafContext = leaves.get(readerIndex);
             int subDoc = docId - leafContext.docBase;

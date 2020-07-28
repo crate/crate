@@ -22,24 +22,25 @@
 
 package io.crate.execution.jobs;
 
-import org.apache.lucene.search.IndexSearcher;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesService;
-
-import javax.annotation.concurrent.NotThreadSafe;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
+
+import javax.annotation.concurrent.NotThreadSafe;
+
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndicesService;
 
 @NotThreadSafe
 public class SharedShardContexts {
 
     private final IndicesService indicesService;
-    private final UnaryOperator<IndexSearcher> wrapSearcher;
+    private final UnaryOperator<Engine.Searcher> wrapSearcher;
     private final Map<ShardId, SharedShardContext> allocatedShards = new HashMap<>();
     private int readerId = 0;
 
-    public SharedShardContexts(IndicesService indicesService, UnaryOperator<IndexSearcher> wrapSearcher) {
+    public SharedShardContexts(IndicesService indicesService, UnaryOperator<Engine.Searcher> wrapSearcher) {
         this.indicesService = indicesService;
         this.wrapSearcher = wrapSearcher;
     }

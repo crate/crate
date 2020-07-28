@@ -21,6 +21,22 @@
 
 package io.crate.execution.engine.collect;
 
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
@@ -46,20 +62,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
-import java.util.function.Supplier;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
@@ -138,7 +140,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
 
             return new LuceneBatchIterator(
-                searcher.searcher(),
+                searcher,
                 queryContext.query(),
                 queryContext.minScore(),
                 Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
@@ -227,7 +229,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         );
         return new LuceneOrderedDocCollector(
             indexShard.shardId(),
-            searcher.searcher(),
+            searcher,
             queryContext.query(),
             queryContext.minScore(),
             Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),

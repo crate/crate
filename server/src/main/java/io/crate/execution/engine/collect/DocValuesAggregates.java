@@ -201,7 +201,7 @@ public class DocValuesAggregates {
                                         Searcher searcher,
                                         Query query,
                                         List<DocValueAggregator> aggregators) throws IOException {
-        IndexSearcher indexSearcher = searcher.searcher();
+        IndexSearcher indexSearcher = searcher;
         Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
         Object[] cells = new Object[aggregators.size()];
