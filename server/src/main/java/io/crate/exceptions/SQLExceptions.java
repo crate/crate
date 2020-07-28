@@ -24,6 +24,7 @@ package io.crate.exceptions;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.AccessControl;
+import io.crate.rest.action.HttpError;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -131,6 +132,6 @@ public class SQLExceptions {
      * The message will not contain any information about possible nested exceptions.
      */
     public static String userFriendlyCrateExceptionTopOnly(Throwable e) {
-        return e.getMessage();
+        return HttpError.fromThrowable(t, null).message();
     }
 }
