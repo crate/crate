@@ -58,7 +58,7 @@ public class SharedShardContext {
     public Engine.Searcher acquireSearcher(String source) throws IndexNotFoundException {
         if (searcher == null) {
             Engine.Searcher searcher = indexShard().acquireSearcher(source);
-            this.searcher = new RefCountSearcher(shardId, searcher, wrapSearcher.apply(searcher.searcher()));
+            this.searcher = new RefCountSearcher(shardId, searcher, wrapSearcher.apply(searcher));
         }
         searcher.inc();
         return searcher;

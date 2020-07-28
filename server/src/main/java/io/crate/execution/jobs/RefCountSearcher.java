@@ -24,7 +24,6 @@ package io.crate.execution.jobs;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.index.engine.Engine;
@@ -44,15 +43,16 @@ class RefCountSearcher extends Engine.Searcher {
     RefCountSearcher(ShardId shardId,
                      Engine.Searcher searcher,
                      IndexSearcher indexSearcher) {
-        super(searcher.source(), indexSearcher, () -> {});
+        super(
+            searcher.source(),
+            indexSearcher.getIndexReader(),
+            indexSearcher.getQueryCache(),
+            indexSearcher.getQueryCachingPolicy(),
+            () -> {}
+        );
         this.shardId = shardId;
         this.searcher = searcher;
         this.traceEnabled = LOGGER.isTraceEnabled();
-    }
-
-    @Override
-    public IndexReader reader() {
-        return searcher.reader();
     }
 
     @Override

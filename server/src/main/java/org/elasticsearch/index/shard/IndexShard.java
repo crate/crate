@@ -19,12 +19,36 @@
 
 package org.elasticsearch.index.shard;
 
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.ObjectLongMap;
-import io.crate.common.Booleans;
-import io.crate.common.CheckedFunction;
-import io.crate.common.collections.Tuple;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CheckIndex;
@@ -34,7 +58,6 @@ import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
@@ -116,32 +139,11 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.channels.ClosedByInterruptException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import io.crate.common.Booleans;
+import io.crate.common.CheckedFunction;
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
 
@@ -1125,10 +1127,10 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final Engine.Searcher searcher = engine.acquireSearcher(source, scope);
         boolean success = false;
         try {
-            final Engine.Searcher wrappedSearcher = readerWrapper == null ? searcher : wrapSearcher(searcher, readerWrapper);
-            assert wrappedSearcher != null;
+            final Engine.Searcher newSearcher = readerWrapper == null ? searcher : wrapSearcher(searcher, readerWrapper);
+            assert newSearcher != null;
             success = true;
-            return wrappedSearcher;
+            return newSearcher;
         } catch (IOException ex) {
             throw new ElasticsearchException("failed to wrap searcher", ex);
         } finally {
@@ -1163,16 +1165,15 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         if (reader == nonClosingReaderWrapper) {
             return engineSearcher;
         } else {
-            final IndexSearcher origIndexSearcher = engineSearcher.searcher();
-            final IndexSearcher newIndexSearcher = new IndexSearcher(reader);
-            newIndexSearcher.setQueryCache(origIndexSearcher.getQueryCache());
-            newIndexSearcher.setQueryCachingPolicy(origIndexSearcher.getQueryCachingPolicy());
-            newIndexSearcher.setSimilarity(origIndexSearcher.getSimilarity());
             // we close the reader to make sure wrappers can release resources if needed....
             // our NonClosingReaderWrapper makes sure that our reader is not closed
-            return new Engine.Searcher(engineSearcher.source(), newIndexSearcher, () ->
-                IOUtils.close(newIndexSearcher.getIndexReader(), // this will close the wrappers excluding the NonClosingReaderWrapper
-                    engineSearcher)); // this will run the closeable on the wrapped engine searcher
+            return new Engine.Searcher(
+                engineSearcher.source(),
+                reader,
+                engineSearcher.getQueryCache(),
+                engineSearcher.getQueryCachingPolicy(),
+                () -> IOUtils.close(reader, engineSearcher)  // this will close the wrappers excluding the NonClosingReaderWrapper
+            );
         }
     }
 

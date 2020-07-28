@@ -19,35 +19,34 @@
 
 package org.elasticsearch.index.engine;
 
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SegmentReader;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.SearcherFactory;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
+
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SegmentReader;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.lucene.Lucene;
+import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 /**
  * Searcher factory extending {@link EngineSearcherFactory} that tracks the
  * amount of memory used by segments in the accounting circuit breaker.
  */
-final class RamAccountingSearcherFactory extends SearcherFactory {
+final class RamAccountingRefreshListener implements BiConsumer<ElasticsearchDirectoryReader, ElasticsearchDirectoryReader> {
 
     private final CircuitBreakerService breakerService;
 
-    RamAccountingSearcherFactory(CircuitBreakerService breakerService) {
+    RamAccountingRefreshListener(CircuitBreakerService breakerService) {
         this.breakerService = breakerService;
     }
 
     @Override
-    public IndexSearcher newSearcher(IndexReader reader, IndexReader previousReader) throws IOException {
+    public void accept(ElasticsearchDirectoryReader reader, ElasticsearchDirectoryReader previousReader) {
         final CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.ACCOUNTING);
 
         // Construct a list of the previous segment readers, we only want to track memory used
@@ -79,6 +78,5 @@ final class RamAccountingSearcherFactory extends SearcherFactory {
                 segmentReader.getCoreCacheHelper().addClosedListener(k -> breaker.addWithoutBreaking(-ramBytesUsed));
             }
         }
-        return super.newSearcher(reader, previousReader);
     }
 }

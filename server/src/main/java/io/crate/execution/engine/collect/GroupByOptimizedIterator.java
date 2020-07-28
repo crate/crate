@@ -152,7 +152,6 @@ final class GroupByOptimizedIterator {
         try {
             final QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-            IndexSearcher indexSearcher = searcher.searcher();
 
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
             docCtx.add(collectPhase.toCollect().stream()::iterator);
@@ -181,7 +180,7 @@ final class GroupByOptimizedIterator {
 
             return getIterator(
                 bigArrays,
-                indexSearcher,
+                searcher,
                 keyRef.column().fqn(),
                 aggregations,
                 expressions,
@@ -371,7 +370,7 @@ final class GroupByOptimizedIterator {
         // acquire separate searcher:
         // Can't use sharedShardContexts() yet, if we bail out the "getOrCreateContext" causes issues later on in the fallback logic
         try (Engine.Searcher searcher = acquireSearcher.get()) {
-            for (LeafReaderContext leaf : searcher.reader().leaves()) {
+            for (LeafReaderContext leaf : searcher.getIndexReader().leaves()) {
                 Terms terms = leaf.reader().terms(fieldName);
                 if (terms == null) {
                     return true;
