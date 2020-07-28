@@ -19,10 +19,13 @@
 
 package org.elasticsearch.index;
 
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
 import io.crate.common.Booleans;
+import io.crate.common.CheckedFunction;
+
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -36,7 +39,6 @@ import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexEventListener;
-import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.store.IndexStore;
 import org.elasticsearch.indices.IndicesQueryCache;
@@ -103,7 +105,8 @@ public final class IndexModule {
     private final IndexSettings indexSettings;
     private final AnalysisRegistry analysisRegistry;
     private final EngineFactory engineFactory;
-    private SetOnce<IndexSearcherWrapperFactory> indexSearcherWrapper = new SetOnce<>();
+    private SetOnce<Function<IndexService,
+        CheckedFunction<DirectoryReader, DirectoryReader, IOException>>> indexReaderWrapper = new SetOnce<>();
     private final Set<IndexEventListener> indexEventListeners = new HashSet<>();
     private final Map<String, Function<IndexSettings, IndexStore>> indexStoreFactories;
     private final SetOnce<BiFunction<IndexSettings, IndicesQueryCache, QueryCache>> forceQueryCacheProvider = new SetOnce<>();
@@ -222,13 +225,26 @@ public final class IndexModule {
     }
 
     /**
-     * Sets a {@link org.elasticsearch.index.IndexModule.IndexSearcherWrapperFactory} that is called once the IndexService
-     * is fully constructed.
-     * Note: this method can only be called once per index. Multiple wrappers are not supported.
+     * Sets the factory for creating new {@link DirectoryReader} wrapper instances.
+     * The factory ({@link Function}) is called once the IndexService is fully constructed.
+     * NOTE: this method can only be called once per index. Multiple wrappers are not supported.
+     * <p>
+     * The {@link CheckedFunction} is invoked each time a {@link Engine.Searcher} is requested to do an operation,
+     * for example search, and must return a new directory reader wrapping the provided directory reader or if no
+     * wrapping was performed the provided directory reader.
+     * The wrapped reader can filter out document just like delete documents etc. but must not change any term or
+     * document content.
+     * NOTE: The index reader wrapper ({@link CheckedFunction}) has a per-request lifecycle,
+     * must delegate {@link IndexReader#getReaderCacheHelper()}, {@link LeafReader#getCoreCacheHelper()}
+     * and must be an instance of {@link FilterDirectoryReader} that eventually exposes the original reader
+     * via {@link FilterDirectoryReader#getDelegate()}.
+     * The returned reader is closed once it goes out of scope.
+     * </p>
      */
-    public void setSearcherWrapper(IndexSearcherWrapperFactory indexSearcherWrapperFactory) {
+    public void setReaderWrapper(Function<IndexService,
+                                    CheckedFunction<DirectoryReader, DirectoryReader, IOException>> indexReaderWrapperFactory) {
         ensureNotFrozen();
-        this.indexSearcherWrapper.set(indexSearcherWrapperFactory);
+        this.indexReaderWrapper.set(indexReaderWrapperFactory);
     }
 
     IndexEventListener freeze() { // pkg private for testing
@@ -293,16 +309,6 @@ public final class IndexModule {
 
     }
 
-    /**
-     * Factory for creating new {@link IndexSearcherWrapper} instances
-     */
-    public interface IndexSearcherWrapperFactory {
-        /**
-         * Returns a new IndexSearcherWrapper. This method is called once per index per node
-         */
-        IndexSearcherWrapper newWrapper(IndexService indexService);
-    }
-
     public static Type defaultStoreType(final boolean allowMmap) {
         if (allowMmap && Constants.JRE_IS_64BIT && MMapDirectory.UNMAP_SUPPORTED) {
             return Type.HYBRIDFS;
@@ -324,8 +330,8 @@ public final class IndexModule {
             MapperRegistry mapperRegistry) throws IOException {
 
         final IndexEventListener eventListener = freeze();
-        IndexSearcherWrapperFactory searcherWrapperFactory = indexSearcherWrapper.get() == null
-            ? (shard) -> null : indexSearcherWrapper.get();
+        Function<IndexService, CheckedFunction<DirectoryReader, DirectoryReader, IOException>> readerWrapperFactory =
+            indexReaderWrapper.get() == null ? (shard) -> null : indexReaderWrapper.get();
         eventListener.beforeIndexCreated(indexSettings.getIndex(), indexSettings.getSettings());
         final IndexStore store = getIndexStore(indexSettings, indexStoreFactories);
         final QueryCache queryCache;
@@ -352,7 +358,7 @@ public final class IndexModule {
             queryCache,
             store,
             eventListener,
-            searcherWrapperFactory,
+            readerWrapperFactory,
             mapperRegistry,
             indexOperationListeners
         );
