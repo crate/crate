@@ -1,30 +1,25 @@
 
 package org.elasticsearch.repositories.url;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.instanceOf;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
+import static io.crate.testing.SQLResponseMatcher.isSQLError;
 import static org.hamcrest.Matchers.is;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
-import io.crate.testing.PsqlException;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.repositories.RepositoryException;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 
-@UseJdbc(0)
 public class URLRepositoryITest extends SQLTransportIntegrationTest {
 
     @ClassRule
@@ -64,9 +59,13 @@ public class URLRepositoryITest extends SQLTransportIntegrationTest {
             new Object[]{defaultRepositoryLocation.toURI().toString()});
         waitNoPendingTasksOnAll();
 
-        expectedException.expect(anyOf(instanceOf(RepositoryException.class), instanceOf(PsqlException.class)));
-        expectedException.expectMessage("[uri_repo] cannot create snapshot in a readonly repository");
         execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)");
+
+        assertThat(response,
+                   isSQLError(
+                       "[uri_repo] cannot create snapshot in a readonly repository",
+                       INTERNAL_ERROR,
+                       UNHANDLED_SERVER_ERROR));
     }
 
 }

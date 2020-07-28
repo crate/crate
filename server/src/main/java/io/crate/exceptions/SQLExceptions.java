@@ -97,11 +97,7 @@ public class SQLExceptions {
     }
 
     public static Function<Throwable, Exception> forWireTransmission(AccessControl accessControl) {
-        return e -> createSQLActionException(e, accessControl::ensureMaySee);
-    }
-
-    public static RuntimeException forWireTransmission(AccessControl accessControl, Throwable e) {
-        return createSQLActionException(e, accessControl::ensureMaySee);
+        return e -> unwrapException(e, accessControl::ensureMaySee);
     }
 
     /**
@@ -109,24 +105,12 @@ public class SQLExceptions {
      * If concrete {@link ElasticsearchException} is found, first transform it
      * to a {@link CrateException}
      */
-    public static RuntimeException createSQLActionException(Throwable e, Consumer<Throwable> maskSensitiveInformation) {
+    public static RuntimeException unwrapException(Throwable e, @Nullable  Consumer<Throwable> maskSensitiveInformation) {
         Throwable unwrappedError = SQLExceptions.unwrap(e);
         try {
-            maskSensitiveInformation.accept(e);
-        } catch (Exception mpe) {
-            unwrappedError = mpe;
-        }
-        if (unwrappedError instanceof RuntimeException) {
-            return (RuntimeException) unwrappedError;
-        } else {
-            return new RuntimeException(unwrappedError);
-        }
-    }
-
-    public static Exception convertException(Throwable e, Consumer<Throwable> maskSensitiveInformation) {
-        Throwable unwrappedError = SQLExceptions.unwrap(e);
-        try {
-            maskSensitiveInformation.accept(e);
+            if (maskSensitiveInformation != null) {
+                maskSensitiveInformation.accept(e);
+            }
         } catch (Exception mpe) {
             unwrappedError = mpe;
         }

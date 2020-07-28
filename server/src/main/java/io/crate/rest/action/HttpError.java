@@ -31,6 +31,7 @@ import io.crate.exceptions.UnauthorizedException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.postgresql.util.PSQLException;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -85,7 +86,7 @@ public class HttpError {
     }
 
     public static HttpError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
-        Throwable unwrappedError = SQLExceptions.unwrap(throwable);
+        Throwable unwrappedError = SQLExceptions.unwrapException(throwable, null);
         //TODO make sure values are masked using accessControl
         HttpErrorStatus httpErrorStatus;
 

@@ -22,33 +22,35 @@
 
 package io.crate.testing;
 
+import io.crate.protocols.postgres.PGError;
 import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.rest.action.HttpError;
 import io.crate.rest.action.HttpErrorStatus;
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 
 import static io.crate.testing.MoreMatchers.withFeature;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 
-public class SQLResponseMatcher {
+public class ExceptionMatcher {
 
-    private SQLResponseMatcher() {}
+    public static <T extends Throwable> Matcher<T> isSQLError(String msg, PGErrorStatus pgErrorStatus, HttpErrorStatus httpErrorStatus) {
+        return anyOf(isPGError(msg, pgErrorStatus), isHttpError(msg, httpErrorStatus));
+    }
 
-    public static Matcher<SQLResponse> isPGError(String message, PGErrorStatus pgErrorStatus) {
+    public static <T extends Throwable> Matcher<T> isPGError(String msg, PGErrorStatus pgErrorStatus) {
         return allOf(
-            Matchers.instanceOf(SQLResponse.class),
-            withFeature(s -> s.getPgError() == null ? null : s.getPgError().message(), "error message", equalTo(message)),
-            withFeature(s -> s.getPgError() == null ? null : s.getPgError().status(), "pg error status", equalTo(pgErrorStatus))
+            withFeature(e -> PGError.fromThrowable(e, null).message(), "error message", endsWith(msg)),
+            withFeature(e -> PGError.fromThrowable(e, null).status(), "pg error status", equalTo(pgErrorStatus))
         );
     }
 
-    public static Matcher<SQLResponse> isHttpError(String message, HttpErrorStatus httpErrorStatus) {
+    public static <T extends Throwable> Matcher<T> isHttpError(String msg, HttpErrorStatus httpErrorStatus) {
         return allOf(
-            Matchers.instanceOf(SQLResponse.class),
-            withFeature(s -> s.getHttpError() == null ? null : s.getHttpError().message(), "error message", equalTo(message)),
-            withFeature(s -> s.getHttpError() == null ? null : s.getHttpError().status(), "http error status", equalTo(httpErrorStatus))
+            withFeature(s -> HttpError.fromThrowable(s, null).message(), "error message", equalTo(msg)),
+            withFeature(s -> HttpError.fromThrowable(s, null).status(), "http error status", equalTo(httpErrorStatus))
         );
     }
-
 }

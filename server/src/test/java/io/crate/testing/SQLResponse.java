@@ -22,8 +22,6 @@
 
 package io.crate.testing;
 
-import io.crate.protocols.postgres.PGError;
-import io.crate.rest.action.HttpError;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -31,29 +29,20 @@ import java.util.Arrays;
 
 public class SQLResponse {
 
-    private final String[] cols;
-    private final DataType[] colTypes;
-    private final Object[][] rows;
-    private final long rowCount;
-    @Nullable
-    private final PGError pgError;
-    @Nullable
-    private final HttpError httpError;
+    private String[] cols;
+    private DataType[] colTypes;
+    private Object[][] rows;
+    private long rowCount;
 
     SQLResponse(String[] cols,
                 Object[][] rows,
                 DataType[] colTypes,
-                long rowCount,
-                @Nullable  PGError pgError,
-                @Nullable  HttpError httpError
-                ) {
+                long rowCount) {
         assert cols.length == colTypes.length : "cols and colTypes differ";
         this.cols = cols;
         this.colTypes = colTypes;
         this.rows = rows;
         this.rowCount = rowCount;
-        this.pgError = pgError;
-        this.httpError = httpError;
     }
 
     public String[] cols() {
@@ -70,16 +59,6 @@ public class SQLResponse {
 
     public long rowCount() {
         return rowCount;
-    }
-
-    @Nullable
-    public PGError getPgError() {
-        return pgError;
-    }
-
-    @Nullable
-    public HttpError getHttpError() {
-        return httpError;
     }
 
     private static String arrayToString(@Nullable Object[] array) {

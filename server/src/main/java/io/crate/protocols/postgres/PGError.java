@@ -26,6 +26,7 @@ import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.SQLExceptions;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.common.ParsingException;
+import org.postgresql.util.PSQLException;
 
 import javax.annotation.Nullable;
 
@@ -74,7 +75,12 @@ public class PGError  {
     }
 
     public static PGError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
-        Throwable unwrappedError = SQLExceptions.unwrap(throwable);
+        Throwable unwrappedError = SQLExceptions.unwrapException(throwable, null);
+
+        if (unwrappedError.getCause() instanceof PSQLException) {
+            return fromPSQLException((PSQLException) unwrappedError.getCause());
+        }
+
         //TODO make sure values are masked using accessControl
         PGErrorStatus status;
         String message = null;
@@ -98,5 +104,18 @@ public class PGError  {
             message = SQLExceptions.messageOf(unwrappedError);
         }
         return new PGError(status, message, unwrappedError);
+    }
+
+    public static PGError fromPSQLException(PSQLException e) {
+        var sqlState = e.getServerErrorMessage().getSQLState();
+        PGErrorStatus errorStatus = null;
+        for (var status :PGErrorStatus.values()) {
+            if (status.code().equals(sqlState)) {
+                errorStatus =  status;
+                break;
+            }
+        }
+        assert errorStatus != null : "Unknown psql error code: " + sqlState;
+        return new PGError(errorStatus, e.getMessage().replace("ERROR: ", ""), e);
     }
 }

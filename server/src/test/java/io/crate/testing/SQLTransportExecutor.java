@@ -31,17 +31,15 @@ import io.crate.auth.user.User;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.protocols.postgres.PGError;
-import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.postgres.types.PgOidVectorType;
-import io.crate.rest.action.HttpError;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
@@ -99,7 +97,7 @@ import static io.crate.action.sql.Session.UNNAMED;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-    public class SQLTransportExecutor {
+public class SQLTransportExecutor {
 
     private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
 
@@ -254,7 +252,7 @@ import static org.junit.Assert.assertThat;
             }
             session.sync();
         } catch (Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t, e -> {}));
+            listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
         }
     }
 
@@ -285,13 +283,13 @@ import static org.junit.Assert.assertThat;
                 if (t == null) {
                     listener.onResponse(rowCounts);
                 } else {
-                    listener.onFailure(SQLExceptions.createSQLActionException(t, e -> {}));
+                    listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
                 }
                 session.close();
             });
         } catch (Throwable t) {
             session.close();
-            listener.onFailure(SQLExceptions.createSQLActionException(t, e -> {}));
+            listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
         }
     }
 
@@ -337,29 +335,11 @@ import static org.junit.Assert.assertThat;
                     serverErrorMessage.getLine());
                 System.arraycopy(traceToExecWithPg, 0, stacktrace, 1, traceToExecWithPg.length);
             }
-            return new SQLResponse(
-                EMPTY_NAMES,
-                EMPTY_ROWS,
-                EMPTY_TYPES,
-                0,
-                buildPGError(e),
-                null);
-        } catch (SQLException e) {
             throw new RuntimeException(e);
+        } catch (SQLException e) {
+            Exceptions.rethrowUnchecked(e);
+            return null;
         }
-    }
-
-    private PGError buildPGError(PSQLException e) {
-        var message = e.getMessage().replace("ERROR: ", "");
-        var sqlState = e.getServerErrorMessage().getSQLState();
-        PGErrorStatus errorStatus = null;
-        for (var status :PGErrorStatus.values()) {
-            if (status.code().equals(sqlState)) {
-                errorStatus =  status;
-                break;
-            }
-        }
-        return new PGError(errorStatus, message, e);
     }
 
     private static Object toJdbcCompatObject(Connection connection, Object arg) {
@@ -423,9 +403,7 @@ import static org.junit.Assert.assertThat;
                 columnNames.toArray(new String[0]),
                 rows.toArray(new Object[0][]),
                 dataTypes,
-                rows.size(),
-                null,
-                null
+                rows.size()
             );
         } else {
             int updateCount = preparedStatement.getUpdateCount();
@@ -440,9 +418,7 @@ import static org.junit.Assert.assertThat;
                 new String[0],
                 new Object[0][],
                 new DataType[0],
-                updateCount,
-                null,
-                null
+                updateCount
             );
         }
     }
@@ -629,31 +605,15 @@ import static org.junit.Assert.assertThat;
                 SQLResponse response = createSqlResponse();
                 listener.onResponse(response);
             } catch (Exception e) {
-                SQLResponse sqlResponse = new SQLResponse(
-                    EMPTY_NAMES,
-                    EMPTY_ROWS,
-                    EMPTY_TYPES,
-                    0,
-                    null,
-                    HttpError.fromThrowable(e, null)
-                );
-                listener.onResponse(sqlResponse);
+                listener.onFailure(e);
             }
             super.allFinished(interrupted);
         }
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            SQLResponse sqlResponse = new SQLResponse(
-                EMPTY_NAMES,
-                EMPTY_ROWS,
-                EMPTY_TYPES,
-                0,
-                null,
-                HttpError.fromThrowable(t, null)
-            );
-            listener.onResponse(sqlResponse);
-            super.allFinished(true);
+            listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
+            super.fail(t);
         }
 
         private SQLResponse createSqlResponse() {
@@ -671,9 +631,7 @@ import static org.junit.Assert.assertThat;
                 outputNames,
                 rowsArr,
                 outputTypes,
-                rowsArr.length,
-                null,
-                null
+                rowsArr.length
             );
         }
     }
@@ -703,9 +661,7 @@ import static org.junit.Assert.assertThat;
                 EMPTY_NAMES,
                 EMPTY_ROWS,
                 EMPTY_TYPES,
-                rowCount,
-                null,
-                null
+                rowCount
             );
             listener.onResponse(sqlResponse);
             super.allFinished(interrupted);
@@ -714,16 +670,8 @@ import static org.junit.Assert.assertThat;
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            SQLResponse sqlResponse = new SQLResponse(
-                EMPTY_NAMES,
-                EMPTY_ROWS,
-                EMPTY_TYPES,
-                rowCount,
-                null,
-                HttpError.fromThrowable(t, null)
-            );
-            listener.onResponse(sqlResponse);
-            super.allFinished(true);
+            listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
+            super.fail(t);
         }
     }
 
