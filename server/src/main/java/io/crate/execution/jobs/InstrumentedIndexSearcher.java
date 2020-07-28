@@ -22,29 +22,34 @@
 
 package io.crate.execution.jobs;
 
-import org.apache.lucene.index.IndexReader;
+import java.io.IOException;
+
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Weight;
-import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.search.profile.Timer;
 import org.elasticsearch.search.profile.query.ProfileWeight;
 import org.elasticsearch.search.profile.query.QueryProfileBreakdown;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 import org.elasticsearch.search.profile.query.QueryTimingType;
 
-import java.io.IOException;
-
 /**
  * {@link IndexSearcher} with the option to profile the queries.
  */
-public class InstrumentedIndexSearcher extends IndexSearcher implements Releasable {
+public class InstrumentedIndexSearcher extends Engine.Searcher {
 
     private final QueryProfiler profiler;
 
-    public InstrumentedIndexSearcher(IndexReader reader, QueryProfiler profiler) {
-        super(reader);
+    public InstrumentedIndexSearcher(Engine.Searcher delegate, QueryProfiler profiler) {
+        super(
+            delegate.source(),
+            delegate.getIndexReader(),
+            delegate.getQueryCache(),
+            delegate.getQueryCachingPolicy(),
+            delegate::close
+        );
         this.profiler = profiler;
     }
 
@@ -61,10 +66,5 @@ public class InstrumentedIndexSearcher extends IndexSearcher implements Releasab
             profiler.pollLastElement();
         }
         return new ProfileWeight(query, weight, profile);
-    }
-
-
-    @Override
-    public void close() {
     }
 }

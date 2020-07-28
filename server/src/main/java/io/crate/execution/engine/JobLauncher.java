@@ -267,7 +267,7 @@ public final class JobLauncher {
                 indexSearcher -> {
                     var queryProfiler = new QueryProfiler();
                     profilers.add(queryProfiler);
-                    return new InstrumentedIndexSearcher(indexSearcher.getIndexReader(), queryProfiler);
+                    return new InstrumentedIndexSearcher(indexSearcher, queryProfiler);
                 }
             );
         } else {

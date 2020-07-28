@@ -19,50 +19,8 @@
 
 package org.elasticsearch.index.engine;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexCommit;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SegmentCommitInfo;
-import org.apache.lucene.index.SegmentInfos;
-import org.apache.lucene.index.SegmentReader;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.ReferenceManager;
-import org.apache.lucene.store.AlreadyClosedException;
-import org.apache.lucene.util.Accountables;
-import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.CheckedRunnable;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
-import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVersion;
-import org.elasticsearch.common.util.concurrent.ReleasableLock;
-import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.Mapping;
-import org.elasticsearch.index.mapper.ParseContext.Document;
-import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.seqno.SeqNoStats;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.index.shard.DocsStats;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.store.Store;
-import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.index.translog.TranslogStats;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -84,8 +42,52 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexCommit;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SegmentCommitInfo;
+import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.index.SegmentReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.QueryCache;
+import org.apache.lucene.search.QueryCachingPolicy;
+import org.apache.lucene.search.ReferenceManager;
+import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.util.Accountables;
+import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.common.CheckedRunnable;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.common.lease.Releasables;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.lucene.Lucene;
+import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
+import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVersion;
+import org.elasticsearch.common.util.concurrent.ReleasableLock;
+import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.Mapping;
+import org.elasticsearch.index.mapper.ParseContext.Document;
+import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.index.seqno.SeqNoStats;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.DocsStats;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.store.Store;
+import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.index.translog.TranslogStats;
 
 public abstract class Engine implements Closeable {
 
@@ -132,18 +134,6 @@ public abstract class Engine implements Closeable {
         this.eventListener = engineConfig.getEventListener();
     }
 
-    /**
-     * Returns whether a leaf reader comes from a merge (versus flush or addIndexes).
-     */
-    protected static boolean isMergedSegment(LeafReader reader) {
-        // We expect leaves to be segment readers
-        final Map<String, String> diagnostics = Lucene.segmentReader(reader).getSegmentInfo().info.getDiagnostics();
-        final String source = diagnostics.get(IndexWriter.SOURCE);
-        assert Arrays.asList(IndexWriter.SOURCE_ADDINDEXES_READERS, IndexWriter.SOURCE_FLUSH,
-                IndexWriter.SOURCE_MERGE).contains(source) : "Unknown source " + source;
-        return IndexWriter.SOURCE_MERGE.equals(source);
-    }
-
     public final EngineConfig config() {
         return engineConfig;
     }
@@ -160,13 +150,13 @@ public abstract class Engine implements Closeable {
      * Returns the {@link DocsStats} for this engine
      */
     public DocsStats docStats() {
-        // we calculate the doc stats based on the internal reader that is more up-to-date and not subject
-        // to external refreshes. For instance we don't refresh an external reader if we flush and indices with
+        // we calculate the doc stats based on the internal searcher that is more up-to-date and not subject
+        // to external refreshes. For instance we don't refresh an external searcher if we flush and indices with
         // index.refresh_interval=-1 won't see any doc stats updates at all. This change will give more accurate statistics
-        // when indexing but not refreshing in general. Yet, if a refresh happens the internal reader is refresh as well so we are
+        // when indexing but not refreshing in general. Yet, if a refresh happens the internal searcher is refresh as well so we are
         // safe here.
-        try (Engine.Searcher searcher = acquireSearcher("docStats", Engine.SearcherScope.INTERNAL)) {
-            return docsStats(searcher.reader());
+        try (Searcher searcher = acquireSearcher("docStats", SearcherScope.INTERNAL)) {
+            return docsStats(searcher.getIndexReader());
         }
     }
 
@@ -494,10 +484,10 @@ public abstract class Engine implements Closeable {
 
     protected final GetResult getFromSearcher(Get get, BiFunction<String, SearcherScope, Searcher> searcherFactory,
                                               SearcherScope scope) throws EngineException {
-        final Searcher searcher = searcherFactory.apply("get", scope);
+        final Engine.Searcher searcher = searcherFactory.apply("get", scope);
         final DocIdAndVersion docIdAndVersion;
         try {
-            docIdAndVersion = VersionsAndSeqNoResolver.loadDocIdAndVersion(searcher.reader(), get.uid(), true);
+            docIdAndVersion = VersionsAndSeqNoResolver.loadDocIdAndVersion(searcher.getIndexReader(), get.uid(), true);
         } catch (Exception e) {
             Releasables.closeWhileHandlingException(searcher);
             //TODO: A better exception goes here
@@ -573,10 +563,14 @@ public abstract class Engine implements Closeable {
         }
         Releasable releasable = store::decRef;
         try {
-            ReferenceManager<IndexSearcher> referenceManager = getReferenceManager(scope);
-            IndexSearcher acquire = referenceManager.acquire();
+            ReferenceManager<ElasticsearchDirectoryReader> referenceManager = getReferenceManager(scope);
+            final ElasticsearchDirectoryReader acquire = referenceManager.acquire();
             AtomicBoolean released = new AtomicBoolean(false);
-            Searcher engineSearcher = new Searcher(source, acquire,
+            Searcher engineSearcher = new Searcher(
+                source,
+                acquire,
+                engineConfig.getQueryCache(),
+                engineConfig.getQueryCachingPolicy(),
                 () -> {
                     if (released.compareAndSet(false, true)) {
                         try {
@@ -586,7 +580,7 @@ public abstract class Engine implements Closeable {
                         }
                     } else {
                         /*
-                            * In general, searchers should never be released twice or this would break
+                            * In general, readers should never be released twice or this would break
                             * reference counting. There is one rare case when it might happen though: when
                             * the request and the Reaper thread would both try to release it in a very
                             * short amount of time, this is why we only log a warning instead of throwing
@@ -596,7 +590,7 @@ public abstract class Engine implements Closeable {
                     }
                 }
             );
-            releasable = null; // success - hand over the reference to the engine searcher
+            releasable = null; // success - hand over the reference to the engine reader
             return engineSearcher;
         } catch (AlreadyClosedException ex) {
             throw ex;
@@ -610,7 +604,7 @@ public abstract class Engine implements Closeable {
         }
     }
 
-    protected abstract ReferenceManager<IndexSearcher> getReferenceManager(SearcherScope scope);
+    protected abstract ReferenceManager<ElasticsearchDirectoryReader> getReferenceManager(SearcherScope scope);
 
     public enum SearcherScope {
         EXTERNAL, INTERNAL
@@ -724,13 +718,13 @@ public abstract class Engine implements Closeable {
         Map<String, Segment> segments = new HashMap<>();
         // first, go over and compute the search ones...
         try (Searcher searcher = acquireSearcher("segments", SearcherScope.EXTERNAL)) {
-            for (LeafReaderContext ctx : searcher.reader().getContext().leaves()) {
+            for (LeafReaderContext ctx : searcher.getIndexReader().getContext().leaves()) {
                 fillSegmentInfo(Lucene.segmentReader(ctx.reader()), verbose, true, segments);
             }
         }
 
         try (Searcher searcher = acquireSearcher("segments", SearcherScope.INTERNAL)) {
-            for (LeafReaderContext ctx : searcher.reader().getContext().leaves()) {
+            for (LeafReaderContext ctx : searcher.getIndexReader().getContext().leaves()) {
                 SegmentReader segmentReader = Lucene.segmentReader(ctx.reader());
                 if (segments.containsKey(segmentReader.getSegmentName()) == false) {
                     fillSegmentInfo(segmentReader, verbose, false, segments);
@@ -993,14 +987,20 @@ public abstract class Engine implements Closeable {
         }
     }
 
-    public static class Searcher implements Releasable {
+    public static class Searcher extends IndexSearcher implements Releasable {
+
         private final String source;
-        private final IndexSearcher searcher;
         private final Closeable onClose;
 
-        public Searcher(String source, IndexSearcher searcher, Closeable onClose) {
+        public Searcher(String source,
+                        IndexReader reader,
+                        QueryCache queryCache,
+                        QueryCachingPolicy queryCachingPolicy,
+                        Closeable onClose) {
+            super(reader);
+            setQueryCache(queryCache);
+            setQueryCachingPolicy(queryCachingPolicy);
             this.source = source;
-            this.searcher = searcher;
             this.onClose = onClose;
         }
 
@@ -1011,19 +1011,11 @@ public abstract class Engine implements Closeable {
             return source;
         }
 
-        public IndexReader reader() {
-            return searcher.getIndexReader();
-        }
-
         public DirectoryReader getDirectoryReader() {
-            if (reader() instanceof DirectoryReader) {
-                return (DirectoryReader) reader();
+            if (getIndexReader() instanceof DirectoryReader) {
+                return (DirectoryReader) getIndexReader();
             }
-            throw new IllegalStateException("Can't use " + reader().getClass() + " as a directory reader");
-        }
-
-        public IndexSearcher searcher() {
-            return searcher;
+            throw new IllegalStateException("Can't use " + getIndexReader().getClass() + " as a directory reader");
         }
 
         @Override

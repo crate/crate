@@ -679,7 +679,7 @@ public abstract class EngineTestCase extends ESTestCase {
         }
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             final TotalHitCountCollector collector = new TotalHitCountCollector();
-            searcher.searcher().search(new MatchAllDocsQuery(), collector);
+            searcher.search(new MatchAllDocsQuery(), collector);
             assertThat(collector.getTotalHits(), equalTo(numDocs));
         }
     }
@@ -845,7 +845,7 @@ public abstract class EngineTestCase extends ESTestCase {
         if (lastFieldValue != null) {
             try (Engine.Searcher searcher = replicaEngine.acquireSearcher("test")) {
                 final TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.searcher().search(new TermQuery(new Term("value", lastFieldValue)), collector);
+                searcher.search(new TermQuery(new Term("value", lastFieldValue)), collector);
                 assertThat(collector.getTotalHits(), equalTo(1));
             }
         }
@@ -931,7 +931,7 @@ public abstract class EngineTestCase extends ESTestCase {
         }
         try (Engine.Searcher searcher = engine.acquireSearcher("test_get_doc_ids")) {
             List<DocIdSeqNoAndSource> docs = new ArrayList<>();
-            for (LeafReaderContext leafContext : searcher.reader().leaves()) {
+            for (LeafReaderContext leafContext : searcher.getIndexReader().leaves()) {
                 LeafReader reader = leafContext.reader();
                 NumericDocValues seqNoDocValues = reader.getNumericDocValues(SeqNoFieldMapper.NAME);
                 NumericDocValues primaryTermDocValues = reader.getNumericDocValues(SeqNoFieldMapper.PRIMARY_TERM_NAME);
