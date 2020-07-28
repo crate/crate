@@ -131,7 +131,7 @@ public class SQLExceptions {
      * Converts a possible ES exception to a Crate one and returns the message.
      * The message will not contain any information about possible nested exceptions.
      */
-    public static String userFriendlyCrateExceptionTopOnly(Throwable e) {
+    public static String userFriendlyCrateExceptionTopOnly(Throwable t) {
         return HttpError.fromThrowable(t, null).message();
     }
 }
