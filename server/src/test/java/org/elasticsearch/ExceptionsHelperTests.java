@@ -19,11 +19,11 @@
 
 package org.elasticsearch;
 
-import static org.elasticsearch.ExceptionsHelper.MAX_ITERATIONS;
 import static org.elasticsearch.ExceptionsHelper.maybeError;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 
+import java.io.IOException;
 import java.util.Optional;
 
 import org.apache.commons.codec.DecoderException;
@@ -70,20 +70,13 @@ public class ExceptionsHelperTests extends ESTestCase {
         if (fatal) {
             assertError(cause, error);
         } else {
-            assertFalse(maybeError(cause, logger).isPresent());
+            assertFalse(maybeError(cause).isPresent());
         }
-
-        assertFalse(maybeError(new Exception(new DecoderException()), logger).isPresent());
-
-        Throwable chain = outOfMemoryError;
-        for (int i = 0; i < MAX_ITERATIONS; i++) {
-            chain = new Exception(chain);
-        }
-        assertFalse(maybeError(chain, logger).isPresent());
+        assertFalse(maybeError(new Exception(new DecoderException())).isPresent());
     }
 
     private void assertError(final Throwable cause, final Error error) {
-        final Optional<Error> maybeError = maybeError(cause, logger);
+        final Optional<Error> maybeError = maybeError(cause);
         assertTrue(maybeError.isPresent());
         assertThat(maybeError.get(), equalTo(error));
     }
@@ -114,5 +107,33 @@ public class ExceptionsHelperTests extends ESTestCase {
         Throwable withSuppressedException = new RuntimeException();
         withSuppressedException.addSuppressed(new RuntimeException());
         assertThat(ExceptionsHelper.unwrapCorruption(withSuppressedException), nullValue());
+    }
+
+
+    @Test
+    public void testSuppressedCycle() {
+        RuntimeException e1 = new RuntimeException();
+        RuntimeException e2 = new RuntimeException();
+        e1.addSuppressed(e2);
+        e2.addSuppressed(e1);
+        ExceptionsHelper.unwrapCorruption(e1);
+
+        final CorruptIndexException corruptIndexException = new CorruptIndexException("corrupt", "resource");
+        RuntimeException e3 = new RuntimeException(corruptIndexException);
+        e3.addSuppressed(e1);
+        assertThat(ExceptionsHelper.unwrapCorruption(e3), equalTo(corruptIndexException));
+
+        RuntimeException e4 = new RuntimeException(e1);
+        e4.addSuppressed(corruptIndexException);
+        assertThat(ExceptionsHelper.unwrapCorruption(e4), equalTo(corruptIndexException));
+    }
+
+    @Test
+    public void testCauseCycle() {
+        RuntimeException e1 = new RuntimeException();
+        RuntimeException e2 = new RuntimeException(e1);
+        e1.initCause(e2);
+        ExceptionsHelper.unwrap(e1, IOException.class);
+        ExceptionsHelper.unwrapCorruption(e1);
     }
 }
