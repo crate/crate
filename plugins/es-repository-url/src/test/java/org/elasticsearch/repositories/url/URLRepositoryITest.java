@@ -61,7 +61,7 @@ public class URLRepositoryITest extends SQLTransportIntegrationTest {
         waitNoPendingTasksOnAll();
 
         assertThrows(() -> execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)"),
-                   e  isSQLError(
+                     isSQLError(
                          "[uri_repo] cannot create snapshot in a readonly repository",
                          INTERNAL_ERROR,
                          UNHANDLED_SERVER_ERROR));
