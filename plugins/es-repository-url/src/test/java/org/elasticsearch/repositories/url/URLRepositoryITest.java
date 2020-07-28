@@ -3,7 +3,8 @@ package org.elasticsearch.repositories.url;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
-import static io.crate.testing.SQLResponseMatcher.isSQLError;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.Matchers.is;
 
 import java.io.File;
@@ -59,13 +60,11 @@ public class URLRepositoryITest extends SQLTransportIntegrationTest {
             new Object[]{defaultRepositoryLocation.toURI().toString()});
         waitNoPendingTasksOnAll();
 
-        execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)");
-
-        assertThat(response,
-                   isSQLError(
-                       "[uri_repo] cannot create snapshot in a readonly repository",
-                       INTERNAL_ERROR,
-                       UNHANDLED_SERVER_ERROR));
+        assertThrows(() -> execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)"),
+                   e  isSQLError(
+                         "[uri_repo] cannot create snapshot in a readonly repository",
+                         INTERNAL_ERROR,
+                         UNHANDLED_SERVER_ERROR));
     }
 
 }

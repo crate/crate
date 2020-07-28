@@ -31,7 +31,6 @@ import io.crate.exceptions.UnauthorizedException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.postgresql.util.PSQLException;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -89,13 +88,12 @@ public class HttpError {
         Throwable unwrappedError = SQLExceptions.unwrapException(throwable, null);
         //TODO make sure values are masked using accessControl
         HttpErrorStatus httpErrorStatus;
-
-        if (unwrappedError instanceof IllegalArgumentException) {
+        if(unwrappedError instanceof HttpResponseException) {
+            httpErrorStatus = ((HttpResponseException) unwrappedError).status();
+        } else if (unwrappedError instanceof IllegalArgumentException) {
             httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
         } else if (unwrappedError instanceof UnauthorizedException) {
             httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
-        } else if (unwrappedError instanceof SQLActionException) {
-            httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
         } else if (unwrappedError instanceof SQLParseException) {
             httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
         } else if (unwrappedError instanceof RelationUnknown) {

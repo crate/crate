@@ -144,8 +144,9 @@ public class FulltextITest extends SQLTransportIntegrationTest{
                      isSQLError("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'",
                                 INTERNAL_ERROR,
                                 UNHANDLED_SERVER_ERROR));
-        // This was never executed before
-        assertThat(response.rowCount(), is(0L));
+        // This was never executed on the test before. What would be the expected behaviour. Since the exception is
+        // thrown the response is not updated.
+        // assertThat(response.rowCount(), is(0L));
     }
 
     @Test

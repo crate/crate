@@ -25,7 +25,6 @@ package io.crate.rest.action;
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
@@ -200,8 +199,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         List<Object> args = parseContext.args();
         List<List<Object>> bulkArgs = parseContext.bulkArgs();
         if (bothProvided(args, bulkArgs)) {
-            return CompletableFuture.failedFuture(new SQLActionException(
-                "request body contains args and bulk_args. It's forbidden to provide both", 4000, HttpResponseStatus.BAD_REQUEST));
+            return CompletableFuture.failedFuture(new HttpResponseException(
+                "request body contains args and bulk_args. It's forbidden to provide both", HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX));
         }
         try {
             if (args != null || bulkArgs == null) {
