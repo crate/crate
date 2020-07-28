@@ -1,0 +1,78 @@
+.. _version_4.2.2:
+
+=============
+Version 4.2.2
+=============
+
+Released on 2020-07-28.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.2.2.
+
+    We recommend that you upgrade to the latest 4.1 release before moving to
+    4.2.2.
+
+    A rolling upgrade from 4.1.7+ to 4.2.2 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.2.0` release notes for a full list of changes in the
+4.2 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that occasionally caused :ref:`EXPLAIN ANALYZE <ref-explain>`
+  to return invalid query breakdown results or fail with the index out of
+  bound exception.
+
+- Fixed a regression that caused ``INSERT INTO`` statements in tables with a
+  nested ``CLUSTERED BY`` column to fail.
+
+- Fixed a regression introduced in 4.2.0 that caused subscript lookups on
+  ignored object columns to raise an error instead of a null value if the key
+  doesn't exist.
+
+- Fixed a performance regression introduced in 4.2.0 which caused queries with
+  a ``ORDER BY`` but without ``LIMIT`` to execute slower than they used to.
+
+- Fixed an issue that prevented queries executed using a ``query-then-fetch``
+  strategy from being labelled correctly in the :ref:`sys.jobs_metrics
+  <sys-jobs-metrics>` and :ref:`sys.jobs_log <sys-logs>` tables.
+
+- Fixed a regression introduced in 4.2.0 which caused queries including a
+  virtual table, and both a ``ORDER BY`` and ``LIMIT`` clause to fail.
+
+- Fixed a regression introduced in 4.2.0 that resulted in ``NULL`` values being
+  returned for columns used in the ``PARTITIONED BY`` clause instead of the
+  actual values.
+
+- Allow all users to execute ``DISCARD`` and ``SET TRANSACTION`` statement.
+  These are session local statements and shouldn't require special privileges.
+
+- Updated the bundled JDK to 14.0.2-12
+
+- Increased the default interval for `stats.service.interval
+  <stats.service.interval>` from one hour to 24 hours because invoking it every
+  hour caused significant extra load on a cluster.
+
+- Fixed an issue that caused ``SHOW CREATE TABLE`` to print columns of type
+  ``VARCHAR(n)`` as ``TEXT``, leading to a loss of the length information when
+  using the ``SHOW CREATE TABLE`` statement to re-create a table.
+
+- Fixed an issue that prevented ``ALTER TABLE .. ADD COLUMN`` statements from
+  working on tables containing a ``PRIMARY KEY`` column with a ``INDEX OFF``
+  definition.
