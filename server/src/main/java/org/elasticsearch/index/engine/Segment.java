@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class Segment {
 
@@ -85,10 +86,6 @@ public class Segment {
         return this.mergeId;
     }
 
-    public long getSizeInBytes() {
-        return this.sizeInBytes;
-    }
-
     public org.apache.lucene.util.Version getVersion() {
         return version;
     }
@@ -113,9 +110,7 @@ public class Segment {
 
         Segment segment = (Segment) o;
 
-        if (name != null ? !name.equals(segment.name) : segment.name != null) return false;
-
-        return true;
+        return Objects.equals(name, segment.name);
     }
 
     @Override
