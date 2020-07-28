@@ -36,10 +36,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
@@ -63,7 +65,6 @@ import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexEventListener;
-import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.IndexingOperationListener;
@@ -80,6 +81,7 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 
@@ -89,8 +91,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final NodeEnvironment nodeEnv;
     private final ShardStoreDeleter shardStoreDeleter;
     private final IndexStore indexStore;
-    private final IndexSearcherWrapper searcherWrapper;
     private final IndexCache indexCache;
+    private final CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper;
     private final MapperService mapperService;
     private final NamedXContentRegistry xContentRegistry;
     private final EngineFactory engineFactory;
@@ -124,7 +126,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             QueryCache queryCache,
             IndexStore indexStore,
             IndexEventListener eventListener,
-            IndexModule.IndexSearcherWrapperFactory wrapperFactory,
+            Function<IndexService, CheckedFunction<DirectoryReader, DirectoryReader, IOException>> wrapperFactory,
             MapperRegistry mapperRegistry,
             List<IndexingOperationListener> indexingOperationListeners) throws IOException {
         super(indexSettings);
@@ -148,7 +150,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.indexCache = new IndexCache(indexSettings, queryCache);
         this.engineFactory = Objects.requireNonNull(engineFactory);
         // initialize this last -- otherwise if the wrapper requires any other member to be non-null we fail with an NPE
-        this.searcherWrapper = wrapperFactory.newWrapper(this);
+        this.readerWrapper = wrapperFactory.apply(this);
         this.indexingOperationListeners = Collections.unmodifiableList(indexingOperationListeners);
         // kick off async ops for the first shard in this index
         this.refreshTask = new AsyncRefreshTask(this);
@@ -330,7 +332,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 mapperService,
                 engineFactory,
                 eventListener,
-                searcherWrapper,
+                readerWrapper,
                 threadPool,
                 bigArrays,
                 indexingOperationListeners,
@@ -554,8 +556,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         return engineFactory;
     }
 
-    final IndexSearcherWrapper getSearcherWrapper() {
-        return searcherWrapper;
+    final CheckedFunction<DirectoryReader, DirectoryReader, IOException> getReaderWrapper() {
+        return readerWrapper;
     } // pkg private for testing
 
     final IndexStore getIndexStore() {
