@@ -65,8 +65,6 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.ServerErrorMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -317,27 +315,10 @@ public class SQLTransportExecutor {
                     return executeAndConvertResult(preparedStatement);
                 }
             }
-        } catch (PSQLException e) {
-            LOGGER.error("Error executing stmt={} args={} error={}", stmt, Arrays.toString(args), e);
-            ServerErrorMessage serverErrorMessage = e.getServerErrorMessage();
-            final StackTraceElement[] stacktrace;
-            //noinspection ThrowableNotThrown add the test-call-chain to the stack to be able
-            // to quickly figure out which statement in a test case led to the error
-            StackTraceElement[] traceToExecWithPg = new Exception().getStackTrace();
-            if (serverErrorMessage == null) {
-                stacktrace = traceToExecWithPg;
-            } else {
-                stacktrace = new StackTraceElement[traceToExecWithPg.length + 1];
-                stacktrace[0] = new StackTraceElement(
-                    serverErrorMessage.getFile(),
-                    serverErrorMessage.getRoutine(),
-                    serverErrorMessage.getFile(),
-                    serverErrorMessage.getLine());
-                System.arraycopy(traceToExecWithPg, 0, stacktrace, 1, traceToExecWithPg.length);
-            }
-            throw new RuntimeException(e);
         } catch (SQLException e) {
+            LOGGER.error("Error executing stmt={} args={} error={}", stmt, Arrays.toString(args), e);
             Exceptions.rethrowUnchecked(e);
+            // this should never happen
             return null;
         }
     }

@@ -34,7 +34,7 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 
-public class ExceptionMatcher {
+public class SQLErrorMatcher {
 
     public static <T extends Throwable> Matcher<T> isSQLError(String msg, PGErrorStatus pgErrorStatus, HttpErrorStatus httpErrorStatus) {
         return anyOf(isPGError(msg, pgErrorStatus), isHttpError(msg, httpErrorStatus));

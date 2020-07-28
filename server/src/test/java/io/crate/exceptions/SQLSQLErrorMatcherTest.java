@@ -31,7 +31,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class SQLExceptionMatcherTest {
+public class SQLSQLErrorMatcherTest {
 
     @Test
     public void testUnwrap() {
