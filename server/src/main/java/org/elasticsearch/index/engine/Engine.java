@@ -740,8 +740,7 @@ public abstract class Engine implements Closeable {
 
         // now, correlate or add the committed ones...
         if (lastCommittedSegmentInfos != null) {
-            SegmentInfos infos = lastCommittedSegmentInfos;
-            for (SegmentCommitInfo info : infos) {
+            for (SegmentCommitInfo info : lastCommittedSegmentInfos) {
                 Segment segment = segments.get(info.info.name);
                 if (segment == null) {
                     segment = new Segment(info.info.name);
@@ -1491,11 +1490,7 @@ public abstract class Engine implements Closeable {
 
             CommitId commitId = (CommitId) o;
 
-            if (!Arrays.equals(id, commitId.id)) {
-                return false;
-            }
-
-            return true;
+            return Arrays.equals(id, commitId.id);
         }
 
         @Override
