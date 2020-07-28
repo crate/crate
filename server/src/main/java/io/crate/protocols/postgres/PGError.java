@@ -80,7 +80,7 @@ public class PGError  {
             return fromPSQLException((PSQLException) throwable.getCause());
         }
 
-        Throwable unwrappedError = SQLExceptions.unwrapException(throwable, null);
+        Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
         //TODO make sure values are masked using accessControl
         PGErrorStatus status;
         String message = null;

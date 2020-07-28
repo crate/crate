@@ -22,7 +22,6 @@
 
 package io.crate.rest.action;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
@@ -85,7 +84,7 @@ public class HttpError {
     }
 
     public static HttpError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
-        Throwable unwrappedError = SQLExceptions.unwrapException(throwable, null);
+        Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
         //TODO make sure values are masked using accessControl
         HttpErrorStatus httpErrorStatus;
         if(unwrappedError instanceof HttpResponseException) {

@@ -250,7 +250,7 @@ public class SQLTransportExecutor {
             }
             session.sync();
         } catch (Throwable t) {
-            listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
+            listener.onFailure(SQLExceptions.handleException(t, e -> {}));
         }
     }
 
@@ -281,13 +281,13 @@ public class SQLTransportExecutor {
                 if (t == null) {
                     listener.onResponse(rowCounts);
                 } else {
-                    listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
+                    listener.onFailure(SQLExceptions.handleException(t, e -> {}));
                 }
                 session.close();
             });
         } catch (Throwable t) {
             session.close();
-            listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
+            listener.onFailure(SQLExceptions.handleException(t, e -> {}));
         }
     }
 
@@ -593,7 +593,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
+            listener.onFailure(SQLExceptions.handleException(t, e -> {}));
             super.fail(t);
         }
 
@@ -651,7 +651,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.unwrapException(t, e -> {}));
+            listener.onFailure(SQLExceptions.handleException(t, e -> {}));
             super.fail(t);
         }
     }

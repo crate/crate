@@ -97,7 +97,7 @@ public class SQLExceptions {
     }
 
     public static Function<Throwable, Exception> forWireTransmission(AccessControl accessControl) {
-        return e -> unwrapException(e, accessControl::ensureMaySee);
+        return e -> handleException(e, accessControl::ensureMaySee);
     }
 
     /**
@@ -105,7 +105,7 @@ public class SQLExceptions {
      * If concrete {@link ElasticsearchException} is found, first transform it
      * to a {@link CrateException}
      */
-    public static RuntimeException unwrapException(Throwable e, @Nullable  Consumer<Throwable> maskSensitiveInformation) {
+    public static RuntimeException handleException(Throwable e, @Nullable  Consumer<Throwable> maskSensitiveInformation) {
         Throwable unwrappedError = SQLExceptions.unwrap(e);
         try {
             if (maskSensitiveInformation != null) {

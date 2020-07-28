@@ -262,7 +262,7 @@ public class Session implements AutoCloseable {
                 statement = EMPTY_STMT;
             } else {
                 jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t), sessionContext.user());
-                throw SQLExceptions.unwrapException(t, accessControl::ensureMaySee);
+                throw SQLExceptions.handleException(t, accessControl::ensureMaySee);
             }
         }
 
