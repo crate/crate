@@ -62,44 +62,4 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that occasionally caused :ref:`EXPLAIN ANALYZE <ref-explain>`
-  to return invalid query breakdown results or fail with the index out of
-  bound exception.
-
-- Fixed a regression that caused ``INSERT INTO`` statements in tables with a
-  nested ``CLUSTERED BY`` column to fail.
-
-- Fixed a regression introduced in 4.2.0 that caused subscript lookups on
-  ignored object columns to raise an error instead of a null value if the key
-  doesn't exist.
-
-- Fixed a performance regression introduced in 4.2.0 which caused queries with
-  a ``ORDER BY`` but without ``LIMIT`` to execute slower than they used to.
-
-- Fixed an issue that prevented queries executed using a ``query-then-fetch``
-  strategy from being labelled correctly in the :ref:`sys.jobs_metrics
-  <sys-jobs-metrics>` and :ref:`sys.jobs_log <sys-logs>` tables.
-
-- Fixed a regression introduced in 4.2.0 which caused queries including a
-  virtual table, and both a ``ORDER BY`` and ``LIMIT`` clause to fail.
-
-- Fixed a regression introduced in 4.2.0 that resulted in ``NULL`` values being
-  returned for columns used in the ``PARTITIONED BY`` clause instead of the
-  actual values.
-
-- Allow all users to execute ``DISCARD`` and ``SET TRANSACTION`` statement.
-  These are session local statements and shouldn't require special privileges.
-
-- Increased the default interval for `stats.service.interval
-  <stats.service.interval>` from one hour to 24 hours because invoking it every
-  hour caused significant extra load on a cluster.
-
-- Updated the bundled JDK to 14.0.2-12
-
-- Fixed an issue that caused ``SHOW CREATE TABLE`` to print columns of type
-  ``VARCHAR(n)`` as ``TEXT``, leading to a loss of the length information when
-  using the ``SHOW CREATE TABLE`` statement to re-create a table.
-
-- Fixed an issue that prevented ``ALTER TABLE .. ADD COLUMN`` statements from
-  working on tables containing a ``PRIMARY KEY`` column with a ``INDEX OFF``
-  definition.
+None
