@@ -105,7 +105,7 @@ public class SQLExceptions {
      * If concrete {@link ElasticsearchException} is found, first transform it
      * to a {@link CrateException}
      */
-    public static RuntimeException handleException(Throwable e, @Nullable  Consumer<Throwable> maskSensitiveInformation) {
+    public static RuntimeException handleException(Throwable e, @Nullable Consumer<Throwable> maskSensitiveInformation) {
         Throwable unwrappedError = SQLExceptions.unwrap(e);
         try {
             if (maskSensitiveInformation != null) {

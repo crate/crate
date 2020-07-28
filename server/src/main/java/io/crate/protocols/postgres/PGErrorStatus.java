@@ -288,9 +288,9 @@ public enum PGErrorStatus {
     DATA_CORRUPTED("XX001","data_corrupted"),
     INDEX_CORRUPTED("XX002","index_corrupted");
 
-   PGErrorStatus(String code, String description) {
-       this.code = code;
-       this.description = description;
+    PGErrorStatus(String code, String description) {
+        this.code = code;
+        this.description = description;
     }
 
     private final String code;

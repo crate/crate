@@ -87,7 +87,7 @@ public class HttpError {
         Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
         //TODO make sure values are masked using accessControl
         HttpErrorStatus httpErrorStatus;
-        if(unwrappedError instanceof HttpResponseException) {
+        if (unwrappedError instanceof HttpResponseException) {
             httpErrorStatus = ((HttpResponseException) unwrappedError).status();
         } else if (unwrappedError instanceof IllegalArgumentException) {
             httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;

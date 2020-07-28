@@ -171,10 +171,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            resp = new DefaultFullHttpResponse
-                (httpVersion,
-                 httpError.status().httpResponseStatus(),
-                 content);
+            resp = new DefaultFullHttpResponse(
+                httpVersion,
+                httpError.status().httpResponseStatus(),
+                content
+            );
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, mediaType);
         }
         Netty4CorsHandler.setCorsResponseHeaders(request, resp, corsConfig);
