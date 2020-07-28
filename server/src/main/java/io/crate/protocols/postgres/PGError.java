@@ -75,12 +75,12 @@ public class PGError  {
     }
 
     public static PGError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
-        Throwable unwrappedError = SQLExceptions.unwrapException(throwable, null);
 
-        if (unwrappedError.getCause() instanceof PSQLException) {
-            return fromPSQLException((PSQLException) unwrappedError.getCause());
+        if (throwable instanceof PSQLException) {
+            return fromPSQLException((PSQLException) throwable.getCause());
         }
 
+        Throwable unwrappedError = SQLExceptions.unwrapException(throwable, null);
         //TODO make sure values are masked using accessControl
         PGErrorStatus status;
         String message = null;
