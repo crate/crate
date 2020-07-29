@@ -23,6 +23,7 @@
 package io.crate.rest.action;
 
 import io.crate.auth.user.AccessControl;
+import io.crate.exceptions.CrateException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
@@ -33,6 +34,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Locale;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
 
@@ -85,7 +87,13 @@ public class HttpError {
 
     public static HttpError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
         Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
-        //TODO make sure values are masked using accessControl
+        try {
+            if (accessControl != null) {
+                accessControl.ensureMaySee(unwrappedError);
+            }
+        } catch (Exception mpe) {
+            unwrappedError = mpe;
+        }
         HttpErrorStatus httpErrorStatus;
         if (unwrappedError instanceof HttpResponseException) {
             httpErrorStatus = ((HttpResponseException) unwrappedError).status();
@@ -100,6 +108,21 @@ public class HttpError {
         } else {
             httpErrorStatus = HttpErrorStatus.UNHANDLED_SERVER_ERROR;
         }
-        return new HttpError(httpErrorStatus, unwrappedError.getMessage(), unwrappedError);
+        String message = throwable.getMessage();
+        if (message == null) {
+            if (throwable instanceof CrateException && throwable.getCause() != null) {
+                throwable = throwable.getCause();   // use cause because it contains a more meaningful error in most cases
+            }
+            StackTraceElement[] stackTraceElements = throwable.getStackTrace();
+            if (stackTraceElements.length > 0) {
+                message = String.format(Locale.ENGLISH,
+                                        "%s in %s",
+                                        throwable.getClass().getSimpleName(),
+                                        stackTraceElements[0]);
+            } else {
+                message = "Error in " + throwable.getClass().getSimpleName();
+            }
+        }
+        return new HttpError(httpErrorStatus, message, unwrappedError);
     }
 }
