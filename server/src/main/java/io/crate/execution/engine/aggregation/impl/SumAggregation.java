@@ -80,7 +80,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                     supportedType.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature()),
                 (signature, boundSignature) ->
-                    new SumAggregation<>(supportedType, DataTypes.LONG, add, sub, signature, boundSignature)
+                    new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
             );
         }
     }
@@ -98,15 +98,6 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                            final BinaryOperator<T> subtraction,
                            Signature signature,
                            Signature boundSignature) {
-        this(returnType, returnType, addition, subtraction, signature, boundSignature);
-    }
-
-    private SumAggregation(final DataType<?> inputType,
-                           final DataType<T> returnType,
-                           final BinaryOperator<T> addition,
-                           final BinaryOperator<T> subtraction,
-                           Signature signature,
-                           Signature boundSignature) {
         this.addition = addition;
         this.subtraction = subtraction;
         this.returnType = returnType;
@@ -120,7 +111,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         this.signature = signature;
-        this.boundSignature = signature;
+        this.boundSignature = boundSignature;
     }
 
     @Nullable
