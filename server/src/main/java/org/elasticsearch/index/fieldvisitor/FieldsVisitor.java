@@ -35,7 +35,6 @@ import org.elasticsearch.index.mapper.Uid;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +53,6 @@ public class FieldsVisitor extends StoredFieldVisitor {
     private final String sourceFieldName;
     private final Set<String> requiredFields;
     protected BytesReference source;
-    protected String type;
     protected String id;
     protected Map<String, List<Object>> fieldsValues;
 
@@ -88,11 +86,6 @@ public class FieldsVisitor extends StoredFieldVisitor {
     }
 
     public void postProcess(MapperService mapperService) {
-        final Collection<String> types = mapperService.types();
-        assert types.size() <= 1 : types;
-        if (types.isEmpty() == false) {
-            type = types.iterator().next();
-        }
         for (Map.Entry<String, List<Object>> entry : fields().entrySet()) {
             MappedFieldType fieldType = mapperService.fullName(entry.getKey());
             if (fieldType == null) {
@@ -147,13 +140,8 @@ public class FieldsVisitor extends StoredFieldVisitor {
         return source;
     }
 
-    public Uid uid() {
-        if (id == null) {
-            return null;
-        } else if (type == null) {
-            throw new IllegalStateException("Call postProcess before getting the uid");
-        }
-        return new Uid(type, id);
+    public String id() {
+        return id;
     }
 
     public String routing() {
@@ -175,7 +163,6 @@ public class FieldsVisitor extends StoredFieldVisitor {
     public void reset() {
         if (fieldsValues != null) fieldsValues.clear();
         source = null;
-        type = null;
         id = null;
 
         requiredFields.addAll(BASE_REQUIRED_FIELDS);
