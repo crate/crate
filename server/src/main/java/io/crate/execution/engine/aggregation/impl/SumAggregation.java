@@ -188,6 +188,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                 return new SumLong(fieldTypes.get(0).name());
 
             case FloatType.ID:
+                return new SumFloat(fieldTypes.get(0).name());
             case DoubleType.ID:
                 return new SumDouble(fieldTypes.get(0).name());
 
@@ -269,6 +270,45 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         @Override
         public Object partialResult(SumDoubleState state) {
+            return state.hadValue ? state.sum : null;
+        }
+    }
+
+    static class SumFloatState {
+
+        private float sum = .0f;
+        private boolean hadValue = false;
+    }
+
+    static class SumFloat implements DocValueAggregator<SumFloatState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        SumFloat(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public SumFloatState initialState() {
+            return new SumFloatState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(SumFloatState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                state.sum += NumericUtils.sortableIntToFloat((int) values.nextValue());
+                state.hadValue = true;
+            }
+        }
+
+        @Override
+        public Object partialResult(SumFloatState state) {
             return state.hadValue ? state.sum : null;
         }
     }
