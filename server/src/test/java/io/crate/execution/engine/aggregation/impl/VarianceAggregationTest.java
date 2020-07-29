@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
@@ -33,6 +32,8 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static org.hamcrest.Matchers.is;
+
 public class VarianceAggregationTest extends AggregationTest {
 
     private Object executeAggregation(DataType<?> dataType, Object[][] data) throws Exception {
@@ -41,15 +42,18 @@ public class VarianceAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, List.of(DataTypes.TIMESTAMPZ))) {
+        for (DataType<?> type : Iterables.concat(
+            DataTypes.NUMERIC_PRIMITIVE_TYPES, List.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP))) {
             // Return type is fixed to Double
-            assertEquals(DataTypes.DOUBLE,
-                getVariance(type).info().returnType());
+            assertThat(
+                getVariance(type).boundSignature().getReturnType(),
+                is(DataTypes.DOUBLE.getTypeSignature())
+            );
         }
     }
 
     private FunctionImplementation getVariance(DataType<?> type) {
-        return functions.get(null, "variance", ImmutableList.of(Literal.of(type, null)), SearchPath.pathWithPGCatalogAndDoc());
+        return functions.get(null, "variance", List.of(Literal.of(type, null)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test

@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -68,6 +69,8 @@ public class TableHealthService {
     private final ClusterService clusterService;
     private final Schemas schemas;
     private final Provider<SQLOperations> sqlOperationsProvider;
+
+    private final AtomicReference<CompletableFuture<Map<TablePartitionIdent, ShardsInfo>>> activeComputation = new AtomicReference<>(null);
     private Session session;
 
     @Inject
@@ -92,10 +95,23 @@ public class TableHealthService {
             return completedFuture(allAsUnavailable());
         }
         try {
+            // If there is an ongoing computation we can return it's result
+            // instead of firing off another sys.shards query.
+            // The window is close enough that a change in the data doesn't matter.
+            // As soon as one computation is done, a sub-sequent query will do a fresh computation
             CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> future = new CompletableFuture<>();
-            HealthResultReceiver resultReceiver = new HealthResultReceiver(future);
-            session().quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
-            return future.thenApply(this::buildTablesHealth);
+            CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> ongoingComputation = activeComputation.compareAndExchange(null, future);
+            if (ongoingComputation == null) {
+                HealthResultReceiver resultReceiver = new HealthResultReceiver(future);
+                session().quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
+                return future
+                    .thenApply(this::buildTablesHealth)
+                    .whenComplete((res, err) -> {
+                        activeComputation.set(null);
+                    });
+            } else {
+                return ongoingComputation.thenApply(this::buildTablesHealth);
+            }
         } catch (Throwable t) {
             LOGGER.error("error retrieving tables health information", t);
             return completedFuture(allAsUnavailable());
@@ -191,9 +207,7 @@ public class TableHealthService {
         }
     }
 
-    private static class HealthResultReceiver implements ResultReceiver {
-
-        private static final Logger LOGGER = LogManager.getLogger(TableHealthService.HealthResultReceiver.class);
+    private static class HealthResultReceiver implements ResultReceiver<Map<TablePartitionIdent, ShardsInfo>> {
 
         private final CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> result;
         private final Map<TablePartitionIdent, ShardsInfo> tables = new HashMap<>();
@@ -223,7 +237,6 @@ public class TableHealthService {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            LOGGER.error("error retrieving tables health", t);
             result.completeExceptionally(t);
         }
 
@@ -232,7 +245,7 @@ public class TableHealthService {
         }
 
         @Override
-        public CompletableFuture<?> completionFuture() {
+        public CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> completionFuture() {
             return result;
         }
     }

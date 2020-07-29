@@ -26,16 +26,28 @@ import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.statistics.Variance;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
 import io.crate.types.FixedWidthType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.TimestampType;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -124,6 +136,8 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         this.boundSignature = boundSignature;
     }
 
+
+
     @Nullable
     @Override
     public Variance newState(RamAccounting ramAccounting,
@@ -197,5 +211,101 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     @Override
     public Signature boundSignature() {
         return boundSignature;
+    }
+
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
+                                                       List<MappedFieldType> fieldTypes) {
+        switch (argumentTypes.get(0).id()) {
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
+                return new LongVariance(fieldTypes.get(0).name());
+
+            case FloatType.ID:
+            case DoubleType.ID:
+                return new DoubleVariance(fieldTypes.get(0).name());
+
+            default:
+                return null;
+        }
+    }
+
+    private static class LongVariance implements DocValueAggregator<VarianceState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public LongVariance(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public VarianceState initialState() {
+            return new VarianceState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(VarianceState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                double value = values.nextValue();
+                state.variance.increment(value);
+                state.hadValue = true;
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(VarianceState state) {
+            return state.hadValue ? state.variance : null;
+        }
+    }
+
+
+    private static class DoubleVariance implements DocValueAggregator<VarianceState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public DoubleVariance(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public VarianceState initialState() {
+            return new VarianceState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(VarianceState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                double value = NumericUtils.sortableLongToDouble(values.nextValue());
+                state.variance.increment(value);
+                state.hadValue = true;
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(VarianceState state) {
+            return state.hadValue ? state.variance : null;
+        }
+    }
+
+    static class VarianceState {
+        private Variance variance = new Variance();
+        private boolean hadValue = false;
     }
 }
