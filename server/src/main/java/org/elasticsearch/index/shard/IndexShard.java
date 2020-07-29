@@ -973,7 +973,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         }
         final long time = System.nanoTime();
         final Engine.CommitId commitId = engine.flush(force, waitIfOngoing);
-        engine.refresh("flush"); // TODO this is technically wrong we should remove this in 7.0
         flushMetric.inc(System.nanoTime() - time);
         return commitId;
     }
@@ -1002,11 +1001,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             logger.trace("force merge with {}", forceMerge);
         }
         Engine engine = getEngine();
-        engine.forceMerge(forceMerge.flush(), forceMerge.maxNumSegments(),
-            forceMerge.onlyExpungeDeletes(), false, false);
-        if (forceMerge.flush()) {
-            engine.refresh("force_merge"); // TODO this is technically wrong we should remove this in 7.0
-        }
+        engine.forceMerge(
+            forceMerge.flush(),
+            forceMerge.maxNumSegments(),
+            forceMerge.onlyExpungeDeletes(),
+            false,
+            false
+        );
     }
 
     /**
@@ -1020,10 +1021,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         org.apache.lucene.util.Version previousVersion = minimumCompatibleVersion();
         // we just want to upgrade the segments, not actually forge merge to a single segment
         final Engine engine = getEngine();
-        engine.forceMerge(true,  // we need to flush at the end to make sure the upgrade is durable
+        engine.forceMerge(
+            true,  // we need to flush at the end to make sure the upgrade is durable
             Integer.MAX_VALUE, // we just want to upgrade the segments, not actually optimize to a single segment
-            false, true, upgrade.upgradeOnlyAncientSegments());
-        engine.refresh("upgrade"); // TODO this is technically wrong we should remove this in 7.0
+            false,
+            true,
+            upgrade.upgradeOnlyAncientSegments()
+        );
 
         org.apache.lucene.util.Version version = minimumCompatibleVersion();
         if (logger.isTraceEnabled()) {
