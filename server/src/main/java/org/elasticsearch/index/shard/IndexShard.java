@@ -998,7 +998,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             forceMerge.maxNumSegments(),
             forceMerge.onlyExpungeDeletes(),
             false,
-            false
+            false,
+            forceMerge.forceMergeUUID()
         );
     }
 
@@ -1018,7 +1019,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             Integer.MAX_VALUE, // we just want to upgrade the segments, not actually optimize to a single segment
             false,
             true,
-            upgrade.upgradeOnlyAncientSegments()
+            upgrade.upgradeOnlyAncientSegments(),
+            null
         );
 
         org.apache.lucene.util.Version version = minimumCompatibleVersion();
