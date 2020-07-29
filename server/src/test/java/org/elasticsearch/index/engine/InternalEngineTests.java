@@ -499,7 +499,7 @@ public class InternalEngineTests extends EngineTestCase {
             engine.flush();
             final long gen1 = store.readLastCommittedSegmentsInfo().getGeneration();
             // now, optimize and wait for merges, see that we have no merge flag
-            engine.forceMerge(true, 1, false, false, false);
+            engine.forceMerge(true, 1, false, false, false, UUIDs.randomBase64UUID());
 
             for (Segment segment : engine.segments(false)) {
                 assertThat(segment.getMergeId(), nullValue());
@@ -509,7 +509,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             final boolean flush = randomBoolean();
             final long gen2 = store.readLastCommittedSegmentsInfo().getGeneration();
-            engine.forceMerge(flush, 1, false, false, false);
+            engine.forceMerge(flush, 1, false, false, false, UUIDs.randomBase64UUID());
 
             for (Segment segment : engine.segments(false)) {
                 assertThat(segment.getMergeId(), nullValue());
@@ -1123,7 +1123,7 @@ public class InternalEngineTests extends EngineTestCase {
                              Engine.SyncedFlushResult.SUCCESS);
                 assertEquals(3, engine.segments(false).size());
 
-                engine.forceMerge(forceMergeFlushes, 1, false, false, false);
+                engine.forceMerge(forceMergeFlushes, 1, false, false, false, UUIDs.randomBase64UUID());
                 if (forceMergeFlushes == false) {
                     engine.refresh("make all segments visible");
                     assertEquals(4, engine.segments(false).size());
@@ -1375,8 +1375,14 @@ public class InternalEngineTests extends EngineTestCase {
                                 engine.refresh("test");
                                 indexed.countDown();
                                 try {
-                                    engine.forceMerge(randomBoolean(), 1, false, randomBoolean(),
-                                                      randomBoolean());
+                                    engine.forceMerge(
+                                        randomBoolean(),
+                                        1,
+                                        false,
+                                        randomBoolean(),
+                                        randomBoolean(),
+                                        UUIDs.randomBase64UUID()
+                                    );
                                 } catch (IOException e) {
                                     return;
                                 }
@@ -1393,7 +1399,7 @@ public class InternalEngineTests extends EngineTestCase {
                 startGun.countDown();
                 int someIters = randomIntBetween(1, 10);
                 for (int i = 0; i < someIters; i++) {
-                    engine.forceMerge(randomBoolean(), 1, false, randomBoolean(), randomBoolean());
+                    engine.forceMerge(randomBoolean(), 1, false, randomBoolean(), randomBoolean(), UUIDs.randomBase64UUID());
                 }
                 indexed.await();
                 IOUtils.close(engine);
@@ -2906,8 +2912,7 @@ public class InternalEngineTests extends EngineTestCase {
                     try {
                         switch (operation) {
                             case "optimize": {
-                                engine.forceMerge(true, 1, false, false,
-                                                  false);
+                                engine.forceMerge(true, 1, false, false, false, UUIDs.randomBase64UUID());
                                 break;
                             }
                             case "refresh": {
@@ -3987,7 +3992,7 @@ public class InternalEngineTests extends EngineTestCase {
                 engine.flush();
             }
             if (randomBoolean()) {
-                engine.forceMerge(randomBoolean(), between(1, 10), randomBoolean(), false, false);
+                engine.forceMerge(randomBoolean(), between(1, 10), randomBoolean(), false, false, UUIDs.randomBase64UUID());
             }
         }
         if (engine.engineConfig.getIndexSettings().isSoftDeleteEnabled()) {
@@ -4992,7 +4997,7 @@ public class InternalEngineTests extends EngineTestCase {
                     engine.flush();
                 }
                 if (rarely()) {
-                    engine.forceMerge(true, 1, false, false, false);
+                    engine.forceMerge(true, 1, false, false, false, UUIDs.randomBase64UUID());
                 }
             }
             MapperService mapperService = createMapperService("test");
@@ -5046,7 +5051,7 @@ public class InternalEngineTests extends EngineTestCase {
                            equalTo(engine.getMinRetainedSeqNo()));
             }
             if (rarely()) {
-                engine.forceMerge(randomBoolean(), 1, false, false, false);
+                engine.forceMerge(randomBoolean(), 1, false, false, false, UUIDs.randomBase64UUID());
             }
             try (Closeable ignored = engine.acquireRetentionLock()) {
                 long minRetainSeqNos = engine.getMinRetainedSeqNo();
@@ -5282,7 +5287,7 @@ public class InternalEngineTests extends EngineTestCase {
         doc = testParsedDocument(Integer.toString(1), null, testDocumentWithTextField(), SOURCE, null);
         engine.index(indexForDoc(doc));
         engine.refresh("test");
-        engine.forceMerge(false, 1, false, false, false);
+        engine.forceMerge(false, 1, false, false, false, UUIDs.randomBase64UUID());
         assertBusy(() -> {
             // the merge listner runs concurrently after the force merge returned
             assertThat(engine.shouldPeriodicallyFlush(), equalTo(true));
@@ -5408,7 +5413,7 @@ public class InternalEngineTests extends EngineTestCase {
                         engine.flush();
                     }
                     if (randomInt(100) < 5) {
-                        engine.forceMerge(randomBoolean(), 1, false, false, false);
+                        engine.forceMerge(randomBoolean(), 1, false, false, false, UUIDs.randomBase64UUID());
                     }
                 }
                 docs = getDocIds(engine, true);
