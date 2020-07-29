@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
@@ -30,29 +29,38 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import java.util.List;
+
+import static org.hamcrest.Matchers.is;
+
 public class SumAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType<?> dataType, Object[][] data) throws Exception {
         return executeAggregation("sum", dataType, data);
     }
 
     @Test
     public void testReturnType() throws Exception {
-        DataType type = DataTypes.DOUBLE;
-        assertEquals(type, getSum(type).info().returnType());
+        DataType<?> type = DataTypes.DOUBLE;
+        assertThat(getSum(type).boundSignature().getReturnType(), is(type.getTypeSignature()));
 
         type = DataTypes.FLOAT;
-        assertEquals(type, getSum(type).info().returnType());
+        assertThat(getSum(type).boundSignature().getReturnType(), is(type.getTypeSignature()));
 
         type = DataTypes.LONG;
-        assertEquals(type, getSum(type).info().returnType());
-        assertEquals(type, getSum(DataTypes.INTEGER).info().returnType());
-        assertEquals(type, getSum(DataTypes.SHORT).info().returnType());
-        assertEquals(type, getSum(DataTypes.BYTE).info().returnType());
+        assertThat(getSum(type).boundSignature().getReturnType(), is(type.getTypeSignature()));
+        assertThat(getSum(DataTypes.INTEGER).boundSignature().getReturnType(), is(type.getTypeSignature()));
+        assertThat(getSum(DataTypes.SHORT).boundSignature().getReturnType(), is(type.getTypeSignature()));
+        assertThat(getSum(DataTypes.BYTE).boundSignature().getReturnType(), is(type.getTypeSignature()));
     }
 
-    private FunctionImplementation getSum(DataType type) {
-        return functions.get(null, "sum", ImmutableList.of(Literal.of(type, null)), SearchPath.pathWithPGCatalogAndDoc());
+    private FunctionImplementation getSum(DataType<?> type) {
+        return functions.get(
+            null,
+            "sum",
+            List.of(Literal.of(type, null)),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
     }
 
     @Test
