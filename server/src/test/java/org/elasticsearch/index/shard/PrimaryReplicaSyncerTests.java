@@ -213,7 +213,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         List<Translog.Operation> operations = new ArrayList<>();
         for (int i = 0; i < numOps; i++) {
             operations.add(new Translog.Index(
-                "default", Integer.toString(i), randomBoolean() ? SequenceNumbers.UNASSIGNED_SEQ_NO : i, primaryTerm, new byte[]{1}));
+                Integer.toString(i), randomBoolean() ? SequenceNumbers.UNASSIGNED_SEQ_NO : i, primaryTerm, new byte[]{1}));
         }
         Mockito.doReturn(TestTranslog.newSnapshotFromOperations(operations)).when(shard).getHistoryOperations(Mockito.anyString(), Mockito.anyLong());
         TaskManager taskManager = new TaskManager(Settings.EMPTY, threadPool);

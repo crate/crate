@@ -22,7 +22,6 @@
 
 package io.crate.execution.dml.delete;
 
-import io.crate.Constants;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
@@ -157,10 +156,11 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             // If that's not the case, the delete on primary didn't succeed. Note that we still need to
             // process the other items in case of a bulk request.
             if (item.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO) {
-                Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnReplica(item.seqNo(),
-                                                                                            item.version(),
-                                                                                            Constants.DEFAULT_MAPPING_TYPE,
-                                                                                            item.id());
+                Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnReplica(
+                    item.seqNo(),
+                    item.version(),
+                    item.id()
+                );
 
                 translogLocation = deleteResult.getTranslogLocation();
                 if (logger.isTraceEnabled()) {
@@ -173,7 +173,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
 
     private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {
         Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnPrimary(
-            item.version(), Constants.DEFAULT_MAPPING_TYPE, item.id(), VersionType.INTERNAL, item.seqNo(), item.primaryTerm());
+            item.version(), item.id(), VersionType.INTERNAL, item.seqNo(), item.primaryTerm());
 
         // set version and sequence number for replica
         item.version(deleteResult.getVersion());

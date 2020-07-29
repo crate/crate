@@ -63,7 +63,6 @@ import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.UsageTrackingQueryCachingPolicy;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.ThreadInterruptedException;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
@@ -715,8 +714,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             if (traceEnabled) {
                 // don't use index.source().utf8ToString() here source might not be valid UTF-8
                 logger.trace(
-                    "index [{}][{}] seq# [{}] allocation-id [{}] primaryTerm [{}] operationPrimaryTerm [{}] origin [{}]",
-                    index.type(),
+                    "index [{}] seq# [{}] allocation-id [{}] primaryTerm [{}] operationPrimaryTerm [{}] origin [{}]",
                     index.id(),
                     index.seqNo(),
                     routingEntry().allocationId(),
@@ -727,9 +725,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             result = engine.index(index);
             if (traceEnabled) {
                 logger.trace(
-                    "index-done [{}][{}] seq# [{}] allocation-id [{}] primaryTerm [{}] operationPrimaryTerm [{}] origin [{}] " +
+                    "index-done [{}] seq# [{}] allocation-id [{}] primaryTerm [{}] operationPrimaryTerm [{}] origin [{}] " +
                     "result-seq# [{}] result-term [{}] failure [{}]",
-                    index.type(),
                     index.id(),
                     index.seqNo(),
                     routingEntry().allocationId(),
@@ -743,8 +740,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         } catch (Exception e) {
             if (traceEnabled) {
                 logger.trace(new ParameterizedMessage(
-                    "index-fail [{}][{}] seq# [{}] allocation-id [{}] primaryTerm [{}] operationPrimaryTerm [{}] origin [{}]",
-                    index.type(),
+                    "index-fail [{}] seq# [{}] allocation-id [{}] primaryTerm [{}] operationPrimaryTerm [{}] origin [{}]",
                     index.id(),
                     index.seqNo(),
                     routingEntry().allocationId(),
@@ -783,29 +779,43 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     public Engine.DeleteResult applyDeleteOperationOnPrimary(long version,
-                                                             String type,
                                                              String id,
                                                              VersionType versionType,
                                                              long ifSeqNo,
-                                                             long ifPrimaryTerm)
-        throws IOException {
-        return applyDeleteOperation(getEngine(), UNASSIGNED_SEQ_NO, getOperationPrimaryTerm(), version, type, id, versionType,
-                                    ifSeqNo, ifPrimaryTerm, Engine.Operation.Origin.PRIMARY);
+                                                             long ifPrimaryTerm) throws IOException {
+        return applyDeleteOperation(
+            getEngine(),
+            UNASSIGNED_SEQ_NO,
+            getOperationPrimaryTerm(),
+            version,
+            id,
+            versionType,
+            ifSeqNo,
+            ifPrimaryTerm,
+            Engine.Operation.Origin.PRIMARY
+        );
     }
 
     public Engine.DeleteResult applyDeleteOperationOnReplica(long seqNo,
                                                              long version,
-                                                             String type,
                                                              String id) throws IOException {
         return applyDeleteOperation(
-            getEngine(), seqNo, getOperationPrimaryTerm(), version, type, id, null, UNASSIGNED_SEQ_NO, 0, Engine.Operation.Origin.REPLICA);
+            getEngine(),
+            seqNo,
+            getOperationPrimaryTerm(),
+            version,
+            id,
+            null,
+            UNASSIGNED_SEQ_NO,
+            0,
+            Engine.Operation.Origin.REPLICA
+        );
     }
 
     private Engine.DeleteResult applyDeleteOperation(Engine engine,
                                                      long seqNo,
                                                      long opPrimaryTerm,
                                                      long version,
-                                                     String type,
                                                      String id,
                                                      @Nullable VersionType versionType,
                                                      long ifSeqNo,
@@ -814,16 +824,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert opPrimaryTerm <= getOperationPrimaryTerm()
                 : "op term [ " + opPrimaryTerm + " ] > shard term [" + getOperationPrimaryTerm() + "]";
         ensureWriteAllowed(origin);
-        // When there is a single type, the unique identifier is only composed of the _id,
-        // so there is no way to differentiate foo#1 from bar#1. This is especially an issue
-        // if a user first deletes foo#1 and then indexes bar#1: since we do not encode the
-        // _type in the uid it might look like we are reindexing the same document, which
-        // would fail if bar#1 is indexed with a lower version than foo#1 was deleted with.
-        // In order to work around this issue, we make deletions create types. This way, we
-        // fail if index and delete operations do not use the same type.
-        final Term uid = extractUidForDelete(type, id);
+        final Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
         final Engine.Delete delete = prepareDelete(
-            type,
             id,
             uid,
             seqNo,
@@ -837,8 +839,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return delete(engine, delete);
     }
 
-    private Engine.Delete prepareDelete(String type,
-                                        String id,
+    private Engine.Delete prepareDelete(String id,
                                         Term uid,
                                         long seqNo,
                                         long primaryTerm,
@@ -848,15 +849,18 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                                         long ifSeqNo,
                                         long ifPrimaryTerm) {
         long startTime = System.nanoTime();
-        return new Engine.Delete(type, id, uid, seqNo, primaryTerm, version, versionType, origin, startTime,
-                                 ifSeqNo, ifPrimaryTerm);
-    }
-
-    private Term extractUidForDelete(String type, String id) {
-        // This is only correct because we create types dynamically on delete operations
-        // otherwise this could match the same _id from a different type
-        BytesRef idBytes = Uid.encodeId(id);
-        return new Term(IdFieldMapper.NAME, idBytes);
+        return new Engine.Delete(
+            id,
+            uid,
+            seqNo,
+            primaryTerm,
+            version,
+            versionType,
+            origin,
+            startTime,
+            ifSeqNo,
+            ifPrimaryTerm
+        );
     }
 
     private Engine.DeleteResult delete(Engine engine, Engine.Delete delete) throws IOException {
@@ -1307,8 +1311,17 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 break;
             case DELETE:
                 final Translog.Delete delete = (Translog.Delete) operation;
-                result = applyDeleteOperation(engine, delete.seqNo(), delete.primaryTerm(), delete.version(), delete.type(), delete.id(),
-                                              versionType, UNASSIGNED_SEQ_NO, 0, origin);
+                result = applyDeleteOperation(
+                    engine,
+                    delete.seqNo(),
+                    delete.primaryTerm(),
+                    delete.version(),
+                    delete.id(),
+                    versionType,
+                    UNASSIGNED_SEQ_NO,
+                    0,
+                    origin
+                );
                 break;
             case NO_OP:
                 final Translog.NoOp noOp = (Translog.NoOp) operation;

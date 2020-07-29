@@ -1271,13 +1271,13 @@ public class InternalEngine extends Engine {
         final VersionValue versionValue = versionMap.getVersionForAssert(index.uid().bytes());
         if (versionValue != null) {
             if (versionValue.isDelete() == false || allowDeleted == false) {
-                throw new AssertionError("doc [" + index.type() + "][" + index.id() + "] exists in version map (version " + versionValue + ")");
+                throw new AssertionError("doc [" + index.id() + "] exists in version map (version " + versionValue + ")");
             }
         } else {
             try (Searcher searcher = acquireSearcher("assert doc doesn't exist", SearcherScope.INTERNAL)) {
                 final long docsWithId = searcher.count(new TermQuery(index.uid()));
                 if (docsWithId > 0) {
-                    throw new AssertionError("doc [" + index.type() + "][" + index.id() + "] exists [" + docsWithId + "] times in index");
+                    throw new AssertionError("doc [" + index.id() + "] exists [" + docsWithId + "] times in index");
                 }
             }
         }
@@ -1318,9 +1318,18 @@ public class InternalEngine extends Engine {
             } else {
                 // generate or register sequence number
                 if (delete.origin() == Operation.Origin.PRIMARY) {
-                    delete = new Delete(delete.type(), delete.id(), delete.uid(), generateSeqNoForOperationOnPrimary(delete),
-                        delete.primaryTerm(), delete.version(), delete.versionType(), delete.origin(), delete.startTime(),
-                        delete.getIfSeqNo(), delete.getIfPrimaryTerm());
+                    delete = new Delete(
+                        delete.id(),
+                        delete.uid(),
+                        generateSeqNoForOperationOnPrimary(delete),
+                        delete.primaryTerm(),
+                        delete.version(),
+                        delete.versionType(),
+                        delete.origin(),
+                        delete.startTime(),
+                        delete.getIfSeqNo(),
+                        delete.getIfPrimaryTerm()
+                    );
 
                     advanceMaxSeqNoOfUpdatesOrDeletesOnPrimary(delete.seqNo());
                 } else {

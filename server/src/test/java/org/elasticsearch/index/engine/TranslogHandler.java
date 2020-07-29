@@ -37,6 +37,8 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
+import io.crate.Constants;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,7 +49,6 @@ import static java.util.Collections.emptyMap;
 public class TranslogHandler implements Engine.TranslogRecoveryRunner {
 
     private final MapperService mapperService;
-    private final Map<String, Mapping> recoveredTypes = new HashMap<>();
 
     public TranslogHandler(NamedXContentRegistry xContentRegistry, IndexSettings indexSettings) {
         NamedAnalyzer defaultAnalyzer = new NamedAnalyzer("default", AnalyzerScope.INDEX, new StandardAnalyzer());
@@ -67,12 +68,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
     private void applyOperation(Engine engine, Engine.Operation operation) throws IOException {
         switch (operation.operationType()) {
             case INDEX:
-                Engine.Index engineIndex = (Engine.Index) operation;
-                Mapping update = engineIndex.parsedDoc().dynamicMappingsUpdate();
-                if (engineIndex.parsedDoc().dynamicMappingsUpdate() != null) {
-                    recoveredTypes.compute(engineIndex.type(), (k, mapping) -> mapping == null ? update : mapping.merge(update, false));
-                }
-                engine.index(engineIndex);
+                engine.index((Engine.Index) operation);
                 break;
             case DELETE:
                 engine.delete((Engine.Delete) operation);
@@ -83,13 +79,6 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
             default:
                 throw new IllegalStateException("No operation defined for [" + operation + "]");
         }
-    }
-
-    /**
-     * Returns the recovered types modifying the mapping during the recovery
-     */
-    public Map<String, Mapping> getRecoveredTypes() {
-        return recoveredTypes;
     }
 
     @Override
@@ -110,7 +99,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
                 final Translog.Index index = (Translog.Index) operation;
                 final String indexName = mapperService.index().getName();
                 return IndexShard.prepareIndex(
-                    docMapper(index.type()),
+                    docMapper(Constants.DEFAULT_MAPPING_TYPE),
                     new SourceToParse(
                         indexName,
                         index.id(),
@@ -130,17 +119,18 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
                 );
             case DELETE:
                 final Translog.Delete delete = (Translog.Delete) operation;
-                return new Engine.Delete(delete.type(),
-                                         delete.id(),
-                                         delete.uid(),
-                                         delete.seqNo(),
-                                         delete.primaryTerm(),
-                                         delete.version(),
-                                         null,
-                                         origin,
-                                         System.nanoTime(),
-                                         SequenceNumbers.UNASSIGNED_SEQ_NO,
-                                         0);
+                return new Engine.Delete(
+                    delete.id(),
+                    delete.uid(),
+                    delete.seqNo(),
+                    delete.primaryTerm(),
+                    delete.version(),
+                    null,
+                    origin,
+                    System.nanoTime(),
+                    SequenceNumbers.UNASSIGNED_SEQ_NO,
+                    0
+                );
             case NO_OP:
                 final Translog.NoOp noOp = (Translog.NoOp) operation;
                 return new Engine.NoOp(noOp.seqNo(), noOp.primaryTerm(), origin, System.nanoTime(), noOp.reason());

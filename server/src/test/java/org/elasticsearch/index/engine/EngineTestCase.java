@@ -648,9 +648,19 @@ public abstract class EngineTestCase extends ESTestCase {
 
     protected Engine.Index indexForDoc(ParsedDocument doc) {
         return new Engine.Index(
-            newUid(doc), doc, UNASSIGNED_SEQ_NO, primaryTerm.get(),
-            Versions.MATCH_ANY, VersionType.INTERNAL, Engine.Operation.Origin.PRIMARY,
-            System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
+            newUid(doc),
+            doc,
+            UNASSIGNED_SEQ_NO,
+            primaryTerm.get(),
+            Versions.MATCH_ANY,
+            VersionType.INTERNAL,
+            Engine.Operation.Origin.PRIMARY,
+            System.nanoTime(),
+            -1,
+            false,
+            UNASSIGNED_SEQ_NO,
+            0
+        );
     }
 
     protected Engine.Index replicaIndexForDoc(ParsedDocument doc,
@@ -658,15 +668,34 @@ public abstract class EngineTestCase extends ESTestCase {
                                               long seqNo,
                                               boolean isRetry) {
         return new Engine.Index(
-            newUid(doc), doc, seqNo, primaryTerm.get(), version, null,
-            Engine.Operation.Origin.REPLICA, System.nanoTime(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-            isRetry, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+            newUid(doc),
+            doc,
+            seqNo,
+            primaryTerm.get(),
+            version,
+            null,
+            Engine.Operation.Origin.REPLICA,
+            System.nanoTime(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            isRetry,
+            SequenceNumbers.UNASSIGNED_SEQ_NO,
+            0
+        );
     }
 
     protected Engine.Delete replicaDeleteForDoc(String id, long version, long seqNo, long startTime) {
         return new Engine.Delete(
-            "default", id, newUid(id), seqNo, 1, version, null,
-            Engine.Operation.Origin.REPLICA, startTime, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+            id,
+            newUid(id),
+            seqNo,
+            1,
+            version,
+            null,
+            Engine.Operation.Origin.REPLICA,
+            startTime,
+            SequenceNumbers.UNASSIGNED_SEQ_NO,
+            0
+        );
     }
 
     protected static void assertVisibleCount(InternalEngine engine, int numDocs) throws IOException {
@@ -723,22 +752,31 @@ public abstract class EngineTestCase extends ESTestCase {
                     throw new UnsupportedOperationException("unknown version type: " + versionType);
             }
             if (randomBoolean()) {
-                op = new Engine.Index(id, testParsedDocument(docId, null, testDocumentWithTextField(valuePrefix + i), SOURCE, null),
-                                      forReplica && i >= startWithSeqNo ? i * 2 : UNASSIGNED_SEQ_NO,
-                                      forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
-                                      version,
-                                      forReplica ? null : versionType,
-                                      forReplica ? REPLICA : PRIMARY,
-                                      System.currentTimeMillis(), -1, false,
-                                      UNASSIGNED_SEQ_NO, 0);
+                op = new Engine.Index(
+                    id,
+                    testParsedDocument(docId, null, testDocumentWithTextField(valuePrefix + i), SOURCE, null),
+                    forReplica && i >= startWithSeqNo ? i * 2 : UNASSIGNED_SEQ_NO,
+                    forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
+                    version,
+                    forReplica ? null : versionType,
+                    forReplica ? REPLICA : PRIMARY,
+                    System.currentTimeMillis(), -1, false,
+                    UNASSIGNED_SEQ_NO,
+                    0
+                );
             } else {
-                op = new Engine.Delete("test", docId, id,
-                                       forReplica && i >= startWithSeqNo ? i * 2 : UNASSIGNED_SEQ_NO,
-                                       forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
-                                       version,
-                                       forReplica ? null : versionType,
-                                       forReplica ? REPLICA : PRIMARY,
-                                       System.currentTimeMillis(), UNASSIGNED_SEQ_NO, 0);
+                op = new Engine.Delete(
+                    docId,
+                    id,
+                    forReplica && i >= startWithSeqNo ? i * 2 : UNASSIGNED_SEQ_NO,
+                    forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
+                    version,
+                    forReplica ? null : versionType,
+                    forReplica ? REPLICA : PRIMARY,
+                    System.currentTimeMillis(),
+                    UNASSIGNED_SEQ_NO,
+                    0
+                );
             }
             ops.add(op);
         }
@@ -758,16 +796,43 @@ public abstract class EngineTestCase extends ESTestCase {
                 final ParsedDocument doc = createParsedDoc(id, null);
                 switch (opType) {
                     case INDEX:
-                        operations.add(new Engine.Index(EngineTestCase.newUid(doc), doc, seqNo, primaryTerm.get(),
-                                                        i, null, randomFrom(REPLICA, PEER_RECOVERY), startTime, -1, true, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
+                        operations.add(new Engine.Index(
+                            EngineTestCase.newUid(doc),
+                            doc,
+                            seqNo,
+                            primaryTerm.get(),
+                            i,
+                            null,
+                            randomFrom(REPLICA, PEER_RECOVERY),
+                            startTime,
+                            -1,
+                            true,
+                            SequenceNumbers.UNASSIGNED_SEQ_NO,
+                            0
+                        ));
                         break;
                     case DELETE:
-                        operations.add(new Engine.Delete("default", doc.id(), EngineTestCase.newUid(doc), seqNo, primaryTerm.get(),
-                                                         i, null, randomFrom(REPLICA, PEER_RECOVERY), startTime, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
+                        operations.add(new Engine.Delete(
+                            doc.id(),
+                            EngineTestCase.newUid(doc),
+                            seqNo,
+                            primaryTerm.get(),
+                            i,
+                            null,
+                            randomFrom(REPLICA, PEER_RECOVERY),
+                            startTime,
+                            SequenceNumbers.UNASSIGNED_SEQ_NO,
+                            0
+                        ));
                         break;
                     case NO_OP:
-                        operations.add(new Engine.NoOp(seqNo, primaryTerm.get(),
-                                                       randomFrom(REPLICA, PEER_RECOVERY), startTime, "test-" + i));
+                        operations.add(new Engine.NoOp(
+                            seqNo,
+                            primaryTerm.get(),
+                            randomFrom(REPLICA, PEER_RECOVERY),
+                            startTime,
+                            "test-" + i
+                        ));
                         break;
                     default:
                         throw new IllegalStateException("Unknown operation type [" + opType + "]");

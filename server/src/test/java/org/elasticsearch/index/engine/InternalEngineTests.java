@@ -237,9 +237,18 @@ public class InternalEngineTests extends EngineTestCase {
             assertEquals(2, searcher.getIndexReader().numDocs());
         }
         assertFalse("safe access should NOT be required last indexing round was only append only", engine.isSafeAccessRequired());
-        engine.delete(new Engine.Delete(operation.type(), operation.id(), operation.uid(), UNASSIGNED_SEQ_NO,
-                                        primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                                        Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+        engine.delete(new Engine.Delete(
+            operation.id(),
+            operation.uid(),
+            UNASSIGNED_SEQ_NO,
+            primaryTerm.get(),
+            Versions.MATCH_ANY,
+            VersionType.INTERNAL,
+            Engine.Operation.Origin.PRIMARY,
+            System.nanoTime(),
+            UNASSIGNED_SEQ_NO,
+            0
+        ));
         assertTrue("safe access should be required", engine.isSafeAccessRequired());
         engine.refresh("test");
         assertTrue("safe access should be required", engine.isSafeAccessRequired());
@@ -312,9 +321,17 @@ public class InternalEngineTests extends EngineTestCase {
 
 
             engine.delete(new Engine.Delete(
-                "default", "1", newUid(doc), UNASSIGNED_SEQ_NO,
-                primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+                "1",
+                newUid(doc),
+                UNASSIGNED_SEQ_NO,
+                primaryTerm.get(),
+                Versions.MATCH_ANY,
+                VersionType.INTERNAL,
+                Engine.Operation.Origin.PRIMARY,
+                System.nanoTime(),
+                UNASSIGNED_SEQ_NO,
+                0
+            ));
             engine.refresh("test");
 
             segments = engine.segments(false);
@@ -605,8 +622,18 @@ public class InternalEngineTests extends EngineTestCase {
                     operations.add(operation);
                     initialEngine.index(operation);
                 } else {
-                    final Engine.Delete operation = new Engine.Delete("test", "1", newUid(doc), UNASSIGNED_SEQ_NO, 0, i,
-                                                                      VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0);
+                    final Engine.Delete operation = new Engine.Delete(
+                        "1",
+                        newUid(doc),
+                        UNASSIGNED_SEQ_NO,
+                        0,
+                        i,
+                        VersionType.EXTERNAL,
+                        Engine.Operation.Origin.PRIMARY,
+                        System.nanoTime(),
+                        UNASSIGNED_SEQ_NO,
+                        0
+                    );
                     operations.add(operation);
                     initialEngine.delete(operation);
                 }
@@ -844,9 +871,17 @@ public class InternalEngineTests extends EngineTestCase {
 
         // now delete
         engine.delete(new Engine.Delete(
-            "default", "1", newUid(doc), UNASSIGNED_SEQ_NO,
-            primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-            Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+            "1",
+            newUid(doc),
+            UNASSIGNED_SEQ_NO,
+            primaryTerm.get(),
+            Versions.MATCH_ANY,
+            VersionType.INTERNAL,
+            Engine.Operation.Origin.PRIMARY,
+            System.nanoTime(),
+            UNASSIGNED_SEQ_NO,
+            0
+        ));
 
         // its not deleted yet
         searchResult = engine.acquireSearcher("test");
@@ -967,9 +1002,17 @@ public class InternalEngineTests extends EngineTestCase {
 
         // delete, refresh and do a new search, it should not be there
         engine.delete(new Engine.Delete(
-            "default", "1", newUid(doc), UNASSIGNED_SEQ_NO,
-            primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-            Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+            "1",
+            newUid(doc),
+            UNASSIGNED_SEQ_NO,
+            primaryTerm.get(),
+            Versions.MATCH_ANY,
+            VersionType.INTERNAL,
+            Engine.Operation.Origin.PRIMARY,
+            System.nanoTime(),
+            UNASSIGNED_SEQ_NO,
+            0
+        ));
         engine.refresh("test");
         Engine.Searcher updateSearchResult = engine.acquireSearcher("test");
         MatcherAssert.assertThat(updateSearchResult, EngineSearcherTotalHitsMatcher.engineSearcherTotalHits(0));
@@ -1102,9 +1145,17 @@ public class InternalEngineTests extends EngineTestCase {
                     assertEquals(engine.getLastWriteNanos(), doc4.startTime());
                 } else {
                     Engine.Delete delete = new Engine.Delete(
-                        doc1.type(), doc1.id(), doc1.uid(), UNASSIGNED_SEQ_NO,
-                        primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                        Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0);
+                        doc1.id(),
+                        doc1.uid(),
+                        UNASSIGNED_SEQ_NO,
+                        primaryTerm.get(),
+                        Versions.MATCH_ANY,
+                        VersionType.INTERNAL,
+                        Engine.Operation.Origin.PRIMARY,
+                        System.nanoTime(),
+                        UNASSIGNED_SEQ_NO,
+                        0
+                    );
                     engine.delete(delete);
                     assertEquals(engine.getLastWriteNanos(), delete.startTime());
                 }
@@ -1412,8 +1463,18 @@ public class InternalEngineTests extends EngineTestCase {
                                         UNASSIGNED_SEQ_NO, 0);
             } else {
                 Engine.Delete delete = (Engine.Delete) operation;
-                return new Engine.Delete(delete.type(), delete.id(), delete.uid(), newSeqNo, delete.primaryTerm(),
-                                         delete.version(), delete.versionType(), delete.origin(), delete.startTime(), UNASSIGNED_SEQ_NO, 0);
+                return new Engine.Delete(
+                    delete.id(),
+                    delete.uid(),
+                    newSeqNo,
+                    delete.primaryTerm(),
+                    delete.version(),
+                    delete.versionType(),
+                    delete.origin(),
+                    delete.startTime(),
+                    UNASSIGNED_SEQ_NO,
+                    0
+                );
             }
         };
         final List<Engine.Operation> allOps = new ArrayList<>();
@@ -1512,7 +1573,6 @@ public class InternalEngineTests extends EngineTestCase {
             UNASSIGNED_SEQ_NO,
             0);
         BiFunction<Long, Engine.Delete, Engine.Delete> delWithVersion = (version, delete) -> new Engine.Delete(
-            delete.type(),
             delete.id(),
             delete.uid(),
             UNASSIGNED_SEQ_NO,
@@ -1537,7 +1597,6 @@ public class InternalEngineTests extends EngineTestCase {
             seqNo,
             term);
         TriFunction<Long, Long, Engine.Delete, Engine.Delete> delWithSeq = (seqNo, term, delete) -> new Engine.Delete(
-            delete.type(),
             delete.id(),
             delete.uid(),
             UNASSIGNED_SEQ_NO,
@@ -1562,7 +1621,6 @@ public class InternalEngineTests extends EngineTestCase {
             index.getIfSeqNo(),
             index.getIfPrimaryTerm());
         Function<Engine.Delete, Engine.Delete> deleteWithCurrentTerm = delete -> new Engine.Delete(
-            delete.type(),
             delete.id(),
             delete.uid(),
             UNASSIGNED_SEQ_NO,
@@ -1931,9 +1989,17 @@ public class InternalEngineTests extends EngineTestCase {
         assertFalse(indexResult.isCreated());
 
         engine.delete(new Engine.Delete(
-            "doc", "1", newUid(doc), UNASSIGNED_SEQ_NO,
-            primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-            Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+            "1",
+            newUid(doc),
+            UNASSIGNED_SEQ_NO,
+            primaryTerm.get(),
+            Versions.MATCH_ANY,
+            VersionType.INTERNAL,
+            Engine.Operation.Origin.PRIMARY,
+            System.nanoTime(),
+            UNASSIGNED_SEQ_NO,
+            0
+        ));
 
         index = indexForDoc(doc);
         indexResult = engine.index(index);
@@ -2032,8 +2098,17 @@ public class InternalEngineTests extends EngineTestCase {
                     // we have some docs indexed, so delete one of them
                     id = randomFrom(indexedIds);
                     final Engine.Delete delete = new Engine.Delete(
-                        "test", id, newUid(id), UNASSIGNED_SEQ_NO, primaryTerm.get(),
-                        rarely() ? 100 : Versions.MATCH_ANY, VersionType.INTERNAL, PRIMARY, 0, UNASSIGNED_SEQ_NO, 0);
+                        id,
+                        newUid(id),
+                        UNASSIGNED_SEQ_NO,
+                        primaryTerm.get(),
+                        rarely() ? 100 : Versions.MATCH_ANY,
+                        VersionType.INTERNAL,
+                        PRIMARY,
+                        0,
+                        UNASSIGNED_SEQ_NO,
+                        0
+                    );
                     final Engine.DeleteResult result = initialEngine.delete(delete);
                     if (result.getResultType() == Engine.Result.Type.SUCCESS) {
                         assertThat(result.getSeqNo(), equalTo(primarySeqNo + 1));
@@ -2313,8 +2388,18 @@ public class InternalEngineTests extends EngineTestCase {
                                           Engine.Operation.Origin.PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0));
 
             // Delete document we just added:
-            engine.delete(new Engine.Delete("test", "1", newUid(doc), UNASSIGNED_SEQ_NO, 0,
-                                            10, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+            engine.delete(new Engine.Delete(
+                "1",
+                newUid(doc),
+                UNASSIGNED_SEQ_NO,
+                0,
+                10,
+                VersionType.EXTERNAL,
+                Engine.Operation.Origin.PRIMARY,
+                System.nanoTime(),
+                UNASSIGNED_SEQ_NO,
+                0
+            ));
 
             // Get should not find the document
             Engine.GetResult getResult = engine.get(newGet(doc), searcherFactory);
@@ -2328,8 +2413,18 @@ public class InternalEngineTests extends EngineTestCase {
             }
 
             // Delete non-existent document
-            engine.delete(new Engine.Delete("test", "2", newUid("2"), UNASSIGNED_SEQ_NO, 0,
-                                            10, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+            engine.delete(new Engine.Delete(
+                "2",
+                newUid("2"),
+                UNASSIGNED_SEQ_NO,
+                0,
+                10,
+                VersionType.EXTERNAL,
+                Engine.Operation.Origin.PRIMARY,
+                System.nanoTime(),
+                UNASSIGNED_SEQ_NO,
+                0
+            ));
 
             // Get should not find the document (we never indexed uid=2):
             getResult = engine.get(new Engine.Get("2", newUid("2")), searcherFactory);
@@ -2679,7 +2774,6 @@ public class InternalEngineTests extends EngineTestCase {
         engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
 
         assertVisibleCount(engine, numDocs, false);
-        assertEquals(0, translogHandler.getRecoveredTypes().size());
 
         engine.close();
         translogHandler = createTranslogHandler(engine.engineConfig.getIndexSettings());
@@ -2716,9 +2810,18 @@ public class InternalEngineTests extends EngineTestCase {
             TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), numDocs + 1);
             assertThat(topDocs.totalHits.value, equalTo(numDocs + 1L));
         }
-        engine.delete(new Engine.Delete("default", Integer.toString(randomId), newUid(doc), UNASSIGNED_SEQ_NO,
-                                        primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                                        Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+        engine.delete(new Engine.Delete(
+            Integer.toString(randomId),
+            newUid(doc),
+            UNASSIGNED_SEQ_NO,
+            primaryTerm.get(),
+            Versions.MATCH_ANY,
+            VersionType.INTERNAL,
+            Engine.Operation.Origin.PRIMARY,
+            System.nanoTime(),
+            UNASSIGNED_SEQ_NO,
+            0
+        ));
         if (randomBoolean()) {
             engine.refresh("test");
         } else {
@@ -2750,7 +2853,10 @@ public class InternalEngineTests extends EngineTestCase {
         Translog translog = new Translog(
             new TranslogConfig(shardId, badTranslogLog, INDEX_SETTINGS, BigArrays.NON_RECYCLING_INSTANCE),
             badUUID, createTranslogDeletionPolicy(INDEX_SETTINGS), () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> {});
-        translog.add(new Translog.Index("SomeBogusType", "SomeBogusId", 0, primaryTerm.get(),
+        translog.add(new Translog.Index(
+            "SomeBogusId",
+            0,
+            primaryTerm.get(),
             "{}".getBytes(Charset.forName("UTF-8"))));
         assertEquals(generation.translogFileGeneration, translog.currentFileGeneration());
         translog.close();
@@ -2995,9 +3101,16 @@ public class InternalEngineTests extends EngineTestCase {
                 expectThrows(AlreadyClosedException.class, () -> engine.index(indexForDoc(doc1)));
                 expectThrows(AlreadyClosedException.class,
                              () -> engine.delete(new Engine.Delete(
-                                 "test", "1", newUid(doc1), UNASSIGNED_SEQ_NO,
-                                 primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                                 Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0)));
+                                 "1",
+                                 newUid(doc1),
+                                 UNASSIGNED_SEQ_NO,
+                                 primaryTerm.get(),
+                                 Versions.MATCH_ANY,
+                                 VersionType.INTERNAL,
+                                 Engine.Operation.Origin.PRIMARY,
+                                 System.nanoTime(),
+                                 UNASSIGNED_SEQ_NO,
+                                 0)));
                 expectThrows(AlreadyClosedException.class,
                              () -> engine.noOp(
                                  new Engine.NoOp(engine.getLocalCheckpointTracker().generateSeqNo(),
@@ -3039,9 +3152,17 @@ public class InternalEngineTests extends EngineTestCase {
                 engine.index(indexForDoc(doc));
                 expectThrows(IllegalStateException.class, () -> engine.delete(
                     new Engine.Delete(
-                        "test", "1", newUid(doc), UNASSIGNED_SEQ_NO,
-                        primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                        Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0)));
+                        "1",
+                        newUid(doc),
+                        UNASSIGNED_SEQ_NO,
+                        primaryTerm.get(),
+                        Versions.MATCH_ANY,
+                        VersionType.INTERNAL,
+                        Engine.Operation.Origin.PRIMARY,
+                        System.nanoTime(),
+                        UNASSIGNED_SEQ_NO,
+                        0
+                    )));
                 assertTrue(engine.isClosed.get());
                 assertSame(tragicException, engine.failedEngine.get());
             }
@@ -3110,9 +3231,18 @@ public class InternalEngineTests extends EngineTestCase {
                                                       new BytesArray("{}".getBytes(Charset.defaultCharset())), null);
         Engine.Index operation = appendOnlyReplica(doc, false, 1, randomIntBetween(0, 5));
         Engine.Index retry = appendOnlyReplica(doc, true, 1, randomIntBetween(0, 5));
-        Engine.Delete delete = new Engine.Delete(operation.type(), operation.id(), operation.uid(),
-                                                 Math.max(retry.seqNo(), operation.seqNo())+1, operation.primaryTerm(), operation.version()+1,
-                                                 operation.versionType(), REPLICA, operation.startTime()+1, UNASSIGNED_SEQ_NO, 0);
+        Engine.Delete delete = new Engine.Delete(
+            operation.id(),
+            operation.uid(),
+            Math.max(retry.seqNo(), operation.seqNo()) + 1,
+            operation.primaryTerm(),
+            operation.version() + 1,
+            operation.versionType(),
+            REPLICA,
+            operation.startTime() + 1,
+            UNASSIGNED_SEQ_NO,
+            0
+        );
         // operations with a seq# equal or lower to the local checkpoint are not indexed to lucene
         // and the version lookup is skipped
         final boolean belowLckp = operation.seqNo() == 0 && retry.seqNo() == 0;
@@ -3497,8 +3627,18 @@ public class InternalEngineTests extends EngineTestCase {
                     operations.add(new Engine.Index(EngineTestCase.newUid(doc), doc, seqNo, primaryTerm.get(),
                                                     i, null, Engine.Operation.Origin.REPLICA, threadPool.relativeTimeInMillis(), -1, true,  UNASSIGNED_SEQ_NO, 0L));
                 } else {
-                    operations.add(new Engine.Delete("default", doc.id(), EngineTestCase.newUid(doc), seqNo, primaryTerm.get(),
-                                                     i, null, Engine.Operation.Origin.REPLICA, threadPool.relativeTimeInMillis(), UNASSIGNED_SEQ_NO, 0L));
+                    operations.add(new Engine.Delete(
+                        doc.id(),
+                        EngineTestCase.newUid(doc),
+                        seqNo,
+                        primaryTerm.get(),
+                        i,
+                        null,
+                        Engine.Operation.Origin.REPLICA,
+                        threadPool.relativeTimeInMillis(),
+                        UNASSIGNED_SEQ_NO,
+                        0L
+                    ));
                 }
             }
             seqNo++;
@@ -3685,7 +3825,6 @@ public class InternalEngineTests extends EngineTestCase {
                 operations.add(index);
             } else {
                 final Engine.Delete delete = new Engine.Delete(
-                    "test",
                     "1",
                     uid,
                     sequenceNumberSupplier.getAsLong(),
@@ -4194,7 +4333,6 @@ public class InternalEngineTests extends EngineTestCase {
                                      null, (engine, operation) -> seqNoGenerator.getAndIncrement())) {
             final String id = "id";
             final Field uidField = new Field("_id", id, IdFieldMapper.Defaults.FIELD_TYPE);
-            final String type = "type";
             final Field versionField = new NumericDocValuesField("_version", 0);
             final SeqNoFieldMapper.SequenceIDFields seqID = SeqNoFieldMapper.SequenceIDFields.emptySeqID();
             final ParseContext.Document document = new ParseContext.Document();
@@ -4229,7 +4367,6 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(seqNoGenerator.get(), equalTo(seqNo + 1));
 
             final Engine.Delete delete = new Engine.Delete(
-                type,
                 id,
                 new Term("_id", parsedDocument.id()),
                 UNASSIGNED_SEQ_NO,
@@ -4331,9 +4468,17 @@ public class InternalEngineTests extends EngineTestCase {
                     engine.index(operation);
                     if (rarely()) {
                         engine.delete(new Engine.Delete(
-                            operation.type(), operation.id(), operation.uid(), UNASSIGNED_SEQ_NO,
-                            primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                            Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+                            operation.id(),
+                            operation.uid(),
+                            UNASSIGNED_SEQ_NO,
+                            primaryTerm.get(),
+                            Versions.MATCH_ANY,
+                            VersionType.INTERNAL,
+                            Engine.Operation.Origin.PRIMARY,
+                            System.nanoTime(),
+                            UNASSIGNED_SEQ_NO,
+                            0
+                        ));
                         numDeletes.incrementAndGet();
                     } else {
                         doc = testParsedDocument(docID, null, testDocumentWithTextField("updated"),
@@ -4522,9 +4667,17 @@ public class InternalEngineTests extends EngineTestCase {
                 // first index an append only document and then delete it. such that we have it in the tombstones
                 engine.index(doc);
                 engine.delete(new Engine.Delete(
-                    doc.type(), doc.id(), doc.uid(), UNASSIGNED_SEQ_NO,
-                    primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                    Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+                    doc.id(),
+                    doc.uid(),
+                    UNASSIGNED_SEQ_NO,
+                    primaryTerm.get(),
+                    Versions.MATCH_ANY,
+                    VersionType.INTERNAL,
+                    Engine.Operation.Origin.PRIMARY,
+                    System.nanoTime(),
+                    UNASSIGNED_SEQ_NO,
+                    0
+                ));
 
                 // now index more append only docs and refresh so we re-enabel the optimization for unsafe version map
                 ParsedDocument document1 = testParsedDocument(Integer.toString(1), null, testDocumentWithTextField(), SOURCE, null);
@@ -4663,8 +4816,18 @@ public class InternalEngineTests extends EngineTestCase {
                     if (randomBoolean()) {
                         engine.index(doc);
                     } else {
-                        engine.delete(new Engine.Delete(doc.type(), doc.id(), doc.uid(), seqno, doc.primaryTerm(),
-                                                        doc.version(), doc.versionType(), doc.origin(), threadPool.relativeTimeInMillis(), UNASSIGNED_SEQ_NO, 0));
+                        engine.delete(new Engine.Delete(
+                            doc.id(),
+                            doc.uid(),
+                            seqno,
+                            doc.primaryTerm(),
+                            doc.version(),
+                            doc.versionType(),
+                            doc.origin(),
+                            threadPool.relativeTimeInMillis(),
+                            UNASSIGNED_SEQ_NO,
+                            0
+                        ));
                     }
                     maxSeqNoOfNonAppendOnly = seqno;
                 } else { // On primary - do not update max_seqno for non-append-only operations
@@ -4672,9 +4835,17 @@ public class InternalEngineTests extends EngineTestCase {
                         engine.index(indexForDoc(parsedDocument));
                     } else {
                         engine.delete(new Engine.Delete(
-                            "default", parsedDocument.id(), newUid(parsedDocument.id()), UNASSIGNED_SEQ_NO,
-                            primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                            Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+                            parsedDocument.id(),
+                            newUid(parsedDocument.id()),
+                            UNASSIGNED_SEQ_NO,
+                            primaryTerm.get(),
+                            Versions.MATCH_ANY,
+                            VersionType.INTERNAL,
+                            Engine.Operation.Origin.PRIMARY,
+                            System.nanoTime(),
+                            UNASSIGNED_SEQ_NO,
+                            0
+                        ));
                     }
                 }
             }
@@ -5015,9 +5186,17 @@ public class InternalEngineTests extends EngineTestCase {
                 }
             } else {
                 Engine.DeleteResult result = engine.delete(new Engine.Delete(
-                    "default", doc.id(), newUid(doc.id()), UNASSIGNED_SEQ_NO,
-                    primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                    Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
+                    doc.id(),
+                    newUid(doc.id()),
+                    UNASSIGNED_SEQ_NO,
+                    primaryTerm.get(),
+                    Versions.MATCH_ANY,
+                    VersionType.INTERNAL,
+                    Engine.Operation.Origin.PRIMARY,
+                    System.nanoTime(),
+                    UNASSIGNED_SEQ_NO,
+                    0
+                ));
                 liveDocIds.remove(doc.id());
                 assertThat("delete operations on primary must advance max_seq_no_of_updates",
                            engine.getMaxSeqNoOfUpdatesOrDeletes(), equalTo(Math.max(currentMaxSeqNoOfUpdates, result.getSeqNo())));
@@ -5300,9 +5479,17 @@ public class InternalEngineTests extends EngineTestCase {
                 Engine.Operation.Origin.PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0));
 
             Engine.Delete op = new Engine.Delete(
-                "_doc", "0", newUid("0"), UNASSIGNED_SEQ_NO,
-                primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0);
+                "0",
+                newUid("0"),
+                UNASSIGNED_SEQ_NO,
+                primaryTerm.get(),
+                Versions.MATCH_ANY,
+                VersionType.INTERNAL,
+                Engine.Operation.Origin.PRIMARY,
+                System.nanoTime(),
+                UNASSIGNED_SEQ_NO,
+                0
+            );
 
             iw.get().setThrowFailure(() -> new IllegalArgumentException("fatal"));
             final IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> engine.delete(op));
