@@ -2649,11 +2649,6 @@ public class InternalEngine extends Engine {
         }
     }
 
-    @Override
-    public boolean isRecovering() {
-        return pendingTranslogRecovery.get();
-    }
-
     /**
      * Gets the commit data from {@link IndexWriter} as a map.
      */
