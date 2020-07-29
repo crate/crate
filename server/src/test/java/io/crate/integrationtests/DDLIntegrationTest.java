@@ -377,9 +377,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (id integer primary key, qty integer constraint check_1 check (qty > 0))");
         execute("alter table t add column bazinga integer constraint bazinga_check check(bazinga <> 42)");
         execute("insert into t(id, qty, bazinga) values(0, 1, 100)");
-        expectedException.expectMessage(containsString(
-            "SQLParseException: Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {qty=1, id=0, bazinga=42}"));
-        execute("insert into t(id, qty, bazinga) values(0, 1, 42)");
+        assertThrows(() -> execute("insert into t(id, qty, bazinga) values(0, 1, 42)"),
+                     isSQLError(containsString(
+                         "Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {qty=1, id=0, bazinga=42}"),
+                                INTERNAL_ERROR,
+                                UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -464,9 +466,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (id) values(1)");
         refresh();
 
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot add a primary key column to a table that isn't empty");
-        execute("alter table t add column name string primary key");
+        assertThrows(() -> execute("alter table t add column name string primary key"),
+        isSQLError(is("Cannot add a primary key column to a table that isn't empty"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -492,9 +493,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (id) values(1)");
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot add a generated column to a table that isn't empty");
-        execute("alter table t add column id_generated as (id + 1)");
+        assertThrows(() -> execute("alter table t add column id_generated as (id + 1)"),
+                     isSQLError(is("Cannot add a generated column to a table that isn't empty"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -509,14 +509,12 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAlterTableAddDotExpressionInSubscript() {
-        execute("create table t (id int) " +
-                "clustered into 1 shards " +
-                "with (number_of_replicas=0)");
+        execute("create table t (id int) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"o['x.y']\" contains a dot");
 
-        execute("alter table t add \"o['x.y']\" int");
+        assertThrows(() ->  execute("alter table t add \"o['x.y']\" int"),
+                     isSQLError(is("\"o['x.y']\" contains a dot"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+
     }
 
     @Test
@@ -745,9 +743,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             "   date timestamp with time zone" +
             ") clustered into 3 shards with (number_of_replicas='0-all')");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Setting [number_of_shards] cannot be combined with other settings");
-        execute("alter table quotes set (number_of_shards=1, number_of_replicas='1-all')");
+        assertThrows(() -> execute("alter table quotes set (number_of_shards=1, number_of_replicas='1-all')"),
+                     isSQLError(is("Setting [number_of_shards] cannot be combined with other settings"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
