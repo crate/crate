@@ -48,8 +48,8 @@ public class SQLErrorMatcher {
 
     public static <T extends Throwable> Matcher<T> isHttpError(Matcher<String> msg, HttpErrorStatus httpErrorStatus) {
         return allOf(
-            withFeature(s -> HttpError.fromThrowable(s, null).message(), "error message", msg),
-            withFeature(s -> HttpError.fromThrowable(s, null).status(), "http error status", equalTo(httpErrorStatus))
+            withFeature(e -> HttpError.fromThrowable(e, null).message(), "error message", msg),
+            withFeature(e -> HttpError.fromThrowable(e, null).status(), "http error status", equalTo(httpErrorStatus))
         );
     }
 }

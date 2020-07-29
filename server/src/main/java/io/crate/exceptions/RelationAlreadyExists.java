@@ -26,7 +26,7 @@ import io.crate.metadata.RelationName;
 import java.util.Collections;
 import java.util.Locale;
 
-public final class RelationAlreadyExists extends ConflictException implements TableScopeException {
+    public final class RelationAlreadyExists extends ConflictException implements TableScopeException {
 
     private RelationName relationName;
 

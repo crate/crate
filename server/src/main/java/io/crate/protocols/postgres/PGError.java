@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.auth.user.AccessControl;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.common.ParsingException;
@@ -87,10 +88,12 @@ public class PGError {
             unwrappedError = mpe;
         }
         PGErrorStatus status;
-        String message = null;
+        String message = SQLExceptions.messageOf(throwable);
         if (throwable instanceof ParsingException) {
             status = PGErrorStatus.INTERNAL_ERROR;
             message = throwable.getMessage();
+        } else if (throwable instanceof RelationUnknown) {
+            status = PGErrorStatus.UNDEFINED_TABLE;
         } else if (throwable instanceof IllegalArgumentException) {
             status = PGErrorStatus.INTERNAL_ERROR;
             message = throwable.getMessage();

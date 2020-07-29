@@ -305,11 +305,12 @@ public class PostgresWireProtocol {
             } catch (Throwable t) {
                 ignoreTillSync = true;
                 if (session != null) {
-                    error = PGError.fromThrowable(t, getAccessControl.apply(session.sessionContext()));
+                    t = SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext()), t);
                 }
                 try {
                     if (session != null) {
                         AccessControl accessControl = getAccessControl.apply(session.sessionContext());
+                        t = SQLExceptions.forWireTransmission(accessControl, t);
                         error = PGError.fromThrowable(t, accessControl);
                     }
                     if (error != null) {

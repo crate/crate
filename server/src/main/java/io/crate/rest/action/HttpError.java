@@ -24,6 +24,7 @@ package io.crate.rest.action;
 
 import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.CrateException;
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
@@ -105,6 +106,8 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
         } else if (unwrappedError instanceof RelationUnknown) {
             httpErrorStatus = HttpErrorStatus.UNKNOWN_RELATION;
+        } else if (unwrappedError instanceof RelationAlreadyExists) {
+            httpErrorStatus = HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
         } else {
             httpErrorStatus = HttpErrorStatus.UNHANDLED_SERVER_ERROR;
         }

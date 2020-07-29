@@ -42,8 +42,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.rest.action.HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
+import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
+import static io.crate.rest.action.HttpErrorStatus.UNKNOWN_RELATION;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
@@ -123,10 +130,13 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTableAlreadyExistsException() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Relation 'doc.test' already exists.");
-        execute("create table test (col1 integer primary key, col2 string)");
+        assertThrows(() -> execute(
+            "create table test (col1 integer primary key, col2 string)"),
+                     isSQLError(
+                         is("Relation 'doc.test' already exists."),
+                         INTERNAL_ERROR,
+                         RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY)
+        );
     }
 
     @Test
@@ -217,23 +227,29 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGeoShapeInvalidPrecision() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Value '10%' of setting precision is not a valid distance uni");
-        execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='10%'))");
+        assertThrows(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='10%'))"),
+                     isSQLError(is("Value '10%' of setting precision is not a valid distance unit"),
+                                INTERNAL_ERROR,
+                                UNHANDLED_SERVER_ERROR));
     }
 
     @Test
     public void testGeoShapeInvalidDistance() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Value 'true' of setting distance_error_pct is not a float value");
-        execute("create table test (col1 geo_shape INDEX using QUADTREE with (distance_error_pct=true))");
+        assertThrows(() -> execute(
+            "create table test (col1 geo_shape INDEX using QUADTREE with (distance_error_pct=true))"),
+                     isSQLError(
+                         is("Value 'true' of setting distance_error_pct is not a float value"),
+                         INTERNAL_ERROR,
+                         UNHANDLED_SERVER_ERROR)
+        );
     }
 
     @Test
     public void testUnknownGeoShapeSetting() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Setting \"does_not_exist\" ist not supported on geo_shape index");
-        execute("create table test (col1 geo_shape INDEX using QUADTREE with (does_not_exist=false))");
+        assertThrows(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (does_not_exist=false))"),
+                     isSQLError(is("Setting \"does_not_exist\" ist not supported on geo_shape index"),
+                                INTERNAL_ERROR,
+                                UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -277,8 +293,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
         execute("refresh table quotes");
 
-        expectedException.expectMessage("Cannot search on field [quote] since it is not indexed.");
-        execute("select quote from quotes where quote = ?", new Object[]{quote});
+        assertThrows(() -> execute("select quote from quotes where quote = ?", new Object[]{quote}),
+            isSQLError(is("Cannot search on field [quote] since it is not indexed."), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -389,9 +405,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                      "doc| t| PRIMARY KEY| t_pk\n",
                      printedTable(response.rows()));
         execute("insert into t(id, qty) values(-42, 100)");
-        expectedException.expectMessage(containsString(
-            "IllegalArgumentException: Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"));
-        execute("insert into t(id, qty) values(0, 0)");
+        assertThrows(() -> execute("insert into t(id, qty) values(0, 0)"),
+                     isSQLError(
+                         is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"),
+                         INTERNAL_ERROR,
+                         UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -485,9 +503,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
         ensureYellow();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"o.x\" contains a dot");
-        execute("alter table t add \"o.x\" int");
+        assertThrows(() -> execute("alter table t add \"o.x\" int"),
+                     isSQLError(is("\"o.x\" contains a dot"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -528,13 +545,12 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "with (number_of_replicas=0)");
         ensureYellow();
         execute("alter table t add o['y'] int");
-        try {
-            execute("alter table t add o object as (z string)");
-            fail("did not fail for existing column o");
-        } catch (SQLActionException e) {
-            // column o exists already
-            assertThat(e.getMessage(), containsString("The table doc.t already has a column named o"));
-        }
+        // column o exists already
+        assertThrows(() -> execute("alter table t add o object as (z string)"),
+                     isSQLError(containsString("The table doc.t already has a column named o"),
+                                INTERNAL_ERROR,
+                                UNHANDLED_SERVER_ERROR));
+
         execute("select column_name from information_schema.columns where " +
                 "table_name = 't' and table_schema='doc'" +
                 "order by column_name asc");
@@ -643,10 +659,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDropUnknownTable() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Relation 'test' unknown");
-
-        execute("drop table test");
+        assertThrows(() -> execute("drop table test"), isSQLError(is("Relation 'test' unknown"), UNDEFINED_TABLE, UNKNOWN_RELATION));
     }
 
     @Test
@@ -753,10 +766,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 2, "Now panic", 1395961200000L}
         );
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Setting [number_of_shards] cannot be combined with other settings");
-        execute("alter table quotes partition (date=1395874800000) " +
-                "set (number_of_shards=1, number_of_replicas='1-all')");
+        assertThrows(() -> execute("alter table quotes partition (date=1395874800000) " +
+                                   "set (number_of_shards=1, number_of_replicas='1-all')"),
+                     isSQLError(is("Setting [number_of_shards] cannot be combined with other settings"),
+                                INTERNAL_ERROR,
+                                UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -779,9 +793,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Relation name \"AAA.t\" is invalid.");
-        execute("create table \"AAA\".t (name string) with (number_of_replicas=0)");
+        assertThrows(() -> execute("create table \"AAA\".t (name string) with (number_of_replicas=0)"),
+                     isSQLError(is("Relation name \"AAA.t\" is invalid."), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
