@@ -31,25 +31,24 @@ import org.hamcrest.Matcher;
 import static io.crate.testing.MoreMatchers.withFeature;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 
 public class SQLErrorMatcher {
 
-    public static <T extends Throwable> Matcher<T> isSQLError(String msg, PGErrorStatus pgErrorStatus, HttpErrorStatus httpErrorStatus) {
+    public static <T extends Throwable> Matcher<T> isSQLError(Matcher<String> msg, PGErrorStatus pgErrorStatus, HttpErrorStatus httpErrorStatus) {
         return anyOf(isPGError(msg, pgErrorStatus), isHttpError(msg, httpErrorStatus));
     }
 
-    public static <T extends Throwable> Matcher<T> isPGError(String msg, PGErrorStatus pgErrorStatus) {
+    public static <T extends Throwable> Matcher<T> isPGError(Matcher<String> msg, PGErrorStatus pgErrorStatus) {
         return allOf(
-            withFeature(e -> PGError.fromThrowable(e, null).message(), "error message", endsWith(msg)),
+            withFeature(e -> PGError.fromThrowable(e, null).message(), "error message", msg),
             withFeature(e -> PGError.fromThrowable(e, null).status(), "pg error status", equalTo(pgErrorStatus))
         );
     }
 
-    public static <T extends Throwable> Matcher<T> isHttpError(String msg, HttpErrorStatus httpErrorStatus) {
+    public static <T extends Throwable> Matcher<T> isHttpError(Matcher<String> msg, HttpErrorStatus httpErrorStatus) {
         return allOf(
-            withFeature(s -> HttpError.fromThrowable(s, null).message(), "error message", equalTo(msg)),
+            withFeature(s -> HttpError.fromThrowable(s, null).message(), "error message", msg),
             withFeature(s -> HttpError.fromThrowable(s, null).status(), "http error status", equalTo(httpErrorStatus))
         );
     }

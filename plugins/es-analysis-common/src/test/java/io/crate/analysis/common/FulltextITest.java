@@ -26,11 +26,13 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
-    import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Test;
@@ -39,6 +41,7 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.integrationtests.Setup;
 import io.crate.testing.TestingHelpers;
 
+@Seed("D8E271D261033884")
 public class FulltextITest extends SQLTransportIntegrationTest{
 
     private Setup setup = new Setup(sqlExecutor);
@@ -141,7 +144,7 @@ public class FulltextITest extends SQLTransportIntegrationTest{
         assertThat(response.rowCount(), is(1L));
 
         assertThrows(() -> execute("select * from matchbox where match(o_ignored['a'], 'Ford')"),
-                     isSQLError("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'",
+                     isSQLError(is("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'"),
                                 INTERNAL_ERROR,
                                 UNHANDLED_SERVER_ERROR));
         // This was never executed on the test before. What would be the expected behaviour. Since the exception is

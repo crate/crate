@@ -26,11 +26,13 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static io.crate.testing.SettingMatcher.hasKey;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
@@ -43,6 +45,8 @@ import java.util.Map;
 
 import com.google.common.base.Joiner;
 
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.rest.action.HttpErrorStatus;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
@@ -52,7 +56,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.testing.SQLResponse;
 
@@ -463,14 +466,11 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 "    \"token_chars\"=['letter', 'digit']" +
                 "  )" +
                 ")");
-        try {
-            execute("CREATE ANALYZER a10 (" +
-                    "  TOKENIZER a9tok" +
-                    ")");
-            fail("Reusing existing tokenizer worked");
-        } catch (SQLActionException e) {
-            assertThat(e.getMessage(), containsString("Non-existing tokenizer 'a9tok'"));
-        }
+        assertThrows(() -> execute("CREATE ANALYZER a10 (TOKENIZER a9tok)"),
+                     isSQLError(endsWith("Non-existing tokenizer 'a9tok'"),
+                                PGErrorStatus.INTERNAL_ERROR,
+                                HttpErrorStatus.UNHANDLED_SERVER_ERROR));
+
         /*
          * NOT SUPPORTED UNTIL A CONSISTENT SOLUTION IS FOUND
          * FOR IMPLICITLY CREATING TOKENIZERS ETC. WITHIN ANALYZER-DEFINITIONS

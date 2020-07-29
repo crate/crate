@@ -33,6 +33,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false, numClientNodes = 0)
@@ -70,7 +71,7 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("select text from t1 group by text"),
                    isSQLError(
-                       "[query] Data too large, data for [collect: 0] would be [130/130b], which is larger than the limit of [100/100b]",
+                       is("[query] Data too large, data for [collect: 0] would be [130/130b], which is larger than the limit of [100/100b]"),
                        INTERNAL_ERROR,
                        UNHANDLED_SERVER_ERROR));
     }

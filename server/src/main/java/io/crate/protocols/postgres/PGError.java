@@ -75,13 +75,17 @@ public class PGError {
     }
 
     public static PGError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
-
         if (throwable instanceof PSQLException) {
-            return fromPSQLException((PSQLException) throwable.getCause());
+            return fromPSQLException((PSQLException) throwable);
         }
-
         Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
-        //TODO make sure values are masked using accessControl
+        try {
+            if (accessControl != null) {
+                accessControl.ensureMaySee(unwrappedError);
+            }
+        } catch (Exception mpe) {
+            unwrappedError = mpe;
+        }
         PGErrorStatus status;
         String message = null;
         if (throwable instanceof ParsingException) {
@@ -116,6 +120,8 @@ public class PGError {
             }
         }
         assert errorStatus != null : "Unknown psql error code: " + sqlState;
-        return new PGError(errorStatus, e.getMessage().replace("ERROR: ", ""), e);
+        //Remove ERROR: prefix added by the pgsql driver to unify error message with HttpError
+        String msg = e.getMessage().replace("ERROR: ", "");
+        return new PGError(errorStatus, msg, e);
     }
 }
