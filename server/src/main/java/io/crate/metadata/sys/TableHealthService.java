@@ -207,9 +207,7 @@ public class TableHealthService {
         }
     }
 
-    private static class HealthResultReceiver implements ResultReceiver {
-
-        private static final Logger LOGGER = LogManager.getLogger(TableHealthService.HealthResultReceiver.class);
+    private static class HealthResultReceiver implements ResultReceiver<Map<TablePartitionIdent, ShardsInfo>> {
 
         private final CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> result;
         private final Map<TablePartitionIdent, ShardsInfo> tables = new HashMap<>();
@@ -239,7 +237,6 @@ public class TableHealthService {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            LOGGER.error("error retrieving tables health", t);
             result.completeExceptionally(t);
         }
 
@@ -248,7 +245,7 @@ public class TableHealthService {
         }
 
         @Override
-        public CompletableFuture<?> completionFuture() {
+        public CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> completionFuture() {
             return result;
         }
     }
