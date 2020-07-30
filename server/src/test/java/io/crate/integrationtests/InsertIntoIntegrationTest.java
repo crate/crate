@@ -42,6 +42,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.rest.action.HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
+import static io.crate.rest.action.HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
 import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -54,6 +55,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
+@UseJdbc(0)
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -1227,7 +1229,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         // wrong value
         assertThrows(() -> execute("insert into test(col1, col2) values (1, 0)"),
                      isSQLError(is("Given value 0 for generated column col2 does not match calculation (col1 + 3) = 4"),
-                                INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                                INTERNAL_ERROR, STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX));
     }
 
     @Test
@@ -1239,7 +1241,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         assertThrows(() -> execute("insert into target (col1) (select col1 from source)"),
                      isSQLError(containsString("Column \"col2\" is required but is missing from the insert statement"),
-                                INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                                INTERNAL_ERROR, STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX));
     }
 
     @Test
@@ -1355,7 +1357,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (id, name) values (1, 'foo')");
         assertThat(response.rowCount(), is(1L));
         assertThrows(() -> execute("insert into test (id, name) values (1, 'bar')"),
-                     isSQLError(containsString("A document with the same primary key exists already"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(containsString("A document with the same primary key exists already"),
+                                INTERNAL_ERROR,
+                                DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY));
         refresh ();
         // we want to read from the replica but cannot force it, lets select twice to increase chances
         execute("select _version, name from test");

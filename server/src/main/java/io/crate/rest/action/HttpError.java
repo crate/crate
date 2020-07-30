@@ -22,29 +22,44 @@
 
 package io.crate.rest.action;
 
+import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.exceptions.AmbiguousColumnException;
+import io.crate.exceptions.AnalyzerInvalidException;
 import io.crate.exceptions.AnalyzerUnknownException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.DuplicateKeyException;
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.InvalidArgumentException;
+import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.exceptions.InvalidRelationName;
+import io.crate.exceptions.InvalidSchemaNameException;
+import io.crate.exceptions.LicenseViolationException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.RelationsUnknown;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.SnapshotAlreadyExistsException;
 import io.crate.exceptions.SnapshotNameInvalidException;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.exceptions.ValidationException;
+import io.crate.exceptions.VersioninigValidationException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -108,11 +123,41 @@ public class HttpError {
         if (unwrappedError instanceof CrateException) {
             CrateException crateException = (CrateException) unwrappedError;
             if (crateException instanceof ValidationException) {
-                httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
-            } else if (crateException instanceof UnauthorizedException) {
-                httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
-            } else if (crateException instanceof ReadOnlyException) {
-                httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                if (crateException instanceof AmbiguousColumnAliasException) {
+                    httpErrorStatus = HttpErrorStatus.COLUMN_ALIAS_IS_AMBIGUOUS;
+                } else if (crateException instanceof AmbiguousColumnException) {
+                    httpErrorStatus = HttpErrorStatus.COLUMN_ALIAS_IS_AMBIGUOUS;
+                } else if (crateException instanceof AnalyzerInvalidException) {
+                    httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_ANALYZER_DEFINITION;
+                } else if (crateException instanceof ColumnValidationException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof GroupByOnArrayUnsupportedException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof InvalidArgumentException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof InvalidColumnNameException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof InvalidRelationName) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof InvalidSchemaNameException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof LicenseViolationException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof OperationOnInaccessibleRelationException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof RelationValidationException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof SQLParseException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof UnsupportedFeatureException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof VersioninigValidationException) {
+                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                } else if (crateException instanceof UnauthorizedException) {
+                    httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
+                } else if (crateException instanceof ReadOnlyException) {
+                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                }
             } else if (crateException instanceof ResourceUnknownException) {
                 if (crateException instanceof AnalyzerUnknownException) {
                     httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_ANALYZER_DEFINITION;

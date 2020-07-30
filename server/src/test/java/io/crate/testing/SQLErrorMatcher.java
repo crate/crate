@@ -26,6 +26,7 @@ import io.crate.protocols.postgres.PGError;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.rest.action.HttpError;
 import io.crate.rest.action.HttpErrorStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.hamcrest.Matcher;
 import org.postgresql.util.PSQLException;
 
@@ -42,11 +43,24 @@ public class SQLErrorMatcher {
         return anyOf(isPGError(msg, pgErrorStatus), isHttpError(msg, httpErrorStatus));
     }
 
+    public static <T extends Throwable> Matcher<T> isSQLError(Matcher<String> msg, PGErrorStatus pgErrorStatus, HttpResponseStatus httpResponseStatus, int errorCode) {
+        return anyOf(isPGError(msg, pgErrorStatus), isHttpError(msg, httpResponseStatus, errorCode));
+    }
+
     public static <T extends Throwable> Matcher<T> isPGError(Matcher<String> msg, PGErrorStatus pgErrorStatus) {
         return allOf(
             instanceOf(PSQLException.class),
             withFeature(e -> PGError.fromPSQLException((PSQLException) e).message(), "error message", msg),
             withFeature(e -> PGError.fromPSQLException((PSQLException) e).status(), "pg error status", equalTo(pgErrorStatus))
+        );
+    }
+
+    public static <T extends Throwable> Matcher<T> isHttpError(Matcher<String> msg, HttpResponseStatus httpResponseStatus, int errorCode) {
+        return allOf(
+            not(instanceOf(PSQLException.class)),
+            withFeature(e -> HttpError.fromThrowable(e).message(), "error message", msg),
+            withFeature(e -> HttpError.fromThrowable(e).status().errorCode(), "http error status", equalTo(errorCode)),
+            withFeature(e -> HttpError.fromThrowable(e).status().httpResponseStatus(), "http error status", equalTo(httpResponseStatus))
         );
     }
 
