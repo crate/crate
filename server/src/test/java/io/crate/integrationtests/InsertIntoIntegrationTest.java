@@ -27,6 +27,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -817,7 +818,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table users (name string) clustered into 1 shards");
 
         assertThrows(() -> execute("insert into users (name) (select name from users where _version = 1)"),
-                     isSQLError(endsWith(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test

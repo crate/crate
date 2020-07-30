@@ -32,7 +32,7 @@ public enum HttpErrorStatus {
     FIELD_VALIDATION_FAILED(HttpResponseStatus.BAD_REQUEST,4003, "Field type validation failed"),
     POSSIBLE_FEATURE_NOT_SUPPROTED_YET(HttpResponseStatus.BAD_REQUEST,4004, "Possible feature not supported (yet)"),
     ALTER_TABLE_USING_ALIAS_NOT_SUPPORTED(HttpResponseStatus.BAD_REQUEST, 4005, "Alter table using a table alias is not supported."),
-    COLUMN_ALIAS_IS_AMBIGUOUS(HttpResponseStatus.BAD_REQUEST, 4006, "Alter table using a table alias is not supported."),
+    COLUMN_ALIAS_IS_AMBIGUOUS(HttpResponseStatus.BAD_REQUEST, 4006, "The used column alias is ambiguous."),
     RELATION_OPERATION_NOT_SUPPORTED(HttpResponseStatus.BAD_REQUEST,4007, "The operation is not supported on this relation, as it is not accessible"),
     COLUMN_NAME_INVALID(HttpResponseStatus.BAD_REQUEST,4008, "The name of the column is invalid"),
     LICENSE_EXPIRED(HttpResponseStatus.BAD_REQUEST,4009, "CrateDB License is expired"),

@@ -22,13 +22,28 @@
 
 package io.crate.rest.action;
 
+import io.crate.exceptions.AnalyzerUnknownException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.DuplicateKeyException;
+import io.crate.exceptions.PartitionAlreadyExistsException;
+import io.crate.exceptions.PartitionUnknownException;
+import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.RelationsUnknown;
+import io.crate.exceptions.RepositoryAlreadyExistsException;
+import io.crate.exceptions.RepositoryUnknownException;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.exceptions.SQLParseException;
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.SnapshotAlreadyExistsException;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.exceptions.UserAlreadyExistsException;
+import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
+import io.crate.exceptions.UserDefinedFunctionUnknownException;
+import io.crate.exceptions.UserUnknownException;
+import io.crate.exceptions.ValidationException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -88,21 +103,52 @@ public class HttpError {
 
     public static HttpError fromThrowable(Throwable throwable) {
         Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
-        HttpErrorStatus httpErrorStatus;
-        if (unwrappedError instanceof HttpResponseException) {
-            httpErrorStatus = ((HttpResponseException) unwrappedError).status();
-        } else if (unwrappedError instanceof IllegalArgumentException) {
-            httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
-        } else if (unwrappedError instanceof UnauthorizedException) {
-            httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
-        } else if (unwrappedError instanceof SQLParseException) {
-            httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
-        } else if (unwrappedError instanceof RelationUnknown) {
-            httpErrorStatus = HttpErrorStatus.UNKNOWN_RELATION;
-        } else if (unwrappedError instanceof RelationAlreadyExists) {
-            httpErrorStatus = HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
-        } else if (unwrappedError instanceof DuplicateKeyException) {
-            httpErrorStatus = HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
+        HttpErrorStatus httpErrorStatus = null;
+        if (unwrappedError instanceof CrateException) {
+            CrateException crateException = (CrateException) unwrappedError;
+            if (crateException instanceof ValidationException) {
+                httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
+            } else if (crateException instanceof UnauthorizedException) {
+                httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
+            } else if (crateException instanceof ReadOnlyException) {
+                httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+            } else if (crateException instanceof ResourceUnknownException) {
+                if (crateException instanceof AnalyzerUnknownException) {
+                    httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_ANALYZER_DEFINITION;
+                } else if (crateException instanceof ColumnUnknownException) {
+                    httpErrorStatus = HttpErrorStatus.COLUMN_NAME_INVALID;
+                } else if (crateException instanceof PartitionUnknownException) {
+                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                } else if (crateException instanceof RelationUnknown) {
+                    httpErrorStatus = HttpErrorStatus.UNKNOWN_RELATION;
+                } else if (crateException instanceof RelationsUnknown) {
+                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                } else if (crateException instanceof RepositoryUnknownException) {
+                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                } else if (crateException instanceof SchemaUnknownException) {
+                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                } else if (crateException instanceof UserDefinedFunctionUnknownException) {
+                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                } else if (crateException instanceof UserUnknownException) {
+                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                }
+            } else if (crateException instanceof DuplicateKeyException) {
+                httpErrorStatus = HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
+            } else if (crateException instanceof PartitionAlreadyExistsException) {
+                httpErrorStatus = HttpErrorStatus.PARTITION_FOR_THE_SAME_VALUE_EXISTS_ALREADY;
+            } else if (crateException instanceof RelationAlreadyExists) {
+                httpErrorStatus = HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
+            } else if (crateException instanceof RepositoryAlreadyExistsException) {
+                httpErrorStatus = HttpErrorStatus.REPOSITORY_WITH_SAME_NAME_EXISTS_ALREADY;
+            } else if (crateException instanceof SnapshotAlreadyExistsException) {
+                httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
+            } else if (crateException instanceof UserAlreadyExistsException) {
+                httpErrorStatus = HttpErrorStatus.USER_WITH_SAME_NAME_EXISTS_ALREADY;
+            } else if (crateException instanceof UserDefinedFunctionAlreadyExistsException) {
+                httpErrorStatus = HttpErrorStatus.USER_DEFINED_FUNCTION_WITH_SAME_SIGNATURE_EXISTS_ALREADY;
+            } else {
+                httpErrorStatus = HttpErrorStatus.UNHANDLED_SERVER_ERROR;
+            }
         } else {
             httpErrorStatus = HttpErrorStatus.UNHANDLED_SERVER_ERROR;
         }
