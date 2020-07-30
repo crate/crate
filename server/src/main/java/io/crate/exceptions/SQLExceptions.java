@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.AccessControl;
 import io.crate.metadata.PartitionName;
-import io.crate.rest.action.HttpError;
 import io.crate.sql.parser.ParsingException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -153,7 +152,7 @@ public class SQLExceptions {
             if (unwrappedError.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
                 return new RelationAlreadyExists(((InvalidIndexNameException) unwrappedError).getIndex().getName(),
-                                                 unwrappedError);
+                    unwrappedError);
             }
             return new InvalidRelationName(((InvalidIndexNameException) unwrappedError).getIndex().getName(), unwrappedError);
         } else if (unwrappedError instanceof InvalidIndexTemplateException) {
