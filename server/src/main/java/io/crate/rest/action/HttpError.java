@@ -38,6 +38,7 @@ import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.SnapshotAlreadyExistsException;
+import io.crate.exceptions.SnapshotNameInvalidException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
@@ -142,6 +143,8 @@ public class HttpError {
                 httpErrorStatus = HttpErrorStatus.REPOSITORY_WITH_SAME_NAME_EXISTS_ALREADY;
             } else if (crateException instanceof SnapshotAlreadyExistsException) {
                 httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
+            } else if (crateException instanceof SnapshotNameInvalidException) {
+                httpErrorStatus = HttpErrorStatus.CREATING_SNAPSHOT_FAILED;
             } else if (crateException instanceof UserAlreadyExistsException) {
                 httpErrorStatus = HttpErrorStatus.USER_WITH_SAME_NAME_EXISTS_ALREADY;
             } else if (crateException instanceof UserDefinedFunctionAlreadyExistsException) {

@@ -24,8 +24,11 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.rest.action.HttpErrorStatus;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -56,6 +59,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -245,11 +251,12 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @Test
+    @UseJdbc(0)
     public void testInvalidSnapshotName() throws Exception {
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase");
-        execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)");
+        assertThrows(() -> execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)"),
+                     isSQLError(containsString("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase"),
+                                PGErrorStatus.INTERNAL_ERROR,
+                                HttpErrorStatus.CREATING_SNAPSHOT_FAILED));
     }
 
     @Test

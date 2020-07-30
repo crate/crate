@@ -1238,7 +1238,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into source (col1) values (1)");
         refresh();
         assertThrows(() -> execute("insert into target (col1) (select col1 from source)"),
-                     isSQLError(is("Column \"col2\" is required but is missing from the insert statement"),
+                     isSQLError(containsString("Column \"col2\" is required but is missing from the insert statement"),
                                 INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
