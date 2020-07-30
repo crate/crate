@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
@@ -40,9 +39,15 @@ import java.util.Map;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.rest.action.HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
+import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -185,9 +190,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertBadIPAddress() throws Exception {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureYellow();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast `'192.168.1.500'` of type `text` to type `ip`");
-        execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')");
+        assertThrows(() -> execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')"),
+                     isSQLError(is("Cannot cast `'192.168.1.500'` of type `text` to type `ip`"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -309,16 +313,15 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertWithPrimaryKeyFailing() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
 
-        Object[] args = new Object[]{"1",
-            "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
-        execute("insert into test (pk_col, message) values (?, ?)", args);
+        execute("insert into test (pk_col, message) values (?, ?)", new Object[]{"1",
+            "A towel is about the most massively useful thing an interstellar hitch hiker can have."});
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("DuplicateKeyException: A document with the same primary key exists already");
-        args = new Object[]{"1",
-            "I always thought something was fundamentally wrong with the universe."};
-        execute("insert into test (pk_col, message) values (?, ?)", args);
+        assertThrows(() -> execute("insert into test (pk_col, message) values (?, ?)", new Object[]{"1",
+                         "I always thought something was fundamentally wrong with the universe."}),
+                     isSQLError(
+                         is("A document with the same primary key exists already"),
+                         INTERNAL_ERROR, DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY));
     }
 
     @Test
@@ -351,10 +354,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (pk_col int primary key, message string not null)");
         ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"message\" must not be null");
         Object[] args = new Object[]{"1", null};
-        execute("insert into t (pk_col, message) values (?, ?)", args);
+        assertThrows(() -> execute("insert into t (pk_col, message) values (?, ?)", args),
+                     isSQLError(is("\"message\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -365,9 +367,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 ") not null)");
         ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"stuff['level1']\" must not be null");
-        execute("insert into test (stuff) values('{\"other_field\":\"value\"}')");
+        assertThrows(() -> execute("insert into test (stuff) values('{\"other_field\":\"value\"}')"),
+                     isSQLError(is("\"stuff['level1']\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -380,9 +381,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 ") not null)");
         ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"stuff['level1']['level2']\" must not be null");
-        execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')");
+        assertThrows(() ->execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')"),
+                     isSQLError(is("\"stuff['level1']['level2']\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -394,14 +394,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         };
         execute("insert into test (pk_col, message) values (?, ?)", args);
 
-        args = new Object[]{
-            "1", "I always thought something was fundamentally wrong with the universe"
-        };
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("A document with the same primary key exists already");
-
-        execute("insert into test (pk_col, message) values (?, ?)", args);
+        assertThrows(() -> execute("insert into test (pk_col, message) values (?, ?)", new Object[]{
+                         "1", "I always thought something was fundamentally wrong with the universe"}),
+                     isSQLError(is("A document with the same primary key exists already"),
+                                INTERNAL_ERROR,
+                                UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -413,10 +410,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
             "This has made a lot of people very angry and been widely regarded as a bad move."
         };
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column `pk_col` is required but is missing from the insert statement");
-
-        execute("insert into test (message) values (?)", args);
+        assertThrows(() -> execute("insert into test (message) values (?)", args),
+                     isSQLError(is("Column \"pk_col\" is required but is missing from the insert statement"),
+                                INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -425,10 +421,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 "with (number_of_replicas=0)");
         ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Clustered by value must not be NULL");
-        execute("insert into quotes (id, quote) values(?, ?)",
-            new Object[]{null, "I'd far rather be happy than right any day."});
+        assertThrows(() -> execute("insert into quotes (id, quote) values(?, ?)",
+                                   new Object[]{null, "I'd far rather be happy than right any day."}),
+                     isSQLError(is("Clustered by value must not be NULL"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -436,10 +431,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column `id` is required but is missing from the insert statement");
-        execute("insert into quotes (quote) values(?)",
-            new Object[]{"I'd far rather be happy than right any day."});
+        assertThrows(() -> execute("insert into quotes (quote) values(?)",
+                                   new Object[]{"I'd far rather be happy than right any day."}),
+                     isSQLError(is("Clustered by value is required but is missing from the insert statement"),
+                                INTERNAL_ERROR,
+                                UNHANDLED_SERVER_ERROR));
     }
 
 
@@ -820,9 +816,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertFromSubQueryWithVersion() throws Exception {
         execute("create table users (name string) clustered into 1 shards");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute("insert into users (name) (select name from users where _version = 1)");
+        assertThrows(() -> execute("insert into users (name) (select name from users where _version = 1)"),
+                     isSQLError(endsWith(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -1093,9 +1088,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"gen_col\" must not be null");
-        execute("insert into generated_column (id, ts) values (1, null)");
+        assertThrows(() -> execute("insert into generated_column (id, ts) values (1, null)"),
+                     isSQLError(is("\"gen_col\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -1107,9 +1101,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"gen_col\" must not be null");
-        execute("insert into generated_column (id, gen_col) values (1, null)");
+        assertThrows(() -> execute("insert into generated_column (id, gen_col) values (1, null)"),
+                     isSQLError(is("\"gen_col\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -1231,9 +1224,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0][0], is(4));
 
         // wrong value
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Given value 0 for generated column col2 does not match calculation (col1 + 3) = 4");
-        execute("insert into test(col1, col2) values (1, 0)");
+        assertThrows(() -> execute("insert into test(col1, col2) values (1, 0)"),
+                     isSQLError(is("Given value 0 for generated column col2 does not match calculation (col1 + 3) = 4"),
+                                INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -1243,9 +1236,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into source (col1) values (1)");
         refresh();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column \"col2\" is required but is missing from the insert statement");
-        execute("insert into target (col1) (select col1 from source)");
+        assertThrows(() -> execute("insert into target (col1) (select col1 from source)"),
+                     isSQLError(is("Column \"col2\" is required but is missing from the insert statement"),
+                                INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -1305,9 +1298,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testGeneratedColumnAsPrimaryKeyValueEvaluateToNull() throws Exception {
         execute("CREATE TABLE test (col1 TEXT, col2 AS try_cast(col1 AS INT) PRIMARY KEY)");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Primary key value must not be NULL");
-        execute("insert into test (col1) values ('a')");
+        assertThrows(() -> execute("insert into test (col1) values ('a')"),
+                     isSQLError(is("Primary key value must not be NULL"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test
@@ -1361,14 +1353,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into test (id, name) values (1, 'foo')");
         assertThat(response.rowCount(), is(1L));
-        try {
-            execute("insert into test (id, name) values (1, 'bar')");
-            fail("Expecting a DuplicateKeyException");
-        } catch (SQLActionException e) {
-            assertThat(e.getMessage(), containsString("DuplicateKeyException"));
-        }
-        refresh();
-
+        assertThrows(() -> execute("insert into test (id, name) values (1, 'bar')"),
+                     isSQLError(containsString("A document with the same primary key exists already"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+        refresh ();
         // we want to read from the replica but cannot force it, lets select twice to increase chances
         execute("select _version, name from test");
         assertThat((String) response.rows()[0][1], is("foo"));

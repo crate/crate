@@ -180,7 +180,7 @@ public class Messages {
     }
 
     static ChannelFuture sendErrorResponse(Channel channel, Throwable throwable) {
-        return sendErrorResponse(channel, PGError.fromThrowable(throwable, null));
+        return sendErrorResponse(channel, PGError.fromThrowable(throwable));
     }
 
     static ChannelFuture sendErrorResponse(Channel channel, PGError error) {

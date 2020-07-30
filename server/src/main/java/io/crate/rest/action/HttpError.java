@@ -22,8 +22,8 @@
 
 package io.crate.rest.action;
 
-import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.CrateException;
+import io.crate.exceptions.DuplicateKeyException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
@@ -86,15 +86,8 @@ public class HttpError {
                '}';
     }
 
-    public static HttpError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
+    public static HttpError fromThrowable(Throwable throwable) {
         Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
-        try {
-            if (accessControl != null) {
-                accessControl.ensureMaySee(unwrappedError);
-            }
-        } catch (Exception mpe) {
-            unwrappedError = mpe;
-        }
         HttpErrorStatus httpErrorStatus;
         if (unwrappedError instanceof HttpResponseException) {
             httpErrorStatus = ((HttpResponseException) unwrappedError).status();
@@ -108,10 +101,12 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.UNKNOWN_RELATION;
         } else if (unwrappedError instanceof RelationAlreadyExists) {
             httpErrorStatus = HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
+        } else if (unwrappedError instanceof DuplicateKeyException) {
+            httpErrorStatus = HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
         } else {
             httpErrorStatus = HttpErrorStatus.UNHANDLED_SERVER_ERROR;
         }
-        String message = throwable.getMessage();
+        String message = unwrappedError.getMessage();
         if (message == null) {
             if (throwable instanceof CrateException && throwable.getCause() != null) {
                 throwable = throwable.getCause();   // use cause because it contains a more meaningful error in most cases

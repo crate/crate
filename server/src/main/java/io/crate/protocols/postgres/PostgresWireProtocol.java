@@ -311,7 +311,7 @@ public class PostgresWireProtocol {
                     if (session != null) {
                         AccessControl accessControl = getAccessControl.apply(session.sessionContext());
                         t = SQLExceptions.forWireTransmission(accessControl, t);
-                        error = PGError.fromThrowable(t, accessControl);
+                        error = PGError.fromThrowable(t);
                     }
                     if (error != null) {
                         Messages.sendErrorResponse(channel, error);

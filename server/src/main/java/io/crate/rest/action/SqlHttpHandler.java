@@ -37,6 +37,7 @@ import io.crate.auth.user.UserLookup;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.protocols.http.Headers;
@@ -162,7 +163,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            HttpError httpError = HttpError.fromThrowable(t, getAccessControl.apply(session.sessionContext()));
+            var throwable = SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext()), t);
+            HttpError httpError = HttpError.fromThrowable(throwable);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
             try (XContentBuilder contentBuilder = httpError.toXContent(includeErrorTrace)) {

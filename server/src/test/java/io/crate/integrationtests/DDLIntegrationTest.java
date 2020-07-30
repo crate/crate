@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -294,7 +293,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table quotes");
 
         assertThrows(() -> execute("select quote from quotes where quote = ?", new Object[]{quote}),
-            isSQLError(is("Cannot search on field [quote] since it is not indexed."), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+            isSQLError(containsString("Cannot search on field [quote] since it is not indexed."), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
     }
 
     @Test

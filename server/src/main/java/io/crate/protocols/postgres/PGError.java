@@ -75,18 +75,11 @@ public class PGError {
                '}';
     }
 
-    public static PGError fromThrowable(Throwable throwable, @Nullable AccessControl accessControl) {
+    public static PGError fromThrowable(Throwable throwable) {
         if (throwable instanceof PSQLException) {
             return fromPSQLException((PSQLException) throwable);
         }
         Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
-        try {
-            if (accessControl != null) {
-                accessControl.ensureMaySee(unwrappedError);
-            }
-        } catch (Exception mpe) {
-            unwrappedError = mpe;
-        }
         PGErrorStatus status;
         String message = SQLExceptions.messageOf(throwable);
         if (throwable instanceof ParsingException) {

@@ -41,15 +41,15 @@ public class SQLErrorMatcher {
 
     public static <T extends Throwable> Matcher<T> isPGError(Matcher<String> msg, PGErrorStatus pgErrorStatus) {
         return allOf(
-            withFeature(e -> PGError.fromThrowable(e, null).message(), "error message", msg),
-            withFeature(e -> PGError.fromThrowable(e, null).status(), "pg error status", equalTo(pgErrorStatus))
+            withFeature(e -> PGError.fromThrowable(e).message(), "error message", msg),
+            withFeature(e -> PGError.fromThrowable(e).status(), "pg error status", equalTo(pgErrorStatus))
         );
     }
 
     public static <T extends Throwable> Matcher<T> isHttpError(Matcher<String> msg, HttpErrorStatus httpErrorStatus) {
         return allOf(
-            withFeature(e -> HttpError.fromThrowable(e, null).message(), "error message", msg),
-            withFeature(e -> HttpError.fromThrowable(e, null).status(), "http error status", equalTo(httpErrorStatus))
+            withFeature(e -> HttpError.fromThrowable(e).message(), "error message", msg),
+            withFeature(e -> HttpError.fromThrowable(e).status(), "http error status", equalTo(httpErrorStatus))
         );
     }
 }
