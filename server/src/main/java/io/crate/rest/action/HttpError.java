@@ -136,9 +136,9 @@ public class HttpError {
                 } else if (crateException instanceof InvalidArgumentException) {
                     httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
                 } else if (crateException instanceof InvalidColumnNameException) {
-                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                    httpErrorStatus = HttpErrorStatus.COLUMN_NAME_INVALID;
                 } else if (crateException instanceof InvalidRelationName) {
-                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                    httpErrorStatus = HttpErrorStatus.RELATION_INVALID_NAME;
                 } else if (crateException instanceof InvalidSchemaNameException) {
                     httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
                 } else if (crateException instanceof LicenseViolationException) {
@@ -148,9 +148,9 @@ public class HttpError {
                 } else if (crateException instanceof RelationValidationException) {
                     httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
                 } else if (crateException instanceof SQLParseException) {
-                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                    httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
                 } else if (crateException instanceof UnsupportedFeatureException) {
-                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                    httpErrorStatus = HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPROTED_YET;
                 } else if (crateException instanceof VersioninigValidationException) {
                     httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
                 } else if (crateException instanceof UnauthorizedException) {

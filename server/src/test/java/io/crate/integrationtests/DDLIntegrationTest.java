@@ -25,6 +25,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -50,6 +51,8 @@ import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
@@ -229,7 +232,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='10%'))"),
                      isSQLError(is("Value '10%' of setting precision is not a valid distance unit"),
                                 INTERNAL_ERROR,
-                                UNHANDLED_SERVER_ERROR));
+                                BAD_REQUEST,
+                                4000)
+        );
     }
 
     @Test
@@ -239,7 +244,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                      isSQLError(
                          is("Value 'true' of setting distance_error_pct is not a float value"),
                          INTERNAL_ERROR,
-                         UNHANDLED_SERVER_ERROR)
+                         BAD_REQUEST,
+                         4000)
         );
     }
 
@@ -248,7 +254,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (does_not_exist=false))"),
                      isSQLError(is("Setting \"does_not_exist\" ist not supported on geo_shape index"),
                                 INTERNAL_ERROR,
-                                UNHANDLED_SERVER_ERROR));
+                                BAD_REQUEST,
+                                4000)
+        );
     }
 
     @Test
@@ -293,7 +301,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table quotes");
 
         assertThrows(() -> execute("select quote from quotes where quote = ?", new Object[]{quote}),
-            isSQLError(containsString("Cannot search on field [quote] since it is not indexed."), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+            isSQLError(containsString("Cannot search on field [quote] since it is not indexed."),
+                       INTERNAL_ERROR,
+                       INTERNAL_SERVER_ERROR,
+                       5000));
     }
 
     @Test
@@ -354,8 +365,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(printedTable(response.rows()),
                      "0| NULL\n" +
                      "1| 1\n");
-        expectedException.expectMessage(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"));
-        execute("insert into t(id, qty) values(2, -1)");
+        assertThrows(() -> execute("insert into t(id, qty) values(2, -1)"),
+                     isSQLError(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"),
+                     INTERNAL_ERROR,
+                     BAD_REQUEST,
+                     4000));
     }
 
     @Test
@@ -367,8 +381,12 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(printedTable(response.rows()), "0| 1\n");
         execute("update t set qty = 1 where id = 0 returning id, qty");
         assertEquals(printedTable(response.rows()), "0| 1\n");
-        expectedException.expectMessage(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"));
-        execute("update t set qty = -1 where id = 0");
+        assertThrows(() -> execute("update t set qty = -1 where id = 0"),
+                     isSQLError(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"),
+                                INTERNAL_ERROR,
+                                INTERNAL_SERVER_ERROR,
+                                5000));
+
     }
 
     @Test
@@ -380,7 +398,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                      isSQLError(containsString(
                          "Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {qty=1, id=0, bazinga=42}"),
                                 INTERNAL_ERROR,
-                                UNHANDLED_SERVER_ERROR));
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -410,7 +429,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                      isSQLError(
                          is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"),
                          INTERNAL_ERROR,
-                         UNHANDLED_SERVER_ERROR));
+                         BAD_REQUEST,
+                         4000));
     }
 
     @Test
@@ -466,7 +486,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         assertThrows(() -> execute("alter table t add column name string primary key"),
-        isSQLError(is("Cannot add a primary key column to a table that isn't empty"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+        isSQLError(is("Cannot add a primary key column to a table that isn't empty"), INTERNAL_ERROR, BAD_REQUEST, 4004));
     }
 
     @Test
@@ -493,7 +513,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         assertThrows(() -> execute("alter table t add column id_generated as (id + 1)"),
-                     isSQLError(is("Cannot add a generated column to a table that isn't empty"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("Cannot add a generated column to a table that isn't empty"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4004));
     }
 
     @Test
@@ -503,7 +526,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "with (number_of_replicas=0)");
         ensureYellow();
         assertThrows(() -> execute("alter table t add \"o.x\" int"),
-                     isSQLError(is("\"o.x\" contains a dot"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("\"o.x\" contains a dot"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4008));
     }
 
     @Test
@@ -512,7 +538,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() ->  execute("alter table t add \"o['x.y']\" int"),
-                     isSQLError(is("\"o['x.y']\" contains a dot"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("\"o['x.y']\" contains a dot"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4008));
 
     }
 
@@ -546,7 +575,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute("alter table t add o object as (z string)"),
                      isSQLError(containsString("The table doc.t already has a column named o"),
                                 INTERNAL_ERROR,
-                                UNHANDLED_SERVER_ERROR));
+                                BAD_REQUEST,
+                                4000));
 
         execute("select column_name from information_schema.columns where " +
                 "table_name = 't' and table_schema='doc'" +
@@ -656,7 +686,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDropUnknownTable() throws Exception {
-        assertThrows(() -> execute("drop table test"), isSQLError(is("Relation 'test' unknown"), UNDEFINED_TABLE, UNKNOWN_RELATION));
+        assertThrows(() -> execute("drop table test"), isSQLError(is("Relation 'test' unknown"),
+                                                                  UNDEFINED_TABLE,
+                                                                  UNKNOWN_RELATION));
     }
 
     @Test
@@ -743,7 +775,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             ") clustered into 3 shards with (number_of_replicas='0-all')");
 
         assertThrows(() -> execute("alter table quotes set (number_of_shards=1, number_of_replicas='1-all')"),
-                     isSQLError(is("Setting [number_of_shards] cannot be combined with other settings"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("Setting [number_of_shards] cannot be combined with other settings"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -766,7 +801,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                    "set (number_of_shards=1, number_of_replicas='1-all')"),
                      isSQLError(is("Setting [number_of_shards] cannot be combined with other settings"),
                                 INTERNAL_ERROR,
-                                UNHANDLED_SERVER_ERROR));
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -790,7 +826,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
         assertThrows(() -> execute("create table \"AAA\".t (name string) with (number_of_replicas=0)"),
-                     isSQLError(is("Relation name \"AAA.t\" is invalid."), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("Relation name \"AAA.t\" is invalid."), INTERNAL_ERROR, BAD_REQUEST, 4002));
+
     }
 
     @Test
