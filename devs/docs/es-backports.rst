@@ -518,4 +518,4 @@ be crossed out as well.
 - [ ] d07e61b1872 Fix the version check for LegacyGeoShapeFieldMapper (#38547)
 - [ ] 0cc8b123b14 Fix GeoHash PrefixTree BWC (#38584)
 - [ ] 514a762d8dc Specialize pre-closing checks for engine implementations (#38702)
-- [ ] 9b75a709a2c Concurrent file chunk fetching for CCR restore (#38495)
+- [x] 9b75a709a2c Concurrent file chunk fetching for CCR restore (#38495)
