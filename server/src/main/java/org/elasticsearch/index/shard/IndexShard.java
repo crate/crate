@@ -250,15 +250,20 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final String aId = shardRouting.allocationId().getId();
         final long primaryTerm = indexSettings.getIndexMetadata().primaryTerm(shardId.id());
         this.pendingPrimaryTerm = primaryTerm;
-        this.globalCheckpointListeners =
-                new GlobalCheckpointListeners(shardId, threadPool.executor(ThreadPool.Names.LISTENER), threadPool.scheduler(), logger);
+        this.globalCheckpointListeners = new GlobalCheckpointListeners(
+            shardId,
+            threadPool.executor(ThreadPool.Names.LISTENER),
+            threadPool.scheduler(),
+            logger
+        );
         this.replicationTracker = new ReplicationTracker(
             shardId,
             aId,
             indexSettings,
             primaryTerm,
             UNASSIGNED_SEQ_NO,
-            globalCheckpointListeners::globalCheckpointUpdated
+            globalCheckpointListeners::globalCheckpointUpdated,
+            threadPool::absoluteTimeInMillis
         );
 
         // the query cache is a node-level thing, however we want the most popular filters

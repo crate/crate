@@ -191,6 +191,19 @@ public final class IndexSettings {
         Setting.longSetting("index.soft_deletes.retention.operations", 0, 0, Property.IndexScope, Property.Dynamic);
 
     /**
+     * Controls the maximum length of time since a retention lease is created or renewed before it is considered expired.
+     */
+    public static final Setting<TimeValue> INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING =
+        Setting.timeSetting(
+            "index.soft_deletes.retention.lease",
+            TimeValue.timeValueHours(12),
+            TimeValue.ZERO,
+            Property.Dynamic,
+            Property.IndexScope
+        );
+
+
+    /**
      * The maximum number of refresh listeners allows on this shard.
      */
     public static final Setting<Integer> MAX_REFRESH_LISTENERS_PER_SHARD = Setting.intSetting("index.max_refresh_listeners", 1000, 0,
@@ -225,6 +238,18 @@ public final class IndexSettings {
     private long gcDeletesInMillis = DEFAULT_GC_DELETES.millis();
     private final boolean softDeleteEnabled;
     private volatile long softDeleteRetentionOperations;
+
+    private volatile long retentionLeaseMillis;
+
+    /**
+     * The maximum age of a retention lease before it is considered expired.
+     *
+     * @return the maximum age
+     */
+    public long getRetentionLeaseMillis() {
+        return retentionLeaseMillis;
+    }
+
     private volatile boolean warmerEnabled;
     private volatile int maxNgramDiff;
     private volatile int maxShingleDiff;
@@ -300,6 +325,7 @@ public final class IndexSettings {
         gcDeletesInMillis = scopedSettings.get(INDEX_GC_DELETES_SETTING).getMillis();
         softDeleteEnabled = version.onOrAfter(Version.ES_V_6_5_1) && scopedSettings.get(INDEX_SOFT_DELETES_SETTING);
         softDeleteRetentionOperations = scopedSettings.get(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING);
+        retentionLeaseMillis = scopedSettings.get(INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING).millis();
         warmerEnabled = scopedSettings.get(INDEX_WARMER_ENABLED_SETTING);
         maxNgramDiff = scopedSettings.get(MAX_NGRAM_DIFF_SETTING);
         maxShingleDiff = scopedSettings.get(MAX_SHINGLE_DIFF_SETTING);
