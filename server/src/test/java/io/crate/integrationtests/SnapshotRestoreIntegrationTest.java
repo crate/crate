@@ -67,7 +67,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
-@UseJdbc(0)
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final String REPOSITORY_NAME = "my_repo";
