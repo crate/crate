@@ -53,7 +53,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
-@UseJdbc(0)
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -416,7 +415,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         };
 
         assertThrows(() -> execute("insert into test (message) values (?)", args),
-                     isSQLError(is("Column \"pk_col\" is required but is missing from the insert statement"),
+                     isSQLError(is("Column `pk_col` is required but is missing from the insert statement"),
                                 INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
@@ -438,7 +437,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("insert into quotes (quote) values(?)",
                                    new Object[]{"I'd far rather be happy than right any day."}),
-                     isSQLError(is("Clustered by value is required but is missing from the insert statement"),
+                     isSQLError(is("Column `id` is required but is missing from the insert statement"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST, 4000));
     }
