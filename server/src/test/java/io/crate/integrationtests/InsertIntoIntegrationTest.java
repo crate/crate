@@ -27,7 +27,6 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -42,14 +41,13 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.rest.action.HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
-import static io.crate.rest.action.HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
-import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -194,7 +192,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureYellow();
         assertThrows(() -> execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')"),
-                     isSQLError(is("Cannot cast `'192.168.1.500'` of type `text` to type `ip`"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("Cannot cast `'192.168.1.500'` of type `text` to type `ip`"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -359,7 +360,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         Object[] args = new Object[]{"1", null};
         assertThrows(() -> execute("insert into t (pk_col, message) values (?, ?)", args),
-                     isSQLError(is("\"message\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("\"message\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -371,7 +372,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("insert into test (stuff) values('{\"other_field\":\"value\"}')"),
-                     isSQLError(is("\"stuff['level1']\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("\"stuff['level1']\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -385,7 +386,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() ->execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')"),
-                     isSQLError(is("\"stuff['level1']['level2']\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("\"stuff['level1']['level2']\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -401,7 +402,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                          "1", "I always thought something was fundamentally wrong with the universe"}),
                      isSQLError(is("A document with the same primary key exists already"),
                                 INTERNAL_ERROR,
-                                UNHANDLED_SERVER_ERROR));
+                                CONFLICT,
+                                4091));
     }
 
     @Test
@@ -415,7 +417,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("insert into test (message) values (?)", args),
                      isSQLError(is("Column \"pk_col\" is required but is missing from the insert statement"),
-                                INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                                INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -426,7 +428,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("insert into quotes (id, quote) values(?, ?)",
                                    new Object[]{null, "I'd far rather be happy than right any day."}),
-                     isSQLError(is("Clustered by value must not be NULL"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("Clustered by value must not be NULL"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -438,7 +440,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                                    new Object[]{"I'd far rather be happy than right any day."}),
                      isSQLError(is("Clustered by value is required but is missing from the insert statement"),
                                 INTERNAL_ERROR,
-                                UNHANDLED_SERVER_ERROR));
+                                BAD_REQUEST, 4000));
     }
 
 
@@ -820,7 +822,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table users (name string) clustered into 1 shards");
 
         assertThrows(() -> execute("insert into users (name) (select name from users where _version = 1)"),
-                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -1092,7 +1097,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("insert into generated_column (id, ts) values (1, null)"),
-                     isSQLError(is("\"gen_col\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("\"gen_col\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -1105,7 +1110,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("insert into generated_column (id, gen_col) values (1, null)"),
-                     isSQLError(is("\"gen_col\" must not be null"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("\"gen_col\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -1229,7 +1234,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         // wrong value
         assertThrows(() -> execute("insert into test(col1, col2) values (1, 0)"),
                      isSQLError(is("Given value 0 for generated column col2 does not match calculation (col1 + 3) = 4"),
-                                INTERNAL_ERROR, STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX));
+                                INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -1241,7 +1246,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         assertThrows(() -> execute("insert into target (col1) (select col1 from source)"),
                      isSQLError(containsString("Column \"col2\" is required but is missing from the insert statement"),
-                                INTERNAL_ERROR, STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX));
+                                INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -1302,7 +1307,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testGeneratedColumnAsPrimaryKeyValueEvaluateToNull() throws Exception {
         execute("CREATE TABLE test (col1 TEXT, col2 AS try_cast(col1 AS INT) PRIMARY KEY)");
         assertThrows(() -> execute("insert into test (col1) values ('a')"),
-                     isSQLError(is("Primary key value must not be NULL"), INTERNAL_ERROR, UNHANDLED_SERVER_ERROR));
+                     isSQLError(is("Primary key value must not be NULL"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -1359,7 +1364,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute("insert into test (id, name) values (1, 'bar')"),
                      isSQLError(containsString("A document with the same primary key exists already"),
                                 INTERNAL_ERROR,
-                                DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY));
+                                CONFLICT,
+                                4091));
         refresh ();
         // we want to read from the replica but cannot force it, lets select twice to increase chances
         execute("select _version, name from test");
