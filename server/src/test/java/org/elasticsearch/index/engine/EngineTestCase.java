@@ -620,7 +620,8 @@ public abstract class EngineTestCase extends ESTestCase {
                 indexSettings,
                 randomNonNegativeLong(),
                 SequenceNumbers.NO_OPS_PERFORMED,
-                update -> {}
+                update -> {},
+                () -> 0L
             );
             globalCheckpointSupplier = replicationTracker;
             retentionLeasesSupplier = replicationTracker::getRetentionLeases;
