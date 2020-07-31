@@ -58,7 +58,7 @@ import static java.util.Collections.unmodifiableMap;
  */
 public abstract class FileRestoreContext {
 
-    protected static final Logger LOGGER = LogManager.getLogger(FileRestoreContext.class);
+    private static final Logger LOGGER = LogManager.getLogger(FileRestoreContext.class);
 
     protected final String repositoryName;
     protected final RecoveryState recoveryState;
