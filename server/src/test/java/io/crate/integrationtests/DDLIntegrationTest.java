@@ -25,7 +25,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -45,8 +44,7 @@ import java.util.Map;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.rest.action.HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
-import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
-import static io.crate.rest.action.HttpErrorStatus.UNKNOWN_RELATION;
+import static io.crate.rest.action.HttpErrorStatus.RELATION_UNKNOWN;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -688,7 +686,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testDropUnknownTable() throws Exception {
         assertThrows(() -> execute("drop table test"), isSQLError(is("Relation 'test' unknown"),
                                                                   UNDEFINED_TABLE,
-                                                                  UNKNOWN_RELATION));
+                                                                  RELATION_UNKNOWN));
     }
 
     @Test

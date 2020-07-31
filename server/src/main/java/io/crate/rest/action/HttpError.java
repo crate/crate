@@ -52,6 +52,7 @@ import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.SnapshotAlreadyExistsException;
 import io.crate.exceptions.SnapshotNameInvalidException;
+import io.crate.exceptions.SnapshotUnknownException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UserAlreadyExistsException;
@@ -166,17 +167,17 @@ public class HttpError {
                 } else if (crateException instanceof PartitionUnknownException) {
                     httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
                 } else if (crateException instanceof RelationUnknown) {
-                    httpErrorStatus = HttpErrorStatus.UNKNOWN_RELATION;
-                } else if (crateException instanceof RelationsUnknown) {
-                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                    httpErrorStatus = HttpErrorStatus.RELATION_UNKNOWN;
                 } else if (crateException instanceof RepositoryUnknownException) {
-                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                    httpErrorStatus = HttpErrorStatus.REPOSITORY_UNKNOWN;
                 } else if (crateException instanceof SchemaUnknownException) {
                     httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
                 } else if (crateException instanceof UserDefinedFunctionUnknownException) {
                     httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
                 } else if (crateException instanceof UserUnknownException) {
                     httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                } else if (crateException instanceof SnapshotUnknownException) {
+                    httpErrorStatus = HttpErrorStatus.SNAPSHOT_UNKNOWN;
                 }
             } else if (crateException instanceof DuplicateKeyException) {
                 httpErrorStatus = HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
