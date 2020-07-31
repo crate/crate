@@ -2890,6 +2890,7 @@ public class InternalEngineTests extends EngineTestCase {
             config.getInternalRefreshListener(),
             new NoneCircuitBreakerService(),
             () -> UNASSIGNED_SEQ_NO,
+            Collections::emptySet,
             primaryTerm::get,
             tombstoneDocSupplier()
         );
