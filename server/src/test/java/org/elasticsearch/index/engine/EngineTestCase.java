@@ -19,6 +19,40 @@
 
 package org.elasticsearch.index.engine;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.shuffle;
+import static org.elasticsearch.index.engine.Engine.Operation.Origin.PEER_RECOVERY;
+import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
+import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.notNullValue;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import java.util.function.ToLongBiFunction;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.Codec;
@@ -50,7 +84,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.AllocationId;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -58,11 +91,9 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
@@ -79,6 +110,7 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.VersionFieldMapper;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.ReplicationTracker;
+import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
@@ -93,35 +125,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.LongSupplier;
-import java.util.function.ToLongBiFunction;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.shuffle;
-import static org.elasticsearch.index.engine.Engine.Operation.Origin.PEER_RECOVERY;
-import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
-import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.notNullValue;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public abstract class EngineTestCase extends ESTestCase {
 
@@ -201,32 +206,77 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     public EngineConfig copy(EngineConfig config, LongSupplier globalCheckpointSupplier) {
-        return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-            config.getStore(), config.getMergePolicy(), config.getAnalyzer(),
-            new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
-            config.getTranslogConfig(), config.getFlushMergesAfter(),
-            config.getExternalRefreshListener(), Collections.emptyList(),
-            config.getCircuitBreakerService(), globalCheckpointSupplier, config.getPrimaryTermSupplier(), tombstoneDocSupplier());
+        return new EngineConfig(
+            config.getShardId(),
+            config.getAllocationId(),
+            config.getThreadPool(),
+            config.getIndexSettings(),
+            config.getStore(),
+            config.getMergePolicy(),
+            config.getAnalyzer(),
+            new CodecService(null, logger),
+            config.getEventListener(),
+            config.getQueryCache(),
+            config.getQueryCachingPolicy(),
+            config.getTranslogConfig(),
+            config.getFlushMergesAfter(),
+            config.getExternalRefreshListener(),
+            Collections.emptyList(),
+            config.getCircuitBreakerService(),
+            globalCheckpointSupplier,
+            config.retentionLeasesSupplier(),
+            config.getPrimaryTermSupplier(),
+            tombstoneDocSupplier()
+        );
     }
 
     public EngineConfig copy(EngineConfig config, Analyzer analyzer) {
-        return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-            config.getStore(), config.getMergePolicy(), analyzer,
-            new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
-            config.getTranslogConfig(), config.getFlushMergesAfter(),
-            config.getExternalRefreshListener(), Collections.emptyList(),
-            config.getCircuitBreakerService(), config.getGlobalCheckpointSupplier(), config.getPrimaryTermSupplier(),
+        return new EngineConfig(
+            config.getShardId(),
+            config.getAllocationId(),
+            config.getThreadPool(),
+            config.getIndexSettings(),
+            config.getStore(),
+            config.getMergePolicy(),
+            analyzer,
+            new CodecService(null, logger),
+            config.getEventListener(),
+            config.getQueryCache(),
+            config.getQueryCachingPolicy(),
+            config.getTranslogConfig(),
+            config.getFlushMergesAfter(),
+            config.getExternalRefreshListener(),
+            Collections.emptyList(),
+            config.getCircuitBreakerService(),
+            config.getGlobalCheckpointSupplier(),
+            config.retentionLeasesSupplier(),
+            config.getPrimaryTermSupplier(),
             config.getTombstoneDocSupplier());
     }
 
     public EngineConfig copy(EngineConfig config, MergePolicy mergePolicy) {
-        return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-            config.getStore(), mergePolicy, config.getAnalyzer(),
-            new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
-            config.getTranslogConfig(), config.getFlushMergesAfter(),
-            config.getExternalRefreshListener(), Collections.emptyList(),
-            config.getCircuitBreakerService(), config.getGlobalCheckpointSupplier(), config.getPrimaryTermSupplier(),
-            config.getTombstoneDocSupplier());
+        return new EngineConfig(
+            config.getShardId(),
+            config.getAllocationId(),
+            config.getThreadPool(),
+            config.getIndexSettings(),
+            config.getStore(),
+            mergePolicy,
+            config.getAnalyzer(),
+            new CodecService(null, logger),
+            config.getEventListener(),
+            config.getQueryCache(),
+            config.getQueryCachingPolicy(),
+            config.getTranslogConfig(),
+            config.getFlushMergesAfter(),
+            config.getExternalRefreshListener(),
+            Collections.emptyList(),
+            config.getCircuitBreakerService(),
+            config.getGlobalCheckpointSupplier(),
+            config.retentionLeasesSupplier(),
+            config.getPrimaryTermSupplier(),
+            config.getTombstoneDocSupplier()
+        );
     }
 
     @Override
@@ -540,10 +590,13 @@ public abstract class EngineTestCase extends ESTestCase {
         return config(indexSettings, store, translogPath, mergePolicy, refreshListener, null, globalCheckpointSupplier);
     }
 
-    public EngineConfig config(IndexSettings indexSettings, Store store, Path translogPath, MergePolicy mergePolicy,
+    public EngineConfig config(IndexSettings indexSettings,
+                               Store store,
+                               Path translogPath,
+                               MergePolicy mergePolicy,
                                ReferenceManager.RefreshListener externalRefreshListener,
                                ReferenceManager.RefreshListener internalRefreshListener,
-                               LongSupplier globalCheckpointSupplier) {
+                               @Nullable LongSupplier maybeGlobalCheckpointSupplier) {
         IndexWriterConfig iwc = newIndexWriterConfig();
         TranslogConfig translogConfig = new TranslogConfig(shardId, translogPath, indexSettings, BigArrays.NON_RECYCLING_INSTANCE);
         Engine.EventListener listener = new Engine.EventListener() {
@@ -557,8 +610,11 @@ public abstract class EngineTestCase extends ESTestCase {
         final List<ReferenceManager.RefreshListener> intRefreshListenerList =
             internalRefreshListener == null ? emptyList() : Collections.singletonList(internalRefreshListener);
 
-        if (globalCheckpointSupplier == null) {
-            globalCheckpointSupplier = new ReplicationTracker(
+
+        final LongSupplier globalCheckpointSupplier;
+        final Supplier<Collection<RetentionLease>> retentionLeasesSupplier;
+        if (maybeGlobalCheckpointSupplier == null) {
+            final ReplicationTracker replicationTracker = new ReplicationTracker(
                 shardId,
                 allocationId.getId(),
                 indexSettings,
@@ -566,8 +622,12 @@ public abstract class EngineTestCase extends ESTestCase {
                 SequenceNumbers.NO_OPS_PERFORMED,
                 update -> {}
             );
+            globalCheckpointSupplier = replicationTracker;
+            retentionLeasesSupplier = replicationTracker::getRetentionLeases;
+        } else {
+            globalCheckpointSupplier = maybeGlobalCheckpointSupplier;
+            retentionLeasesSupplier = Collections::emptySet;
         }
-
         return new EngineConfig(
             shardId,
             allocationId.getId(),
@@ -586,6 +646,7 @@ public abstract class EngineTestCase extends ESTestCase {
             intRefreshListenerList,
             new NoneCircuitBreakerService(),
             globalCheckpointSupplier,
+            retentionLeasesSupplier,
             primaryTerm,
             tombstoneDocSupplier());
     }
@@ -621,6 +682,7 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getInternalRefreshListener(),
             config.getCircuitBreakerService(),
             config.getGlobalCheckpointSupplier(),
+            config.retentionLeasesSupplier(),
             config.getPrimaryTermSupplier(),
             tombstoneDocSupplier);
     }

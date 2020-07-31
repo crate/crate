@@ -1863,6 +1863,20 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.globalCheckpointListeners.add(waitingForGlobalCheckpoint, listener, timeout);
     }
 
+
+    /**
+     * Adds a new or updates an existing retention lease.
+     *
+     * @param id                      the identifier of the retention lease
+     * @param retainingSequenceNumber the retaining sequence number
+     * @param source                  the source of the retention lease
+     */
+    void addOrUpdateRetentionLease(final String id, final long retainingSequenceNumber, final String source) {
+        assert assertPrimaryMode();
+        verifyNotClosed();
+        replicationTracker.addOrUpdateRetentionLease(id, retainingSequenceNumber, source);
+    }
+
     /**
      * Waits for all operations up to the provided sequence number to complete.
      *
@@ -2328,6 +2342,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             Collections.singletonList(new RefreshMetricUpdater(refreshMetric)),
             circuitBreakerService,
             replicationTracker,
+            replicationTracker::getRetentionLeases,
             this::getOperationPrimaryTerm,
             tombstoneDocSupplier()
         );
