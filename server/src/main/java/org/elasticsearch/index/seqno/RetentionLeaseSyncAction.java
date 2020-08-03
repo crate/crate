@@ -20,7 +20,6 @@
 package org.elasticsearch.index.seqno;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
@@ -93,7 +92,7 @@ public class RetentionLeaseSyncAction extends
      */
     public void syncRetentionLeasesForShard(
             final ShardId shardId,
-            final Collection<RetentionLease> retentionLeases,
+            final RetentionLeases retentionLeases,
             final ActionListener<ReplicationResponse> listener) {
         Objects.requireNonNull(shardId);
         Objects.requireNonNull(retentionLeases);
@@ -140,18 +139,18 @@ public class RetentionLeaseSyncAction extends
 
     public static final class Request extends ReplicationRequest<Request> {
 
-        private Collection<RetentionLease> retentionLeases;
+        private RetentionLeases retentionLeases;
 
-        public Collection<RetentionLease> getRetentionLeases() {
+        public RetentionLeases getRetentionLeases() {
             return retentionLeases;
         }
 
         public Request(StreamInput in) throws IOException {
             super(in);
-            retentionLeases = in.readList(RetentionLease::new);
+            retentionLeases = new RetentionLeases(in);
         }
 
-        public Request(final ShardId shardId, final Collection<RetentionLease> retentionLeases) {
+        public Request(ShardId shardId, RetentionLeases retentionLeases) {
             super(Objects.requireNonNull(shardId));
             this.retentionLeases = Objects.requireNonNull(retentionLeases);
         }
@@ -159,7 +158,7 @@ public class RetentionLeaseSyncAction extends
         @Override
         public void writeTo(final StreamOutput out) throws IOException {
             super.writeTo(Objects.requireNonNull(out));
-            out.writeCollection(retentionLeases);
+            retentionLeases.writeTo(out);
         }
 
         @Override
