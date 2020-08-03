@@ -165,7 +165,7 @@ public class HttpError {
                 } else if (crateException instanceof ColumnUnknownException) {
                     httpErrorStatus = HttpErrorStatus.COLUMN_NAME_INVALID;
                 } else if (crateException instanceof PartitionUnknownException) {
-                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
+                    httpErrorStatus = HttpErrorStatus.PARTITION_UNKNOWN;
                 } else if (crateException instanceof RelationUnknown) {
                     httpErrorStatus = HttpErrorStatus.RELATION_UNKNOWN;
                 } else if (crateException instanceof RepositoryUnknownException) {

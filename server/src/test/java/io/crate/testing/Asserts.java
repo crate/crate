@@ -34,8 +34,7 @@ public class Asserts {
         try {
             executable.execute();
         }
-        catch (Throwable t) {
-            if(matcher.matches(t)) {
+        catch (Throwable t) { if(matcher.matches(t)) {
                 return;
             }
             throw new AssertionFailedError(String.format("Unmatched %s type thrown", t.getClass().getCanonicalName()));
