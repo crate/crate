@@ -54,7 +54,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -163,6 +162,7 @@ import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -2893,7 +2893,7 @@ public class InternalEngineTests extends EngineTestCase {
             config.getInternalRefreshListener(),
             new NoneCircuitBreakerService(),
             () -> UNASSIGNED_SEQ_NO,
-            Collections::emptySet,
+            () -> RetentionLeases.EMPTY,
             primaryTerm::get,
             tombstoneDocSupplier()
         );
@@ -5021,7 +5021,9 @@ public class InternalEngineTests extends EngineTestCase {
         final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
-        final AtomicReference<Collection<RetentionLease>> leasesHolder = new AtomicReference<>(Collections.emptyList());
+        final long primaryTerm = randomLongBetween(1, Long.MAX_VALUE);
+        final AtomicLong retentionLeasesVersion = new AtomicLong();
+        final AtomicReference<RetentionLeases> retentionLeasesHolder = new AtomicReference<>(RetentionLeases.EMPTY);
         final List<Engine.Operation> operations = generateSingleDocHistory(
             true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), false, 2, 10, 300, "2");
         Randomness.shuffle(operations);
@@ -5035,7 +5037,7 @@ public class InternalEngineTests extends EngineTestCase {
             null,
             null,
             globalCheckpoint::get,
-            leasesHolder::get
+            retentionLeasesHolder::get
         ));
         assertThat(engine.getMinRetainedSeqNo(), equalTo(0L));
         long lastMinRetainedSeqNo = engine.getMinRetainedSeqNo();
@@ -5051,6 +5053,7 @@ public class InternalEngineTests extends EngineTestCase {
                 globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(), engine.getLocalCheckpointTracker().getProcessedCheckpoint()));
             }
             if (randomBoolean()) {
+                retentionLeasesVersion.incrementAndGet();
                 final int length = randomIntBetween(0, 8);
                 final List<RetentionLease> leases = new ArrayList<>(length);
                 for (int i = 0; i < length; i++) {
@@ -5060,7 +5063,7 @@ public class InternalEngineTests extends EngineTestCase {
                     final String source = randomAlphaOfLength(8);
                     leases.add(new RetentionLease(id, retainingSequenceNumber, timestamp, source));
                 }
-                leasesHolder.set(leases);
+                retentionLeasesHolder.set(new RetentionLeases(primaryTerm, retentionLeasesVersion.get(), leases));
             }
             if (rarely()) {
                 settings.put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), randomLongBetween(0, 10));
@@ -5074,13 +5077,15 @@ public class InternalEngineTests extends EngineTestCase {
                 engine.flush(true, true);
                 assertThat(Long.parseLong(engine.getLastCommittedSegmentInfos().userData.get(Engine.MIN_RETAINED_SEQNO)),
                            equalTo(engine.getMinRetainedSeqNo()));
-                final Collection<RetentionLease> leases = leasesHolder.get();
-                if (leases.isEmpty()) {
-                    assertThat(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.RETENTION_LEASES), equalTo(""));
+                final RetentionLeases leases = retentionLeasesHolder.get();
+                if (leases.leases().isEmpty()) {
+                    assertThat(
+                        engine.getLastCommittedSegmentInfos().getUserData().get(Engine.RETENTION_LEASES),
+                        equalTo("primary_term:" + primaryTerm + ";version:" + retentionLeasesVersion.get() + ";"));
                 } else {
                     assertThat(
                         engine.getLastCommittedSegmentInfos().getUserData().get(Engine.RETENTION_LEASES),
-                        equalTo(RetentionLease.encodeRetentionLeases(leases)));
+                        equalTo(RetentionLeases.encodeRetentionLeases(leases)));
                 }
             }
             if (rarely()) {

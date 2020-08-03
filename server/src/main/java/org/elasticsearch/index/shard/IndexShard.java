@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -119,6 +118,7 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.PrimaryReplicaSyncer.ResyncTask;
@@ -227,7 +227,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             BigArrays bigArrays,
             List<IndexingOperationListener> listeners,
             Runnable globalCheckpointSyncer,
-            BiConsumer<Collection<RetentionLease>, ActionListener<ReplicationResponse>> retentionLeaseSyncer,
+            BiConsumer<RetentionLeases, ActionListener<ReplicationResponse>> retentionLeaseSyncer,
             CircuitBreakerService circuitBreakerService) throws IOException {
         super(shardRouting.shardId(), indexSettings);
         assert shardRouting.initializing();
@@ -1445,12 +1445,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert recoveryState.getStage() == RecoveryState.Stage.TRANSLOG : "TRANSLOG stage expected but was: " + recoveryState.getStage();
     }
 
-    static Collection<RetentionLease> getRetentionLeases(final SegmentInfos segmentInfos) {
+    static RetentionLeases getRetentionLeases(final SegmentInfos segmentInfos) {
         final String committedRetentionLeases = segmentInfos.getUserData().get(Engine.RETENTION_LEASES);
         if (committedRetentionLeases == null) {
-            return Collections.emptyList();
+            return RetentionLeases.EMPTY;
         }
-        return RetentionLease.decodeRetentionLeases(committedRetentionLeases);
+        return RetentionLeases.decodeRetentionLeases(committedRetentionLeases);
     }
 
     private void trimUnsafeCommits() throws IOException {
@@ -1887,7 +1887,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      *
      * @return the retention leases
      */
-    public Collection<RetentionLease> getRetentionLeases() {
+    public RetentionLeases getRetentionLeases() {
         verifyNotClosed();
         return replicationTracker.getRetentionLeases();
     }
@@ -1933,7 +1933,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      *
      * @param retentionLeases the retention leases
      */
-    public void updateRetentionLeasesOnReplica(final Collection<RetentionLease> retentionLeases) {
+    public void updateRetentionLeasesOnReplica(final RetentionLeases retentionLeases) {
         assert assertReplicationTarget();
         verifyNotClosed();
         replicationTracker.updateRetentionLeasesOnReplica(retentionLeases);
