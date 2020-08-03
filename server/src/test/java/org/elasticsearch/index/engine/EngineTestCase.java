@@ -75,6 +75,7 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ReferenceManager;
+import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.Directory;
@@ -116,6 +117,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
@@ -582,13 +584,42 @@ public abstract class EngineTestCase extends ESTestCase {
 
     public EngineConfig config(IndexSettings indexSettings, Store store, Path translogPath, MergePolicy mergePolicy,
                                ReferenceManager.RefreshListener refreshListener) {
-        return config(indexSettings, store, translogPath, mergePolicy, refreshListener, null, () -> SequenceNumbers.NO_OPS_PERFORMED);
+        return config(indexSettings, store, translogPath, mergePolicy, refreshListener, () -> SequenceNumbers.NO_OPS_PERFORMED);
     }
 
     public EngineConfig config(IndexSettings indexSettings, Store store, Path translogPath, MergePolicy mergePolicy,
                                ReferenceManager.RefreshListener refreshListener, LongSupplier globalCheckpointSupplier) {
-        return config(indexSettings, store, translogPath, mergePolicy, refreshListener, null, globalCheckpointSupplier);
+        return config(
+            indexSettings,
+            store,
+            translogPath,
+            mergePolicy,
+            refreshListener,
+            globalCheckpointSupplier,
+            globalCheckpointSupplier == null ? null : Collections::emptyList
+        );
     }
+
+
+    public EngineConfig config(
+            final IndexSettings indexSettings,
+            final Store store,
+            final Path translogPath,
+            final MergePolicy mergePolicy,
+            final ReferenceManager.RefreshListener refreshListener,
+            final LongSupplier globalCheckpointSupplier,
+            final Supplier<Collection<RetentionLease>> retentionLeasesSupplier) {
+        return config(
+            indexSettings,
+            store,
+            translogPath,
+            mergePolicy,
+            refreshListener,
+            null,
+            globalCheckpointSupplier,
+            retentionLeasesSupplier
+        );
+     }
 
     public EngineConfig config(IndexSettings indexSettings,
                                Store store,
@@ -597,6 +628,25 @@ public abstract class EngineTestCase extends ESTestCase {
                                ReferenceManager.RefreshListener externalRefreshListener,
                                ReferenceManager.RefreshListener internalRefreshListener,
                                @Nullable LongSupplier maybeGlobalCheckpointSupplier) {
+        return config(
+            indexSettings,
+            store,
+            translogPath,
+            mergePolicy,
+            externalRefreshListener,
+            internalRefreshListener,
+            maybeGlobalCheckpointSupplier,
+            maybeGlobalCheckpointSupplier == null ? null : Collections::emptyList);
+    }
+
+    public EngineConfig config(IndexSettings indexSettings,
+                               Store store,
+                               Path translogPath,
+                               MergePolicy mergePolicy,
+                               ReferenceManager.RefreshListener externalRefreshListener,
+                               ReferenceManager.RefreshListener internalRefreshListener,
+                               @Nullable LongSupplier maybeGlobalCheckpointSupplier,
+                               @Nullable Supplier<Collection<RetentionLease>> maybeRetentionLeasesSupplier) {
         IndexWriterConfig iwc = newIndexWriterConfig();
         TranslogConfig translogConfig = new TranslogConfig(shardId, translogPath, indexSettings, BigArrays.NON_RECYCLING_INSTANCE);
         Engine.EventListener listener = new Engine.EventListener() {
@@ -614,6 +664,7 @@ public abstract class EngineTestCase extends ESTestCase {
         final LongSupplier globalCheckpointSupplier;
         final Supplier<Collection<RetentionLease>> retentionLeasesSupplier;
         if (maybeGlobalCheckpointSupplier == null) {
+            assert maybeRetentionLeasesSupplier == null;
             final ReplicationTracker replicationTracker = new ReplicationTracker(
                 shardId,
                 allocationId.getId(),
@@ -626,8 +677,9 @@ public abstract class EngineTestCase extends ESTestCase {
             globalCheckpointSupplier = replicationTracker;
             retentionLeasesSupplier = replicationTracker::getRetentionLeases;
         } else {
+            assert maybeRetentionLeasesSupplier != null;
             globalCheckpointSupplier = maybeGlobalCheckpointSupplier;
-            retentionLeasesSupplier = Collections::emptySet;
+            retentionLeasesSupplier = maybeRetentionLeasesSupplier;
         }
         return new EngineConfig(
             shardId,

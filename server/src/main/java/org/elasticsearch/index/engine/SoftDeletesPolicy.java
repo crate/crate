@@ -19,19 +19,22 @@
 
 package org.elasticsearch.index.engine;
 
+import java.util.Collection;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.search.Query;
+
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
 
-import java.util.Collection;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
+import io.crate.common.collections.Tuple;
 
 /**
  * A policy that controls how many soft-deleted documents should be retained for peer-recovery and querying history changes purpose.
@@ -45,6 +48,7 @@ final class SoftDeletesPolicy {
     private long retentionOperations;
     // The min seq_no value that is retained - ops after this seq# should exist in the Lucene index.
     private long minRetainedSeqNo;
+    private Collection<RetentionLease> retentionLeases;
     // provides the retention leases used to calculate the minimum sequence number to retain
     private final Supplier<Collection<RetentionLease>> retentionLeasesSupplier;
 
@@ -57,6 +61,7 @@ final class SoftDeletesPolicy {
         this.retentionOperations = retentionOperations;
         this.minRetainedSeqNo = minRetainedSeqNo;
         this.retentionLeasesSupplier = Objects.requireNonNull(retentionLeasesSupplier);
+        retentionLeases = retentionLeasesSupplier.get();
         this.localCheckpointOfSafeCommit = SequenceNumbers.NO_OPS_PERFORMED;
         this.retentionLockCount = 0;
     }
@@ -106,7 +111,11 @@ final class SoftDeletesPolicy {
      * Operations whose seq# is least this value should exist in the Lucene index.
      */
     synchronized long getMinRetainedSeqNo() {
-        // Do not advance if the retention lock is held
+        return getRetentionPolicy().v1();
+    }
+
+    public synchronized Tuple<Long, Collection<RetentionLease>> getRetentionPolicy() {
+        // do not advance if the retention lock is held
         if (retentionLockCount == 0) {
             /*
              * This policy retains operations for two purposes: peer-recovery and querying changes history.
@@ -119,8 +128,8 @@ final class SoftDeletesPolicy {
              */
 
             // calculate the minimum sequence number to retain based on retention leases
-            final long minimumRetainingSequenceNumber = retentionLeasesSupplier
-                    .get()
+            retentionLeases = retentionLeasesSupplier.get();
+            final long minimumRetainingSequenceNumber = retentionLeases
                     .stream()
                     .mapToLong(RetentionLease::retainingSequenceNumber)
                     .min()
@@ -139,7 +148,7 @@ final class SoftDeletesPolicy {
              */
             minRetainedSeqNo = Math.max(minRetainedSeqNo, minSeqNoToRetain);
         }
-        return minRetainedSeqNo;
+        return Tuple.tuple(minRetainedSeqNo, retentionLeases);
     }
 
     /**
