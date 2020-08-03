@@ -21,10 +21,15 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.junit.Before;
 import org.junit.Test;
+
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
+import static org.hamcrest.Matchers.is;
 
 public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -58,58 +63,86 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testClosePreventsInsert() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow INSERT operations, " +
-                                        "as it is currently closed", getFqn("t")));
-        execute("insert into t values (1), (2), (3)");
+        assertThrows(() -> execute("insert into t values (1), (2), (3)"),
+                     isSQLError(
+                         is(String.format(
+                             "The relation \"%s\" doesn't support or allow INSERT operations, as it is currently closed.",
+                             getFqn("t"))),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4007));
     }
 
     @Test
     public void testClosePreventsSelect() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
-                                        "as it is currently closed.", getFqn("t")));
-        execute("select * from t");
+        assertThrows(() -> execute("select * from t"),
+                     isSQLError(
+                         is(String.format(
+                             "The relation \"%s\" doesn't support or allow READ operations, as it is currently closed.",
+                             getFqn("t"))),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4007));
     }
 
     @Test
     public void testClosePreventsDrop() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow DROP operations, " +
-                                        "as it is currently closed", getFqn("t")));
-        execute("drop table t");
+        assertThrows(() -> execute("drop table t"),
+                     isSQLError(
+                         is(String.format(
+                             "The relation \"%s\" doesn't support or allow DROP operations, as it is currently closed.",
+                             getFqn("t"))),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4007));
     }
 
     @Test
     public void testClosePreventsAlter() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow ALTER operations, " +
-                                        "as it is currently closed", getFqn("t")));
-        execute("alter table t add column x string");
+        assertThrows(() -> execute("alter table t add column x string"),
+                     isSQLError(
+                         is(String.format(
+                             "The relation \"%s\" doesn't support or allow ALTER operations, as it is currently closed.",
+                             getFqn("t"))),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4007));
     }
 
     @Test
     public void testClosePreventsRefresh() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow REFRESH " +
-                                        "operations, as it is currently closed.", getFqn("t")));
-        execute("refresh table t");
+        assertThrows(() -> execute("refresh table t"),
+                     isSQLError(
+                         is(String.format(
+                             "The relation \"%s\" doesn't support or allow REFRESH operations, as it is currently closed.",
+                             getFqn("t"))),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4007));
     }
 
     @Test
     public void testClosePreventsShowCreate() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow SHOW CREATE " +
-                                        "operations, as it is currently closed.", getFqn("t")));
-        execute("show create table t");
+        assertThrows(() -> execute("show create table t"),
+                     isSQLError(
+                         is(String.format(
+                             "The relation \"%s\" doesn't support or allow SHOW CREATE operations, as it is currently closed.",
+                             getFqn("t"))),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4007));
     }
 
     @Test
     public void testClosePreventsOptimize() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow OPTIMIZE " +
-                                        "operations, as it is currently closed.", getFqn("t")));
-        execute("optimize table t");
+        assertThrows(() -> execute("optimize table t"),
+                     isSQLError(
+                         is(String.format(
+                             "The relation \"%s\" doesn't support or allow OPTIMIZE operations, as it is currently closed.",
+                             getFqn("t"))),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4007));
     }
 
     @Test
@@ -132,10 +165,14 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into partitioned_table values (1), (2), (3), (4), (5)");
         refresh();
         execute("alter table partitioned_table close");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow " +
-                                        "READ operations, as it is currently closed.", getFqn("partitioned_table")));
-        execute("select i from partitioned_table");
+        assertThrows(() -> execute("select i from partitioned_table"),
+                     isSQLError(
+                         is(String.format(
+                             "The relation \"%s\" doesn't support or allow READ operations, as it is currently closed.",
+                             getFqn("partitioned_table"))),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4007));
     }
 
 }

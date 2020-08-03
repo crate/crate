@@ -145,7 +145,7 @@ public class HttpError {
                 } else if (crateException instanceof LicenseViolationException) {
                     httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
                 } else if (crateException instanceof OperationOnInaccessibleRelationException) {
-                    httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
+                    httpErrorStatus = HttpErrorStatus.RELATION_OPERATION_NOT_SUPPORTED;
                 } else if (crateException instanceof RelationValidationException) {
                     httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
                 } else if (crateException instanceof SQLParseException) {

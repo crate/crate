@@ -58,7 +58,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-@UseJdbc(0)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
