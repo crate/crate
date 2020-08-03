@@ -86,6 +86,7 @@ import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexingOperationListener;
@@ -407,13 +408,18 @@ public class IndicesService extends AbstractLifecycleComponent
     }
 
     @Override
-    public IndexShard createShard(ShardRouting shardRouting, RecoveryState recoveryState, PeerRecoveryTargetService recoveryTargetService,
-                                  PeerRecoveryTargetService.RecoveryListener recoveryListener, RepositoriesService repositoriesService,
+    public IndexShard createShard(ShardRouting shardRouting,
+                                  RecoveryState recoveryState,
+                                  PeerRecoveryTargetService recoveryTargetService,
+                                  PeerRecoveryTargetService.RecoveryListener recoveryListener,
+                                  RepositoriesService repositoriesService,
                                   Consumer<IndexShard.ShardFailure> onShardFailure,
-                                  Consumer<ShardId> globalCheckpointSyncer) throws IOException {
+                                  Consumer<ShardId> globalCheckpointSyncer,
+                                  RetentionLeaseSyncer retentionLeaseSyncer) throws IOException {
+        Objects.requireNonNull(retentionLeaseSyncer);
         ensureChangesAllowed();
         IndexService indexService = indexService(shardRouting.index());
-        IndexShard indexShard = indexService.createShard(shardRouting, globalCheckpointSyncer);
+        IndexShard indexShard = indexService.createShard(shardRouting, globalCheckpointSyncer, retentionLeaseSyncer);
         indexShard.addShardFailureCallback(onShardFailure);
         indexShard.startRecovery(recoveryState, recoveryTargetService, recoveryListener, repositoriesService,
             (type, mapping) -> {

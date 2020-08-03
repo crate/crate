@@ -64,6 +64,7 @@ import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
@@ -260,7 +261,11 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    public synchronized IndexShard createShard(ShardRouting routing, Consumer<ShardId> globalCheckpointSyncer) throws IOException {
+    public synchronized IndexShard createShard(
+            final ShardRouting routing,
+            final Consumer<ShardId> globalCheckpointSyncer,
+            final RetentionLeaseSyncer retentionLeaseSyncer) throws IOException {
+        Objects.requireNonNull(retentionLeaseSyncer);
         /*
          * TODO: we execute this in parallel but it's a synced method. Yet, we might
          * be able to serialize the execution via the cluster state in the future. for now we just
@@ -337,6 +342,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 bigArrays,
                 indexingOperationListeners,
                 () -> globalCheckpointSyncer.accept(shardId),
+                (retentionLeases, listener) -> retentionLeaseSyncer.syncRetentionLeasesForShard(shardId, retentionLeases, listener),
                 circuitBreakerService
             );
             eventListener.indexShardStateChanged(indexShard, null, indexShard.state(), "shard created");

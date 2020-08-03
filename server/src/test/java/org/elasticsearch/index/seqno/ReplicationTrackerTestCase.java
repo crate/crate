@@ -47,7 +47,8 @@ public abstract class ReplicationTrackerTestCase extends ESTestCase  {
             randomNonNegativeLong(),
             UNASSIGNED_SEQ_NO,
             updatedGlobalCheckpoint,
-            currentTimeMillisSupplier
+            currentTimeMillisSupplier,
+            (leases, listener) -> {}
         );
     }
 

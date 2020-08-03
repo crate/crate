@@ -200,7 +200,7 @@ public abstract class TransportWriteAction<
     /**
      * Result of taking the action on the replica.
      */
-    protected static class WriteReplicaResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>>
+    public static class WriteReplicaResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>>
             extends ReplicaResult implements RespondingWriteResult {
         public final Location location;
         boolean finishedAsyncActions;
