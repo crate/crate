@@ -33,11 +33,11 @@ public class Asserts {
     public static <T extends Throwable> void assertThrows(Executable executable, Matcher<T> matcher) {
         try {
             executable.execute();
-        }
-        catch (Throwable t) { if(matcher.matches(t)) {
+        } catch (Throwable t) {
+            if (matcher.matches(t)) {
                 return;
             }
-            throw new AssertionFailedError(String.format("Unmatched %s type thrown", t.getClass().getCanonicalName()));
+            throw new AssertionFailedError(String.format("Unmatched %s type thrown", t.getClass().getCanonicalName()), t);
         }
         throw new AssertionFailedError("Expected exception to be thrown, but nothing was thrown.");
     }
