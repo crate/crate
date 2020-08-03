@@ -649,7 +649,7 @@ public abstract class EngineTestCase extends ESTestCase {
                                @Nullable Supplier<Collection<RetentionLease>> maybeRetentionLeasesSupplier) {
         IndexWriterConfig iwc = newIndexWriterConfig();
         TranslogConfig translogConfig = new TranslogConfig(shardId, translogPath, indexSettings, BigArrays.NON_RECYCLING_INSTANCE);
-        Engine.EventListener listener = new Engine.EventListener() {
+        Engine.EventListener eventListener = new Engine.EventListener() {
             @Override
             public void onFailedEngine(String reason, @Nullable Exception e) {
                 // we don't need to notify anybody in this test
@@ -672,7 +672,8 @@ public abstract class EngineTestCase extends ESTestCase {
                 randomNonNegativeLong(),
                 SequenceNumbers.NO_OPS_PERFORMED,
                 update -> {},
-                () -> 0L
+                () -> 0L,
+                (leases, listener) -> {}
             );
             globalCheckpointSupplier = replicationTracker;
             retentionLeasesSupplier = replicationTracker::getRetentionLeases;
@@ -690,7 +691,7 @@ public abstract class EngineTestCase extends ESTestCase {
             mergePolicy,
             iwc.getAnalyzer(),
             new CodecService(null, logger),
-            listener,
+            eventListener,
             IndexSearcher.getDefaultQueryCache(),
             IndexSearcher.getDefaultQueryCachingPolicy(),
             translogConfig,

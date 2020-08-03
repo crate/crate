@@ -84,6 +84,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.ConfigurationException;
@@ -92,6 +93,7 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
@@ -807,5 +809,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             }
         }
         return false;
+    }
+
+    public static Index resolveIndex(String index) {
+        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        IndexMetadata indexMetadata = clusterService.state().metadata().index(index);
+        return new Index(index, indexMetadata.getIndexUUID());
     }
 }
