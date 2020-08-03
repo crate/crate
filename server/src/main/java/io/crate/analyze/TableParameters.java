@@ -104,6 +104,7 @@ public class TableParameters {
             IndexModule.INDEX_STORE_TYPE_SETTING,
             MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
             IndexSettings.INDEX_SOFT_DELETES_SETTING,
+            IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING,
 
             // this setting is needed for tests and is not documented. see ClusterDisruptionIT for usages.
             IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING
@@ -117,7 +118,8 @@ public class TableParameters {
         IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
         MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
-        IndexSettings.INDEX_SOFT_DELETES_SETTING
+        IndexSettings.INDEX_SOFT_DELETES_SETTING,
+        IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING
     );
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
