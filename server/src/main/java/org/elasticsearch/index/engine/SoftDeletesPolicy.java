@@ -48,7 +48,6 @@ final class SoftDeletesPolicy {
     private long retentionOperations;
     // The min seq_no value that is retained - ops after this seq# should exist in the Lucene index.
     private long minRetainedSeqNo;
-    private Collection<RetentionLease> retentionLeases;
     // provides the retention leases used to calculate the minimum sequence number to retain
     private final Supplier<Collection<RetentionLease>> retentionLeasesSupplier;
 
@@ -61,7 +60,6 @@ final class SoftDeletesPolicy {
         this.retentionOperations = retentionOperations;
         this.minRetainedSeqNo = minRetainedSeqNo;
         this.retentionLeasesSupplier = Objects.requireNonNull(retentionLeasesSupplier);
-        retentionLeases = retentionLeasesSupplier.get();
         this.localCheckpointOfSafeCommit = SequenceNumbers.NO_OPS_PERFORMED;
         this.retentionLockCount = 0;
     }
@@ -115,6 +113,11 @@ final class SoftDeletesPolicy {
     }
 
     public synchronized Tuple<Long, Collection<RetentionLease>> getRetentionPolicy() {
+        /*
+         * When an engine is flushed, we need to provide it the latest collection of retention leases even when the soft deletes policy is
+         * locked for peer recovery.
+         */
+        final Collection<RetentionLease> retentionLeases = retentionLeasesSupplier.get();
         // do not advance if the retention lock is held
         if (retentionLockCount == 0) {
             /*
@@ -128,7 +131,6 @@ final class SoftDeletesPolicy {
              */
 
             // calculate the minimum sequence number to retain based on retention leases
-            retentionLeases = retentionLeasesSupplier.get();
             final long minimumRetainingSequenceNumber = retentionLeases
                     .stream()
                     .mapToLong(RetentionLease::retainingSequenceNumber)
