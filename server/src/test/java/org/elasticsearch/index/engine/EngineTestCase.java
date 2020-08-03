@@ -35,7 +35,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -75,7 +74,6 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ReferenceManager;
-import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.Directory;
@@ -111,13 +109,12 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.VersionFieldMapper;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.ReplicationTracker;
-import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
@@ -596,7 +593,7 @@ public abstract class EngineTestCase extends ESTestCase {
             mergePolicy,
             refreshListener,
             globalCheckpointSupplier,
-            globalCheckpointSupplier == null ? null : Collections::emptyList
+            globalCheckpointSupplier == null ? null : () -> RetentionLeases.EMPTY
         );
     }
 
@@ -608,7 +605,7 @@ public abstract class EngineTestCase extends ESTestCase {
             final MergePolicy mergePolicy,
             final ReferenceManager.RefreshListener refreshListener,
             final LongSupplier globalCheckpointSupplier,
-            final Supplier<Collection<RetentionLease>> retentionLeasesSupplier) {
+            final Supplier<RetentionLeases> retentionLeasesSupplier) {
         return config(
             indexSettings,
             store,
@@ -636,7 +633,7 @@ public abstract class EngineTestCase extends ESTestCase {
             externalRefreshListener,
             internalRefreshListener,
             maybeGlobalCheckpointSupplier,
-            maybeGlobalCheckpointSupplier == null ? null : Collections::emptyList);
+            maybeGlobalCheckpointSupplier == null ? null : () -> RetentionLeases.EMPTY);
     }
 
     public EngineConfig config(IndexSettings indexSettings,
@@ -646,7 +643,7 @@ public abstract class EngineTestCase extends ESTestCase {
                                ReferenceManager.RefreshListener externalRefreshListener,
                                ReferenceManager.RefreshListener internalRefreshListener,
                                @Nullable LongSupplier maybeGlobalCheckpointSupplier,
-                               @Nullable Supplier<Collection<RetentionLease>> maybeRetentionLeasesSupplier) {
+                               @Nullable Supplier<RetentionLeases> maybeRetentionLeasesSupplier) {
         IndexWriterConfig iwc = newIndexWriterConfig();
         TranslogConfig translogConfig = new TranslogConfig(shardId, translogPath, indexSettings, BigArrays.NON_RECYCLING_INSTANCE);
         Engine.EventListener eventListener = new Engine.EventListener() {
@@ -662,7 +659,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
 
         final LongSupplier globalCheckpointSupplier;
-        final Supplier<Collection<RetentionLease>> retentionLeasesSupplier;
+        final Supplier<RetentionLeases> retentionLeasesSupplier;
         if (maybeGlobalCheckpointSupplier == null) {
             assert maybeRetentionLeasesSupplier == null;
             final ReplicationTracker replicationTracker = new ReplicationTracker(
