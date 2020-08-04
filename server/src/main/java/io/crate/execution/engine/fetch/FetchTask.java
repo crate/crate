@@ -21,29 +21,6 @@
 
 package io.crate.execution.engine.fetch;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import io.crate.execution.dsl.phases.FetchPhase;
-import io.crate.execution.jobs.AbstractTask;
-import io.crate.execution.jobs.SharedShardContext;
-import io.crate.execution.jobs.SharedShardContexts;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.doc.DocTableInfo;
-
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.shard.ShardId;
-
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -53,10 +30,37 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public class FetchTask extends AbstractTask {
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
+
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.cursors.IntCursor;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.common.collections.BorrowedItem;
+import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.execution.jobs.SharedShardContext;
+import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.jobs.Task;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.doc.DocTableInfo;
+
+public class FetchTask implements Task {
 
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
@@ -67,9 +71,16 @@ public class FetchTask extends AbstractTask {
     private final Metadata metadata;
     private final Iterable<? extends Routing> routingIterable;
     private final Map<RelationName, Collection<Reference>> toFetch;
-    private final AtomicBoolean isKilled = new AtomicBoolean(false);
     private final UUID jobId;
     private final Function<RelationName, DocTableInfo> getTableInfo;
+    private final CompletableFuture<Void> result = new CompletableFuture<>();
+
+
+    @GuardedBy("jobId")
+    private int borrowed = 0;
+
+    @GuardedBy("jobId")
+    private Throwable killed;
 
     public FetchTask(UUID jobId,
                      FetchPhase phase,
@@ -78,7 +89,6 @@ public class FetchTask extends AbstractTask {
                      Metadata metadata,
                      Function<RelationName, DocTableInfo> getTableInfo,
                      Iterable<? extends Routing> routingIterable) {
-        super(phase.phaseId());
         this.jobId = jobId;
         this.phase = phase;
         this.localNodeId = localNodeId;
@@ -89,98 +99,15 @@ public class FetchTask extends AbstractTask {
         this.getTableInfo = getTableInfo;
     }
 
-    public Map<RelationName, Collection<Reference>> toFetch() {
-        return toFetch;
-    }
-
-    @Override
-    public void innerPrepare() {
-        HashMap<String, RelationName> index2TableIdent = new HashMap<>();
-        for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().asMap().entrySet()) {
-            for (String indexName : entry.getValue()) {
-                index2TableIdent.put(indexName, entry.getKey());
-            }
-        }
-        Set<RelationName> tablesWithFetchRefs = new HashSet<>();
-        for (Reference reference : phase.fetchRefs()) {
-            tablesWithFetchRefs.add(reference.ident().tableIdent());
-        }
-
-        String source = jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
-        for (Routing routing : routingIterable) {
-            Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
-            Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
-            for (Map.Entry<String, IntIndexedContainer> indexShardsEntry : indexShards.entrySet()) {
-                String indexName = indexShardsEntry.getKey();
-                Integer base = phase.bases().get(indexName);
-                if (base == null) {
-                    continue;
-                }
-                IndexMetadata indexMetadata = metadata.index(indexName);
-                if (indexMetadata == null) {
-                    if (IndexParts.isPartitioned(indexName)) {
-                        continue;
-                    }
-                    throw new IndexNotFoundException(indexName);
-                }
-                Index index = indexMetadata.getIndex();
-                RelationName ident = index2TableIdent.get(indexName);
-                assert ident != null : "no relationName found for index " + indexName;
-                tableIdents.put(base, ident);
-                toFetch.put(ident, new ArrayList<>());
-                for (IntCursor shard : indexShardsEntry.getValue()) {
-                    ShardId shardId = new ShardId(index, shard.value);
-                    int readerId = base + shardId.id();
-                    SharedShardContext shardContext = shardContexts.get(readerId);
-                    if (shardContext == null) {
-                        shardContext = sharedShardContexts.createContext(shardId, readerId);
-                        shardContexts.put(readerId, shardContext);
-                        if (tablesWithFetchRefs.contains(ident)) {
-                            try {
-                                searchers.put(readerId, shardContext.acquireSearcher(source));
-                            } catch (IndexNotFoundException e) {
-                                if (!IndexParts.isPartitioned(indexName)) {
-                                    throw e;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        for (Reference reference : phase.fetchRefs()) {
-            Collection<Reference> references = toFetch.get(reference.ident().tableIdent());
-            if (references != null) {
-                references.add(reference);
-            }
-        }
-    }
-
-    @Override
-    protected void innerStart() {
-        if (searchers.isEmpty() || phase.fetchRefs().isEmpty()) {
-            // no fetch references means there will be no fetch requests
-            // this context is only here to allow the collectors to generate docids with the right bases
-            // the bases are fetched in the prepare phase therefore this context can be closed
-            close();
-        }
-    }
-
-    @Override
-    protected void innerKill(@Nonnull Throwable t) {
-        isKilled.set(true);
-        innerClose();
-    }
-
-    protected void innerClose() {
+    private void closeSearchers() {
         for (IntObjectCursor<Engine.Searcher> cursor : searchers) {
             cursor.value.close();
         }
+        searchers.clear();
     }
 
-    @Override
-    public void close() {
-        super.close();
+    public Map<RelationName, Collection<Reference>> toFetch() {
+        return toFetch;
     }
 
     @Override
@@ -213,12 +140,23 @@ public class FetchTask extends AbstractTask {
     }
 
     @Nonnull
-    public Engine.Searcher searcher(int readerId) {
+    public BorrowedItem<Engine.Searcher> searcher(int readerId) {
         final Engine.Searcher searcher = searchers.get(readerId);
         if (searcher == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Searcher for reader with id %d not found", readerId));
         }
-        return searcher;
+        synchronized (jobId) {
+            borrowed++;
+            return new BorrowedItem<>(searcher, () -> {
+                synchronized (jobId) {
+                    borrowed--;
+                    if (borrowed == 0 && killed != null) {
+                        closeSearchers();
+                        result.completeExceptionally(killed);
+                    }
+                }
+            });
+        }
     }
 
     @Nonnull
@@ -234,7 +172,123 @@ public class FetchTask extends AbstractTask {
     public String toString() {
         return "FetchTask{" +
                "phase=" + phase.phaseId() +
+               ", borrowed=" + borrowed +
+               ", done=" + result.isDone() +
                ", searchers=" + searchers.keys() +
                '}';
+    }
+
+    @Override
+    public CompletableFuture<Void> completionFuture() {
+        return result;
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        synchronized (jobId) {
+            if (borrowed > 0) {
+                killed = throwable;
+            } else {
+                closeSearchers();
+                result.completeExceptionally(throwable);
+            }
+        }
+    }
+
+    public void close() {
+        synchronized (jobId) {
+            closeSearchers();
+            if (killed == null) {
+                result.complete(null);
+            } else {
+                result.completeExceptionally(killed);
+            }
+        }
+    }
+
+
+    @Override
+    public void prepare() throws Exception {
+        synchronized (jobId) {
+            if (killed != null) {
+                result.completeExceptionally(killed);
+                return;
+            }
+
+            HashMap<String, RelationName> index2TableIdent = new HashMap<>();
+            for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().asMap().entrySet()) {
+                for (String indexName : entry.getValue()) {
+                    index2TableIdent.put(indexName, entry.getKey());
+                }
+            }
+            Set<RelationName> tablesWithFetchRefs = new HashSet<>();
+            for (Reference reference : phase.fetchRefs()) {
+                tablesWithFetchRefs.add(reference.ident().tableIdent());
+            }
+
+            String source = jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
+            for (Routing routing : routingIterable) {
+                Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
+                Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
+                for (Map.Entry<String, IntIndexedContainer> indexShardsEntry : indexShards.entrySet()) {
+                    String indexName = indexShardsEntry.getKey();
+                    Integer base = phase.bases().get(indexName);
+                    if (base == null) {
+                        continue;
+                    }
+                    IndexMetadata indexMetadata = metadata.index(indexName);
+                    if (indexMetadata == null) {
+                        if (IndexParts.isPartitioned(indexName)) {
+                            continue;
+                        }
+                        throw new IndexNotFoundException(indexName);
+                    }
+                    Index index = indexMetadata.getIndex();
+                    RelationName ident = index2TableIdent.get(indexName);
+                    assert ident != null : "no relationName found for index " + indexName;
+                    tableIdents.put(base, ident);
+                    toFetch.put(ident, new ArrayList<>());
+                    for (IntCursor shard : indexShardsEntry.getValue()) {
+                        ShardId shardId = new ShardId(index, shard.value);
+                        int readerId = base + shardId.id();
+                        SharedShardContext shardContext = shardContexts.get(readerId);
+                        if (shardContext == null) {
+                            shardContext = sharedShardContexts.createContext(shardId, readerId);
+                            shardContexts.put(readerId, shardContext);
+                            if (tablesWithFetchRefs.contains(ident)) {
+                                try {
+                                    searchers.put(readerId, shardContext.acquireSearcher(source));
+                                } catch (IndexNotFoundException e) {
+                                    if (!IndexParts.isPartitioned(indexName)) {
+                                        throw e;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            for (Reference reference : phase.fetchRefs()) {
+                Collection<Reference> references = toFetch.get(reference.ident().tableIdent());
+                if (references != null) {
+                    references.add(reference);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void start() {
+        if (searchers.isEmpty() || phase.fetchRefs().isEmpty()) {
+            // no fetch references means there will be no fetch requests
+            // this context is only here to allow the collectors to generate docids with the right bases
+            // the bases are fetched in the prepare phase therefore this context can be closed
+            close();
+        }
+    }
+
+    @Override
+    public int id() {
+        return phase.phaseId();
     }
 }
