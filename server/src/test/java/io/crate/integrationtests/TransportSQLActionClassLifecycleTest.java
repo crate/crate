@@ -21,8 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
-import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -40,7 +38,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.postgresql.util.PSQLException;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -54,6 +51,12 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
@@ -86,9 +89,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'suess.cluster' unknown");
-        execute("select count(race), suess.cluster.name from characters");
+        assertThrows(() -> execute("select count(race), suess.cluster.name from characters"),
+            isSQLError(is("Relation 'suess.cluster' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
     }
 
     @Test
@@ -194,9 +196,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'non_existent' unknown");
-        execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
+        assertThrows(() -> execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"}),
+                     isSQLError(is("Relation 'non_existent' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
     }
 
     @Test
@@ -419,16 +420,14 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testSetStatementInvalid() throws Exception {
-        try {
-            execute("set global persistent stats.operations_log_size=-1024");
-            fail("expected IllegalArgumentException, none was thrown");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), containsString("Failed to parse value [-1024] for setting [stats.operations_log_size] must be >= 0"));
+        assertThrows(() -> execute("set global persistent stats.operations_log_size=-1024"),
+                     isSQLError(containsString(
+                         "Failed to parse value [-1024] for setting [stats.operations_log_size] must be >= 0"),
+                                INTERNAL_ERROR, BAD_REQUEST, 4000));
 
-            SQLResponse response = execute("select settings['stats']['operations_log_size'] from sys.cluster");
-            assertThat(response.rowCount(), is(1L));
-            assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
-        }
+        SQLResponse response = execute("select settings['stats']['operations_log_size'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
     }
 
     @Test
@@ -507,9 +506,11 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testAddPrimaryKeyColumnToNonEmptyTable() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot add a primary key column to a table that isn't empty");
-        execute("alter table characters add newpkcol string primary key");
+        assertThrows(() -> execute("alter table characters add newpkcol string primary key"),
+                     isSQLError(is("Cannot add a primary key column to a table that isn't empty"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4004));
     }
 
     @Test
@@ -535,9 +536,11 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCreateTableWithInvalidAnalyzer() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("analyzer [foobar] not found for field [content]");
-        execute("create table t (content string index using fulltext with (analyzer='foobar'))");
+        assertThrows(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"),
+                     isSQLError(is("Failed to parse mapping [default]: analyzer [foobar] not found for field [content]"),
+                                INTERNAL_ERROR,
+                                INTERNAL_SERVER_ERROR,
+                                5000));
     }
 
     @Test
