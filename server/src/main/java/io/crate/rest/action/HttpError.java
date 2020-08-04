@@ -163,7 +163,7 @@ public class HttpError {
                 if (crateException instanceof AnalyzerUnknownException) {
                     httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_ANALYZER_DEFINITION;
                 } else if (crateException instanceof ColumnUnknownException) {
-                    httpErrorStatus = HttpErrorStatus.COLUMN_NAME_INVALID;
+                    httpErrorStatus = HttpErrorStatus.COLUMN_UNKNOWN;
                 } else if (crateException instanceof PartitionUnknownException) {
                     httpErrorStatus = HttpErrorStatus.PARTITION_UNKNOWN;
                 } else if (crateException instanceof RelationUnknown) {
