@@ -2318,6 +2318,8 @@ Returns: same type as arguments
     +--------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-sysinfo:
+
 System information functions
 ============================
 

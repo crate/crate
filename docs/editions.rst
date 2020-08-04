@@ -4,10 +4,9 @@
 Editions
 ========
 
-When you download the pre-build CrateDB packages from the Crate.io website, you
-are downloading the standard edition of CrateDB. This edition comes with
-*Enterprise Features*. If you want to run CrateDB on more than three nodes, you
-must acquire an *Enterprise License*.
+When you download the pre-built CrateDB packages from the Crate.io website, you
+are downloading the edition that comes with *Enterprise Features*. If you want
+to run CrateDB on more than three nodes, you must acquire an *Enterprise License*.
 
 When you build CrateDB from source, you get the CrateDB Community Edition
 which does not come with enterprise features and does not have any node
@@ -31,37 +30,56 @@ limitations.
 CrateDB
 =======
 
+Take note of the following items when using this edition of CrateDB. 
+
 .. _enterprise-features:
 
 Enterprise features
 -------------------
 
-- :ref:`administration_user_management`: manage multiple database users
-- :ref:`administration-privileges`: configure user privileges
-- :ref:`admin_auth`: manage your database with authentication, and
-  more
-- System information functions: :ref:`CURRENT_USER <current_user>`,
-  :ref:`USER <user>`, :ref:`SESSION_USER <session_user>`
-- :ref:`Support for JavaScript in UDF <udf_lang_js>`: write user-defined
-  functions in JavaScript
-- :ref:`jmx_monitoring`: monitor your query stats with JMX
-- :ref:`aggregation-hll-distinct`: distinct count aggregation using the
-  `HyperLoglog++`_ algorithm
-- :ref:`window-function-firstvalue`: ``first_value`` window function
-- :ref:`window-function-lastvalue`: ``last_value`` window function
-- :ref:`window-function-lag`: ``lag`` window function
-- :ref:`window-function-lead`: ``lead`` window function
-- :ref:`window-function-nthvalue`: ``nth_value`` window function
-- `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
-  `privileges browser`_
+- :ref:`administration_user_management` for multiple database users
+- Configure user :ref:`privileges <administration-privileges>`
+- Manage your database with :ref:`authentication <admin_auth>` and more
+- Write :ref:`user-defined functions in JavaScript <udf_lang_js>`
+- Take advantage of these features in the `CrateDB admin UI`_:
+
+  - `shards browser`_
+
+  - `monitoring overview`_ 
+
+  - `privileges browser`_
+
+- Unlock the following :ref:`system information functions <scalar-sysinfo>`:
+
+  - :ref:`CURRENT_USER <current_user>`
+
+  - :ref:`USER <user>`
+
+  - :ref:`SESSION_USER <session_user>`
+
+- :ref:`Monitor <jmx_monitoring>` your query stats with JMX
+- Access to the :ref:`aggregation-hll-distinct` :ref:`aggregate function 
+  <aggregate-functions>`
+- Access to the following :ref:`window functions <window-functions>`:
+
+  - :ref:`window-function-firstvalue`
+
+  - :ref:`window-function-lastvalue`
+
+  - :ref:`window-function-lag`
+
+  - :ref:`window-function-lead`
+
+  - :ref:`window-function-nthvalue`
+
 
 .. _node-limitations:
 
 Node limitation
 ---------------
 
-To make full use of CrateDB, you must `acquire an Enterprise License`_. Unless and
-until you do that, CrateDB is limited to running on no more than three nodes.
+To make full use of CrateDB, you must `acquire an Enterprise License`_. Unless
+and until you do that, CrateDB is limited to running on no more than three nodes.
 
 .. NOTE::
 
@@ -70,8 +88,9 @@ until you do that, CrateDB is limited to running on no more than three nodes.
 
 .. CAUTION::
 
-    If you exceed the three nodes limitation your cluster will stop accepting
-    queries and CrateDB functionality will be limited to:
+    If you exceed the three-node limitation, your cluster will stop accepting
+    queries and CrateDB functionality will be limited to the following SQL 
+    statements:
 
      - :ref:`SET LICENSE <ref-set-license>`
 
@@ -83,8 +102,8 @@ until you do that, CrateDB is limited to running on no more than three nodes.
     To restore functionality, you must :ref:`SET LICENSE <ref-set-license>` or
     scale down to three or fewer nodes.
 
-If you wish to use CrateDB without an Enterprise License and without the three
-node limitation, you can switch to the :ref:`community-edition`.
+If you wish to use CrateDB without an Enterprise License and without the
+three-node limitation, you can switch to the :ref:`community-edition`.
 
 .. _community-edition:
 
@@ -94,31 +113,59 @@ CrateDB Community Edition
 The CrateDB *Community Edition* (CrateDB CE) does not include any
 :ref:`enterprise-features` but can be run on as many nodes as you wish.
 
-CrateDB CE must be built from source, like so:
+.. NOTE::
+
+   CrateDB requires a `Java virtual machine`_ to run.
+
+   Starting with CrateDB 4.2, a JVM is bundled with the tarball and no
+   extra installation is necessary.
+
+   Versions starting from 3.0 to 4.1 require a `Java 11`_ installation. We
+   recommend using `Oracle's Java`_ on macOS and OpenJDK_ on Linux Systems.
+
+   Earlier versions required Java 8.
+
+CrateDB CE must be built from source:
 
 .. code-block:: console
 
    sh$ git clone https://github.com/crate/crate
    sh$ cd crate
-   sh$ git submodule update --init
    sh$ git checkout <TAG>
    sh$ ./gradlew clean communityEditionDistTar
 
-Here, replace ``<TAG>`` with the commit hash of the Git tag that corresponds to
-the `release`_ you wish to use.
+The steps above:
 
-When the ``gradlew`` command successfully completes, the relevant CrateDB CE
+- clone the CrateDB Git repository and navigate into the directory
+
+- replace ``<TAG>`` with the Git tag that corresponds to
+  the `release`_ you wish to use or just the version number of the release
+
+- execute the `Gradle Wrapper`_ script included in the repository to clean up
+  any old build files and to invoke a `distribution plugin`_ that will build
+  the Community Edition tar archive 
+
+When the ``gradlew`` command completes successfully, the relevant CrateDB CE
 release tarball will be located in the ``app/build/distributions`` directory.
+
+You can refer to our guide on running `CrateDB tarball installations`_. 
 
 .. _acquire an enterprise license: https://crate.io/pricing/#contactsales
 .. _contact us: https://crate.io/pricing/#contactsales
+.. _CrateDB admin UI: https://crate.io/docs/clients/admin-ui/en/latest/index.html
+.. _CrateDB tarball installations: https://crate.io/docs/crate/tutorials/en/latest/install-run/basic.html
+.. _distribution plugin: https://docs.gradle.org/current/userguide/distribution_plugin.html
 .. _enterprise license: https://crate.io/products/cratedb-editions/
+.. _Gradle Wrapper: https://docs.gradle.org/current/userguide/gradle_wrapper.html
 .. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
+.. _Java virtual machine: https://en.wikipedia.org/wiki/Java_virtual_machine
+.. _Java 11: https://www.oracle.com/technetwork/java/javase/downloads/index.html
 .. _LICENSE: https://github.com/crate/crate/blob/master/LICENSE
 .. _monitoring overview: https://crate.io/docs/clients/admin-ui/en/latest/monitoring.html
 .. _NOTICE: https://github.com/crate/crate/blob/master/NOTICE
+.. _OpenJDK: http://openjdk.java.net/projects/jdk/11/
+.. _Oracle's Java: http://www.java.com/en/download/help/mac_install.xml
 .. _privileges browser: https://crate.io/docs/clients/admin-ui/en/latest/privileges.html
 .. _product comparison: https://crate.io/products/cratedb-editions/
-.. _release: https://github.com/crate/crate/releases
+.. _release: https://github.com/crate/crate/tags
 .. _shards browser: https://crate.io/docs/clients/admin-ui/en/latest/shards.html#shards
-.. _The CrateDB admin UI: https://crate.io/docs/clients/admin-ui/en/latest/index.html
