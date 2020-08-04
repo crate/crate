@@ -29,18 +29,18 @@ import java.io.IOException;
 public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> {
 
     private long fetchId;
-    private int jobSearchContextId;
+    private int readerId;
     private int docBase;
 
     @Override
     public void startCollect(CollectorContext context) {
         super.startCollect(context);
-        this.jobSearchContextId = context.jobSearchContextId();
+        this.readerId = context.readerId();
     }
 
     @Override
     public void setNextDocId(int doc) {
-        fetchId = FetchId.encode(jobSearchContextId, docBase + doc);
+        fetchId = FetchId.encode(readerId, docBase + doc);
     }
 
     @Override
