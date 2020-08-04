@@ -21,14 +21,12 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -47,7 +45,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -87,18 +91,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testIndexNotFoundExceptionIsRaisedIfDeletedAfterPlan() throws Throwable {
-        expectedException.expect(IndexNotFoundException.class);
-
         execute("create table t (name string)");
         ensureYellow();
 
+        var msg = String.format("Relation '%s' unknown", getFqn("t"));
+
         PlanForNode plan = plan("select * from t");
         execute("drop table t");
-        try {
-            execute(plan).getResult();
-        } catch (Throwable t) {
-            throw SQLExceptions.unwrap(t);
-        }
+
+        assertThrows(() -> execute(plan).getResult(), isSQLError(is(msg), INTERNAL_ERROR, NOT_FOUND, 4041));
     }
 
     @Test
@@ -810,10 +811,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void selectWhereNonExistingColumnMatchFunction() throws Exception {
         nonExistingColumnSetup();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'");
-
-        execute("select * from quotes where match(o['something'], 'bla')");
+        assertThrows(() -> execute("select * from quotes where match(o['something'], 'bla')"),
+                     isSQLError(is("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'"),
+                                INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -1366,26 +1366,31 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectFailingSearchScript() throws Exception {
-        expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
-
         execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5)");
         refresh();
 
-        execute("select log(d, l) from t where log(d, -1) >= 0");
+        assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0"),
+                     isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
     public void testSelectGroupByFailingSearchScript() throws Exception {
-        expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
-
         execute("create table t (i integer, l long, d double) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (0, 4, 100)");
         execute("refresh table t");
 
-        execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)");
+        assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"),
+                     isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
+
     }
 
     @Test
@@ -1518,13 +1523,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String uniqueId = UUID.randomUUID().toString();
         String stmtStr = "select '" + uniqueId + "' from foobar";
         String stmtStrWhere = "select ''" + uniqueId + "'' from foobar";
-        try {
-            execute(stmtStr);
-        } catch (SQLActionException e) {
-            assertThat(e.getMessage(), containsString("Relation 'foobar' unknown"));
-            execute("select stmt from sys.jobs where stmt='" + stmtStrWhere + "'");
-            assertEquals(response.rowCount(), 0L);
-        }
+        assertThrows(() -> execute(stmtStr),
+                     isSQLError(containsString("Relation 'foobar' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
+        execute("select stmt from sys.jobs where stmt='" + stmtStrWhere + "'");
+        assertEquals(response.rowCount(), 0L);
     }
 
     @Test
@@ -1570,14 +1572,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWithSingleBulkArgRaisesUnsupportedError() {
-        expectedException.expectMessage("Bulk operations for statements that return result sets is not supported");
-        execute("select * from sys.cluster", new Object[0][]);
+        assertThrows(() ->  execute("select * from sys.cluster", new Object[0][]),
+                     isSQLError(is("Bulk operations for statements that return result sets is not supported"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4004));
     }
 
     @Test
     public void testSelectWithBulkArgsRaisesUnsupportedError() {
-        expectedException.expectMessage("Bulk operations for statements that return result sets is not supported");
-        execute("select * from sys.cluster", new Object[][]{new Object[]{1}, new Object[]{2}});
+        assertThrows(() -> execute("select * from sys.cluster", new Object[][]{new Object[]{1}, new Object[]{2}}),
+                     isSQLError(is("Bulk operations for statements that return result sets is not supported"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4004));
     }
 
     @Test
@@ -1638,9 +1646,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id) values (1)");
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(" / by zero");
-        execute("select 1/0 from t1");
+        assertThrows(() -> execute("select 1/0 from t1"),
+                     isSQLError(is("/ by zero"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     /**
