@@ -21,9 +21,14 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import org.junit.Before;
 import org.junit.Test;
+
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.hamcrest.core.Is.is;
 
 public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
@@ -42,9 +47,8 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
 
     @Test
     public void testSelectSysColumnsFromInformationSchema() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Relation 'sys.nodes' unknown");
-        execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables");
+        assertThrows(() -> execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables"),
+                     isSQLError(is("Relation 'sys.nodes' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
     @Test
@@ -200,8 +204,10 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
 
     @Test
     public void testSelectUnknownTableFromInformationSchema() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Relation 'information_schema.non_existent' unknown");
-        execute("select * from information_schema.non_existent");
+        assertThrows(() -> execute("select * from information_schema.non_existent"),
+                     isSQLError(is("Relation 'information_schema.non_existent' unknown"),
+                                UNDEFINED_TABLE,
+                                NOT_FOUND,
+                                4041));
     }
 }
