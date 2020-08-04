@@ -21,14 +21,20 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Locale;
 import java.util.Map;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 public class TableSettingsTest extends SQLTransportIntegrationTest {
@@ -82,9 +88,11 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSetNonDynamicTableSetting() {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can't update non dynamic settings [[index.translog.sync_interval]] for open indices");
-        execute("alter table settings_table set (\"translog.sync_interval\"='10s')");
+        assertThrows(() -> execute("alter table settings_table set (\"translog.sync_interval\"='10s')"),
+                     isSQLError(containsString("Can't update non dynamic settings [[index.translog.sync_interval]] for open indices"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -126,12 +134,11 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         // Add a column is within the limit
         execute("alter table test add column new_column int");
 
-
         // One more column exceeds the limit
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH,
-            "Limit of total fields [%d] in index [%s.test] has been exceeded", totalFields + 1, sqlExecutor.getCurrentSchema()));
-        execute("alter table test add column new_column2 int");
+        var msg = String.format(Locale.ENGLISH,
+            "Limit of total fields [%d] in index [%s.test] has been exceeded", totalFields + 1, sqlExecutor.getCurrentSchema());
+        assertThrows(() -> execute("alter table test add column new_column2 int"),
+                     isSQLError(is(msg), INTERNAL_ERROR, HttpResponseStatus.BAD_REQUEST, 4000));
     }
 
     @Test
@@ -172,9 +179,12 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectConcreteDynamicSetting() {
-        expectedException.expectMessage("Column settings['routing']['allocation']['exclude']['foo'] unknown");
-        execute("select settings['routing']['allocation']['exclude']['foo'] from information_schema.tables " +
-                "where table_name = 'settings_table'");
+        assertThrows(() -> execute("select settings['routing']['allocation']['exclude']['foo'] from information_schema.tables " +
+            "where table_name = 'settings_table'"),
+                     isSQLError(is("Column settings['routing']['allocation']['exclude']['foo'] unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4043));
     }
 
     @Test
