@@ -86,9 +86,6 @@ public class RowShardResolver {
     }
 
     private static List<String> pkValues(List<Input<?>> primaryKeyInputs) {
-        if (primaryKeyInputs.isEmpty()) {
-            return List.of(); // avoid object creation in Lists.transform if the list is empty
-        }
         return Lists2.map(primaryKeyInputs, input -> nullOrString(input.value()));
     }
 

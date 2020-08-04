@@ -1777,4 +1777,28 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from (select * from tbl) as t where obj['b'] = 10");
         assertThat(printedTable(response.rows()), is(""));
     }
+
+
+    @Test
+    public void test_primary_key_lookup_on_multiple_columns() throws Exception {
+        execute(
+            "CREATE TABLE doc.test (" +
+            "   id TEXT, " +
+            "   region_level_1 TEXT, " +
+            "   marker_type TEXT, " +
+            "   is_auto BOOLEAN," +
+            "   PRIMARY KEY (id, region_level_1, marker_type, is_auto) " +
+            ") clustered into 1 shards "
+        );
+        execute("insert into doc.test (id, region_level_1, marker_type, is_auto) values ('1', '2', '3', false)");
+        execute("refresh table doc.test");
+        execute("explain select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
+        assertThat(printedTable(response.rows()), is(
+            "Get[doc.test | id | DocKeys{'1', '2', '3', false}]\n"
+        ));
+        execute("select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
+        assertThat(printedTable(response.rows()), is(
+            "1\n"
+        ));
+    }
 }
