@@ -35,6 +35,7 @@ import org.elasticsearch.index.engine.Engine;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -78,6 +79,9 @@ class FetchCollector {
         for (IntCursor cursor : docIds) {
             int docId = cursor.value;
             int readerIndex = ReaderUtil.subIndex(docId, readerContexts);
+            if (readerIndex < 0) {
+                throw JobKilledException.of(null);
+            }
             LeafReaderContext subReaderContext = readerContexts.get(readerIndex);
             try {
                 setNextDocId(subReaderContext, docId - subReaderContext.docBase);

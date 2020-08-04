@@ -21,12 +21,21 @@
 
 package io.crate.exceptions;
 
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.action.sql.SQLActionException;
-import io.crate.auth.user.AccessControl;
-import io.crate.metadata.PartitionName;
-import io.crate.sql.parser.ParsingException;
-import io.netty.handler.codec.http.HttpResponseStatus;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -46,15 +55,11 @@ import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.transport.TransportException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import io.crate.action.sql.SQLActionException;
+import io.crate.auth.user.AccessControl;
+import io.crate.metadata.PartitionName;
+import io.crate.sql.parser.ParsingException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class SQLExceptions {
 
@@ -182,7 +187,13 @@ public class SQLExceptions {
         } else {
             message = e.getClass().getSimpleName() + ": " + message;
         }
-
+        if (e instanceof IndexOutOfBoundsException) {
+            e.printStackTrace();
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            if (stackTrace.length > 0) {
+                message = message + " " + Arrays.stream(stackTrace).map(x -> x.toString()).collect(Collectors.joining("\\n"));
+            }
+        }
         StackTraceElement[] usefulStacktrace =
             e instanceof MissingPrivilegeException ? e.getStackTrace() : unwrappedError.getStackTrace();
         return new SQLActionException(message, errorCode, httpStatus, usefulStacktrace);

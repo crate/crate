@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 
@@ -50,6 +52,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
     }
 
     @Test
+    @Repeat (iterations = 50)
     public void testRegularSelectWithFewAvailableThreadsShouldNeverGetStuck() throws Exception {
         execute("create table t (x int) with (number_of_replicas = 0)");
         ensureYellow();
@@ -59,6 +62,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
     }
 
     @Test
+    @Repeat (iterations = 50)
     public void testDistributedPushSelectWithFewAvailableThreadsShouldNeverGetStuck() throws Exception {
         execute("create table t (x int) with (number_of_replicas = 0)");
         ensureYellow();
@@ -83,7 +87,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
             } catch (Exception e) {
                 assertThat(e.getMessage(), anyOf(
                     Matchers.containsString("rejected execution"),
-                    Matchers.containsString("job killed")));
+                    Matchers.containsString("Job killed")));
             }
         }
     }

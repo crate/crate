@@ -45,6 +45,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -1775,5 +1779,48 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select * from (select * from tbl) as t where obj['b'] = 10");
         assertThat(printedTable(response.rows()), is(""));
+    }
+
+    @Test
+    public void test_foo() throws Throwable {
+        execute("create table tbl (x int)");
+        Object[][] values = new Object[1001][];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = new Object[] { i };
+        }
+        execute("insert into tbl (x) values (?)", values);
+        execute("refresh table tbl");
+
+        AtomicReference<Throwable> lastError = new AtomicReference<>();
+        AtomicBoolean running = new AtomicBoolean(false);
+        CountDownLatch latch = new CountDownLatch(1000);
+        for (int i = 0; i < 10; i++) {
+            var t = new Thread(() -> {
+                while (running.get()) {
+                    latch.countDown();
+                    try {
+                        execute("select * from tbl limit 600");
+                    } catch (Throwable err) {
+                        lastError.set(err);
+                    }
+                }
+            });
+            t.start();
+        }
+
+        var trefresh = new Thread(() -> {
+            while (running.get()) {
+                execute("refresh table tbl");
+            }
+        });
+        trefresh.start();
+
+        latch.await(10, TimeUnit.SECONDS);
+        running.set(false);
+
+        Throwable throwable = lastError.get();
+        if (throwable != null) {
+            throw throwable;
+        }
     }
 }
