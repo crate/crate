@@ -62,4 +62,6 @@ Changes
 Fixes
 =====
 
-None
+- Fixed an issue that caused primary key lookups to return an empty result
+  instead of the row identified by the primary key values, if the primary key
+  consists of multiple columns and if one of them is of type ``BOOLEAN``.
