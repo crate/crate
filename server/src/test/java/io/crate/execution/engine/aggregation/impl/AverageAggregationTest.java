@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -32,8 +33,15 @@ import org.junit.Test;
 
 public class AverageAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType<?> dataType, Object[][] data) throws Exception {
-        return executeAggregation("avg", dataType, data);
+    private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                "avg",
+                argumentType.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            data
+        );
     }
 
     @Test
