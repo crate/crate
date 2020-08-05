@@ -22,18 +22,13 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.auth.user.AccessControl;
-import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
-import org.elasticsearch.ResourceAlreadyExistsException;
-import org.elasticsearch.common.ParsingException;
 import org.postgresql.util.PSQLException;
 
 import javax.annotation.Nullable;
 
 import java.nio.charset.StandardCharsets;
 
-import static io.crate.exceptions.SQLExceptions.isDocumentAlreadyExistsException;
 
 public class PGError {
 
@@ -80,30 +75,7 @@ public class PGError {
             return fromPSQLException((PSQLException) throwable);
         }
         Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
-        PGErrorStatus status;
-        String message = SQLExceptions.messageOf(throwable);
-        if (throwable instanceof ParsingException) {
-            status = PGErrorStatus.INTERNAL_ERROR;
-            message = throwable.getMessage();
-        } else if (throwable instanceof RelationUnknown) {
-            status = PGErrorStatus.UNDEFINED_TABLE;
-        } else if (throwable instanceof IllegalArgumentException) {
-            status = PGErrorStatus.INTERNAL_ERROR;
-            message = throwable.getMessage();
-        } else if (unwrappedError instanceof UnsupportedOperationException) {
-            status = PGErrorStatus.FEATURE_NOT_SUPPORTED;
-        } else if (unwrappedError instanceof ResourceAlreadyExistsException) {
-            var resourceAlreadyExistsException = (ResourceAlreadyExistsException) unwrappedError;
-            status = PGErrorStatus.DUPLICATE_TABLE;
-            message = String.format("Relation '%s' already exists.", resourceAlreadyExistsException.getIndex().getName());
-        } else if (isDocumentAlreadyExistsException(unwrappedError)) {
-            status = PGErrorStatus.DUPLICATE_OBJECT;
-            message = "A document with the same primary key exists already";
-        } else {
-            status = PGErrorStatus.INTERNAL_ERROR;
-            message = SQLExceptions.messageOf(unwrappedError);
-        }
-        return new PGError(status, message, unwrappedError);
+        return new PGError(PGErrorStatus.INTERNAL_ERROR, SQLExceptions.messageOf(throwable), unwrappedError);
     }
 
     public static PGError fromPSQLException(PSQLException e) {
