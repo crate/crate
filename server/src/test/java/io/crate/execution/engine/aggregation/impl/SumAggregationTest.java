@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -32,8 +33,17 @@ import org.junit.Test;
 
 public class SumAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
-        return executeAggregation("sum", dataType, data);
+    private Object executeAggregation(DataType<?> argumentType,
+                                      DataType<?> returnType,
+                                      Object[][] data) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                "sum",
+                argumentType.getTypeSignature(),
+                returnType.getTypeSignature()
+            ),
+            data
+        );
     }
 
     @Test
@@ -57,52 +67,52 @@ public class SumAggregationTest extends AggregationTest {
 
     @Test
     public void testDouble() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
+        Object result = executeAggregation(DataTypes.DOUBLE, DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
 
         assertEquals(1.0d, result);
     }
 
     @Test
     public void testFloat() throws Exception {
-        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
+        Object result = executeAggregation(DataTypes.FLOAT, DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
 
         assertEquals(1.0f, result);
     }
 
     @Test
     public void testLong() throws Exception {
-        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
+        Object result = executeAggregation(DataTypes.LONG, DataTypes.LONG, new Object[][]{{7L}, {3L}});
 
         assertEquals(10L, result);
     }
 
     @Test(expected = ArithmeticException.class)
     public void testLongOverflow() throws Exception {
-        executeAggregation(DataTypes.LONG, new Object[][]{{Long.MAX_VALUE}, {1}});
+        executeAggregation(DataTypes.LONG, DataTypes.LONG, new Object[][]{{Long.MAX_VALUE}, {1}});
     }
 
     @Test(expected = ArithmeticException.class)
     public void testLongUnderflow() throws Exception {
-        executeAggregation(DataTypes.LONG, new Object[][]{{Long.MIN_VALUE}, {-1}});
+        executeAggregation(DataTypes.LONG, DataTypes.LONG, new Object[][]{{Long.MIN_VALUE}, {-1}});
     }
 
     @Test
     public void testInteger() throws Exception {
-        Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
+        Object result = executeAggregation(DataTypes.INTEGER, DataTypes.LONG, new Object[][]{{7}, {3}});
 
         assertEquals(10L, result);
     }
 
     @Test
     public void testShort() throws Exception {
-        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
+        Object result = executeAggregation(DataTypes.SHORT, DataTypes.LONG, new Object[][]{{(short) 7}, {(short) 3}});
 
         assertEquals(10L, result);
     }
 
     @Test
     public void testByte() throws Exception {
-        Object result = executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 7}, {(byte) 3}});
+        Object result = executeAggregation(DataTypes.BYTE, DataTypes.LONG, new Object[][]{{(byte) 7}, {(byte) 3}});
 
         assertEquals(10L, result);
     }
@@ -110,8 +120,9 @@ public class SumAggregationTest extends AggregationTest {
     @Test
     public void testUnsupportedType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unknown function: sum(INPUT(0))," +
-                                        " no overload found for matching argument types: (geo_point).");
-        executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
+        expectedException.expectMessage(
+            "Unknown function: sum(NULL)," +
+            " no overload found for matching argument types: (geo_point).");
+        getSum(DataTypes.GEO_POINT);
     }
 }

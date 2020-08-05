@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -35,8 +36,15 @@ import static org.hamcrest.Matchers.oneOf;
 
 public class ArbitraryAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
-        return executeAggregation("arbitrary", dataType, data);
+    private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                "arbitrary",
+                argumentType.getTypeSignature(),
+                argumentType.getTypeSignature()
+            ),
+            data
+        );
     }
 
     @Test

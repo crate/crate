@@ -36,12 +36,17 @@ public class ArrayAggTest extends AggregationTest {
 
     @Test
     public void test_array_agg_adds_all_items_to_array() throws Exception {
-        var result = executeAggregation("array_agg", DataTypes.INTEGER, new Object[][] {
-            new Object[] { 20 },
-            new Object[] { null },
-            new Object[] { 42 },
-            new Object[] { 24 }
-        }, List.of(DataTypes.INTEGER));
+        var result = executeAggregation(
+            ArrayAgg.SIGNATURE,
+            List.of(DataTypes.INTEGER),
+            new ArrayType<>(DataTypes.INTEGER),
+            new Object[][]{
+                new Object[]{20},
+                new Object[]{null},
+                new Object[]{42},
+                new Object[]{24}
+            }
+        );
         assertThat((List<Object>) result, Matchers.contains(20, null, 42, 24));
     }
 

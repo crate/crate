@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -35,8 +36,15 @@ import java.util.List;
 
 public class GeometricMeanAggregationtest extends AggregationTest {
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
-        return executeAggregation("geometric_mean", dataType, data);
+    private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                "geometric_mean",
+                argumentType.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            data
+        );
     }
 
     @Test

@@ -43,12 +43,28 @@ import static org.hamcrest.Matchers.nullValue;
 
 public class PercentileAggregationTest extends AggregationTest {
 
-    private Object execSingleFractionPercentile(DataType<?> valueType, Object[][] rows) throws Exception {
-        return executeAggregation(PercentileAggregation.NAME, valueType, rows, List.of(valueType, DataTypes.DOUBLE));
+    private Object execSingleFractionPercentile(DataType<?> argumentType, Object[][] rows) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                PercentileAggregation.NAME,
+                argumentType.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            rows
+        );
     }
 
-    private Object execArrayFractionPercentile(DataType<?> valueType, Object[][] rows) throws Exception {
-        return executeAggregation(PercentileAggregation.NAME, valueType, rows, List.of(valueType, DataTypes.DOUBLE_ARRAY));
+    private Object execArrayFractionPercentile(DataType<?> argumentType, Object[][] rows) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                PercentileAggregation.NAME,
+                argumentType.getTypeSignature(),
+                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                DataTypes.DOUBLE_ARRAY.getTypeSignature()
+            ),
+            rows
+        );
     }
 
     private PercentileAggregation singleArgPercentile;
@@ -85,22 +101,29 @@ public class PercentileAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testAllTypesReturnSameResult() throws Exception {
-        for (DataType valueType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+    public void testSignleFractionAllTypesReturnSameResult() throws Exception {
+        for (DataType<?> valueType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             List<Double> fractions = Arrays.asList(0.5, 0.8);
             Object[][] rowsWithSingleFraction = new Object[10][];
-            Object[][] rowsWithFractionsArray = new Object[10][];
             for (int i = 0; i < rowsWithSingleFraction.length; i++) {
                 rowsWithSingleFraction[i] = new Object[]{ valueType.value(i), fractions.get(0) };
+            }
+            assertThat(execSingleFractionPercentile(valueType, rowsWithSingleFraction), is(4.5));
+        }
+    }
+
+    @Test
+    public void testWithFractionsAllTypesReturnSameResult() throws Exception {
+        for (DataType<?> valueType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            List<Double> fractions = Arrays.asList(0.5, 0.8);
+            Object[][] rowsWithFractionsArray = new Object[10][];
+            for (int i = 0; i < rowsWithFractionsArray.length; i++) {
                 rowsWithFractionsArray[i] = new Object[]{ valueType.value(i), fractions };
             }
-            Object result = execSingleFractionPercentile(valueType, rowsWithSingleFraction);
-            assertEquals(4.5, result);
-            result = execArrayFractionPercentile(valueType, rowsWithFractionsArray);
-            assertThat(result, instanceOf(List.class));
-            assertEquals(2, ((List) result).size());
-            assertEquals(4.5, ((List) result).get(0));
-            assertEquals(7.5, ((List) result).get(1));
+            assertThat(
+                execArrayFractionPercentile(valueType, rowsWithFractionsArray),
+                is(List.of(4.5, 7.5))
+            );
         }
     }
 

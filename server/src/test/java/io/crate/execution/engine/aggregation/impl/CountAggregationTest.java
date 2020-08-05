@@ -33,13 +33,20 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import java.util.List;
+
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
 public class CountAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
-        return executeAggregation("count", dataType, data);
+    private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
+        return executeAggregation(
+            CountAggregation.SIGNATURE,
+            List.of(argumentType),
+            DataTypes.LONG,
+            data
+        );
     }
 
     @Test
@@ -104,7 +111,9 @@ public class CountAggregationTest extends AggregationTest {
     @Test
     public void testNoInput() throws Exception {
         // aka. COUNT(*)
-        Object result = executeAggregation(null, new Object[][]{{}, {}});
+        Object result = executeAggregation(
+            CountAggregation.COUNT_STAR_SIGNATURE,
+            new Object[][]{{}, {}});
         assertEquals(2L, result);
     }
 
