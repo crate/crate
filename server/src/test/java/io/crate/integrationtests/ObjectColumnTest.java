@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.testing.UseJdbc;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -31,6 +30,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -120,12 +124,11 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                 "middle_name", "Noel",
                 "last_name", "Adams"),
             "age", 49);
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(
-            containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"));
-        execute(
+        assertThrows(() -> execute(
             "insert into ot (title, author) values (?, ?)",
-            new Object[]{"Life, the Universe and Everything", authorMap});
+            new Object[]{"Life, the Universe and Everything", authorMap}),
+                     isSQLError(containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"),
+                                INTERNAL_ERROR, INTERNAL_SERVER_ERROR, 5000));
     }
 
     @Test
@@ -170,11 +173,13 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void updateToStrictObject() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column author['name']['middle_name'] unknown");
-
-        execute("update ot set author['name']['middle_name']='Noel' " +
-                "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
+        assertThrows(() -> execute(
+            "update ot set author['name']['middle_name']='Noel' where author['name']['first_name']='Douglas' " +
+            "and author['name']['last_name']='Adams'"),
+                     isSQLError(is("Column author['name']['middle_name'] unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4043));
     }
 
     @Test
