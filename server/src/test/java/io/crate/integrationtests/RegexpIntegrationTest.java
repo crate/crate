@@ -21,9 +21,12 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
 
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.core.Is.is;
 
 public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
@@ -51,17 +54,16 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInvalidPatternSyntax() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("Dangling meta character '+' near index 0%n" +
-                "+1234567890%n" +
-                "^"));
         execute("create table phone (phone string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into phone (phone) values (?)", new Object[][]{
             new Object[]{"+1234567890"}
         });
         refresh();
-        execute("select * from phone where phone ~* '+1234567890'");
+        assertThrows(() -> execute("select * from phone where phone ~* '+1234567890'"),
+                     isSQLError(is("Dangling meta character '+' near index 0\n+1234567890\n^"),
+                                PGErrorStatus.INTERNAL_ERROR, HttpResponseStatus.BAD_REQUEST, 4000)
+        );
         ensureYellow();
     }
 
