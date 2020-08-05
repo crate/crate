@@ -81,7 +81,7 @@ public class HttpError {
     private final Throwable t;
 
     public HttpError(HttpErrorStatus status, String message, @Nullable Throwable t) {
-       this(status.httpResponseStatus(), status.errorCode(), message, t);
+        this(status.httpResponseStatus(), status.errorCode(), message, t);
     }
 
     public HttpError(HttpResponseStatus httpResponseStatus, int errorCode, String message, @Nullable Throwable t) {
