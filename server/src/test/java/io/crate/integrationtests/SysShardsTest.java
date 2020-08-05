@@ -289,21 +289,21 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
         assertThrows(() -> execute("select max(num_docs) from sys.shards group by lol"),
-                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, BAD_REQUEST, 4043));
+                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownOrderBy() throws Exception {
         assertThrows(() -> execute(
             "select sum(num_docs), table_name from sys.shards group by table_name order by lol"),
-                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, BAD_REQUEST, 4043));
+                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownWhere() throws Exception {
         assertThrows(() -> execute(
             "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name"),
-                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, BAD_REQUEST, 4043));
+                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
         ;
     }
 
@@ -311,7 +311,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     public void testGlobalAggregateUnknownWhere() throws Exception {
         assertThrows(() -> execute(
             "select sum(num_docs) from sys.shards where lol='funky'"),
-                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, BAD_REQUEST, 4043));
+                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
     }
 
     @Test

@@ -132,6 +132,12 @@ public class HttpError {
     public static HttpError fromThrowable(Throwable throwable) {
         Throwable unwrappedError = SQLExceptions.handleException(throwable, null);
         HttpErrorStatus httpErrorStatus = null;
+
+        if (unwrappedError instanceof HttpResponseException) {
+            var err = (HttpResponseException) unwrappedError;
+            return new HttpError(err.httpResponseStatus(), err.errorCode(), err.getMessage(), unwrappedError);
+        }
+
         if (unwrappedError instanceof CrateException) {
             CrateException crateException = (CrateException) unwrappedError;
             if (crateException instanceof ValidationException) {

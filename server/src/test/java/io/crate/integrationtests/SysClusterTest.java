@@ -21,12 +21,15 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
@@ -65,8 +68,7 @@ public class SysClusterTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testScalarEvaluatesInErrorOnSysCluster() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(" / by zero");
-        execute("select 1/0 from sys.cluster");
+        assertThrows(() -> execute("select 1/0 from sys.cluster"),
+                     isSQLError(is("/ by zero"), PGErrorStatus.INTERNAL_ERROR, HttpResponseStatus.BAD_REQUEST, 4000));
     }
 }

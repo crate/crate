@@ -23,16 +23,24 @@
 package io.crate.rest.action;
 
 
+import io.netty.handler.codec.http.HttpResponseStatus;
+
 public class HttpResponseException extends RuntimeException {
 
-    private final HttpErrorStatus status;
+    private final HttpResponseStatus httpResponseStatus;
+    private final int errorCode;
 
-    public HttpResponseException(String message, HttpErrorStatus status) {
+    public HttpResponseException(String message, HttpResponseStatus httpResponseStatus, int errorCode) {
         super(message);
-        this.status = status;
+        this.httpResponseStatus = httpResponseStatus;
+        this.errorCode = errorCode;
     }
 
-    public HttpErrorStatus status() {
-        return status;
+    public HttpResponseStatus httpResponseStatus() {
+        return httpResponseStatus;
+    }
+
+    public int errorCode() {
+        return errorCode;
     }
 }

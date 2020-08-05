@@ -203,7 +203,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         List<List<Object>> bulkArgs = parseContext.bulkArgs();
         if (bothProvided(args, bulkArgs)) {
             return CompletableFuture.failedFuture(new HttpResponseException(
-                "request body contains args and bulk_args. It's forbidden to provide both", HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX));
+                "request body contains args and bulk_args. It's forbidden to provide both", HttpResponseStatus.BAD_REQUEST, 4000));
         }
         try {
             if (args != null || bulkArgs == null) {

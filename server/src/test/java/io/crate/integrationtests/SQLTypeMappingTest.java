@@ -39,6 +39,7 @@ import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
@@ -192,12 +193,17 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInvalidInsertIntoObject() throws Exception {
         setUpObjectTable();
 
+        var msg = allOf(
+            containsString("Validation failed for object_field"),
+            containsString("Invalid value"),
+            containsString("for type 'object'"));
+
         assertThrows(() -> execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
                          Map.of("created", true, "size", 127),
                          Map.of("path", "/dev/null", "created", 0)
                      }),
                      isSQLError(
-                         is("Validation failed for object_field: Invalid value '{created=true, size=127}' for type 'object'"),
+                         msg,
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4003));
