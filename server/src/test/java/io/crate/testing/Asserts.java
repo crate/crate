@@ -37,7 +37,10 @@ public class Asserts {
             if (matcher.matches(t)) {
                 return;
             }
-            throw new AssertionFailedError(String.format("Unmatched %s type thrown", t.getClass().getCanonicalName()), t);
+            throw new AssertionFailedError(
+                String.format("Unmatched %s type thrown with message '%s'",
+                              t.getClass().getCanonicalName(),
+                              t.getMessage()), t);
         }
         throw new AssertionFailedError("Expected exception to be thrown, but nothing was thrown.");
     }
