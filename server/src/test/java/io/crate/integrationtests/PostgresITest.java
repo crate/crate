@@ -59,7 +59,10 @@ import java.util.Properties;
 import java.util.StringJoiner;
 import java.util.UUID;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.emptyOrNullString;
@@ -722,9 +725,8 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
 
             conn.createStatement().execute("set session search_path to DEFAULT");
-            expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("RelationUnknown: Relation 'foo' unknown");
-            conn.createStatement().execute("select * from foo");
+            assertThrows(() -> conn.createStatement().execute("select * from foo"),
+                         isPGError(is("Relation 'foo' unknown"), INTERNAL_ERROR));
         }
     }
 
@@ -737,9 +739,9 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
             conn.createStatement().executeQuery("select * from bar.foo");
 
-            expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("SchemaUnknownException: Schema 'custom' unknown");
-            conn.createStatement().execute("select * from custom.foo");
+            assertThrows(() -> conn.createStatement().execute("select * from custom.foo"),
+                         isPGError(is("Schema 'custom' unknown"),
+                                   INTERNAL_ERROR));
         }
     }
 
