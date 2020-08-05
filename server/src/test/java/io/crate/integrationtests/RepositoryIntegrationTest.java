@@ -22,7 +22,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -31,6 +32,8 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.util.HashMap;
 
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.Matchers.is;
 
 public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
@@ -85,9 +88,12 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
                 repoLocation
             });
         waitNoPendingTasksOnAll();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Repository 'myRepo' already exists");
-        execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
-            new Object[]{repoLocation});
+        assertThrows(() -> execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
+                                   new Object[]{repoLocation}),
+                     isSQLError(is("Repository 'myRepo' already exists"),
+                                PGErrorStatus.INTERNAL_ERROR,
+                                HttpResponseStatus.CONFLICT,
+                                4095));
+
     }
 }
