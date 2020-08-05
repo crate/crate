@@ -24,12 +24,9 @@ package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.operation.aggregation.AggregationTest;
-import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-
-import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
@@ -37,31 +34,35 @@ public class StringAggTest extends AggregationTest {
 
     @Test
     public void testAllValuesAreNull() throws Exception {
-        var result = executeAggregation("string_agg", DataTypes.STRING, new Object[][] {
-            new Object[] { null, null },
-            new Object[] { null, null },
-            new Object[] { null, null },
-        }, List.of(DataTypes.STRING, DataTypes.STRING));
+        var result = executeAggregation(
+            StringAgg.SIGNATURE, new Object[][]{
+                new Object[]{null, null},
+                new Object[]{null, null},
+                new Object[]{null, null},
+            }
+        );
         assertThat(result, Matchers.nullValue());
     }
 
     @Test
     public void testOneDelimiterIsNull() throws Exception {
-        var result = executeAggregation("string_agg", DataTypes.STRING, new Object[][] {
-            new Object[] { "a", "," },
-            new Object[] { "b", null },
-            new Object[] { "c", "," },
-        }, List.of(DataTypes.STRING, DataTypes.STRING));
+        var result = executeAggregation(
+            StringAgg.SIGNATURE, new Object[][]{
+                new Object[]{"a", ","},
+                new Object[]{"b", null},
+                new Object[]{"c", ","},
+            });
         assertThat(result, is("ab,c"));
     }
 
     @Test
     public void testOneExpressionIsNull() throws Exception {
-        var result = executeAggregation("string_agg", DataTypes.STRING, new Object[][] {
-            new Object[] { "a", ";" },
-            new Object[] { null, "," },
-            new Object[] { "c", "," },
-        }, List.of(DataTypes.STRING, DataTypes.STRING));
+        var result = executeAggregation(
+            StringAgg.SIGNATURE, new Object[][]{
+                new Object[]{"a", ";"},
+                new Object[]{null, ","},
+                new Object[]{"c", ","},
+            });
         assertThat(result, is("a,c"));
     }
 
