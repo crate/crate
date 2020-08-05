@@ -186,9 +186,8 @@ public class FetchTask implements Task {
     @Override
     public void kill(Throwable throwable) {
         synchronized (jobId) {
-            if (borrowed > 0) {
-                killed = throwable;
-            } else {
+            killed = throwable;
+            if (borrowed == 0) {
                 closeSearchers();
                 result.completeExceptionally(throwable);
             }
