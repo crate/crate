@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -197,11 +196,11 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                          Map.of("created", true, "size", 127),
                          Map.of("path", "/dev/null", "created", 0)
                      }),
-                     isSQLError(containsString(
-                         "Validation failed for object_field: Invalid value '{\"created\":true,\"size\":127}' for type 'object'"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4003));
+                     isSQLError(
+                         is("Validation failed for object_field: Invalid value '{created=true, size=127}' for type 'object'"),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4003));
     }
 
     @Test
