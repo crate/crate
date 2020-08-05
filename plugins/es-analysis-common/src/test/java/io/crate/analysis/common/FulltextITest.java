@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
@@ -143,7 +144,8 @@ public class FulltextITest extends SQLTransportIntegrationTest{
         assertThrows(() -> execute("select * from matchbox where match(o_ignored['a'], 'Ford')"),
                      isSQLError(is("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'"),
                                 INTERNAL_ERROR,
-                                UNHANDLED_SERVER_ERROR));
+                                INTERNAL_SERVER_ERROR,
+                                5000));
         // This was never executed on the test before. What would be the expected behaviour. Since the exception is
         // thrown the response is not updated.
         // assertThat(response.rowCount(), is(0L));

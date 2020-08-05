@@ -23,7 +23,6 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
-import io.crate.rest.action.HttpErrorStatus;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -257,7 +256,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertThrows(() -> execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)"),
                      isSQLError(containsString("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase"),
                                 INTERNAL_ERROR,
-                                HttpErrorStatus.CREATING_SNAPSHOT_FAILED));
+                                INTERNAL_SERVER_ERROR, 5004));
     }
 
     @Test

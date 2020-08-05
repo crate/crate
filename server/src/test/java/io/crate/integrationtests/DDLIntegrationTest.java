@@ -50,6 +50,8 @@ import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
@@ -135,7 +137,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                      isSQLError(
                          is("Relation 'doc.test' already exists."),
                          INTERNAL_ERROR,
-                         RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY)
+                         CONFLICT,
+                         4093)
         );
     }
 
@@ -684,9 +687,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDropUnknownTable() throws Exception {
-        assertThrows(() -> execute("drop table test"), isSQLError(is("Relation 'test' unknown"),
-                                                                  UNDEFINED_TABLE,
-                                                                  RELATION_UNKNOWN));
+        assertThrows(() -> execute("drop table test"), isSQLError(is("Relation 'test' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
     @Test

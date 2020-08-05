@@ -43,7 +43,6 @@ import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
-import io.crate.exceptions.RelationsUnknown;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.ResourceUnknownException;
@@ -61,6 +60,7 @@ import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.exceptions.ValidationException;
 import io.crate.exceptions.VersioninigValidationException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -73,20 +73,30 @@ import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
 
 public class HttpError {
 
-    private final HttpErrorStatus status;
+    private final HttpResponseStatus httpResponseStatus;
+    private final int errorCode;
     private final String message;
 
     @Nullable
     private final Throwable t;
 
     public HttpError(HttpErrorStatus status, String message, @Nullable Throwable t) {
-        this.status = status;
+       this(status.httpResponseStatus(), status.errorCode(), message, t);
+    }
+
+    public HttpError(HttpResponseStatus httpResponseStatus, int errorCode, String message, @Nullable Throwable t) {
+        this.httpResponseStatus = httpResponseStatus;
+        this.errorCode = errorCode;
         this.message = message;
         this.t = t;
     }
 
-    public HttpErrorStatus status() {
-        return status;
+    public HttpResponseStatus httpResponseStatus() {
+        return httpResponseStatus;
+    }
+
+    public int errorCode() {
+        return errorCode;
     }
 
     public String message() {
@@ -99,7 +109,7 @@ public class HttpError {
             .startObject()
             .startObject("error")
             .field("message", userFriendlyMessageInclNested(t))
-            .field("code", status.errorCode())
+            .field("code", errorCode)
             .endObject();
         // @formatter:on
 
@@ -112,7 +122,8 @@ public class HttpError {
     @Override
     public String toString() {
         return "HttpError{" +
-               ", status=" + status +
+               "httpResponseStatus=" + httpResponseStatus +
+               ", errorCode=" + errorCode +
                ", message='" + message + '\'' +
                ", t=" + t +
                '}';
@@ -195,6 +206,8 @@ public class HttpError {
                 httpErrorStatus = HttpErrorStatus.USER_WITH_SAME_NAME_EXISTS_ALREADY;
             } else if (crateException instanceof UserDefinedFunctionAlreadyExistsException) {
                 httpErrorStatus = HttpErrorStatus.USER_DEFINED_FUNCTION_WITH_SAME_SIGNATURE_EXISTS_ALREADY;
+            } else if (crateException instanceof HttpResponseException) {
+                httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_ANALYZER_DEFINITION;
             } else {
                 httpErrorStatus = HttpErrorStatus.UNHANDLED_SERVER_ERROR;
             }

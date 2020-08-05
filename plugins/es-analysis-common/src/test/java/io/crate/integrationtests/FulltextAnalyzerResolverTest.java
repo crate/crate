@@ -26,10 +26,12 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static io.crate.testing.SettingMatcher.hasKey;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.endsWith;
@@ -468,8 +470,9 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 ")");
         assertThrows(() -> execute("CREATE ANALYZER a10 (TOKENIZER a9tok)"),
                      isSQLError(endsWith("Non-existing tokenizer 'a9tok'"),
-                                PGErrorStatus.INTERNAL_ERROR,
-                                HttpErrorStatus.UNHANDLED_SERVER_ERROR));
+                                INTERNAL_ERROR,
+                                INTERNAL_SERVER_ERROR,
+                                5000));
 
         /*
          * NOT SUPPORTED UNTIL A CONSISTENT SOLUTION IS FOUND

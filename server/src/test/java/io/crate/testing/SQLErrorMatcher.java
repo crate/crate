@@ -39,10 +39,6 @@ import static org.hamcrest.Matchers.not;
 
 public class SQLErrorMatcher {
 
-    public static <T extends Throwable> Matcher<T> isSQLError(Matcher<String> msg, PGErrorStatus pgErrorStatus, HttpErrorStatus httpErrorStatus) {
-        return anyOf(isPGError(msg, pgErrorStatus), isHttpError(msg, httpErrorStatus));
-    }
-
     public static <T extends Throwable> Matcher<T> isSQLError(Matcher<String> msg, PGErrorStatus pgErrorStatus, HttpResponseStatus httpResponseStatus, int errorCode) {
         return anyOf(isPGError(msg, pgErrorStatus), isHttpError(msg, httpResponseStatus, errorCode));
     }
@@ -59,16 +55,9 @@ public class SQLErrorMatcher {
         return allOf(
             not(instanceOf(PSQLException.class)),
             withFeature(e -> HttpError.fromThrowable(e).message(), "error message", msg),
-            withFeature(e -> HttpError.fromThrowable(e).status().errorCode(), "http error status", equalTo(errorCode)),
-            withFeature(e -> HttpError.fromThrowable(e).status().httpResponseStatus(), "http error status", equalTo(httpResponseStatus))
+            withFeature(e -> HttpError.fromThrowable(e).errorCode(), "http error status", equalTo(errorCode)),
+            withFeature(e -> HttpError.fromThrowable(e).httpResponseStatus(), "http error status", equalTo(httpResponseStatus))
         );
     }
 
-    public static <T extends Throwable> Matcher<T> isHttpError(Matcher<String> msg, HttpErrorStatus httpErrorStatus) {
-        return allOf(
-            not(instanceOf(PSQLException.class)),
-            withFeature(e -> HttpError.fromThrowable(e).message(), "error message", msg),
-            withFeature(e -> HttpError.fromThrowable(e).status(), "http error status", equalTo(httpErrorStatus))
-        );
-    }
 }

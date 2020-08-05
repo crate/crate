@@ -5,6 +5,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.rest.action.HttpErrorStatus.UNHANDLED_SERVER_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.is;
 
 import java.io.File;
@@ -62,9 +63,10 @@ public class URLRepositoryITest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)"),
                      isSQLError(
-                         "[uri_repo] cannot create snapshot in a readonly repository",
+                         is("[uri_repo] cannot create snapshot in a readonly repository"),
                          INTERNAL_ERROR,
-                         UNHANDLED_SERVER_ERROR));
+                         INTERNAL_SERVER_ERROR,
+                         5000));
     }
 
 }

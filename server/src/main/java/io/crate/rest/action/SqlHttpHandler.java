@@ -175,7 +175,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             }
             resp = new DefaultFullHttpResponse(
                 httpVersion,
-                httpError.status().httpResponseStatus(),
+                httpError.httpResponseStatus(),
                 content
             );
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, mediaType);

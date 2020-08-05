@@ -324,7 +324,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                          "I always thought something was fundamentally wrong with the universe."}),
                      isSQLError(
                          is("A document with the same primary key exists already"),
-                         INTERNAL_ERROR, DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY));
+                         INTERNAL_ERROR, CONFLICT, 4091));
     }
 
     @Test
