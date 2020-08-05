@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
@@ -48,7 +48,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
     @Test
     public void testSelectSysColumnsFromInformationSchema() throws Exception {
         assertThrows(() -> execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables"),
-                     isSQLError(is("Relation 'sys.nodes' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
+                     isSQLError(is("Relation 'sys.nodes' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
     }
 
     @Test
@@ -206,7 +206,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
     public void testSelectUnknownTableFromInformationSchema() throws Exception {
         assertThrows(() -> execute("select * from information_schema.non_existent"),
                      isSQLError(is("Relation 'information_schema.non_existent' unknown"),
-                                UNDEFINED_TABLE,
+                                INTERNAL_ERROR,
                                 NOT_FOUND,
                                 4041));
     }

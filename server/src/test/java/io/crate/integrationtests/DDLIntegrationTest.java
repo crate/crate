@@ -687,7 +687,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDropUnknownTable() throws Exception {
-        assertThrows(() -> execute("drop table test"), isSQLError(is("Relation 'test' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
+        assertThrows(() -> execute("drop table test"), isSQLError(is("Relation 'test' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
     }
 
     @Test

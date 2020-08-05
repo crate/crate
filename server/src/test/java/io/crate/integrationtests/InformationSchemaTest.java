@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -39,7 +38,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
 
@@ -1110,9 +1113,11 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testScalarEvaluatesInErrorOnInformationSchema() {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(" / by zero");
-        execute("select 1/0 from information_schema.tables");
+        assertThrows(() -> execute("select 1/0 from information_schema.tables"),
+                     isSQLError(is("/ by zero"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test

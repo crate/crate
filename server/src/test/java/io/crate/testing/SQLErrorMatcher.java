@@ -59,6 +59,7 @@ public class SQLErrorMatcher {
                                                                HttpResponseStatus httpResponseStatus,
                                                                int errorCode) {
         return allOf(
+            not(instanceOf(PSQLException.class)),
             withFeature(e -> HttpError.fromThrowable(e).message(), "error message", msg),
             withFeature(e -> HttpError.fromThrowable(e).errorCode(), "http error code", equalTo(errorCode)),
             withFeature(e -> HttpError.fromThrowable(e).httpResponseStatus(),
