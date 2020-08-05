@@ -22,13 +22,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.TestingHelpers;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -110,9 +113,11 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
             ") partitioned by (date) with (refresh_interval=0)");
         ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted")));
-        execute("optimize table parted partition(date=0)");
+        assertThrows(() -> execute("optimize table parted partition(date=0)"),
+                     isSQLError(is(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted"))),
+                                PGErrorStatus.INTERNAL_ERROR,
+                                HttpResponseStatus.NOT_FOUND,
+                                4046));
     }
 
     @Test
