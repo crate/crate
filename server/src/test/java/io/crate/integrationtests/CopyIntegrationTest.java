@@ -22,9 +22,10 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
-import io.crate.action.sql.SQLActionException;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,6 +50,8 @@ import java.util.Locale;
 import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
@@ -361,13 +364,14 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testCopyToFile() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("Using COPY TO without specifying a DIRECTORY is not supported"));
-
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
 
-        execute("copy singleshard to '/tmp/file.json'");
+        assertThrows(() -> execute("copy singleshard to '/tmp/file.json'"),
+                     isSQLError(containsString("Using COPY TO without specifying a DIRECTORY is not supported"),
+                                PGErrorStatus.INTERNAL_ERROR,
+                                HttpResponseStatus.BAD_REQUEST,
+                                4004));
     }
 
     @Test
