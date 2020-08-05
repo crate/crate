@@ -45,10 +45,8 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -636,23 +634,16 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                         continue;
                     case STARTED:
                         try {
-                            shard.acquirePrimaryOperationPermit(
-                                ActionListener.wrap(
-                                    releasable -> {
-                                        try (Releasable ignored = releasable) {
-                                            shard.maybeSyncGlobalCheckpoint("background");
-                                        }
-                                    },
-                                    e -> {
-                                        if (!(e instanceof AlreadyClosedException || e instanceof IndexShardClosedException)) {
-                                            logger.info(
-                                                    new ParameterizedMessage(
-                                                        "{} failed to execute background global checkpoint sync",
-                                                        shard.shardId()),
-                                                    e);
-                                        }
+                            shard.runUnderPrimaryPermit(
+                                () -> shard.maybeSyncGlobalCheckpoint("background"),
+                                e -> {
+                                    if (e instanceof AlreadyClosedException == false
+                                            && e instanceof IndexShardClosedException == false) {
+                                        logger.warn(
+                                                new ParameterizedMessage(
+                                                        "{} failed to execute background global checkpoint sync", shard.shardId()), e);
                                     }
-                                ),
+                                },
                                 ThreadPool.Names.SAME,
                                 "background global checkpoint sync"
                             );

@@ -20,6 +20,7 @@ package org.elasticsearch.index.shard;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -27,7 +28,9 @@ import static org.hamcrest.Matchers.nullValue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
@@ -38,6 +41,7 @@ import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.index.engine.InternalEngine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.common.collections.Tuple;
@@ -83,6 +87,74 @@ public class IndexShardTests extends IndexShardTestCase {
             () -> indexShard.acquireAllReplicaOperationsPermits(indexShard.getPendingPrimaryTerm(), SequenceNumbers.UNASSIGNED_SEQ_NO,
                 randomNonNegativeLong(), null, TimeValue.timeValueSeconds(30L)));
     }
+
+    @Test
+    public void testRunUnderPrimaryPermitRunsUnderPrimaryPermit() throws IOException {
+        final IndexShard indexShard = newStartedShard(true);
+        try {
+            assertThat(indexShard.getActiveOperationsCount(), equalTo(0));
+            indexShard.runUnderPrimaryPermit(
+                    () -> assertThat(indexShard.getActiveOperationsCount(), equalTo(1)),
+                    e -> fail(e.toString()),
+                    ThreadPool.Names.SAME,
+                    "test");
+                assertThat(indexShard.getActiveOperationsCount(), equalTo(0));
+        } finally {
+            closeShards(indexShard);
+        }
+    }
+
+    @Test
+    public void testRunUnderPrimaryPermitOnFailure() throws IOException {
+        final IndexShard indexShard = newStartedShard(true);
+        final AtomicBoolean invoked = new AtomicBoolean();
+        try {
+            indexShard.runUnderPrimaryPermit(
+                    () -> {
+                        throw new RuntimeException("failure");
+                    },
+                    e -> {
+                        assertThat(e, instanceOf(RuntimeException.class));
+                        assertThat(e.getMessage(), equalTo("failure"));
+                        invoked.set(true);
+                    },
+                    ThreadPool.Names.SAME,
+                    "test");
+            assertTrue(invoked.get());
+        } finally {
+            closeShards(indexShard);
+        }
+    }
+
+    @Test
+    public void testRunUnderPrimaryPermitDelaysToExecutorWhenBlocked() throws Exception {
+        final IndexShard indexShard = newStartedShard(true);
+        try {
+            final PlainActionFuture<Releasable> onAcquired = new PlainActionFuture<>();
+            indexShard.acquireAllPrimaryOperationsPermits(onAcquired, new TimeValue(Long.MAX_VALUE, TimeUnit.NANOSECONDS));
+            final Releasable permit = onAcquired.actionGet();
+            final CountDownLatch latch = new CountDownLatch(1);
+            final String executorOnDelay =
+                    randomFrom(ThreadPool.Names.FLUSH, ThreadPool.Names.GENERIC, ThreadPool.Names.MANAGEMENT, ThreadPool.Names.SAME);
+            indexShard.runUnderPrimaryPermit(
+                    () -> {
+                        final String expectedThreadPoolName =
+                                executorOnDelay.equals(ThreadPool.Names.SAME) ? "generic" : executorOnDelay.toLowerCase(Locale.ROOT);
+                        assertThat(Thread.currentThread().getName(), Matchers.containsString(expectedThreadPoolName));
+                        latch.countDown();
+                    },
+                    e -> fail(e.toString()),
+                    executorOnDelay,
+                    "test");
+            permit.close();
+            latch.await();
+            // we could race and assert on the count before the permit is returned
+            assertBusy(() -> assertThat(indexShard.getActiveOperationsCount(), equalTo(0)));
+        } finally {
+            closeShards(indexShard);
+        }
+    }
+
 
     @Test
     public void testAcquirePrimaryAllOperationsPermits() throws Exception {
