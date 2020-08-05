@@ -25,6 +25,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -35,7 +36,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
@@ -49,13 +49,27 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
             .createInjector().getInstance(Functions.class);
     }
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
-        return executeAggregation(HyperLogLogDistinctAggregation.NAME, dataType, data, Collections.singletonList(dataType));
+    private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                HyperLogLogDistinctAggregation.NAME,
+                argumentType.getTypeSignature(),
+                DataTypes.LONG.getTypeSignature()
+            ),
+            data
+        );
     }
 
-    private Object executeAggregationWithPrecision(DataType dataType, Object[][] data) throws Exception {
-        return executeAggregation(HyperLogLogDistinctAggregation.NAME, dataType, data,
-            List.of(dataType, DataTypes.INTEGER));
+    private Object executeAggregationWithPrecision(DataType<?> argumentType, Object[][] data) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                HyperLogLogDistinctAggregation.NAME,
+                argumentType.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.LONG.getTypeSignature()
+            ),
+            data
+        );
     }
 
     private Object[][] createTestData(int numRows, @Nullable Integer precision) {

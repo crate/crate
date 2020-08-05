@@ -27,6 +27,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -43,8 +44,15 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class CollectSetAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
-        return executeAggregation("collect_set", dataType, data);
+    private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                "collect_set",
+                argumentType.getTypeSignature(),
+                new ArrayType<>(argumentType).getTypeSignature()
+            ),
+            data
+        );
     }
 
     @Test
