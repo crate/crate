@@ -22,12 +22,14 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
-
-import io.crate.action.sql.SQLActionException;
 
 public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
 
@@ -59,9 +61,9 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
     @Test
     public void testMatchUnsupportedInSelect() {
         execute("create table quotes (quote string)");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UnsupportedFeatureException: match predicate cannot be selected");
-        execute("select match(quote, 'the quote') from quotes");
+        assertThrows(() -> execute("select match(quote, 'the quote') from quotes"),
+                     isSQLError(is("match predicate cannot be selected"),
+                                PGErrorStatus.INTERNAL_ERROR, HttpResponseStatus.BAD_REQUEST, 4004));
     }
 
     @Test
