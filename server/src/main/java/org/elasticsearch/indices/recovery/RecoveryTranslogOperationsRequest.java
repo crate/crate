@@ -19,8 +19,10 @@
 
 package org.elasticsearch.indices.recovery;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.transport.TransportRequest;
@@ -36,23 +38,30 @@ public class RecoveryTranslogOperationsRequest extends TransportRequest {
     private final int totalTranslogOps;
     private final long maxSeenAutoIdTimestampOnPrimary;
     private final long maxSeqNoOfUpdatesOrDeletesOnPrimary;
+    private final RetentionLeases retentionLeases;
 
     RecoveryTranslogOperationsRequest(long recoveryId,
                                       ShardId shardId,
                                       List<Translog.Operation> operations,
                                       int totalTranslogOps,
                                       long maxSeenAutoIdTimestampOnPrimary,
-                                      long maxSeqNoOfUpdatesOrDeletesOnPrimary) {
+                                      long maxSeqNoOfUpdatesOrDeletesOnPrimary,
+                                      RetentionLeases retentionLeases) {
         this.recoveryId = recoveryId;
         this.shardId = shardId;
         this.operations = operations;
         this.totalTranslogOps = totalTranslogOps;
         this.maxSeenAutoIdTimestampOnPrimary = maxSeenAutoIdTimestampOnPrimary;
         this.maxSeqNoOfUpdatesOrDeletesOnPrimary = maxSeqNoOfUpdatesOrDeletesOnPrimary;
+        this.retentionLeases = retentionLeases;
     }
 
     public long recoveryId() {
         return this.recoveryId;
+    }
+
+    public RetentionLeases retentionLeases() {
+        return retentionLeases;
     }
 
     public ShardId shardId() {
@@ -83,6 +92,11 @@ public class RecoveryTranslogOperationsRequest extends TransportRequest {
         totalTranslogOps = in.readVInt();
         maxSeenAutoIdTimestampOnPrimary = in.readZLong();
         maxSeqNoOfUpdatesOrDeletesOnPrimary = in.readZLong();
+        if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
+            retentionLeases = new RetentionLeases(in);
+        } else {
+            retentionLeases = RetentionLeases.EMPTY;
+        }
     }
 
     @Override
@@ -94,5 +108,8 @@ public class RecoveryTranslogOperationsRequest extends TransportRequest {
         out.writeVInt(totalTranslogOps);
         out.writeZLong(maxSeenAutoIdTimestampOnPrimary);
         out.writeZLong(maxSeqNoOfUpdatesOrDeletesOnPrimary);
+        if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
+            retentionLeases.writeTo(out);
+        }
     }
 }

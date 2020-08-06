@@ -41,7 +41,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.hamcrest.Matchers;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
@@ -73,7 +73,7 @@ public class RetentionLeaseSyncIT extends SQLTransportIntegrationTest  {
             final String source = randomAlphaOfLength(8);
             final CountDownLatch latch = new CountDownLatch(1);
             final ActionListener<ReplicationResponse> listener = ActionListener.wrap(r -> latch.countDown(), e -> fail(e.toString()));
-            // simulate a peer-recovery which locks the soft-deletes policy on the primary.
+            // simulate a peer recovery which locks the soft deletes policy on the primary
             final Closeable retentionLock = randomBoolean() ? primary.acquireRetentionLockForPeerRecovery() : () -> {};
             currentRetentionLeases.put(id, primary.addRetentionLease(id, retainingSequenceNumber, source, listener));
             latch.await();
@@ -189,6 +189,71 @@ public class RetentionLeaseSyncIT extends SQLTransportIntegrationTest  {
                     assertThat(replica.getRetentionLeases().leases(), empty());
                 }
             });
+        }
+    }
+
+    @Test
+    @Ignore("Flaky, later ES patches should fix it")
+    public void testRetentionLeasesSyncOnRecovery() throws Exception {
+        /*
+         * We effectively disable the background sync to ensure that the retention leases are not synced in the background so that the only
+         * source of retention leases on the replicas would be from the commit point and recovery.
+         */
+        execute(
+            "create table doc.tbl (x int) clustered into 1 shards " +
+            "with (" +
+            "   number_of_replicas = 0, " +
+            "   \"soft_deletes.enabled\" = true, " +
+            "   \"soft_deletes.retention_lease.sync_interval\" = ?)",
+            new Object[] {
+                TimeValue.timeValueHours(24).getStringRep()
+            }
+        );
+        ensureYellow("tbl");
+        // exclude the replicas from being allocated
+        allowNodes("tbl", 1);
+        final int numberOfReplicas = 1;
+        execute("alter table doc.tbl set (number_of_replicas = 1)");
+        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+        final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
+        final IndexShard primary = internalCluster()
+            .getInstance(IndicesService.class, primaryShardNodeName)
+            .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+        final int length = randomIntBetween(1, 8);
+        final Map<String, RetentionLease> currentRetentionLeases = new HashMap<>();
+        for (int i = 0; i < length; i++) {
+            final String id = randomValueOtherThanMany(currentRetentionLeases.keySet()::contains, () -> randomAlphaOfLength(8));
+            final long retainingSequenceNumber = randomLongBetween(0, Long.MAX_VALUE);
+            final String source = randomAlphaOfLength(8);
+            final CountDownLatch latch = new CountDownLatch(1);
+            final ActionListener<ReplicationResponse> listener = ActionListener.wrap(r -> latch.countDown(), e -> fail(e.toString()));
+            currentRetentionLeases.put(id, primary.addRetentionLease(id, retainingSequenceNumber, source, listener));
+            latch.await();
+            /*
+             * Now renew the leases; since we do not flush immediately on renewal, this means that the latest retention leases will not be
+             * in the latest commit point and therefore not transferred during the file-copy phase of recovery.
+             */
+            currentRetentionLeases.put(id, primary.renewRetentionLease(id, retainingSequenceNumber, source));
+        }
+
+        // now allow the replicas to be allocated and wait for recovery to finalize
+        allowNodes("tbl", 1 + numberOfReplicas);
+        ensureGreen("tbl");
+
+        // check current retention leases have been synced to all replicas
+        for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
+            final String replicaShardNodeId = replicaShard.currentNodeId();
+            final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
+            final IndexShard replica = internalCluster()
+                .getInstance(IndicesService.class, replicaShardNodeName)
+                .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+            final Map<String, RetentionLease> retentionLeasesOnReplica = RetentionLeases.toMap(replica.getRetentionLeases());
+            assertThat(retentionLeasesOnReplica, equalTo(currentRetentionLeases));
+
+            // check retention leases have been committed on the replica
+            final RetentionLeases replicaCommittedRetentionLeases = RetentionLeases.decodeRetentionLeases(
+                replica.acquireLastIndexCommit(false).getIndexCommit().getUserData().get(Engine.RETENTION_LEASES));
+            assertThat(currentRetentionLeases, equalTo(RetentionLeases.toMap(replicaCommittedRetentionLeases)));
         }
     }
 }

@@ -50,6 +50,7 @@ import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.RecoveryEngineException;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
@@ -259,6 +260,7 @@ public class RecoverySourceHandler {
                 // are at least as high as the corresponding values on the primary when any of these operations were executed on it.
                 final long maxSeenAutoIdTimestamp = shard.getMaxSeenAutoIdTimestamp();
                 final long maxSeqNoOfUpdatesOrDeletes = shard.getMaxSeqNoOfUpdatesOrDeletes();
+                final RetentionLeases retentionLeases = shard.getRetentionLeases();
                 phase2(
                     startingSeqNo,
                     requiredSeqNoRangeStart,
@@ -266,6 +268,7 @@ public class RecoverySourceHandler {
                     phase2Snapshot,
                     maxSeenAutoIdTimestamp,
                     maxSeqNoOfUpdatesOrDeletes,
+                    retentionLeases,
                     sendSnapshotStep);
                 sendSnapshotStep.whenComplete(
                     r -> IOUtils.close(phase2Snapshot),
@@ -589,6 +592,7 @@ public class RecoverySourceHandler {
                 Translog.Snapshot snapshot,
                 long maxSeenAutoIdTimestamp,
                 long maxSeqNoOfUpdatesOrDeletes,
+                RetentionLeases retentionLeases,
                 ActionListener<SendSnapshotResult> listener) throws IOException {
         assert requiredSeqNoRangeStart <= endingSeqNo + 1
             : "requiredSeqNoRangeStart " + requiredSeqNoRangeStart + " is larger than endingSeqNo " + endingSeqNo;
@@ -655,8 +659,16 @@ public class RecoverySourceHandler {
             listener::onFailure
         );
 
-        sendBatch(readNextBatch, true, SequenceNumbers.UNASSIGNED_SEQ_NO, snapshot.totalOperations(),
-                  maxSeenAutoIdTimestamp, maxSeqNoOfUpdatesOrDeletes, batchedListener);
+        sendBatch(
+            readNextBatch,
+            true,
+            SequenceNumbers.UNASSIGNED_SEQ_NO,
+            snapshot.totalOperations(),
+            maxSeenAutoIdTimestamp,
+            maxSeqNoOfUpdatesOrDeletes,
+            retentionLeases,
+            batchedListener
+        );
     }
 
     private void sendBatch(CheckedSupplier<List<Translog.Operation>, IOException> nextBatch,
@@ -665,22 +677,29 @@ public class RecoverySourceHandler {
                            int totalTranslogOps,
                            long maxSeenAutoIdTimestamp,
                            long maxSeqNoOfUpdatesOrDeletes,
+                           RetentionLeases retentionLeases,
                            ActionListener<Long> listener) throws IOException {
         final List<Translog.Operation> operations = nextBatch.get();
         // send the leftover operations or if no operations were sent, request
         // the target to respond with its local checkpoint
         if (operations.isEmpty() == false || firstBatch) {
             cancellableThreads.execute(() -> recoveryTarget.indexTranslogOperations(
-                operations, totalTranslogOps, maxSeenAutoIdTimestamp, maxSeqNoOfUpdatesOrDeletes,
+                operations,
+                totalTranslogOps,
+                maxSeenAutoIdTimestamp,
+                maxSeqNoOfUpdatesOrDeletes,
+                retentionLeases,
                 ActionListener.wrap(newCheckpoint ->
-                        sendBatch(
-                            nextBatch,
-                            false,
-                            SequenceNumbers.max(targetLocalCheckpoint, newCheckpoint),
-                            totalTranslogOps,
-                            maxSeenAutoIdTimestamp,
-                            maxSeqNoOfUpdatesOrDeletes,
-                            listener),
+                    sendBatch(
+                        nextBatch,
+                        false,
+                        SequenceNumbers.max(targetLocalCheckpoint, newCheckpoint),
+                        totalTranslogOps,
+                        maxSeenAutoIdTimestamp,
+                        maxSeqNoOfUpdatesOrDeletes,
+                        retentionLeases,
+                        listener
+                    ),
                     listener::onFailure
                 ))
             );

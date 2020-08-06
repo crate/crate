@@ -44,6 +44,7 @@ import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.index.seqno.ReplicationTracker;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardNotRecoveringException;
@@ -333,6 +334,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                                         int totalTranslogOps,
                                         long maxSeenAutoIdTimestampOnPrimary,
                                         long maxSeqNoOfDeletesOrUpdatesOnPrimary,
+                                        RetentionLeases retentionLeases,
                                         ActionListener<Long> listener) {
         ActionListener.completeWith(listener, () -> {
             final RecoveryState.Translog translog = state().getTranslog();
@@ -353,6 +355,11 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
              * replaying any of these operations will be at least the max_seq_no_of_updates on the primary when that op was executed on.
              */
             indexShard().advanceMaxSeqNoOfUpdatesOrDeletes(maxSeqNoOfDeletesOrUpdatesOnPrimary);
+            /*
+             * We have to update the retention leases before we start applying translog operations to ensure we are retaining according to
+             * the policy.
+             */
+            indexShard().updateRetentionLeasesOnReplica(retentionLeases);
             for (Translog.Operation operation : operations) {
                 Engine.Result result = indexShard().applyTranslogOperation(operation, Engine.Operation.Origin.PEER_RECOVERY);
                 if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {

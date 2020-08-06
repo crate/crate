@@ -630,6 +630,31 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
+     * Restricts the given index to be allocated on <code>n</code> nodes using the allocation deciders.
+     * Yet if the shards can't be allocated on any other node shards for this index will remain allocated on
+     * more than <code>n</code> nodes.
+     */
+    public void allowNodes(String index, int n) {
+        assert index != null;
+        internalCluster().ensureAtLeastNumDataNodes(n);
+        Settings.Builder builder = Settings.builder();
+        if (n > 0) {
+            getExcludeSettings(n, builder);
+        }
+        Settings build = builder.build();
+        if (!build.isEmpty()) {
+            logger.debug("allowNodes: updating [{}]'s setting to [{}]", index, build.toDelimitedString(';'));
+            client().admin().indices().prepareUpdateSettings(index).setSettings(build).execute().actionGet();
+        }
+    }
+
+    private Settings.Builder getExcludeSettings(int num, Settings.Builder builder) {
+        String exclude = String.join(",", internalCluster().allDataNodesButN(num));
+        builder.put("index.routing.allocation.exclude._name", exclude);
+        return builder;
+    }
+
+    /**
      * Ensures the cluster has a green state via the cluster health API. This method will also wait for relocations.
      * It is useful to ensure that all action on the cluster have finished and all shards that were currently relocating
      * are now allocated and started.
