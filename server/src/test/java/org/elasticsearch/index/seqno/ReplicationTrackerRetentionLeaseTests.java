@@ -145,7 +145,54 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             replicationTracker.renewRetentionLease(id, retainingSequenceNumber, "test");
             assertFalse(invoked.get());
         }
-     }
+    }
+
+    public void testRemoveRetentionLeaseCausesRetentionLeaseSync() {
+        final AllocationId allocationId = AllocationId.newInitializing();
+        final Map<String, Long> retainingSequenceNumbers = new HashMap<>();
+        final AtomicBoolean invoked = new AtomicBoolean();
+        final AtomicReference<ReplicationTracker> reference = new AtomicReference<>();
+        final ReplicationTracker replicationTracker = new ReplicationTracker(
+                new ShardId("test", "_na", 0),
+                allocationId.getId(),
+                IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
+                randomNonNegativeLong(),
+                UNASSIGNED_SEQ_NO,
+                value -> {},
+                () -> 0L,
+                (leases, listener) -> {
+                    // we do not want to hold a lock on the replication tracker in the callback!
+                    assertFalse(Thread.holdsLock(reference.get()));
+                    invoked.set(true);
+                    assertThat(
+                            leases.leases()
+                                    .stream()
+                                    .collect(Collectors.toMap(RetentionLease::id, RetentionLease::retainingSequenceNumber)),
+                            equalTo(retainingSequenceNumbers));
+                });
+        reference.set(replicationTracker);
+        replicationTracker.updateFromMaster(
+                randomNonNegativeLong(),
+                Collections.singleton(allocationId.getId()),
+                routingTable(Collections.emptySet(), allocationId));
+        replicationTracker.activatePrimaryMode(SequenceNumbers.NO_OPS_PERFORMED);
+
+        final int length = randomIntBetween(0, 8);
+        for (int i = 0; i < length; i++) {
+            final String id = randomAlphaOfLength(8);
+            final long retainingSequenceNumber = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
+            retainingSequenceNumbers.put(id, retainingSequenceNumber);
+            replicationTracker.addRetentionLease(id, retainingSequenceNumber, "test", ActionListener.wrap(() -> {}));
+            // assert that the new retention lease callback was invoked
+            assertTrue(invoked.get());
+
+            // reset the invocation marker so that we can assert the callback was not invoked when removing the lease
+            invoked.set(false);
+            retainingSequenceNumbers.remove(id);
+            replicationTracker.removeRetentionLease(id, ActionListener.wrap(() -> {}));
+            assertTrue(invoked.get());
+        }
+    }
 
     @Test
     public void testExpirationOnPrimary() {
