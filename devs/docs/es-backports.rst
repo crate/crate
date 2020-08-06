@@ -45,7 +45,9 @@ applied to a certain point.
 
 Below lists the change sets we applied. This should be updated whenever a
 backport is made. If a patch is skipped because it is not applicable, it should
-be crossed out as well.
+be crossed out as well. ``x`` is used to mark applied patches, ``s`` for
+skipped patches if they're no applicable - for example if the functionality is
+not present in CrateDB.
 
 
 - [ ] 423bcd3c14d Remove typename validation (typename is always ) (#60133)
@@ -514,8 +516,8 @@ be crossed out as well.
 - [ ] bbe990f8627 Introduce retention lease actions (#38756)
 - [ ] 0518ec9a67a Add dedicated retention lease exceptions (#38754)
 - [ ] 58a77167219 Enable removal of retention leases (#38751)
-- [ ] 33b2be5b989 Copy retention leases when trim unsafe commits (#37995)
-- [o] d07e61b1872 Fix the version check for LegacyGeoShapeFieldMapper (#38547)
-- [o] 0cc8b123b14 Fix GeoHash PrefixTree BWC (#38584)
-- [o] 514a762d8dc Specialize pre-closing checks for engine implementations (#38702)
+- [x] 33b2be5b989 Copy retention leases when trim unsafe commits (#37995)
+- [s] d07e61b1872 Fix the version check for LegacyGeoShapeFieldMapper (#38547)
+- [s] 0cc8b123b14 Fix GeoHash PrefixTree BWC (#38584)
+- [x] 514a762d8dc Specialize pre-closing checks for engine implementations (#38702)
 - [x] 9b75a709a2c Concurrent file chunk fetching for CCR restore (#38495)

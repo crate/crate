@@ -24,14 +24,12 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +37,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongSupplier;
 
 import org.apache.lucene.index.SegmentInfos;
 import org.elasticsearch.action.ActionListener;
@@ -249,7 +246,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
         }
     }
 
-     private void assertRetentionLeases(
+    private void assertRetentionLeases(
              final IndexShard indexShard,
              final int size,
              final long[] minimumRetainingSequenceNumbers,
