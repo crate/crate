@@ -22,10 +22,14 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
@@ -45,9 +49,12 @@ public class SysNodesITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testScalarEvaluatesInErrorOnSysNodes() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(" / by zero");
-        execute("select 1/0 from sys.nodes");
+        assertThrows(() -> execute("select 1/0 from sys.nodes"),
+                     isSQLError(CoreMatchers.is("/ by zero"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
+
     }
 
     @Test

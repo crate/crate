@@ -21,11 +21,11 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.common.collections.MapBuilder;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
 
@@ -36,11 +36,15 @@ import java.util.Map;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.google.common.collect.Maps.newHashMap;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
-
 
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -77,9 +81,12 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rowCount());
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"message\" must not be null");
-        execute("update test set message=null where id=1");
+        assertThrows(() -> execute(
+            "update test set message=null where id=1"),
+                     isSQLError(Matchers.is("\"message\" must not be null"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -92,9 +99,9 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"stuff['level1']\" must not be null");
-        execute("update test set stuff['level1']=null");
+        assertThrows(() -> execute(
+            "update test set stuff['level1']=null"),
+                     isSQLError(Matchers.is("\"stuff['level1']\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -109,9 +116,9 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"stuff['level1']['level2']\" must not be null");
-        execute("update test set stuff['level1']['level2']=null");
+        assertThrows(() -> execute(
+            "update test set stuff['level1']['level2']=null"),
+                     isSQLError(Matchers.is("\"stuff['level1']['level2']\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -642,9 +649,12 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute("update test set c = 4 where _version = 2 or _version=1");
+        assertThrows(() -> execute(
+            "update test set c = 4 where _version = 2 or _version=1"),
+                     isSQLError(Matchers.is(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -654,9 +664,12 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute("update test set c = 4 where _version in (1,2)");
+        assertThrows(() -> execute(
+            "update test set c = 4 where _version in (1,2)"),
+                     isSQLError(Matchers.is(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
 
@@ -765,15 +778,19 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateSetInvalidGeneratedColumnOnly() {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Given value 1745 for generated column gen_col does not match calculation extract(YEAR FROM ts) = 1970");
         execute("create table computed (" +
                 " ts timestamp with time zone," +
                 " gen_col as extract(year from ts)" +
                 ") with (number_of_replicas=0)");
         execute("insert into computed (ts) values (1)");
         refresh();
-        execute("update computed set gen_col=1745");
+
+        assertThrows(() -> execute(
+            "update computed set gen_col=1745"),
+                     isSQLError(Matchers.is("Given value 1745 for generated column gen_col does not match calculation extract(YEAR FROM ts) = 1970"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -787,9 +804,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"gen_col\" must not be null");
-        execute("update generated_column set ts=null where id=1");
+        assertThrows(() -> execute(
+            "update generated_column set ts=null where id=1"),
+                     isSQLError(Matchers.is("\"gen_col\" must not be null"), INTERNAL_ERROR, INTERNAL_SERVER_ERROR, 5000));
+
     }
 
     @Test
@@ -803,9 +821,13 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"gen_col\" must not be null");
-        execute("update generated_column set gen_col=null where id=1");
+        assertThrows(() -> execute(
+            "update generated_column set gen_col=null where id=1"),
+                     isSQLError(Matchers.is("\"gen_col\" must not be null"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
+
     }
 
     @Test

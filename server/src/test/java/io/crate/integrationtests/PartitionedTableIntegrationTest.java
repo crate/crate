@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -66,11 +65,17 @@ import java.util.Map;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
+import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -424,11 +429,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("A document with the same primary key exists already");
-
-        execute("insert into parted (id, name, date) values (?, ?, ?)",
-            new Object[]{42, "Zaphod", 0L});
+        assertThrows(() -> execute("insert into parted (id, name, date) values (?, ?, ?)",
+                                   new Object[]{42, "Zaphod", 0L}),
+                     isSQLError(is("A document with the same primary key exists already"),
+                         INTERNAL_ERROR,
+                         CONFLICT,
+                         4091));
     }
 
     @Test
@@ -1529,9 +1535,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             ") partitioned by (date) with (refresh_interval=0)");
         ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted")));
-        execute("refresh table parted partition(date=0)");
+        assertThrows(() ->  execute("refresh table parted partition(date=0)"),
+                     isSQLError(is(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted"))),
+                         INTERNAL_ERROR,
+                         NOT_FOUND,
+                         4046));
     }
 
     @Test
@@ -1762,13 +1770,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Relation name \"AAA.t\" is invalid.");
-        execute(
-            "create table \"AAA\".t (" +
+        assertThrows(() -> execute("create table \"AAA\".t (" +
             "   name string," +
             "   d timestamp with time zone" +
-            ") partitioned by (d) with (number_of_replicas=0)");
+            ") partitioned by (d) with (number_of_replicas=0)"),
+                     isSQLError(is("Relation name \"AAA.t\" is invalid."),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4002));
     }
 
     @Test
@@ -2109,9 +2118,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into t1 (id) values (1)");
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(" / by zero");
-        execute("select id/0 from t1");
+        assertThrows(() ->execute("select id/0 from t1"),
+                     isSQLError(is("/ by zero"),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4000));
     }
 
     @Test
@@ -2141,18 +2152,21 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void test_refresh_not_existing_partition() {
         execute("CREATE TABLE doc.parted (x TEXT) PARTITIONED BY (x)");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(
-            "No partition for table 'doc.parted' with ident '048mgp34ed3ksii8ad3kcha6bb1po' exists");
-        execute("REFRESH TABLE doc.parted PARTITION (x = 'hddsGNJHSGFEFZÜ')");
+        assertThrows(() ->  execute("REFRESH TABLE doc.parted PARTITION (x = 'hddsGNJHSGFEFZÜ')"),
+                     isSQLError(is("No partition for table 'doc.parted' with ident '048mgp34ed3ksii8ad3kcha6bb1po' exists"),
+                         INTERNAL_ERROR,
+                         NOT_FOUND,
+                         4046));
     }
 
     @Test
     public void test_refresh_partition_in_non_partitioned_table() {
         execute("CREATE TABLE doc.not_parted (x TEXT)");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("table 'doc.not_parted' is not partitioned");
-        execute("REFRESH TABLE doc.not_parted PARTITION (x = 'n')");
+        assertThrows(() ->  execute("REFRESH TABLE doc.not_parted PARTITION (x = 'n')"),
+                     isSQLError(is("table 'doc.not_parted' is not partitioned"),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4000));
     }
 
     @Test
@@ -2219,11 +2233,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select content from my_table where par=2");
         assertThat(response.rowCount(), Matchers.is(3L));
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("blocked by: [FORBIDDEN/8/index write (api)]");
-
         // trying to perform an update on a partition with a write block
-        execute("update my_table set content=\'content42\' where par=1");
+        assertThrows(() ->  execute("update my_table set content=\'content42\' where par=1"),
+                     isSQLError(is("blocked by: [FORBIDDEN/8/index write (api)];"),
+                         INTERNAL_ERROR,
+                         INTERNAL_SERVER_ERROR,
+                         5000));
     }
 
     @Test
@@ -2237,15 +2252,16 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         ensureGreen();
         execute("alter table my_table partition (par=1) set (\"blocks.write\"=true)");
-        try {
-            execute("insert into my_table (par, content) values (2, 'content42'), " +
-                    "(2, 'content42'), " +
-                    "(1, 'content2'), " +
-                    "(3, 'content6')");
-            fail("expected to throw an \"blocked\" exception");
-        } catch (SQLActionException e) {
-            assertThat(e.getMessage(), containsString("blocked by: [FORBIDDEN/8/index write (api)];"));
-        }
+
+        assertThrows(() -> execute("insert into my_table (par, content) values (2, 'content42'), " +
+                                   "(2, 'content42'), " +
+                                   "(1, 'content2'), " +
+                                   "(3, 'content6')"),
+                     isSQLError(is("blocked by: [FORBIDDEN/8/index write (api)];"),
+                         INTERNAL_ERROR,
+                         INTERNAL_SERVER_ERROR,
+                         5000));
+
         refresh();
         execute("select * from my_table");
         assertThat(response.rowCount(), Matchers.is(both(greaterThanOrEqualTo(2L)).and(lessThanOrEqualTo(5L))));

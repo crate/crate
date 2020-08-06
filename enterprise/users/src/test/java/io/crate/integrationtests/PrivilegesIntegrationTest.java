@@ -18,7 +18,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
@@ -29,7 +28,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
@@ -84,9 +89,11 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testNormalUserGrantsPrivilegeThrowsException() {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Missing 'AL' privilege for user 'normal'");
-        executeAsNormalUser("grant DQL to " + TEST_USERNAME);
+        assertThrows(() -> executeAsNormalUser("grant DQL to " + TEST_USERNAME),
+                     isSQLError(is("Missing 'AL' privilege for user 'normal'"),
+                                INTERNAL_ERROR,
+                                UNAUTHORIZED,
+                                4011));
     }
 
     @Test
@@ -128,24 +135,29 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testGrantPrivilegeToSuperuserThrowsException() {
         String superuserName = User.CRATE_USER.name();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UnsupportedFeatureException: Cannot alter privileges for superuser '" +
-                                        superuserName + "'");
-        executeAsSuperuser("grant DQL to " + superuserName);
+        assertThrows(() -> executeAsSuperuser("grant DQL to " + superuserName),
+                     isSQLError(is("Cannot alter privileges for superuser '" + superuserName + "'"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4004));
     }
 
     @Test
     public void testApplyPrivilegesToUnknownUserThrowsException() {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UserUnknownException: User 'unknown_user' does not exist");
-        executeAsSuperuser("grant DQL to unknown_user");
+        assertThrows(() -> executeAsSuperuser("grant DQL to unknown_user"),
+                     isSQLError(is("User 'unknown_user' does not exist"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                40410));
     }
 
     @Test
     public void testApplyPrivilegesToMultipleUnknownUsersThrowsException() {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UserUnknownException: Users 'unknown_user, also_unknown' do not exist");
-        executeAsSuperuser("grant DQL to unknown_user, also_unknown");
+        assertThrows(() -> executeAsSuperuser("grant DQL to unknown_user, also_unknown"),
+                     isSQLError(is("Users 'unknown_user, also_unknown' do not exist"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                40410));
     }
 
     @Test
@@ -310,9 +322,12 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         ensureYellow();
 
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Schema 'doc' unknown");
-        execute("select * from t1", null, testUserSession());
+
+        assertThrows(() -> execute("select * from t1", null, testUserSession()),
+                     isSQLError(is("Schema 'doc' unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4045));
     }
 
     @Test
@@ -324,9 +339,11 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         ensureYellow();
 
         executeAsSuperuser("create view doc.v1 as select 1");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Schema 'doc' unknown");
-        execute("select * from v1", null, testUserSession());
+        assertThrows(() -> execute("select * from v1", null, testUserSession()),
+                     isSQLError(is("Schema 'doc' unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4045));
     }
 
     @Test
@@ -342,9 +359,11 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rowCount(), is(0L));
 
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Schema 'doc' unknown");
-        execute("select * from t1", null, testUserSession());
+        assertThrows(() -> execute("select * from t1", null, testUserSession()),
+                     isSQLError(is("Schema 'doc' unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4045));
     }
 
     @Test
@@ -357,9 +376,11 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dql on table t2 to "+ TEST_USERNAME);
         assertThat(response.rowCount(), is(1L));
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("RelationUnknown: Relation 't1' unknown");
-        executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME);
+        assertThrows(() -> executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME),
+                     isSQLError(is("Relation 't1' unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4041));
     }
 
     @Test
@@ -367,9 +388,11 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("alter cluster reroute retry failed");
         assertThat(response.rowCount(), is (0L));
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("UnauthorizedException: User \"normal\" is not authorized to execute the statement"));
-        executeAsNormalUser("alter cluster reroute retry failed");
+        assertThrows(() -> executeAsNormalUser("alter cluster reroute retry failed"),
+                     isSQLError(containsString("User \"normal\" is not authorized to execute the statement"),
+                                INTERNAL_ERROR,
+                                UNAUTHORIZED,
+                                4010));
     }
 
     @Test
@@ -381,11 +404,12 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
         assertThat(response.rowCount(), is(1L));
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("OperationOnInaccessibleRelationException: The relation " +
-                                                       "\"s.t1\" doesn't support or allow REFRESH operations, as it " +
-                                                       "is currently closed."));
-        execute("refresh table s.t1", null, testUserSession());
+        assertThrows(() ->  execute("refresh table s.t1", null, testUserSession()),
+                     isSQLError(containsString("The relation \"s.t1\" doesn't support or allow REFRESH " +
+                                               "operations, as it is currently closed."),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 
     @Test

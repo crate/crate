@@ -18,13 +18,19 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -117,9 +123,11 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testAlterNonExistingUserThrowsException() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UserUnknownException: User 'unknown_user' does not exist");
-        executeAsSuperuser("alter user unknown_user set (password = 'unknown')");
+        assertThrows(() -> executeAsSuperuser("alter user unknown_user set (password = 'unknown')"),
+                     isSQLError(is("User 'unknown_user' does not exist"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                40410));
     }
 
     @Test
@@ -138,23 +146,29 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testDropUserUnAuthorized() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Missing 'AL' privilege for user 'normal'");
-        executeAsNormalUser("drop user ford");
+        assertThrows(() -> executeAsNormalUser("drop user ford"),
+                     isSQLError(is("Missing 'AL' privilege for user 'normal'"),
+                                INTERNAL_ERROR,
+                                UNAUTHORIZED,
+                                4011));
     }
 
     @Test
     public void testCreateUserUnAuthorized() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Missing 'AL' privilege for user 'normal'");
-        executeAsNormalUser("create user ford");
+        assertThrows(() -> executeAsNormalUser("create user ford"),
+                     isSQLError(is("Missing 'AL' privilege for user 'normal'"),
+                                INTERNAL_ERROR,
+                                UNAUTHORIZED,
+                                4011));
     }
 
     @Test
     public void testCreateNormalUserUnAuthorized() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Missing 'AL' privilege for user 'normal'");
-        executeAsNormalUser("create user ford");
+        assertThrows(() -> executeAsNormalUser("create user ford"),
+                     isSQLError(is("Missing 'AL' privilege for user 'normal'"),
+                                INTERNAL_ERROR,
+                                UNAUTHORIZED,
+                                4011));
     }
 
     @Test
@@ -172,22 +186,28 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("create user ford_exists");
         assertUserIsCreated("ford_exists");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UserAlreadyExistsException: User 'ford_exists' already exists");
-        executeAsSuperuser("create user ford_exists");
+        assertThrows(() -> executeAsSuperuser("create user ford_exists"),
+                     isSQLError(is("User 'ford_exists' already exists"),
+                                INTERNAL_ERROR,
+                                CONFLICT,
+                                4099));
     }
 
     @Test
     public void testDropNonExistingUserThrowsException() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UserUnknownException: User 'not_exists' does not exist");
-        executeAsSuperuser("drop user not_exists");
+        assertThrows(() -> executeAsSuperuser("drop user not_exists"),
+                     isSQLError(is("User 'not_exists' does not exist"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                40410));
     }
 
     @Test
     public void testDropSuperUserThrowsException() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UnsupportedFeatureException: Cannot drop a superuser 'crate'");
-        executeAsSuperuser("drop user crate");
+        assertThrows(() -> executeAsSuperuser("drop user crate"),
+                     isSQLError(is("Cannot drop a superuser 'crate'"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4004));
     }
 }
