@@ -168,7 +168,7 @@ public class RecoverySourceHandler {
                 shard,
                 cancellableThreads,
                 logger);
-            final Closeable retentionLock = shard.acquireRetentionLockForPeerRecovery();
+            final Closeable retentionLock = shard.acquireRetentionLock();
             resources.add(retentionLock);
             final long startingSeqNo;
             final long requiredSeqNoRangeStart;
