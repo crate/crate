@@ -116,6 +116,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         EngineConfig.INDEX_OPTIMIZE_AUTO_GENERATED_IDS,
         IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
         IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
+        IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
         Setting.groupSetting("index.analysis.", Property.IndexScope));
 
     public static final IndexScopedSettings DEFAULT_SCOPED_SETTINGS = new IndexScopedSettings(Settings.EMPTY, BUILT_IN_INDEX_SETTINGS);
