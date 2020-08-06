@@ -31,7 +31,7 @@ import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static io.crate.testing.SettingMatcher.hasKey;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.endsWith;
@@ -49,6 +49,7 @@ import com.google.common.base.Joiner;
 
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.rest.action.HttpErrorStatus;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
@@ -471,8 +472,8 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute("CREATE ANALYZER a10 (TOKENIZER a9tok)"),
                      isSQLError(endsWith("Non-existing tokenizer 'a9tok'"),
                                 INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR,
-                                5000));
+                                BAD_REQUEST,
+                                4000));
 
         /*
          * NOT SUPPORTED UNTIL A CONSISTENT SOLUTION IS FOUND
