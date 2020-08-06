@@ -21,9 +21,12 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.core.Is.is;
 
 public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
@@ -72,10 +75,12 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountStarWithWhereClauseForUnknownCol() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column non_existant unknown");
         execute("create table test (\"name\" string) with (number_of_replicas=0)");
-        execute("select count(*) from test where non_existant = 'Some Value'");
+        assertThrows(() -> execute("select count(*) from test where non_existant = 'Some Value'"),
+                     isSQLError(is("Column non_existant unknown"),
+                                INTERNAL_ERROR,
+                                HttpResponseStatus.NOT_FOUND,
+                                4043));
     }
 
     @Test

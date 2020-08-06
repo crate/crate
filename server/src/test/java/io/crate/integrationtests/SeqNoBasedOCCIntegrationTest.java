@@ -118,7 +118,6 @@ public class SeqNoBasedOCCIntegrationTest extends SQLTransportIntegrationTest {
     public void testSelectWhereSeqNoAndPTWithoutPrimaryKey() throws Exception {
         execute("create table t (x integer primary key, y string)");
         ensureYellow();
-        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
         execute("select _seq_no, _primary_term from t where y = 'hello' and _seq_no = 1 and _primary_term = 2");
     }

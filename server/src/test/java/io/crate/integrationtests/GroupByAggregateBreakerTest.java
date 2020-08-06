@@ -21,10 +21,15 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.junit.Test;
+
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.hamcrest.Matchers.is;
 
 public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
 
@@ -38,10 +43,13 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
 
     @Test
     public void selectGroupByWithBreaking() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for ");
         // query takes 252 bytes of memory
         // 252b * 1.09 = 275b => should break with limit 256b
-        execute("select region, count(*) from sys.summits group by 1");
+        assertThrows(() -> execute("select region, count(*) from sys.summits group by 1"),
+                     isSQLError(is("[query] Data too large, data for [collect: 0] would be [305/305b], " +
+                                   "which is larger than the limit of [256/256b]"),
+                                INTERNAL_ERROR,
+                                INTERNAL_SERVER_ERROR,
+                                5000));
     }
 }

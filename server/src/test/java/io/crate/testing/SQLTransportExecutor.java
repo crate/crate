@@ -25,13 +25,13 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -42,7 +42,6 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.postgres.types.PgOidVectorType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -66,8 +65,6 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.ServerErrorMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -318,31 +315,10 @@ public class SQLTransportExecutor {
                     return executeAndConvertResult(preparedStatement);
                 }
             }
-        } catch (PSQLException e) {
-            LOGGER.error("Error executing stmt={} args={} error={}", stmt, Arrays.toString(args), e);
-            ServerErrorMessage serverErrorMessage = e.getServerErrorMessage();
-            final StackTraceElement[] stacktrace;
-            //noinspection ThrowableNotThrown add the test-call-chain to the stack to be able
-            // to quickly figure out which statement in a test case led to the error
-            StackTraceElement[] traceToExecWithPg = new Exception().getStackTrace();
-            if (serverErrorMessage == null) {
-                stacktrace = traceToExecWithPg;
-            } else {
-                stacktrace = new StackTraceElement[traceToExecWithPg.length + 1];
-                stacktrace[0] = new StackTraceElement(
-                    serverErrorMessage.getFile(),
-                    serverErrorMessage.getRoutine(),
-                    serverErrorMessage.getFile(),
-                    serverErrorMessage.getLine());
-                System.arraycopy(traceToExecWithPg, 0, stacktrace, 1, traceToExecWithPg.length);
-            }
-            throw new SQLActionException(
-                e.getMessage(),
-                0,
-                HttpResponseStatus.BAD_REQUEST,
-                stacktrace);
         } catch (SQLException e) {
-            throw new SQLActionException(e.getMessage(), 0, HttpResponseStatus.BAD_REQUEST);
+            Exceptions.rethrowUnchecked(e);
+            // this should never happen
+            return null;
         }
     }
 

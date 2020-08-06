@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.Constants;
-import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
@@ -47,6 +46,11 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -89,9 +93,11 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), is(arrayContaining("id", "name")));
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column boo unknown");
-        execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)");
+        assertThrows(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"),
+                     isSQLError(is("Column boo unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4043));
     }
 
     @Test
@@ -109,9 +115,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), is(arrayContaining("id", "name")));
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column boo unknown");
-        execute("update strict_table set name='Trillian', boo=true where id=1");
+        assertThrows(() -> execute("update strict_table set name='Trillian', boo=true where id=1"),
+                     isSQLError(is("Column boo unknown"), INTERNAL_ERROR, NOT_FOUND,4043));
     }
 
     @Test
@@ -264,21 +269,14 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 authorMap
             });
         execute("refresh table books");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(
-            containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"));
-        authorMap = Map.of(
-            "name",
-            Map.of(
-                "first_name", "Douglas",
-                "middle_name", "Noel"
-            )
-        );
-        execute("insert into books (title, author) values (?,?)",
+        assertThrows(() -> execute("insert into books (title, author) values (?,?)",
             new Object[]{
                 "Life, the Universe and Everything",
-                authorMap
-            });
+                Map.of("name", Map.of("first_name", "Douglas", "middle_name", "Noel"))
+            }), isSQLError(containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"),
+                           INTERNAL_ERROR,
+                           BAD_REQUEST,
+                           4000));
     }
 
     public Object nestedValue(Map<String, Object> map, String dottedPath) {
@@ -400,10 +398,13 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column perfect unknown");
-        execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
-            new Object[]{28, true, false, true});
+        assertThrows(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
+                                   new Object[]{28, true, false, true}),
+                     isSQLError(is("Column perfect unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4043
+                     ));
     }
 
     @Test
@@ -435,10 +436,12 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column perfect unknown");
-        execute("update numbers set num=?, perfect=? where num=6",
-            new Object[]{28, true});
+        assertThrows(() -> execute("update numbers set num=?, perfect=? where num=6",
+                                   new Object[]{28, true}),
+                     isSQLError(is("Column perfect unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4043));
     }
 
     @Test
@@ -498,9 +501,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("alter table dynamic_table set (column_policy = 'strict')");
         waitNoPendingTasksOnAll();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column new_col unknown");
-        execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')");
+        assertThrows(() -> execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')"),
+                     isSQLError(is("Column new_col unknown"), INTERNAL_ERROR, NOT_FOUND,4043));
     }
 
     @Test

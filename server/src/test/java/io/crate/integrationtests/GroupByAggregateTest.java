@@ -33,9 +33,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
 
@@ -661,9 +666,11 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
         this.setup.groupBySetup();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("'details_ignored['lol']' must appear in the GROUP BY clause");
-        execute("select details_ignored['lol'] from characters group by race");
+        assertThrows(() -> execute("select details_ignored['lol'] from characters group by race"),
+                     isSQLError(containsString("'details_ignored['lol']' must appear in the GROUP BY clause"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
