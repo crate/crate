@@ -242,7 +242,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         synchronized (this) {
             assert primaryMode;
             if (retentionLeases.contains(id)) {
-                throw new IllegalArgumentException("retention lease with ID [" + id + "] already exists");
+                throw new RetentionLeaseAlreadyExistsException(id);
             }
             retentionLease = new RetentionLease(id, retainingSequenceNumber, currentTimeMillisSupplier.getAsLong(), source);
             retentionLeases = new RetentionLeases(
@@ -267,7 +267,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
     public synchronized RetentionLease renewRetentionLease(final String id, final long retainingSequenceNumber, final String source) {
         assert primaryMode;
         if (retentionLeases.contains(id) == false) {
-            throw new IllegalArgumentException("retention lease with ID [" + id + "] does not exist");
+            throw new RetentionLeaseNotFoundException(id);
         }
         final RetentionLease retentionLease =
                 new RetentionLease(id, retainingSequenceNumber, currentTimeMillisSupplier.getAsLong(), source);
@@ -300,7 +300,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         synchronized (this) {
             assert primaryMode;
             if (retentionLeases.contains(id) == false) {
-                throw new IllegalArgumentException("retention lease with ID [" + id + "] does not exist");
+                throw new RetentionLeaseNotFoundException(id);
             }
             retentionLeases = new RetentionLeases(
                     operationPrimaryTerm,

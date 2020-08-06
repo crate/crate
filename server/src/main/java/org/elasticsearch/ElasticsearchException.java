@@ -977,7 +977,18 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         // 148 was UnknownNamedObjectException
         // 149 was TooManyBucketsException
         COORDINATION_STATE_REJECTED_EXCEPTION(org.elasticsearch.cluster.coordination.CoordinationStateRejectedException.class,
-            org.elasticsearch.cluster.coordination.CoordinationStateRejectedException::new, 150, Version.V_4_0_0);
+            org.elasticsearch.cluster.coordination.CoordinationStateRejectedException::new, 150, Version.V_4_0_0),
+
+        RETENTION_LEASE_ALREADY_EXISTS_EXCEPTION(
+                org.elasticsearch.index.seqno.RetentionLeaseAlreadyExistsException.class,
+                org.elasticsearch.index.seqno.RetentionLeaseAlreadyExistsException::new,
+                153,
+                Version.V_4_3_0),
+        RETENTION_LEASE_NOT_FOUND_EXCEPTION(
+                org.elasticsearch.index.seqno.RetentionLeaseNotFoundException.class,
+                org.elasticsearch.index.seqno.RetentionLeaseNotFoundException::new,
+                154,
+                Version.V_4_3_0);
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;
