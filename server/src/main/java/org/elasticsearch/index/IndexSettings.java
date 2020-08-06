@@ -250,6 +250,10 @@ public final class IndexSettings {
         return retentionLeaseMillis;
     }
 
+    private void setRetentionLeaseMillis(final TimeValue retentionLease) {
+        this.retentionLeaseMillis = retentionLease.millis();
+    }
+
     private volatile boolean warmerEnabled;
     private volatile int maxNgramDiff;
     private volatile int maxShingleDiff;
@@ -367,6 +371,7 @@ public final class IndexSettings {
         scopedSettings.addSettingsUpdateConsumer(MAX_REFRESH_LISTENERS_PER_SHARD, this::setMaxRefreshListeners);
         scopedSettings.addSettingsUpdateConsumer(DEFAULT_FIELD_SETTING, this::setDefaultFields);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING, this::setSoftDeleteRetentionOperations);
+        scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING, this::setRetentionLeaseMillis);
     }
 
     private void setTranslogFlushThresholdSize(ByteSizeValue byteSizeValue) {
