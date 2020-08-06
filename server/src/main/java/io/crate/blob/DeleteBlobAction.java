@@ -23,7 +23,7 @@ package io.crate.blob;
 
 import org.elasticsearch.action.Action;
 
-public class DeleteBlobAction extends Action<DeleteBlobRequest, DeleteBlobResponse> {
+public class DeleteBlobAction extends Action<DeleteBlobResponse> {
 
     public static final DeleteBlobAction INSTANCE = new DeleteBlobAction();
     public static final String NAME = "internal:crate:blob/delete_blob";

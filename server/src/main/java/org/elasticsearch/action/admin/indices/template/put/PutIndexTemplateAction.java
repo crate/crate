@@ -22,7 +22,7 @@ package org.elasticsearch.action.admin.indices.template.put;
 import org.elasticsearch.action.Action;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
-public class PutIndexTemplateAction extends Action<PutIndexTemplateRequest, AcknowledgedResponse> {
+public class PutIndexTemplateAction extends Action<AcknowledgedResponse> {
 
     public static final PutIndexTemplateAction INSTANCE = new PutIndexTemplateAction();
     public static final String NAME = "indices:admin/template/put";

@@ -25,7 +25,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 /**
  * Unregister repository action
  */
-public class DeleteRepositoryAction extends Action<DeleteRepositoryRequest, AcknowledgedResponse> {
+public class DeleteRepositoryAction extends Action<AcknowledgedResponse> {
 
     public static final DeleteRepositoryAction INSTANCE = new DeleteRepositoryAction();
     public static final String NAME = "cluster:admin/repository/delete";

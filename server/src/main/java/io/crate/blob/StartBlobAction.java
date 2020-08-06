@@ -23,7 +23,7 @@ package io.crate.blob;
 
 import org.elasticsearch.action.Action;
 
-public class StartBlobAction extends Action<StartBlobRequest, StartBlobResponse> {
+public class StartBlobAction extends Action<StartBlobResponse> {
 
     public static final StartBlobAction INSTANCE = new StartBlobAction();
     public static final String NAME = "internal:crate:blob/start_blob";

@@ -25,7 +25,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 /**
  * Register repository action
  */
-public class PutRepositoryAction extends Action<PutRepositoryRequest, AcknowledgedResponse> {
+public class PutRepositoryAction extends Action<AcknowledgedResponse> {
 
     public static final PutRepositoryAction INSTANCE = new PutRepositoryAction();
     public static final String NAME = "cluster:admin/repository/put";

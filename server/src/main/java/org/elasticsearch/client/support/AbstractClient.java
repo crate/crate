@@ -130,8 +130,8 @@ public abstract class AbstractClient implements Client {
     }
 
     @Override
-    public final <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(
-            Action<Request, Response> action, Request request) {
+    public final <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(Action<Response> action,
+                                                                                                                       Request request) {
         PlainActionFuture<Response> actionFuture = PlainActionFuture.newFuture();
         execute(action, request, actionFuture);
         return actionFuture;
@@ -141,12 +141,13 @@ public abstract class AbstractClient implements Client {
      * This is the single execution point of *all* clients.
      */
     @Override
-    public final <Request extends TransportRequest, Response extends TransportResponse> void execute(
-            Action<Request, Response> action, Request request, ActionListener<Response> listener) {
+    public final <Request extends TransportRequest, Response extends TransportResponse> void execute(Action<Response> action,
+                                                                                                     Request request,
+                                                                                                     ActionListener<Response> listener) {
         doExecute(action, request, listener);
     }
 
-    protected abstract <Request extends TransportRequest, Response extends TransportResponse> void doExecute(Action<Request, Response> action,
+    protected abstract <Request extends TransportRequest, Response extends TransportResponse> void doExecute(Action<Response> action,
                                                                                                              Request request,
                                                                                                              ActionListener<Response> listener);
 
@@ -180,13 +181,13 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(Action<Request, Response> action,
+        public <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(Action<Response> action,
                                                                                                                      Request request) {
             return client.execute(action, request);
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse> void execute(Action<Request, Response> action,
+        public <Request extends TransportRequest, Response extends TransportResponse> void execute(Action<Response> action,
                                                                                                    Request request,
                                                                                                    ActionListener<Response> listener) {
             client.execute(action, request, listener);
@@ -272,13 +273,13 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(Action<Request, Response> action,
+        public <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(Action<Response> action,
                                                                                                                      Request request) {
             return client.execute(action, request);
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse> void execute(Action<Request, Response> action,
+        public <Request extends TransportRequest, Response extends TransportResponse> void execute(Action<Response> action,
                                                                                                    Request request,
                                                                                                    ActionListener<Response> listener) {
             client.execute(action, request, listener);
