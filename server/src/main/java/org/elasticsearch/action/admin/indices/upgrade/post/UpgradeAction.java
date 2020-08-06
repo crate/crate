@@ -20,22 +20,16 @@
 package org.elasticsearch.action.admin.indices.upgrade.post;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 
 /**
  * Upgrade index/indices action.
  */
-public class UpgradeAction extends Action<UpgradeRequest, UpgradeResponse, UpgradeRequestBuilder> {
+public class UpgradeAction extends Action<UpgradeRequest, UpgradeResponse> {
 
     public static final UpgradeAction INSTANCE = new UpgradeAction();
     public static final String NAME = "indices:admin/upgrade";
 
     private UpgradeAction() {
         super(NAME);
-    }
-
-    @Override
-    public UpgradeRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new UpgradeRequestBuilder(client, this);
     }
 }

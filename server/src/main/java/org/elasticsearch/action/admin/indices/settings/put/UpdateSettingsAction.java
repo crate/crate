@@ -20,20 +20,14 @@
 package org.elasticsearch.action.admin.indices.settings.put;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
-public class UpdateSettingsAction extends Action<UpdateSettingsRequest, AcknowledgedResponse, UpdateSettingsRequestBuilder> {
+public class UpdateSettingsAction extends Action<UpdateSettingsRequest, AcknowledgedResponse> {
 
     public static final UpdateSettingsAction INSTANCE = new UpdateSettingsAction();
     public static final String NAME = "indices:admin/settings/update";
 
     private UpdateSettingsAction() {
         super(NAME);
-    }
-
-    @Override
-    public UpdateSettingsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new UpdateSettingsRequestBuilder(client, this);
     }
 }

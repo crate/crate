@@ -23,7 +23,8 @@ import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
-public class ClearVotingConfigExclusionsAction extends Action<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse, ClearVotingConfigExclusionsAction.ClearVotingConfigExclusionsRequestBuilder> {
+public class ClearVotingConfigExclusionsAction extends Action<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse> {
+
     public static final ClearVotingConfigExclusionsAction INSTANCE = new ClearVotingConfigExclusionsAction();
     public static final String NAME = "cluster:admin/voting_config/clear_exclusions";
 
@@ -31,15 +32,10 @@ public class ClearVotingConfigExclusionsAction extends Action<ClearVotingConfigE
         super(NAME);
     }
 
-    @Override
-    public ClearVotingConfigExclusionsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new ClearVotingConfigExclusionsRequestBuilder(client, this, new ClearVotingConfigExclusionsRequest());
-    }
-
-    static class ClearVotingConfigExclusionsRequestBuilder extends ActionRequestBuilder<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse, ClearVotingConfigExclusionsRequestBuilder> {
+    static class ClearVotingConfigExclusionsRequestBuilder extends ActionRequestBuilder<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse> {
 
         ClearVotingConfigExclusionsRequestBuilder(ElasticsearchClient client,
-                                                  Action<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse, ClearVotingConfigExclusionsRequestBuilder> action,
+                                                  Action<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse> action,
                                                   ClearVotingConfigExclusionsRequest request) {
             super(client, action, request);
         }

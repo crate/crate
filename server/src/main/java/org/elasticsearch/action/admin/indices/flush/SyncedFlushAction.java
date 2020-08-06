@@ -20,20 +20,14 @@
 package org.elasticsearch.action.admin.indices.flush;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 
 
-public class SyncedFlushAction extends Action<SyncedFlushRequest, SyncedFlushResponse, SyncedFlushRequestBuilder> {
+public class SyncedFlushAction extends Action<SyncedFlushRequest, SyncedFlushResponse> {
 
     public static final SyncedFlushAction INSTANCE = new SyncedFlushAction();
     public static final String NAME = "indices:admin/synced_flush";
 
     private SyncedFlushAction() {
         super(NAME);
-    }
-
-    @Override
-    public SyncedFlushRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new SyncedFlushRequestBuilder(client, this);
     }
 }

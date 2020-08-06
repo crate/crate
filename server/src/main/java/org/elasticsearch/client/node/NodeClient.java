@@ -19,9 +19,10 @@
 
 package org.elasticsearch.client.node;
 
+import java.util.Map;
+
 import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
@@ -31,8 +32,6 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.util.Map;
 
 /**
  * Client that executes actions on the local node.
@@ -56,11 +55,9 @@ public class NodeClient extends AbstractClient {
 
     @Override
     public <Request extends TransportRequest,
-            Response extends TransportResponse,
-            RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void doExecute(
-        Action<Request, Response, RequestBuilder> action,
-        Request request,
-        ActionListener<Response> listener) {
+            Response extends TransportResponse> void doExecute(Action<Request, Response> action,
+                                                               Request request,
+                                                               ActionListener<Response> listener) {
 
         // Discard the task because the Client interface doesn't use it.
         executeLocally(action, request, listener);

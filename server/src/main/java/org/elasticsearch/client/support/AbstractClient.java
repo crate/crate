@@ -22,7 +22,6 @@ package org.elasticsearch.client.support;
 import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
@@ -131,8 +130,8 @@ public abstract class AbstractClient implements Client {
     }
 
     @Override
-    public final <Request extends TransportRequest, Response extends TransportResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> ActionFuture<Response> execute(
-            Action<Request, Response, RequestBuilder> action, Request request) {
+    public final <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(
+            Action<Request, Response> action, Request request) {
         PlainActionFuture<Response> actionFuture = PlainActionFuture.newFuture();
         execute(action, request, actionFuture);
         return actionFuture;
@@ -142,12 +141,14 @@ public abstract class AbstractClient implements Client {
      * This is the single execution point of *all* clients.
      */
     @Override
-    public final <Request extends TransportRequest, Response extends TransportResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void execute(
-            Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener) {
+    public final <Request extends TransportRequest, Response extends TransportResponse> void execute(
+            Action<Request, Response> action, Request request, ActionListener<Response> listener) {
         doExecute(action, request, listener);
     }
 
-    protected abstract <Request extends TransportRequest, Response extends TransportResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void doExecute(Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener);
+    protected abstract <Request extends TransportRequest, Response extends TransportResponse> void doExecute(Action<Request, Response> action,
+                                                                                                             Request request,
+                                                                                                             ActionListener<Response> listener);
 
     static class Admin implements AdminClient {
 
@@ -179,14 +180,15 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> ActionFuture<Response> execute(
-                Action<Request, Response, RequestBuilder> action, Request request) {
+        public <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(Action<Request, Response> action,
+                                                                                                                     Request request) {
             return client.execute(action, request);
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void execute(
-                Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener) {
+        public <Request extends TransportRequest, Response extends TransportResponse> void execute(Action<Request, Response> action,
+                                                                                                   Request request,
+                                                                                                   ActionListener<Response> listener) {
             client.execute(action, request, listener);
         }
 
@@ -270,14 +272,15 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> ActionFuture<Response> execute(
-                Action<Request, Response, RequestBuilder> action, Request request) {
+        public <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(Action<Request, Response> action,
+                                                                                                                     Request request) {
             return client.execute(action, request);
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void execute(
-                Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener) {
+        public <Request extends TransportRequest, Response extends TransportResponse> void execute(Action<Request, Response> action,
+                                                                                                   Request request,
+                                                                                                   ActionListener<Response> listener) {
             client.execute(action, request, listener);
         }
 

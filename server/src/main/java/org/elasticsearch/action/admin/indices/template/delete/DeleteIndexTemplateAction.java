@@ -20,20 +20,14 @@
 package org.elasticsearch.action.admin.indices.template.delete;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
-public class DeleteIndexTemplateAction extends Action<DeleteIndexTemplateRequest, AcknowledgedResponse, DeleteIndexTemplateRequestBuilder> {
+public class DeleteIndexTemplateAction extends Action<DeleteIndexTemplateRequest, AcknowledgedResponse> {
 
     public static final DeleteIndexTemplateAction INSTANCE = new DeleteIndexTemplateAction();
     public static final String NAME = "indices:admin/template/delete";
 
     private DeleteIndexTemplateAction() {
         super(NAME);
-    }
-
-    @Override
-    public DeleteIndexTemplateRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new DeleteIndexTemplateRequestBuilder(client, this);
     }
 }
