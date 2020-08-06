@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -39,7 +38,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -221,9 +225,8 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarMatch() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot use MATCH on system tables");
-        execute("select * from sys.shards where match(table_name, 'characters')");
+        assertThrows(() -> execute("select * from sys.shards where match(table_name, 'characters')"),
+                     isSQLError(is("Cannot use MATCH on system tables"), INTERNAL_ERROR, BAD_REQUEST, 4004));
     }
 
     @Test
@@ -279,45 +282,43 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        execute("select lol from sys.shards group by table_name");
+        assertThrows(() -> execute("select lol from sys.shards group by table_name"),
+                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        execute("select max(num_docs) from sys.shards group by lol");
+        assertThrows(() -> execute("select max(num_docs) from sys.shards group by lol"),
+                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownOrderBy() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column lol unknown");
-        execute(
-            "select sum(num_docs), table_name from sys.shards group by table_name order by lol");
+        assertThrows(() -> execute(
+            "select sum(num_docs), table_name from sys.shards group by table_name order by lol"),
+                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownWhere() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column lol unknown");
-        execute(
-            "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name");
+        assertThrows(() -> execute(
+            "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name"),
+                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
+        ;
     }
 
     @Test
     public void testGlobalAggregateUnknownWhere() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column lol unknown");
-        execute(
-            "select sum(num_docs) from sys.shards where lol='funky'");
+        assertThrows(() -> execute(
+            "select sum(num_docs) from sys.shards where lol='funky'"),
+                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
     }
 
     @Test
     public void testSelectShardIdFromSysNodes() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Relation 'sys.shards' unknown");
-        execute("select sys.shards.id from sys.nodes");
+        assertThrows(() -> execute(
+            "select sys.shards.id from sys.nodes"),
+                     isSQLError(is("Relation 'sys.shards' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
     }
 
     @Test
@@ -412,9 +413,8 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         // we need at least 1 shard, otherwise the table is empty and no evaluation occurs
         execute("create table t1 (id integer) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(" / by zero");
-        execute("select 1/0 from sys.shards");
+        assertThrows(() -> execute(
+            "select 1/0 from sys.shards"),
+                     isSQLError(is("/ by zero"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 }

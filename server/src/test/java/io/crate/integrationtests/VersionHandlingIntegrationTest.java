@@ -21,14 +21,18 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersioninigValidationException;
 import org.junit.Test;
 
 import java.io.IOException;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest {
@@ -116,12 +120,13 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testUpdateWhereVersionWithoutPrimaryKey() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-        execute("update test set col2 = ? where \"_version\" = ?",
-            new Object[]{"ok now panic", 1});
+        assertThrows(() -> execute("update test set col2 = ? where \"_version\" = ?", new Object[]{"ok now panic", 1}),
+                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -157,9 +162,11 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     public void testSelectWhereVersionWithoutPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute("select _version from test where col2 = 'hello' and _version = 1");
+        assertThrows(() -> execute("select _version from test where col2 = 'hello' and _version = 1"),
+                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test

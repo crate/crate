@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -35,6 +34,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
@@ -172,10 +176,15 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertObjectField() throws Exception {
-        expectedException.expect(SQLActionException.class);
-
         setUpObjectTable();
-        execute("insert into test12 (object_field['size']) values (127)");
+
+        assertThrows(() -> execute("insert into test12 (object_field['size']) values (127)"),
+                     isSQLError(is(
+                         String.format(Locale.ENGLISH, "invalid table column reference \"object_field\"['size']",
+                                       sqlExecutor.getCurrentSchema())),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
 
     }
 
@@ -183,41 +192,38 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInvalidInsertIntoObject() throws Exception {
         setUpObjectTable();
 
-        expectedException.expect(SQLActionException.class);
-        // Value formatting differs between jdbc & non jdbc
-        expectedException.expectMessage(allOf(
+        var msg = allOf(
             containsString("Validation failed for object_field"),
-            containsString("Invalid value"),
-            containsString("for type 'object'"))
+            containsString("for type 'object'")
         );
-        execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
-            new HashMap<String, Object>() {{
-                put("created", true);
-                put("size", 127);
-            }},
-            new HashMap<String, Object>() {{
-                put("path", "/dev/null");
-                put("created", 0);
-            }}
-        });
+
+        assertThrows(() -> execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
+                         Map.of("created", true, "size", 127),
+                         Map.of("path", "/dev/null", "created", 0)
+                     }),
+                         isSQLError(msg, INTERNAL_ERROR, BAD_REQUEST, 4003));
     }
 
     @Test
     public void testInvalidWhereClause() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast `129` of type `integer` to type `char`");
-
         setUpSimple();
-        execute("delete from t1 where byte_field=129");
+
+        assertThrows(() -> execute("delete from t1 where byte_field=129"),
+                     isSQLError(containsString("Cannot cast `129` of type `integer` to type `char`"),
+                         INTERNAL_ERROR,
+                         INTERNAL_SERVER_ERROR,
+                         5000));
     }
 
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast `[129]` of type `integer_array` to type `char_array`");
-
         setUpSimple();
-        execute("update t1 set byte_field=0 where byte_field in (129)");
+
+        assertThrows(() -> execute("update t1 set byte_field=0 where byte_field in (129)"),
+                     isSQLError(containsString("Cannot cast `[129]` of type `integer_array` to type `char_array`"),
+                         INTERNAL_ERROR,
+                         INTERNAL_SERVER_ERROR,
+                         5000));
     }
 
     @Test
@@ -305,9 +311,11 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("insert into t1 values ({a='abc'})");
         waitForMappingUpdateOnAll("t1", "o.a");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast `{\"a\"=['123', '456']}` of type `object` to type `object`");
-        execute("insert into t1 values ({a=['123', '456']})");
+        assertThrows(() -> execute("insert into t1 values ({a=['123', '456']})"),
+                     isSQLError(is("Cannot cast `{\"a\"=['123', '456']}` of type `object` to type `object`"),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4000));
     }
 
     /**
@@ -362,17 +370,14 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertNewColumnToStrictObject() throws Exception {
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(
-            containsString("dynamic introduction of [another_new_col] within [strict_field] is not allowed"));
-
         setUpObjectTable();
-        Map<String, Object> strictContent = new HashMap<String, Object>() {{
-            put("another_new_col", "1970-01-01T00:00:00");
-        }};
-        execute("insert into test12 (strict_field) values (?)",
-            new Object[]{strictContent});
+
+        assertThrows(() ->  execute("insert into test12 (strict_field) values (?)",
+                                    new Object[]{Map.of("another_new_col", "1970-01-01T00:00:00")}),
+                     isSQLError(is("mapping set to strict, dynamic introduction of [another_new_col] within [strict_field] is not allowed"),
+                         INTERNAL_ERROR,
+                         BAD_REQUEST,
+                         4000));
     }
 
     @Test

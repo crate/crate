@@ -22,6 +22,10 @@
 
 package io.crate.analysis.common;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
@@ -31,7 +35,6 @@ import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Test;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.integrationtests.Setup;
 import io.crate.testing.TestingHelpers;
@@ -137,11 +140,11 @@ public class FulltextITest extends SQLTransportIntegrationTest{
         execute("select * from matchbox where match(o['m'], 'Ford')");
         assertThat(response.rowCount(), is(1L));
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'");
-
-        execute("select * from matchbox where match(o_ignored['a'], 'Ford')");
-        assertThat(response.rowCount(), is(0L));
+        assertThrows(() -> execute("select * from matchbox where match(o_ignored['a'], 'Ford')"),
+                     isSQLError(is("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test

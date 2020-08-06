@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.testing.SQLTransportExecutor;
@@ -32,6 +31,12 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.hamcrest.Matchers.containsString;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, supportsDedicatedMasters = false)
 public class JobIntegrationTest extends SQLTransportIntegrationTest {
@@ -68,11 +73,19 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testFailurePropagationNonLocalCollectPhase() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         execute("create table users (name string) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into users (name) (select name from users where _version = 1)");
-        execute("select name from users where _version = 1");
+
+        assertThrows(() -> execute("insert into users (name) (select name from users where _version = 1)"),
+                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
+
+        assertThrows(() -> execute("select name from users where _version = 1"),
+                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 }

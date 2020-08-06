@@ -21,14 +21,17 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Locale;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -310,27 +313,29 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectFailingArithmeticScalar() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
-
         execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5)");
         refresh();
-        execute("select log(d, l) from t where log(d, -1) >= 0");
+        assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0"),
+                     isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
     public void testSelectGroupByFailingArithmeticScalar() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
-
         execute("create table t (i integer, l long, d double) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (0, 4, 100)");
         execute("refresh table t");
 
-        execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)");
+        assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"),
+                     isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
