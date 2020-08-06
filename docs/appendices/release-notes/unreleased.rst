@@ -51,6 +51,9 @@ Breaking Changes
 Changes
 =======
 
+- Changed :ref:`OPTIMIZE <sql_ref_optimize>` to no longer implicitly refresh a
+  table.
+
 - Added table function :ref:`generate_subscripts <table-functions-generate-subscripts>`
 
 - Changed the privileges for ``KILL``, all users are now allowed to kill their
