@@ -23,7 +23,7 @@ package io.crate.blob;
 
 import org.elasticsearch.action.Action;
 
-public class PutChunkAction extends Action<PutChunkRequest, PutChunkResponse> {
+public class PutChunkAction extends Action<PutChunkResponse> {
 
     public static final PutChunkAction INSTANCE = new PutChunkAction();
     public static final String NAME = "internal:crate:blob/put_chunk";

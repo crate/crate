@@ -25,7 +25,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 /**
  * Delete snapshot action
  */
-public class DeleteSnapshotAction extends Action<DeleteSnapshotRequest, AcknowledgedResponse> {
+public class DeleteSnapshotAction extends Action<AcknowledgedResponse> {
 
     public static final DeleteSnapshotAction INSTANCE = new DeleteSnapshotAction();
     public static final String NAME = "cluster:admin/snapshot/delete";

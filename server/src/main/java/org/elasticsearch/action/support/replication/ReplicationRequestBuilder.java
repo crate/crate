@@ -29,7 +29,7 @@ import org.elasticsearch.transport.TransportResponse;
 public abstract class ReplicationRequestBuilder<Request extends ReplicationRequest<Request>, Response extends TransportResponse, RequestBuilder extends ReplicationRequestBuilder<Request, Response, RequestBuilder>>
         extends ActionRequestBuilder<Request, Response> {
 
-    protected ReplicationRequestBuilder(ElasticsearchClient client, Action<Request, Response> action, Request request) {
+    protected ReplicationRequestBuilder(ElasticsearchClient client, Action<Response> action, Request request) {
         super(client, action, request);
     }
 
