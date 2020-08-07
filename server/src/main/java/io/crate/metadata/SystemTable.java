@@ -329,7 +329,7 @@ public final class SystemTable<T> implements TableInfo {
             return new ObjectBuilder<>(this, new ColumnIdent(column), objectIsNull);
         }
 
-        public <U> ObjectArrayBuilder<U, T, RelationBuilder<T>> startObjectArray(String column, Function<T, List<U>> getItems) {
+        public <U> ObjectArrayBuilder<U, T, RelationBuilder<T>> startObjectArray(String column, Function<T, ? extends Collection<U>> getItems) {
             return new ObjectArrayBuilder<>(this, new ColumnIdent(column), getItems);
         }
 
@@ -366,7 +366,7 @@ public final class SystemTable<T> implements TableInfo {
             return this;
         }
 
-        public <U> ObjectArrayBuilder<U, T, ObjectBuilder<T, P>> startObjectArray(String column, Function<T, List<U>> getItems) {
+        public <U> ObjectArrayBuilder<U, T, ObjectBuilder<T, P>> startObjectArray(String column, Function<T, ? extends Collection<U>> getItems) {
             return new ObjectArrayBuilder<>(this, baseColumn.append(column), getItems);
         }
 
@@ -403,9 +403,9 @@ public final class SystemTable<T> implements TableInfo {
         private final P parent;
         private final ArrayList<Column<ItemType, ?>> columns = new ArrayList<>();
         private final ColumnIdent baseColumn;
-        private final Function<ParentItemType, List<ItemType>> getItems;
+        private final Function<ParentItemType, ? extends Collection<ItemType>> getItems;
 
-        public ObjectArrayBuilder(P parent, ColumnIdent baseColumn, Function<ParentItemType, List<ItemType>> getItems) {
+        public ObjectArrayBuilder(P parent, ColumnIdent baseColumn, Function<ParentItemType, ? extends Collection<ItemType>> getItems) {
             this.parent = parent;
             this.baseColumn = baseColumn;
             this.getItems = getItems;

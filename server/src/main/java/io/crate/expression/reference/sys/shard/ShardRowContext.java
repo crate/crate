@@ -31,12 +31,16 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
 
 import javax.annotation.Nullable;
+
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -348,5 +352,29 @@ public class ShardRowContext {
         return recoveryState == null
             ? null
             : recoveryState.getIndex().recoveredFilesPercent();
+    }
+
+    public Long retentionLeasesPrimaryTerm() {
+        try {
+            return indexShard.getRetentionLeaseStats().leases().primaryTerm();
+        } catch (AlreadyClosedException e) {
+            return null;
+        }
+    }
+
+    public Long retentionLeasesVersion() {
+        try {
+            return indexShard.getRetentionLeaseStats().leases().version();
+        } catch (AlreadyClosedException e) {
+            return null;
+        }
+    }
+
+    public Collection<RetentionLease> retentionLeases() {
+        try {
+            return indexShard.getRetentionLeaseStats().leases().leases();
+        } catch (AlreadyClosedException e) {
+            return List.of();
+        }
     }
 }
