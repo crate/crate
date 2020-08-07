@@ -48,6 +48,7 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.RetentionLeaseStats;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -229,7 +230,8 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
                 minimumRetainingSequenceNumbers[i] = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
                 currentTimeMillis.set(TimeUnit.NANOSECONDS.toMillis(randomNonNegativeLong()));
                 indexShard.addRetentionLease(
-                        Integer.toString(i), minimumRetainingSequenceNumbers[i], "test-" + i, ActionListener.wrap(() -> {}));
+                        Integer.toString(i), minimumRetainingSequenceNumbers[i], "test-" + i, ActionListener.wrap(() -> {
+                        }));
             }
 
             currentTimeMillis.set(TimeUnit.NANOSECONDS.toMillis(Long.MAX_VALUE));
@@ -270,6 +272,34 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
             } finally {
                 closeShards(recoveredShard);
             }
+        } finally {
+            closeShards(indexShard);
+        }
+    }
+
+    @Test
+    public void testRetentionLeaseStats() throws IOException {
+        final IndexShard indexShard = newStartedShard(true);
+        try {
+            final int length = randomIntBetween(0, 8);
+            final long[] minimumRetainingSequenceNumbers = new long[length];
+            for (int i = 0; i < length; i++) {
+                minimumRetainingSequenceNumbers[i] = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
+                indexShard.addRetentionLease(
+                    Integer.toString(i),
+                    minimumRetainingSequenceNumbers[i],
+                    "test-" + i,
+                    ActionListener.wrap(() -> {})
+                );
+            }
+            final RetentionLeaseStats stats = indexShard.getRetentionLeaseStats();
+            assertRetentionLeases(
+                stats.leases(),
+                length,
+                minimumRetainingSequenceNumbers,
+                length == 0 ? RetentionLeases.EMPTY.primaryTerm() : indexShard.getOperationPrimaryTerm(),
+                length
+            );
         } finally {
             closeShards(indexShard);
         }

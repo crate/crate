@@ -21,6 +21,7 @@ package org.elasticsearch.index.shard;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -34,7 +35,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
+import org.elasticsearch.action.admin.indices.stats.CommonStats;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
+import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
@@ -255,5 +261,35 @@ public class IndexShardTests extends IndexShardTestCase {
         });
 
         closeShards(indexShard);
+    }
+
+    @Test
+    public void testShardStats() throws IOException {
+        IndexShard shard = newStartedShard();
+        ShardStats stats = new ShardStats(
+            shard.routingEntry(),
+            shard.shardPath(),
+            new CommonStats(),
+            shard.commitStats(),
+            shard.seqNoStats(),
+            shard.getRetentionLeaseStats()
+        );
+        assertThat(shard.shardPath().getRootDataPath().toString(), is(stats.getDataPath()));
+        assertThat(shard.shardPath().getRootStatePath().toString(), is(stats.getStatePath()));
+        assertThat(shard.shardPath().isCustomDataPath(), is(stats.isCustomDataPath()));
+        assertThat(shard.getRetentionLeaseStats(), is(stats.getRetentionLeaseStats()));
+
+        // try to serialize it to ensure values survive the serialization
+        BytesStreamOutput out = new BytesStreamOutput();
+        stats.writeTo(out);
+        StreamInput in = out.bytes().streamInput();
+        stats = new ShardStats(in);
+
+        assertThat(shard.shardPath().getRootDataPath().toString(), is(stats.getDataPath()));
+        assertThat(shard.shardPath().getRootStatePath().toString(), is(stats.getStatePath()));
+        assertThat(shard.shardPath().isCustomDataPath(), is(stats.isCustomDataPath()));
+        assertThat(shard.getRetentionLeaseStats(), is(stats.getRetentionLeaseStats()));
+
+        closeShards(shard);
     }
 }
