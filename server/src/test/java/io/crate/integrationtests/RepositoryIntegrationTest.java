@@ -22,8 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.protocols.postgres.PGErrorStatus;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -34,6 +32,8 @@ import java.util.HashMap;
 
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static org.hamcrest.Matchers.is;
 
 public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
@@ -91,8 +91,8 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
                                    new Object[]{repoLocation}),
                      isSQLError(is("Repository 'myRepo' already exists"),
-                                PGErrorStatus.INTERNAL_ERROR,
-                                HttpResponseStatus.CONFLICT,
+                                INTERNAL_ERROR,
+                                CONFLICT,
                                 4095));
 
     }

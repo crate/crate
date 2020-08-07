@@ -64,34 +64,29 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testClosePreventsInsert() throws Exception {
         assertThrows(() -> execute("insert into t values (1), (2), (3)"),
-                     isSQLError(
-                         is(String.format(
-                             "The relation \"%s\" doesn't support or allow INSERT operations, as it is currently closed.",
-                             getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow INSERT operations," +
+                                                 " as it is currently closed.", getFqn("t"))),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 
     @Test
     public void testClosePreventsSelect() throws Exception {
         assertThrows(() -> execute("select * from t"),
-                     isSQLError(
-                         is(String.format(
-                             "The relation \"%s\" doesn't support or allow READ operations, as it is currently closed.",
-                             getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
+                                                 "as it is currently closed.", getFqn("t"))),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 
     @Test
     public void testClosePreventsDrop() throws Exception {
         assertThrows(() -> execute("drop table t"),
-                     isSQLError(
-                         is(String.format(
-                             "The relation \"%s\" doesn't support or allow DROP operations, as it is currently closed.",
-                             getFqn("t"))),
+
+                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow DROP operations, " +
+                                                 "as it is currently closed.", getFqn("t"))),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -100,25 +95,22 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testClosePreventsAlter() throws Exception {
         assertThrows(() -> execute("alter table t add column x string"),
-                     isSQLError(
-                         is(String.format(
-                             "The relation \"%s\" doesn't support or allow ALTER operations, as it is currently closed.",
-                             getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow ALTER operations, " +
+                                                 "as it is currently closed.", getFqn("t"))),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 
     @Test
     public void testClosePreventsRefresh() throws Exception {
         assertThrows(() -> execute("refresh table t"),
-                     isSQLError(
-                         is(String.format(
-                             "The relation \"%s\" doesn't support or allow REFRESH operations, as it is currently closed.",
-                             getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+                     isSQLError(is(String.format(
+                         "The relation \"%s\" doesn't support or allow REFRESH operations, as " +
+                         "it is currently closed.", getFqn("t"))),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 
     @Test
@@ -136,13 +128,11 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testClosePreventsOptimize() throws Exception {
         assertThrows(() -> execute("optimize table t"),
-                     isSQLError(
-                         is(String.format(
-                             "The relation \"%s\" doesn't support or allow OPTIMIZE operations, as it is currently closed.",
-                             getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow OPTIMIZE operations, " +
+                                                 "as it is currently closed.", getFqn("t"))),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 
     @Test
@@ -166,13 +156,11 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("alter table partitioned_table close");
         assertThrows(() -> execute("select i from partitioned_table"),
-                     isSQLError(
-                         is(String.format(
-                             "The relation \"%s\" doesn't support or allow READ operations, as it is currently closed.",
-                             getFqn("partitioned_table"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
+                                                 "as it is currently closed.", getFqn("partitioned_table"))),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 
 }

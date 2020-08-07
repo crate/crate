@@ -225,6 +225,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                 return new LongVariance(fieldTypes.get(0).name());
 
             case FloatType.ID:
+                return new FloatVariance(fieldTypes.get(0).name());
             case DoubleType.ID:
                 return new DoubleVariance(fieldTypes.get(0).name());
 
@@ -233,7 +234,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
     }
 
-    private static class LongVariance implements DocValueAggregator<VarianceState> {
+    private static class LongVariance implements DocValueAggregator<Variance> {
 
         private final String columnName;
         private SortedNumericDocValues values;
@@ -243,8 +244,8 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
 
         @Override
-        public VarianceState initialState() {
-            return new VarianceState();
+        public Variance initialState() {
+            return new Variance();
         }
 
         @Override
@@ -253,23 +254,21 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
 
         @Override
-        public void apply(VarianceState state, int doc) throws IOException {
+        public void apply(Variance state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 double value = values.nextValue();
-                state.variance.increment(value);
-                state.hadValue = true;
+                state.increment(value);
             }
         }
 
         @Nullable
         @Override
-        public Object partialResult(VarianceState state) {
-            return state.hadValue ? state.variance : null;
+        public Object partialResult(Variance state) {
+            return state;
         }
     }
 
-
-    private static class DoubleVariance implements DocValueAggregator<VarianceState> {
+    private static class DoubleVariance implements DocValueAggregator<Variance> {
 
         private final String columnName;
         private SortedNumericDocValues values;
@@ -279,8 +278,8 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
 
         @Override
-        public VarianceState initialState() {
-            return new VarianceState();
+        public Variance initialState() {
+            return new Variance();
         }
 
         @Override
@@ -289,23 +288,51 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
 
         @Override
-        public void apply(VarianceState state, int doc) throws IOException {
+        public void apply(Variance state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 double value = NumericUtils.sortableLongToDouble(values.nextValue());
-                state.variance.increment(value);
-                state.hadValue = true;
+                state.increment(value);
             }
         }
 
         @Nullable
         @Override
-        public Object partialResult(VarianceState state) {
-            return state.hadValue ? state.variance : null;
+        public Object partialResult(Variance state) {
+            return state;
         }
     }
 
-    static class VarianceState {
-        private Variance variance = new Variance();
-        private boolean hadValue = false;
+    private static class FloatVariance implements DocValueAggregator<Variance> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public FloatVariance(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public Variance initialState() {
+            return new Variance();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(Variance state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                double value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                state.increment(value);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(Variance state) {
+            return state;
+        }
     }
 }

@@ -22,10 +22,9 @@ package org.elasticsearch.action.admin.cluster.node.stats;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
-public class NodesStatsRequestBuilder extends ActionRequestBuilder<NodesStatsRequest, NodesStatsResponse, NodesStatsRequestBuilder> {
+public class NodesStatsRequestBuilder extends ActionRequestBuilder<NodesStatsRequest, NodesStatsResponse> {
 
     public NodesStatsRequestBuilder(ElasticsearchClient client, NodesStatsAction action) {
         super(client, action, new NodesStatsRequest());
     }
-
 }

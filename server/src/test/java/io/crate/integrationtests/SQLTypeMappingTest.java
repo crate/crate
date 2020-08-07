@@ -179,14 +179,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         setUpObjectTable();
 
         assertThrows(() -> execute("insert into test12 (object_field['size']) values (127)"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "invalid table column reference \"object_field\"['size']",
-                                          sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4000));
-
+                     isSQLError(is(
+                         String.format(Locale.ENGLISH, "invalid table column reference \"object_field\"['size']",
+                                       sqlExecutor.getCurrentSchema())),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -195,18 +193,14 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
         var msg = allOf(
             containsString("Validation failed for object_field"),
-            containsString("Invalid value"),
-            containsString("for type 'object'"));
+            containsString("for type 'object'")
+        );
 
         assertThrows(() -> execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
                          Map.of("created", true, "size", 127),
                          Map.of("path", "/dev/null", "created", 0)
                      }),
-                     isSQLError(
-                         msg,
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4003));
+                     isSQLError(msg, INTERNAL_ERROR, BAD_REQUEST, 4003));
     }
 
     @Test
@@ -214,11 +208,10 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         setUpSimple();
 
         assertThrows(() -> execute("delete from t1 where byte_field=129"),
-                     isSQLError(
-                         containsString("Cannot cast `129` of type `integer` to type `char`"),
-                         INTERNAL_ERROR,
-                         INTERNAL_SERVER_ERROR,
-                         5000));
+                     isSQLError(containsString("Cannot cast `129` of type `integer` to type `char`"),
+                                INTERNAL_ERROR,
+                                INTERNAL_SERVER_ERROR,
+                                5000));
     }
 
     @Test
@@ -226,11 +219,10 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         setUpSimple();
 
         assertThrows(() -> execute("update t1 set byte_field=0 where byte_field in (129)"),
-                     isSQLError(
-                         containsString("Cannot cast `[129]` of type `integer_array` to type `char_array`"),
-                         INTERNAL_ERROR,
-                         INTERNAL_SERVER_ERROR,
-                         5000));
+                     isSQLError(containsString("Cannot cast `[129]` of type `integer_array` to type `char_array`"),
+                                INTERNAL_ERROR,
+                                INTERNAL_SERVER_ERROR,
+                                5000));
     }
 
     @Test
@@ -319,11 +311,10 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("t1", "o.a");
 
         assertThrows(() -> execute("insert into t1 values ({a=['123', '456']})"),
-                     isSQLError(
-                         is("Cannot cast `{\"a\"=['123', '456']}` of type `object` to type `object`"),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4000));
+                     isSQLError(is("Cannot cast `{\"a\"=['123', '456']}` of type `object` to type `object`"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     /**
@@ -380,13 +371,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertNewColumnToStrictObject() throws Exception {
         setUpObjectTable();
 
-        assertThrows(() ->  execute("insert into test12 (strict_field) values (?)",
-                                    new Object[]{Map.of("another_new_col", "1970-01-01T00:00:00")}),
-                     isSQLError(
-                         is("mapping set to strict, dynamic introduction of [another_new_col] within [strict_field] is not allowed"),
-                         INTERNAL_ERROR,
-                         INTERNAL_SERVER_ERROR,
-                         5000));
+        assertThrows(() -> execute("insert into test12 (strict_field) values (?)",
+                                   new Object[]{Map.of("another_new_col", "1970-01-01T00:00:00")}),
+                     isSQLError(is("mapping set to strict, dynamic introduction of [another_new_col] within [strict_field] is not allowed"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test

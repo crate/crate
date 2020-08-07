@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
@@ -139,7 +140,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         @Override
         public void apply(MutableDouble state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                long value = values.nextValue();
+                double value = NumericUtils.sortableLongToDouble(values.nextValue());
                 if (value < state.value()) {
                     state.setValue(value);
                 }
@@ -155,6 +156,48 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
             }
         }
     }
+
+    private static class FloatMin implements DocValueAggregator<MutableDouble> {
+
+        private final String columnName;
+        private final DataType<?> partialType;
+        private SortedNumericDocValues values;
+
+        public FloatMin(String columnName, DataType<?> partialType) {
+            this.columnName = columnName;
+            this.partialType = partialType;
+        }
+
+        @Override
+        public MutableDouble initialState() {
+            return new MutableDouble(Double.MAX_VALUE);
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(MutableDouble state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                if (value < state.value()) {
+                    state.setValue(value);
+                }
+            }
+        }
+
+        @Override
+        public Object partialResult(MutableDouble state) {
+            if (state.hasValue()) {
+                return partialType.sanitizeValue(state.value());
+            } else {
+                return null;
+            }
+        }
+    }
+
 
     private static class VariableMinimumAggregation extends MinimumAggregation {
 
@@ -215,6 +258,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
                     return new LongMin(fieldTypes.get(0).name(), arg);
 
                 case FloatType.ID:
+                    return new FloatMin(fieldTypes.get(0).name(), arg);
                 case DoubleType.ID:
                     return new DoubleMin(fieldTypes.get(0).name(), arg);
 

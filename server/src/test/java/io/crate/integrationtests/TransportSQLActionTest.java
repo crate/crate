@@ -812,7 +812,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("select * from quotes where match(o['something'], 'bla')"),
                      isSQLError(is("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'"),
-                                INTERNAL_ERROR, BAD_REQUEST, 4000));
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -1523,7 +1525,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String stmtStr = "select '" + uniqueId + "' from foobar";
         String stmtStrWhere = "select ''" + uniqueId + "'' from foobar";
         assertThrows(() -> execute(stmtStr),
-                     isSQLError(containsString("Relation 'foobar' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
+                     isSQLError(containsString("Relation 'foobar' unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4041));
         execute("select stmt from sys.jobs where stmt='" + stmtStrWhere + "'");
         assertEquals(response.rowCount(), 0L);
     }
@@ -1646,7 +1651,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         assertThrows(() -> execute("select 1/0 from t1"),
-                     isSQLError(is("/ by zero"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+                     isSQLError(is("/ by zero"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     /**
@@ -1781,5 +1789,29 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select * from (select * from tbl) as t where obj['b'] = 10");
         assertThat(printedTable(response.rows()), is(""));
+    }
+
+
+    @Test
+    public void test_primary_key_lookup_on_multiple_columns() throws Exception {
+        execute(
+            "CREATE TABLE doc.test (" +
+            "   id TEXT, " +
+            "   region_level_1 TEXT, " +
+            "   marker_type TEXT, " +
+            "   is_auto BOOLEAN," +
+            "   PRIMARY KEY (id, region_level_1, marker_type, is_auto) " +
+            ") clustered into 1 shards "
+        );
+        execute("insert into doc.test (id, region_level_1, marker_type, is_auto) values ('1', '2', '3', false)");
+        execute("refresh table doc.test");
+        execute("explain select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
+        assertThat(printedTable(response.rows()), is(
+            "Get[doc.test | id | DocKeys{'1', '2', '3', false}]\n"
+        ));
+        execute("select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
+        assertThat(printedTable(response.rows()), is(
+            "1\n"
+        ));
     }
 }

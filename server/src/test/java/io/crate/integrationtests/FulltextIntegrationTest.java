@@ -22,13 +22,13 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
-import io.crate.protocols.postgres.PGErrorStatus;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
 
 public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
@@ -63,7 +63,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
         execute("create table quotes (quote string)");
         assertThrows(() -> execute("select match(quote, 'the quote') from quotes"),
                      isSQLError(is("match predicate cannot be selected"),
-                                PGErrorStatus.INTERNAL_ERROR, HttpResponseStatus.BAD_REQUEST, 4004));
+                                INTERNAL_ERROR, BAD_REQUEST, 4004));
     }
 
     @Test

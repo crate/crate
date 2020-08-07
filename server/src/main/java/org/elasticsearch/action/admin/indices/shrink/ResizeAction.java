@@ -20,19 +20,13 @@
 package org.elasticsearch.action.admin.indices.shrink;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 
-public class ResizeAction extends Action<ResizeRequest, ResizeResponse, ResizeRequestBuilder> {
+public class ResizeAction extends Action<ResizeResponse> {
 
     public static final ResizeAction INSTANCE = new ResizeAction();
     public static final String NAME = "indices:admin/resize";
 
     private ResizeAction() {
         super(NAME);
-    }
-
-    @Override
-    public ResizeRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new ResizeRequestBuilder(client, this);
     }
 }

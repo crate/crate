@@ -589,7 +589,9 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                 recoveryTarget.indexTranslogOperations(
                     request.operations(),
                     request.totalTranslogOps(),
-                    request.maxSeenAutoIdTimestampOnPrimary(), request.maxSeqNoOfUpdatesOrDeletesOnPrimary(),
+                    request.maxSeenAutoIdTimestampOnPrimary(),
+                    request.maxSeqNoOfUpdatesOrDeletesOnPrimary(),
+                    request.retentionLeases(),
                     ActionListener.wrap(
                         checkpoint -> listener.onResponse(new RecoveryTranslogOperationsResponse(checkpoint)),
                         e -> {

@@ -126,8 +126,8 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
                      isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
-                                4003));
-    }
+                                4000));
+        }
 
     @Test
     public void testUpdateWhereVersionWithConflict() throws Exception {

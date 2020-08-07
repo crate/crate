@@ -51,6 +51,9 @@ Breaking Changes
 Changes
 =======
 
+- Changed :ref:`OPTIMIZE <sql_ref_optimize>` to no longer implicitly refresh a
+  table.
+
 - Added table function :ref:`generate_subscripts <table-functions-generate-subscripts>`
 
 - Changed the privileges for ``KILL``, all users are now allowed to kill their
@@ -62,4 +65,10 @@ Changes
 Fixes
 =====
 
-None
+- Fixed a regression introduced in 4.2.0 that caused ``sum`` and ``avg``
+  global aggregates to return incorrect results when used on columns of
+  ``real`` or ``double precision`` data types.
+
+- Fixed an issue that caused primary key lookups to return an empty result
+  instead of the row identified by the primary key values, if the primary key
+  consists of multiple columns and if one of them is of type ``BOOLEAN``.

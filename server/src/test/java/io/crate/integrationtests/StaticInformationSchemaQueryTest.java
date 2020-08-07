@@ -48,7 +48,10 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
     @Test
     public void testSelectSysColumnsFromInformationSchema() throws Exception {
         assertThrows(() -> execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables"),
-                     isSQLError(is("Relation 'sys.nodes' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
+                     isSQLError(is("Relation 'sys.nodes' unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4041));
     }
 
     @Test

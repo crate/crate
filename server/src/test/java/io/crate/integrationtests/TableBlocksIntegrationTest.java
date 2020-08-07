@@ -66,8 +66,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("insert into t1 (id) values (1)"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
+                     isSQLError(is(String.format(Locale.ENGLISH,
                                           "The relation \"%s.t1\" doesn't support or allow INSERT operations.",
                                           sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
@@ -81,8 +80,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("update t1 set id = 2"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
+                     isSQLError(is(String.format(Locale.ENGLISH,
                                           "The relation \"%s.t1\" doesn't support or allow UPDATE operations.",
                                           sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
@@ -96,10 +94,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("delete from t1"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow DELETE operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or" +
+                                                                 " allow DELETE operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -111,13 +107,13 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("drop table t1"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow DROP operations.",
-                                          sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+                     isSQLError(is(String.format(Locale.ENGLISH,
+                                                 "The relation \"%s.t1\" doesn't support or" +
+                                                 " allow DROP operations.",
+                                                 sqlExecutor.getCurrentSchema())),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 
     @Test
@@ -126,10 +122,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("alter table t1 add column name string"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow ALTER operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
+                                                                 "allow ALTER operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -141,10 +135,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("alter table t1 set (number_of_replicas = 1)"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow ALTER operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support " +
+                                                                 "or allow ALTER operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -170,10 +162,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id) values (1)");
 
         assertThrows(() -> execute("select * from t1"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow READ operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
+                                                                 "allow READ operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -187,10 +177,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id) values (1)");
 
         assertThrows(() -> execute("insert into t2 (id) (select id from t1)"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow READ operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
+                                                                 "allow READ operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -203,10 +191,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("select * from t2, t1"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow READ operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support" +
+                                                                 " or allow READ operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -217,10 +203,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.read\" = true)");
 
         assertThrows(() -> execute("copy t1 to DIRECTORY '/tmp/'"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow COPY TO operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
+                                                                 "allow COPY TO operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -232,10 +216,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         assertThrows(() -> execute("copy t1 from '/tmp'"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow INSERT operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support " +
+                                                                 "or allow INSERT operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -249,10 +231,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
         assertThrows(() -> execute("CREATE SNAPSHOT repo.snap TABLE t1 WITH (wait_for_completion=true)"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow CREATE SNAPSHOT operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
+                                                                 "allow CREATE SNAPSHOT operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -266,10 +246,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
         assertThrows(() -> execute("CREATE SNAPSHOT repo.snap ALL WITH (wait_for_completion=true)"),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow READ operations.",
-                                          sqlExecutor.getCurrentSchema())),
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
+                                                                 "allow READ operations.", sqlExecutor.getCurrentSchema())),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4007));
@@ -291,13 +269,11 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("insert into t1 (id, name, date) values (?, ?, ?)",
                                    new Object[]{1, "Ford", 13959981214861L}),
-                     isSQLError(
-                         is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow INSERT operations, " +
-                                          "as it is read-only.",
-                                          sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
+                                                                 "allow INSERT operations, " + "as it is read-only.",
+                                                 sqlExecutor.getCurrentSchema())),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 }

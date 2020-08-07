@@ -59,6 +59,7 @@ import java.util.concurrent.CountDownLatch;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.containsString;
@@ -148,7 +149,9 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         String snapshot = "unknown_snap";
         assertThrows(() -> execute("drop snapshot " + REPOSITORY_NAME + "." + snapshot),
                      isSQLError(is(String.format(Locale.ENGLISH, "Snapshot '%s.%s' unknown", REPOSITORY_NAME, snapshot)),
-                                INTERNAL_ERROR, NOT_FOUND, 4048));
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4048));
     }
 
     @Test
@@ -157,7 +160,9 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         String snapshot = "unknown_snap";
         assertThrows(() -> execute("drop snapshot " + repository + "." + snapshot),
                      isSQLError(is(String.format(Locale.ENGLISH, "Repository '%s' unknown", repository)),
-                                INTERNAL_ERROR, NOT_FOUND, 4047));
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4047));
     }
 
     @Test
@@ -238,16 +243,20 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
         assertThat(response.rowCount(), is(1L));
         assertThrows(() -> execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)"),
-                     isSQLError(
-                         containsString("Invalid snapshot name [my_snapshot], snapshot with the same name already exists"),
-                         INTERNAL_ERROR,
-                         INTERNAL_SERVER_ERROR, 5004));
+                     isSQLError(containsString(
+                         "Invalid snapshot name [my_snapshot], snapshot with the same name already exists"),
+                                INTERNAL_ERROR,
+                                CONFLICT,
+                                4099));
     }
 
     @Test
     public void testCreateSnapshotUnknownRepo() throws Exception {
         assertThrows(() -> execute("CREATE SNAPSHOT unknown_repo.my_snapshot ALL WITH (wait_for_completion=true)"),
-                     isSQLError(is("Repository 'unknown_repo' unknown"), INTERNAL_ERROR, NOT_FOUND, 4047));
+                     isSQLError(is("Repository 'unknown_repo' unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4047));
     }
 
     @Test
@@ -256,7 +265,8 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertThrows(() -> execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)"),
                      isSQLError(containsString("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase"),
                                 INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR, 5004));
+                                CONFLICT,
+                                4099));
     }
 
     @Test

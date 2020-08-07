@@ -24,10 +24,8 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
-import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -35,9 +33,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsString;
@@ -668,8 +668,8 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         this.setup.groupBySetup();
         assertThrows(() -> execute("select details_ignored['lol'] from characters group by race"),
                      isSQLError(containsString("'details_ignored['lol']' must appear in the GROUP BY clause"),
-                                PGErrorStatus.INTERNAL_ERROR,
-                                HttpResponseStatus.BAD_REQUEST,
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
                                 4000));
     }
 

@@ -23,7 +23,7 @@ package io.crate.expression.reference.doc.lucene;
 
 public class CollectorContext {
 
-    private final int jobSearchContextId;
+    private final int readerId;
 
     private SourceLookup sourceLookup;
 
@@ -31,12 +31,12 @@ public class CollectorContext {
         this(-1);
     }
 
-    public CollectorContext(int jobSearchContextId) {
-        this.jobSearchContextId = jobSearchContextId;
+    public CollectorContext(int readerId) {
+        this.readerId = readerId;
     }
 
-    public int jobSearchContextId() {
-        return jobSearchContextId;
+    public int readerId() {
+        return readerId;
     }
 
     public SourceLookup sourceLookup() {

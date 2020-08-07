@@ -20,19 +20,13 @@
 package org.elasticsearch.action.admin.cluster.node.stats;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 
-public class NodesStatsAction extends Action<NodesStatsRequest, NodesStatsResponse, NodesStatsRequestBuilder> {
+public class NodesStatsAction extends Action<NodesStatsResponse> {
 
     public static final NodesStatsAction INSTANCE = new NodesStatsAction();
     public static final String NAME = "cluster:monitor/nodes/stats";
 
     private NodesStatsAction() {
         super(NAME);
-    }
-
-    @Override
-    public NodesStatsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new NodesStatsRequestBuilder(client, this);
     }
 }

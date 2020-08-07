@@ -20,23 +20,17 @@
 package org.elasticsearch.action.admin.cluster.snapshots.get;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 
 /**
  * Get snapshots action
  */
-public class GetSnapshotsAction extends Action<GetSnapshotsRequest, GetSnapshotsResponse, GetSnapshotsRequestBuilder> {
+public class GetSnapshotsAction extends Action<GetSnapshotsResponse> {
 
     public static final GetSnapshotsAction INSTANCE = new GetSnapshotsAction();
     public static final String NAME = "cluster:admin/snapshot/get";
 
     private GetSnapshotsAction() {
         super(NAME);
-    }
-
-    @Override
-    public GetSnapshotsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new GetSnapshotsRequestBuilder(client, this);
     }
 }
 

@@ -145,9 +145,6 @@ public class FulltextITest extends SQLTransportIntegrationTest{
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));
-        // This was never executed on the test before. What would be the expected behaviour. Since the exception is
-        // thrown the response is not updated.
-        // assertThat(response.rowCount(), is(0L));
     }
 
     @Test

@@ -30,7 +30,6 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
-import org.elasticsearch.index.engine.Engine;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
@@ -45,19 +44,21 @@ class FetchCollector {
     private final LuceneCollectorExpression[] collectorExpressions;
     private final InputRow row;
     private final Streamer<?>[] streamers;
-    private final List<LeafReaderContext> readerContexts;
     private final RamAccounting ramAccounting;
+    private final int readerId;
+    private final FetchTask fetchTask;
 
     FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
                    Streamer<?>[] streamers,
-                   Engine.Searcher searcher,
+                   FetchTask fetchTask,
                    RamAccounting ramAccounting,
                    int readerId) {
+        this.fetchTask = fetchTask;
         // use toArray to avoid iterator allocations in docIds loop
         this.collectorExpressions = collectorExpressions.toArray(new LuceneCollectorExpression[0]);
         this.streamers = streamers;
-        this.readerContexts = searcher.getIndexReader().leaves();
         this.ramAccounting = ramAccounting;
+        this.readerId = readerId;
         CollectorContext collectorContext = new CollectorContext(readerId);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
@@ -75,16 +76,19 @@ class FetchCollector {
 
     public StreamBucket collect(IntContainer docIds) {
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
-        for (IntCursor cursor : docIds) {
-            int docId = cursor.value;
-            int readerIndex = ReaderUtil.subIndex(docId, readerContexts);
-            LeafReaderContext subReaderContext = readerContexts.get(readerIndex);
-            try {
-                setNextDocId(subReaderContext, docId - subReaderContext.docBase);
-            } catch (IOException e) {
-                Exceptions.rethrowRuntimeException(e);
+        try (var borrowed = fetchTask.searcher(readerId)) {
+            List<LeafReaderContext> leaves = borrowed.item().getTopReaderContext().leaves();
+            for (IntCursor cursor : docIds) {
+                int docId = cursor.value;
+                int readerIndex = ReaderUtil.subIndex(docId, leaves);
+                LeafReaderContext subReaderContext = leaves.get(readerIndex);
+                try {
+                    setNextDocId(subReaderContext, docId - subReaderContext.docBase);
+                } catch (IOException e) {
+                    Exceptions.rethrowRuntimeException(e);
+                }
+                builder.add(row);
             }
-            builder.add(row);
         }
         return builder.build();
     }

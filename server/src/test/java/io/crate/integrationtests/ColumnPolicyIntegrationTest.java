@@ -26,9 +26,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+    import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import io.crate.common.collections.Tuple;
@@ -51,6 +49,7 @@ import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
@@ -95,7 +94,10 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
 
         assertThrows(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"),
-                     isSQLError(is("Column boo unknown"), INTERNAL_ERROR, NOT_FOUND,4043));
+                     isSQLError(is("Column boo unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4043));
     }
 
     @Test
@@ -271,8 +273,10 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{
                 "Life, the Universe and Everything",
                 Map.of("name", Map.of("first_name", "Douglas", "middle_name", "Noel"))
-            }), isSQLError(containsString("dynamic introduction of [middle_name] within [author.name] is not allowed")
-            , INTERNAL_ERROR, HttpResponseStatus.INTERNAL_SERVER_ERROR, 5000));
+            }), isSQLError(containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"),
+                           INTERNAL_ERROR,
+                           BAD_REQUEST,
+                           4000));
     }
 
     public Object nestedValue(Map<String, Object> map, String dottedPath) {
@@ -395,11 +399,12 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
 
         assertThrows(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
-                                   new Object[]{28, true, false, true}), isSQLError(is("Column perfect unknown"),
-                                                                                    INTERNAL_ERROR,
-                                                                                    NOT_FOUND,
-                                                                                    4043
-        ));
+                                   new Object[]{28, true, false, true}),
+                     isSQLError(is("Column perfect unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4043
+                     ));
     }
 
     @Test

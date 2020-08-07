@@ -83,7 +83,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute(
             "update test set message=null where id=1"),
-                     isSQLError(Matchers.is("\"message\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+                     isSQLError(Matchers.is("\"message\" must not be null"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -648,7 +651,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute(
             "update test set c = 4 where _version = 2 or _version=1"),
-                     isSQLError(Matchers.is(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG), INTERNAL_ERROR, BAD_REQUEST, 4003));
+                     isSQLError(Matchers.is(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -660,7 +666,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute(
             "update test set c = 4 where _version in (1,2)"),
-                     isSQLError(Matchers.is(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG), INTERNAL_ERROR, BAD_REQUEST, 4003));
+                     isSQLError(Matchers.is(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
 
@@ -779,7 +788,9 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute(
             "update computed set gen_col=1745"),
                      isSQLError(Matchers.is("Given value 1745 for generated column gen_col does not match calculation extract(YEAR FROM ts) = 1970"),
-                                INTERNAL_ERROR, BAD_REQUEST, 4000));
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -812,8 +823,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute(
             "update generated_column set gen_col=null where id=1"),
-                     isSQLError(Matchers.is("\"gen_col\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
-
+                     isSQLError(Matchers.is("\"gen_col\" must not be null"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test

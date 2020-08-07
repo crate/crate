@@ -1447,28 +1447,29 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
         metadataLock.writeLock().lock();
         try {
             Map<String, String> userData = readLastCommittedSegmentsInfo().getUserData();
-            final SequenceNumbers.CommitInfo seqno = SequenceNumbers.loadSeqNoInfoFromLuceneCommit(userData.entrySet());
-            bootstrapNewHistory(seqno.maxSeqNo);
+            final long maxSeqNo = Long.parseLong(userData.get(SequenceNumbers.MAX_SEQ_NO));
+            final long localCheckpoint = Long.parseLong(userData.get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));
+            bootstrapNewHistory(localCheckpoint, maxSeqNo);
         } finally {
             metadataLock.writeLock().unlock();
         }
     }
 
     /**
-     * Marks an existing lucene index with a new history uuid and sets the given maxSeqNo as the local checkpoint
+     * Marks an existing lucene index with a new history uuid and sets the given local checkpoint
      * as well as the maximum sequence number.
      * This is used to make sure no existing shard will recover from this index using ops based recovery.
      * @see SequenceNumbers#LOCAL_CHECKPOINT_KEY
      * @see SequenceNumbers#MAX_SEQ_NO
      */
-    public void bootstrapNewHistory(long maxSeqNo) throws IOException {
+    public void bootstrapNewHistory(long localCheckpoint, long maxSeqNo) throws IOException {
         metadataLock.writeLock().lock();
         try (IndexWriter writer = newIndexWriter(IndexWriterConfig.OpenMode.APPEND, directory, null)) {
             final Map<String, String> userData = getUserData(writer);
             final Map<String, String> map = new HashMap<>();
             map.put(Engine.HISTORY_UUID_KEY, UUIDs.randomBase64UUID());
+            map.put(SequenceNumbers.LOCAL_CHECKPOINT_KEY, Long.toString(localCheckpoint));
             map.put(SequenceNumbers.MAX_SEQ_NO, Long.toString(maxSeqNo));
-            map.put(SequenceNumbers.LOCAL_CHECKPOINT_KEY, Long.toString(maxSeqNo));
             logger.debug("bootstrap a new history_uuid [{}], user_data [{}]", map, userData);
             updateCommitData(writer, map);
         } finally {
@@ -1526,7 +1527,8 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
             if (existingCommits.isEmpty()) {
                 throw new IllegalArgumentException("No index found to trim");
             }
-            final String translogUUID = existingCommits.get(existingCommits.size() - 1).getUserData().get(Translog.TRANSLOG_UUID_KEY);
+            final IndexCommit lastIndexCommitCommit = existingCommits.get(existingCommits.size() - 1);
+            final String translogUUID = lastIndexCommitCommit.getUserData().get(Translog.TRANSLOG_UUID_KEY);
             final IndexCommit startingIndexCommit;
             // We may not have a safe commit if an index was create before v6.2; and if there is a snapshotted commit whose translog
             // are not retained but max_seqno is at most the global checkpoint, we may mistakenly select it as a starting commit.
@@ -1558,7 +1560,14 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
                     + translogUUID + "]");
             }
             logger.debug("starting index commit [{}]", startingIndexCommit.getUserData());
-            if (startingIndexCommit.equals(existingCommits.get(existingCommits.size() - 1)) == false) {
+            if (startingIndexCommit.equals(lastIndexCommitCommit) == false) {
+                /*
+                 * Unlike other commit tags, the retention-leases tag is not restored when an engine is
+                 * recovered from translog. We need to manually copy it from the last commit to the safe commit;
+                 * otherwise we might lose the latest committed retention leases when re-opening an engine.
+                 */
+                final Map<String, String> userData = new HashMap<>(startingIndexCommit.getUserData());
+                userData.put(Engine.RETENTION_LEASES, lastIndexCommitCommit.getUserData().getOrDefault(Engine.RETENTION_LEASES, ""));
                 try (IndexWriter writer = newIndexWriter(IndexWriterConfig.OpenMode.APPEND, directory, startingIndexCommit)) {
                     // this achieves two things:
                     // - by committing a new commit based on the starting commit, it make sure the starting commit will be opened
@@ -1569,7 +1578,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
 
                     // The new commit will use segment files from the starting commit but userData from the last commit by default.
                     // Thus, we need to manually set the userData from the starting commit to the new commit.
-                    writer.setLiveCommitData(startingIndexCommit.getUserData().entrySet());
+                    writer.setLiveCommitData(userData.entrySet());
                     writer.commit();
                 }
             }

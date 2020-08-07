@@ -97,6 +97,7 @@ import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.merge.OnGoingMerge;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ElasticsearchMergePolicy;
@@ -110,6 +111,7 @@ import org.elasticsearch.index.translog.TranslogStats;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 
 public class InternalEngine extends Engine {
@@ -310,8 +312,12 @@ public class InternalEngine extends Engine {
         } else {
             lastMinRetainedSeqNo = Long.parseLong(commitUserData.get(SequenceNumbers.MAX_SEQ_NO)) + 1;
         }
-        return new SoftDeletesPolicy(translog::getLastSyncedGlobalCheckpoint, lastMinRetainedSeqNo,
-            engineConfig.getIndexSettings().getSoftDeleteRetentionOperations());
+        return new SoftDeletesPolicy(
+            translog::getLastSyncedGlobalCheckpoint,
+            lastMinRetainedSeqNo,
+            engineConfig.getIndexSettings().getSoftDeleteRetentionOperations(),
+            engineConfig.retentionLeasesSupplier()
+        );
     }
 
     /**
@@ -506,6 +512,11 @@ public class InternalEngine extends Engine {
     Translog getTranslog() {
         ensureOpen();
         return translog;
+    }
+
+    // Package private for testing purposes only
+    boolean hasSnapshottedCommits() {
+        return combinedDeletionPolicy.hasSnapshottedCommits();
     }
 
     @Override
@@ -2443,7 +2454,13 @@ public class InternalEngine extends Engine {
                     commitData.put(FORCE_MERGE_UUID_KEY, currentForceMergeUUID);
                 }
                 if (softDeleteEnabled) {
-                    commitData.put(Engine.MIN_RETAINED_SEQNO, Long.toString(softDeletesPolicy.getMinRetainedSeqNo()));
+                    /*
+                     * We sample these from the policy (which occurs under a lock) to ensure that we have a consistent view of the minimum
+                     * retained sequence number, and the retention leases.
+                     */
+                    final Tuple<Long, RetentionLeases> retentionPolicy = softDeletesPolicy.getRetentionPolicy();
+                    commitData.put(Engine.MIN_RETAINED_SEQNO, Long.toString(retentionPolicy.v1()));
+                    commitData.put(Engine.RETENTION_LEASES, RetentionLeases.encodeRetentionLeases(retentionPolicy.v2()));
                 }
                 logger.trace("committing writer with commit data [{}]", commitData);
                 return commitData.entrySet().iterator();

@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -28,8 +29,15 @@ import org.junit.Test;
 
 public class MinimumAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType<?> dataType, Object[][] data) throws Exception {
-        return executeAggregation("min", dataType, data);
+    private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
+        return executeAggregation(
+            Signature.aggregate(
+                "min",
+                argumentType.getTypeSignature(),
+                argumentType.getTypeSignature()
+            ),
+            data
+        );
     }
 
     @Test

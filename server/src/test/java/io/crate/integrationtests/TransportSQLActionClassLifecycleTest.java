@@ -55,7 +55,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContaining;
@@ -539,8 +539,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         assertThrows(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"),
                      isSQLError(is("Failed to parse mapping [default]: analyzer [foobar] not found for field [content]"),
                                 INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR,
-                                5000));
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test

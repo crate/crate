@@ -432,11 +432,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         assertThrows(() -> execute("insert into parted (id, name, date) values (?, ?, ?)",
                                    new Object[]{42, "Zaphod", 0L}),
-                     isSQLError(
-                         Matchers.is("A document with the same primary key exists already"),
-                         INTERNAL_ERROR,
-                         CONFLICT,
-                         4091));
+                     isSQLError(is("A document with the same primary key exists already"),
+                                INTERNAL_ERROR,
+                                CONFLICT,
+                                4091));
     }
 
     @Test
@@ -1538,8 +1537,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
 
         assertThrows(() ->  execute("refresh table parted partition(date=0)"),
-                     isSQLError(
-                         is(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted"))),
+                     isSQLError(is(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted"))),
                          INTERNAL_ERROR,
                          NOT_FOUND,
                          4046));
@@ -1777,8 +1775,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             "   name string," +
             "   d timestamp with time zone" +
             ") partitioned by (d) with (number_of_replicas=0)"),
-                     isSQLError(
-                         is("Relation name \"AAA.t\" is invalid."),
+                     isSQLError(is("Relation name \"AAA.t\" is invalid."),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4002));
@@ -2123,8 +2120,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
 
         assertThrows(() ->execute("select id/0 from t1"),
-                     isSQLError(
-                         is("/ by zero"),
+                     isSQLError(is("/ by zero"),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4000));
@@ -2158,8 +2154,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void test_refresh_not_existing_partition() {
         execute("CREATE TABLE doc.parted (x TEXT) PARTITIONED BY (x)");
         assertThrows(() ->  execute("REFRESH TABLE doc.parted PARTITION (x = 'hddsGNJHSGFEFZÜ')"),
-                     isSQLError(
-                         is("No partition for table 'doc.parted' with ident '048mgp34ed3ksii8ad3kcha6bb1po' exists"),
+                     isSQLError(is("No partition for table 'doc.parted' with ident '048mgp34ed3ksii8ad3kcha6bb1po' exists"),
                          INTERNAL_ERROR,
                          NOT_FOUND,
                          4046));
@@ -2169,8 +2164,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void test_refresh_partition_in_non_partitioned_table() {
         execute("CREATE TABLE doc.not_parted (x TEXT)");
         assertThrows(() ->  execute("REFRESH TABLE doc.not_parted PARTITION (x = 'n')"),
-                     isSQLError(
-                         is("table 'doc.not_parted' is not partitioned"),
+                     isSQLError(is("table 'doc.not_parted' is not partitioned"),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4000));
@@ -2242,8 +2236,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         // trying to perform an update on a partition with a write block
         assertThrows(() ->  execute("update my_table set content=\'content42\' where par=1"),
-                     isSQLError(
-                         is("blocked by: [FORBIDDEN/8/index write (api)];"),
+                     isSQLError(is("blocked by: [FORBIDDEN/8/index write (api)];"),
                          INTERNAL_ERROR,
                          INTERNAL_SERVER_ERROR,
                          5000));
@@ -2265,8 +2258,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                                    "(2, 'content42'), " +
                                    "(1, 'content2'), " +
                                    "(3, 'content6')"),
-                     isSQLError(
-                         is("blocked by: [FORBIDDEN/8/index write (api)];"),
+                     isSQLError(is("blocked by: [FORBIDDEN/8/index write (api)];"),
                          INTERNAL_ERROR,
                          INTERNAL_SERVER_ERROR,
                          5000));

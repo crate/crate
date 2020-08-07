@@ -20,19 +20,13 @@
 package org.elasticsearch.action.admin.cluster.health;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 
-public class ClusterHealthAction extends Action<ClusterHealthRequest, ClusterHealthResponse, ClusterHealthRequestBuilder> {
+public class ClusterHealthAction extends Action<ClusterHealthResponse> {
 
     public static final ClusterHealthAction INSTANCE = new ClusterHealthAction();
     public static final String NAME = "cluster:monitor/health";
 
     private ClusterHealthAction() {
         super(NAME);
-    }
-
-    @Override
-    public ClusterHealthRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new ClusterHealthRequestBuilder(client, this);
     }
 }

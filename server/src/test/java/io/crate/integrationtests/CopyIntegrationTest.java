@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
-import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -50,9 +49,11 @@ import java.util.Locale;
 import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler  .codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -369,8 +370,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         assertThrows(() -> execute("copy singleshard to '/tmp/file.json'"),
                      isSQLError(containsString("Using COPY TO without specifying a DIRECTORY is not supported"),
-                                PGErrorStatus.INTERNAL_ERROR,
-                                HttpResponseStatus.BAD_REQUEST,
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
                                 4004));
     }
 

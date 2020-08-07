@@ -22,13 +22,13 @@
 package io.crate.integrationtests;
 
 import io.crate.data.Paging;
-import io.crate.protocols.postgres.PGErrorStatus;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
@@ -58,8 +58,8 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("select format('%d', s) from t"),
                      isSQLError(containsString("d != java.lang.String"),
-                                PGErrorStatus.INTERNAL_ERROR,
-                                HttpResponseStatus.BAD_REQUEST,
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
                                 4000));
     }
 

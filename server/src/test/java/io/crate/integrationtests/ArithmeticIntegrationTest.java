@@ -21,9 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.protocols.postgres.PGErrorStatus;
-import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -31,9 +29,11 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Locale;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -321,8 +321,8 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0"),
                      isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
-                                PGErrorStatus.INTERNAL_ERROR,
-                                HttpResponseStatus.BAD_REQUEST,
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
                                 4000));
     }
 
@@ -335,8 +335,8 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"),
                      isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
-                                PGErrorStatus.INTERNAL_ERROR,
-                                HttpResponseStatus.BAD_REQUEST,
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
                                 4000));
     }
 

@@ -26,6 +26,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class Variance implements Writeable, Comparable<Variance> {
 
@@ -80,5 +81,22 @@ public class Variance implements Writeable, Comparable<Variance> {
     @Override
     public int compareTo(Variance o) {
         return Double.compare(result(), o.result());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Variance variance = (Variance) o;
+        return Objects.equals(variance.result(), result());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(result());
     }
 }

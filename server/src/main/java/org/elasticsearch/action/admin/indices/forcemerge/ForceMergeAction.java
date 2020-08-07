@@ -20,19 +20,13 @@
 package org.elasticsearch.action.admin.indices.forcemerge;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 
-public class ForceMergeAction extends Action<ForceMergeRequest, ForceMergeResponse, ForceMergeRequestBuilder> {
+public class ForceMergeAction extends Action<ForceMergeResponse> {
 
     public static final ForceMergeAction INSTANCE = new ForceMergeAction();
     public static final String NAME = "indices:admin/forcemerge";
 
     private ForceMergeAction() {
         super(NAME);
-    }
-
-    @Override
-    public ForceMergeRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new ForceMergeRequestBuilder(client, this);
     }
 }

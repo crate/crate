@@ -23,7 +23,8 @@ import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
-public class AddVotingConfigExclusionsAction extends Action<AddVotingConfigExclusionsRequest, AddVotingConfigExclusionsResponse, AddVotingConfigExclusionsAction.AddVotingConfigExclusionsRequestBuilder> {
+public class AddVotingConfigExclusionsAction extends Action<AddVotingConfigExclusionsResponse> {
+
     public static final AddVotingConfigExclusionsAction INSTANCE = new AddVotingConfigExclusionsAction();
     public static final String NAME = "cluster:admin/voting_config/add_exclusions";
 
@@ -31,15 +32,10 @@ public class AddVotingConfigExclusionsAction extends Action<AddVotingConfigExclu
         super(NAME);
     }
 
-    @Override
-    public AddVotingConfigExclusionsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new AddVotingConfigExclusionsRequestBuilder(client, this, new AddVotingConfigExclusionsRequest(new String[0]));
-    }
-
-    static class AddVotingConfigExclusionsRequestBuilder extends ActionRequestBuilder<AddVotingConfigExclusionsRequest, AddVotingConfigExclusionsResponse, AddVotingConfigExclusionsRequestBuilder> {
+    static class AddVotingConfigExclusionsRequestBuilder extends ActionRequestBuilder<AddVotingConfigExclusionsRequest, AddVotingConfigExclusionsResponse> {
 
         AddVotingConfigExclusionsRequestBuilder(ElasticsearchClient client,
-                                                Action<AddVotingConfigExclusionsRequest, AddVotingConfigExclusionsResponse, AddVotingConfigExclusionsRequestBuilder> action,
+                                                Action<AddVotingConfigExclusionsResponse> action,
                                                 AddVotingConfigExclusionsRequest request) {
             super(client, action, request);
         }

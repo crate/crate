@@ -740,8 +740,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.createStatement().executeQuery("select * from bar.foo");
 
             assertThrows(() -> conn.createStatement().execute("select * from custom.foo"),
-                         isPGError(is("Schema 'custom' unknown"),
-                                   INTERNAL_ERROR));
+                         isPGError(is("Schema 'custom' unknown"), INTERNAL_ERROR));
         }
     }
 

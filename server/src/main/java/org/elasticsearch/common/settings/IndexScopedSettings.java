@@ -94,6 +94,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexSettings.INDEX_GC_DELETES_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING,
+        IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING,
         UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
         EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING,
         EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING,
@@ -115,6 +116,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         EngineConfig.INDEX_OPTIMIZE_AUTO_GENERATED_IDS,
         IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
         IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
+        IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
         Setting.groupSetting("index.analysis.", Property.IndexScope));
 
     public static final IndexScopedSettings DEFAULT_SCOPED_SETTINGS = new IndexScopedSettings(Settings.EMPTY, BUILT_IN_INDEX_SETTINGS);

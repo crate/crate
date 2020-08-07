@@ -23,7 +23,6 @@ package org.elasticsearch.client;
 import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
@@ -37,11 +36,10 @@ public interface ElasticsearchClient {
      * @param request          The action request.
      * @param <Request>        The request type.
      * @param <Response>       the response type.
-     * @param <RequestBuilder> The request builder type.
      * @return A future allowing to get back the response.
      */
-    <Request extends TransportRequest, Response extends TransportResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> ActionFuture<Response> execute(
-            Action<Request, Response, RequestBuilder> action, Request request);
+    <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(
+            Action<Response> action, Request request);
 
     /**
      * Executes a generic action, denoted by an {@link Action}.
@@ -51,10 +49,9 @@ public interface ElasticsearchClient {
      * @param listener         The listener to receive the response back.
      * @param <Request>        The request type.
      * @param <Response>       The response type.
-     * @param <RequestBuilder> The request builder type.
      */
-    <Request extends TransportRequest, Response extends TransportResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void execute(
-            Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener);
+    <Request extends TransportRequest, Response extends TransportResponse> void execute(
+            Action<Response> action, Request request, ActionListener<Response> listener);
 
     /**
      * Returns the threadpool used to execute requests on this client

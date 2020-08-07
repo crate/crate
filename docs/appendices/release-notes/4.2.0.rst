@@ -67,11 +67,20 @@ Breaking Changes
   execution is only available via the ``results`` array represented by a
   row count for each bulk operation.
 
-- Numeric literals fitting into the ``integer`` range will be detected now as
+- Numeric literals fitting into the ``integer`` range are now treated as
   ``integer`` literals instead of ``bigint`` literals. Thus a statement like
   ``select 1`` will return an ``integer`` column type. This shouldn't be an
   issue for most clients as the ``HTTP`` endpoint uses ``JSON`` for
   serialization and PostgreSQL clients usually use a typed ``getLong``.
+
+  A consequence of this change is that arithmetic with literals used in
+  statements will also happen within the ``integer`` range, and it can lead to
+  an ``integer overflow`` if the result does not fit into the ``integer``
+  range. For example, a calculation like ``365 * 24 * 60 * 60 * 1000`` needs to
+  be explicitly cast into the ``bigint`` range to avoid an ``integer
+  overflow``. This can be done like this: ``365::bigint * 24 * 60 * 60 *
+  1000``. If working with timestamps it is recommended to instead use the more
+  readable ``interval`` type instead: ``'1 year'::interval``.
 
 - In the PostgreSQL Wire Protocol, ``ReadyForQuery`` messages now contain the
   ``IN TRANSACTION`` or ``FAILED TRANSACTION`` indicator based on previous

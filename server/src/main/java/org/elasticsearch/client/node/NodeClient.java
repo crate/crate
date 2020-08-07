@@ -19,10 +19,10 @@
 
 package org.elasticsearch.client.node;
 
+import java.util.Map;
+
 import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequestBuilder;
-import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
@@ -32,20 +32,18 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.util.Map;
-
 /**
  * Client that executes actions on the local node.
  */
 public class NodeClient extends AbstractClient {
 
-    private Map<GenericAction, TransportAction> actions;
+    private Map<Action, TransportAction> actions;
 
     public NodeClient(Settings settings, ThreadPool threadPool) {
         super(settings, threadPool);
     }
 
-    public void initialize(Map<GenericAction, TransportAction> actions) {
+    public void initialize(Map<Action, TransportAction> actions) {
         this.actions = actions;
     }
 
@@ -56,11 +54,9 @@ public class NodeClient extends AbstractClient {
 
     @Override
     public <Request extends TransportRequest,
-            Response extends TransportResponse,
-            RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void doExecute(
-        Action<Request, Response, RequestBuilder> action,
-        Request request,
-        ActionListener<Response> listener) {
+            Response extends TransportResponse> void doExecute(Action<Response> action,
+                                                               Request request,
+                                                               ActionListener<Response> listener) {
 
         // Discard the task because the Client interface doesn't use it.
         executeLocally(action, request, listener);
@@ -72,7 +68,7 @@ public class NodeClient extends AbstractClient {
      * interface.
      */
     public <Request extends TransportRequest,
-            Response extends TransportResponse> Task executeLocally(GenericAction<Request, Response> action,
+            Response extends TransportResponse> Task executeLocally(Action<Response> action,
                                                                     Request request,
                                                                     ActionListener<Response> listener) {
         return transportAction(action).execute(request, listener);
@@ -83,7 +79,7 @@ public class NodeClient extends AbstractClient {
      */
     @SuppressWarnings("unchecked")
     private <Request extends TransportRequest,
-             Response extends TransportResponse> TransportAction<Request, Response> transportAction(GenericAction<Request, Response> action) {
+             Response extends TransportResponse> TransportAction<Request, Response> transportAction(Action<Response> action) {
         if (actions == null) {
             throw new IllegalStateException("NodeClient has not been initialized");
         }

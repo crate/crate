@@ -72,6 +72,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
+import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -116,6 +117,9 @@ import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.seqno.ReplicationTracker;
+import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.PrimaryReplicaSyncer.ResyncTask;
@@ -133,6 +137,7 @@ import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoveryFailedException;
 import org.elasticsearch.indices.recovery.RecoveryState;
+import org.elasticsearch.indices.recovery.RecoveryTarget;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.rest.RestStatus;
@@ -174,6 +179,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     Runnable getGlobalCheckpointSyncer() {
         return globalCheckpointSyncer;
     }
+
+    private final RetentionLeaseSyncer retentionLeaseSyncer;
 
     @Nullable
     private RecoveryState recoveryState;
@@ -224,6 +231,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             BigArrays bigArrays,
             List<IndexingOperationListener> listeners,
             Runnable globalCheckpointSyncer,
+            RetentionLeaseSyncer retentionLeaseSyncer,
             CircuitBreakerService circuitBreakerService) throws IOException {
         super(shardRouting.shardId(), indexSettings);
         assert shardRouting.initializing();
@@ -239,6 +247,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.indexCache = indexCache;
         this.indexingOperationListeners = new IndexingOperationListener.CompositeListener(listeners, logger);
         this.globalCheckpointSyncer = globalCheckpointSyncer;
+        this.retentionLeaseSyncer = retentionLeaseSyncer;
         state = IndexShardState.CREATED;
         this.path = path;
         this.circuitBreakerService = circuitBreakerService;
@@ -250,15 +259,21 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final String aId = shardRouting.allocationId().getId();
         final long primaryTerm = indexSettings.getIndexMetadata().primaryTerm(shardId.id());
         this.pendingPrimaryTerm = primaryTerm;
-        this.globalCheckpointListeners =
-                new GlobalCheckpointListeners(shardId, threadPool.executor(ThreadPool.Names.LISTENER), threadPool.scheduler(), logger);
+        this.globalCheckpointListeners = new GlobalCheckpointListeners(
+            shardId,
+            threadPool.executor(ThreadPool.Names.LISTENER),
+            threadPool.scheduler(),
+            logger
+        );
         this.replicationTracker = new ReplicationTracker(
             shardId,
             aId,
             indexSettings,
             primaryTerm,
             UNASSIGNED_SEQ_NO,
-            globalCheckpointListeners::globalCheckpointUpdated
+            globalCheckpointListeners::globalCheckpointUpdated,
+            threadPool::absoluteTimeInMillis,
+            (retentionLeases, listener) -> retentionLeaseSyncer.sync(shardId, retentionLeases, listener)
         );
 
         // the query cache is a node-level thing, however we want the most popular filters
@@ -1423,6 +1438,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final String translogUUID = store.readLastCommittedSegmentsInfo().getUserData().get(Translog.TRANSLOG_UUID_KEY);
         final long globalCheckpoint = Translog.readGlobalCheckpoint(translogConfig.getTranslogPath(), translogUUID);
         replicationTracker.updateGlobalCheckpointOnReplica(globalCheckpoint, "read from translog checkpoint");
+        replicationTracker.updateRetentionLeasesOnReplica(getRetentionLeases(store.readLastCommittedSegmentsInfo()));
         trimUnsafeCommits();
 
         createNewEngine(config);
@@ -1432,6 +1448,14 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         active.set(true);
         assertSequenceNumbersInCommit();
         assert recoveryState.getStage() == RecoveryState.Stage.TRANSLOG : "TRANSLOG stage expected but was: " + recoveryState.getStage();
+    }
+
+    static RetentionLeases getRetentionLeases(final SegmentInfos segmentInfos) {
+        final String committedRetentionLeases = segmentInfos.getUserData().get(Engine.RETENTION_LEASES);
+        if (committedRetentionLeases == null) {
+            return RetentionLeases.EMPTY;
+        }
+        return RetentionLeases.decodeRetentionLeases(committedRetentionLeases);
     }
 
     private void trimUnsafeCommits() throws IOException {
@@ -1861,6 +1885,103 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             final GlobalCheckpointListeners.GlobalCheckpointListener listener,
             final TimeValue timeout) {
         this.globalCheckpointListeners.add(waitingForGlobalCheckpoint, listener, timeout);
+    }
+
+    /**
+     * Get all non-expired retention leases tracked on this shard.
+     *
+     * @return the retention leases
+     */
+    public RetentionLeases getRetentionLeases() {
+        return getRetentionLeases(false).v2();
+    }
+
+    /**
+     * If the expire leases parameter is false, gets all retention leases tracked on this shard and otherwise first calculates
+     * expiration of existing retention leases, and then gets all non-expired retention leases tracked on this shard. Note that only the
+     * primary shard calculates which leases are expired, and if any have expired, syncs the retention leases to any replicas. If the
+     * expire leases parameter is true, this replication tracker must be in primary mode.
+     *
+     * @return a tuple indicating whether or not any retention leases were expired, and the non-expired retention leases
+     */
+    public Tuple<Boolean, RetentionLeases> getRetentionLeases(final boolean expireLeases) {
+        assert expireLeases == false || assertPrimaryMode();
+        verifyNotClosed();
+        return replicationTracker.getRetentionLeases(expireLeases);
+    }
+
+    /**
+     * Adds a new retention lease.
+     *
+     * @param id                      the identifier of the retention lease
+     * @param retainingSequenceNumber the retaining sequence number
+     * @param source                  the source of the retention lease
+     * @param listener                the callback when the retention lease is successfully added and synced to replicas
+     * @return the new retention lease
+     * @throws IllegalArgumentException if the specified retention lease already exists
+     */
+    public RetentionLease addRetentionLease(
+            final String id,
+            final long retainingSequenceNumber,
+            final String source,
+            final ActionListener<ReplicationResponse> listener) {
+        Objects.requireNonNull(listener);
+        assert assertPrimaryMode();
+        verifyNotClosed();
+        return replicationTracker.addRetentionLease(id, retainingSequenceNumber, source, listener);
+    }
+
+    /**
+     * Renews an existing retention lease.
+     *
+     * @param id                      the identifier of the retention lease
+     * @param retainingSequenceNumber the retaining sequence number
+     * @param source                  the source of the retention lease
+     * @return the renewed retention lease
+     * @throws IllegalArgumentException if the specified retention lease does not exist
+     */
+    public RetentionLease renewRetentionLease(final String id, final long retainingSequenceNumber, final String source) {
+        assert assertPrimaryMode();
+        verifyNotClosed();
+        return replicationTracker.renewRetentionLease(id, retainingSequenceNumber, source);
+    }
+
+    /**
+     * Removes an existing retention lease.
+     *
+     * @param id       the identifier of the retention lease
+     * @param listener the callback when the retention lease is successfully removed and synced to replicas
+     */
+    public void removeRetentionLease(final String id, final ActionListener<ReplicationResponse> listener) {
+        Objects.requireNonNull(listener);
+        assert assertPrimaryMode();
+        verifyNotClosed();
+        replicationTracker.removeRetentionLease(id, listener);
+    }
+
+    /**
+     * Updates retention leases on a replica.
+     *
+     * @param retentionLeases the retention leases
+     */
+    public void updateRetentionLeasesOnReplica(final RetentionLeases retentionLeases) {
+        assert assertReplicationTarget();
+        verifyNotClosed();
+        replicationTracker.updateRetentionLeasesOnReplica(retentionLeases);
+    }
+
+    /**
+     * Syncs the current retention leases to all replicas.
+     */
+    public void syncRetentionLeases() {
+        assert assertPrimaryMode();
+        verifyNotClosed();
+        final Tuple<Boolean, RetentionLeases> retentionLeases = getRetentionLeases(true);
+        if (retentionLeases.v1()) {
+            retentionLeaseSyncer.sync(shardId, retentionLeases.v2(), ActionListener.wrap(() -> {}));
+        } else {
+            retentionLeaseSyncer.backgroundSync(shardId, retentionLeases.v2());
+        }
     }
 
     /**
@@ -2328,6 +2449,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             Collections.singletonList(new RefreshMetricUpdater(refreshMetric)),
             circuitBreakerService,
             replicationTracker,
+            replicationTracker::getRetentionLeases,
             this::getOperationPrimaryTerm,
             tombstoneDocSupplier()
         );
@@ -2349,32 +2471,76 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         indexShardOperationPermits.acquire(onPermitAcquired, executorOnDelay, false, debugInfo);
     }
 
+    /**
+     * Acquire all primary operation permits. Once all permits are acquired, the provided ActionListener is called.
+     * It is the responsibility of the caller to close the {@link Releasable}.
+     */
+    public void acquireAllPrimaryOperationsPermits(final ActionListener<Releasable> onPermitAcquired, final TimeValue timeout) {
+        verifyNotClosed();
+        assert shardRouting.primary() : "acquireAllPrimaryOperationsPermits should only be called on primary shard: " + shardRouting;
+
+        indexShardOperationPermits.asyncBlockOperations(onPermitAcquired, timeout.duration(), timeout.timeUnit());
+    }
+
+    /**
+     * Runs the specified runnable under a permit and otherwise calling back the specified failure callback. This method is really a
+     * convenience for {@link #acquirePrimaryOperationPermit(ActionListener, String, Object)} where the listener equates to
+     * try-with-resources closing the releasable after executing the runnable on successfully acquiring the permit, an otherwise calling
+     * back the failure callback.
+     *
+     * @param runnable the runnable to execute under permit
+     * @param onFailure the callback on failure
+     * @param executorOnDelay the executor to execute the runnable on if permit acquisition is blocked
+     * @param debugInfo debug info
+     */
+    public void runUnderPrimaryPermit(
+            final Runnable runnable,
+            final Consumer<Exception> onFailure,
+            final String executorOnDelay,
+            final Object debugInfo) {
+        verifyNotClosed();
+        assert shardRouting.primary() : "runUnderPrimaryPermit should only be called on primary shard but was " + shardRouting;
+        final ActionListener<Releasable> onPermitAcquired = ActionListener.wrap(
+            releasable -> {
+                try (Releasable ignore = releasable) {
+                    runnable.run();
+                }
+            },
+            onFailure);
+        acquirePrimaryOperationPermit(onPermitAcquired, executorOnDelay, debugInfo);
+    }
+
     private <E extends Exception> void bumpPrimaryTerm(long newPrimaryTerm, final CheckedRunnable<E> onBlocked) {
         assert Thread.holdsLock(mutex);
         assert newPrimaryTerm > pendingPrimaryTerm;
         assert getOperationPrimaryTerm() <= pendingPrimaryTerm;
         final CountDownLatch termUpdated = new CountDownLatch(1);
-        indexShardOperationPermits.asyncBlockOperations(
-            30,
-            TimeUnit.MINUTES,
-            () -> {
-                assert getOperationPrimaryTerm() <= pendingPrimaryTerm;
-                termUpdated.await();
-                // indexShardOperationPermits doesn't guarantee that async submissions are executed
-                // in the order submitted. We need to guard against another term bump
-                if (getOperationPrimaryTerm() < newPrimaryTerm) {
-                    replicationTracker.setOperationPrimaryTerm(newPrimaryTerm);
-                    onBlocked.run();
-                }
-            },
-            e -> {
+        indexShardOperationPermits.asyncBlockOperations(new ActionListener<Releasable>() {
+            @Override
+            public void onFailure(final Exception e) {
                 try {
                     failShard("exception during primary term transition", e);
                 } catch (AlreadyClosedException ace) {
                     // ignore, shard is already closed
                 }
             }
-        );
+
+            @Override
+            public void onResponse(final Releasable releasable) {
+                try (Releasable ignored = releasable) {
+                    assert getOperationPrimaryTerm() <= pendingPrimaryTerm;
+                    termUpdated.await();
+                    // indexShardOperationPermits doesn't guarantee that async submissions are executed
+                    // in the order submitted. We need to guard against another term bump
+                    if (getOperationPrimaryTerm() < newPrimaryTerm) {
+                        replicationTracker.setOperationPrimaryTerm(newPrimaryTerm);
+                        onBlocked.run();
+                    }
+                } catch (final Exception e) {
+                    onFailure(e);
+                }
+            }
+        }, 30, TimeUnit.MINUTES);
         pendingPrimaryTerm = newPrimaryTerm;
         termUpdated.countDown();
     }
@@ -2402,11 +2568,42 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                                               final ActionListener<Releasable> onPermitAcquired,
                                               final String executorOnDelay,
                                               final Object debugInfo) {
+        innerAcquireReplicaOperationPermit(opPrimaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes, onPermitAcquired,
+            (listener) -> indexShardOperationPermits.acquire(listener, executorOnDelay, true, debugInfo));
+    }
+
+    /**
+     * Acquire all replica operation permits whenever the shard is ready for indexing (see
+     * {@link #acquireAllPrimaryOperationsPermits(ActionListener, TimeValue)}. If the given primary term is lower than then one in
+     * {@link #shardRouting}, the {@link ActionListener#onFailure(Exception)} method of the provided listener is invoked with an
+     * {@link IllegalStateException}.
+     *
+     * @param opPrimaryTerm              the operation primary term
+     * @param globalCheckpoint           the global checkpoint associated with the request
+     * @param maxSeqNoOfUpdatesOrDeletes the max seq_no of updates (index operations overwrite Lucene) or deletes captured on the primary
+     *                                   after this replication request was executed on it (see {@link #getMaxSeqNoOfUpdatesOrDeletes()}
+     * @param onPermitAcquired           the listener for permit acquisition
+     * @param timeout                    the maximum time to wait for the in-flight operations block
+     */
+    public void acquireAllReplicaOperationsPermits(final long opPrimaryTerm,
+                                                   final long globalCheckpoint,
+                                                   final long maxSeqNoOfUpdatesOrDeletes,
+                                                   final ActionListener<Releasable> onPermitAcquired,
+                                                   final TimeValue timeout) {
+        innerAcquireReplicaOperationPermit(opPrimaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes, onPermitAcquired,
+            (listener) -> indexShardOperationPermits.asyncBlockOperations(listener, timeout.duration(), timeout.timeUnit()));
+    }
+
+    private void innerAcquireReplicaOperationPermit(final long opPrimaryTerm,
+                                                    final long globalCheckpoint,
+                                                    final long maxSeqNoOfUpdatesOrDeletes,
+                                                    final ActionListener<Releasable> onPermitAcquired,
+                                                    final Consumer<ActionListener<Releasable>> consumer) {
         verifyNotClosed();
         if (opPrimaryTerm > pendingPrimaryTerm) {
             synchronized (mutex) {
                 if (opPrimaryTerm > pendingPrimaryTerm) {
-                    IndexShardState shardState = state();
+                    final IndexShardState shardState = state();
                     // only roll translog and update primary term if shard has made it past recovery
                     // Having a new primary term here means that the old primary failed and that there is a new primary, which again
                     // means that the master will fail this shard as all initializing shards are failed when a primary is selected
@@ -2433,43 +2630,39 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 }
             }
         }
-
         assert opPrimaryTerm <= pendingPrimaryTerm
-                : "operation primary term [" + opPrimaryTerm + "] should be at most [" + pendingPrimaryTerm + "]";
-        indexShardOperationPermits.acquire(
-                new ActionListener<Releasable>() {
-                    @Override
-                    public void onResponse(final Releasable releasable) {
-                        if (opPrimaryTerm < getOperationPrimaryTerm()) {
-                            releasable.close();
-                            final String message = String.format(
-                                    Locale.ROOT,
-                                    "%s operation primary term [%d] is too old (current [%d])",
-                                    shardId,
-                                    opPrimaryTerm,
-                                    getOperationPrimaryTerm());
-                            onPermitAcquired.onFailure(new IllegalStateException(message));
-                        } else {
-                            assert assertReplicationTarget();
-                            try {
-                                updateGlobalCheckpointOnReplica(globalCheckpoint, "operation");
-                                advanceMaxSeqNoOfUpdatesOrDeletes(maxSeqNoOfUpdatesOrDeletes);
-                            } catch (Exception e) {
-                                releasable.close();
-                                onPermitAcquired.onFailure(e);
-                                return;
-                            }
-                            onPermitAcquired.onResponse(releasable);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(final Exception e) {
+            : "operation primary term [" + opPrimaryTerm + "] should be at most [" + pendingPrimaryTerm + "]";
+        consumer.accept(new ActionListener<Releasable>() {
+            @Override
+            public void onResponse(final Releasable releasable) {
+                if (opPrimaryTerm < getOperationPrimaryTerm()) {
+                    releasable.close();
+                    final String message = String.format(
+                        Locale.ROOT,
+                        "%s operation primary term [%d] is too old (current [%d])",
+                        shardId,
+                        opPrimaryTerm,
+                        getOperationPrimaryTerm());
+                    onPermitAcquired.onFailure(new IllegalStateException(message));
+                } else {
+                    assert assertReplicationTarget();
+                    try {
+                        updateGlobalCheckpointOnReplica(globalCheckpoint, "operation");
+                        advanceMaxSeqNoOfUpdatesOrDeletes(maxSeqNoOfUpdatesOrDeletes);
+                    } catch (Exception e) {
+                        releasable.close();
                         onPermitAcquired.onFailure(e);
+                        return;
                     }
-                },
-                executorOnDelay,
-                true, debugInfo);
+                    onPermitAcquired.onResponse(releasable);
+                }
+            }
+
+            @Override
+            public void onFailure(final Exception e) {
+                onPermitAcquired.onFailure(e);
+            }
+        });
     }
 
     public int getActiveOperationsCount() {
@@ -2777,7 +2970,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      * which is at least the value of the max_seq_no_of_updates marker on the primary after that operation was executed on the primary.
      *
      * @see #acquireReplicaOperationPermit(long, long, long, ActionListener, String, Object)
-     * @see org.elasticsearch.indices.recovery.RecoveryTarget#indexTranslogOperations(List, int, long, long, ActionListener)
+     * @see RecoveryTarget#indexTranslogOperations(List, int, long, long, RetentionLeases, ActionListener)
      */
     public void advanceMaxSeqNoOfUpdatesOrDeletes(long seqNo) {
         getEngine().advanceMaxSeqNoOfUpdatesOrDeletes(seqNo);

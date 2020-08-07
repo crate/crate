@@ -33,9 +33,8 @@ import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
@@ -93,8 +92,8 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> executeAsNormalUser("grant DQL to " + TEST_USERNAME),
                      isSQLError(is("Missing 'AL' privilege for user 'normal'"),
                                 INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR,
-                                5000));
+                                UNAUTHORIZED,
+                                4011));
     }
 
     @Test
@@ -148,8 +147,8 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> executeAsSuperuser("grant DQL to unknown_user"),
                      isSQLError(is("User 'unknown_user' does not exist"),
                                 INTERNAL_ERROR,
-                                FORBIDDEN,
-                                4031));
+                                NOT_FOUND,
+                                40410));
     }
 
     @Test
@@ -157,8 +156,8 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> executeAsSuperuser("grant DQL to unknown_user, also_unknown"),
                      isSQLError(is("Users 'unknown_user, also_unknown' do not exist"),
                                 INTERNAL_ERROR,
-                                FORBIDDEN,
-                                4031));
+                                NOT_FOUND,
+                                40410));
     }
 
     @Test
@@ -327,8 +326,8 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> execute("select * from t1", null, testUserSession()),
                      isSQLError(is("Schema 'doc' unknown"),
                                 INTERNAL_ERROR,
-                                FORBIDDEN,
-                                4031));
+                                NOT_FOUND,
+                                4045));
     }
 
     @Test
@@ -343,8 +342,8 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> execute("select * from v1", null, testUserSession()),
                      isSQLError(is("Schema 'doc' unknown"),
                                 INTERNAL_ERROR,
-                                FORBIDDEN,
-                                4031));
+                                NOT_FOUND,
+                                4045));
     }
 
     @Test
@@ -363,8 +362,8 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> execute("select * from t1", null, testUserSession()),
                      isSQLError(is("Schema 'doc' unknown"),
                                 INTERNAL_ERROR,
-                                FORBIDDEN,
-                                4031));
+                                NOT_FOUND,
+                                4045));
     }
 
     @Test
@@ -392,8 +391,8 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> executeAsNormalUser("alter cluster reroute retry failed"),
                      isSQLError(containsString("User \"normal\" is not authorized to execute the statement"),
                                 INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR,
-                                5000));
+                                UNAUTHORIZED,
+                                4010));
     }
 
     @Test
@@ -405,10 +404,12 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
         assertThat(response.rowCount(), is(1L));
 
-        var msg = "The relation \"s.t1\" doesn't support or allow REFRESH operations, as it is currently closed.";
-
         assertThrows(() ->  execute("refresh table s.t1", null, testUserSession()),
-                     isSQLError(containsString(msg), INTERNAL_ERROR, BAD_REQUEST, 4007));
+                     isSQLError(containsString("The relation \"s.t1\" doesn't support or allow REFRESH " +
+                                               "operations, as it is currently closed."),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4007));
     }
 
     @Test

@@ -20,20 +20,14 @@
 package org.elasticsearch.action.admin.indices.upgrade.post;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
-public class UpgradeSettingsAction extends Action<UpgradeSettingsRequest, AcknowledgedResponse, UpgradeSettingsRequestBuilder> {
+public class UpgradeSettingsAction extends Action<AcknowledgedResponse> {
 
     public static final UpgradeSettingsAction INSTANCE = new UpgradeSettingsAction();
     public static final String NAME = "internal:indices/admin/upgrade";
 
     private UpgradeSettingsAction() {
         super(NAME);
-    }
-
-    @Override
-    public UpgradeSettingsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new UpgradeSettingsRequestBuilder(client, this);
     }
 }

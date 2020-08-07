@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -138,7 +137,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         var msg = String.format(Locale.ENGLISH,
             "Limit of total fields [%d] in index [%s.test] has been exceeded", totalFields + 1, sqlExecutor.getCurrentSchema());
         assertThrows(() -> execute("alter table test add column new_column2 int"),
-                     isSQLError(is(msg), INTERNAL_ERROR, HttpResponseStatus.BAD_REQUEST, 4000));
+                     isSQLError(is(msg), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test

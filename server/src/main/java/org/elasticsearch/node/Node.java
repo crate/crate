@@ -28,8 +28,8 @@ import org.elasticsearch.Build;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionModule;
-import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
@@ -535,7 +535,7 @@ public class Node implements Closeable {
                                                  .map(injector::getInstance).collect(Collectors.toList()));
             resourcesToClose.addAll(pluginLifecycleComponents);
             this.pluginLifecycleComponents = Collections.unmodifiableList(pluginLifecycleComponents);
-            client.initialize(injector.getInstance(new Key<Map<GenericAction, TransportAction>>() {}));
+            client.initialize(injector.getInstance(new Key<Map<Action, TransportAction>>() {}));
 
             logger.info("initialized");
 

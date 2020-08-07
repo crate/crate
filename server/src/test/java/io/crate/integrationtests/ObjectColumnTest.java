@@ -33,7 +33,7 @@ import java.util.Map;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
@@ -128,7 +128,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
             "insert into ot (title, author) values (?, ?)",
             new Object[]{"Life, the Universe and Everything", authorMap}),
                      isSQLError(containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"),
-                                INTERNAL_ERROR, INTERNAL_SERVER_ERROR, 5000));
+                                INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test

@@ -41,8 +41,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testShowCrateSystemTable() throws Exception {
         assertThrows(() -> execute("show create table sys.shards"),
-                     isSQLError(
-                         is("The relation \"sys.shards\" doesn't support or allow SHOW CREATE operations, as it is read-only."),
+                     isSQLError(is("The relation \"sys.shards\" doesn't support or allow SHOW CREATE operations, as it is read-only."),
                          INTERNAL_ERROR, BAD_REQUEST, 4007));
     }
 
@@ -50,8 +49,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     public void testShowCreateBlobTable() throws Exception {
         execute("create blob table table_blob");
         assertThrows(() -> execute("show create table blob.table_blob"),
-                     isSQLError(
-                         is("The relation \"blob.table_blob\" doesn't support or allow SHOW CREATE operations."),
+                     isSQLError(is("The relation \"blob.table_blob\" doesn't support or allow SHOW CREATE operations."),
                          INTERNAL_ERROR, BAD_REQUEST, 4007));
     }
 
@@ -389,9 +387,10 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testShowUnknownSetting() {
         assertThrows(() -> execute("show foo"),
-                     isSQLError(
-                         is("Unknown session setting name 'foo'."),
-                         INTERNAL_ERROR, BAD_REQUEST, 4000));
+                     isSQLError(is("Unknown session setting name 'foo'."),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @UseHashJoins(1)

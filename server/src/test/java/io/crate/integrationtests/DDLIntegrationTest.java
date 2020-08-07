@@ -42,9 +42,6 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.rest.action.HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
-import static io.crate.rest.action.HttpErrorStatus.RELATION_UNKNOWN;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -132,13 +129,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTableAlreadyExistsException() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-        assertThrows(() -> execute(
-            "create table test (col1 integer primary key, col2 string)"),
-                     isSQLError(
-                         is("Relation 'doc.test' already exists."),
-                         INTERNAL_ERROR,
-                         CONFLICT,
-                         4093)
+        assertThrows(() -> execute("create table test (col1 integer primary key, col2 string)"),
+                     isSQLError(is("Relation 'doc.test' already exists."),
+                                INTERNAL_ERROR,
+                                CONFLICT,
+                                4093)
         );
     }
 
@@ -242,8 +237,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testGeoShapeInvalidDistance() throws Exception {
         assertThrows(() -> execute(
             "create table test (col1 geo_shape INDEX using QUADTREE with (distance_error_pct=true))"),
-                     isSQLError(
-                         is("Value 'true' of setting distance_error_pct is not a float value"),
+                     isSQLError(is("Value 'true' of setting distance_error_pct is not a float value"),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4000)
@@ -396,8 +390,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table t add column bazinga integer constraint bazinga_check check(bazinga <> 42)");
         execute("insert into t(id, qty, bazinga) values(0, 1, 100)");
         assertThrows(() -> execute("insert into t(id, qty, bazinga) values(0, 1, 42)"),
-                     isSQLError(containsString(
-                         "Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {qty=1, id=0, bazinga=42}"),
+                     isSQLError(containsString("Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {qty=1, id=0, bazinga=42}"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));
@@ -427,11 +420,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                      printedTable(response.rows()));
         execute("insert into t(id, qty) values(-42, 100)");
         assertThrows(() -> execute("insert into t(id, qty) values(0, 0)"),
-                     isSQLError(
-                         is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4000));
+                     isSQLError(is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test
@@ -687,7 +679,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDropUnknownTable() throws Exception {
-        assertThrows(() -> execute("drop table test"), isSQLError(is("Relation 'test' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
+        assertThrows(() -> execute("drop table test"),
+                     isSQLError(is("Relation 'test' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
     }
 
     @Test

@@ -29,8 +29,8 @@ import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -126,8 +126,8 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> executeAsSuperuser("alter user unknown_user set (password = 'unknown')"),
                      isSQLError(is("User 'unknown_user' does not exist"),
                                 INTERNAL_ERROR,
-                                FORBIDDEN,
-                                4031));
+                                NOT_FOUND,
+                                40410));
     }
 
     @Test
@@ -149,8 +149,8 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> executeAsNormalUser("drop user ford"),
                      isSQLError(is("Missing 'AL' privilege for user 'normal'"),
                                 INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR,
-                                5000));
+                                UNAUTHORIZED,
+                                4011));
     }
 
     @Test
@@ -158,8 +158,8 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> executeAsNormalUser("create user ford"),
                      isSQLError(is("Missing 'AL' privilege for user 'normal'"),
                                 INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR,
-                                5000));
+                                UNAUTHORIZED,
+                                4011));
     }
 
     @Test
@@ -167,8 +167,8 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> executeAsNormalUser("create user ford"),
                      isSQLError(is("Missing 'AL' privilege for user 'normal'"),
                                 INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR,
-                                5000));
+                                UNAUTHORIZED,
+                                4011));
     }
 
     @Test
@@ -186,7 +186,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("create user ford_exists");
         assertUserIsCreated("ford_exists");
 
-        assertThrows(() ->executeAsSuperuser("create user ford_exists"),
+        assertThrows(() -> executeAsSuperuser("create user ford_exists"),
                      isSQLError(is("User 'ford_exists' already exists"),
                                 INTERNAL_ERROR,
                                 CONFLICT,
@@ -198,8 +198,8 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         assertThrows(() -> executeAsSuperuser("drop user not_exists"),
                      isSQLError(is("User 'not_exists' does not exist"),
                                 INTERNAL_ERROR,
-                                FORBIDDEN,
-                                4031));
+                                NOT_FOUND,
+                                40410));
     }
 
     @Test

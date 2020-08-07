@@ -26,6 +26,7 @@ import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.seqno.ReplicationTracker;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
@@ -130,6 +131,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
                                         int totalTranslogOps,
                                         long maxSeenAutoIdTimestampOnPrimary,
                                         long maxSeqNoOfDeletesOrUpdatesOnPrimary,
+                                        RetentionLeases retentionLeases,
                                         ActionListener<Long> listener) {
         final RecoveryTranslogOperationsRequest request = new RecoveryTranslogOperationsRequest(
             recoveryId,
@@ -137,7 +139,8 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             operations,
             totalTranslogOps,
             maxSeenAutoIdTimestampOnPrimary,
-            maxSeqNoOfDeletesOrUpdatesOnPrimary);
+            maxSeqNoOfDeletesOrUpdatesOnPrimary,
+            retentionLeases);
         transportService.submitRequest(
             targetNode,
             PeerRecoveryTargetService.Actions.TRANSLOG_OPS,

@@ -24,9 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.exceptions.VersioninigValidationException;
-import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.SQLTransportExecutor;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -34,8 +32,10 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, supportsDedicatedMasters = false)
@@ -78,14 +78,14 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("insert into users (name) (select name from users where _version = 1)"),
                      isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
-                                PGErrorStatus.INTERNAL_ERROR,
-                                HttpResponseStatus.BAD_REQUEST,
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
                                 4000));
 
         assertThrows(() -> execute("select name from users where _version = 1"),
                      isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
-                                PGErrorStatus.INTERNAL_ERROR,
-                                HttpResponseStatus.BAD_REQUEST,
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
                                 4000));
     }
 }

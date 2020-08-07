@@ -40,7 +40,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.rest.action.HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -322,9 +321,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("insert into test (pk_col, message) values (?, ?)", new Object[]{"1",
                          "I always thought something was fundamentally wrong with the universe."}),
-                     isSQLError(
-                         is("A document with the same primary key exists already"),
-                         INTERNAL_ERROR, CONFLICT, 4091));
+                     isSQLError(is("A document with the same primary key exists already"),
+                                INTERNAL_ERROR, CONFLICT, 4091));
     }
 
     @Test
