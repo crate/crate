@@ -118,6 +118,7 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.RetentionLeaseStats;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SeqNoStats;
@@ -1908,6 +1909,11 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert expireLeases == false || assertPrimaryMode();
         verifyNotClosed();
         return replicationTracker.getRetentionLeases(expireLeases);
+    }
+
+    public RetentionLeaseStats getRetentionLeaseStats() {
+        verifyNotClosed();
+        return new RetentionLeaseStats(getRetentionLeases());
     }
 
     /**
