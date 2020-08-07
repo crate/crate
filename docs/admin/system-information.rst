@@ -1022,6 +1022,9 @@ Table schema
     * - ``translog_stats['uncommitted_operations']``
       - The number of operations in the translog which have not been committed to Lucene yet.
       - ``INTEGER``
+    * - ``retention_leases``
+      - Versioned collection of retention leases.
+      - ``OBJECT``
 
 
 .. NOTE::
