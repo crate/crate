@@ -2009,9 +2009,17 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         if (retentionLeases.v1()) {
             logger.trace("syncing retention leases [{}] after expiration check", retentionLeases.v2());
             retentionLeaseSyncer.sync(
-                    shardId,
-                    retentionLeases.v2(),
-                    ActionListener.wrap(r -> {}, e -> logger.warn("failed to sync retention leases after expiration check", e)));
+                shardId,
+                retentionLeases.v2(),
+                ActionListener.wrap(
+                    r -> {},
+                    e -> logger.warn(
+                        new ParameterizedMessage(
+                            "failed to sync retention leases [{}] after expiration check", retentionLeases),
+                        e
+                    )
+                )
+            );
         } else {
             logger.trace("background syncing retention leases [{}] after expiration check", retentionLeases.v2());
             retentionLeaseSyncer.backgroundSync(shardId, retentionLeases.v2());
