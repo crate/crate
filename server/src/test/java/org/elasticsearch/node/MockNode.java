@@ -19,6 +19,11 @@
 
 package org.elasticsearch.node;
 
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.function.Function;
+
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.MockInternalClusterInfoService;
@@ -43,12 +48,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportService;
-
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.function.Function;
 
 /**
  * A node for testing which allows:

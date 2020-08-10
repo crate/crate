@@ -327,8 +327,14 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             logger.debug("creating shard_id {}", shardId);
             // TODO we can remove either IndexStore or DirectoryService. All we need is a simple Supplier<Directory>
             DirectoryService directoryService = indexStore.newDirectoryService(path);
-            store = new Store(shardId, this.indexSettings, directoryService.newDirectory(), lock,
-                    new StoreCloseListener(shardId, () -> eventListener.onStoreClosed(shardId)));
+            store = new Store(
+                shardId,
+                this.indexSettings,
+                directoryService.newDirectory(),
+                lock,
+                new StoreCloseListener(shardId, () -> eventListener.onStoreClosed(shardId))
+            );
+            eventListener.onStoreCreated(shardId);
             indexShard = new IndexShard(
                 routing,
                 this.indexSettings,

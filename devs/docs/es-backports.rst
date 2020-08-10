@@ -504,7 +504,7 @@ not present in CrateDB.
 - [ ] 2c90534039e Include in log retention leases that failed to sync
 - [ ] 659e82b08b3 Add some logging related to retention lease syncing (#39066)
 - [ ] c1ab8218f11 Enforce Completion Context Limit (#38675)
-- [ ] 580a71c2411 Don't close caches while there might still be in-flight requests. (#38958)
+- [x] 580a71c2411 Don't close caches while there might still be in-flight requests. (#38958)
 - [s] 2024e331974 Integrate retention leases to recovery from remote (#38829)
 - [x] 5a58c9e16a4 Remove setting index.optimize_auto_generated_id (#27600)
 - [x] 5624eee282b Advance max_seq_no before add operation to Lucene (#38879)
