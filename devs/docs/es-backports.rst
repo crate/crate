@@ -507,7 +507,7 @@ not present in CrateDB.
 - [ ] 580a71c2411 Don't close caches while there might still be in-flight requests. (#38958)
 - [ ] 2024e331974 Integrate retention leases to recovery from remote (#38829)
 - [ ] 5a58c9e16a4 Remove setting index.optimize_auto_generated_id (#27600)
-- [ ] 5624eee282b Advance max_seq_no before add operation to Lucene (#38879)
+- [x] 5624eee282b Advance max_seq_no before add operation to Lucene (#38879)
 - [x] 2ab88e21dcf Also mmap cfs files for hybridfs (#38940)
 - [x] 3f1125fd49a Recover peers from translog, ignoring soft deletes (#38904)
 - [x] 9631c1afdd4 Fix excessive increments in soft delete policy (#38813)
