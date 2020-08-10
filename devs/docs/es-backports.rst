@@ -510,7 +510,7 @@ not present in CrateDB.
 - [ ] 5624eee282b Advance max_seq_no before add operation to Lucene (#38879)
 - [x] 2ab88e21dcf Also mmap cfs files for hybridfs (#38940)
 - [x] 3f1125fd49a Recover peers from translog, ignoring soft deletes (#38904)
-- [ ] 9631c1afdd4 Fix excessive increments in soft delete policy (#38813)
+- [x] 9631c1afdd4 Fix excessive increments in soft delete policy (#38813)
 - [s] d0035300d69 Adjust log and unmute testFailOverOnFollower (#38762)
 - [s] 90e6fb0a56a Fix synchronization in LocalCheckpointTracker#contains (#38755)
 - [x] bbe990f8627 Introduce retention lease actions (#38756)
