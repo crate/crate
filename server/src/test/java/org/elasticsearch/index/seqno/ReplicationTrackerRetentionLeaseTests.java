@@ -373,6 +373,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
     }
 
     @Test
+    @Ignore("https://github.com/crate/crate/issues/10331")
     public void testReplicaIgnoresOlderRetentionLeasesVersion() {
         final AllocationId allocationId = AllocationId.newInitializing();
         final ReplicationTracker replicationTracker = new ReplicationTracker(
