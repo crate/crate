@@ -22,12 +22,14 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersioninigValidationException;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.core.Is.is;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static org.hamcrest.Matchers.containsString;
 
 public class SeqNoBasedOCCIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -118,7 +120,10 @@ public class SeqNoBasedOCCIntegrationTest extends SQLTransportIntegrationTest {
     public void testSelectWhereSeqNoAndPTWithoutPrimaryKey() throws Exception {
         execute("create table t (x integer primary key, y string)");
         ensureYellow();
-        expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
-        execute("select _seq_no, _primary_term from t where y = 'hello' and _seq_no = 1 and _primary_term = 2");
+        assertThrows(() -> execute("select _seq_no, _primary_term from t where y = 'hello' and _seq_no = 1 and _primary_term = 2"),
+                     isSQLError(containsString(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG),
+                                PGErrorStatus.INTERNAL_ERROR,
+                                HttpResponseStatus.BAD_REQUEST,
+                                4000));
     }
 }

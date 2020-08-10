@@ -106,7 +106,6 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
@@ -164,9 +163,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Rule
     public Timeout globalTimeout = new Timeout(5, TimeUnit.MINUTES);
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Rule
     public TestName testName = new TestName();

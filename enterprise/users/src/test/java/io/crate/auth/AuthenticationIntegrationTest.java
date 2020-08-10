@@ -19,6 +19,7 @@
 package io.crate.auth;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -38,6 +39,11 @@ import java.sql.SQLException;
 import java.util.Locale;
 import java.util.Properties;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isPGError;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -105,30 +111,30 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInvalidUser() throws Exception {
-        expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("FATAL: No valid auth.host_based entry found for host \"127.0.0.1\", user \"me\"");
         Properties properties = new Properties();
         properties.setProperty("user", "me");
-        Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
-        conn.close();
+        assertThrows(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
+                     isPGError(is("No valid auth.host_based entry found for host \"127.0.0.1\", user \"me\""),
+                               INVALID_AUTHORIZATION_SPECIFICATION));
+
     }
 
     @Test
     public void testUserInHbaThatDoesNotExist() throws Exception {
-        expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("FATAL: trust authentication failed for user \"cr8\"");
         Properties properties = new Properties();
         properties.setProperty("user", "cr8");
-        DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
+        assertThrows(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
+                     isPGError(is("trust authentication failed for user \"cr8\""),
+                               INVALID_AUTHORIZATION_SPECIFICATION));
     }
 
     @Test
     public void testInvalidAuthenticationMethod() throws Exception {
-        expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("FATAL: No valid auth.host_based entry found for host \"127.0.0.1\", user \"foo\"");
         Properties properties = new Properties();
         properties.setProperty("user", "foo");
-        DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
+        assertThrows(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
+                     isPGError(is("No valid auth.host_based entry found for host \"127.0.0.1\", user \"foo\""),
+                               INVALID_AUTHORIZATION_SPECIFICATION));
     }
 
     @Test
