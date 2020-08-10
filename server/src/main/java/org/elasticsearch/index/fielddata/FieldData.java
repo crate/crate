@@ -147,28 +147,6 @@ public enum FieldData {
         };
     }
 
-    /**
-     * Return a {@link String} representation of the provided values. That is
-     * typically used for scripts or for the `map` execution mode of terms aggs.
-     * NOTE: this is very slow!
-     */
-    public static SortedBinaryDocValues toString(final MultiGeoPointValues values) {
-        return toString(new ToStringValues() {
-
-            @Override
-            public boolean advanceExact(int doc) throws IOException {
-                return values.advanceExact(doc);
-            }
-
-            @Override
-            public void get(List<CharSequence> list) throws IOException {
-                for (int i = 0, count = values.docValueCount(); i < count; ++i) {
-                    list.add(values.nextValue().toString());
-                }
-            }
-        });
-    }
-
     private static SortedBinaryDocValues toString(final ToStringValues toStringValues) {
         return new SortingBinaryDocValues() {
 
