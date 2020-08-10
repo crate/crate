@@ -22,14 +22,14 @@
 
 package io.crate.metadata;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class GeoReferenceTest extends CrateUnitTest {
+public class GeoReferenceTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {

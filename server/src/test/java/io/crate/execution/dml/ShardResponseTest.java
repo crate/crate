@@ -22,12 +22,12 @@
 
 package io.crate.execution.dml;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class ShardResponseTest extends CrateUnitTest {
+public class ShardResponseTest extends ESTestCase {
 
     @Test
     public void testMarkResponseItemsAndFailures() {

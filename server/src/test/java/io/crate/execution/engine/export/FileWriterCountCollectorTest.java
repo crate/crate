@@ -24,7 +24,7 @@ package io.crate.execution.engine.export;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.crate.metadata.ColumnIdent;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.junit.Test;
 
@@ -37,7 +37,7 @@ import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 
-public class FileWriterCountCollectorTest extends CrateUnitTest {
+public class FileWriterCountCollectorTest extends ESTestCase {
 
     @Test
     public void testToNestedStringObjectMap() {

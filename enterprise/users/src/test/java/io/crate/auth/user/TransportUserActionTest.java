@@ -21,7 +21,7 @@ package io.crate.auth.user;
 import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetadata;
 import io.crate.metadata.UsersPrivilegesMetadata;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
@@ -32,7 +32,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
-public class TransportUserActionTest extends CrateUnitTest {
+public class TransportUserActionTest extends ESTestCase {
 
     @Test
     public void testCreateFirstUser() throws Exception {

@@ -22,7 +22,7 @@
 
 package io.crate.metadata.functions;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -45,7 +45,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-public class SignatureBinderTest extends CrateUnitTest {
+public class SignatureBinderTest extends ESTestCase {
 
     private static Signature.Builder functionSignature() {
         return Signature.builder()

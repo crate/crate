@@ -21,13 +21,14 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.action.sql.SQLActionException;
 import io.crate.data.Paging;
-import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
@@ -50,15 +51,16 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testThatErrorsInSearchResponseCallbackAreNotSwallowed() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("d != java.lang.String"));
-
         execute("create table t (s string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (s) values ('foo')");
         execute("refresh table t");
 
-        execute("select format('%d', s) from t");
+        assertThrows(() -> execute("select format('%d', s) from t"),
+                     isSQLError(containsString("d != java.lang.String"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @Test

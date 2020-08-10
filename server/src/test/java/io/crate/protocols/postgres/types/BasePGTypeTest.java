@@ -23,13 +23,13 @@
 package io.crate.protocols.postgres.types;
 
 import io.crate.protocols.postgres.FormatCodes;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 import static org.hamcrest.Matchers.is;
 
-public abstract class BasePGTypeTest<T> extends CrateUnitTest {
+public abstract class BasePGTypeTest<T> extends ESTestCase {
 
     PGType pgType;
 

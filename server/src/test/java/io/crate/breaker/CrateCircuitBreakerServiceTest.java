@@ -41,9 +41,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.plugin.SQLPlugin;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 
-public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
+public class CrateCircuitBreakerServiceTest extends ESTestCase {
 
     private ClusterSettings clusterSettings;
 

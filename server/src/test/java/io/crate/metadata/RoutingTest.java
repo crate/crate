@@ -24,7 +24,7 @@ package io.crate.metadata;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableSet;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.Randomness;
@@ -43,7 +43,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-public class RoutingTest extends CrateUnitTest {
+public class RoutingTest extends ESTestCase {
 
     @Test
     public void testStreamingWithLocations() throws Exception {

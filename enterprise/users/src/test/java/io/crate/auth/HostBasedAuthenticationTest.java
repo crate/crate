@@ -19,7 +19,7 @@
 package io.crate.auth;
 
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
@@ -48,7 +48,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.when;
 
 
-public class HostBasedAuthenticationTest extends CrateUnitTest {
+public class HostBasedAuthenticationTest extends ESTestCase {
 
     private static final Settings HBA_1 = Settings.builder()
         .put("auth.host_based.config.1.user", "crate")

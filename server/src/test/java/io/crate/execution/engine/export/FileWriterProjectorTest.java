@@ -27,7 +27,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
@@ -47,7 +47,7 @@ import java.util.stream.IntStream;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class FileWriterProjectorTest extends CrateUnitTest {
+public class FileWriterProjectorTest extends ESTestCase {
 
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
 

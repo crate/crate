@@ -23,7 +23,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -33,7 +33,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
-public class AggregationTest extends CrateUnitTest {
+public class AggregationTest extends ESTestCase {
 
     @Test
     public void test_serialization_with_filter() throws Exception {

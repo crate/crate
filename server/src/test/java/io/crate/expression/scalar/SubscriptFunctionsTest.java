@@ -30,11 +30,11 @@ import org.junit.Test;
 
 import io.crate.data.Row1;
 import io.crate.expression.symbol.Literal;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 
-public class SubscriptFunctionsTest extends CrateUnitTest {
+public class SubscriptFunctionsTest extends ESTestCase {
 
     @Test
     public void test_subscript_can_be_created_for_accessing_field_within_nested_record() throws Exception {

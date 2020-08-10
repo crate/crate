@@ -22,7 +22,7 @@
 
 package io.crate.metadata.table;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -30,7 +30,7 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
-public class OperationTest extends CrateUnitTest {
+public class OperationTest extends ESTestCase {
 
     @Test
     public void testBuildFromEmptyIndexBlocks() throws Exception {

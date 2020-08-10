@@ -27,7 +27,7 @@ import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.TryCast;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 
-public class SubscriptValidatorTest extends CrateUnitTest {
+public class SubscriptValidatorTest extends ESTestCase {
 
     private SubscriptContext analyzeSubscript(String expressionString) {
         SubscriptContext context = new SubscriptContext();

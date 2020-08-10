@@ -23,7 +23,7 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.collect.Ordering;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -32,7 +32,7 @@ import java.util.Comparator;
 
 import static org.hamcrest.core.Is.is;
 
-public class OrderingByPositionTest extends CrateUnitTest {
+public class OrderingByPositionTest extends ESTestCase {
 
     @Test
     public void testOrderByAscNullsFirst() throws Exception {

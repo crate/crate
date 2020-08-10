@@ -36,7 +36,7 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.metadata.Reference;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -74,7 +74,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
-public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
+public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
     private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(
         Collections.singleton(LongType.INSTANCE),

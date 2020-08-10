@@ -39,7 +39,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matcher;
@@ -56,7 +56,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.any;
 
-public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
+public abstract class AbstractTableFunctionsTest extends ESTestCase {
 
     protected SqlExpressions sqlExpressions;
     protected Functions functions;

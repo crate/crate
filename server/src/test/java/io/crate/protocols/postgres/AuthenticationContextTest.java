@@ -27,7 +27,7 @@ import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.auth.user.User;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.apache.logging.log4j.LogManager;
 import org.junit.Test;
 
@@ -36,7 +36,7 @@ import java.net.InetAddress;
 import static org.hamcrest.core.Is.is;
 
 
-public class AuthenticationContextTest extends CrateUnitTest {
+public class AuthenticationContextTest extends ESTestCase {
 
     private static final Authentication AUTHENTICATION = new AlwaysOKNullAuthentication();
 

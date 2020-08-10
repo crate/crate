@@ -22,11 +22,11 @@
 
 package io.crate.testing;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataType;
 import org.junit.Test;
 
-public class DataTypeTestingTest extends CrateUnitTest {
+public class DataTypeTestingTest extends ESTestCase {
 
     @Test
     public void testDataGeneratorReturnValidValues() throws Exception {

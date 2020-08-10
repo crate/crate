@@ -22,15 +22,17 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
-
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false, numClientNodes = 0)
@@ -65,9 +67,12 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
         execute("select text from t1 group by text");
 
         execute("set global \"indices.breaker.query.limit\"='100b'");
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for [collect: 0] " +
-                                        "would be [130/130b], which is larger than the limit of [100/100b]");
-        execute("select text from t1 group by text");
+
+        assertThrows(() -> execute("select text from t1 group by text"),
+                     isSQLError(is("[query] Data too large, data for [collect: 0] would be [130/130b], which " +
+                                   "is larger than the limit of [100/100b]"),
+                       INTERNAL_ERROR,
+                       INTERNAL_SERVER_ERROR,
+                       5000));
     }
 }

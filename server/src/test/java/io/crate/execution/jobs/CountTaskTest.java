@@ -33,7 +33,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.CauseMatcher;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
@@ -49,7 +49,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class CountTaskTest extends CrateUnitTest {
+public class CountTaskTest extends ESTestCase {
 
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 

@@ -21,13 +21,13 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
+public class MatchOptionsAnalyzedStatementTest extends ESTestCase {
 
     @Test
     public void testValidOptions() throws Exception {

@@ -21,14 +21,17 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
 import org.junit.Test;
 
 import java.util.Locale;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 
@@ -37,19 +40,17 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testShowCrateSystemTable() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow SHOW CREATE " +
-                                        "operations, as it is read-only.");
-        execute("show create table sys.shards");
+        assertThrows(() -> execute("show create table sys.shards"),
+                     isSQLError(is("The relation \"sys.shards\" doesn't support or allow SHOW CREATE operations, as it is read-only."),
+                         INTERNAL_ERROR, BAD_REQUEST, 4007));
     }
 
     @Test
     public void testShowCreateBlobTable() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"blob.table_blob\" doesn't support or allow " +
-                                        "SHOW CREATE operations.");
         execute("create blob table table_blob");
-        execute("show create table blob.table_blob");
+        assertThrows(() -> execute("show create table blob.table_blob"),
+                     isSQLError(is("The relation \"blob.table_blob\" doesn't support or allow SHOW CREATE operations."),
+                         INTERNAL_ERROR, BAD_REQUEST, 4007));
     }
 
     @Test
@@ -385,9 +386,11 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testShowUnknownSetting() {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Unknown session setting name 'foo'.");
-        execute("show foo");
+        assertThrows(() -> execute("show foo"),
+                     isSQLError(is("Unknown session setting name 'foo'."),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4000));
     }
 
     @UseHashJoins(1)

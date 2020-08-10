@@ -22,7 +22,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.auth.user.AccessControl;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -37,7 +37,7 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 
-public class SslReqHandlerTest extends CrateUnitTest {
+public class SslReqHandlerTest extends ESTestCase {
 
     private EmbeddedChannel channel;
 

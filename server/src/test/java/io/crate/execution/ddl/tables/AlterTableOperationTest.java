@@ -22,7 +22,7 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
-public class AlterTableOperationTest extends CrateUnitTest {
+public class AlterTableOperationTest extends ESTestCase {
 
 
     private static Settings baseIndexSettings() {

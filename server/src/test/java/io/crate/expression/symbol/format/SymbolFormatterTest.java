@@ -26,7 +26,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.functions.Signature;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -35,7 +35,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
-public class SymbolFormatterTest extends CrateUnitTest {
+public class SymbolFormatterTest extends ESTestCase {
 
     @Test
     public void testFormat() throws Exception {

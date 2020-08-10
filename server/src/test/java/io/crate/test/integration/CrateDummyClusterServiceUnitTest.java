@@ -36,6 +36,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -53,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterStatePublisher;
 import static org.elasticsearch.test.ClusterServiceUtils.createNoOpNodeConnectionsService;
 
-public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
+public class CrateDummyClusterServiceUnitTest extends ESTestCase {
 
     public static final String NODE_ID = "n1";
     public static final String NODE_NAME = "node-name";

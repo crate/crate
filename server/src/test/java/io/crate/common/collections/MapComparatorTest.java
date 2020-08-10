@@ -22,7 +22,7 @@
 
 package io.crate.common.collections;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -30,7 +30,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
-public class MapComparatorTest extends CrateUnitTest {
+public class MapComparatorTest extends ESTestCase {
 
     @Test
     public void testCompareNullMaps() {

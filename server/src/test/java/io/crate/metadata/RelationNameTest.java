@@ -24,12 +24,12 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.blob.v2.BlobIndex;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class RelationNameTest extends CrateUnitTest {
+public class RelationNameTest extends ESTestCase {
 
     @Test
     public void testIndexName() throws Exception {

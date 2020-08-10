@@ -23,7 +23,7 @@
 package io.crate.auth;
 
 import io.crate.auth.user.User;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
@@ -34,7 +34,7 @@ import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 
-public class UserAuthenticationMethodTest extends CrateUnitTest {
+public class UserAuthenticationMethodTest extends ESTestCase {
 
     private User userLookup(String userName) {
         if (userName.equals("crate")) {

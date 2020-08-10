@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.collect.files;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.io.File;
@@ -30,7 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 
-public class URLFileInputTest extends CrateUnitTest {
+public class URLFileInputTest extends ESTestCase {
 
     @Test
     public void testGetStream() throws IOException {

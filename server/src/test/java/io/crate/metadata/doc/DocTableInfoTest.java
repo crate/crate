@@ -10,7 +10,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -21,7 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
-public class DocTableInfoTest extends CrateUnitTest {
+public class DocTableInfoTest extends ESTestCase {
 
     @Test
     public void testGetColumnInfo() throws Exception {

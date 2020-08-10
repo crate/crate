@@ -29,7 +29,7 @@ import io.crate.expression.reference.DocRefResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -43,7 +43,7 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
 
-public class DocRefResolverTest extends CrateUnitTest {
+public class DocRefResolverTest extends ESTestCase {
 
     private static final BytesReference SOURCE = new BytesArray("{\"x\": 1}".getBytes());
     private static final DocRefResolver REF_RESOLVER =

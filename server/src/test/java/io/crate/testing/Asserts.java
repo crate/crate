@@ -20,28 +20,28 @@
  * agreement.
  */
 
-package io.crate.execution.engine;
+package io.crate.testing;
 
-import io.crate.exceptions.JobKilledException;
-import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import org.hamcrest.Matcher;
+import org.junit.jupiter.api.function.Executable;
+import org.opentest4j.AssertionFailedError;
 
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
+public class Asserts {
 
-public class FailureOnlyResponseListenerTest extends ESTestCase {
+    private Asserts() {}
 
-    @Test
-    public void testFailureOnResponseIsPropagatedToInitializationTracker() throws Exception {
-        InitializationTracker tracker = new InitializationTracker(1);
-        FailureOnlyResponseListener listener = new FailureOnlyResponseListener(Collections.emptyList(), tracker);
-
-        listener.onFailure(JobKilledException.of("because reasons"));
-
-        assertThat(tracker.future.isCompletedExceptionally(), Matchers.is(true));
-
-        expectedException.expectMessage("Job killed. because reasons");
-        tracker.future.get(1, TimeUnit.SECONDS);
+    public static <T extends Throwable> void assertThrows(Executable executable, Matcher<T> matcher) {
+        try {
+            executable.execute();
+        } catch (Throwable t) {
+            if (matcher.matches(t)) {
+                return;
+            }
+            throw new AssertionFailedError(
+                String.format("Unmatched %s type thrown with message '%s'",
+                              t.getClass().getCanonicalName(),
+                              t.getMessage()), t);
+        }
+        throw new AssertionFailedError("Expected exception to be thrown, but nothing was thrown.");
     }
 }

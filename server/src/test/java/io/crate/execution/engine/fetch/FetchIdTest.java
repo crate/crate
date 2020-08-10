@@ -22,14 +22,14 @@
 
 package io.crate.execution.engine.fetch;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.stream.LongStream;
 
 import static org.hamcrest.core.Is.is;
 
-public class FetchIdTest extends CrateUnitTest {
+public class FetchIdTest extends ESTestCase {
 
     @Test
     public void testEncodeAndDecode() throws Exception {

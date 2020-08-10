@@ -22,13 +22,13 @@
 
 package io.crate.expression.predicate;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class MatchPredicateTest extends CrateUnitTest {
+public class MatchPredicateTest extends ESTestCase {
 
     @Test
     public void testGetStringDefaultMatchType() throws Exception {

@@ -22,13 +22,13 @@
 
 package io.crate.interval;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.joda.time.Period;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class IntervalParserTest extends CrateUnitTest {
+public class IntervalParserTest extends ESTestCase {
 
     @Test
     public void parse_year_month_day_hours_minutes() {

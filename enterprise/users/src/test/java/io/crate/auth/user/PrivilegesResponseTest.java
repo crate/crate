@@ -19,7 +19,7 @@
 package io.crate.auth.user;
 
 import com.google.common.collect.Lists;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -27,7 +27,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
-public class PrivilegesResponseTest extends CrateUnitTest {
+public class PrivilegesResponseTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {

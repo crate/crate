@@ -35,7 +35,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -47,7 +47,7 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.core.Is.is;
 
-public class MapRowUsingInputsTest extends CrateUnitTest {
+public class MapRowUsingInputsTest extends ESTestCase {
 
     private List<Input<?>> inputs;
     private List<CollectExpression<Row, ?>> expressions;

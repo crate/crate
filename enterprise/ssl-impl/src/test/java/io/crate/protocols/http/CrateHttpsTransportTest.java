@@ -21,7 +21,7 @@ package io.crate.protocols.http;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProviderImpl;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.ssl.SslHandler;
 import org.elasticsearch.client.node.NodeClient;
@@ -48,7 +48,7 @@ import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 
-public class CrateHttpsTransportTest extends CrateUnitTest {
+public class CrateHttpsTransportTest extends ESTestCase {
 
     private static File trustStoreFile;
     private static File keyStoreFile;

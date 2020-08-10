@@ -23,7 +23,7 @@ package io.crate.expression.symbol;
 
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -42,7 +42,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-public class FunctionTest extends CrateUnitTest {
+public class FunctionTest extends ESTestCase {
 
     private DataType<?> returnType = TestingHelpers.randomPrimitiveType();
 

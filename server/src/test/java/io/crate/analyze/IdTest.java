@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -33,7 +33,7 @@ import java.util.NoSuchElementException;
 
 import static org.hamcrest.core.Is.is;
 
-public class IdTest extends CrateUnitTest {
+public class IdTest extends ESTestCase {
 
     private static final ColumnIdent _ID = ci("_id");
     private static final ImmutableList<ColumnIdent> _ID_LIST = ImmutableList.of(_ID);

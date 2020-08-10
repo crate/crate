@@ -33,7 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -44,7 +44,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-public class RestActionReceiversTest extends CrateUnitTest {
+public class RestActionReceiversTest extends ESTestCase {
 
     private final ImmutableList<RowN> rows = ImmutableList.of(
         new RowN("foo", 1, true),

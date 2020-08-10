@@ -23,7 +23,6 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
-import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.SetOnce;
@@ -56,6 +55,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -140,18 +146,22 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testDropUnknownSnapshot() throws Exception {
         String snapshot = "unknown_snap";
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "Snapshot '%s.%s' unknown", REPOSITORY_NAME, snapshot));
-        execute("drop snapshot " + REPOSITORY_NAME + "." + snapshot);
+        assertThrows(() -> execute("drop snapshot " + REPOSITORY_NAME + "." + snapshot),
+                     isSQLError(is(String.format(Locale.ENGLISH, "Snapshot '%s.%s' unknown", REPOSITORY_NAME, snapshot)),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4048));
     }
 
     @Test
     public void testDropSnapshotUnknownRepository() throws Exception {
         String repository = "unknown_repo";
         String snapshot = "unknown_snap";
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "Repository '%s' unknown", repository));
-        execute("drop snapshot " + repository + "." + snapshot);
+        assertThrows(() -> execute("drop snapshot " + repository + "." + snapshot),
+                     isSQLError(is(String.format(Locale.ENGLISH, "Repository '%s' unknown", repository)),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4047));
     }
 
     @Test
@@ -231,25 +241,29 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
         assertThat(response.rowCount(), is(1L));
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Invalid snapshot name [my_snapshot], snapshot with the same name already exists");
-        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+        assertThrows(() -> execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)"),
+                     isSQLError(containsString("Invalid snapshot name [my_snapshot], snapshot with the same name already exists"),
+                                INTERNAL_ERROR,
+                                CONFLICT,
+                                4099));
     }
 
     @Test
     public void testCreateSnapshotUnknownRepo() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Repository 'unknown_repo' unknown");
-        execute("CREATE SNAPSHOT unknown_repo.my_snapshot ALL WITH (wait_for_completion=true)");
+        assertThrows(() -> execute("CREATE SNAPSHOT unknown_repo.my_snapshot ALL WITH (wait_for_completion=true)"),
+                     isSQLError(is("Repository 'unknown_repo' unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4047));
     }
 
     @Test
     public void testInvalidSnapshotName() throws Exception {
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase");
-        execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)");
+        assertThrows(() -> execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)"),
+                     isSQLError(containsString("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase"),
+                                INTERNAL_ERROR,
+                                CONFLICT,
+                                4099));
     }
 
     @Test
@@ -486,17 +500,25 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testResolveUnknownTableFromSnapshot() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("ResourceNotFoundException: [%s..partitioned.employees.] template not found", sqlExecutor.getCurrentSchema()));
         execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
         ensureYellow();
-        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)");
+
+        assertThrows(() -> execute(
+            "RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)"),
+                     isSQLError(is(String.format("[%s..partitioned.employees.] template not found", sqlExecutor.getCurrentSchema())),
+                        INTERNAL_ERROR,
+                        INTERNAL_SERVER_ERROR,
+                        5000)
+        );
     }
 
     @Test
     public void test_cannot_create_snapshot_in_read_only_repo() {
-        expectedException.expectMessage("cannot create snapshot in a readonly repository");
-        execute("create snapshot my_repo_ro.s1 ALL WITH (wait_for_completion=true)");
+        assertThrows(() -> execute("create snapshot my_repo_ro.s1 ALL WITH (wait_for_completion=true)"),
+                     isSQLError(containsString("cannot create snapshot in a readonly repository"),
+                                INTERNAL_ERROR,
+                                INTERNAL_SERVER_ERROR,
+                                5000));
     }
 
     public void test_snapshot_with_corrupted_shard_index_file() throws Exception {

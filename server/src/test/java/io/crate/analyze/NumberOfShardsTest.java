@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -41,7 +41,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class NumberOfShardsTest extends CrateUnitTest {
+public class NumberOfShardsTest extends ESTestCase {
 
     private static final QualifiedNameReference QNAME_REF = new QualifiedNameReference(new QualifiedName("id"));
     private static ClusterService clusterService = mock(ClusterService.class);

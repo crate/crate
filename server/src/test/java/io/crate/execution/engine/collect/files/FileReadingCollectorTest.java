@@ -42,7 +42,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -80,7 +80,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class FileReadingCollectorTest extends CrateUnitTest {
+public class FileReadingCollectorTest extends ESTestCase {
 
     private static File tmpFile;
     private static File tmpFileGz;

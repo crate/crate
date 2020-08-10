@@ -24,7 +24,7 @@ package io.crate.auth;
 
 import io.crate.auth.user.User;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.elasticsearch.common.network.InetAddresses;
 import org.junit.Before;
@@ -38,7 +38,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ClientCertAuthTest extends CrateUnitTest {
+public class ClientCertAuthTest extends ESTestCase {
 
     private ConnectionProperties sslConnWithCert;
     // "example.com" is the CN used in SelfSignedCertificate

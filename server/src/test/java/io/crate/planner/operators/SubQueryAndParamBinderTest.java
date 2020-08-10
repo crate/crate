@@ -24,13 +24,13 @@ package io.crate.planner.operators;
 
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.SqlExpressions;
 import org.junit.Test;
 
 import java.util.Map;
 
-public class SubQueryAndParamBinderTest extends CrateUnitTest {
+public class SubQueryAndParamBinderTest extends ESTestCase {
 
     @Test
     public void test_user_friendly_error_if_not_enough_param_values_provided() {

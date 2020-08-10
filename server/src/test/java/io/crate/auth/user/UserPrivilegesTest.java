@@ -23,7 +23,7 @@
 package io.crate.auth.user;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.util.set.Sets;
 import org.junit.Test;
 
@@ -32,7 +32,7 @@ import java.util.Collections;
 
 import static org.hamcrest.Matchers.is;
 
-public class UserPrivilegesTest extends CrateUnitTest {
+public class UserPrivilegesTest extends ESTestCase {
 
     private static final Collection<Privilege> PRIVILEGES_CLUSTER_DQL = Sets.newHashSet(
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")

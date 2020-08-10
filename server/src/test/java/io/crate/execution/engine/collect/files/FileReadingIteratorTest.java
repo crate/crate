@@ -32,7 +32,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
 import org.junit.Before;
@@ -54,7 +54,7 @@ import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
 import static io.crate.testing.TestingHelpers.createReference;
 
-public class FileReadingIteratorTest extends CrateUnitTest {
+public class FileReadingIteratorTest extends ESTestCase {
 
     private InputFactory inputFactory;
     private Path tempFilePath;

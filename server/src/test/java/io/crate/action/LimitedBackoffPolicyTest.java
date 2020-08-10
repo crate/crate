@@ -22,7 +22,7 @@
 
 package io.crate.action;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import io.crate.common.unit.TimeValue;
 import org.hamcrest.Matchers;
@@ -32,7 +32,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 
-public class LimitedBackoffPolicyTest extends CrateUnitTest {
+public class LimitedBackoffPolicyTest extends ESTestCase {
 
     @Test
     public void testNoNext() throws Exception {

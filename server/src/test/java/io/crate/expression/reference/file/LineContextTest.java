@@ -22,11 +22,11 @@
 package io.crate.expression.reference.file;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import java.nio.charset.StandardCharsets;
 
-public class LineContextTest extends CrateUnitTest {
+public class LineContextTest extends ESTestCase {
     @Test
     public void testGet() {
         LineContext context = new LineContext();

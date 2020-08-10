@@ -24,7 +24,7 @@ package io.crate.metadata;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -36,7 +36,7 @@ import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 
-public class ReferenceTest extends CrateUnitTest {
+public class ReferenceTest extends ESTestCase {
 
     @Test
     public void testEquals()  {

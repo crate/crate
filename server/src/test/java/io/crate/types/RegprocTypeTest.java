@@ -23,7 +23,7 @@
 package io.crate.types;
 
 import io.crate.metadata.pgcatalog.OidHash;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -34,7 +34,7 @@ import java.util.Set;
 import static io.crate.types.DataTypes.REGPROC;
 import static org.hamcrest.Matchers.is;
 
-public class RegprocTypeTest extends CrateUnitTest {
+public class RegprocTypeTest extends ESTestCase {
 
     @Test
     public void test_implicit_cast_regproc_to_integer() {

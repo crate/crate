@@ -22,7 +22,7 @@
 
 package io.crate.monitor;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.core.AnyOf;
 import org.junit.Test;
 
@@ -31,7 +31,7 @@ import java.util.List;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.Is.is;
 
-public class SysInfoUtilTest extends CrateUnitTest {
+public class SysInfoUtilTest extends ESTestCase {
 
     private static final SysInfo.Builder SYSINFO_BUILDER = new SysInfo.Builder();
     private static final AnyOf<String> X86_64 = anyOf(is("x86_64"), is("amd64"), is("x64"));

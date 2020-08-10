@@ -32,9 +32,9 @@ import org.junit.Test;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.TypeSettings;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 
-public class RepositoryParamValidatorTest extends CrateUnitTest {
+public class RepositoryParamValidatorTest extends ESTestCase {
 
     private RepositoryParamValidator validator;
 

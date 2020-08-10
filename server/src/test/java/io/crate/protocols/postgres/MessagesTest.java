@@ -25,7 +25,7 @@ package io.crate.protocols.postgres;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -43,7 +43,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class MessagesTest extends CrateUnitTest {
+public class MessagesTest extends ESTestCase {
 
     @Test
     public void testBufferInSendDataRowIsReleasedIfGetValueFromRowFails() {

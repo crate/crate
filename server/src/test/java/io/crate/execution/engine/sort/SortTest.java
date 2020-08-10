@@ -23,7 +23,7 @@
 package io.crate.execution.engine.sort;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 
-public class SortTest extends CrateUnitTest {
+public class SortTest extends ESTestCase {
 
     private ExecutorService executor;
 

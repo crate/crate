@@ -23,14 +23,14 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.expression.reference.partitioned.PartitionExpression;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsString;
 
-public class PartitionReferenceResolverTest extends CrateUnitTest {
+public class PartitionReferenceResolverTest extends ESTestCase {
 
     @Test
     public void testClusterExpressionsNotAllowed() throws Exception {

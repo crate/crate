@@ -21,7 +21,7 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.user.Privilege;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.Metadata;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class PrivilegesMetadataUpgraderTest extends CrateUnitTest {
+public class PrivilegesMetadataUpgraderTest extends ESTestCase {
 
     private static final PrivilegesMetadataUpgrader UPGRADER = new PrivilegesMetadataUpgrader();
 

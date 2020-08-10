@@ -21,7 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 
-public class TopNProjectionTest extends CrateUnitTest {
+public class TopNProjectionTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
