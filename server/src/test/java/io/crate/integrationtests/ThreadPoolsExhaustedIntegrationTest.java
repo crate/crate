@@ -27,6 +27,7 @@ import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -50,6 +51,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
     }
 
     @Test
+    @Ignore("https://github.com/crate/crate/issues/10326")
     public void testRegularSelectWithFewAvailableThreadsShouldNeverGetStuck() throws Exception {
         execute("create table t (x int) with (number_of_replicas = 0)");
         ensureYellow();
