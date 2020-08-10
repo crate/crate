@@ -15,7 +15,7 @@ supports, what they are and how to use them.
 
 .. csv-table::
    :header: ID,Package,#,Description,Supported,Verified,Comments
-   :widths: 80,140,15,250,130
+   :widths: 80,140,15,250,1,1,130
    :delim: U+0009
    :file: ../../../sql/src/main/resources/sql_features.tsv
    :exclude: {4: '(?i)N\w*'}
