@@ -41,7 +41,12 @@ import java.util.Map;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -337,8 +342,11 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (x) values (1), (2)");
         execute("refresh table t1");
 
-        expectedException.expectMessage("Subquery returned more than 1 row");
-        execute("select name from sys.cluster where 1 = (select x from t1)");
+        assertThrows(() -> execute("select name from sys.cluster where 1 = (select x from t1)"),
+                     isSQLError(containsString("Subquery returned more than 1 row"),
+                                INTERNAL_ERROR,
+                                BAD_REQUEST,
+                                4004));
     }
 
     @Test

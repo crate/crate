@@ -40,7 +40,11 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Additional tests to the SSL tests in {@link AuthenticationIntegrationTest} where SSL
@@ -136,8 +140,10 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
         Properties properties = new Properties();
         properties.setProperty("user", "localhost");
         properties.setProperty("ssl", "true");
-        expectedException.expectMessage("Client certificate authentication failed for user \"localhost\"");
-        try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
+
+        assertThrows(() -> { try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}},
+                     isPGError(is("Client certificate authentication failed for user \"localhost\""),
+                               INVALID_AUTHORIZATION_SPECIFICATION));
     }
 
 
