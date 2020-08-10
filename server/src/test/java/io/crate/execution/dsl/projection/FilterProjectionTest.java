@@ -25,7 +25,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.RowGranularity;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -34,7 +34,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.List;
 
-public class FilterProjectionTest extends CrateUnitTest {
+public class FilterProjectionTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {

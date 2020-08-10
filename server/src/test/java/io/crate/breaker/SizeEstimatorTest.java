@@ -21,7 +21,7 @@
 
 package io.crate.breaker;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.Regproc;
@@ -32,7 +32,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
-public class SizeEstimatorTest extends CrateUnitTest {
+public class SizeEstimatorTest extends ESTestCase {
 
     @Test
     public void testString() throws Exception {

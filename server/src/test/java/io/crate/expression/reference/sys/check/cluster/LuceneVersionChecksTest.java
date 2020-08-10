@@ -22,12 +22,12 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class LuceneVersionChecksTest extends CrateUnitTest {
+public class LuceneVersionChecksTest extends ESTestCase {
 
     @Test
     public void testUpgradeRequired() {

@@ -23,7 +23,7 @@ import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.HostBasedAuthentication;
 import io.crate.auth.user.User;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -49,7 +49,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
+public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     private final Settings hbaEnabled = Settings.builder()
         .put("auth.host_based.enabled", true)

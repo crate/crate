@@ -32,7 +32,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -49,7 +49,7 @@ import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
 
-public class NodeStatsCollectSourceTest extends CrateUnitTest {
+public class NodeStatsCollectSourceTest extends ESTestCase {
 
     private Collection<DiscoveryNode> discoveryNodes;
 

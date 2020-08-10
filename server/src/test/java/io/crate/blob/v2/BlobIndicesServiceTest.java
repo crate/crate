@@ -23,7 +23,7 @@
 package io.crate.blob.v2;
 
 import io.crate.plugin.IndexEventListenerProxy;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BlobIndicesServiceTest extends CrateUnitTest {
+public class BlobIndicesServiceTest extends ESTestCase {
 
     private BlobIndicesService blobIndicesService;
     private ClusterService clusterService;

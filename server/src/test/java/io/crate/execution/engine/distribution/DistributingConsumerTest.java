@@ -30,7 +30,7 @@ import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.jobs.CumulativePageBucketReceiver;
 import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.jobs.PageBucketReceiver;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.FailingBatchIterator;
 import io.crate.testing.TestingBatchIterators;
@@ -64,7 +64,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class DistributingConsumerTest extends CrateUnitTest {
+public class DistributingConsumerTest extends ESTestCase {
 
     private Logger logger = LogManager.getLogger(DistributingConsumer.class);
     private ExecutorService executorService;

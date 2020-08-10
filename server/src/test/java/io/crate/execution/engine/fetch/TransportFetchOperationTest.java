@@ -27,13 +27,13 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class TransportFetchOperationTest extends CrateUnitTest {
+public class TransportFetchOperationTest extends ESTestCase {
 
     @Test
     public void test_no_ram_accounting_on_empty_fetch_ids_and_close() {

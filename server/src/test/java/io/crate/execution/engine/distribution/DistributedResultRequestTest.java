@@ -25,7 +25,7 @@ package io.crate.execution.engine.distribution;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.RowN;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class DistributedResultRequestTest extends CrateUnitTest {
+public class DistributedResultRequestTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {

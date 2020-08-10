@@ -26,12 +26,12 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-public class OrderByPositionVisitorTest extends CrateUnitTest {
+public class OrderByPositionVisitorTest extends ESTestCase {
 
     @Test
     public void testOrderByPositionInputs() throws Exception {

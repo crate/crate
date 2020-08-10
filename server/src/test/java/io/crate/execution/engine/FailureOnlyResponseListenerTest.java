@@ -23,14 +23,14 @@
 package io.crate.execution.engine;
 
 import io.crate.exceptions.JobKilledException;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-public class FailureOnlyResponseListenerTest extends CrateUnitTest {
+public class FailureOnlyResponseListenerTest extends ESTestCase {
 
     @Test
     public void testFailureOnResponseIsPropagatedToInitializationTracker() throws Exception {

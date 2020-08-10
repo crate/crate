@@ -21,7 +21,7 @@
 
 package io.crate.types;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -31,7 +31,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 
-public class StringTypeTest extends CrateUnitTest {
+public class StringTypeTest extends ESTestCase {
 
     @Test
     public void test_implicit_cast_boolean_to_text() {

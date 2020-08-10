@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.DummyRelation;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
@@ -36,7 +36,7 @@ import java.util.Map;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class ScalarsAndRefsToTrueTest extends CrateUnitTest {
+public class ScalarsAndRefsToTrueTest extends ESTestCase {
 
     private SqlExpressions expressions;
 

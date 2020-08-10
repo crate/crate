@@ -26,10 +26,10 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class ExpressionToColumnIdentVisitorTest extends CrateUnitTest {
+public class ExpressionToColumnIdentVisitorTest extends ESTestCase {
 
     @Test
     public void testConvertWithSimpleStringLiteral() throws Exception {

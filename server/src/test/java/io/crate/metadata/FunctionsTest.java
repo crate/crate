@@ -27,7 +27,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.functions.Signature;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -43,7 +43,7 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-public class FunctionsTest extends CrateUnitTest {
+public class FunctionsTest extends ESTestCase {
 
     private Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
 

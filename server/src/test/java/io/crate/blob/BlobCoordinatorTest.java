@@ -22,7 +22,7 @@
 
 package io.crate.blob;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 
-public class BlobCoordinatorTest extends CrateUnitTest {
+public class BlobCoordinatorTest extends ESTestCase {
 
     @Test
     public void testSameDigestGetsSameSemaphore() throws Exception {

@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.snapshot;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
@@ -46,7 +46,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SysSnapshotsTest extends CrateUnitTest {
+public class SysSnapshotsTest extends ESTestCase {
 
     @Test
     public void testUnavailableSnapshotsAreFilteredOut() {

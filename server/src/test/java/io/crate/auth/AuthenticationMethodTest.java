@@ -23,12 +23,12 @@
 package io.crate.auth;
 
 import io.crate.auth.user.User;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class AuthenticationMethodTest extends CrateUnitTest {
+public class AuthenticationMethodTest extends ESTestCase {
 
     @Test
     public void testAlwaysOKNullAuthentication() throws Exception {

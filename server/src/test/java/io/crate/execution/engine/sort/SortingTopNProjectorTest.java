@@ -34,7 +34,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -51,7 +51,7 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.core.Is.is;
 
-public class SortingTopNProjectorTest extends CrateUnitTest {
+public class SortingTopNProjectorTest extends ESTestCase {
 
     private static final InputCollectExpression INPUT = new InputCollectExpression(0);
     private static final Literal<Boolean> TRUE_LITERAL = Literal.of(true);

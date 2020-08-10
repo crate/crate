@@ -22,13 +22,13 @@
 
 package io.crate.planner.statement;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 
 import static io.crate.planner.statement.SetSessionPlan.validateSetting;
 
-public class SetSessionPlanTest extends CrateUnitTest {
+public class SetSessionPlanTest extends ESTestCase {
 
     @Test
     public void testSetSessionInvalidSetting() throws Exception {

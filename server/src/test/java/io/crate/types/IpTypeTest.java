@@ -21,13 +21,13 @@
 
 package io.crate.types;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class IpTypeTest extends CrateUnitTest {
+public class IpTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_value() {

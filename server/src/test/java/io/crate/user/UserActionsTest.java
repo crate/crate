@@ -29,7 +29,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.SecureString;
 import org.hamcrest.Matchers;
@@ -37,7 +37,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
-public class UserActionsTest extends CrateUnitTest {
+public class UserActionsTest extends ESTestCase {
 
     private static final Functions functions = new Functions(Map.of());
 

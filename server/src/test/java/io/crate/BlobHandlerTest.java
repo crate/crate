@@ -22,14 +22,14 @@
 package io.crate;
 
 import io.crate.protocols.http.HttpBlobHandler;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
-public class BlobHandlerTest extends CrateUnitTest {
+public class BlobHandlerTest extends ESTestCase {
 
     private static List<String> validUrls = List.of(
         "/_blobs/b/f3b4df9c032a14ad415455354798fa2fc3bf1df7",

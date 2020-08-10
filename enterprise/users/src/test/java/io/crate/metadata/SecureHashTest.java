@@ -22,7 +22,7 @@
 
 package io.crate.metadata;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
@@ -30,7 +30,7 @@ import org.junit.Test;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
-public class SecureHashTest extends CrateUnitTest {
+public class SecureHashTest extends ESTestCase {
 
     private static final SecureString PASSWORD =
         new SecureString("password".toCharArray());

@@ -26,14 +26,14 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row1;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class ModuloBucketBuilderTest extends CrateUnitTest {
+public class ModuloBucketBuilderTest extends ESTestCase {
 
     @Test
     public void testRowsAreDistributedByModulo() throws Exception {

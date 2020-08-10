@@ -22,7 +22,7 @@
 
 package io.crate.types;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -38,7 +38,7 @@ import java.util.Objects;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class ObjectTypeTest extends CrateUnitTest {
+public class ObjectTypeTest extends ESTestCase {
 
     @Test
     public void testStreamingWithoutInnerTypes() throws IOException {

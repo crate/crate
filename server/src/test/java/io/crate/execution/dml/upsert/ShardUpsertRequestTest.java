@@ -32,7 +32,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -45,7 +45,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
 
-public class ShardUpsertRequestTest extends CrateUnitTest {
+public class ShardUpsertRequestTest extends ESTestCase {
 
     private static final RelationName CHARACTERS_IDENTS = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
 

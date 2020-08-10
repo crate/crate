@@ -31,7 +31,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -42,7 +42,7 @@ import java.util.function.Function;
 import static io.crate.planner.node.ddl.ResetSettingsPlan.buildSettingsFrom;
 import static org.hamcrest.Matchers.is;
 
-public class ResetSettingsPlanTest extends CrateUnitTest {
+public class ResetSettingsPlanTest extends ESTestCase {
 
     @Test
     public void testResetSimple() throws Exception {

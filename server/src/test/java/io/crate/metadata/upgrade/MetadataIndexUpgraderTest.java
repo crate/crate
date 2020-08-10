@@ -24,7 +24,7 @@ package io.crate.metadata.upgrade;
 
 import io.crate.Constants;
 import io.crate.metadata.RelationName;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -41,7 +41,7 @@ import java.io.IOException;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.nullValue;
 
-public class MetadataIndexUpgraderTest extends CrateUnitTest {
+public class MetadataIndexUpgraderTest extends ESTestCase {
 
     @Test
     public void testDynamicStringTemplateIsPurged() throws IOException {

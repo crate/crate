@@ -18,7 +18,7 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.netty.handler.ssl.SslContext;
 import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
@@ -49,7 +49,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class SslConfigurationTest extends CrateUnitTest {
+public class SslConfigurationTest extends ESTestCase {
 
     private static final String KEYSTORE_PASSWORD = "keystorePassword";
     private static final String KEYSTORE_KEY_PASSWORD = "serverKeyPassword";

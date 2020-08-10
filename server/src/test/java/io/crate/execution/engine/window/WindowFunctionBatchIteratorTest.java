@@ -29,7 +29,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.functions.Signature;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.hamcrest.Matchers.contains;
 
-public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
+public class WindowFunctionBatchIteratorTest extends ESTestCase {
 
     @Test
     public void testWindowFunctionComputation() throws Exception {

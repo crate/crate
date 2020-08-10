@@ -35,7 +35,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -49,7 +49,7 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-public class UpdateSettingsPlanTest extends CrateUnitTest {
+public class UpdateSettingsPlanTest extends ESTestCase {
 
     private Function<Symbol, Object> symbolEvaluator(Row row) {
         return x -> SymbolEvaluator.evaluate(

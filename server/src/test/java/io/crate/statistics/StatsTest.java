@@ -27,9 +27,9 @@ import java.util.Map;
 
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 
-public class StatsTest extends CrateUnitTest {
+public class StatsTest extends ESTestCase {
 
     @Test
     public void test_average_size_calc_if_numDocs_is_zero() throws Exception {

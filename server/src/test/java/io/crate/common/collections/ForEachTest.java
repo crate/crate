@@ -22,7 +22,7 @@
 
 package io.crate.common.collections;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.Set;
@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
 
-public class ForEachTest extends CrateUnitTest {
+public class ForEachTest extends ESTestCase {
 
     private void assertForEachCalledOnAllElements(Object elements, int expected) {
         final AtomicInteger sum = new AtomicInteger(0);

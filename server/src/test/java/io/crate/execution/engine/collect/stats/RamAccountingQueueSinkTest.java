@@ -30,7 +30,7 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.planner.Plan;
 import io.crate.planner.operators.StatementClassifier;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import io.crate.common.unit.TimeValue;
 import org.junit.After;
@@ -52,7 +52,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class RamAccountingQueueSinkTest extends CrateUnitTest {
+public class RamAccountingQueueSinkTest extends ESTestCase {
 
     private static final NoopLogEstimator NOOP_ESTIMATOR = new NoopLogEstimator();
 

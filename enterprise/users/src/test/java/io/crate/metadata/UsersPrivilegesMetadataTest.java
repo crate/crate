@@ -19,7 +19,7 @@
 package io.crate.metadata;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,7 +48,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
-public class UsersPrivilegesMetadataTest extends CrateUnitTest {
+public class UsersPrivilegesMetadataTest extends ESTestCase {
 
     private static final Privilege GRANT_DQL =
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");

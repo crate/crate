@@ -21,14 +21,14 @@
 
 package io.crate.types;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
-public class LongTypeTest extends CrateUnitTest {
+public class LongTypeTest extends ESTestCase {
 
     @Test
     public void test_cast_text_to_bigint() {

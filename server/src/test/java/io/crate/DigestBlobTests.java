@@ -23,7 +23,7 @@ package io.crate;
 
 import io.crate.blob.BlobContainer;
 import io.crate.blob.DigestBlob;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,7 +38,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 
-public class DigestBlobTests extends CrateUnitTest {
+public class DigestBlobTests extends ESTestCase {
 
     @Rule
     public TemporaryFolder tmpFolder = new TemporaryFolder();

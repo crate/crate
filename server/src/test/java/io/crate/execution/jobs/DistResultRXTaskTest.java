@@ -36,7 +36,7 @@ import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import org.junit.Test;
@@ -58,7 +58,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class DistResultRXTaskTest extends CrateUnitTest {
+public class DistResultRXTaskTest extends ESTestCase {
 
     private DistResultRXTask getPageDownstreamContext(TestingRowConsumer batchConsumer,
                                                       PagingIterator<Integer, Row> pagingIterator,

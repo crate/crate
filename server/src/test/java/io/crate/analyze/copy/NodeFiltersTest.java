@@ -22,13 +22,13 @@
 
 package io.crate.analyze.copy;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.hamcrest.core.Is.is;
 
-public class NodeFiltersTest extends CrateUnitTest {
+public class NodeFiltersTest extends ESTestCase {
 
     @Test
     public void testIdFilter() {

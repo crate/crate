@@ -147,6 +147,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.internal.AssumptionViolatedException;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 
 import io.crate.common.SuppressForbidden;
@@ -179,6 +180,9 @@ public abstract class ESTestCase extends LuceneTestCase {
     private static final AtomicInteger portGenerator = new AtomicInteger();
 
     private static final Collection<String> nettyLoggedLeaks = new ArrayList<>();
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @AfterClass
     public static void resetPortCounter() {
@@ -271,6 +275,14 @@ public abstract class ESTestCase extends LuceneTestCase {
      */
     public static TransportAddress buildNewFakeTransportAddress() {
         return new TransportAddress(TransportAddress.META_ADDRESS, portGenerator.incrementAndGet());
+    }
+
+    protected static boolean isRunningOnWindows() {
+        return System.getProperty("os.name").startsWith("Windows");
+    }
+
+    protected static boolean isRunningOnMacOSX() {
+        return System.getProperty("os.name").equals("Mac OS X");
     }
 
     /**

@@ -28,7 +28,7 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
@@ -40,7 +40,7 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
-public class SortedPagingIteratorTest extends CrateUnitTest {
+public class SortedPagingIteratorTest extends ESTestCase {
 
     public static final Ordering<Row> ORDERING =
         OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new boolean[]{false});

@@ -24,11 +24,11 @@ package io.crate.expression;
 
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.functions.Signature;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-public class AbstractFunctionModuleTest extends CrateUnitTest {
+public class AbstractFunctionModuleTest extends ESTestCase {
 
     AbstractFunctionModule<FunctionImplementation> module = new AbstractFunctionModule<>() {
         @Override

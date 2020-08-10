@@ -29,7 +29,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.is;
 
 
-public class TransportAnalyzeActionTest extends CrateUnitTest {
+public class TransportAnalyzeActionTest extends ESTestCase {
 
     @Test
     public void test_create_stats_for_tables_with_array_columns_with_nulls() {

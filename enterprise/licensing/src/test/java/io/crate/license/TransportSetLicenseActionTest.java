@@ -22,14 +22,14 @@
 
 package io.crate.license;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import static io.crate.integrationtests.LicenseITest.ENTERPRISE_LICENSE_KEY;
 import static io.crate.license.EnterpriseLicenseService.UNLIMITED_EXPIRY_DATE_IN_MS;
 
-public class TransportSetLicenseActionTest extends CrateUnitTest {
+public class TransportSetLicenseActionTest extends ESTestCase {
 
     @Test
     public void testTrialLicenseCannotOverrideExistingLicense() throws Exception {

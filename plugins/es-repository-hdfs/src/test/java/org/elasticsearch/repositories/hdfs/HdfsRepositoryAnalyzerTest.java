@@ -13,9 +13,9 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.StringLiteral;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 
-public class HdfsRepositoryAnalyzerTest extends CrateUnitTest {
+public class HdfsRepositoryAnalyzerTest extends ESTestCase {
 
     private RepositoryParamValidator validator;
 

@@ -1,13 +1,13 @@
 package io.crate.types;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 
-public class TimeTZTypeTest extends CrateUnitTest {
+public class TimeTZTypeTest extends ESTestCase {
 
     private org.hamcrest.Matcher<TimeTZ> isTZ(long value) {
         return is(new TimeTZ(value, 0));

@@ -23,7 +23,7 @@
 package io.crate.exceptions;
 
 import com.google.common.collect.Lists;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
-public class MultiExceptionTest extends CrateUnitTest {
+public class MultiExceptionTest extends ESTestCase {
 
     @Test
     public void testGetMessageReturnsCombinedMessages() throws Exception {

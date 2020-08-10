@@ -22,7 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -31,7 +31,7 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 
-public class PartitionNameTest extends CrateUnitTest {
+public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSingleColumn() throws Exception {

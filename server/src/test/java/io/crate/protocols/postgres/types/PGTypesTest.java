@@ -23,7 +23,7 @@
 package io.crate.protocols.postgres.types;
 
 import io.crate.data.Row1;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -53,7 +53,7 @@ import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
-public class PGTypesTest extends CrateUnitTest {
+public class PGTypesTest extends ESTestCase {
 
     @Test
     public void testCrate2PGType() {

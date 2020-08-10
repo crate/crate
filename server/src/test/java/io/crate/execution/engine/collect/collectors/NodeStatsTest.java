@@ -36,7 +36,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
@@ -61,7 +61,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-public class NodeStatsTest extends CrateUnitTest {
+public class NodeStatsTest extends ESTestCase {
 
     private RoutedCollectPhase collectPhase;
     private Collection<DiscoveryNode> nodes = new HashSet<>();

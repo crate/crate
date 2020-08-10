@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.BatchIteratorTester;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -42,7 +42,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class LuceneBatchIteratorTest extends CrateUnitTest {
+public class LuceneBatchIteratorTest extends ESTestCase {
 
     private List<LongColumnReference> columnRefs;
     private IndexSearcher indexSearcher;

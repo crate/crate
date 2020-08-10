@@ -21,13 +21,13 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class NumberOfReplicasTest extends CrateUnitTest {
+public class NumberOfReplicasTest extends ESTestCase {
 
     @Test
     public void testFromEmptySettings() throws Exception {

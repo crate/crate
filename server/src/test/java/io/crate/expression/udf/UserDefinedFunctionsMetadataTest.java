@@ -23,7 +23,7 @@ package io.crate.expression.udf;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -44,7 +44,7 @@ import static io.crate.expression.udf.UserDefinedFunctionMetadata.argumentTypesF
 import static io.crate.expression.udf.UserDefinedFunctionMetadata.specificName;
 import static org.hamcrest.core.Is.is;
 
-public class UserDefinedFunctionsMetadataTest extends CrateUnitTest {
+public class UserDefinedFunctionsMetadataTest extends ESTestCase {
 
     private static String definition = "function(a, b) {return a - b;}";
     private static List<FunctionArgumentDefinition> args = ImmutableList.of(

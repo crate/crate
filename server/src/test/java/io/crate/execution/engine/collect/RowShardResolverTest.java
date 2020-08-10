@@ -30,7 +30,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
@@ -38,7 +38,7 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
-public class RowShardResolverTest extends CrateUnitTest {
+public class RowShardResolverTest extends ESTestCase {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("_id");
 

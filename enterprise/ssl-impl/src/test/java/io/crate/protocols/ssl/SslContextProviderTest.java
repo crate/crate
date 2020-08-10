@@ -18,7 +18,7 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.netty.handler.ssl.SslContext;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.AfterClass;
@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class SslContextProviderTest extends CrateUnitTest {
+public class SslContextProviderTest extends ESTestCase {
 
     private static File trustStoreFile;
     private static File keyStoreFile;

@@ -18,7 +18,7 @@
 
 package io.crate.metadata;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.user.SecureHash;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -37,7 +37,7 @@ import java.util.HashMap;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
-public class UsersMetadataTest extends CrateUnitTest {
+public class UsersMetadataTest extends ESTestCase {
 
     @Test
     public void testUsersMetadataStreaming() throws IOException {

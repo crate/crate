@@ -32,7 +32,7 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import org.junit.Test;
@@ -44,7 +44,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
 
-public class SimpleTopNProjectorTest extends CrateUnitTest {
+public class SimpleTopNProjectorTest extends ESTestCase {
 
     private static final InputCollectExpression input = new InputCollectExpression(0);
     private static final ImmutableList<Input<?>> INPUTS = ImmutableList.of(input);
