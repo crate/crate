@@ -171,10 +171,6 @@ public class HttpError {
                     httpErrorStatus = HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPROTED_YET;
                 } else if (crateException instanceof VersioninigValidationException) {
                     httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
-                } else if (crateException instanceof UnauthorizedException) {
-                    httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
-                } else if (crateException instanceof ReadOnlyException) {
-                    httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
                 }
             } else if (crateException instanceof ResourceUnknownException) {
                 if (crateException instanceof AnalyzerUnknownException) {
@@ -196,6 +192,10 @@ public class HttpError {
                 } else if (crateException instanceof SnapshotUnknownException) {
                     httpErrorStatus = HttpErrorStatus.SNAPSHOT_UNKNOWN;
                 }
+            } else if (crateException instanceof UnauthorizedException) {
+                httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
+            } else if (crateException instanceof ReadOnlyException) {
+                httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
             } else if (crateException instanceof DuplicateKeyException) {
                 httpErrorStatus = HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
             } else if (crateException instanceof PartitionAlreadyExistsException) {
