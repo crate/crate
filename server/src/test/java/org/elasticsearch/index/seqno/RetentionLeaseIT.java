@@ -47,7 +47,7 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 
-public class RetentionLeaseSyncIT extends SQLTransportIntegrationTest  {
+public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
 
     @Test
     public void testRetentionLeasesSyncedOnAdd() throws Exception {
@@ -79,14 +79,8 @@ public class RetentionLeaseSyncIT extends SQLTransportIntegrationTest  {
             latch.await();
             retentionLock.close();
 
-            // check retention leases have been committed on the primary
-            final RetentionLeases primaryCommittedRetentionLeases = RetentionLeases.decodeRetentionLeases(
-                primary.acquireLastIndexCommit(false)
-                    .getIndexCommit()
-                    .getUserData()
-                    .get(Engine.RETENTION_LEASES)
-            );
-            assertThat(currentRetentionLeases, equalTo(RetentionLeases.toMap(primaryCommittedRetentionLeases)));
+            // check retention leases have been written on the primary
+            assertThat(currentRetentionLeases, equalTo(RetentionLeases.toMap(primary.loadRetentionLeases())));
 
             // check current retention leases have been synced to all replicas
             for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
@@ -98,10 +92,8 @@ public class RetentionLeaseSyncIT extends SQLTransportIntegrationTest  {
                 final Map<String, RetentionLease> retentionLeasesOnReplica = RetentionLeases.toMap(replica.getRetentionLeases());
                 assertThat(retentionLeasesOnReplica, equalTo(currentRetentionLeases));
 
-                // check retention leases have been committed on the replica
-                RetentionLeases replicaCommittedRetentionLeases = RetentionLeases.decodeRetentionLeases(
-                    replica.acquireLastIndexCommit(false).getIndexCommit().getUserData().get(Engine.RETENTION_LEASES));
-                assertThat(currentRetentionLeases, equalTo(RetentionLeases.toMap(replicaCommittedRetentionLeases)));
+                // check retention leases have been written on the replica
+                assertThat(currentRetentionLeases, equalTo(RetentionLeases.toMap(replica.loadRetentionLeases())));
             }
         }
     }
@@ -250,10 +242,8 @@ public class RetentionLeaseSyncIT extends SQLTransportIntegrationTest  {
             final Map<String, RetentionLease> retentionLeasesOnReplica = RetentionLeases.toMap(replica.getRetentionLeases());
             assertThat(retentionLeasesOnReplica, equalTo(currentRetentionLeases));
 
-            // check retention leases have been committed on the replica
-            final RetentionLeases replicaCommittedRetentionLeases = RetentionLeases.decodeRetentionLeases(
-                replica.acquireLastIndexCommit(false).getIndexCommit().getUserData().get(Engine.RETENTION_LEASES));
-            assertThat(currentRetentionLeases, equalTo(RetentionLeases.toMap(replicaCommittedRetentionLeases)));
+            // check retention leases have been written on the primary
+            assertThat(currentRetentionLeases, equalTo(RetentionLeases.toMap(primary.loadRetentionLeases())));
         }
     }
 }

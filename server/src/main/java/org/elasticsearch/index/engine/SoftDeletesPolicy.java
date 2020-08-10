@@ -26,15 +26,12 @@ import java.util.function.Supplier;
 
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.search.Query;
-
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
-
-import io.crate.common.collections.Tuple;
 
 /**
  * A policy that controls how many soft-deleted documents should be retained for peer-recovery and querying history changes purpose.
@@ -109,10 +106,6 @@ final class SoftDeletesPolicy {
      * Operations whose seq# is least this value should exist in the Lucene index.
      */
     synchronized long getMinRetainedSeqNo() {
-        return getRetentionPolicy().v1();
-    }
-
-    public synchronized Tuple<Long, RetentionLeases> getRetentionPolicy() {
         /*
          * When an engine is flushed, we need to provide it the latest collection of retention leases even when the soft deletes policy is
          * locked for peer recovery.
@@ -153,7 +146,7 @@ final class SoftDeletesPolicy {
              */
             minRetainedSeqNo = Math.max(minRetainedSeqNo, minSeqNoToRetain);
         }
-        return Tuple.tuple(minRetainedSeqNo, retentionLeases);
+        return minRetainedSeqNo;
     }
 
     /**
