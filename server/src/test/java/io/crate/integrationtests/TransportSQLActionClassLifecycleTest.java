@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;

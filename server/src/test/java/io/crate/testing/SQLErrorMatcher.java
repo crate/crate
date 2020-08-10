@@ -47,9 +47,8 @@ public class SQLErrorMatcher {
 
     public static <T extends Throwable> Matcher<T> isPGError(Matcher<String> msg, PGErrorStatus pgErrorStatus) {
         return allOf(
-            instanceOf(PSQLException.class),
-            withFeature(e -> getErrorMessage(PGError.fromThrowable((PSQLException) e).message()), "error message", msg),
-            withFeature(e -> PGError.fromThrowable((PSQLException) e).status(), "error status", equalTo(pgErrorStatus))
+            withFeature(e -> getErrorMessage(PGError.fromThrowable(e).message()), "error message", msg),
+            withFeature(e -> PGError.fromThrowable(e).status(), "error status", equalTo(pgErrorStatus))
         );
     }
 
@@ -58,7 +57,7 @@ public class SQLErrorMatcher {
                                                                int errorCode) {
         return allOf(
             not(instanceOf(PSQLException.class)),
-            withFeature(e -> HttpError.fromThrowable(e).message(), "error message", msg),
+            withFeature(e -> getErrorMessage(HttpError.fromThrowable(e).message()), "error message", msg),
             withFeature(e -> HttpError.fromThrowable(e).errorCode(), "http error code", equalTo(errorCode)),
             withFeature(e -> HttpError.fromThrowable(e).httpResponseStatus(),
                         "http response",
