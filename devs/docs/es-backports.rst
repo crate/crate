@@ -499,7 +499,7 @@ not present in CrateDB.
 - [ ] a9d16e10784 Ignore waitForActiveShards when syncing leases (#39224)
 - [ ] 605e8023a92 ReadOnlyEngine should update translog recovery state information (#39238)
 - [ ] 8d9b3918b60 Add retention leases replication tests (#38857)
-- [ ] 92ef753b56d Allow retention lease operations under blocks (#39089)
+- [x] 92ef753b56d Allow retention lease operations under blocks (#39089)
 - [x] 331ef9dc592 Introduce retention lease state file (#39004)
 - [x] 2c90534039e Include in log retention leases that failed to sync
 - [x] 659e82b08b3 Add some logging related to retention lease syncing (#39066)

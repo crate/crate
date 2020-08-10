@@ -158,4 +158,32 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         result.respond(ActionListener.wrap(r -> success.set(true), e -> fail(e.toString())));
         assertTrue(success.get());
     }
+
+    @Test
+    public void testBlocks() {
+        final IndicesService indicesService = mock(IndicesService.class);
+
+        final Index index = new Index("index", "uuid");
+        final IndexService indexService = mock(IndexService.class);
+        when(indicesService.indexServiceSafe(index)).thenReturn(indexService);
+
+        final int id = randomIntBetween(0, 4);
+        final IndexShard indexShard = mock(IndexShard.class);
+        when(indexService.getShard(id)).thenReturn(indexShard);
+
+        final ShardId shardId = new ShardId(index, id);
+        when(indexShard.shardId()).thenReturn(shardId);
+
+        final RetentionLeaseSyncAction action = new RetentionLeaseSyncAction(
+            Settings.EMPTY,
+            transportService,
+            clusterService,
+            indicesService,
+            threadPool,
+            shardStateAction,
+            new IndexNameExpressionResolver());
+
+        assertNull(action.indexBlockLevel());
+    }
+
 }

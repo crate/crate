@@ -52,6 +52,7 @@ import org.elasticsearch.test.transport.CapturingTransport;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import io.crate.common.io.IOUtils;
@@ -90,6 +91,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
         super.tearDown();
     }
 
+    @Test
     public void testRetentionLeaseBackgroundSyncActionOnPrimary() throws WriteStateException {
         final IndicesService indicesService = mock(IndicesService.class);
 
@@ -124,6 +126,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
         assertThat(result.replicaRequest(), sameInstance(request));
     }
 
+    @Test
     public void testRetentionLeaseBackgroundSyncActionOnReplica() throws WriteStateException {
         final IndicesService indicesService = mock(IndicesService.class);
 
@@ -161,6 +164,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
         assertTrue(success.get());
     }
 
+    @Test
     public void testRetentionLeaseSyncExecution() {
         final IndicesService indicesService = mock(IndicesService.class);
 
@@ -219,6 +223,33 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
 
         action.backgroundSync(indexShard.shardId(), retentionLeases);
         assertTrue(invoked.get());
+    }
+
+    @Test
+    public void testBlocks() {
+        final IndicesService indicesService = mock(IndicesService.class);
+
+        final Index index = new Index("index", "uuid");
+        final IndexService indexService = mock(IndexService.class);
+        when(indicesService.indexServiceSafe(index)).thenReturn(indexService);
+
+        final int id = randomIntBetween(0, 4);
+        final IndexShard indexShard = mock(IndexShard.class);
+        when(indexService.getShard(id)).thenReturn(indexShard);
+
+        final ShardId shardId = new ShardId(index, id);
+        when(indexShard.shardId()).thenReturn(shardId);
+
+        final RetentionLeaseBackgroundSyncAction action = new RetentionLeaseBackgroundSyncAction(
+            transportService,
+            clusterService,
+            indicesService,
+            threadPool,
+            shardStateAction,
+            new IndexNameExpressionResolver()
+        );
+
+        assertNull(action.indexBlockLevel());
     }
 
 }
