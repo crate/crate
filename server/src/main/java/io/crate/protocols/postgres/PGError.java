@@ -88,8 +88,6 @@ public class PGError {
             }
         }
         assert errorStatus != null : "Unknown psql error code: " + sqlState;
-        //Remove ERROR: prefix added by the pgsql driver to unify error message with HttpError
-        String msg = e.getMessage().replace("ERROR: ", "");
-        return new PGError(errorStatus, msg, e);
+        return new PGError(errorStatus, e.getMessage(), e);
     }
 }
