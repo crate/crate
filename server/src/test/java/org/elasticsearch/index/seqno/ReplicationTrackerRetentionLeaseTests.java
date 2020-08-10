@@ -45,6 +45,7 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.hamcrest.Matchers;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.common.collections.Tuple;
@@ -53,6 +54,7 @@ import io.crate.common.unit.TimeValue;
 public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTestCase {
 
     @Test
+    @Ignore("https://github.com/crate/crate/issues/10328")
     public void testAddOrRenewRetentionLease() {
         final AllocationId allocationId = AllocationId.newInitializing();
         long primaryTerm = randomLongBetween(1, Long.MAX_VALUE);
