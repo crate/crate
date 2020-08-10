@@ -46,7 +46,6 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -164,7 +163,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
         assertEquals(26L, response.rowCount());
-        assertEquals(18, response.cols().length);
+        assertEquals(19, response.cols().length);
         assertThat(response.cols(), arrayContaining(
             "blob_path",
             "id",
@@ -177,6 +176,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
             "primary",
             "recovery",
             "relocating_node",
+            "retention_leases",
             "routing_state",
             "schema_name",
             "seq_no_stats",

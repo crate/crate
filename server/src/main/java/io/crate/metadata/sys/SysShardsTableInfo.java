@@ -39,10 +39,12 @@ import io.crate.metadata.SystemTable;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.types.DataTypes;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -91,6 +93,7 @@ public class SysShardsTableInfo {
         static final ColumnIdent NODE = new ColumnIdent("node");
         static final ColumnIdent SEQ_NO_STATS = new ColumnIdent("seq_no_stats");
         static final ColumnIdent TRANSLOG_STATS = new ColumnIdent("translog_stats");
+        static final ColumnIdent RETENTION_LEASES = new ColumnIdent("retention_leases");
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
@@ -112,7 +115,8 @@ public class SysShardsTableInfo {
             entry(Columns.MIN_LUCENE_VERSION, () -> constant(null)),
             entry(Columns.NODE, NestedNullObjectExpression::new),
             entry(Columns.SEQ_NO_STATS, NestedNullObjectExpression::new),
-            entry(Columns.TRANSLOG_STATS, NestedNullObjectExpression::new)
+            entry(Columns.TRANSLOG_STATS, NestedNullObjectExpression::new),
+            entry(Columns.RETENTION_LEASES, NestedNullObjectExpression::new)
         );
     }
 
@@ -168,6 +172,16 @@ public class SysShardsTableInfo {
                 .add("uncommitted_size", LONG, ShardRowContext::translogUncommittedSizeInBytes)
                 .add("number_of_operations", INTEGER, ShardRowContext::translogEstimatedNumberOfOperations)
                 .add("uncommitted_operations", INTEGER, ShardRowContext::translogUncommittedOperations)
+            .endObject()
+            .startObject(Columns.RETENTION_LEASES.name())
+                .add("primary_term", LONG, ShardRowContext::retentionLeasesPrimaryTerm)
+                .add("version", LONG, ShardRowContext::retentionLeasesVersion)
+                .startObjectArray("leases", ShardRowContext::retentionLeases)
+                    .add("id", STRING, RetentionLease::id)
+                    .add("retaining_seq_no", LONG, RetentionLease::retainingSequenceNumber)
+                    .add("timestamp", DataTypes.TIMESTAMPZ, RetentionLease::timestamp)
+                    .add("source", STRING, RetentionLease::source)
+                .endObjectArray()
             .endObject()
             .setPrimaryKeys(
                 Columns.SCHEMA_NAME,

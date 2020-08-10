@@ -118,6 +118,7 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.RetentionLeaseStats;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SeqNoStats;
@@ -150,6 +151,8 @@ import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
+
+    public static final long RETAIN_ALL = -1;
 
     private final ThreadPool threadPool;
     private final MapperService mapperService;
@@ -1735,7 +1738,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     /**
      * Acquires a lock on the translog files and Lucene soft-deleted documents to prevent them from being trimmed
      */
-    public Closeable acquireRetentionLockForPeerRecovery() {
+    public Closeable acquireRetentionLock() {
         return getEngine().acquireRetentionLock();
     }
 
@@ -1756,10 +1759,19 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     /**
      * Checks if we have a completed history of operations since the given starting seqno (inclusive).
-     * This method should be called after acquiring the retention lock; See {@link #acquireRetentionLockForPeerRecovery()}
+     * This method should be called after acquiring the retention lock; See {@link #acquireRetentionLock()}
      */
     public boolean hasCompleteHistoryOperations(String source, long startingSeqNo) throws IOException {
         return getEngine().hasCompleteOperationHistory(source, mapperService, startingSeqNo);
+    }
+
+    /**
+     * Gets the minimum retained sequence number for this engine.
+     *
+     * @return the minimum retained sequence number
+     */
+    public long getMinRetainedSeqNo() {
+        return getEngine().getMinRetainedSeqNo();
     }
 
     /**
@@ -1910,6 +1922,11 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return replicationTracker.getRetentionLeases(expireLeases);
     }
 
+    public RetentionLeaseStats getRetentionLeaseStats() {
+        verifyNotClosed();
+        return new RetentionLeaseStats(getRetentionLeases());
+    }
+
     /**
      * Adds a new retention lease.
      *
@@ -1928,7 +1945,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         Objects.requireNonNull(listener);
         assert assertPrimaryMode();
         verifyNotClosed();
-        return replicationTracker.addRetentionLease(id, retainingSequenceNumber, source, listener);
+        try (Closeable ignore = acquireRetentionLock()) {
+            final long actualRetainingSequenceNumber =
+                    retainingSequenceNumber == RETAIN_ALL ? getMinRetainedSeqNo() : retainingSequenceNumber;
+            return replicationTracker.addRetentionLease(id, actualRetainingSequenceNumber, source, listener);
+        } catch (final IOException e) {
+            throw new AssertionError(e);
+        }
     }
 
     /**
@@ -1943,7 +1966,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public RetentionLease renewRetentionLease(final String id, final long retainingSequenceNumber, final String source) {
         assert assertPrimaryMode();
         verifyNotClosed();
-        return replicationTracker.renewRetentionLease(id, retainingSequenceNumber, source);
+        try (Closeable ignore = acquireRetentionLock()) {
+            final long actualRetainingSequenceNumber =
+                    retainingSequenceNumber == RETAIN_ALL ? getMinRetainedSeqNo() : retainingSequenceNumber;
+            return replicationTracker.renewRetentionLease(id, actualRetainingSequenceNumber, source);
+        } catch (final IOException e) {
+            throw new AssertionError(e);
+        }
     }
 
     /**

@@ -513,7 +513,7 @@ not present in CrateDB.
 - [ ] 9631c1afdd4 Fix excessive increments in soft delete policy (#38813)
 - [ ] d0035300d69 Adjust log and unmute testFailOverOnFollower (#38762)
 - [ ] 90e6fb0a56a Fix synchronization in LocalCheckpointTracker#contains (#38755)
-- [ ] bbe990f8627 Introduce retention lease actions (#38756)
+- [x] bbe990f8627 Introduce retention lease actions (#38756)
 - [x] 0518ec9a67a Add dedicated retention lease exceptions (#38754)
 - [x] 58a77167219 Enable removal of retention leases (#38751)
 - [x] 33b2be5b989 Copy retention leases when trim unsafe commits (#37995)
