@@ -5374,6 +5374,7 @@ public class InternalEngineTests extends EngineTestCase {
         }
     }
 
+    @Test
     public void testMaxSeqNoInCommitUserData() throws Exception {
         AtomicBoolean running = new AtomicBoolean(true);
         Thread rollTranslog = new Thread(() -> {
