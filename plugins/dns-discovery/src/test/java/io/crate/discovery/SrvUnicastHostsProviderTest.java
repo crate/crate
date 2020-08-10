@@ -22,7 +22,7 @@
 
 package io.crate.discovery;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 
-public class SrvUnicastHostsProviderTest extends CrateUnitTest {
+public class SrvUnicastHostsProviderTest extends ESTestCase {
 
     private ThreadPool threadPool;
     private SrvUnicastHostsProvider srvUnicastHostsProvider;

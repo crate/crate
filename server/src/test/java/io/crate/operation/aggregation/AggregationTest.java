@@ -57,7 +57,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -130,7 +130,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public abstract class AggregationTest extends CrateUnitTest {
+public abstract class AggregationTest extends ESTestCase {
 
     protected static final RamAccounting RAM_ACCOUNTING = RamAccounting.NO_ACCOUNTING;
 

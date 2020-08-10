@@ -22,7 +22,7 @@
 
 package io.crate.metadata.view;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -39,7 +39,7 @@ import java.util.Map;
 
 import static org.hamcrest.core.IsNull.nullValue;
 
-public class ViewsMetadataTest extends CrateUnitTest {
+public class ViewsMetadataTest extends ESTestCase {
 
     public static ViewsMetadata createMetadata() {
         Map<String, ViewMetadata> map = Map.of(

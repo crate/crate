@@ -34,7 +34,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.profile.ProfilingContext;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.IntegerType;
 import org.apache.logging.log4j.LogManager;
@@ -61,7 +61,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class RootTaskTest extends CrateUnitTest {
+public class RootTaskTest extends ESTestCase {
 
     private Logger logger = LogManager.getLogger(RootTaskTest.class);
 

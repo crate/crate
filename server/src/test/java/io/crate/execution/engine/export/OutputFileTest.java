@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.export;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.io.BufferedOutputStream;
@@ -31,7 +31,7 @@ import java.nio.file.Path;
 
 import static org.hamcrest.Matchers.instanceOf;
 
-public class OutputFileTest extends CrateUnitTest {
+public class OutputFileTest extends ESTestCase {
 
     @Test
     public void testIsBufferedOutputStream() throws Exception {

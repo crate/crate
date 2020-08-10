@@ -18,7 +18,7 @@
 
 package io.crate.license;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -28,7 +28,7 @@ import static io.crate.license.LicenseExpiryNotification.MODERATE;
 import static io.crate.license.LicenseExpiryNotification.SEVERE;
 import static org.hamcrest.core.StringContains.containsString;
 
-public class LicenseExpiryNotificationTest extends CrateUnitTest {
+public class LicenseExpiryNotificationTest extends ESTestCase {
 
     @Test
     public void testModerateNotification() {

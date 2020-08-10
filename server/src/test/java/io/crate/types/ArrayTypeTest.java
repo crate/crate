@@ -22,7 +22,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -37,7 +37,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
-public class ArrayTypeTest extends CrateUnitTest {
+public class ArrayTypeTest extends ESTestCase {
 
     @Test
     public void test_pg_string_array_literal_can_be_converted_to_values() {

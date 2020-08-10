@@ -24,7 +24,7 @@ import io.crate.analyze.user.Privilege;
 import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetadata;
 import io.crate.metadata.UsersPrivilegesMetadata;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ import java.util.Set;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 
-public class TransportPrivilegesActionTest extends CrateUnitTest {
+public class TransportPrivilegesActionTest extends ESTestCase {
 
     private static final Privilege GRANT_DQL =
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");

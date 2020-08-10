@@ -22,7 +22,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.DataType;
@@ -36,7 +36,7 @@ import java.util.List;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static org.hamcrest.Matchers.is;
 
-public class LiteralTest extends CrateUnitTest {
+public class LiteralTest extends ESTestCase {
 
     @Test
     public void testNestedArrayLiteral() throws Exception {

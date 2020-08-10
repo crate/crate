@@ -26,7 +26,7 @@ import io.crate.blob.DigestBlob;
 import io.crate.blob.transfer.BlobHeadRequestHandler;
 import io.crate.blob.transfer.HeadChunkFileTooSmallException;
 import io.crate.blob.transfer.PutHeadChunkRunnable;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.transport.EmptyTransportResponseHandler;
@@ -52,7 +52,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class BlobHeadRequestHandlerTests extends CrateUnitTest {
+public class BlobHeadRequestHandlerTests extends ESTestCase {
 
     @Test
     public void testPutHeadChunkRunnableFileGrowth() throws Exception {

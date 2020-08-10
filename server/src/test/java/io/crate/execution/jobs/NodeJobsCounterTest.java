@@ -22,13 +22,13 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class NodeJobsCounterTest extends CrateUnitTest {
+public class NodeJobsCounterTest extends ESTestCase {
 
     private NodeJobsCounter nodeJobsCounter;
 

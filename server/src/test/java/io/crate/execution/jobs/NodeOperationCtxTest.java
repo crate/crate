@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.StubPhases;
 import org.junit.Test;
 
@@ -38,7 +38,7 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.StreamSupport.stream;
 import static org.hamcrest.Matchers.is;
 
-public class NodeOperationCtxTest extends CrateUnitTest {
+public class NodeOperationCtxTest extends ESTestCase {
 
     @Test
     public void testFindLeafs() {

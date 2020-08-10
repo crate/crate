@@ -21,10 +21,10 @@ package io.crate.auth.user;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.Schemas;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class PrivilegesTest extends CrateUnitTest {
+public class PrivilegesTest extends ESTestCase {
 
     private static User user = User.of("ford");
 

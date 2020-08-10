@@ -34,7 +34,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -47,7 +47,7 @@ import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 
-public class MergeNodeTest extends CrateUnitTest {
+public class MergeNodeTest extends ESTestCase {
 
     @Test
     public void testSerialization() throws Exception {

@@ -22,7 +22,7 @@
 package io.crate.action.sql.parser;
 
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -33,7 +33,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 
-public class SQLBulkArgsParseElementTest extends CrateUnitTest {
+public class SQLBulkArgsParseElementTest extends ESTestCase {
 
     private List<List<Object>> parse(String bulkArgs) throws Exception {
         SQLRequestParseContext context = new SQLRequestParseContext();

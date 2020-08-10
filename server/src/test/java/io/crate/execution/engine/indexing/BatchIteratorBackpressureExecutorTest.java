@@ -24,7 +24,7 @@ package io.crate.execution.engine.indexing;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.BatchSimulatingIterator;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import io.crate.common.unit.TimeValue;
@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
-public class BatchIteratorBackpressureExecutorTest extends CrateUnitTest {
+public class BatchIteratorBackpressureExecutorTest extends ESTestCase {
 
     private ExecutorService executor;
     private ScheduledExecutorService scheduler;

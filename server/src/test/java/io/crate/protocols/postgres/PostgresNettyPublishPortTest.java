@@ -25,7 +25,7 @@ package io.crate.protocols.postgres;
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.user.StubUserManager;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -44,7 +44,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 
-public class PostgresNettyPublishPortTest extends CrateUnitTest {
+public class PostgresNettyPublishPortTest extends ESTestCase {
 
     @Test
     public void testPSQLPublishPort() throws Exception {

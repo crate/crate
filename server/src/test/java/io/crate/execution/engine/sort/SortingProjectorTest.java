@@ -33,7 +33,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.Literal;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -49,7 +49,7 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.core.Is.is;
 
-public class SortingProjectorTest extends CrateUnitTest {
+public class SortingProjectorTest extends ESTestCase {
 
     private TestingRowConsumer consumer = new TestingRowConsumer();
 

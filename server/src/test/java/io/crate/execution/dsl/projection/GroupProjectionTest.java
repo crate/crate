@@ -28,7 +28,7 @@ import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -39,7 +39,7 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
-public class GroupProjectionTest extends CrateUnitTest {
+public class GroupProjectionTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {

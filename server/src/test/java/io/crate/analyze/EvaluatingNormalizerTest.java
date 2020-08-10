@@ -22,7 +22,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.functions.Signature;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Before;
@@ -38,7 +38,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
-public class EvaluatingNormalizerTest extends CrateUnitTest {
+public class EvaluatingNormalizerTest extends ESTestCase {
 
     private ReferenceResolver<NestableInput<?>> referenceResolver;
     private Functions functions;

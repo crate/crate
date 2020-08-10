@@ -32,7 +32,7 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.PositionalOrderBy;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
@@ -47,7 +47,7 @@ import java.util.Collections;
 
 import static org.hamcrest.Matchers.instanceOf;
 
-public class RamAccountingPageIteratorTest extends CrateUnitTest {
+public class RamAccountingPageIteratorTest extends ESTestCase {
 
     private static RowN[] TEST_ROWS = new RowN[]{
         new RowN("a", "b", "c"),

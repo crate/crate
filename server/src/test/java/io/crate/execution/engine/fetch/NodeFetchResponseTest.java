@@ -33,7 +33,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.distribution.StreamBucket;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -47,7 +47,7 @@ import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isRow;
 
-public class NodeFetchResponseTest extends CrateUnitTest {
+public class NodeFetchResponseTest extends ESTestCase {
 
     private IntObjectMap<Streamer[]> streamers;
     private IntObjectMap<StreamBucket> fetched;

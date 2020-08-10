@@ -28,7 +28,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.junit.Test;
@@ -37,7 +37,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.instanceOf;
 
-public class LuceneReferenceResolverTest extends CrateUnitTest {
+public class LuceneReferenceResolverTest extends ESTestCase {
 
     // just return any fieldType to get passt the null check
     private RelationName name = new RelationName("s", "t");

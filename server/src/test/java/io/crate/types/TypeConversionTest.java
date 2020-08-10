@@ -32,9 +32,9 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 
-public class TypeConversionTest extends CrateUnitTest {
+public class TypeConversionTest extends ESTestCase {
 
     private Iterable<Byte> bytes(int num) {
         return () -> Stream.generate(ESTestCase::randomByte).limit(num).iterator();

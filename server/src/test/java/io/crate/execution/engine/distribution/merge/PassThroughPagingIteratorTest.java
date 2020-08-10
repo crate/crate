@@ -22,7 +22,7 @@
 package io.crate.execution.engine.distribution.merge;
 
 import com.google.common.collect.Iterators;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -31,7 +31,7 @@ import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 
-public class PassThroughPagingIteratorTest extends CrateUnitTest {
+public class PassThroughPagingIteratorTest extends ESTestCase {
 
     private static <T> PassThroughPagingIterator<Integer, T> iter() {
         return randomBoolean() ? PassThroughPagingIterator.<Integer, T>repeatable() : PassThroughPagingIterator.<Integer, T>oneShot();

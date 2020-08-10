@@ -21,7 +21,7 @@
 
 package io.crate.types;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.Comparator;
@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNot.not;
 
-public class DataTypesTest extends CrateUnitTest {
+public class DataTypesTest extends ESTestCase {
 
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})

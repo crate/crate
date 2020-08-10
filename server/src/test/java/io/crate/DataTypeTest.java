@@ -21,7 +21,7 @@
 
 package io.crate;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -36,7 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DataTypeTest extends CrateUnitTest {
+public class DataTypeTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {

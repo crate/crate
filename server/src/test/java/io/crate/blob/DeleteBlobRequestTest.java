@@ -22,13 +22,13 @@
 package io.crate.blob;
 
 import io.crate.common.Hex;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class DeleteBlobRequestTest extends CrateUnitTest {
+public class DeleteBlobRequestTest extends ESTestCase {
 
     @Test
     public void testDeleteBlobRequestStreaming() throws Exception {

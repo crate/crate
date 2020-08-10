@@ -23,7 +23,7 @@ package io.crate.types;
 
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.GeoJSONUtilsTest;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-public class GeoShapeTypeTest extends CrateUnitTest {
+public class GeoShapeTypeTest extends ESTestCase {
 
     private static final List<String> WKT = List.of(
         "multipolygon empty",

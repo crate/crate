@@ -27,7 +27,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.List;
@@ -36,7 +36,7 @@ import java.util.Optional;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.core.Is.is;
 
-public class DocKeysTest extends CrateUnitTest {
+public class DocKeysTest extends ESTestCase {
 
 
     @Test

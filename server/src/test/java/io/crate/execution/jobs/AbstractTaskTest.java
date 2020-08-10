@@ -24,7 +24,7 @@ package io.crate.execution.jobs;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.JobKilledException;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThan;
 
-public class AbstractTaskTest extends CrateUnitTest {
+public class AbstractTaskTest extends ESTestCase {
 
     private TestingTask testingTask;
 

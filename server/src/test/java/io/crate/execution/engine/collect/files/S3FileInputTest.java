@@ -26,7 +26,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import io.crate.external.S3ClientHelper;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
-public class S3FileInputTest extends CrateUnitTest {
+public class S3FileInputTest extends ESTestCase {
 
     private static S3FileInput s3FileInput;
     private static List<S3ObjectSummary> listObjectSummaries;

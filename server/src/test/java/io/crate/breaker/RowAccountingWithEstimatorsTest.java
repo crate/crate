@@ -22,7 +22,7 @@
 
 package io.crate.breaker;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.RowGenerator;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
@@ -35,7 +35,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.stream.IntStream;
 
-public class RowAccountingWithEstimatorsTest extends CrateUnitTest {
+public class RowAccountingWithEstimatorsTest extends ESTestCase {
 
     @Test
     public void testCircuitBreakingWorks() throws Exception {

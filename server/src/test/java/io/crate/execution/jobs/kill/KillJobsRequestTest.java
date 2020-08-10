@@ -23,7 +23,7 @@ package io.crate.execution.jobs.kill;
 
 
 import com.google.common.collect.ImmutableList;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -33,7 +33,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-public class KillJobsRequestTest extends CrateUnitTest {
+public class KillJobsRequestTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {

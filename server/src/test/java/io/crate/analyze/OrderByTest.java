@@ -27,7 +27,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class OrderByTest extends CrateUnitTest {
+public class OrderByTest extends ESTestCase {
 
     private static final RelationName TI = new RelationName("doc", "people");
 

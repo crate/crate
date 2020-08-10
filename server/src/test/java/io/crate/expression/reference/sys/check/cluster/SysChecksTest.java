@@ -28,7 +28,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -39,7 +39,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SysChecksTest extends CrateUnitTest {
+public class SysChecksTest extends ESTestCase {
 
     private final SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
     private final DocTableInfo docTableInfo = mock(DocTableInfo.class);

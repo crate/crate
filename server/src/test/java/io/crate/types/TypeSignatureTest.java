@@ -22,7 +22,7 @@
 
 package io.crate.types;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.List;
@@ -32,7 +32,7 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-public class TypeSignatureTest extends CrateUnitTest {
+public class TypeSignatureTest extends ESTestCase {
 
     @Test
     public void testParsingOfPrimitiveDataTypes() {

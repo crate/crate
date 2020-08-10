@@ -21,14 +21,14 @@
 
 package io.crate.planner.distribution;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 
-public class DistributionInfoTest extends CrateUnitTest {
+public class DistributionInfoTest extends ESTestCase {
 
     @Test
     public void testStreamingDefaultImpl() throws Exception {

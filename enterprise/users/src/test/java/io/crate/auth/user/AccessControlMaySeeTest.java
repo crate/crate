@@ -27,7 +27,7 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.core.Is.is;
 
-public class AccessControlMaySeeTest extends CrateUnitTest {
+public class AccessControlMaySeeTest extends ESTestCase {
 
     private List<List<Object>> validationCallArguments;
     private User user;

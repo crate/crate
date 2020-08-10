@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.node;
 
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class NodeStatsContextTest extends CrateUnitTest {
+public class NodeStatsContextTest extends ESTestCase {
 
     private ExtendedNodeInfo extendedNodeInfo;
     private ThreadPool threadPool;

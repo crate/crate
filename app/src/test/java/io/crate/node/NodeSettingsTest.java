@@ -23,7 +23,7 @@ package io.crate.node;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.common.settings.Settings;
@@ -53,7 +53,7 @@ import static org.elasticsearch.env.Environment.PATH_LOGS_SETTING;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-public class NodeSettingsTest extends CrateUnitTest {
+public class NodeSettingsTest extends ESTestCase {
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();

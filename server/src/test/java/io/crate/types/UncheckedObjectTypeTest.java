@@ -22,7 +22,7 @@
 
 package io.crate.types;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -33,7 +33,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class UncheckedObjectTypeTest extends CrateUnitTest {
+public class UncheckedObjectTypeTest extends ESTestCase {
 
     @Test
     public void testStreamingMap() throws IOException {

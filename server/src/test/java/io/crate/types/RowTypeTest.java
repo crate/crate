@@ -1,7 +1,7 @@
 package io.crate.types;
 
 import io.crate.data.RowN;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -12,7 +12,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class RowTypeTest extends CrateUnitTest {
+public class RowTypeTest extends ESTestCase {
 
     @Test
     public void test_row_type_streaming_roundtrip() throws Exception {

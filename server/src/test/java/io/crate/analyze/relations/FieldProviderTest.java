@@ -29,7 +29,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.DummyRelation;
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 
 import static io.crate.testing.SymbolMatchers.isField;
 
-public class FieldProviderTest extends CrateUnitTest {
+public class FieldProviderTest extends ESTestCase {
 
     private AnalyzedRelation dummyRelation = new DummyRelation("name");
 

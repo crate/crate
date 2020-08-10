@@ -27,7 +27,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -44,7 +44,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLette
 import static io.crate.testing.TestingHelpers.getFunctions;
 
 
-public class DocTableInfoBuilderTest extends CrateUnitTest {
+public class DocTableInfoBuilderTest extends ESTestCase {
 
     private Functions functions = getFunctions();
 

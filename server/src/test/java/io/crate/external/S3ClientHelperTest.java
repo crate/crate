@@ -23,7 +23,7 @@ package io.crate.external;
 
 import com.amazonaws.http.IdleConnectionReaper;
 import com.amazonaws.services.s3.AmazonS3;
-import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Test;
 
@@ -33,7 +33,7 @@ import java.util.Date;
 
 import static org.hamcrest.Matchers.is;
 
-public class S3ClientHelperTest extends CrateUnitTest {
+public class S3ClientHelperTest extends ESTestCase {
 
     private final S3ClientHelper s3ClientHelper = new S3ClientHelper();
 
