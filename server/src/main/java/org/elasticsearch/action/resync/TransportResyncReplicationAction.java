@@ -26,6 +26,7 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -71,6 +72,12 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
             ResyncReplicationRequest::new,
             ThreadPool.Names.WRITE
         );
+    }
+
+    @Override
+    public ClusterBlockLevel indexBlockLevel() {
+        // resync should never be blocked because it's an internal action
+        return null;
     }
 
     @Override

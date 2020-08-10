@@ -29,6 +29,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -36,11 +40,11 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.hamcrest.MatcherAssert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -246,4 +250,120 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
             assertThat(currentRetentionLeases, equalTo(RetentionLeases.toMap(primary.loadRetentionLeases())));
         }
     }
+
+    @Test
+    public void testCanAddRetentionLeaseUnderBlock() throws InterruptedException {
+        final String idForInitialRetentionLease = randomAlphaOfLength(8);
+        runUnderBlockTest(
+                idForInitialRetentionLease,
+                randomLongBetween(0, Long.MAX_VALUE),
+                (primary, listener) -> {
+                    final String nextId = randomValueOtherThan(idForInitialRetentionLease, () -> randomAlphaOfLength(8));
+                    final long nextRetainingSequenceNumber = randomLongBetween(0, Long.MAX_VALUE);
+                    final String nextSource = randomAlphaOfLength(8);
+                    primary.addRetentionLease(nextId, nextRetainingSequenceNumber, nextSource, listener);
+                },
+                primary -> {});
+    }
+
+    @Test
+    public void testCanRenewRetentionLeaseUnderBlock() throws InterruptedException {
+        final String idForInitialRetentionLease = randomAlphaOfLength(8);
+        final long initialRetainingSequenceNumber = randomLongBetween(0, Long.MAX_VALUE);
+        final AtomicReference<RetentionLease> retentionLease = new AtomicReference<>();
+        runUnderBlockTest(
+                idForInitialRetentionLease,
+                initialRetainingSequenceNumber,
+                (primary, listener) -> {
+                    final long nextRetainingSequenceNumber = randomLongBetween(initialRetainingSequenceNumber, Long.MAX_VALUE);
+                    final String nextSource = randomAlphaOfLength(8);
+                    retentionLease.set(primary.renewRetentionLease(idForInitialRetentionLease, nextRetainingSequenceNumber, nextSource));
+                    listener.onResponse(new ReplicationResponse());
+                },
+                primary -> {
+                    try {
+                        /*
+                         * If the background renew was able to execute, then the retention leases were persisted to disk. There is no other
+                         * way for the current retention leases to end up written to disk so we assume that if they are written to disk, it
+                         * implies that the background sync was able to execute under a block.
+                         */
+                        assertBusy(() -> assertThat(primary.loadRetentionLeases().leases(), contains(retentionLease.get())));
+                    } catch (final Exception e) {
+                        fail(e.toString());
+                    }
+                });
+
+    }
+
+    public void testCanRemoveRetentionLeasesUnderBlock() throws InterruptedException {
+        final String idForInitialRetentionLease = randomAlphaOfLength(8);
+        runUnderBlockTest(
+                idForInitialRetentionLease,
+                randomLongBetween(0, Long.MAX_VALUE),
+                (primary, listener) -> primary.removeRetentionLease(idForInitialRetentionLease, listener),
+                indexShard -> {});
+    }
+
+    private void runUnderBlockTest(
+            final String idForInitialRetentionLease,
+            final long initialRetainingSequenceNumber,
+            final BiConsumer<IndexShard, ActionListener<ReplicationResponse>> indexShard,
+            final Consumer<IndexShard> afterSync) throws InterruptedException {
+        execute(
+            "create table doc.tbl (x int) clustered into 1 shards " +
+            "with (" +
+            "   number_of_replicas = 0, " +
+            "   \"soft_deletes.enabled\" = true, " +
+            "   \"soft_deletes.retention_lease.sync_interval\" = '1s' " +
+            ")"
+        );
+        ensureGreen("tbl");
+
+        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+        final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
+        final IndexShard primary = internalCluster()
+            .getInstance(IndicesService.class, primaryShardNodeName)
+            .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+
+        final String id = idForInitialRetentionLease;
+        final long retainingSequenceNumber = initialRetainingSequenceNumber;
+        final String source = randomAlphaOfLength(8);
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ActionListener<ReplicationResponse> listener = ActionListener.wrap(r -> latch.countDown(), e -> fail(e.toString()));
+        primary.addRetentionLease(id, retainingSequenceNumber, source, listener);
+        latch.await();
+
+        final String block = randomFrom("read_only", "read_only_allow_delete", "read", "write", "metadata");
+
+        execute("alter table doc.tbl set (\"blocks." + block + "\" = true)");
+        try {
+            final CountDownLatch actionLatch = new CountDownLatch(1);
+            final AtomicBoolean success = new AtomicBoolean();
+
+            indexShard.accept(
+                primary,
+                new ActionListener<ReplicationResponse>() {
+
+                    @Override
+                    public void onResponse(final ReplicationResponse replicationResponse) {
+                        success.set(true);
+                        actionLatch.countDown();
+                    }
+
+                    @Override
+                    public void onFailure(final Exception e) {
+                        fail(e.toString());
+                    }
+
+                }
+            );
+            actionLatch.await();
+            assertTrue(success.get());
+            afterSync.accept(primary);
+        } finally {
+            execute("alter table doc.tbl reset (\"blocks." + block + "\")");
+        }
+    }
+
+
 }

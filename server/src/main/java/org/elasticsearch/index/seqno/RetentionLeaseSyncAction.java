@@ -32,6 +32,7 @@ import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -125,7 +126,12 @@ public class RetentionLeaseSyncAction extends
         Objects.requireNonNull(replica);
         replica.updateRetentionLeasesOnReplica(request.getRetentionLeases());
         replica.persistRetentionLeases();
-        return new WriteReplicaResult<>(request, null, null, replica, logger);
+        return new WriteReplicaResult<>(request, null, null, replica, getLogger());
+    }
+
+    @Override
+    public ClusterBlockLevel indexBlockLevel() {
+        return null;
     }
 
     public static final class Request extends ReplicationRequest<Request> {
