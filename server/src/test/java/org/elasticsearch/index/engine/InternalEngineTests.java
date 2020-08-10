@@ -5078,16 +5078,6 @@ public class InternalEngineTests extends EngineTestCase {
                 engine.flush(true, true);
                 assertThat(Long.parseLong(engine.getLastCommittedSegmentInfos().userData.get(Engine.MIN_RETAINED_SEQNO)),
                            equalTo(engine.getMinRetainedSeqNo()));
-                final RetentionLeases leases = retentionLeasesHolder.get();
-                if (leases.leases().isEmpty()) {
-                    assertThat(
-                        engine.getLastCommittedSegmentInfos().getUserData().get(Engine.RETENTION_LEASES),
-                        equalTo("primary_term:" + primaryTerm + ";version:" + retentionLeasesVersion.get() + ";"));
-                } else {
-                    assertThat(
-                        engine.getLastCommittedSegmentInfos().getUserData().get(Engine.RETENTION_LEASES),
-                        equalTo(RetentionLeases.encodeRetentionLeases(leases)));
-                }
             }
             if (rarely()) {
                 engine.forceMerge(randomBoolean(), 1, false, false, false, UUIDs.randomBase64UUID());

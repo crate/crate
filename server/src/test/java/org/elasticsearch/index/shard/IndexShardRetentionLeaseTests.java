@@ -214,7 +214,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
         }
     }
 
-    public void testCommit() throws IOException {
+    public void testPersistence() throws IOException {
         final Settings settings = Settings.builder()
                 .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
                 .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING.getKey(), Long.MAX_VALUE, TimeUnit.NANOSECONDS)
@@ -236,19 +236,17 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
 
             currentTimeMillis.set(TimeUnit.NANOSECONDS.toMillis(Long.MAX_VALUE));
 
-            // force a commit
-            indexShard.flush(new FlushRequest().force(true));
+            // force the retention leases to persist
+            indexShard.persistRetentionLeases();
 
-            // the committed retention leases should equal our current retention leases
-            final SegmentInfos segmentCommitInfos = indexShard.store().readLastCommittedSegmentsInfo();
-            assertTrue(segmentCommitInfos.getUserData().containsKey(Engine.RETENTION_LEASES));
+            // the written retention leases should equal our current retention leases
             final RetentionLeases retentionLeases = indexShard.getEngine().config().retentionLeasesSupplier().get();
-            final RetentionLeases committedRetentionLeases = IndexShard.getRetentionLeases(segmentCommitInfos);
+            final RetentionLeases writtenRetentionLeases = indexShard.loadRetentionLeases();
             if (retentionLeases.leases().isEmpty()) {
-                assertThat(committedRetentionLeases.version(), equalTo(0L));
-                assertThat(committedRetentionLeases.leases(), empty());
+                assertThat(writtenRetentionLeases.version(), equalTo(0L));
+                assertThat(writtenRetentionLeases.leases(), empty());
             } else {
-                assertThat(committedRetentionLeases.version(), equalTo((long) length));
+                assertThat(writtenRetentionLeases.version(), equalTo((long) length));
                 assertThat(retentionLeases.leases(), contains(retentionLeases.leases().toArray(new RetentionLease[0])));
             }
 

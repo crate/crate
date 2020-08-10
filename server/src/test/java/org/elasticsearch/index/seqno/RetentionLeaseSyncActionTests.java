@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
@@ -83,7 +84,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
     }
 
     @Test
-    public void testRetentionLeaseSyncActionOnPrimary() {
+    public void testRetentionLeaseSyncActionOnPrimary() throws WriteStateException {
         final IndicesService indicesService = mock(IndicesService.class);
 
         final Index index = new Index("index", "uuid");
@@ -110,11 +111,9 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
 
         final TransportWriteAction.WritePrimaryResult<RetentionLeaseSyncAction.Request, ReplicationResponse> result =
             action.shardOperationOnPrimary(request, indexShard);
-        // the retention leases on the shard should be flushed
-        final ArgumentCaptor<FlushRequest> flushRequest = ArgumentCaptor.forClass(FlushRequest.class);
-        verify(indexShard).flush(flushRequest.capture());
-        assertTrue(flushRequest.getValue().force());
-        assertTrue(flushRequest.getValue().waitIfOngoing());
+
+        // the retention leases on the shard should be persisted
+        verify(indexShard).persistRetentionLeases();
         // we should forward the request containing the current retention leases to the replica
         assertThat(result.replicaRequest(), sameInstance(request));
         // we should start with an empty replication response
@@ -122,7 +121,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
     }
 
     @Test
-    public void testRetentionLeaseSyncActionOnReplica() {
+    public void testRetentionLeaseSyncActionOnReplica() throws WriteStateException {
         final IndicesService indicesService = mock(IndicesService.class);
 
         final Index index = new Index("index", "uuid");
@@ -152,11 +151,8 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
                 action.shardOperationOnReplica(request, indexShard);
         // the retention leases on the shard should be updated
         verify(indexShard).updateRetentionLeasesOnReplica(retentionLeases);
-        // the retention leases on the shard should be flushed
-        final ArgumentCaptor<FlushRequest> flushRequest = ArgumentCaptor.forClass(FlushRequest.class);
-        verify(indexShard).flush(flushRequest.capture());
-        assertTrue(flushRequest.getValue().force());
-        assertTrue(flushRequest.getValue().waitIfOngoing());
+        // the retention leases on the shard should be persisteed
+        verify(indexShard).persistRetentionLeases();
         // the result should indicate success
         final AtomicBoolean success = new AtomicBoolean();
         result.respond(ActionListener.wrap(r -> success.set(true), e -> fail(e.toString())));
