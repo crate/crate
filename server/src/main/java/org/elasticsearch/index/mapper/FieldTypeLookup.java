@@ -22,11 +22,9 @@ package org.elasticsearch.index.mapper;
 import org.elasticsearch.common.collect.CopyOnWriteHashMap;
 import org.elasticsearch.common.regex.Regex;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -74,7 +72,6 @@ class FieldTypeLookup implements Iterable<MappedFieldType> {
             MappedFieldType fullNameFieldType = fullName.get(fieldType.name());
 
             if (!Objects.equals(fieldType, fullNameFieldType)) {
-                validateField(type, fullNameFieldType, fieldType, aliases);
                 fullName = fullName.copyAndPut(fieldType.name(), fieldType);
             }
         }
@@ -82,69 +79,10 @@ class FieldTypeLookup implements Iterable<MappedFieldType> {
         for (FieldAliasMapper fieldAliasMapper : fieldAliasMappers) {
             String aliasName = fieldAliasMapper.name();
             String path = fieldAliasMapper.path();
-
-            validateAlias(aliasName, path, aliases, fullName);
             aliases = aliases.copyAndPut(aliasName, path);
         }
 
         return new FieldTypeLookup(fullName, aliases);
-    }
-
-
-    /**
-     * Checks if the given field type is compatible with an existing field type.
-     * An IllegalArgumentException is thrown in case of incompatibility.
-     * If updateAllTypes is true, only basic compatibility is checked.
-     */
-    private void validateField(String type,
-                               MappedFieldType existingFieldType,
-                               MappedFieldType newFieldType,
-                               CopyOnWriteHashMap<String, String> aliasToConcreteName) {
-        String fieldName = newFieldType.name();
-        if (aliasToConcreteName.containsKey(fieldName)) {
-            throw new IllegalArgumentException("The name for field [" + fieldName + "] has already" +
-                " been used to define a field alias.");
-        }
-
-        if (existingFieldType != null) {
-            List<String> conflicts = new ArrayList<>();
-            existingFieldType.checkCompatibility(newFieldType, conflicts);
-            if (conflicts.isEmpty() == false) {
-                throw new IllegalArgumentException("Mapper for [" + fieldName +
-                    "] conflicts with existing mapping in other types:\n" + conflicts.toString());
-            }
-        }
-    }
-
-    /**
-     * Checks that the new field alias is valid.
-     *
-     * Note that this method assumes that new concrete fields have already been processed, so that it
-     * can verify that an alias refers to an existing concrete field.
-     */
-    private void validateAlias(String aliasName,
-                               String path,
-                               CopyOnWriteHashMap<String, String> aliasToConcreteName,
-                               CopyOnWriteHashMap<String, MappedFieldType> fullNameToFieldType) {
-        if (fullNameToFieldType.containsKey(aliasName)) {
-            throw new IllegalArgumentException("The name for field alias [" + aliasName + "] has already" +
-                " been used to define a concrete field.");
-        }
-
-        if (path.equals(aliasName)) {
-            throw new IllegalArgumentException("Invalid [path] value [" + path + "] for field alias [" +
-                aliasName + "]: an alias cannot refer to itself.");
-        }
-
-        if (aliasToConcreteName.containsKey(path)) {
-            throw new IllegalArgumentException("Invalid [path] value [" + path + "] for field alias [" +
-                aliasName + "]: an alias cannot refer to another alias.");
-        }
-
-        if (!fullNameToFieldType.containsKey(path)) {
-            throw new IllegalArgumentException("Invalid [path] value [" + path + "] for field alias [" +
-                aliasName + "]: an alias must refer to an existing field in the mappings.");
-        }
     }
 
     /** Returns the field for the given field */
