@@ -474,7 +474,7 @@ public abstract class AggregationTest extends ESTestCase {
             indicesModule,
             routing.getIndexName()
         );
-        mapperService.merge(indexMetadata, MAPPING_RECOVERY, true);
+        mapperService.merge(indexMetadata, MAPPING_RECOVERY);
         IndexShard shard = null;
         try {
             shard = new IndexShard(

@@ -169,7 +169,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         final Map<String, DocumentMapper> updatedEntries;
         try {
             // only update entries if needed
-            updatedEntries = internalMerge(newIndexMetadata, MergeReason.MAPPING_RECOVERY, true, true);
+            updatedEntries = internalMerge(newIndexMetadata, MergeReason.MAPPING_RECOVERY, true);
         } catch (Exception e) {
             logger.warn(() -> new ParameterizedMessage("[{}] failed to apply mappings", index()), e);
             throw e;
@@ -245,7 +245,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    public void merge(Map<String, Map<String, Object>> mappings, MergeReason reason, boolean updateAllTypes) {
+    public void merge(Map<String, Map<String, Object>> mappings, MergeReason reason) {
         Map<String, CompressedXContent> mappingSourcesCompressed = new LinkedHashMap<>(mappings.size());
         for (Map.Entry<String, Map<String, Object>> entry : mappings.entrySet()) {
             try {
@@ -255,19 +255,18 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             }
         }
 
-        internalMerge(mappingSourcesCompressed, reason, updateAllTypes);
+        internalMerge(mappingSourcesCompressed, reason);
     }
 
-    public void merge(IndexMetadata indexMetadata, MergeReason reason, boolean updateAllTypes) {
-        internalMerge(indexMetadata, reason, updateAllTypes, false);
+    public void merge(IndexMetadata indexMetadata, MergeReason reason) {
+        internalMerge(indexMetadata, reason, false);
     }
 
-    public DocumentMapper merge(String type, CompressedXContent mappingSource, MergeReason reason, boolean updateAllTypes) {
-        return internalMerge(Collections.singletonMap(type, mappingSource), reason, updateAllTypes).get(type);
+    public DocumentMapper merge(String type, CompressedXContent mappingSource, MergeReason reason) {
+        return internalMerge(Collections.singletonMap(type, mappingSource), reason).get(type);
     }
 
-    private synchronized Map<String, DocumentMapper> internalMerge(IndexMetadata indexMetadata, MergeReason reason, boolean updateAllTypes,
-                                                                   boolean onlyUpdateIfNeeded) {
+    private synchronized Map<String, DocumentMapper> internalMerge(IndexMetadata indexMetadata, MergeReason reason, boolean onlyUpdateIfNeeded) {
         Map<String, CompressedXContent> map = new LinkedHashMap<>();
         for (ObjectCursor<MappingMetadata> cursor : indexMetadata.getMappings().values()) {
             MappingMetadata mappingMetadata = cursor.value;
@@ -280,10 +279,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 map.put(mappingMetadata.type(), mappingMetadata.source());
             }
         }
-        return internalMerge(map, reason, updateAllTypes);
+        return internalMerge(map, reason);
     }
 
-    private synchronized Map<String, DocumentMapper> internalMerge(Map<String, CompressedXContent> mappings, MergeReason reason, boolean updateAllTypes) {
+    private synchronized Map<String, DocumentMapper> internalMerge(Map<String, CompressedXContent> mappings, MergeReason reason) {
         List<DocumentMapper> documentMappers = new ArrayList<>();
         for (Map.Entry<String, CompressedXContent> entry : mappings.entrySet()) {
             String type = entry.getKey();
@@ -300,7 +299,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             }
         }
 
-        return internalMerge(documentMappers, reason, updateAllTypes);
+        return internalMerge(documentMappers, reason);
     }
 
     static void validateTypeName(String type) {
@@ -325,8 +324,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     }
 
     private synchronized Map<String, DocumentMapper> internalMerge(List<DocumentMapper> documentMappers,
-                                                                   MergeReason reason,
-                                                                   boolean updateAllTypes) {
+                                                                   MergeReason reason) {
         Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
         FieldTypeLookup fieldTypes = this.fieldTypes;
         Map<String, DocumentMapper> mappers = new HashMap<>(this.mappers);
@@ -348,7 +346,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             DocumentMapper oldMapper = mappers.get(mapper.type());
             DocumentMapper newMapper;
             if (oldMapper != null) {
-                newMapper = oldMapper.merge(mapper.mapping(), updateAllTypes);
+                newMapper = oldMapper.merge(mapper.mapping());
             } else {
                 newMapper = mapper;
             }
@@ -361,13 +359,12 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             Collections.addAll(fieldMappers, metadataMappers);
             MapperUtils.collect(newMapper.mapping().root(), objectMappers, fieldMappers, fieldAliasMappers);
 
-            MapperMergeValidator.validateMapperStructure(newMapper.type(), objectMappers, fieldMappers,
-                fieldAliasMappers, fullPathObjectMappers, fieldTypes, updateAllTypes);
+            MapperMergeValidator.validateMapperStructure(objectMappers, fieldMappers, fieldAliasMappers);
             checkPartitionedIndexConstraints(newMapper);
 
             // update lookup data-structures
             // this will in particular make sure that the merged fields are compatible with other types
-            fieldTypes = fieldTypes.copyAndAddAll(newMapper.type(), fieldMappers, fieldAliasMappers, updateAllTypes);
+            fieldTypes = fieldTypes.copyAndAddAll(newMapper.type(), fieldMappers, fieldAliasMappers);
 
             for (ObjectMapper objectMapper : objectMappers) {
                 if (fullPathObjectMappers == this.fullPathObjectMappers) {

@@ -443,7 +443,7 @@ public class MetadataCreateIndexService {
                 // now add the mappings
                 MapperService mapperService = indexService.mapperService();
                 try {
-                    mapperService.merge(mappings, MergeReason.MAPPING_UPDATE, request.updateAllTypes());
+                    mapperService.merge(mappings, MergeReason.MAPPING_UPDATE);
                 } catch (Exception e) {
                     removalExtraInfo = "failed on parsing default mapping/mappings on index creation";
                     throw e;

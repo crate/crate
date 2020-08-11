@@ -66,7 +66,7 @@ public final class FieldAliasMapper extends Mapper {
     }
 
     @Override
-    public Mapper merge(Mapper mergeWith, boolean updateAllTypes) {
+    public Mapper merge(Mapper mergeWith) {
         if (!(mergeWith instanceof FieldAliasMapper)) {
             throw new IllegalArgumentException("Cannot merge a field alias mapping ["
                 + name() + "] with a mapping that is not for a field alias.");
