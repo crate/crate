@@ -194,7 +194,7 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
     }
 
     @Override
-    protected void doMerge(Mapper mergeWith, boolean updateAllTypes) {
+    protected void doMerge(Mapper mergeWith) {
         // do nothing here, no merging, but also no exception
     }
 }

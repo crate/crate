@@ -19,8 +19,21 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
+import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
+import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -31,7 +44,6 @@ import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -44,17 +56,7 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
-import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
-import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import io.crate.common.collections.MapBuilder;
 
 /**
  * A request to create an index. Best created with {@link org.elasticsearch.client.Requests#createIndexRequest(String)}.
@@ -80,8 +82,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     private final Map<String, String> mappings = new HashMap<>();
 
     private final Set<Alias> aliases = new HashSet<>();
-
-    private boolean updateAllTypes = false;
 
     private ActiveShardCount waitForActiveShards = ActiveShardCount.DEFAULT;
 
@@ -396,19 +396,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         return this.aliases;
     }
 
-    /** True if all fields that span multiple types should be updated, false otherwise */
-    public boolean updateAllTypes() {
-        return updateAllTypes;
-    }
-
-    /** See {@link #updateAllTypes()}
-     * @deprecated useless with 6.x indices which may only have one type */
-    @Deprecated
-    public CreateIndexRequest updateAllTypes(boolean updateAllTypes) {
-        this.updateAllTypes = updateAllTypes;
-        return this;
-    }
-
     public ActiveShardCount waitForActiveShards() {
         return waitForActiveShards;
     }
@@ -456,7 +443,9 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         for (int i = 0; i < aliasesSize; i++) {
             aliases.add(new Alias(in));
         }
-        updateAllTypes = in.readBoolean();
+        if (in.getVersion().before(Version.V_4_3_0)) {
+            in.readBoolean(); // updateAllTypes
+        }
         waitForActiveShards = ActiveShardCount.readFrom(in);
     }
 
@@ -475,7 +464,9 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         for (Alias alias : aliases) {
             alias.writeTo(out);
         }
-        out.writeBoolean(updateAllTypes);
+        if (out.getVersion().before(Version.V_4_3_0)) {
+            out.writeBoolean(true); // updateAllTypes
+        }
         waitForActiveShards.writeTo(out);
     }
 }

@@ -94,7 +94,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 Mapper mapper = builder.build(context);
                 Mapper existing = mappers.get(mapper.simpleName());
                 if (existing != null) {
-                    mapper = existing.merge(mapper, false);
+                    mapper = existing.merge(mapper);
                 }
                 mappers.put(mapper.simpleName(), mapper);
             }
@@ -318,17 +318,17 @@ public class ObjectMapper extends Mapper implements Cloneable {
     }
 
     @Override
-    public ObjectMapper merge(Mapper mergeWith, boolean updateAllTypes) {
+    public ObjectMapper merge(Mapper mergeWith) {
         if (!(mergeWith instanceof ObjectMapper)) {
             throw new IllegalArgumentException("Can't merge a non object mapping [" + mergeWith.name() + "] with an object mapping [" + name() + "]");
         }
         ObjectMapper mergeWithObject = (ObjectMapper) mergeWith;
         ObjectMapper merged = clone();
-        merged.doMerge(mergeWithObject, updateAllTypes);
+        merged.doMerge(mergeWithObject);
         return merged;
     }
 
-    protected void doMerge(final ObjectMapper mergeWith, boolean updateAllTypes) {
+    protected void doMerge(final ObjectMapper mergeWith) {
         if (mergeWith.dynamic != null) {
             this.dynamic = mergeWith.dynamic;
         }
@@ -343,7 +343,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 merged = mergeWithMapper;
             } else {
                 // root mappers can only exist here for backcompat, and are merged in Mapping
-                merged = mergeIntoMapper.merge(mergeWithMapper, updateAllTypes);
+                merged = mergeIntoMapper.merge(mergeWithMapper);
             }
             putMapper(merged);
         }

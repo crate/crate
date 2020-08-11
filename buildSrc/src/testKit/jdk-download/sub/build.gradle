@@ -32,28 +32,28 @@ jdks {
     }
 }
 
-task getAarch64LinuxJdk {
+tasks.register("getAarch64LinuxJdk") {
     dependsOn jdks.aarch64_linux
     doLast {
         println "JDK HOME: " + jdks.aarch64_linux
     }
 }
 
-task getX64LinuxJdk {
+tasks.register("getX64LinuxJdk") {
     dependsOn jdks.x64_linux
     doLast {
         println "JDK HOME: " + jdks.x64_linux
     }
 }
 
-task getMacJdk {
+tasks.register("getMacJdk") {
     dependsOn jdks.mac
     doLast {
         println "JDK HOME: " + jdks.mac
     }
 }
 
-task getWindowsJdk {
+tasks.register("getWindowsJdk") {
     dependsOn jdks.windows
     doLast {
         println "JDK HOME: " + jdks.windows

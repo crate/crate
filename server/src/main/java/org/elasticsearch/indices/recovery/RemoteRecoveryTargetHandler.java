@@ -89,8 +89,10 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             new RecoveryPrepareForTranslogOperationsRequest(recoveryId, shardId, totalTranslogOps, fileBasedRecovery),
             TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build(),
             new ActionListenerResponseHandler<>(
-                ActionListener.wrap(r -> listener.onResponse(null), listener::onFailure),
-                in -> TransportResponse.Empty.INSTANCE, ThreadPool.Names.GENERIC)
+                ActionListener.map(listener, r -> null),
+                in -> TransportResponse.Empty.INSTANCE,
+                ThreadPool.Names.GENERIC
+            )
         );
     }
 
@@ -102,8 +104,9 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             new RecoveryFinalizeRecoveryRequest(recoveryId, shardId, globalCheckpoint),
             TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionLongTimeout()).build(),
             new ActionListenerResponseHandler<>(
-                ActionListener.wrap(r -> listener.onResponse(null), listener::onFailure),
-                in -> TransportResponse.Empty.INSTANCE, ThreadPool.Names.GENERIC
+                ActionListener.map(listener, r -> null),
+                in -> TransportResponse.Empty.INSTANCE,
+                ThreadPool.Names.GENERIC
             )
         );
     }
@@ -147,8 +150,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             request,
             translogOpsRequestOptions,
             new ActionListenerResponseHandler<>(
-                ActionListener.wrap(
-                    r -> listener.onResponse(r.localCheckpoint), listener::onFailure),
+                ActionListener.map(listener, r -> r.localCheckpoint),
                 RecoveryTranslogOperationsResponse::new,
                 ThreadPool.Names.GENERIC)
         );
@@ -210,8 +212,14 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
                  * see how many translog ops we accumulate while copying files across the network. A future optimization
                  * would be in to restart file copy again (new deltas) if we have too many translog ops are piling up.
                  */
-                throttleTimeInNanos), fileChunkRequestOptions, new ActionListenerResponseHandler<>(
-                ActionListener.wrap(r -> listener.onResponse(null), listener::onFailure), in -> TransportResponse.Empty.INSTANCE));
+                throttleTimeInNanos
+            ),
+            fileChunkRequestOptions,
+            new ActionListenerResponseHandler<>(
+                ActionListener.map(listener, r -> null),
+                in -> TransportResponse.Empty.INSTANCE
+            )
+        );
     }
 
 }

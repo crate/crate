@@ -123,21 +123,21 @@ public class ObjectArrayMapper extends ObjectMapper {
     }
 
     @Override
-    public ObjectMapper merge(Mapper mergeWith, boolean updateAllTypes) {
+    public ObjectMapper merge(Mapper mergeWith) {
         ObjectArrayMapper merged = clone();
 
         if (mergeWith instanceof ObjectArrayMapper) {
             ObjectArrayMapper mergeWithObject = (ObjectArrayMapper) mergeWith;
-            merged.innerMapper = merged.innerMapper.merge(mergeWithObject.innerMapper, updateAllTypes);
+            merged.innerMapper = merged.innerMapper.merge(mergeWithObject.innerMapper);
             return merged;
         }
 
-        merged.innerMapper = merged.innerMapper.merge(mergeWith, updateAllTypes);
+        merged.innerMapper = merged.innerMapper.merge(mergeWith);
         return merged;
     }
 
     @Override
-    protected void doMerge(ObjectMapper mergeWith, boolean updateAllTypes) {
+    protected void doMerge(ObjectMapper mergeWith) {
         // unused because merge is overwritten
         throw new UnsupportedOperationException("doMerge not supported");
     }

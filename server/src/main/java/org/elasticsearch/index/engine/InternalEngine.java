@@ -1044,7 +1044,6 @@ public class InternalEngine extends Engine {
                 }
             }
         }
-        markSeqNoAsSeen(index.seqNo());
         return plan;
     }
 
@@ -1593,7 +1592,6 @@ public class InternalEngine extends Engine {
         final NoOpResult noOpResult;
         try (ReleasableLock ignored = readLock.acquire()) {
             ensureOpen();
-            markSeqNoAsSeen(noOp.seqNo());
             noOpResult = innerNoOp(noOp);
         } catch (final Exception e) {
             try {

@@ -21,6 +21,7 @@ package org.elasticsearch.action.admin.indices.mapping.put;
 
 import com.carrotsearch.hppc.ObjectHashSet;
 import org.elasticsearch.ElasticsearchGenerationException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -81,7 +82,6 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
 
     private String source;
 
-    private boolean updateAllTypes = false;
     private Index concreteIndex;
 
     public PutMappingRequest() {
@@ -278,28 +278,15 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
         }
     }
 
-    /** True if all fields that span multiple types should be updated, false otherwise */
-    public boolean updateAllTypes() {
-        return updateAllTypes;
-    }
-
-    /**
-     * True if all fields that span multiple types should be updated, false otherwise.
-     * @deprecated useless with 6.x indices which may only have one type
-     */
-    @Deprecated
-    public PutMappingRequest updateAllTypes(boolean updateAllTypes) {
-        this.updateAllTypes = updateAllTypes;
-        return this;
-    }
-
     public PutMappingRequest(StreamInput in) throws IOException {
         super(in);
         indices = in.readStringArray();
         indicesOptions = IndicesOptions.readIndicesOptions(in);
         type = in.readOptionalString();
         source = in.readString();
-        updateAllTypes = in.readBoolean();
+        if (in.getVersion().before(Version.V_4_3_0)) {
+            in.readBoolean(); // updateAllTypes
+        }
         concreteIndex = in.readOptionalWriteable(Index::new);
     }
 
@@ -310,7 +297,9 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
         indicesOptions.writeIndicesOptions(out);
         out.writeOptionalString(type);
         out.writeString(source);
-        out.writeBoolean(updateAllTypes);
+        if (out.getVersion().before(Version.V_4_3_0)) {
+            out.writeBoolean(true); // updateAllTypes
+        }
         out.writeOptionalWriteable(concreteIndex);
     }
 

@@ -115,8 +115,7 @@ public final class IndexEnv implements AutoCloseable {
         mapperService.merge(
             "default",
             indexMetadata.mappingOrDefault("default").source(),
-            MapperService.MergeReason.MAPPING_UPDATE,
-            true
+            MapperService.MergeReason.MAPPING_UPDATE
         );
         DisabledQueryCache queryCache = new DisabledQueryCache(idxSettings);
         indexCache = new IndexCache(idxSettings, queryCache);

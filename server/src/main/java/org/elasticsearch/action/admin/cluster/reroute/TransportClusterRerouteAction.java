@@ -71,14 +71,14 @@ public class TransportClusterRerouteAction extends TransportMasterNodeAction<Clu
 
     @Override
     protected void masterOperation(final ClusterRerouteRequest request, final ClusterState state, final ActionListener<ClusterRerouteResponse> listener) {
-        ActionListener<ClusterRerouteResponse> logWrapper = ActionListener.wrap(
+        ActionListener<ClusterRerouteResponse> logWrapper = ActionListener.map(
+            listener,
             response -> {
                 if (request.dryRun() == false) {
                     response.getExplanations().getYesDecisionMessages().forEach(logger::info);
                 }
-                listener.onResponse(response);
-            },
-            listener::onFailure
+                return response;
+            }
         );
 
         clusterService.submitStateUpdateTask("cluster_reroute (api)", new ClusterRerouteResponseAckedClusterStateUpdateTask(logger,

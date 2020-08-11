@@ -116,7 +116,7 @@ final class StoreRecovery {
             for (ObjectObjectCursor<String, MappingMetadata> mapping : sourceMetadata.getMappings()) {
                 mappingUpdateConsumer.accept(mapping.key, mapping.value);
             }
-            indexShard.mapperService().merge(sourceMetadata, MapperService.MergeReason.MAPPING_RECOVERY, true);
+            indexShard.mapperService().merge(sourceMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
             // now that the mapping is merged we can validate the index sort configuration.
             final boolean isSplit = sourceMetadata.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
             return executeRecovery(indexShard, () -> {
