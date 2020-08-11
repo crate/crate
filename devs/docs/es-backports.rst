@@ -491,7 +491,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] cfbc24aa8ac Small simplifications to mapping validation. (#39777)
 - [ ] da602dad0f8 Combine overriddenOps and skippedOps in translog (#39771)
 - [ ] 1617e3007c5 Add option to force load term dict into memory (#39741)
-- [ ] 73d4516ba78 Allow inclusion of unloaded segments in stats (#39512)
+- [s] 73d4516ba78 Allow inclusion of unloaded segments in stats (#39512)
 - [x] 28ca58d494e Introduce Mapping ActionListener (#39538)
 - [x] 5d0813b0916 Do not mutate engine during planning step (#39571)
 - [x] 6d88a062df3 Don't swallow exceptions in Store#close(). (#39035)
