@@ -236,7 +236,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
 
     protected void updateMappings(IndexShard shard, IndexMetadata indexMetadata) {
         shard.indexSettings().updateIndexMetadata(indexMetadata);
-        shard.mapperService().merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE, false);
+        shard.mapperService().merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
     }
 
     protected void flushShard(IndexShard shard) {
@@ -441,7 +441,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             IndexCache indexCache = new IndexCache(indexSettings, new DisabledQueryCache(indexSettings));
             MapperService mapperService = MapperTestUtils.newMapperService(xContentRegistry(), createTempDir(),
                     indexSettings.getSettings(), "index");
-            mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY, true);
+            mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
             ClusterSettings clusterSettings = new ClusterSettings(nodeSettings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
             CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(nodeSettings, clusterSettings);
             indexShard = new IndexShard(

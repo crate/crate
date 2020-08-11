@@ -229,17 +229,11 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
 
         @Override
-        public void checkCompatibility(MappedFieldType otherFT, List<String> conflicts, boolean strict) {
-            super.checkCompatibility(otherFT, conflicts, strict);
+        public void checkCompatibility(MappedFieldType otherFT, List<String> conflicts) {
+            super.checkCompatibility(otherFT, conflicts);
             KeywordFieldType other = (KeywordFieldType) otherFT;
             if (Objects.equals(normalizer, other.normalizer) == false) {
                 conflicts.add("mapper [" + name() + "] has different [normalizer]");
-            }
-            if (strict) {
-                if (splitQueriesOnWhitespace != other.splitQueriesOnWhitespace) {
-                    conflicts.add("mapper [" + name() + "] is used by multiple types. Set update_all_types" +
-                        " to true to update [split_queries_on_whitespace] across all types.");
-                }
             }
         }
 
@@ -439,8 +433,8 @@ public final class KeywordFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doMerge(Mapper mergeWith, boolean updateAllTypes) {
-        super.doMerge(mergeWith, updateAllTypes);
+    protected void doMerge(Mapper mergeWith) {
+        super.doMerge(mergeWith);
         var mw = ((KeywordFieldMapper) mergeWith);
         this.ignoreAbove = mw.ignoreAbove;
         if (!Objects.equals(this.lengthLimit, mw.lengthLimit)) {

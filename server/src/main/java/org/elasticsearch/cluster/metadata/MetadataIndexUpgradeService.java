@@ -168,7 +168,7 @@ public class MetadataIndexUpgradeService {
             try (IndexAnalyzers fakeIndexAnalzyers = new IndexAnalyzers(indexSettings, fakeDefault, fakeDefault, fakeDefault, analyzerMap, analyzerMap, analyzerMap)) {
                 MapperService mapperService = new MapperService(indexSettings, fakeIndexAnalzyers, xContentRegistry,
                         mapperRegistry, () -> null);
-                mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY, false);
+                mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
             }
         } catch (Exception ex) {
             // Wrap the inner exception so we have the index name in the exception message

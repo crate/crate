@@ -1233,7 +1233,7 @@ public abstract class EngineTestCase extends ESTestCase {
             .build();
         MapperService mapperService = MapperTestUtils.newMapperService(new NamedXContentRegistry(ClusterModule.getNamedXWriteables()),
             createTempDir(), Settings.EMPTY, "test");
-        mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE, false);
+        mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
         return mapperService;
     }
 

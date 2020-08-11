@@ -228,7 +228,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 // now add the mappings
                 MapperService mapperService = indexService.mapperService();
                 try {
-                    mapperService.merge(mappings, MapperService.MergeReason.MAPPING_UPDATE, true);
+                    mapperService.merge(mappings, MapperService.MergeReason.MAPPING_UPDATE);
                 } catch (MapperParsingException mpe) {
                     removalReasons.add("failed on parsing mappings on index creation");
                     throw mpe;

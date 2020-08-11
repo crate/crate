@@ -48,11 +48,10 @@ class MapperMergeValidator {
                                                Collection<FieldMapper> fieldMappers,
                                                Collection<FieldAliasMapper> fieldAliasMappers,
                                                Map<String, ObjectMapper> fullPathObjectMappers,
-                                               FieldTypeLookup fieldTypes,
-                                               boolean updateAllTypes) {
+                                               FieldTypeLookup fieldTypes) {
         checkFieldUniqueness(type, objectMappers, fieldMappers,
             fieldAliasMappers, fullPathObjectMappers, fieldTypes);
-        checkObjectsCompatibility(objectMappers, fullPathObjectMappers, updateAllTypes);
+        checkObjectsCompatibility(objectMappers, fullPathObjectMappers);
     }
 
     private static void checkFieldUniqueness(String type,
@@ -99,14 +98,13 @@ class MapperMergeValidator {
     }
 
     private static void checkObjectsCompatibility(Collection<ObjectMapper> objectMappers,
-                                                  Map<String, ObjectMapper> fullPathObjectMappers,
-                                                  boolean updateAllTypes) {
+                                                  Map<String, ObjectMapper> fullPathObjectMappers) {
         for (ObjectMapper newObjectMapper : objectMappers) {
             ObjectMapper existingObjectMapper = fullPathObjectMappers.get(newObjectMapper.fullPath());
             if (existingObjectMapper != null) {
                 // simulate a merge and ignore the result, we are just interested
                 // in exceptions here
-                existingObjectMapper.merge(newObjectMapper, updateAllTypes);
+                existingObjectMapper.merge(newObjectMapper);
             }
         }
     }

@@ -126,6 +126,6 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("mapper [text_col] has different length_limit settings, current [2], merged [1]");
-        mapper.merge(anotherMapper.mapping(), false);
+        mapper.merge(anotherMapper.mapping());
     }
 }
