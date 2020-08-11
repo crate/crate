@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.io.Closeable;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -43,15 +44,23 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.hamcrest.MatcherAssert;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 
 public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return Lists2.concat(super.nodePlugins(), MockTransportService.TestPlugin.class);
+    }
 
     @Test
     public void testRetentionLeasesSyncedOnAdd() throws Exception {
@@ -113,6 +122,7 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
             "   number_of_replicas = ?, " +
+            "   \"soft_deletes.enabled\" = true, " +
             "   \"soft_deletes.retention_lease.sync_interval\" = ?)",
             new Object[] {
                 numberOfReplicas,
@@ -426,6 +436,7 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
             "   number_of_replicas = ?, " +
+            "   \"soft_deletes.enabled\" = true," +
             "   \"soft_deletes.retention_lease.sync_interval\" = ?)",
             new Object[] {
                 numDataNodes == 1 ? 0 : numDataNodes - 1,
@@ -473,4 +484,40 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
         assertTrue(success.get());
         afterSync.accept(primary);
     }
+
+    @Test
+    public void testRetentionLeasesBackgroundSyncWithSoftDeletesDisabled() throws Exception {
+        final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
+        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
+        TimeValue syncIntervalSetting = TimeValue.timeValueMillis(between(1, 100));
+        execute(
+            "create table doc.tbl (x int) clustered into 1 shards with (" +
+            "   number_of_replicas = ?, " +
+            "   \"soft_deletes.retention_lease.sync_interval\" = ?, " +
+            "   \"soft_deletes.enabled\" = false" +
+            ")",
+            new Object[] {
+                numberOfReplicas,
+                syncIntervalSetting.getStringRep()
+            }
+        );
+        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+        final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
+        final MockTransportService primaryTransportService = (MockTransportService) internalCluster().getInstance(
+            TransportService.class, primaryShardNodeName);
+        final AtomicBoolean backgroundSyncRequestSent = new AtomicBoolean();
+        primaryTransportService.addSendBehavior((connection, requestId, action, request, options) -> {
+            if (action.startsWith(RetentionLeaseBackgroundSyncAction.ACTION_NAME)) {
+                backgroundSyncRequestSent.set(true);
+            }
+            connection.sendRequest(requestId, action, request, options);
+        });
+        final long start = System.nanoTime();
+        ensureGreen("tbl");
+        final long syncEnd = System.nanoTime();
+        // We sleep long enough for the retention leases background sync to be triggered
+        Thread.sleep(Math.max(0, randomIntBetween(2, 3) * syncIntervalSetting.millis() - TimeUnit.NANOSECONDS.toMillis(syncEnd - start)));
+        assertFalse("retention leases background sync must be a noop if soft deletes is disabled", backgroundSyncRequestSent.get());
+    }
+
 }
