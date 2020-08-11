@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Fixed a regression introduced in 4.2.0 which caused :ref:`fulltext search
+  <predicates_match>` queries of the ``phase`` match type to ignore the
+  ``fuzziness`` option.
+
 - Fixed a regression introduced in 4.2.0 that caused ``sum`` and ``avg``
   global aggregates to return incorrect results when used on columns of
   the ``real``.

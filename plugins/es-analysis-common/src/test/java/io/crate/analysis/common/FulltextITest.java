@@ -68,14 +68,13 @@ public class FulltextITest extends SQLTransportIntegrationTest{
                "Outer Eastern Rim| 0.39226836\n" +
                "North West Ripple| 0.38249224\n"));
 
-        execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
+        execute("select name, _score from locations where match((kind, name_description_ft), 'galay') " +
                 "using best_fields with (fuzziness='AUTO') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("End of the Galaxy| 0.74187315\n" +
-               "Altair| 0.63013375\n" +
-               "Galactic Sector QQ7 Active J Gamma| 0.5251115\n" +
-               "Outer Eastern Rim| 0.39226836\n" +
-               "North West Ripple| 0.38249224\n")
+                   is("End of the Galaxy| 0.5934985\n" +
+                      "Altair| 0.504107\n" +
+                      "Outer Eastern Rim| 0.3138147\n" +
+                      "North West Ripple| 0.3059938\n")
         );
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
