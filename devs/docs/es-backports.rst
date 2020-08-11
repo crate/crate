@@ -485,7 +485,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] ef18d3fb5b2 Add analysis modes to restrict token filter use contexts (#36103)
 - [ ] fe405bd6d3f Log missing file exception when failing to read metadata snapshot (#32920)
 - [ ] 0098c2e5b92 Migrate Streamable to writeable for index package (#37381)
-- [ ] 695b20f01bc Enforce retention leases require soft deletes (#39922)
+- [x] 695b20f01bc Enforce retention leases require soft deletes (#39922)
 - [x] 48addd1c462 Removed Unused Version Parameters in DocumentParser (#39863)
 - [x] c94ebefbc67 Move validation from FieldTypeLookup to MapperMergeValidator. (#39814)
 - [x] cfbc24aa8ac Small simplifications to mapping validation. (#39777)
