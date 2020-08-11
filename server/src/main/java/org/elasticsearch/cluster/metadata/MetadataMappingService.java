@@ -146,7 +146,7 @@ public class MetadataMappingService {
                 // we need to create the index here, and add the current mapping to it, so we can merge
                 indexService = indicesService.createIndex(indexMetadata, Collections.emptyList());
                 removeIndex = true;
-                indexService.mapperService().merge(indexMetadata, MergeReason.MAPPING_RECOVERY, true);
+                indexService.mapperService().merge(indexMetadata, MergeReason.MAPPING_RECOVERY);
             }
 
             IndexMetadata.Builder builder = IndexMetadata.builder(indexMetadata);
@@ -223,7 +223,7 @@ public class MetadataMappingService {
                                 MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
                                 indexMapperServices.put(index, mapperService);
                                 // add mappings for all types, we need them for cross-type validation
-                                mapperService.merge(indexMetadata, MergeReason.MAPPING_RECOVERY, request.updateAllTypes());
+                                mapperService.merge(indexMetadata, MergeReason.MAPPING_RECOVERY);
                             }
                         }
                         currentState = applyRequest(currentState, request, indexMapperServices);
@@ -263,7 +263,7 @@ public class MetadataMappingService {
                     newMapper = mapperService.parse(request.type(), mappingUpdateSource);
                     if (existingMapper != null) {
                         // first, simulate: just call merge and ignore the result
-                        existingMapper.merge(newMapper.mapping(), request.updateAllTypes());
+                        existingMapper.merge(newMapper.mapping());
                     }
                 }
                 if (mappingType == null) {
@@ -292,7 +292,7 @@ public class MetadataMappingService {
                 if (existingMapper != null) {
                     existingSource = existingMapper.mappingSource();
                 }
-                DocumentMapper mergedMapper = mapperService.merge(mappingType, mappingUpdateSource, MergeReason.MAPPING_UPDATE, request.updateAllTypes());
+                DocumentMapper mergedMapper = mapperService.merge(mappingType, mappingUpdateSource, MergeReason.MAPPING_UPDATE);
                 CompressedXContent updatedSource = mergedMapper.mappingSource();
 
                 if (existingSource != null) {

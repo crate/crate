@@ -155,7 +155,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
                 indexMapperServices.put(index, mapperService);
                 // add mappings for all types, we need them for cross-type validation
-                mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY, false);
+                mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
             }
         }
 

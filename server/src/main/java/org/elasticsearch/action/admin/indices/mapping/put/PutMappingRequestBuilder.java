@@ -99,13 +99,4 @@ public class PutMappingRequestBuilder
         request.source(source);
         return this;
     }
-
-    /** True if all fields that span multiple types should be updated, false otherwise
-     * @deprecated useless with 6.x indices which may only have one type */
-    @Deprecated
-    public PutMappingRequestBuilder setUpdateAllTypes(boolean updateAllTypes) {
-        request.updateAllTypes(updateAllTypes);
-        return this;
-    }
-
 }

@@ -305,7 +305,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
         Mapping mappingUpdate = doc.dynamicMappingsUpdate();
         assertThat(mappingUpdate, notNullValue());
-        mapper = mapper.merge(mappingUpdate, true);
+        mapper = mapper.merge(mappingUpdate);
         assertThat(doc.docs().size(), is(1));
         String[] values = doc.docs().get(0).getValues("array_field.new");
         assertThat(values, arrayContainingInAnyOrder(is("T"), is("1")));
