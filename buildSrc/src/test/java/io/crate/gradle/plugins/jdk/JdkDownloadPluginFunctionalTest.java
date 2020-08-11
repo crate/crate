@@ -68,7 +68,7 @@ public class JdkDownloadPluginFunctionalTest {
 
     @Test
     public void testWindowsJDKExtraction() {
-        assertExtraction("getWindowsJdk", "bin/java", VENDOR, VERSION);
+        assertExtraction("getWindowsJdk", "bin/java.exe", VENDOR, VERSION);
     }
 
     private static void assertExtraction(String task,
