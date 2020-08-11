@@ -1,0 +1,161 @@
+pipeline {
+  agent any
+  stages {
+    stage('Parallel') {
+      parallel {
+        stage('sphinx') {
+          agent { label 'medium' }
+          steps {
+            sh 'cd ./blackbox/ && ./bootstrap.sh'
+            sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E blackbox/docs/ docs/out/html'
+            sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
+          }
+        }
+        stage('test') {
+          agent { label 'large' }
+          environment {
+            CODECOV_TOKEN = credentials('cratedb-codecov-token')
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain pmdMain jacocoReport'
+            sh 'curl -s https://codecov.io/bash | bash'
+          }
+          post {
+            always {
+              junit '*/build/test-results/test/*.xml'
+            }
+          }
+        }
+        stage('test jdk11') {
+          agent { label 'large' }
+          environment {
+            CODECOV_TOKEN = credentials('cratedb-codecov-token')
+          }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
+            sh 'curl -s https://codecov.io/bash | bash'
+          }
+          post {
+            always {
+              junit '*/build/test-results/test/*.xml'
+            }
+          }
+        }
+        stage('test jdk12') {
+          agent { label 'large' }
+          environment {
+            CODECOV_TOKEN = credentials('cratedb-codecov-token')
+          }
+          tools {
+            jdk 'jdk12'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
+            sh 'curl -s https://codecov.io/bash | bash'
+          }
+          post {
+            always {
+              junit '*/build/test-results/test/*.xml'
+            }
+          }
+        }
+        stage('itest jdk8') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk8'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon itest'
+          }
+        }
+        stage('itest jdk11') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon itest'
+          }
+        }
+        stage('ce itest jdk11') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon ceItest'
+          }
+        }
+        stage('ce licenseTest jdk11') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon ceLicenseTest'
+          }
+        }
+        stage('itest jdk12') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk12'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon itest'
+          }
+        }
+        stage('test jar jdk11') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh 'timeout 20m ./gradlew --no-daemon :app:jar :app:sourceJar :app:javadocJar'
+          }
+        }
+        stage('blackbox tests') {
+          agent { label 'large' }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon hdfsTest monitoringTest gtest'
+          }
+        }
+      }
+    }
+  }
+}
