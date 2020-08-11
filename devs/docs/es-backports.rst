@@ -30,6 +30,9 @@ using something like this::
 
     sh$ git log --oneline --grep 'bp:'
 
+
+If a patch is skipped, use the ``sp:`` prefix instead.
+
 To see if there are new changes you can use
 ``git log`` in the Elasticsearch repository, like so::
 
@@ -498,7 +501,7 @@ not present in CrateDB.
 - [ ] 51e7a5fbfab Do not wait for advancement of checkpoint in recovery (#39006)
 - [ ] a9d16e10784 Ignore waitForActiveShards when syncing leases (#39224)
 - [ ] 605e8023a92 ReadOnlyEngine should update translog recovery state information (#39238)
-- [ ] 8d9b3918b60 Add retention leases replication tests (#38857)
+- [s] 8d9b3918b60 Add retention leases replication tests (#38857)
 - [x] 92ef753b56d Allow retention lease operations under blocks (#39089)
 - [x] 331ef9dc592 Introduce retention lease state file (#39004)
 - [x] 2c90534039e Include in log retention leases that failed to sync
