@@ -521,3 +521,4 @@ not present in CrateDB.
 - [s] 0cc8b123b14 Fix GeoHash PrefixTree BWC (#38584)
 - [x] 514a762d8dc Specialize pre-closing checks for engine implementations (#38702)
 - [x] 9b75a709a2c Concurrent file chunk fetching for CCR restore (#38495)
+- [x] ed73bb7b013 Use current term in initial leases in engine test (#38285)
