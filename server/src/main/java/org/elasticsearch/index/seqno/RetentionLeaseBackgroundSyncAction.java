@@ -28,6 +28,7 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -111,6 +112,7 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
 
     @Override
     protected PrimaryResult<Request, ReplicationResponse> shardOperationOnPrimary(final Request request, final IndexShard primary) throws WriteStateException {
+        assert request.waitForActiveShards().equals(ActiveShardCount.NONE) : request.waitForActiveShards();
         Objects.requireNonNull(request);
         Objects.requireNonNull(primary);
         primary.persistRetentionLeases();
@@ -142,6 +144,7 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
         public Request(final ShardId shardId, final RetentionLeases retentionLeases) {
             super(Objects.requireNonNull(shardId));
             this.retentionLeases = Objects.requireNonNull(retentionLeases);
+            waitForActiveShards(ActiveShardCount.NONE);
         }
 
         @Override
