@@ -50,7 +50,9 @@ Below lists the change sets we applied. This should be updated whenever a
 backport is made. If a patch is skipped because it is not applicable, it should
 be crossed out as well. ``x`` is used to mark applied patches, ``s`` for
 skipped patches if they're no applicable - for example if the functionality is
-not present in CrateDB.
+not present in CrateDB. ``d`` marks a delayed patch - a change we should apply,
+but which is non-trivial to apply and at the same time doesn't affect too any
+components, so delaying it doesn't make applying other patches more difficult.
 
 
 - [ ] 423bcd3c14d Remove typename validation (typename is always ) (#60133)
@@ -492,10 +494,10 @@ not present in CrateDB.
 - [ ] 73d4516ba78 Allow inclusion of unloaded segments in stats (#39512)
 - [ ] 28ca58d494e Introduce Mapping ActionListener (#39538)
 - [ ] 5d0813b0916 Do not mutate engine during planning step (#39571)
-- [ ] 6d88a062df3 Don't swallow exceptions in Store#close(). (#39035)
-- [ ] 29938b134b1 Add debug log for flush for IndicesRequestCacheIT (#39475)
-- [ ] d743ea7563a Add details about what acquired the shard lock last (#38807)
-- [ ] 309a3e4ccbc Add support for replicating closed indices (#39499)
+- [x] 6d88a062df3 Don't swallow exceptions in Store#close(). (#39035)
+- [s] 29938b134b1 Add debug log for flush for IndicesRequestCacheIT (#39475)
+- [x] d743ea7563a Add details about what acquired the shard lock last (#38807)
+- [d] 309a3e4ccbc Add support for replicating closed indices (#39499)
 - [x] 54cbf1a35f3 Never block on scheduled refresh if a refresh is running (#39462)
 - [x] abf4c384aef Bubble up exception when processing NoOp (#39338)
 - [x] 51e7a5fbfab Do not wait for advancement of checkpoint in recovery (#39006)
