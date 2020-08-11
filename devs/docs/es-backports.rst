@@ -486,7 +486,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] fe405bd6d3f Log missing file exception when failing to read metadata snapshot (#32920)
 - [ ] 0098c2e5b92 Migrate Streamable to writeable for index package (#37381)
 - [ ] 695b20f01bc Enforce retention leases require soft deletes (#39922)
-- [ ] 48addd1c462 Removed Unused Version Parameters in DocumentParser (#39863)
+- [x] 48addd1c462 Removed Unused Version Parameters in DocumentParser (#39863)
 - [x] c94ebefbc67 Move validation from FieldTypeLookup to MapperMergeValidator. (#39814)
 - [x] cfbc24aa8ac Small simplifications to mapping validation. (#39777)
 - [x] da602dad0f8 Combine overriddenOps and skippedOps in translog (#39771)
