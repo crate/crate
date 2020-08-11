@@ -98,7 +98,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
 import static java.util.Collections.emptyMap;
@@ -249,8 +248,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             operations.add(new Translog.Index(index, new Engine.IndexResult(1, 1, i - initialNumberOfDocs, true)));
         }
         final long startingSeqNo = randomIntBetween(0, numberOfDocsWithValidSequenceNumbers - 1);
-        final long requiredStartingSeqNo = randomIntBetween((int) startingSeqNo, numberOfDocsWithValidSequenceNumbers - 1);
-        final long endingSeqNo = randomIntBetween((int) requiredStartingSeqNo - 1, numberOfDocsWithValidSequenceNumbers - 1);
+        final long endingSeqNo = randomLongBetween(startingSeqNo, numberOfDocsWithValidSequenceNumbers - 1);
 
         final List<Translog.Operation> shippedOps = new ArrayList<>();
         final AtomicLong checkpointOnTarget = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
@@ -271,7 +269,6 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainActionFuture<>();
         handler.phase2(
             startingSeqNo,
-            requiredStartingSeqNo,
             endingSeqNo,
             newTranslogSnapshot(operations, Collections.emptyList()),
             randomNonNegativeLong(),
@@ -288,26 +285,6 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             assertThat(shippedOps.get(i), equalTo(operations.get(i + (int) startingSeqNo + initialNumberOfDocs)));
         }
         assertThat(result.targetLocalCheckpoint, equalTo(checkpointOnTarget.get()));
-        if (endingSeqNo >= requiredStartingSeqNo + 1) {
-            // check that missing ops blows up
-            List<Translog.Operation> requiredOps = operations.subList(0, operations.size() - 1).stream() // remove last null marker
-                .filter(o -> o.seqNo() >= requiredStartingSeqNo && o.seqNo() <= endingSeqNo).collect(Collectors.toList());
-            List<Translog.Operation> opsToSkip = randomSubsetOf(randomIntBetween(1, requiredOps.size()), requiredOps);
-            PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> failedFuture = new PlainActionFuture<>();
-            expectThrows(IllegalStateException.class, () -> {
-                handler.phase2(
-                    startingSeqNo,
-                    requiredStartingSeqNo,
-                    endingSeqNo,
-                    newTranslogSnapshot(operations, opsToSkip),
-                    randomNonNegativeLong(),
-                    randomNonNegativeLong(),
-                    RetentionLeases.EMPTY,
-                    failedFuture
-                );
-                failedFuture.actionGet();
-            });
-        }
     }
 
     @Test
@@ -339,7 +316,6 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final long startingSeqNo = randomLongBetween(0, ops.size() - 1L);
         final long endingSeqNo = randomLongBetween(startingSeqNo, ops.size() - 1L);
         handler.phase2(
-            startingSeqNo,
             startingSeqNo,
             endingSeqNo,
             newTranslogSnapshot(ops, Collections.emptyList()),
@@ -566,7 +542,6 @@ public class RecoverySourceHandlerTests extends ESTestCase {
 
             @Override
             void phase2(long startingSeqNo,
-                        long requiredSeqNoRangeStart,
                         long endingSeqNo,
                         Translog.Snapshot snapshot,
                         long maxSeenAutoIdTimestamp,
@@ -576,7 +551,6 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                 phase2Called.set(true);
                 super.phase2(
                     startingSeqNo,
-                    requiredSeqNoRangeStart,
                     endingSeqNo,
                     snapshot,
                     maxSeenAutoIdTimestamp,

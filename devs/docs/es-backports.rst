@@ -498,7 +498,7 @@ not present in CrateDB.
 - [ ] 309a3e4ccbc Add support for replicating closed indices (#39499)
 - [ ] 54cbf1a35f3 Never block on scheduled refresh if a refresh is running (#39462)
 - [ ] abf4c384aef Bubble up exception when processing NoOp (#39338)
-- [ ] 51e7a5fbfab Do not wait for advancement of checkpoint in recovery (#39006)
+- [x] 51e7a5fbfab Do not wait for advancement of checkpoint in recovery (#39006)
 - [x] a9d16e10784 Ignore waitForActiveShards when syncing leases (#39224)
 - [s] 605e8023a92 ReadOnlyEngine should update translog recovery state information (#39238)
 - [s] 8d9b3918b60 Add retention leases replication tests (#38857)
