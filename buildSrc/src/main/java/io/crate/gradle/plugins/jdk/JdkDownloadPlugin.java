@@ -22,7 +22,8 @@
 
 package io.crate.gradle.plugins.jdk;
 
-import org.gradle.api.Action;
+import io.crate.gradle.plugins.jdk.transform.SymbolicLinkPreservingUntarTransform;
+import io.crate.gradle.plugins.jdk.transform.UnzipTransform;
 import org.gradle.api.GradleException;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Plugin;
@@ -30,22 +31,10 @@ import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
 import org.gradle.api.artifacts.repositories.IvyArtifactRepository;
-import org.gradle.api.file.CopySpec;
-import org.gradle.api.file.Directory;
-import org.gradle.api.file.FileTree;
-import org.gradle.api.file.RelativePath;
-import org.gradle.api.provider.Provider;
-import org.gradle.api.tasks.Copy;
-import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition;
+import org.gradle.api.internal.artifacts.ArtifactAttributes;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 /**
  * The plugin exposes the `jdks` extension for configuring
@@ -107,67 +96,49 @@ public class JdkDownloadPlugin implements Plugin<Project> {
 
     @Override
     public void apply(Project project) {
-        NamedDomainObjectContainer<Jdk> jdksContainer = project.container(
-            Jdk.class,
-            name -> new Jdk(name, project.getConfigurations().create("jdk_" + name), project.getObjects())
-        );
-        project.getExtensions().add(EXTENSION_NAME, jdksContainer);
+        project.getDependencies().getArtifactTypes().maybeCreate(ArtifactTypeDefinition.ZIP_TYPE);
+        project.getDependencies().registerTransform(UnzipTransform.class, transformSpec -> {
+            transformSpec.getFrom().attribute(ArtifactAttributes.ARTIFACT_FORMAT, ArtifactTypeDefinition.ZIP_TYPE);
+            transformSpec.getTo().attribute(ArtifactAttributes.ARTIFACT_FORMAT, ArtifactTypeDefinition.DIRECTORY_TYPE);
+        });
 
-        project.afterEvaluate(p ->
-            jdksContainer.all(jdk -> {
-                jdk.finalizeValues();
-                // depend on the jdk directory "artifact" from the root project
-                var dependencies = project.getDependencies();
-                Map<String, Object> depConfig = Map.of(
-                    "path", ":",
-                    "configuration", configName(
-                        "extract",
-                        jdk.vendor(),
-                        jdk.version(),
-                        jdk.platform()));
-                dependencies.add(
-                    jdk.configuration().getName(),
-                    dependencies.project(depConfig));
+        ArtifactTypeDefinition tarArtifactTypeDefinition = project.getDependencies().getArtifactTypes().maybeCreate("tar.gz");
+        project.getDependencies().registerTransform(SymbolicLinkPreservingUntarTransform.class, transformSpec -> {
+            transformSpec.getFrom().attribute(ArtifactAttributes.ARTIFACT_FORMAT, tarArtifactTypeDefinition.getName());
+            transformSpec.getTo().attribute(ArtifactAttributes.ARTIFACT_FORMAT, ArtifactTypeDefinition.DIRECTORY_TYPE);
+        });
 
-                setupRootJdkDownload(project.getRootProject(), jdk);
-            })
-        );
-    }
-
-    private static void setupRootJdkDownload(Project rootProject, Jdk jdk) {
-        var extractTaskName =
-            "extract_" + jdk.platform().toLowerCase() + "_jdk_" + jdk.vendor() + "_" + jdk.version();
-
-        // Skip setup if we've already configured a JDK for
-        // this platform, vendor and version
-        if (rootProject.getTasks().findByPath(extractTaskName) == null) {
-            var downloadConfiguration = maybeCreateRepositoryAndDownloadConfiguration(rootProject, jdk);
-            var extractPathProvider = rootProject.getLayout()
-                .getBuildDirectory()
-                .dir("jdks/" + jdk.vendor() + "-" + jdk.baseVersion() + "_" + jdk.platform());
-            TaskProvider<?> extractTask = createExtractTask(
-                extractTaskName,
-                rootProject,
-                jdk.os().equals("windows"),
-                extractPathProvider,
-                downloadConfiguration::getSingleFile
+        NamedDomainObjectContainer<Jdk> jdksContainer = project.container(Jdk.class, name -> {
+            Configuration configuration = project.getConfigurations().create("jdk_" + name);
+            configuration.setCanBeConsumed(false);
+            configuration.getAttributes().attribute(
+                ArtifactAttributes.ARTIFACT_FORMAT,
+                ArtifactTypeDefinition.DIRECTORY_TYPE
             );
 
-            // Declare a configuration for the extracted JDK archive
-            String artifactConfigName = configName(
-                "extract", jdk.vendor(), jdk.version(), jdk.platform());
-            rootProject.getConfigurations().maybeCreate(artifactConfigName);
-            rootProject.getArtifacts().add(
-                artifactConfigName,
-                extractPathProvider,
-                artifact -> artifact.builtBy(extractTask));
-        }
+            Jdk jdk = new Jdk(name, configuration, project.getObjects());
+            configuration.defaultDependencies(dependencies -> {
+                jdk.finalizeValues();
+                setupRepository(project, jdk);
+                dependencies.add(project.getDependencies().create(dependencyNotation(jdk)));
+            });
+            return jdk;
+        });
+        project.getExtensions().add(EXTENSION_NAME, jdksContainer);
     }
 
-    private static Configuration maybeCreateRepositoryAndDownloadConfiguration(Project rootProject, Jdk jdk) {
-        RepositoryHandler repositories = rootProject.getRepositories();
+    private void setupRepository(Project project, Jdk jdk) {
+        RepositoryHandler repositories = project.getRepositories();
+
+        /*
+         * Define the appropriate repository for the given JDK vendor and version
+         *
+         * For Oracle/OpenJDK/AdoptOpenJDK we define a repository per-version.
+         */
+        String repoName = REPO_NAME_PREFIX + jdk.vendor() + "_" + jdk.version();
         String repoUrl;
         String artifactPattern;
+
         if (jdk.vendor().equals("adoptopenjdk")) {
             repoUrl = "https://cdn.crate.io/downloads/openjdk/";
             artifactPattern = String.format(
@@ -180,106 +151,32 @@ public class JdkDownloadPlugin implements Plugin<Project> {
             throw new GradleException("Unknown JDK vendor [" + jdk.vendor() + "]");
         }
 
-        // Define the appropriate repository for the given JDK vendor and version
-        var repoName = REPO_NAME_PREFIX + jdk.vendor() + "_" + jdk.version();
-        if (rootProject.getRepositories().findByName(repoName) == null) {
-            repositories.ivy(ivyRepo -> {
-                ivyRepo.setName(repoName);
-                ivyRepo.setUrl(repoUrl);
-                ivyRepo.metadataSources(IvyArtifactRepository.MetadataSources::artifact);
-                ivyRepo.patternLayout(layout -> layout.artifact(artifactPattern));
-                ivyRepo.content(content -> content.includeGroup(jdk.vendor()));
-            });
-        }
-
-        // Declare a configuration and dependency from which to download the remote JDK
-        var downloadConfigName = configName(jdk.vendor(), jdk.version(), jdk.platform());
-        var downloadConfiguration = rootProject.getConfigurations().maybeCreate(downloadConfigName);
-        rootProject.getDependencies().add(downloadConfigName, dependencyNotation(jdk));
-        return downloadConfiguration;
-    }
-
-    private static TaskProvider<?> createExtractTask(
-        String taskName,
-        Project rootProject,
-        boolean isWindows,
-        Provider<Directory> extractPath,
-        Supplier<File> jdkBundle) {
-        if (isWindows) {
-            Action<CopySpec> removeRootDir = copy -> {
-                // remove extra unnecessary directory levels
-                copy.eachFile(details -> {
-                    Path newPathSegments = trimArchiveExtractPath(details.getRelativePath().getPathString());
-                    String[] segments = StreamSupport.stream(newPathSegments.spliterator(), false)
-                        .map(Path::toString)
-                        .toArray(String[]::new);
-                    details.setRelativePath(new RelativePath(true, segments));
-                });
-                copy.setIncludeEmptyDirs(false);
-            };
-
-            return rootProject.getTasks().register(taskName, Copy.class, copyTask -> {
-                copyTask.doFirst(t -> rootProject.delete(extractPath));
-                copyTask.into(extractPath);
-                Callable<FileTree> fileGetter = () -> rootProject.zipTree(jdkBundle.get());
-                copyTask.from(fileGetter, removeRootDir);
-            });
-        } else {
-            /*
-             * Gradle TarFileTree does not resolve symlinks, so we have to manually
-             * extract and preserve the symlinks. cf. https://github.com/gradle/gradle/issues/3982
-             * and https://discuss.gradle.org/t/tar-and-untar-losing-symbolic-links/2039
-             */
-            return rootProject.getTasks().register(taskName, SymbolicLinkPreservingUntarTask.class, task -> {
-                task.getTarFile().fileProvider(rootProject.provider(jdkBundle::get));
-                task.getExtractPath().set(extractPath);
-                task.setTransform(JdkDownloadPlugin::trimArchiveExtractPath);
+        // Define the repository if we haven't already
+        if (repositories.findByName(repoName) == null) {
+            repositories.ivy(repo -> {
+                repo.setName(repoName);
+                repo.setUrl(repoUrl);
+                repo.metadataSources(IvyArtifactRepository.MetadataSources::artifact);
+                repo.patternLayout(layout -> layout.artifact(artifactPattern));
+                repo.content(repositoryContentDescriptor -> repositoryContentDescriptor.includeGroup(groupName(jdk)));
             });
         }
     }
 
-    /*
-     * We want to remove up to the and including the jdk-.* relative paths.
-     * That is a JDK archive is structured as:
-     *   jdk-12.0.1/
-     *   jdk-12.0.1/Contents
-     *   ...
-     *
-     * and we want to remove the leading jdk-12.0.1. Note however that there
-     * could also be a leading ./ as in
-     *   ./
-     *   ./jdk-12.0.1/
-     *   ./jdk-12.0.1/Contents
-     *
-     * so we account for this and search the path components until we find the
-     * jdk-12.0.1, and strip the leading components.
-     */
-    private static Path trimArchiveExtractPath(String relativePath) {
-        final Path entryName = Paths.get(relativePath);
-        int index = 0;
-        for (; index < entryName.getNameCount(); index++) {
-            if (entryName.getName(index).toString().matches("jdk-?\\d.*")) {
-                break;
-            }
-        }
-        if (index + 1 >= entryName.getNameCount()) {
-            // this happens on the top-level directories in the archive, which we are removing
-            return null;
-        }
-        // finally remove the top-level directories from the output path
-        return entryName.subpath(index + 1, entryName.getNameCount());
-    }
-
-    private static String configName(String... parts) {
-        return String.join("_", parts);
+    @SuppressWarnings("unchecked")
+    public static NamedDomainObjectContainer<Jdk> getContUnzipTransformainer(Project project) {
+        return (NamedDomainObjectContainer<Jdk>) project.getExtensions().getByName(EXTENSION_NAME);
     }
 
     private static String dependencyNotation(Jdk jdk) {
         var extension = jdk.os().equals("windows") ? "zip" : "tar.gz";
-        return jdk.vendor() +
+        return groupName(jdk) +
                ":" + jdk.platform() +
                ":" + jdk.baseVersion() +
                "@" + extension;
     }
-}
 
+    private static String groupName(Jdk jdk) {
+        return jdk.vendor() + "_" + jdk.major();
+    }
+}
