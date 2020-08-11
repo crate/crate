@@ -493,7 +493,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 1617e3007c5 Add option to force load term dict into memory (#39741)
 - [ ] 73d4516ba78 Allow inclusion of unloaded segments in stats (#39512)
 - [ ] 28ca58d494e Introduce Mapping ActionListener (#39538)
-- [ ] 5d0813b0916 Do not mutate engine during planning step (#39571)
+- [x] 5d0813b0916 Do not mutate engine during planning step (#39571)
 - [x] 6d88a062df3 Don't swallow exceptions in Store#close(). (#39035)
 - [s] 29938b134b1 Add debug log for flush for IndicesRequestCacheIT (#39475)
 - [x] d743ea7563a Add details about what acquired the shard lock last (#38807)
