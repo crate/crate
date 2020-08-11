@@ -21,8 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
@@ -33,6 +31,11 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 
 public class StdDevAggregationTest extends AggregationTest {
 
@@ -48,67 +51,68 @@ public class StdDevAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testReturnType() throws Exception {
-        for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, List.of(DataTypes.TIMESTAMPZ))) {
-            // Return type is fixed to Double
+    public void test_functions_return_type_is_always_double_for_any_argument_type() {
+        for (DataType<?> type : Stream.concat(
+            DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
+            Stream.of(DataTypes.TIMESTAMPZ)).collect(Collectors.toList())) {
+
             FunctionImplementation stddev = functions.get(
-                null, "stddev", ImmutableList.of(Literal.of(type, null)), SearchPath.pathWithPGCatalogAndDoc());
-            assertEquals(DataTypes.DOUBLE, stddev.info().returnType());
+                null,
+                StandardDeviationAggregation.NAME,
+                List.of(Literal.of(type, null)),
+                SearchPath.pathWithPGCatalogAndDoc()
+            );
+            assertThat(stddev.boundSignature().getReturnType().createType(), is(DataTypes.DOUBLE));
         }
     }
 
     @Test
     public void withNullArg() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{null}, {null}});
-        assertNull(result);
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{null}, {null}}), is(nullValue()));
     }
 
     @Test
     public void withSomeNullArgs() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}});
-        assertEquals(18.13455878212156, result);
+        assertThat(
+            executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}),
+            is(18.13455878212156)
+        );
     }
 
     @Test
     public void testDouble() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}});
-
-        assertEquals(18.13455878212156, result);
+        assertThat(
+            executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}),
+            is(18.13455878212156)
+        );
     }
 
     @Test
     public void testFloat() throws Exception {
-        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}});
-
-        assertEquals(0.2041241452319315, result);
+        assertThat(
+            executeAggregation(DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}}),
+            is(0.2041241452319315)
+        );
     }
 
     @Test
     public void testInteger() throws Exception {
-        Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
-
-        assertEquals(2d, result);
+        assertThat(executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}}), is(2d));
     }
 
     @Test
     public void testLong() throws Exception {
-        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
-
-        assertEquals(2d, result);
+        assertThat(executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}}), is(2d));
     }
 
     @Test
     public void testShort() throws Exception {
-        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
-
-        assertEquals(2d, result);
+        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}), is(2d));
     }
 
     @Test
     public void testByte() throws Exception {
-        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}});
-
-        assertEquals(0d, result);
+        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}}), is(0d));
     }
 
     @Test
