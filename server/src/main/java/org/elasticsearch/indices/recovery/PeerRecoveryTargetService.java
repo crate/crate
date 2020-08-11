@@ -494,9 +494,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                 recoveryRef.target().prepareForTranslogOperations(
                     request.isFileBasedRecovery(),
                     request.totalTranslogOps(),
-                    ActionListener.wrap(
-                        nullVal -> listener.onResponse(TransportResponse.Empty.INSTANCE),
-                        listener::onFailure)
+                    ActionListener.map(listener, nullVal -> TransportResponse.Empty.INSTANCE)
                 );
             }
         }
@@ -511,10 +509,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                     new HandledTransportAction.ChannelActionListener<>(channel, Actions.FINALIZE, request);
                 recoveryRef.target().finalizeRecovery(
                     request.globalCheckpoint(),
-                    ActionListener.wrap(
-                        nullVal -> listener.onResponse(TransportResponse.Empty.INSTANCE),
-                        listener::onFailure
-                    )
+                    ActionListener.map(listener, nullVal -> TransportResponse.Empty.INSTANCE)
                 );
             }
         }
@@ -709,9 +704,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                     request.content(),
                     request.lastChunk(),
                     request.totalTranslogOps(),
-                    ActionListener.wrap(
-                        nullVal -> listener.onResponse(TransportResponse.Empty.INSTANCE),
-                        listener::onFailure)
+                    ActionListener.map(listener, nullVal -> TransportResponse.Empty.INSTANCE)
                 );
             }
             channel.sendResponse(TransportResponse.Empty.INSTANCE);
