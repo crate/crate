@@ -306,6 +306,11 @@ public class MatchQuery {
         }
 
         @Override
+        protected Query newTermQuery(Term term, float boost) {
+            return blendTermQuery(term, mapper);
+        }
+
+        @Override
         protected Query analyzePhrase(String field, TokenStream stream, int slop) throws IOException {
             try {
                 checkForPositions(field);
