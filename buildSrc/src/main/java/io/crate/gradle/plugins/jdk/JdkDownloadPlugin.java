@@ -34,8 +34,6 @@ import org.gradle.api.artifacts.repositories.IvyArtifactRepository;
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition;
 import org.gradle.api.internal.artifacts.ArtifactAttributes;
 
-import java.util.Locale;
-
 /**
  * The plugin exposes the `jdks` extension for configuring
  * a set of JDK bundles. For instance:
@@ -140,13 +138,13 @@ public class JdkDownloadPlugin implements Plugin<Project> {
         String artifactPattern;
 
         if (jdk.vendor().equals("adoptopenjdk")) {
-            repoUrl = "https://cdn.crate.io/downloads/openjdk/";
-            artifactPattern = String.format(
-                Locale.ENGLISH,
-                "OpenJDK%sU-jdk_[module]_hotspot_[revision]_%s.[ext]",
-                jdk.major(),
-                jdk.build()
-            );
+            repoUrl = "https://api.adoptopenjdk.net/v3/binary/version/";
+            artifactPattern =
+                "jdk-" +
+                jdk.baseVersion() +
+                "+" +
+                jdk.build() +
+                "/[module]/[classifier]/jdk/hotspot/normal/adoptopenjdk";
         } else {
             throw new GradleException("Unknown JDK vendor [" + jdk.vendor() + "]");
         }
@@ -171,8 +169,9 @@ public class JdkDownloadPlugin implements Plugin<Project> {
     private static String dependencyNotation(Jdk jdk) {
         var extension = jdk.os().equals("windows") ? "zip" : "tar.gz";
         return groupName(jdk) +
-               ":" + jdk.platform() +
+               ":" + jdk.os() +
                ":" + jdk.baseVersion() +
+               ":" + jdk.arch() +
                "@" + extension;
     }
 
