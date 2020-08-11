@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.elasticsearch.Version;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
 import io.crate.common.collections.Tuple;
@@ -606,15 +605,15 @@ final class DocumentParser {
         return builder;
     }
 
-    private static Mapper.Builder<?, ?> newLongBuilder(String name, Version indexCreated) {
+    private static Mapper.Builder<?, ?> newLongBuilder(String name) {
         return new NumberFieldMapper.Builder(name, NumberFieldMapper.NumberType.LONG);
     }
 
-    private static Mapper.Builder<?, ?> newFloatBuilder(String name, Version indexCreated) {
+    private static Mapper.Builder<?, ?> newFloatBuilder(String name) {
         return new NumberFieldMapper.Builder(name, NumberFieldMapper.NumberType.FLOAT);
     }
 
-    private static Mapper.Builder<?, ?> newDateBuilder(String name, FormatDateTimeFormatter dateTimeFormatter, Version indexCreated) {
+    private static Mapper.Builder<?, ?> newDateBuilder(String name, FormatDateTimeFormatter dateTimeFormatter) {
         DateFieldMapper.Builder builder = new DateFieldMapper.Builder(name);
         if (dateTimeFormatter != null) {
             builder.dateTimeFormatter(dateTimeFormatter);
@@ -645,13 +644,13 @@ final class DocumentParser {
             if (parseableAsLong && context.root().numericDetection()) {
                 Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.LONG);
                 if (builder == null) {
-                    builder = newLongBuilder(currentFieldName, context.indexSettings().getIndexVersionCreated());
+                    builder = newLongBuilder(currentFieldName);
                 }
                 return builder;
             } else if (parseableAsDouble && context.root().numericDetection()) {
                 Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.DOUBLE);
                 if (builder == null) {
-                    builder = newFloatBuilder(currentFieldName, context.indexSettings().getIndexVersionCreated());
+                    builder = newFloatBuilder(currentFieldName);
                 }
                 return builder;
             } else if (parseableAsLong == false && parseableAsDouble == false && context.root().dateDetection()) {
@@ -667,7 +666,7 @@ final class DocumentParser {
                     }
                     Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.DATE);
                     if (builder == null) {
-                        builder = newDateBuilder(currentFieldName, dateTimeFormatter, context.indexSettings().getIndexVersionCreated());
+                        builder = newDateBuilder(currentFieldName, dateTimeFormatter);
                     }
                     if (builder instanceof DateFieldMapper.Builder) {
                         DateFieldMapper.Builder dateBuilder = (DateFieldMapper.Builder) builder;
@@ -690,7 +689,7 @@ final class DocumentParser {
             if (numberType == XContentParser.NumberType.INT || numberType == XContentParser.NumberType.LONG) {
                 Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.LONG);
                 if (builder == null) {
-                    builder = newLongBuilder(currentFieldName, context.indexSettings().getIndexVersionCreated());
+                    builder = newLongBuilder(currentFieldName);
                 }
                 return builder;
             } else if (numberType == XContentParser.NumberType.FLOAT || numberType == XContentParser.NumberType.DOUBLE) {
@@ -699,7 +698,7 @@ final class DocumentParser {
                     // no templates are defined, we use float by default instead of double
                     // since this is much more space-efficient and should be enough most of
                     // the time
-                    builder = newFloatBuilder(currentFieldName, context.indexSettings().getIndexVersionCreated());
+                    builder = newFloatBuilder(currentFieldName);
                 }
                 return builder;
             }
