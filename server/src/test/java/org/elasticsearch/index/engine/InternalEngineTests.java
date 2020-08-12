@@ -4607,7 +4607,7 @@ public class InternalEngineTests extends EngineTestCase {
             for (int docId = 0; docId < numDocs; docId++) {
                 index(engine, docId);
                 if (frequently()) {
-                    engine.flush(randomBoolean(), randomBoolean());
+                    engine.flush(randomBoolean(), true);
                 }
             }
             engine.flush(false, randomBoolean());
