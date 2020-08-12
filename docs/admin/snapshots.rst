@@ -46,7 +46,7 @@ Creating a repository with the same name will result in an error::
 
     cr> CREATE REPOSITORY where_my_snapshots_go TYPE fs
     ... WITH (location='another_repo_path', compress=false);
-    SQLActionException[RepositoryAlreadyExistsException: Repository 'where_my_snapshots_go' already exists]
+    RepositoryAlreadyExistsException[Repository 'where_my_snapshots_go' already exists]
 
 Creating a snapshot
 ...................
@@ -147,7 +147,7 @@ listing all tables restores the whole snapshot.
 It's not possible to restore tables that exist in the current cluster::
 
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes;
-    SQLActionException[RelationAlreadyExists: Relation 'doc.quotes' already exists.]
+    RelationAlreadyExists[Relation 'doc.quotes' already exists.]
 
 Single partitions can be either imported into an existing partitioned table the
 partition belongs to.

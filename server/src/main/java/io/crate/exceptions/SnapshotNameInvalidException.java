@@ -29,8 +29,4 @@ public class SnapshotNameInvalidException extends ConflictException implements C
         super(msg);
     }
 
-    @Override
-    public int errorCode() {
-        return 9;
-    }
 }

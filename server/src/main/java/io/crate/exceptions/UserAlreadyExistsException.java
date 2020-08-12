@@ -29,9 +29,4 @@ public class UserAlreadyExistsException extends ConflictException implements Uns
     public UserAlreadyExistsException(String userName) {
         super(String.format(Locale.ENGLISH, "User '%s' already exists", userName));
     }
-
-    @Override
-    public int errorCode() {
-        return 9;
-    }
 }

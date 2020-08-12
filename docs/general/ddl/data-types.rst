@@ -119,7 +119,7 @@ of the character data type results in an error.
 ::
 
     cr> INSERT INTO users (id, name) VALUES ('1361', 'john doe')
-    SQLActionException[SQLParseException: 'john doe' is too long for the text type of length: 6]
+    SQLParseException['john doe' is too long for the text type of length: 6]
 
 If the excess characters are all spaces, the string literal will be truncated
 to the specified length.
@@ -291,7 +291,7 @@ Example::
 
     cr> insert into my_table_ips (fqdn, ip_addr)
     ... values ('localhost', 'not.a.real.ip');
-    SQLActionException[SQLParseException: Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
+    SQLParseException[Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
 
 Ip addresses support the binary operator `<<`, which checks for subnet inclusion
 using `CIDR notation`_ [ip address/prefix_length]. The left operand must be of

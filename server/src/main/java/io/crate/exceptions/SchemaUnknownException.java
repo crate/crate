@@ -61,11 +61,6 @@ public class SchemaUnknownException extends ResourceUnknownException implements 
     }
 
     @Override
-    public int errorCode() {
-        return 5;
-    }
-
-    @Override
     public String getSchemaName() {
         return schemaName;
     }

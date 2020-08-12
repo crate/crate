@@ -199,7 +199,7 @@ which is no atomic operation and could lead to inconsistent state::
 
     cr> UPDATE parted_table set content = 'now panic!', day = '2014-04-07'
     ... WHERE id = 1;
-    SQLActionException[ColumnValidationException: Validation failed for day: Updating a partitioned-by column is not supported]
+    ColumnValidationException[Validation failed for day: Updating a partitioned-by column is not supported]
 
 When using a :ref:`generated column <ref-generated-columns>` as ``PARTITIONED
 BY`` column all the columns referenced in its *generation expression* cannot be
@@ -207,7 +207,7 @@ updated as well::
 
     cr> UPDATE computed_parted_table set created_at='1970-01-01'
     ... WHERE id = 1;
-    SQLActionException[ColumnValidationException: Validation failed for created_at: Updating a column which is referenced in a partitioned by generated column expression is not supported]
+    ColumnValidationException[Validation failed for created_at: Updating a column which is referenced in a partitioned by generated column expression is not supported]
 
 ::
 

@@ -170,7 +170,7 @@ public class ViewsITest extends SQLTransportIntegrationTest {
                      isSQLError(containsString("Relations not found: " + sqlExecutor.getCurrentSchema() + ".v1"),
                                 INTERNAL_ERROR,
                                 NOT_FOUND,
-                                4040));
+                                4041));
     }
 
     @Test

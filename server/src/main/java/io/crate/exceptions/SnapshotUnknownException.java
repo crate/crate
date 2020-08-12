@@ -28,8 +28,4 @@ public class SnapshotUnknownException extends ResourceUnknownException implement
         super("Snapshot '" + repositoryName + "." + snapshotName + "' unknown", cause);
     }
 
-    @Override
-    public int errorCode() {
-        return 8;
-    }
 }

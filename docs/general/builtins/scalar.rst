@@ -2556,7 +2556,7 @@ Examples::
 ::
 
     cr> select current_setting('foo');
-    SQLActionException[SQLParseException: Unrecognised Setting: foo]
+    SQLParseException[Unrecognised Setting: foo]
 
 ::
 

@@ -43,11 +43,6 @@ public class UnavailableShardsException extends RuntimeException implements Tabl
     }
 
     @Override
-    public int errorCode() {
-        return 5002;
-    }
-
-    @Override
     public Collection<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
     }

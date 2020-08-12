@@ -22,20 +22,16 @@
 package io.crate.exceptions;
 
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.AccessControl;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
@@ -49,7 +45,6 @@ import org.elasticsearch.transport.TransportException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -102,7 +97,22 @@ public class SQLExceptions {
         }
         // throwable not thrown
         Throwable unwrappedT = unwrap(t);
-        return Objects.requireNonNullElse(unwrappedT.getMessage(), unwrappedT.toString());
+        if (unwrappedT.getMessage() == null) {
+            if (unwrappedT instanceof CrateException && unwrappedT.getCause() != null) {
+                unwrappedT = unwrappedT.getCause();   // use cause because it contains a more meaningful error in most cases
+            }
+            StackTraceElement[] stackTraceElements = unwrappedT.getStackTrace();
+            if (stackTraceElements.length > 0) {
+                return String.format(Locale.ENGLISH,
+                                     "%s in %s",
+                                     unwrappedT.getClass().getSimpleName(),
+                                     stackTraceElements[0]);
+            } else {
+                return "Error in " + unwrappedT.getClass().getSimpleName();
+            }
+        } else {
+            return unwrappedT.getMessage();
+        }
     }
 
     public static boolean isShardFailure(Throwable e) {
@@ -110,82 +120,29 @@ public class SQLExceptions {
         return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
     }
 
-    public static Function<Throwable, Exception> forWireTransmission(AccessControl accessControl) {
-        return e -> createSQLActionException(e, accessControl::ensureMaySee);
+    public static Function<Throwable, Exception> prepareForClientTransmission(AccessControl accessControl) {
+        return e -> prepareForClientTransmission(e, accessControl::ensureMaySee);
     }
 
-    public static SQLActionException forWireTransmission(AccessControl accessControl, Throwable e) {
-        return createSQLActionException(e, accessControl::ensureMaySee);
+    public static RuntimeException prepareForClientTransmission(AccessControl accessControl, Throwable e) {
+        return prepareForClientTransmission(e, accessControl::ensureMaySee);
     }
 
-    /**
-     * Create a {@link SQLActionException} out of a {@link Throwable}.
-     * If concrete {@link ElasticsearchException} is found, first transform it
-     * to a {@link CrateException}
-     */
-    public static SQLActionException createSQLActionException(Throwable e, Consumer<Throwable> maskSensitiveInformation) {
-        // ideally this method would be a static factory method in SQLActionException,
-        // but that would pull too many dependencies for the client
-
-        if (e instanceof SQLActionException) {
-            return (SQLActionException) e;
-        }
+    public static RuntimeException prepareForClientTransmission(Throwable e, @Nullable Consumer<Throwable> maskSensitiveInformation) {
         Throwable unwrappedError = SQLExceptions.unwrap(e);
         e = esToCrateException(unwrappedError);
         try {
-            maskSensitiveInformation.accept(e);
+            if (maskSensitiveInformation != null) {
+                maskSensitiveInformation.accept(e);
+            }
         } catch (Exception mpe) {
             e = mpe;
         }
-
-        int errorCode = 5000;
-        HttpResponseStatus httpStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-        if (e instanceof CrateException) {
-            CrateException crateException = (CrateException) e;
-            if (e instanceof ValidationException) {
-                errorCode = 4000 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.BAD_REQUEST;
-            } else if (e instanceof UnauthorizedException) {
-                errorCode = 4010 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.UNAUTHORIZED;
-            } else if (e instanceof ReadOnlyException) {
-                errorCode = 4030 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.FORBIDDEN;
-            } else if (e instanceof ResourceUnknownException) {
-                errorCode = 4040 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.NOT_FOUND;
-            } else if (e instanceof ConflictException) {
-                errorCode = 4090 + crateException.errorCode();
-                httpStatus = HttpResponseStatus.CONFLICT;
-            } else if (e instanceof UnhandledServerException) {
-                errorCode = 5000 + crateException.errorCode();
-            }
-        } else if (e instanceof ParsingException) {
-            errorCode = 4000;
-            httpStatus = HttpResponseStatus.BAD_REQUEST;
-        } else if (e instanceof MapperParsingException) {
-            errorCode = 4000;
-            httpStatus = HttpResponseStatus.BAD_REQUEST;
-        }
-
-        String message = e.getMessage();
-        if (message == null) {
-            if (e instanceof CrateException && e.getCause() != null) {
-                e = e.getCause();   // use cause because it contains a more meaningful error in most cases
-            }
-            StackTraceElement[] stackTraceElements = e.getStackTrace();
-            if (stackTraceElements.length > 0) {
-                message = String.format(Locale.ENGLISH, "%s in %s", e.getClass().getSimpleName(), stackTraceElements[0]);
-            } else {
-                message = "Error in " + e.getClass().getSimpleName();
-            }
+        if (e instanceof RuntimeException) {
+            return (RuntimeException) e;
         } else {
-            message = e.getClass().getSimpleName() + ": " + message;
+            return new RuntimeException(e);
         }
-
-        StackTraceElement[] usefulStacktrace =
-            e instanceof MissingPrivilegeException ? e.getStackTrace() : unwrappedError.getStackTrace();
-        return new SQLActionException(message, errorCode, httpStatus, usefulStacktrace);
     }
 
     private static Throwable esToCrateException(Throwable unwrappedError) {

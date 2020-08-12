@@ -344,7 +344,7 @@ by the window definition of the :ref:`OVER` clause will result in failure.
    ...   FIRST_VALUE(x) OVER (w ORDER BY x)
    ... FROM (VALUES(1), (2), (3), (4)) as t(x)
    ... WINDOW w AS (ORDER BY x)
-   SQLActionException[SQLParseException: Cannot override ORDER BY clause of window w]
+   SQLParseException[Cannot override ORDER BY clause of window w]
 
 It is not possible to define the ``PARTITION BY`` clause in the window
 definition of the :ref:`OVER` clause if it references a window definition

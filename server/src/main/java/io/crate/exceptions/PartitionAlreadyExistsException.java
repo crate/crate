@@ -38,11 +38,6 @@ public class PartitionAlreadyExistsException extends ConflictException implement
     }
 
     @Override
-    public int errorCode() {
-        return 7;
-    }
-
-    @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
     }

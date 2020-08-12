@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
@@ -667,11 +666,8 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
         this.setup.groupBySetup();
-        assertThrows(() -> execute("select details_ignored['lol'] from characters group by race"),
-                     isSQLError(containsString("'details_ignored['lol']' must appear in the GROUP BY clause"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Assertions.assertThrows(Exception.class, () -> execute("select details_ignored['lol'] from characters group by race"),
+                                "'details_ignored['lol']' must appear in the GROUP BY clause");
     }
 
     @Test
@@ -964,28 +960,28 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         try {
             execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1");
             assertThat(response.rowCount(), is(1L));
-        } catch (SQLActionException e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1 limit 100");
             assertThat(response.rowCount(), is(1L));
-        } catch (SQLActionException e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1");
             assertThat(response.rowCount(), is(1L));
-        } catch (SQLActionException e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1 limit 100");
             assertThat(response.rowCount(), is(1L));
-        } catch (SQLActionException e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
     }
@@ -1010,35 +1006,35 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         try {
             execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1");
             assertThat(response.rowCount(), is(1L));
-        } catch (SQLActionException e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1 limit 100");
             assertThat(response.rowCount(), is(1L));
-        } catch (SQLActionException e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1");
             assertThat(response.rowCount(), is(1L));
-        } catch (SQLActionException e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1 limit 100");
             assertThat(response.rowCount(), is(1L));
-        } catch (SQLActionException e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select count(*), item_id from likes group by item_id having min(event_id) = 'event1'");
             assertThat(response.rowCount(), is(2L));
-        } catch (SQLActionException e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
     }

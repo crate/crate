@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -273,7 +272,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
             public void run() {
                 try {
                     res.complete(execute(stmt, bulkArgs));
-                } catch (SQLActionException e) {
+                } catch (Exception e) {
                     // that's what we want
                     res.completeExceptionally(e);
                 }

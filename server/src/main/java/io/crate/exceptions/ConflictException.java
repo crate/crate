@@ -31,8 +31,4 @@ public abstract class ConflictException extends RuntimeException implements Crat
         super(message, cause);
     }
 
-    @Override
-    public int errorCode() {
-        return 0;
-    }
 }

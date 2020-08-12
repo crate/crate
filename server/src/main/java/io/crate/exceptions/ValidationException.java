@@ -34,9 +34,4 @@ public abstract class ValidationException extends RuntimeException implements Cr
         super(message, cause);
     }
 
-    @Override
-    public int errorCode() {
-        return 0;
-    }
-
 }

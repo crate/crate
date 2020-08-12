@@ -36,11 +36,6 @@ public class UserUnknownException extends ResourceUnknownException implements Un
         super(getMessage(userNames));
     }
 
-    @Override
-    public int errorCode() {
-        return 36370;  // <-- will be added to 4040, results in 40410
-    }
-
     private static String getMessage(List<String> userNames) {
         //noinspection PointlessBooleanExpression
         assert userNames.isEmpty() == false : "At least one username must be provided";

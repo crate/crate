@@ -30,8 +30,4 @@ public class RepositoryUnknownException extends ResourceUnknownException impleme
         super(String.format(Locale.ENGLISH, "Repository '%s' unknown", repositoryName));
     }
 
-    @Override
-    public int errorCode() {
-        return 7;
-    }
 }

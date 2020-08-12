@@ -35,11 +35,6 @@ public class DuplicateKeyException extends ConflictException implements TableSco
     }
 
     @Override
-    public int errorCode() {
-        return 1;
-    }
-
-    @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
     }

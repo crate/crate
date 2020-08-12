@@ -31,8 +31,4 @@ public class UnsupportedFeatureException extends ValidationException implements 
         super(msg, e);
     }
 
-    @Override
-    public int errorCode() {
-        return 4;
-    }
 }

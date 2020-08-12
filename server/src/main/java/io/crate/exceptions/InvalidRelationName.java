@@ -41,11 +41,6 @@ public class InvalidRelationName extends ValidationException implements TableSco
     }
 
     @Override
-    public int errorCode() {
-        return 2;
-    }
-
-    @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(ident);
     }
