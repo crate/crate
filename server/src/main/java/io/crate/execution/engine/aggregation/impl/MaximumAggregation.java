@@ -26,6 +26,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.crate.types.ByteType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -214,6 +215,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
                                                            List<MappedFieldType> fieldTypes) {
             DataType<?> arg = argumentTypes.get(0);
             switch (arg.id()) {
+                case ByteType.ID:
                 case ShortType.ID:
                 case IntegerType.ID:
                 case LongType.ID:

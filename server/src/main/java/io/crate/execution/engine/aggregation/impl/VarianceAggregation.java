@@ -30,6 +30,7 @@ import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.statistics.Variance;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
@@ -217,6 +218,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
                                                        List<MappedFieldType> fieldTypes) {
         switch (argumentTypes.get(0).id()) {
+            case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
             case LongType.ID:
