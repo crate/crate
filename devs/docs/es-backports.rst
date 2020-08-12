@@ -459,7 +459,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] efe47cebe72 Small refactorings to analysis components (#40745)
 - [ ] c29cebb04de Inline TransportReplAction#registerRequestHandlers (#40762)
 - [ ] 1f019ebae4a Don't mark shard as refreshPending on stats fetching (#40458)
-- [ ] 58515c30221 Fix merging of text field mapper (#40627)
+- [x] 58515c30221 Fix merging of text field mapper (#40627)
 - [x] 03394b862bd No mapper service and index caches for replicated closed indices (#40423)
 - [s] 6bba9fc83bc search as you type fieldmapper (#35600)
 - [x] db03109fab9 Remove type from VersionConflictEngineException. (#37490)
