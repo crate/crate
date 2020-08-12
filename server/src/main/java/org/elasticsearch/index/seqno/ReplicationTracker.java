@@ -19,26 +19,6 @@
 
 package org.elasticsearch.index.seqno;
 
-import com.carrotsearch.hppc.ObjectLongHashMap;
-import com.carrotsearch.hppc.ObjectLongMap;
-import io.crate.common.SuppressForbidden;
-import io.crate.common.collections.Tuple;
-
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.replication.ReplicationResponse;
-import org.elasticsearch.cluster.routing.AllocationId;
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.gateway.WriteStateException;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.shard.AbstractIndexShardComponent;
-import org.elasticsearch.index.shard.ReplicationGroup;
-import org.elasticsearch.index.shard.ShardId;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -58,6 +38,28 @@ import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
+
+import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.replication.ReplicationResponse;
+import org.elasticsearch.cluster.routing.AllocationId;
+import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.gateway.WriteStateException;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.shard.AbstractIndexShardComponent;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ReplicationGroup;
+import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.common.SuppressForbidden;
+import io.crate.common.collections.Tuple;
 
 /**
  * This class is responsible for tracking the replication group with its progress and safety markers (local and global checkpoints).
@@ -335,6 +337,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
      */
     public RetentionLeases loadRetentionLeases(final Path path) throws IOException {
         final RetentionLeases retentionLeases = RetentionLeases.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path);
+
         if (retentionLeases == null) {
             return RetentionLeases.EMPTY;
         }
@@ -358,6 +361,11 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
             logger.trace("persisting retention leases [{}]", currentRetentionLeases);
             RetentionLeases.FORMAT.writeAndCleanup(currentRetentionLeases, path);
         }
+    }
+
+    public boolean assertRetentionLeasesPersisted(final Path path) throws IOException {
+        assert RetentionLeases.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path) != null;
+        return true;
     }
 
     public static class CheckpointState implements Writeable {

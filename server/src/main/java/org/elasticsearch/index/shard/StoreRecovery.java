@@ -405,9 +405,11 @@ final class StoreRecovery {
                 final String translogUUID = Translog.createEmptyTranslog(
                     indexShard.shardPath().resolveTranslog(), localCheckpoint, shardId, indexShard.getPendingPrimaryTerm());
                 store.associateIndexWithNewTranslog(translogUUID);
+                writeEmptyRetentionLeasesFile(indexShard);
             } else if (indexShouldExists) {
                 if (recoveryState.getRecoverySource().shouldBootstrapNewHistoryUUID()) {
                     store.bootstrapNewHistory();
+                    writeEmptyRetentionLeasesFile(indexShard);
                 }
                 // since we recover from local, just fill the files and size
                 try {
@@ -424,6 +426,7 @@ final class StoreRecovery {
                     indexShard.shardPath().resolveTranslog(), SequenceNumbers.NO_OPS_PERFORMED, shardId,
                     indexShard.getPendingPrimaryTerm());
                 store.associateIndexWithNewTranslog(translogUUID);
+                writeEmptyRetentionLeasesFile(indexShard);
             }
             indexShard.openEngineAndRecoverFromTranslog();
             indexShard.getEngine().fillSeqNoGaps(indexShard.getPendingPrimaryTerm());
@@ -434,6 +437,12 @@ final class StoreRecovery {
         } finally {
             store.decRef();
         }
+    }
+
+    private static void writeEmptyRetentionLeasesFile(IndexShard indexShard) throws IOException {
+        assert indexShard.getRetentionLeases().leases().isEmpty() : indexShard.getRetentionLeases(); // not loaded yet
+        indexShard.persistRetentionLeases();
+        assert indexShard.loadRetentionLeases().leases().isEmpty();
     }
 
     private void addRecoveredFileDetails(SegmentInfos si, Store store, RecoveryState.Index index) throws IOException {
@@ -475,6 +484,7 @@ final class StoreRecovery {
                 indexShard.shardPath().resolveTranslog(), localCheckpoint, shardId, indexShard.getPendingPrimaryTerm());
             store.associateIndexWithNewTranslog(translogUUID);
             assert indexShard.shardRouting.primary() : "only primary shards can recover from store";
+            writeEmptyRetentionLeasesFile(indexShard);
             indexShard.openEngineAndRecoverFromTranslog();
             indexShard.getEngine().fillSeqNoGaps(indexShard.getPendingPrimaryTerm());
             indexShard.finalizeRecovery();
