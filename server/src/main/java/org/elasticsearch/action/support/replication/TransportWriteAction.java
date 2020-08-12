@@ -64,7 +64,8 @@ public abstract class TransportWriteAction<
                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                    Writeable.Reader<Request> reader,
                                    Writeable.Reader<ReplicaRequest> replicaReader,
-                                   String executor) {
+                                   String executor,
+                                   boolean forceExecutionOnPrimary) {
         super(
             actionName,
             transportService,
@@ -76,7 +77,8 @@ public abstract class TransportWriteAction<
             reader,
             replicaReader,
             executor,
-            true);
+            false,
+            forceExecutionOnPrimary);
     }
 
     /** Syncs operation result to the translog or throws a shard not available failure */

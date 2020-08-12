@@ -88,7 +88,8 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             indexNameExpressionResolver,
             reader,
             reader,
-            ThreadPool.Names.WRITE
+            ThreadPool.Names.WRITE,
+            false
         );
         this.mappingUpdate = (update, shardId, type) -> {
             validateMapping(update.root().iterator(), false);

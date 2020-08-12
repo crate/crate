@@ -19,6 +19,12 @@
 
 package org.elasticsearch.action.support.replication;
 
+import java.io.IOException;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -44,13 +50,11 @@ import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -78,9 +82,7 @@ import org.elasticsearch.transport.TransportResponse.Empty;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Base class for requests that should be executed on a primary copy followed by replica copies.
@@ -123,7 +125,7 @@ public abstract class TransportReplicationAction<
                                          Writeable.Reader<ReplicaRequest> replicaReader,
                                          String executor) {
         this(actionName, transportService, clusterService, indicesService, threadPool, shardStateAction,
-                indexNameExpressionResolver, reader, replicaReader, executor, false);
+                indexNameExpressionResolver, reader, replicaReader, executor, false, false);
     }
 
 
@@ -137,7 +139,8 @@ public abstract class TransportReplicationAction<
                                          Writeable.Reader<Request> reader,
                                          Writeable.Reader<ReplicaRequest> replicaReader,
                                          String executor,
-                                         boolean syncGlobalCheckpointAfterOperation) {
+                                         boolean syncGlobalCheckpointAfterOperation,
+                                         boolean forceExecutionOnPrimary) {
         super(actionName, threadPool, indexNameExpressionResolver, transportService.getTaskManager());
         this.transportService = transportService;
         this.clusterService = clusterService;
@@ -147,29 +150,28 @@ public abstract class TransportReplicationAction<
 
         this.transportPrimaryAction = actionName + "[p]";
         this.transportReplicaAction = actionName + "[r]";
-        registerRequestHandlers(actionName, transportService, reader, replicaReader, executor);
 
-        this.transportOptions = transportOptions();
-
-        this.syncGlobalCheckpointAfterOperation = syncGlobalCheckpointAfterOperation;
-    }
-
-    protected void registerRequestHandlers(String actionName,
-                                           TransportService transportService,
-                                           Writeable.Reader<Request> reader,
-                                           Writeable.Reader<ReplicaRequest> replicaRequestReader,
-                                           String executor) {
         transportService.registerRequestHandler(actionName, reader, ThreadPool.Names.SAME, new OperationTransportHandler());
         transportService.registerRequestHandler(
-            transportPrimaryAction, in -> new ConcreteShardRequest<>(in, reader), executor, new PrimaryOperationTransportHandler());
+            transportPrimaryAction,
+            in -> new ConcreteShardRequest<>(in, reader),
+            executor,
+            forceExecutionOnPrimary,
+            true,
+            new PrimaryOperationTransportHandler()
+        );
+
         // we must never reject on because of thread pool capacity on replicas
         transportService.registerRequestHandler(
             transportReplicaAction,
-            in -> new ConcreteReplicaRequest<>(in, replicaRequestReader),
+            in -> new ConcreteReplicaRequest<>(in, replicaReader),
             executor,
             true,
             true,
-            new ReplicaOperationTransportHandler());
+            new ReplicaOperationTransportHandler()
+        );
+        this.transportOptions = transportOptions();
+        this.syncGlobalCheckpointAfterOperation = syncGlobalCheckpointAfterOperation;
     }
 
     @Override

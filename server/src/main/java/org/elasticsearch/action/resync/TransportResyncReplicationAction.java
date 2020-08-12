@@ -33,7 +33,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
@@ -70,7 +69,8 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
             indexNameExpressionResolver,
             ResyncReplicationRequest::new,
             ResyncReplicationRequest::new,
-            ThreadPool.Names.WRITE
+            ThreadPool.Names.WRITE,
+            true /* we should never reject resync because of thread pool capacity on primary */
         );
     }
 
@@ -78,30 +78,6 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     public ClusterBlockLevel indexBlockLevel() {
         // resync should never be blocked because it's an internal action
         return null;
-    }
-
-    @Override
-    protected void registerRequestHandlers(String actionName,
-                                           TransportService transportService,
-                                           Writeable.Reader<ResyncReplicationRequest> reader,
-                                           Writeable.Reader<ResyncReplicationRequest> replicaReader,
-                                           String executor) {
-        transportService.registerRequestHandler(actionName, reader, ThreadPool.Names.SAME, new OperationTransportHandler());
-        // we should never reject resync because of thread pool capacity on primary
-        transportService.registerRequestHandler(
-            transportPrimaryAction,
-            in -> new ConcreteShardRequest<>(in, reader),
-            executor,
-            true,
-            true,
-            new PrimaryOperationTransportHandler());
-        transportService.registerRequestHandler(
-            transportReplicaAction,
-            in -> new ConcreteReplicaRequest<>(in, replicaReader),
-            executor,
-            true,
-            true,
-            new ReplicaOperationTransportHandler());
     }
 
     @Override
