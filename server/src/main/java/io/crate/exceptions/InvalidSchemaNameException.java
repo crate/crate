@@ -33,11 +33,6 @@ public class InvalidSchemaNameException extends ValidationException implements S
     }
 
     @Override
-    public int errorCode() {
-        return 2;
-    }
-
-    @Override
     public String getSchemaName() {
         return schemaName;
     }

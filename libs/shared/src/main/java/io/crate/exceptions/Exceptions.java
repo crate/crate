@@ -79,4 +79,11 @@ public final class Exceptions {
             return t.getClass().getSimpleName() + "[" + t.getMessage() + "]";
         }
     }
+
+    public static String userFriendlyMessage(Throwable t) {
+        if (t == null) {
+            return "Unknown";
+        }
+        return t.getClass().getSimpleName() + "[" + t.getMessage() + "]";
+    }
 }

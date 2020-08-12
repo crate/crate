@@ -29,8 +29,4 @@ public class InvalidColumnNameException extends ValidationException implements C
         super(String.format(Locale.ENGLISH, "\"%s\" %s", columnName, message));
     }
 
-    @Override
-    public int errorCode() {
-        return 8;
-    }
 }

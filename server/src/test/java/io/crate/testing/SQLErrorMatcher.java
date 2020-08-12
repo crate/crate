@@ -22,8 +22,9 @@
 
 package io.crate.testing;
 
-import io.crate.action.sql.SQLActionException;
+import io.crate.protocols.postgres.PGError;
 import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.rest.action.HttpError;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.hamcrest.Matcher;
 import org.postgresql.util.PSQLException;
@@ -46,8 +47,8 @@ public class SQLErrorMatcher {
     public static <T extends Throwable> Matcher<T> isPGError(Matcher<String> msg, PGErrorStatus pgErrorStatus) {
         return allOf(
             instanceOf(PSQLException.class),
-            withFeature(e -> getErrorMessage((PSQLException) e), "error message", msg),
-            withFeature(e -> getPGErrorStatus((PSQLException) e), "error status", equalTo(pgErrorStatus))
+            withFeature(e ->  stripErrorMessage(fromPSQLException((PSQLException) e).message()), "error message", msg),
+            withFeature(e -> fromPSQLException((PSQLException) e).status(), "error status", equalTo(pgErrorStatus))
         );
     }
 
@@ -55,19 +56,18 @@ public class SQLErrorMatcher {
                                                                HttpResponseStatus httpResponseStatus,
                                                                int errorCode) {
         return allOf(
-            instanceOf(SQLActionException.class),
-            withFeature(e -> getErrorMessage((SQLActionException) e), "error message", msg),
-            withFeature(e -> ((SQLActionException)e).errorCode(), "http error code", equalTo(errorCode)),
-            withFeature(e -> ((SQLActionException)e).status(), "http response", equalTo(httpResponseStatus))
+            withFeature(e -> stripErrorMessage(HttpError.fromThrowable(e).message()), "error message", msg),
+            withFeature(e -> HttpError.fromThrowable(e).errorCode(), "http error code", equalTo(errorCode)),
+            withFeature(e -> HttpError.fromThrowable(e).httpResponseStatus(), "http response", equalTo(httpResponseStatus))
         );
     }
 
-    private static String getErrorMessage(Exception e) {
+    private static String stripErrorMessage(String msg) {
         //Converts 'Error: SQLParseException: error' to 'error' or 'Exception: error' to 'error'
-        return e.getMessage().replaceAll("\\p{Upper}\\p{Alpha}++:\\s{1}", "");
+        return msg.replaceAll("\\p{Upper}\\p{Alpha}++:\\s{1}", "");
     }
 
-    static PGErrorStatus getPGErrorStatus(PSQLException e) {
+    private static PGError fromPSQLException(PSQLException e) {
         var sqlState = e.getServerErrorMessage().getSQLState();
         PGErrorStatus errorStatus = null;
         for (var status : PGErrorStatus.values()) {
@@ -77,7 +77,6 @@ public class SQLErrorMatcher {
             }
         }
         assert errorStatus != null : "Unknown psql error code: " + sqlState;
-        return errorStatus;
+        return new PGError(errorStatus, e.getMessage(), e);
     }
-
 }

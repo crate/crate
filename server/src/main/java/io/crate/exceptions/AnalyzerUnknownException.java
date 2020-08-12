@@ -29,8 +29,4 @@ public class AnalyzerUnknownException extends ResourceUnknownException implement
         super(String.format(Locale.ENGLISH, "Analyzer '%s' unknown", analyzerName));
     }
 
-    @Override
-    public int errorCode() {
-        return 2;
-    }
 }

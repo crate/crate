@@ -42,6 +42,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Changed the error handling so it returns the error message and the related
+  exception without being wrapped in a ``SqlActionException``. Error codes
+  remain the same.
+
 - Added support for flag ``g`` to function
   :ref:`regexp_matches <table-functions-regexp-matches>` and changed
   its type from ``scalar`` to ``table`` type. It now returns a table where each

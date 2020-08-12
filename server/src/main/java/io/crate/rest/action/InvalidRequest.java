@@ -20,13 +20,27 @@
  * agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.rest.action;
 
-import java.util.Locale;
 
-public class UserAlreadyExistsException extends ConflictException implements UnscopedException {
+import io.netty.handler.codec.http.HttpResponseStatus;
 
-    public UserAlreadyExistsException(String userName) {
-        super(String.format(Locale.ENGLISH, "User '%s' already exists", userName));
+class InvalidRequest extends RuntimeException {
+
+    private final HttpResponseStatus httpResponseStatus;
+    private final int errorCode;
+
+    InvalidRequest(String message, HttpResponseStatus httpResponseStatus, int errorCode) {
+        super(message);
+        this.httpResponseStatus = httpResponseStatus;
+        this.errorCode = errorCode;
+    }
+
+    HttpResponseStatus httpResponseStatus() {
+        return httpResponseStatus;
+    }
+
+    int errorCode() {
+        return errorCode;
     }
 }

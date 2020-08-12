@@ -262,7 +262,7 @@ If a user with the username specified in the SQL statement does not exist the
 statement returns an error::
 
     cr> GRANT DQL TO layla;
-    SQLActionException[UserUnknownException: User 'layla' does not exist]
+    UserUnknownException[User 'layla' does not exist]
 
 To grant ``ALL PRIVILEGES`` to user will on the cluster, we can use the
 following syntax::

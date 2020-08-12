@@ -37,11 +37,6 @@ public class OperationOnInaccessibleRelationException extends ValidationExceptio
     }
 
     @Override
-    public int errorCode() {
-        return 7;
-    }
-
-    @Override
     public Collection<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
     }

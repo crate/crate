@@ -30,8 +30,4 @@ public class GroupByOnArrayUnsupportedException extends ValidationException impl
         super("Column \"" + columnName + "\" has a value that is an array. Group by doesn't work on Arrays");
     }
 
-    @Override
-    public int errorCode() {
-        return 0;
-    }
 }
