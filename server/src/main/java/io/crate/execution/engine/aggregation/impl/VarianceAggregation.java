@@ -62,7 +62,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         DataTypes.register(VarianceStateType.ID, in -> VarianceStateType.INSTANCE);
     }
 
-    private static final List<DataType<?>> SUPPORTED_TYPES = Lists2.concat(
+    static final List<DataType<?>> SUPPORTED_TYPES = Lists2.concat(
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
     public static void register(AggregationImplModule mod) {

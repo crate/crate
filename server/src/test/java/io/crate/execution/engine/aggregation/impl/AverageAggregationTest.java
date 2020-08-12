@@ -31,17 +31,28 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
+
 public class AverageAggregationTest extends AggregationTest {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                "avg",
+                AverageAggregation.NAME,
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
             data
         );
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_numeric_types() {
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            assertHasDocValueAggregator(AverageAggregation.NAME, List.of(dataType));
+        }
     }
 
     @Test
@@ -87,6 +98,11 @@ public class AverageAggregationTest extends AggregationTest {
         Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
 
         assertEquals(5d, result);
+    }
+
+    @Test
+    public void test_avg_with_byte_argument_type() throws Exception {
+        assertThat(executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 7}, {(byte) 3}}), is(5d));
     }
 
     @Test

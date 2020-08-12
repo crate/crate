@@ -41,12 +41,19 @@ public class SumAggregationTest extends AggregationTest {
                                       Object[][] data) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                "sum",
+                SumAggregation.NAME,
                 argumentType.getTypeSignature(),
                 returnType.getTypeSignature()
             ),
             data
         );
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_numeric_types() {
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            assertHasDocValueAggregator(SumAggregation.NAME, List.of(dataType));
+        }
     }
 
     @Test
