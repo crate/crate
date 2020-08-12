@@ -39,7 +39,6 @@ import org.elasticsearch.index.shard.ReplicationGroup;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.transport.TransportException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -206,9 +205,8 @@ public class ReplicationOperation<
     private void onNoLongerPrimary(Exception failure) {
         final Throwable cause = ExceptionsHelper.unwrapCause(failure);
         final boolean nodeIsClosing =
-            cause instanceof NodeClosedException ||
-            (cause instanceof TransportException && "TransportService is closed stopped can't send request".equals(cause.getMessage()));
-
+            cause instanceof NodeClosedException
+                || ExceptionsHelper.isTransportStoppedForAction(cause, "internal:cluster/shard/failure");
         final String message;
         if (nodeIsClosing) {
             message = String.format(Locale.ROOT,

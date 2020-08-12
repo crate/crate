@@ -27,6 +27,7 @@ import org.apache.lucene.index.IndexFormatTooOldException;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.transport.TransportException;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -215,6 +216,14 @@ public final class ExceptionsHelper {
             } while ((t = t.getCause()) != null);
         }
         return null;
+    }
+
+    public static boolean isTransportStoppedForAction(final Throwable t, final String action) {
+        final TransportException maybeTransport =
+            (TransportException) ExceptionsHelper.unwrap(t, TransportException.class);
+        return maybeTransport != null
+                && (maybeTransport.getMessage().equals("TransportService is closed stopped can't send request")
+                || maybeTransport.getMessage().equals("transport stopped, action: " + action));
     }
 
     /**
