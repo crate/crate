@@ -730,7 +730,7 @@ public abstract class TransportReplicationAction<
         }
     }
 
-    protected IndexShard getIndexShard(final ShardId shardId) {
+    private IndexShard getIndexShard(final ShardId shardId) {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         return indexService.getShard(shardId.id());
     }
@@ -1150,7 +1150,8 @@ public abstract class TransportReplicationAction<
             }
             final ConcreteReplicaRequest<ReplicaRequest> replicaRequest = new ConcreteReplicaRequest<>(
                 request, replica.allocationId().getId(), primaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes);
-            sendReplicaRequest(replicaRequest, node, listener);
+            final ActionListenerResponseHandler<ReplicaResponse> handler = new ActionListenerResponseHandler<>(listener, ReplicaResponse::new);
+            transportService.sendRequest(node, transportReplicaAction, replicaRequest, transportOptions, handler);
         }
 
         @Override
@@ -1170,21 +1171,6 @@ public abstract class TransportReplicationAction<
             // "alive" if it were to be marked as stale.
             listener.onResponse(null);
         }
-    }
-
-    /**
-     * Sends the specified replica request to the specified node.
-     *
-     * @param replicaRequest the replica request
-     * @param node           the node to send the request to
-     * @param listener       callback for handling the response or failure
-     */
-    protected void sendReplicaRequest(
-            final ConcreteReplicaRequest<ReplicaRequest> replicaRequest,
-            final DiscoveryNode node,
-            final ActionListener<ReplicationOperation.ReplicaResponse> listener) {
-        final ActionListenerResponseHandler<ReplicaResponse> handler = new ActionListenerResponseHandler<>(listener, ReplicaResponse::new);
-        transportService.sendRequest(node, transportReplicaAction, replicaRequest, transportOptions, handler);
     }
 
     /** a wrapper class to encapsulate a request when being sent to a specific allocation id **/

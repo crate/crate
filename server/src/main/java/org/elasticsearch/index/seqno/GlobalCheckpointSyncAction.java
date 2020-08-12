@@ -23,13 +23,11 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -93,14 +91,6 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
     @Override
     protected ReplicationResponse read(StreamInput in) throws IOException {
         return new ReplicationResponse(in);
-    }
-
-    @Override
-    protected void sendReplicaRequest(
-            final ConcreteReplicaRequest<Request> replicaRequest,
-            final DiscoveryNode node,
-            final ActionListener<ReplicationOperation.ReplicaResponse> listener) {
-        super.sendReplicaRequest(replicaRequest, node, listener);
     }
 
     @Override

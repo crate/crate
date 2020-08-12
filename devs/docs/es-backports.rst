@@ -453,7 +453,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] f92ebb2ff90 Suppress lease background sync failures if stopping (#40902)
 - [ ] f49436dc25d Introduce Delegating ActionListener Wrappers (#40129)
 - [ ] 45a6ab0bec8 Use Writeable for TransportReplAction derivatives (#40894)
-- [ ] ea84b96c8cb Remove test-only customisation from TransReplAct (#40863)
+- [x] ea84b96c8cb Remove test-only customisation from TransReplAct (#40863)
 - [x] b8a4c13e81e Init global checkpoint after copy commit in peer recovery (#40823)
 - [x] c7379435439 Primary replica resync should not send ops without seqno (#40433)
 - [x] efe47cebe72 Small refactorings to analysis components (#40745)
