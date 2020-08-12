@@ -470,13 +470,13 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 64a53e42cd1 Add  `use_field` option to intervals query (#40157)
 - [ ] df9f0f729fd Cascading primary failure lead to MSU too low (#40249)
 - [ ] 159eb721eab Return cached segments stats if `include_unloaded_segments` is true (#39698)
-- [ ] fe03d24229a Reject illegal flush parameters (#40213)
-- [ ] d234ef76120 Add date and date_nanos conversion to the numeric_type sort option (#40199)
-- [ ] a520cc53dc2 Always fail engine if delete operation fails (#40117)
-- [ ] a87b1391d63 Expose proximity boosting (#39385)
-- [ ] ec2ce6e06d2 Revert "Expose external refreshes through the stats API (#38643)"
-- [ ] 4d7348518f5 Expose external refreshes through the stats API (#38643)
-- [ ] fd70883e264 Missing import
+- [x] fe03d24229a Reject illegal flush parameters (#40213)
+- [s] d234ef76120 Add date and date_nanos conversion to the numeric_type sort option (#40199)
+- [x] a520cc53dc2 Always fail engine if delete operation fails (#40117)
+- [s] a87b1391d63 Expose proximity boosting (#39385)
+- [s] ec2ce6e06d2 Revert "Expose external refreshes through the stats API (#38643)"
+- [s] 4d7348518f5 Expose external refreshes through the stats API (#38643)
+- [s] fd70883e264 Missing import
 - [x] 9bc332a0800 Create retention leases file during recovery (#39359)
 - [x] cf3463cadc9 Fix not Recognizing Disabled Object Mapper (#39862)
 - [s] 74ba9cedcb7 Remove Obsolete BwC Serialization Code (#40032)
