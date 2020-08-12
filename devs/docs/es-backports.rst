@@ -477,7 +477,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] ec2ce6e06d2 Revert "Expose external refreshes through the stats API (#38643)"
 - [ ] 4d7348518f5 Expose external refreshes through the stats API (#38643)
 - [ ] fd70883e264 Missing import
-- [ ] 9bc332a0800 Create retention leases file during recovery (#39359)
+- [x] 9bc332a0800 Create retention leases file during recovery (#39359)
 - [x] cf3463cadc9 Fix not Recognizing Disabled Object Mapper (#39862)
 - [s] 74ba9cedcb7 Remove Obsolete BwC Serialization Code (#40032)
 - [s] 2d6c46255cd Remove Obsolete BwC Serialization Logic (#39883)
