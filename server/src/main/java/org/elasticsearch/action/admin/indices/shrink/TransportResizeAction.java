@@ -18,12 +18,17 @@
 
 package org.elasticsearch.action.admin.indices.shrink;
 
+import java.io.IOException;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.IntFunction;
+
 import org.apache.lucene.index.IndexWriter;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.stats.IndexShardStats;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -42,12 +47,6 @@ import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.IntFunction;
 
 /**
  * Main class to initiate resizing (shrink / split) an index into a new index
@@ -99,26 +98,29 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
         // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
         final String sourceIndex = resizeRequest.getSourceIndex();
         final String targetIndex = resizeRequest.getTargetIndexRequest().index();
-        client.admin().indices().prepareStats(sourceIndex).clear().setDocs(true).execute(new ActionListener<>() {
-            @Override
-            public void onResponse(IndicesStatsResponse indicesStatsResponse) {
-                CreateIndexClusterStateUpdateRequest updateRequest = prepareCreateIndexRequest(resizeRequest, state,
-                    (i) -> {
-                        IndexShardStats shard = indicesStatsResponse.getIndex(sourceIndex).getIndexShards().get(i);
-                        return shard == null ? null : shard.getPrimary().getDocs();
-                    }, sourceIndex, targetIndex);
-                createIndexService.createIndex(
-                    updateRequest, ActionListener.map(listener,
-                        response -> new ResizeResponse(response.isAcknowledged(), response.isShardsAcknowledged(), updateRequest.index()))
-                );
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                listener.onFailure(e);
-            }
-        });
-
+        client.admin().indices()
+            .prepareStats(sourceIndex)
+            .clear()
+            .setDocs(true)
+            .execute(ActionListener.delegateFailure(
+                listener,
+                (delegate, indicesStatsResponse) -> {
+                    CreateIndexClusterStateUpdateRequest updateRequest = prepareCreateIndexRequest(
+                        resizeRequest,
+                        state,
+                        i -> {
+                            IndexShardStats shard = indicesStatsResponse.getIndex(sourceIndex).getIndexShards().get(i);
+                            return shard == null ? null : shard.getPrimary().getDocs();
+                        },
+                        sourceIndex,
+                        targetIndex
+                    );
+                    createIndexService.createIndex(
+                        updateRequest, ActionListener.map(delegate,
+                            response -> new ResizeResponse(response.isAcknowledged(), response.isShardsAcknowledged(), updateRequest.index()))
+                    );
+                }
+            ));
     }
 
     // static for unittesting this method

@@ -23,7 +23,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -80,17 +79,10 @@ public class TransportPutRepositoryAction extends TransportMasterNodeAction<PutR
             .settings(request.settings())
             .masterNodeTimeout(request.masterNodeTimeout())
             .ackTimeout(request.timeout()),
-            new ActionListener<ClusterStateUpdateResponse>() {
-                @Override
-                public void onResponse(ClusterStateUpdateResponse response) {
-                    listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    listener.onFailure(e);
-                }
-            }
+            ActionListener.delegateFailure(
+                listener,
+                (delegate, response) -> delegate.onResponse(new AcknowledgedResponse(response.isAcknowledged()))
+            )
         );
     }
 }

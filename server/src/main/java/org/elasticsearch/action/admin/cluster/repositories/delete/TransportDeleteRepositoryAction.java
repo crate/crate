@@ -23,7 +23,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -71,18 +70,12 @@ public class TransportDeleteRepositoryAction extends TransportMasterNodeAction<D
     @Override
     protected void masterOperation(final DeleteRepositoryRequest request, ClusterState state, final ActionListener<AcknowledgedResponse> listener) {
         repositoriesService.unregisterRepository(
-                new RepositoriesService.UnregisterRepositoryRequest("delete_repository [" + request.name() + "]", request.name())
-                        .masterNodeTimeout(request.masterNodeTimeout()).ackTimeout(request.timeout()),
-                new ActionListener<ClusterStateUpdateResponse>() {
-                    @Override
-                    public void onResponse(ClusterStateUpdateResponse unregisterRepositoryResponse) {
-                        listener.onResponse(new AcknowledgedResponse(unregisterRepositoryResponse.isAcknowledged()));
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        listener.onFailure(e);
-                    }
-                });
+            new RepositoriesService.UnregisterRepositoryRequest("delete_repository [" + request.name() + "]", request.name())
+                    .masterNodeTimeout(request.masterNodeTimeout()).ackTimeout(request.timeout()),
+            ActionListener.delegateFailure(
+                listener,
+                (delegate, unregisterResponse) -> delegate.onResponse(new AcknowledgedResponse(unregisterResponse.isAcknowledged()))
+            )
+        );
     }
 }
