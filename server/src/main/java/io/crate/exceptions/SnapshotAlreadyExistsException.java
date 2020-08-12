@@ -28,9 +28,5 @@ public class SnapshotAlreadyExistsException extends ConflictException implements
     public SnapshotAlreadyExistsException(String repositoryName, String snapshotName) {
         super("Snapshot \"" + repositoryName + "\".\"" + snapshotName + "\" already exists");
     }
-
-    @Override
-    public int errorCode() {
-        return 6;
-    }
+    
 }

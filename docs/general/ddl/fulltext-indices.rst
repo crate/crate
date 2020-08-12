@@ -67,7 +67,7 @@ When a not indexed column is queried the query will return an error.
 ::
 
     cr> select * from table_a where first_column = 'hello';
-    SQLActionException[UnhandledServerException: java.lang.IllegalArgumentException: Cannot search on field [first_column] since it is not indexed.]
+    UnhandledServerException[java.lang.IllegalArgumentException: Cannot search on field [first_column] since it is not indexed.]
 
 .. _sql_ddl_index_plain:
 

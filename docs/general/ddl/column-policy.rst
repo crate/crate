@@ -31,7 +31,7 @@ CrateDB will raise an error.
 ::
 
     cr> insert into my_table (new_col) values(1);
-    SQLActionException[ColumnUnknownException: Column new_col unknown]
+    ColumnUnknownException[Column new_col unknown]
 
 .. hide:
 

@@ -51,6 +51,13 @@ Breaking Changes
 Changes
 =======
 
+- Changed the error code for dropping a missing view from the undefined 4040
+  to 4041.
+
+- Changed the error handling so it returns the error message and the related
+  exception without being wrapped in a ``SqlActionException``. Error codes
+  remain the same.
+
 - Changed :ref:`OPTIMIZE <sql_ref_optimize>` to no longer implicitly refresh a
   table.
 

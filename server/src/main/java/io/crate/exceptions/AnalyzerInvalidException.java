@@ -27,8 +27,4 @@ public class AnalyzerInvalidException extends ValidationException implements Clu
         super(reason);
     }
 
-    @Override
-    public int errorCode() {
-        return 1;
-    }
 }

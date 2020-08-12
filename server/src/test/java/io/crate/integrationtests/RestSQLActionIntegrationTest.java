@@ -43,8 +43,8 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"" +
-                                            "SQLActionException[SQLParseException: Missing request body]\"," +
-                                            "\"code\":4000},\"error_trace\":\"SQLActionException:"
+                                            "SQLParseException[Missing request body]\"," +
+                                            "\"code\":4000},"
         ));
     }
 
@@ -53,8 +53,8 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         CloseableHttpResponse response = post("{\"foo\": \"bar\"}");
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[SQLParseException: Failed to parse source" +
-                                            " [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},\"error_trace\":\"")
+        assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLParseException[Failed to parse source" +
+                                            " [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},")
         );
     }
 
@@ -64,9 +64,8 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
             = post("{\"stmt\": \"INSERT INTO foo (bar) values (?)\", \"args\": [0], \"bulk_args\": [[0], [1]]}");
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[request body contains args" +
-                                            " and bulk_args. It's forbidden to provide both]\",\"code\":4000},\"error_trace\":\"SQLActionException:"
-        ));
+        assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLParseException[request body contains args and bulk_args. It's forbidden to provide both]\"")
+        );
     }
 
     @Test

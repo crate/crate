@@ -374,7 +374,7 @@ appropriate exception::
     ... EOF
     {
       "error": {
-        "message": "SQLActionException[SchemaUnknownException: Schema 'foo' unknown]",
+        "message": "SchemaUnknownException[Schema 'foo' unknown]",
         "code": 4045
       }
     }
@@ -390,7 +390,7 @@ GET parameter can be specified to return the stack trace::
     ... EOF
     {
       "error": {
-        "message": "SQLActionException[SchemaUnknownException: Schema 'foo' unknown]",
+        "message": "SchemaUnknownException[Schema 'foo' unknown]",
         "code": 4045
       },
       "error_trace": "..."

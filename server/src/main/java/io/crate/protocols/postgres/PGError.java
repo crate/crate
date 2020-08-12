@@ -1,0 +1,77 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.protocols.postgres;
+
+import io.crate.exceptions.SQLExceptions;
+import javax.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
+
+
+public class PGError {
+
+    public static final byte[] SEVERITY_FATAL = "FATAL".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] SEVERITY_ERROR = "ERROR".getBytes(StandardCharsets.UTF_8);
+
+    private final PGErrorStatus status;
+    private final String message;
+
+    @Nullable
+    private final Throwable throwable;
+
+
+    public PGError(PGErrorStatus status, String message, @Nullable Throwable throwable) {
+        this.status = status;
+        this.message = message;
+        this.throwable = throwable;
+    }
+
+    public PGErrorStatus status() {
+        return status;
+    }
+
+    @Nullable
+    public Throwable throwable() {
+        return throwable;
+    }
+
+    public String message() {
+        return message;
+    }
+
+    @Override
+    public String toString() {
+        return "PGError{" +
+               "status=" + status +
+               ", message='" + message + '\'' +
+               ", throwable=" + throwable +
+               '}';
+    }
+
+    public static PGError fromThrowable(Throwable throwable) {
+        var status = PGErrorStatus.INTERNAL_ERROR;
+        if (throwable instanceof IllegalArgumentException || throwable instanceof UnsupportedOperationException) {
+            status = PGErrorStatus.FEATURE_NOT_SUPPORTED;
+        }
+        return new PGError(status, SQLExceptions.messageOf(throwable), throwable);
+    }
+}

@@ -39,8 +39,4 @@ public class JobKilledException extends RuntimeException implements UnscopedExce
         super(MESSAGE);
     }
 
-    @Override
-    public int errorCode() {
-        return 5030;
-    }
 }

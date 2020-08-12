@@ -39,11 +39,6 @@ public class UserDefinedFunctionAlreadyExistsException extends ConflictException
     }
 
     @Override
-    public int errorCode() {
-        return 8;
-    }
-
-    @Override
     public String getSchemaName() {
         return schema;
     }

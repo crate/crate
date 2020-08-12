@@ -41,11 +41,6 @@ public class ColumnValidationException extends ValidationException implements Ta
     }
 
     @Override
-    public int errorCode() {
-        return 3;
-    }
-
-    @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
     }

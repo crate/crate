@@ -37,11 +37,6 @@ public class AmbiguousColumnAliasException extends ValidationException implement
     }
 
     @Override
-    public int errorCode() {
-        return 6;
-    }
-
-    @Override
     public Iterable<RelationName> getTableIdents() {
         return TableIdentsExtractor.extract(relatedSymbols);
     }

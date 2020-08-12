@@ -32,8 +32,4 @@ public class InvalidArgumentException extends ValidationException {
         return exceptionVisitor.visitCrateException(this, context);
     }
 
-    @Override
-    public int errorCode() {
-        return 0;
-    }
 }

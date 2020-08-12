@@ -35,11 +35,6 @@ public class CreateSnapshotException extends UnhandledServerException implements
     }
 
     @Override
-    public int errorCode() {
-        return 4;
-    }
-
-    @Override
     public <C, R> R accept(CrateExceptionVisitor<C, R> exceptionVisitor, C context) {
         return exceptionVisitor.visitClusterScopeException(this, context);
     }

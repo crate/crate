@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.sql.SQLActionException;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.plugin.CrateTestingPlugin;
@@ -95,7 +95,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 future.get(10, TimeUnit.SECONDS);
             } catch (Throwable exception) {
                 exception = SQLExceptions.unwrap(exception); // wrapped in ExecutionException
-                assertThat(exception, instanceOf(SQLActionException.class));
+                assertThat(exception, instanceOf(JobKilledException.class));
                 assertThat(exception.toString(), anyOf(
                     containsString("Job killed"), // CancellationException
                     containsString("RootTask for job"), // TaskMissing when root task not found

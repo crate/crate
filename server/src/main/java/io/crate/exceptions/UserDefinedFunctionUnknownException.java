@@ -44,11 +44,6 @@ public class UserDefinedFunctionUnknownException extends ResourceUnknownExceptio
     }
 
     @Override
-    public int errorCode() {
-        return 9;
-    }
-
-    @Override
     public String getSchemaName() {
         return schema;
     }

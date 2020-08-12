@@ -35,8 +35,4 @@ public class UnhandledServerException extends RuntimeException implements Unscop
         super(cause);
     }
 
-    @Override
-    public int errorCode() {
-        return 0;
-    }
 }

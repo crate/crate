@@ -28,8 +28,4 @@ public class UnauthorizedException extends RuntimeException implements UnscopedE
         super(message);
     }
 
-    @Override
-    public int errorCode() {
-        return 0;
-    }
 }

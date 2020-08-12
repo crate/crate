@@ -304,12 +304,12 @@ public class PostgresWireProtocol {
             } catch (Throwable t) {
                 ignoreTillSync = true;
                 if (session != null) {
-                    t = SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext()), t);
+                    t = SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionContext()), t);
                 }
                 try {
                     if (session != null) {
                         AccessControl accessControl = getAccessControl.apply(session.sessionContext());
-                        t = SQLExceptions.forWireTransmission(accessControl, t);
+                        t = SQLExceptions.prepareForClientTransmission(accessControl, t);
                     }
                     Messages.sendErrorResponse(channel, t);
                 } catch (Throwable ti) {
@@ -634,7 +634,7 @@ public class PostgresWireProtocol {
             resultReceiver = new RowCountReceiver(
                 query,
                 channel.bypassDelay(),
-                SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext()))
+                SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionContext()))
             );
         } else {
             // query with resultSet
@@ -642,7 +642,7 @@ public class PostgresWireProtocol {
                 query,
                 channel.bypassDelay(),
                 session.transactionState(),
-                SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext())),
+                SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionContext())),
                 Lists2.map(outputTypes, PGTypes::get),
                 session.getResultFormatCodes(portalName)
             );
@@ -734,7 +734,7 @@ public class PostgresWireProtocol {
             DescribeResult describeResult = session.describe('P', "");
             List<Symbol> fields = describeResult.getFields();
 
-            Function<Throwable, Exception> wrapError = SQLExceptions.forWireTransmission(
+            Function<Throwable, Exception> wrapError = SQLExceptions.prepareForClientTransmission(
                 getAccessControl.apply(session.sessionContext()));
             CompletableFuture<?> execute;
             if (fields == null) {

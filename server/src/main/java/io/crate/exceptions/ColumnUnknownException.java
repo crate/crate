@@ -36,11 +36,6 @@ public class ColumnUnknownException extends ResourceUnknownException implements 
     }
 
     @Override
-    public int errorCode() {
-        return 3;
-    }
-
-    @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
     }

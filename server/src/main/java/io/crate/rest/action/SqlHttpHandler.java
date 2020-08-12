@@ -25,7 +25,6 @@ package io.crate.rest.action;
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
@@ -164,17 +163,21 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            SQLActionException sqlActionException = SQLExceptions.forWireTransmission(
-                getAccessControl.apply(session.sessionContext()), t);
+            var throwable = SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionContext()), t);
+            HttpError httpError = HttpError.fromThrowable(throwable);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
-            try (XContentBuilder contentBuilder = HTTPErrorFormatter.convert(sqlActionException, includeErrorTrace)) {
+            try (XContentBuilder contentBuilder = httpError.toXContent(includeErrorTrace)) {
                 content = Netty4Utils.toByteBuf(BytesReference.bytes(contentBuilder));
                 mediaType = contentBuilder.contentType().mediaType();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            resp = new DefaultFullHttpResponse(httpVersion, sqlActionException.status(), content);
+            resp = new DefaultFullHttpResponse(
+                httpVersion,
+                httpError.httpResponseStatus(),
+                content
+            );
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, mediaType);
         }
         Netty4CorsHandler.setCorsResponseHeaders(request, resp, corsConfig);
@@ -199,8 +202,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         List<Object> args = parseContext.args();
         List<List<Object>> bulkArgs = parseContext.bulkArgs();
         if (bothProvided(args, bulkArgs)) {
-            return CompletableFuture.failedFuture(new SQLActionException(
-                "request body contains args and bulk_args. It's forbidden to provide both", 4000, HttpResponseStatus.BAD_REQUEST));
+            return CompletableFuture.failedFuture(new IllegalArgumentException(
+                "request body contains args and bulk_args. It's forbidden to provide both"));
         }
         try {
             if (args != null || bulkArgs == null) {

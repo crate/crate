@@ -27,8 +27,4 @@ public class CircuitBreakingException extends UnhandledServerException {
         super(message);
     }
 
-    @Override
-    public int errorCode() {
-        return 0;
-    }
 }

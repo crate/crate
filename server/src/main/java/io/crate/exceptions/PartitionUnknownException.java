@@ -41,11 +41,6 @@ public class PartitionUnknownException extends ResourceUnknownException implemen
     }
 
     @Override
-    public int errorCode() {
-        return 6;
-    }
-
-    @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
     }

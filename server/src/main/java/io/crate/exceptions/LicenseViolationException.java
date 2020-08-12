@@ -38,8 +38,4 @@ public class LicenseViolationException extends ValidationException implements Cl
         super(String.format(Locale.ENGLISH, MESSAGE_TEMPLATE, effect));
     }
 
-    @Override
-    public int errorCode() {
-        return 9;
-    }
 }

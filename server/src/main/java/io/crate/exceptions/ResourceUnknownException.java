@@ -31,8 +31,4 @@ public abstract class ResourceUnknownException extends RuntimeException implemen
         super(message, cause);
     }
 
-    @Override
-    public int errorCode() {
-        return 0;
-    }
 }

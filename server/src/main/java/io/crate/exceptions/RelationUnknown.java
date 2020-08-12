@@ -72,11 +72,6 @@ public class RelationUnknown extends ResourceUnknownException implements TableSc
     }
 
     @Override
-    public int errorCode() {
-        return 1;
-    }
-
-    @Override
     public Collection<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
     }

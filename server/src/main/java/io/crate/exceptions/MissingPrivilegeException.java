@@ -38,8 +38,4 @@ public class MissingPrivilegeException extends UnauthorizedException {
         super(String.format(Locale.ENGLISH, "Missing privilege for user '%s'", userName));
     }
 
-    @Override
-    public int errorCode() {
-        return 1;
-    }
 }

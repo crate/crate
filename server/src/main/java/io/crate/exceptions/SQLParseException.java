@@ -31,8 +31,4 @@ public class SQLParseException extends ValidationException implements UnscopedEx
         super(msg, e);
     }
 
-    @Override
-    public int errorCode() {
-        return 0;
-    }
 }

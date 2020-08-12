@@ -30,8 +30,4 @@ public class ReadOnlyException extends RuntimeException implements ClusterScopeE
               "` is a write-operation");
     }
 
-    @Override
-    public int errorCode() {
-        return 1;
-    }
 }
