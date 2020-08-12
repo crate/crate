@@ -47,6 +47,7 @@ import org.elasticsearch.index.engine.InternalEngine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.common.collections.Tuple;
@@ -162,6 +163,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
 
     @Test
+    @Ignore("https://github.com/crate/crate/issues/10351")
     public void testAcquirePrimaryAllOperationsPermits() throws Exception {
         final IndexShard indexShard = newStartedShard(true);
         assertEquals(0, indexShard.getActiveOperationsCount());
