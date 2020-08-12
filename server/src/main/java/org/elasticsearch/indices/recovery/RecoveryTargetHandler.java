@@ -101,9 +101,10 @@ public interface RecoveryTargetHandler {
      * After all source files has been sent over, this command is sent to the target so it can clean any local
      * files that are not part of the source store
      * @param totalTranslogOps an update number of translog operations that will be replayed later on
+     * @param globalCheckpoint the global checkpoint on the primary
      * @param sourceMetadata meta data of the source store
      */
-    void cleanFiles(int totalTranslogOps, Store.MetadataSnapshot sourceMetadata) throws IOException;
+    void cleanFiles(int totalTranslogOps, long globalCheckpoint, Store.MetadataSnapshot sourceMetadata) throws IOException;
 
     /** writes a partial file chunk to the target store */
     void writeFileChunk(StoreFileMetadata fileMetadata, long position, BytesReference content,
