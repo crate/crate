@@ -626,6 +626,7 @@ public abstract class TransportReplicationAction<
         @Override
         public void onResponse(Releasable releasable) {
             try {
+                assert replica.getActiveOperationsCount() != 0 : "must perform shard operation under a permit";
                 final ReplicaResult replicaResult = shardOperationOnReplica(request, replica);
                 releasable.close(); // release shard operation lock before responding to caller
                 final TransportReplicationAction.ReplicaResponse response =
@@ -1048,6 +1049,7 @@ public abstract class TransportReplicationAction<
                     return result;
                 });
             }
+            assert indexShard.getActiveOperationsCount() != 0 : "must perform shard operation under a permit";
             shardOperationOnPrimary(request, indexShard, listener);
         }
 

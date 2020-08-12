@@ -185,7 +185,7 @@ public class IndexShardTests extends IndexShardTestCase {
                     if (singlePermit) {
                         assertThat(indexShard.getActiveOperationsCount(), greaterThan(0));
                     } else {
-                        assertThat(indexShard.getActiveOperationsCount(), equalTo(0));
+                        assertThat(indexShard.getActiveOperationsCount(), equalTo(IndexShard.OPERATIONS_BLOCKED));
                     }
                     releasable.close();
                     super.onResponse(releasable);
@@ -236,7 +236,7 @@ public class IndexShardTests extends IndexShardTestCase {
         indexShard.acquireAllPrimaryOperationsPermits(futureAllPermits, TimeValue.timeValueSeconds(30L));
         allPermitsAcquired.await();
         assertTrue(blocked.get());
-        assertEquals(0, indexShard.getActiveOperationsCount());
+        assertEquals(IndexShard.OPERATIONS_BLOCKED, indexShard.getActiveOperationsCount());
         assertTrue("Expected no results, operations are blocked", results.asList().isEmpty());
         futures.forEach(future -> assertFalse(future.isDone()));
 
