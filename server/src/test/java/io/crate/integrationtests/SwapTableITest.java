@@ -25,7 +25,12 @@ package io.crate.integrationtests;
 import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 public class SwapTableITest extends SQLTransportIntegrationTest {
@@ -51,8 +56,12 @@ public class SwapTableITest extends SQLTransportIntegrationTest {
                 "select table_name from information_schema.tables where table_name in ('t1', 't2') order by 1").rows()),
             is("t2\n")
         );
-        expectedException.expectMessage("Relation 't1' unknown");
-        execute("select * from t1");
+
+        assertThrows(() ->  execute("select * from t1"),
+                     isSQLError(containsString("Relation 't1' unknown"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4041));
     }
 
     @Test

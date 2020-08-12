@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.data.CollectionBucket;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
@@ -45,10 +44,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -686,12 +690,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         PlanForNode plan = plan("select * from t1, t2 where t1.x = t2.x");
         execute("drop table t2");
 
-        expectedException.expect(IndexNotFoundException.class);
-        try {
-            execute(plan).getResult();
-        } catch (Throwable t) {
-            throw SQLExceptions.unwrap(t);
-        }
+        assertThrows(() -> execute(plan).getResult(), instanceOf(IndexNotFoundException.class));
     }
 
     @Test
@@ -744,14 +743,14 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testFailureOfJoinDownstream() throws Exception {
         // provoke an exception when the NL emits a row, must bubble up and NL must stop
-        expectedException.expectMessage("Cannot cast ");
-        execute("select cast(R.col2 || ' ' || L.col2 as integer)" +
-                "   from " +
-                "       unnest(['hello', 'world'], [1, 2]) L " +
-                "   inner join " +
-                "       unnest(['world', 'hello'], [1, 2]) R " +
-                "   on l.col1 = r.col1 " +
-                "where r.col1 > 1");
+        assertThrows(() -> execute("select cast(R.col2 || ' ' || L.col2 as integer)" +
+                                   "   from " +
+                                   "       unnest(['hello', 'world'], [1, 2]) L " +
+                                   "   inner join " +
+                                   "       unnest(['world', 'hello'], [1, 2]) R " +
+                                   "   on l.col1 = r.col1 " +
+                                   "where r.col1 > 1"),
+                     isSQLError(is("Cannot cast value `world` to type `integer`"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test

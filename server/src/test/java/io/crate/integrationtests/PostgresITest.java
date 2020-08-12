@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLOperations;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 
@@ -34,6 +35,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.postgresql.PGProperty;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -64,6 +66,7 @@ import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.greaterThan;
@@ -167,9 +170,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             PreparedStatement stmt = conn.prepareStatement("select ? from sys.cluster");
             stmt.setObject(1, UUID.randomUUID());
-
-            expectedException.expectMessage("Can't map PGType with oid=2950 to Crate type");
-            stmt.executeQuery();
+            assertThrows(() -> stmt.executeQuery(), isPGError(is("Can't map PGType with oid=2950 to Crate type"), INTERNAL_ERROR));
         }
     }
 
@@ -605,9 +606,10 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             statement.addBatch("refresh table t");
             statement.addBatch("select count(*) from t");
 
-            expectedException.expect(BatchUpdateException.class);
-            expectedException.expectMessage("Only write operations are allowed in Batch statements");
-            statement.executeBatch();
+            Assertions.assertThrows(BatchUpdateException.class,
+                                    () -> statement.executeBatch(),
+                                    "Only write operations are allowed in Batch statements"
+            );
         }
     }
 
@@ -655,9 +657,8 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("select name fro sys.cluster");
-            expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("mismatched input 'sys'");
-            stmt.executeQuery();
+            assertThrows(() -> stmt.executeQuery(),
+                         isPGError(containsString("mismatched input 'sys'"), INTERNAL_ERROR));
         }
     }
 
@@ -666,9 +667,8 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(url(RO), properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("create table test(a integer)");
-            expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("Only read operations allowed on this node");
-            stmt.executeQuery();
+            assertThrows(() -> stmt.executeQuery(),
+                         isPGError(containsString("Only read operations allowed on this node"), INTERNAL_ERROR));
         }
     }
 
@@ -682,7 +682,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 stmt.executeQuery();
                 fail("Should've raised PSQLException");
             } catch (PSQLException e) {
-                assertThat(e.getMessage(), Matchers.containsString("Cannot cast expressions from type `double precision_array` to type `integer`"));
+                assertThat(e.getMessage(), containsString("Cannot cast expressions from type `double precision_array` to type `integer`"));
             }
 
             assertSelectNameFromSysClusterWorks(conn);

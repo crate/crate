@@ -22,18 +22,26 @@
 
 package io.crate.integrationtests;
 
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 public class ViewsITest extends SQLTransportIntegrationTest {
@@ -99,23 +107,33 @@ public class ViewsITest extends SQLTransportIntegrationTest {
     public void testCreateViewFailsIfViewAlreadyExists() {
         execute("create view v3 as select 1");
 
-        expectedException.expectMessage("Relation '" + sqlExecutor.getCurrentSchema() + ".v3' already exists");
-        execute("create view v3 as select 1");
+        assertThrows(() ->  execute("create view v3 as select 1"),
+                     isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".v3' already exists"),
+                                INTERNAL_ERROR,
+                                CONFLICT,
+                                4093));
     }
 
     @Test
     public void testCreateViewFailsIfNameConflictsWithTable() {
         execute("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
-        expectedException.expectMessage("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists");
-        execute("create view t1 as select 1");
+        assertThrows(() -> execute("create view t1 as select 1"),
+                     isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists"),
+                                INTERNAL_ERROR,
+                                CONFLICT,
+                                4093));
     }
 
     @Test
     public void testCreateViewFailsIfNameConflictsWithPartitionedTable() {
         execute("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
-        expectedException.expectMessage("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists");
-        execute("create view t1 as select 1");
+
+        assertThrows(() -> execute("create view t1 as select 1"),
+                     isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists"),
+                                INTERNAL_ERROR,
+                                CONFLICT,
+                                4093));
     }
 
     @Test
@@ -126,8 +144,10 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         // then create the actual view. This way we circumvent the analyzer check for existing views.
         execute("create view v4 as select 1");
 
-        expectedException.expectMessage("Relation '" + sqlExecutor.getCurrentSchema() + ".v4' already exists");
-        execute(viewConflictingTableCreation).getResult();
+        Assertions.assertThrows(RelationAlreadyExists.class,
+                                () -> execute(viewConflictingTableCreation).getResult(),
+                                "Relation '" + sqlExecutor.getCurrentSchema() + ".v4' already exists"
+        );
     }
 
     @Test
@@ -138,14 +158,19 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         // then create the actual view. This way we circumvent the analyzer check for existing views.
         execute("create view v5 as select 1");
 
-        expectedException.expectMessage("Relation '" + sqlExecutor.getCurrentSchema() + ".v5' already exists");
-        execute(viewConflictingTableCreation).getResult();
+        Assertions.assertThrows(RelationAlreadyExists.class,
+                                () -> execute(viewConflictingTableCreation).getResult(),
+                                "Relation '" + sqlExecutor.getCurrentSchema() + ".v5' already exists"
+        );
     }
 
     @Test
     public void testDropViewFailsIfViewIsMissing() {
-        expectedException.expectMessage("Relations not found: " + sqlExecutor.getCurrentSchema() + ".v1");
-        execute("drop view v1");
+        assertThrows(() -> execute("drop view v1"),
+                     isSQLError(containsString("Relations not found: " + sqlExecutor.getCurrentSchema() + ".v1"),
+                                INTERNAL_ERROR,
+                                NOT_FOUND,
+                                4040));
     }
 
     @Test

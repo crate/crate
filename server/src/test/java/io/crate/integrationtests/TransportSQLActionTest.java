@@ -58,6 +58,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -91,18 +92,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testIndexNotFoundExceptionIsRaisedIfDeletedAfterPlan() throws Throwable {
-        expectedException.expect(IndexNotFoundException.class);
-
         execute("create table t (name string)");
         ensureYellow();
 
         PlanForNode plan = plan("select * from t");
         execute("drop table t");
-        try {
-            execute(plan).getResult();
-        } catch (Throwable t) {
-            throw SQLExceptions.unwrap(t);
-        }
+
+        assertThrows(() -> execute(plan).getResult(), instanceOf(IndexNotFoundException.class));
     }
 
     @Test

@@ -33,6 +33,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
@@ -41,6 +42,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.Asserts.assertThrows;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class TransportCreatePartitionsActionTest extends SQLTransportIntegrationTest {
@@ -127,17 +130,12 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
 
     @Test
     public void testCreateInvalidName() throws Exception {
-        expectedException.expect(InvalidIndexNameException.class);
-        expectedException.expectMessage("Invalid index name [invalid/#haha], must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]");
-
         CreatePartitionsRequest createPartitionsRequest = new CreatePartitionsRequest(Arrays.asList("valid", "invalid/#haha"), UUID.randomUUID());
-        try {
-            action.execute(createPartitionsRequest).actionGet();
-            fail("no exception thrown");
-        } catch (Throwable t) {
-            // if one name is invalid no index is created
-            assertThat(internalCluster().clusterService().state().metadata().hasIndex("valid"), is(false));
-            throw t;
-        }
+        Assertions.assertThrows(InvalidIndexNameException.class,
+                                () -> action.execute(createPartitionsRequest).actionGet(),
+                                "Invalid index name [invalid/#haha], must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]"
+        );
+        // if one name is invalid no index is created
+        assertThat(internalCluster().clusterService().state().metadata().hasIndex("valid"), is(false));
     }
 }
