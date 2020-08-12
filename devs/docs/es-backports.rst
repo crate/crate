@@ -445,8 +445,8 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 97fd2ed7577 Remove pending deletions workaround (#41245)
 - [ ] 778a1d0d630 Fix some `range` query edge cases (#41160)
 - [ ] 01ab82f866d Upgrade to lucene 8.1.0-snapshot-e460356abe (#40952)
-- [ ] cb3b2130863 Clarify some ToXContent implementations behaviour (#41000)
-- [ ] 4188945b83e Adjust BWC for #40823
+- [x] cb3b2130863 Clarify some ToXContent implementations behaviour (#41000)
+- [s] 4188945b83e Adjust BWC for #40823
 - [x] 3ec0cc5f8ed Do not trim unsafe commits when open readonly engine (#41041)
 - [x] 6e3ea88afee Adjust init map size of user data of index commit (#40965)
 - [x] 5d26243aba2 Make Transport Shard Bulk Action Async (#39793)
