@@ -440,7 +440,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 55db0e267ff Mark searcher as accessed in acquireSearcher (#41335)
 - [ ] 6472ad4f95d Fix Broken Index Shard Snapshot File Preventing Snapshot Creation (#41310)
 - [ ] a0c4eabe8db Simplify Some Code in Snapshotting (#41316)
-- [ ] 918232a9c62 Assert TransportReplicationActions acquire permits (#41271)
+- [x] 918232a9c62 Assert TransportReplicationActions acquire permits (#41271)
 - [x] c31a5b11385 Fix error applying `ignore_malformed` to boolean values (#41261)
 - [x] 97fd2ed7577 Remove pending deletions workaround (#41245)
 - [s] 778a1d0d630 Fix some `range` query edge cases (#41160)
