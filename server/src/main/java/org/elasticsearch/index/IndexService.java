@@ -115,6 +115,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
 
     public IndexService(
             IndexSettings indexSettings,
+            IndexCreationContext indexCreationContext,
             NodeEnvironment nodeEnv,
             NamedXContentRegistry xContentRegistry,
             ShardStoreDeleter shardStoreDeleter,
@@ -133,21 +134,27 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.indexSettings = indexSettings;
         this.xContentRegistry = xContentRegistry;
         this.circuitBreakerService = circuitBreakerService;
-        this.mapperService = new MapperService(
-            indexSettings,
-            registry.build(indexSettings),
-            xContentRegistry,
-            mapperRegistry,
-            // we parse all percolator queries as they would be parsed on shard 0
-            this::newQueryShardContext
-        );
+        if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE &&
+                indexCreationContext == IndexCreationContext.CREATE_INDEX) { // metadata verification needs a mapper service
+            this.mapperService = null;
+            this.indexCache = null;
+        } else {
+            this.mapperService = new MapperService(
+                indexSettings,
+                registry.build(indexSettings),
+                xContentRegistry,
+                mapperRegistry,
+                // we parse all percolator queries as they would be parsed on shard 0
+                this::newQueryShardContext
+            );
+            this.indexCache = new IndexCache(indexSettings, queryCache);
+        }
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
         this.eventListener = eventListener;
         this.nodeEnv = nodeEnv;
         this.indexStore = indexStore;
-        this.indexCache = new IndexCache(indexSettings, queryCache);
         this.engineFactory = Objects.requireNonNull(engineFactory);
         // initialize this last -- otherwise if the wrapper requires any other member to be non-null we fail with an NPE
         this.readerWrapper = wrapperFactory.apply(this);
@@ -158,6 +165,11 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.globalCheckpointTask = new AsyncGlobalCheckpointTask(this);
         this.retentionLeaseSyncTask = new AsyncRetentionLeaseSyncTask(this);
         rescheduleFsyncTask(indexSettings.getTranslogDurability());
+    }
+
+    public enum IndexCreationContext {
+        CREATE_INDEX,
+        META_DATA_VERIFICATION
     }
 
     public int numberOfShards() {
@@ -468,7 +480,10 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
 
     @Override
     public boolean updateMapping(final IndexMetadata currentIndexMetadata, final IndexMetadata newIndexMetadata) throws IOException {
-        return mapperService().updateMapping(currentIndexMetadata, newIndexMetadata);
+        if (mapperService == null) {
+            return false;
+        }
+        return mapperService.updateMapping(currentIndexMetadata, newIndexMetadata);
     }
 
     private class StoreCloseListener implements Store.OnClose {

@@ -2503,10 +2503,10 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             indexSettings,
             store,
             indexSettings.getMergePolicy(),
-            mapperService.indexAnalyzer(),
+            mapperService == null ? null : mapperService.indexAnalyzer(),
             codecService,
             shardEventListener,
-            indexCache.query(),
+            indexCache == null ? null : indexCache.query(),
             cachingPolicy,
             translogConfig,
             IndexingMemoryController.SHARD_INACTIVE_TIME_SETTING.get(indexSettings.getSettings()),
@@ -2971,7 +2971,9 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     private EngineConfig.TombstoneDocSupplier tombstoneDocSupplier() {
         final RootObjectMapper.Builder noopRootMapper = new RootObjectMapper.Builder("__noop");
-        final DocumentMapper noopDocumentMapper = new DocumentMapper.Builder(noopRootMapper, mapperService).build(mapperService);
+        final DocumentMapper noopDocumentMapper = mapperService == null
+            ? null
+            : new DocumentMapper.Builder(noopRootMapper, mapperService).build(mapperService);
         return new EngineConfig.TombstoneDocSupplier() {
 
             @Override

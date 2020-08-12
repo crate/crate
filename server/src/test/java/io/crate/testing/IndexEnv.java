@@ -47,6 +47,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.IndexService.IndexCreationContext;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
@@ -127,6 +128,7 @@ public final class IndexEnv implements AutoCloseable {
             table.partitionedByColumns()
         );
         indexService = indexModule.newIndexService(
+            IndexCreationContext.CREATE_INDEX,
             nodeEnvironment,
             NamedXContentRegistry.EMPTY,
             new IndexService.ShardStoreDeleter() {

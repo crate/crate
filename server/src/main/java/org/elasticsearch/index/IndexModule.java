@@ -320,6 +320,7 @@ public final class IndexModule {
     }
 
     public IndexService newIndexService(
+            IndexService.IndexCreationContext indexCreationContext,
             NodeEnvironment environment,
             NamedXContentRegistry xContentRegistry,
             IndexService.ShardStoreDeleter shardStoreDeleter,
@@ -347,6 +348,7 @@ public final class IndexModule {
         }
         return new IndexService(
             indexSettings,
+            indexCreationContext,
             environment,
             xContentRegistry,
             shardStoreDeleter,

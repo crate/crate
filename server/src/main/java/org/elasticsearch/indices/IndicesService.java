@@ -84,6 +84,7 @@ import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.IndexService.IndexCreationContext;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.InternalEngineFactory;
@@ -318,7 +319,7 @@ public class IndicesService extends AbstractLifecycleComponent
         };
         finalListeners.add(onStoreClose);
         final IndexService indexService = createIndexService(
-            "create index",
+            IndexCreationContext.CREATE_INDEX,
             indexMetadata,
             indicesQueryCache,
             finalListeners,
@@ -340,7 +341,7 @@ public class IndicesService extends AbstractLifecycleComponent
     /**
      * This creates a new IndexService without registering it
      */
-    private synchronized IndexService createIndexService(final String reason,
+    private synchronized IndexService createIndexService(IndexCreationContext indexCreationContext,
                                                          IndexMetadata indexMetadata,
                                                          IndicesQueryCache indicesQueryCache,
                                                          List<IndexEventListener> builtInListeners,
@@ -352,7 +353,7 @@ public class IndicesService extends AbstractLifecycleComponent
             indexMetadata.getIndex(),
             idxSettings.getNumberOfShards(),
             idxSettings.getNumberOfReplicas(),
-            reason);
+            indexCreationContext);
 
         final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, getEngineFactory(idxSettings), indexStoreFactories);
         for (IndexingOperationListener operationListener : indexingOperationListeners) {
@@ -363,6 +364,7 @@ public class IndicesService extends AbstractLifecycleComponent
             indexModule.addIndexEventListener(listener);
         }
         return indexModule.newIndexService(
+            indexCreationContext,
             nodeEnv,
             xContentRegistry,
             this,
@@ -427,8 +429,12 @@ public class IndicesService extends AbstractLifecycleComponent
             IndicesQueryCache indicesQueryCache = new IndicesQueryCache(settings);
             closeables.add(indicesQueryCache);
             // this will also fail if some plugin fails etc. which is nice since we can verify that early
-            final IndexService service =
-                createIndexService("metadata verification", metadata, indicesQueryCache, emptyList());
+            final IndexService service = createIndexService(
+                IndexCreationContext.META_DATA_VERIFICATION,
+                metadata,
+                indicesQueryCache,
+                emptyList()
+            );
             closeables.add(() -> service.close("metadata verification", false));
             service.mapperService().merge(metadata, MapperService.MergeReason.MAPPING_RECOVERY);
             if (metadata.equals(metadataUpdate) == false) {
