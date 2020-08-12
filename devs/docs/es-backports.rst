@@ -456,7 +456,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] ea84b96c8cb Remove test-only customisation from TransReplAct (#40863)
 - [ ] b8a4c13e81e Init global checkpoint after copy commit in peer recovery (#40823)
 - [ ] c7379435439 Primary replica resync should not send ops without seqno (#40433)
-- [ ] efe47cebe72 Small refactorings to analysis components (#40745)
+- [x] efe47cebe72 Small refactorings to analysis components (#40745)
 - [x] c29cebb04de Inline TransportReplAction#registerRequestHandlers (#40762)
 - [x] 1f019ebae4a Don't mark shard as refreshPending on stats fetching (#40458)
 - [x] 58515c30221 Fix merging of text field mapper (#40627)
