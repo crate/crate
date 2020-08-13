@@ -21,21 +21,6 @@
 
 package io.crate.execution.jobs;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
-
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CompletionListenable;
-import io.crate.exceptions.JobKilledException;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.exceptions.TaskMissing;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.profile.ProfilingContext;
-import io.crate.profile.Timer;
-import org.apache.logging.log4j.Logger;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,17 +30,28 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.Logger;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.concurrent.CompletionListenable;
+import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.TaskMissing;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.profile.ProfilingContext;
+import io.crate.profile.Timer;
+
 public class RootTask implements CompletionListenable<Void> {
 
     private final UUID jobId;
-    private final ConcurrentMap<Integer, Task> tasksByPhaseId;
-    private final AtomicInteger numTasks;
-    private final IntArrayList orderedTaskIds;
+    private final AtomicInteger numActiveTasks;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final Logger logger;
     private final String coordinatorNodeId;
@@ -64,6 +60,7 @@ public class RootTask implements CompletionListenable<Void> {
     private final AtomicBoolean killTasksOngoing = new AtomicBoolean(false);
     private final Collection<String> participatedNodes;
     private final String user;
+    private final List<Task> orderedTasks;
 
     @Nullable
     private final ProfilingContext profiler;
@@ -108,6 +105,7 @@ public class RootTask implements CompletionListenable<Void> {
         }
 
         public void addTask(Task task) {
+            assert tasks.stream().noneMatch(x -> x.id() == task.id()) : "Task with id=" + task.id() + " already registered. " + tasks;
             tasks.add(task);
         }
 
@@ -149,6 +147,8 @@ public class RootTask implements CompletionListenable<Void> {
         this.jobsLogs = jobsLogs;
 
         int numTasks = orderedTasks.size();
+        this.orderedTasks = orderedTasks;
+        this.numActiveTasks = new AtomicInteger(numTasks);
 
         if (profilingContext == null) {
             taskTimersByPhaseId = null;
@@ -160,18 +160,10 @@ public class RootTask implements CompletionListenable<Void> {
             profilingFuture = new CompletableFuture<>();
         }
 
-        orderedTaskIds = new IntArrayList(numTasks);
-        tasksByPhaseId = new ConcurrentHashMap<>(numTasks);
-        this.numTasks = new AtomicInteger(numTasks);
-
         traceEnabled = logger.isTraceEnabled();
         for (Task task : orderedTasks) {
             int phaseId = task.id();
-            orderedTaskIds.add(phaseId);
-            if (tasksByPhaseId.put(phaseId, task) != null) {
-                throw new IllegalArgumentException("Task for " + phaseId + " already added");
-            }
-            task.completionFuture().whenComplete(new RemoveTaskListener(phaseId));
+            task.completionFuture().whenComplete(new TaskFinishedListener(phaseId));
             jobsLogs.operationStarted(phaseId, jobId, task.name(), task::bytesUsed);
             task.prepare();
             if (profiler != null) {
@@ -179,9 +171,6 @@ public class RootTask implements CompletionListenable<Void> {
                 if (taskTimersByPhaseId.put(phaseId, profiler.createTimer(subContextName)) != null) {
                     throw new IllegalArgumentException("Timer for " + phaseId + " already added");
                 }
-            }
-            if (traceEnabled) {
-                logger.trace("adding subContext {}, now there are {} tasksByPhaseId", phaseId, tasksByPhaseId.size());
             }
         }
     }
@@ -199,17 +188,16 @@ public class RootTask implements CompletionListenable<Void> {
     }
 
     public void start() throws Throwable {
-        for (IntCursor id : orderedTaskIds) {
-            Task task = tasksByPhaseId.get(id.value);
-            if (task == null || closed.get()) {
+        for (Task task : orderedTasks) {
+            if (closed.get()) {
                 break; // got killed before start was called
             }
             if (profiler != null) {
                 assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
-                taskTimersByPhaseId.get(id.value).start();
+                taskTimersByPhaseId.get(task.id()).start();
             }
             if (traceEnabled) {
-                logger.trace("Task start id={} ctx={}", id.value, task);
+                logger.trace("Task start id={} ctx={}", task.id(), task);
             }
             task.start();
         }
@@ -219,9 +207,14 @@ public class RootTask implements CompletionListenable<Void> {
     }
 
     @Nullable
+    @SuppressWarnings("unchecked")
     public <T extends Task> T getTaskOrNull(int phaseId) {
-        //noinspection unchecked
-        return (T) tasksByPhaseId.get(phaseId);
+        for (Task task : orderedTasks) {
+            if (task.id() == phaseId) {
+                return (T) task;
+            }
+        }
+        return null;
     }
 
     public <T extends Task> T getTask(int phaseId) throws TaskMissing {
@@ -242,12 +235,13 @@ public class RootTask implements CompletionListenable<Void> {
         int numKilled = 0;
         if (!closed.getAndSet(true)) {
             logger.trace("kill called on Task {}", jobId);
-            if (numTasks.get() == 0) {
+            if (numActiveTasks.get() == 0) {
                 finish();
             } else {
-                for (Task task : tasksByPhaseId.values()) {
-                    // kill will trigger the ContextCallback onClose too
-                    // so it is not necessary to remove the task from the map here as it will be done in the callback
+                for (Task task : orderedTasks) {
+                    if (task.completionFuture().isDone()) {
+                        continue;
+                    }
                     if (traceEnabled) {
                         logger.trace("Task kill id={} ctx={}", task.id(), task);
                     }
@@ -320,30 +314,29 @@ public class RootTask implements CompletionListenable<Void> {
     public String toString() {
         return "Task{" +
                "id=" + jobId +
-               ", tasksByPhaseId=" + tasksByPhaseId.values() +
+               ", tasks=" + orderedTasks +
                ", closed=" + closed +
                '}';
     }
 
-    private final class RemoveTaskListener implements BiConsumer<Void, Throwable> {
+    private final class TaskFinishedListener implements BiConsumer<Void, Throwable> {
 
         private final int id;
 
-        private RemoveTaskListener(int id) {
+        private TaskFinishedListener(int id) {
             this.id = id;
         }
 
         /**
-         * Remove task and finish {@link RootTask}
+         * Finish {@link RootTask} if this was the last active task
          * @return true if removed task was the last task, otherwise false
          */
-        private boolean removeAndFinishIfNeeded() {
-            Task removed = tasksByPhaseId.remove(id);
-            assert removed != null : "removed must not be null";
+        private boolean finishIfNeeded() {
             if (traceEnabled) {
-                logger.trace("Task completed id={} task={} error={}", id, removed, failure);
+                Task task = getTask(id);
+                logger.trace("Task completed id={} task={} error={}", id, task, failure);
             }
-            if (numTasks.decrementAndGet() == 0) {
+            if (numActiveTasks.decrementAndGet() == 0) {
                 finish();
                 return true;
             }
@@ -352,21 +345,24 @@ public class RootTask implements CompletionListenable<Void> {
 
         private void onSuccess() {
             jobsLogs.operationFinished(id, jobId, null);
-            removeAndFinishIfNeeded();
+            finishIfNeeded();
         }
 
         private void onFailure(@Nonnull Throwable t) {
             failure = t;
             jobsLogs.operationFinished(id, jobId, SQLExceptions.messageOf(t));
-            if (removeAndFinishIfNeeded()) {
+            if (finishIfNeeded()) {
                 return;
             }
             if (killTasksOngoing.compareAndSet(false, true)) {
-                if (traceEnabled) {
-                    logger.trace("onFailure; Killing other tasks={}", tasksByPhaseId.keySet());
-                }
-                for (Task subContext : tasksByPhaseId.values()) {
-                    subContext.kill(t);
+                for (Task task : orderedTasks) {
+                    if (task.id() == id || task.completionFuture().isDone()) {
+                        continue;
+                    }
+                    if (traceEnabled) {
+                        logger.trace("Task id={} failed, killing other task={}", id, task);
+                    }
+                    task.kill(t);
                 }
             }
         }
