@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -196,7 +195,6 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @Repeat(iterations = 1000)
     public void testSetDynamicSettingGroup() {
         assertThrows(() ->  execute("alter table settings_table set (\"routing.allocation.exclude\" = {foo = 'bar2'})"),
                      isSQLError(is("Cannot change a dynamic group setting, only concrete settings allowed."),
