@@ -245,9 +245,9 @@ public class JobSetup {
         return context.directResponseFutures;
     }
 
-    private Boolean createContexts(ExecutionPhase phase, Context context) {
+    private void createContexts(ExecutionPhase phase, Context context) {
         try {
-            return phase.accept(innerPreparer, context);
+            phase.accept(innerPreparer, context);
         } catch (Throwable t) {
             IllegalArgumentException e = new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
@@ -271,9 +271,8 @@ public class JobSetup {
             // context for nodeOperations without dependencies can be built immediately (e.g. FetchPhase)
             if (nodeOperation.downstreamExecutionPhaseId() == NodeOperation.NO_DOWNSTREAM) {
                 LOGGER.trace("Building context for nodeOp without downstream: {}", nodeOperation);
-                if (createContexts(nodeOperation.executionPhase(), context)) {
-                    context.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().phaseId());
-                }
+                createContexts(nodeOperation.executionPhase(), context);
+                context.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().phaseId());
             }
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
                 var executionPhase = nodeOperation.executionPhase();
@@ -302,8 +301,7 @@ public class JobSetup {
         }
         for (IntCursor sourcePhaseId : sourcePhaseIds) {
             NodeOperation nodeOperation = context.opCtx.nodeOperationByPhaseId.get(sourcePhaseId.value);
-            Boolean created = createContexts(nodeOperation.executionPhase(), context);
-            assert created : "a subContext is required to be created";
+            createContexts(nodeOperation.executionPhase(), context);
             context.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().phaseId());
         }
         for (IntCursor sourcePhaseId : sourcePhaseIds) {
@@ -550,10 +548,10 @@ public class JobSetup {
         }
     }
 
-    private class InnerPreparer extends ExecutionPhaseVisitor<Context, Boolean> {
+    private class InnerPreparer extends ExecutionPhaseVisitor<Context, Void> {
 
         @Override
-        public Boolean visitCountPhase(final CountPhase phase, final Context context) {
+        public Void visitCountPhase(final CountPhase phase, final Context context) {
             Map<String, Map<String, IntIndexedContainer>> locations = phase.routing().locations();
             String localNodeId = clusterService.localNode().getId();
             final Map<String, IntIndexedContainer> indexShardMap = locations.get(localNodeId);
@@ -575,11 +573,11 @@ public class JobSetup {
                 consumer,
                 indexShardMap
             ));
-            return true;
+            return null;
         }
 
         @Override
-        public Boolean visitPKLookup(PKLookupPhase pkLookupPhase, Context context) {
+        public Void visitPKLookup(PKLookupPhase pkLookupPhase, Context context) {
             Collection<? extends Projection> shardProjections = shardProjections(pkLookupPhase.projections());
             Collection<? extends Projection> nodeProjections = nodeProjections(pkLookupPhase.projections());
 
@@ -627,11 +625,11 @@ public class JobSetup {
                 shardProjections,
                 nodeRowConsumer
             ));
-            return true;
+            return null;
         }
 
         @Override
-        public Boolean visitMergePhase(final MergePhase phase, final Context context) {
+        public Void visitMergePhase(final MergePhase phase, final Context context) {
             boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.phaseId());
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
 
@@ -660,7 +658,7 @@ public class JobSetup {
                     projectorFactory
                 );
                 context.registerBatchConsumer(phase.phaseId(), projectingRowConsumer);
-                return true;
+                return null;
             }
 
             Collector<Row, ?, Iterable<Row>> collector = null;
@@ -732,12 +730,11 @@ public class JobSetup {
                 ramAccounting,
                 phase.numUpstreams()
             ));
-            return true;
+            return null;
         }
 
-
         @Override
-        public Boolean visitRoutedCollectPhase(final RoutedCollectPhase phase, final Context context) {
+        public Void visitRoutedCollectPhase(final RoutedCollectPhase phase, final Context context) {
             CircuitBreaker breaker = breaker();
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytesPerShard(
                 breaker.getLimit(),
@@ -761,11 +758,11 @@ public class JobSetup {
                 clusterService.state().getNodes().getMinNodeVersion(),
                 ramAccountingBlockSizeInBytes
             ));
-            return true;
+            return null;
         }
 
         @Override
-        public Boolean visitCollectPhase(CollectPhase phase, Context context) {
+        public Void visitCollectPhase(CollectPhase phase, Context context) {
             CircuitBreaker breaker = breaker();
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
             RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
@@ -786,11 +783,11 @@ public class JobSetup {
                 clusterService.state().getNodes().getMinNodeVersion(),
                 ramAccountingBlockSizeInBytes
             ));
-            return true;
+            return null;
         }
 
         @Override
-        public Boolean visitFetchPhase(final FetchPhase phase, final Context context) {
+        public Void visitFetchPhase(final FetchPhase phase, final Context context) {
             List<Routing> routings = new ArrayList<>();
             context.opCtx.nodeOperationByPhaseId.values().forEach((ObjectProcedure<NodeOperation>) value -> {
                 ExecutionPhase executionPhase = value.executionPhase();
@@ -816,11 +813,11 @@ public class JobSetup {
                 clusterService.state().metadata(),
                 relationName -> schemas.getTableInfo(relationName, Operation.READ),
                 routings));
-            return true;
+            return null;
         }
 
         @Override
-        public Boolean visitNestedLoopPhase(NestedLoopPhase phase, Context context) {
+        public Void visitNestedLoopPhase(NestedLoopPhase phase, Context context) {
             CircuitBreaker breaker = breaker();
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
             var concurrentRamAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
@@ -890,11 +887,11 @@ public class JobSetup {
                 left != null ? left.getBucketReceiver((byte) 0) : null,
                 right != null ? right.getBucketReceiver((byte) 0) : null
             ));
-            return true;
+            return null;
         }
 
         @Override
-        public Boolean visitHashJoinPhase(HashJoinPhase phase, Context context) {
+        public Void visitHashJoinPhase(HashJoinPhase phase, Context context) {
             CircuitBreaker breaker = breaker();
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
             var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
@@ -966,7 +963,7 @@ public class JobSetup {
                 left != null ? left.getBucketReceiver((byte) 0) : null,
                 right != null ? right.getBucketReceiver((byte) 0) : null
             ));
-            return true;
+            return null;
         }
 
         @Nullable
