@@ -108,7 +108,6 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   max_shingle_diff = 3,\n" +
                      "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
-                     "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
                      "   \"store.type\" = 'fs',\n" +
@@ -159,7 +158,6 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   max_shingle_diff = 3,\n" +
                      "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
-                     "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
                      "   \"store.type\" = 'fs',\n" +
@@ -212,7 +210,6 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   max_shingle_diff = 3,\n" +
                      "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
-                     "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
                      "   \"store.type\" = 'fs',\n" +
@@ -261,7 +258,6 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
                      "   number_of_replicas = '0-all',\n" +
-                     "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
                      "   \"store.type\" = 'fs',\n" +
@@ -313,7 +309,6 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   max_shingle_diff = 3,\n" +
                      "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
-                     "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
                      "   \"store.type\" = 'fs',\n" +
@@ -390,7 +385,6 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   max_shingle_diff = 3,\n" +
                      "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
-                     "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
                      "   \"store.type\" = 'fs',\n" +
@@ -439,7 +433,6 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   max_shingle_diff = 3,\n" +
                      "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
-                     "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
                      "   \"store.type\" = 'fs',\n" +
@@ -487,7 +480,6 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   max_shingle_diff = 3,\n" +
                      "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-1',\n" +
-                     "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
                      "   \"store.type\" = 'fs',\n" +

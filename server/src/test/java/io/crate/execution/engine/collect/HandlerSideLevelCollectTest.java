@@ -68,6 +68,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -133,7 +134,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         CollectTask collectTask = mock(CollectTask.class);
         when(collectTask.txnCtx()).thenReturn(txnCtx);
-        BatchIterator<Row> bi = operation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), collectTask);
+        BatchIterator<Row> bi = operation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), collectTask).get(5, TimeUnit.SECONDS);
         consumer.accept(bi, null);
         return new CollectionBucket(consumer.getResult());
     }

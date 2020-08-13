@@ -21,20 +21,21 @@
 
 package io.crate.execution.jobs;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nonnull;
+
 import com.carrotsearch.hppc.IntIndexedContainer;
+
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.metadata.TransactionContext;
-
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 public class CountTask extends AbstractTask {
 
@@ -62,8 +63,9 @@ public class CountTask extends AbstractTask {
     public synchronized void innerStart() {
         try {
             countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where());
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+        } catch (Throwable t) {
+            consumer.accept(null, t);
+            return;
         }
         countFuture.whenComplete((rowCount, failure) -> {
             if (rowCount == null) {

@@ -55,6 +55,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
@@ -117,10 +118,10 @@ public class SystemCollectSource implements CollectSource {
     }
 
     @Override
-    public BatchIterator<Row> getIterator(TransactionContext txnCtx,
-                                          CollectPhase phase,
-                                          CollectTask collectTask,
-                                          boolean supportMoveToStart) {
+    public CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,
+                                                             CollectPhase phase,
+                                                             CollectTask collectTask,
+                                                             boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
 
         Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
@@ -129,7 +130,7 @@ public class SystemCollectSource implements CollectSource {
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
         User user = requireNonNull(userLookup.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
 
-        return CollectingBatchIterator.newInstance(
+        return CompletableFuture.completedFuture(CollectingBatchIterator.newInstance(
             () -> {},
             // kill no-op: Can't interrupt remote retrieval;
             // If data is already local, then `CollectingBatchIterator` takes care of kill handling.
@@ -145,7 +146,7 @@ public class SystemCollectSource implements CollectSource {
                         )
                     ),
             tableDefinition.involvesIO()
-        );
+        ));
     }
 
     public StaticTableDefinition<?> tableDefinition(RelationName relationName) {

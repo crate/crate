@@ -46,6 +46,7 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class TableFunctionCollectSource implements CollectSource {
@@ -58,10 +59,10 @@ public class TableFunctionCollectSource implements CollectSource {
     }
 
     @Override
-    public BatchIterator<Row> getIterator(TransactionContext txnCtx,
-                                          CollectPhase collectPhase,
-                                          CollectTask collectTask,
-                                          boolean supportMoveToStart) {
+    public CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,
+                                                             CollectPhase collectPhase,
+                                                             CollectTask collectTask,
+                                                             boolean supportMoveToStart) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         TableFunctionImplementation<?> functionImplementation = phase.functionImplementation();
         RowType rowType = functionImplementation.returnType();
@@ -93,6 +94,8 @@ public class TableFunctionCollectSource implements CollectSource {
             new ValueAndInputRow<>(topLevelInputs, ctx.expressions()));
         Input<Boolean> condition = (Input<Boolean>) ctx.add(phase.where());
         rows = Iterables.filter(rows, InputCondition.asPredicate(condition));
-        return InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, functionImplementation.hasLazyResultSet());
+        return CompletableFuture.completedFuture(
+            InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, functionImplementation.hasLazyResultSet())
+        );
     }
 }

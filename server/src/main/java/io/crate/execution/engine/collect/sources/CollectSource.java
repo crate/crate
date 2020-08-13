@@ -22,6 +22,8 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import java.util.concurrent.CompletableFuture;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -30,8 +32,8 @@ import io.crate.metadata.TransactionContext;
 
 public interface CollectSource {
 
-    BatchIterator<Row> getIterator(TransactionContext txnCtx,
-                                   CollectPhase collectPhase,
-                                   CollectTask collectTask,
-                                   boolean supportMoveToStart);
+    CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,
+                                                      CollectPhase collectPhase,
+                                                      CollectTask collectTask,
+                                                      boolean supportMoveToStart);
 }

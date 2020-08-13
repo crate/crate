@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import java.util.concurrent.CompletableFuture;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -40,18 +42,19 @@ public class ProjectorSetupCollectSource implements CollectSource {
     }
 
     @Override
-    public BatchIterator<Row> getIterator(TransactionContext txnCtx,
-                                          CollectPhase collectPhase,
-                                          CollectTask collectTask,
-                                          boolean supportMoveToStart) {
-        return Projectors.wrap(
+    public CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,
+                                                             CollectPhase collectPhase,
+                                                             CollectTask collectTask,
+                                                             boolean supportMoveToStart) {
+        var futureSourceIterator = sourceDelegate.getIterator(txnCtx, collectPhase, collectTask, supportMoveToStart);
+        return futureSourceIterator.thenApply(it -> Projectors.wrap(
             collectPhase.projections(),
             collectPhase.jobId(),
             collectTask.txnCtx(),
             collectTask.getRamAccounting(),
             collectTask.memoryManager(),
             projectorFactory,
-            sourceDelegate.getIterator(txnCtx, collectPhase, collectTask, supportMoveToStart)
-        );
+            it
+        ));
     }
 }

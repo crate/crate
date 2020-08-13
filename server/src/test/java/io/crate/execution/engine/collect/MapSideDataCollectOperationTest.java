@@ -45,6 +45,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -86,7 +87,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
         TestingRowConsumer consumer = new TestingRowConsumer();
         CollectTask collectTask = mock(CollectTask.class);
         BatchIterator<Row> iterator = fileCollectSource.getIterator(
-            CoordinatorTxnCtx.systemTransactionContext(), collectNode, collectTask, false);
+            CoordinatorTxnCtx.systemTransactionContext(), collectNode, collectTask, false).get(5, TimeUnit.SECONDS);
         consumer.accept(iterator, null);
         assertThat(new CollectionBucket(consumer.getResult()), contains(
             isRow("Arthur", 38),

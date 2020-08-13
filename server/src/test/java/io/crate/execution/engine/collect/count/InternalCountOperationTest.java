@@ -38,6 +38,11 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 
 import static org.hamcrest.Matchers.is;
 
@@ -56,7 +61,15 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         Metadata metadata = clusterService.state().getMetadata();
         Index index = metadata.index(getFqn("t")).getIndex();
-        assertThat(countOperation.count(txnCtx, index, 0, Literal.BOOLEAN_TRUE), is(3L));
+
+        IntArrayList shards = new IntArrayList(1);
+        shards.add(0);
+        Map<String, IntIndexedContainer> indexShards = Map.of(index.getName(), shards);
+
+        {
+            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE);
+            assertThat(count.get(5, TimeUnit.SECONDS), is(3L));
+        }
 
         Schemas schemas = internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t"));
@@ -65,6 +78,9 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
 
         Symbol filter = sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'"));
-        assertThat(countOperation.count(txnCtx, index, 0, filter), is(1L));
+        {
+            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, filter);
+            assertThat(count.get(5, TimeUnit.SECONDS), is(1L));
+        }
     }
 }
