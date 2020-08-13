@@ -21,10 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.Streamer;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
@@ -36,6 +33,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.CoreMatchers.is;
 
 
 public class CountAggregationTest extends AggregationTest {
@@ -50,56 +48,68 @@ public class CountAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testReturnType() throws Exception {
-        // Return type is fixed to Long
-        assertEquals(DataTypes.LONG, getCount().info().returnType());
+    public void testReturnType() {
+        var countFunction = functions.get(
+            null,
+            CountAggregation.NAME,
+            List.of(Literal.of(DataTypes.INTEGER, null)),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
+        assertThat(countFunction.boundSignature().getReturnType().createType(), is(DataTypes.LONG));
     }
 
-    private FunctionImplementation getCount() {
-        return functions.get(
-            null, "count", ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_numeric_types() {
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            assertHasDocValueAggregator(CountAggregation.NAME, List.of(dataType));
+        }
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_string_based_types() {
+        for (var dataType : List.of(DataTypes.STRING, DataTypes.IP)) {
+            assertHasDocValueAggregator(CountAggregation.NAME, List.of(dataType));
+        }
     }
 
     @Test
     public void testDouble() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
-
-        assertEquals(2L, result);
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}}), is(2L));
     }
 
     @Test
     public void testFloat() throws Exception {
-        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
-
-        assertEquals(2L, result);
+        assertThat(executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}}), is(2L));
     }
 
     @Test
     public void testInteger() throws Exception {
-        Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
-
-        assertEquals(2L, result);
+        assertThat(executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}}), is(2L));
     }
 
     @Test
     public void testLong() throws Exception {
-        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
-
-        assertEquals(2L, result);
+        assertThat(executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}}), is(2L));
     }
 
     @Test
     public void testShort() throws Exception {
-        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
-
-        assertEquals(2L, result);
+        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}), is(2L));
     }
 
     @Test
     public void testString() throws Exception {
-        Object result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
+        assertThat(executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}}), is(2L));
+    }
 
-        assertEquals(2L, result);
+    @Test
+    public void test_count_with_ip_argument() throws Exception {
+        assertThat(executeAggregation(DataTypes.IP, new Object[][]{{"127.0.0.1"}}), is(1L));
+    }
+
+    @Test
+    public void test_count_with_geo_point_argument() throws Exception {
+        assertThat(executeAggregation(DataTypes.GEO_POINT, new Object[][]{{new double[]{1, 2}}}), is(1L));
     }
 
     @Test
@@ -109,22 +119,18 @@ public class CountAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testNoInput() throws Exception {
-        // aka. COUNT(*)
-        Object result = executeAggregation(
-            CountAggregation.COUNT_STAR_SIGNATURE,
-            new Object[][]{{}, {}});
-        assertEquals(2L, result);
+    public void test_count_star() throws Exception {
+        assertThat(executeAggregation(CountAggregation.COUNT_STAR_SIGNATURE, new Object[][]{{}, {}}), is(2L));
     }
 
     @Test
     public void testStreaming() throws Exception {
         CountAggregation.LongState l1 = new CountAggregation.LongState(12345L);
         BytesStreamOutput out = new BytesStreamOutput();
-        Streamer streamer = CountAggregation.LongStateType.INSTANCE.streamer();
+        var streamer = CountAggregation.LongStateType.INSTANCE.streamer();
         streamer.writeValueTo(out, l1);
         StreamInput in = out.bytes().streamInput();
-        CountAggregation.LongState l2 = (CountAggregation.LongState) streamer.readValueFrom(in);
-        assertEquals(l1.value, l2.value);
+        CountAggregation.LongState l2 = streamer.readValueFrom(in);
+        assertThat(l1.value, is(l2.value));
     }
 }
