@@ -320,7 +320,8 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                 allPermitsAction.new AsyncPrimaryAction(request(), allocationId(), primaryTerm(), transportChannel(allPermitFuture), null) {
                     @Override
                     void runWithPrimaryShardReference(final TransportReplicationAction.PrimaryShardReference reference) {
-                        assertEquals("All permits must be acquired", 0, reference.indexShard.getActiveOperationsCount());
+                        assertEquals("All permits must be acquired",
+                            IndexShard.OPERATIONS_BLOCKED, reference.indexShard.getActiveOperationsCount());
                         assertSame(primary, reference.indexShard);
 
                         final ClusterState clusterState = clusterService.state();
@@ -459,12 +460,13 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         }
 
         @Override
-        protected PrimaryResult<Request, Response> shardOperationOnPrimary(Request shardRequest, IndexShard shard) throws Exception {
+        protected void shardOperationOnPrimary(Request shardRequest, IndexShard shard,
+                ActionListener<PrimaryResult<Request, Response>> listener) {
             executedOnPrimary.set(true);
             // The TransportReplicationAction.getIndexShard() method is overridden for testing purpose but we double check here
             // that the permit has been acquired on the primary shard
             assertSame(primary, shard);
-            return new PrimaryResult<>(shardRequest, new Response());
+            listener.onResponse(new PrimaryResult<>(shardRequest, new Response()));
         }
 
         @Override
@@ -520,10 +522,11 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         }
 
         @Override
-        protected PrimaryResult<Request, Response> shardOperationOnPrimary(Request shardRequest, IndexShard shard) throws Exception {
+        protected void shardOperationOnPrimary(Request shardRequest, IndexShard shard,
+                ActionListener<PrimaryResult<Request, Response>> listener) {
             assertNoBlocks("block must not exist when executing the operation on primary shard: it should have been blocked before");
             assertThat(shard.getActiveOperationsCount(), greaterThan(0));
-            return super.shardOperationOnPrimary(shardRequest, shard);
+            super.shardOperationOnPrimary(shardRequest, shard, listener);
         }
 
         @Override
@@ -566,14 +569,15 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         }
 
         @Override
-        protected PrimaryResult<Request, Response> shardOperationOnPrimary(Request shardRequest, IndexShard shard) throws Exception {
-            assertEquals("All permits must be acquired", 0, shard.getActiveOperationsCount());
-            return super.shardOperationOnPrimary(shardRequest, shard);
+        protected void shardOperationOnPrimary(Request shardRequest, IndexShard shard,
+                ActionListener<PrimaryResult<Request, Response>> listener) {
+            assertEquals("All permits must be acquired", IndexShard.OPERATIONS_BLOCKED, shard.getActiveOperationsCount());
+            super.shardOperationOnPrimary(shardRequest, shard, listener);
         }
 
         @Override
         protected ReplicaResult shardOperationOnReplica(Request shardRequest, IndexShard shard) throws Exception {
-            assertEquals("All permits must be acquired", 0, shard.getActiveOperationsCount());
+            assertEquals("All permits must be acquired", IndexShard.OPERATIONS_BLOCKED, shard.getActiveOperationsCount());
             return super.shardOperationOnReplica(shardRequest, shard);
         }
     }

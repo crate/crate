@@ -34,6 +34,8 @@ import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.metadata.ColumnIdent;
+
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.MappingUpdatePerformer;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
@@ -107,19 +109,24 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         return true;
     }
 
-    @VisibleForTesting
     @Override
-    protected WritePrimaryResult<Request, ShardResponse> shardOperationOnPrimary(Request shardRequest, IndexShard indexShard) {
-        KillableWrapper<WritePrimaryResult<Request, ShardResponse>> callable =
-            new KillableWrapper<WritePrimaryResult<Request, ShardResponse>>() {
-                @Override
-                public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
-                    return processRequestItems(indexShard, shardRequest, killed);
-                }
-        };
-        return wrapOperationInKillable(shardRequest, callable);
+    protected void shardOperationOnPrimary(Request request,
+                                           IndexShard primary,
+                                           ActionListener<PrimaryResult<Request, ShardResponse>> listener) {
+        ActionListener.completeWith(
+            listener,
+            () -> {
+                KillableWrapper<WritePrimaryResult<Request, ShardResponse>> callable =
+                    new KillableWrapper<WritePrimaryResult<Request, ShardResponse>>() {
+                        @Override
+                        public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
+                            return processRequestItems(primary, request, killed);
+                        }
+                };
+                return wrapOperationInKillable(request, callable);
+            }
+        );
     }
-
 
     @Override
     protected WriteReplicaResult<Request> shardOperationOnReplica(Request replicaRequest, IndexShard indexShard) {

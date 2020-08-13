@@ -27,17 +27,28 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
+
 public class MinimumAggregationTest extends AggregationTest {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                "min",
+                MinimumAggregation.NAME,
                 argumentType.getTypeSignature(),
                 argumentType.getTypeSignature()
             ),
             data
         );
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_numeric_types() {
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            assertHasDocValueAggregator(MinimumAggregation.NAME, List.of(dataType));
+        }
     }
 
     @Test
@@ -73,6 +84,11 @@ public class MinimumAggregationTest extends AggregationTest {
         Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 8}, {(short) 3}});
 
         assertEquals((short) 3, result);
+    }
+
+    @Test
+    public void test_min_with_byte_argument_type() throws Exception {
+        assertThat(executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 1}, {(byte) 0}}), is((byte) 0));
     }
 
     @Test

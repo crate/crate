@@ -21,9 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.Iterables;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
@@ -40,7 +38,7 @@ public class VarianceAggregationTest extends AggregationTest {
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                "variance",
+                VarianceAggregation.NAME,
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
@@ -49,19 +47,27 @@ public class VarianceAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testReturnType() throws Exception {
-        for (DataType<?> type : Iterables.concat(
-            DataTypes.NUMERIC_PRIMITIVE_TYPES, List.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP))) {
-            // Return type is fixed to Double
-            assertThat(
-                getVariance(type).boundSignature().getReturnType(),
-                is(DataTypes.DOUBLE.getTypeSignature())
-            );
+    public void test_function_implements_doc_values_aggregator_for_numeric_types() {
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            assertHasDocValueAggregator(VarianceAggregation.NAME, List.of(dataType));
         }
     }
 
-    private FunctionImplementation getVariance(DataType<?> type) {
-        return functions.get(null, "variance", List.of(Literal.of(type, null)), SearchPath.pathWithPGCatalogAndDoc());
+    @Test
+    public void testReturnType() throws Exception {
+        for (var dataType : VarianceAggregation.SUPPORTED_TYPES) {
+            // Return type is fixed to Double
+            var varianceFunction = functions.get(
+                null,
+                VarianceAggregation.NAME,
+                List.of(Literal.of(dataType, null)),
+                SearchPath.pathWithPGCatalogAndDoc()
+            );
+            assertThat(
+                varianceFunction.boundSignature().getReturnType(),
+                is(DataTypes.DOUBLE.getTypeSignature())
+            );
+        }
     }
 
     @Test
@@ -106,8 +112,8 @@ public class VarianceAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testByte() throws Exception {
-        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}});
+    public void test_variance_with_byte_argument_type() throws Exception {
+        Object result = executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 1}, {(byte) 1}});
 
         assertEquals(0d, result);
     }
