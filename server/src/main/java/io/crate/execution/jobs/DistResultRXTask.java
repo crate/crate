@@ -83,10 +83,6 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
     }
 
     @Override
-    public void prepare() throws Exception {
-    }
-
-    @Override
     public String name() {
         return name;
     }

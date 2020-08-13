@@ -108,7 +108,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             relationName -> null,
             ImmutableList.of(routing));
 
-        context.prepare();
+        context.start();
 
         assertThat(context.searcher(1), Matchers.notNullValue());
         assertThat(context.searcher(2), Matchers.notNullValue());

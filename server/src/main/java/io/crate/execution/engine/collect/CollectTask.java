@@ -160,12 +160,8 @@ public class CollectTask extends AbstractTask {
     }
 
     @Override
-    public void innerPrepare() throws Exception {
-        batchIterator = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
-    }
-
-    @Override
     protected void innerStart() {
+        batchIterator = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
         String threadPoolName = threadPoolName(collectPhase, batchIterator.hasLazyResultSet());
         collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
     }
