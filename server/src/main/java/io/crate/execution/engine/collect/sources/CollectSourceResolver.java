@@ -172,7 +172,7 @@ public class CollectSourceResolver {
     }
 
     public CollectSource getService(CollectPhase collectPhase) {
-        return visitor.process(collectPhase, null);
+        return collectPhase.accept(visitor, null);
     }
 
     private static class VoidCollectSource implements CollectSource {
