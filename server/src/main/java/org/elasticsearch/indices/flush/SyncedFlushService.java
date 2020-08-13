@@ -507,7 +507,7 @@ public class SyncedFlushService implements IndexEventListener {
             throw new IllegalStateException("[" + request.shardId() + "] expected a primary shard");
         }
         int opCount = indexShard.getActiveOperationsCount();
-        return new InFlightOpsResponse(opCount);
+        return new InFlightOpsResponse(opCount == IndexShard.OPERATIONS_BLOCKED ? 0 : opCount);
     }
 
     public static final class PreShardSyncedFlushRequest extends TransportRequest {
@@ -703,6 +703,7 @@ public class SyncedFlushService implements IndexEventListener {
         final int opCount;
 
         InFlightOpsResponse(int opCount) {
+            assert opCount >= 0 : opCount;
             this.opCount = opCount;
         }
 

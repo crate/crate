@@ -84,17 +84,13 @@ task testOutputJar (type: Jar) {
     from sourceSets.test.output
 }
 
-task getVersion(dependsOn: 'classes') {
+task getVersion(dependsOn: 'classes', type: JavaExec) {
+    def stdout = new ByteArrayOutputStream()
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'org.elasticsearch.Version'
+    standardOutput = stdout
+
     doLast {
-        def stdout = new ByteArrayOutputStream()
-        javaexec {
-            if (System.getProperty('useSystemJdk') == null) {
-                executable = rootProject.jdks.runtime.getBinJavaPath()
-            }
-            classpath = sourceSets.main.runtimeClasspath
-            main = 'org.elasticsearch.Version'
-            standardOutput = stdout
-        }
         ext.version = stdout.toString().trim().split(" ")[1].replace(',', '').trim()
         ext.gitTag = "git describe".execute().text.trim()
 
