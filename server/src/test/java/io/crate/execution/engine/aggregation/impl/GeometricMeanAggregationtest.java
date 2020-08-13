@@ -21,8 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
@@ -33,13 +31,18 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 
 public class GeometricMeanAggregationtest extends AggregationTest {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                "geometric_mean",
+                GeometricMeanAggregation.NAME,
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
@@ -48,59 +51,79 @@ public class GeometricMeanAggregationtest extends AggregationTest {
     }
 
     @Test
-    public void testReturnType() throws Exception {
-        for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, List.of(DataTypes.TIMESTAMPZ))) {
-            // Return type is fixed to Double
-            assertEquals(DataTypes.DOUBLE,
-                getGeometricMean(type).info().returnType());
+    public void test_functions_return_type_is_always_double_for_any_argument_type() {
+        for (DataType<?> type : Stream.concat(
+            DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
+            Stream.of(DataTypes.TIMESTAMPZ)).collect(Collectors.toList())) {
+
+            FunctionImplementation stddev = functions.get(
+                null,
+                GeometricMeanAggregation.NAME,
+                List.of(Literal.of(type, null)),
+                SearchPath.pathWithPGCatalogAndDoc()
+            );
+            assertThat(stddev.boundSignature().getReturnType().createType(), is(DataTypes.DOUBLE));
         }
     }
 
-    private FunctionImplementation getGeometricMean(DataType<?> type) {
-        return functions.get(
-            null, "geometric_mean", ImmutableList.of(Literal.of(type, null)), SearchPath.pathWithPGCatalogAndDoc());
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_supported_numeric_types() {
+        for (var dataType : GeometricMeanAggregation.SUPPORTED_TYPES) {
+            assertHasDocValueAggregator(GeometricMeanAggregation.NAME, List.of(dataType));
+        }
     }
 
     @Test
     public void withNullArg() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{null}, {null}});
-        assertNull(result);
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{null}, {null}}), is(nullValue()));
     }
 
     @Test
     public void testDouble() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{1.0d}, {1000.0d}, {1.0d}, {null}});
-        assertEquals(9.999999999999998d, result);
+        assertThat(
+            executeAggregation(DataTypes.DOUBLE, new Object[][]{{1.0d}, {1000.0d}, {1.0d}, {null}}),
+            is(9.999999999999998d)
+        );
     }
 
     @Test
     public void testFloat() throws Exception {
-        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.7f}});
-        assertEquals(0.5277632097890468d, result);
+        assertThat(
+            executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.7f}}),
+            is(0.5277632097890468d)
+        );
     }
 
     @Test
     public void testInteger() throws Exception {
-        Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
-        assertEquals(4.58257569495584d, result);
+        assertThat(
+            executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}}),
+            is(4.58257569495584d)
+        );
     }
 
     @Test
     public void testLong() throws Exception {
-        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{1L}, {3L}, {2L}});
-        assertEquals(1.8171205928321397d, result);
+        assertThat(
+            executeAggregation(DataTypes.LONG, new Object[][]{{1L}, {3L}, {2L}}),
+            is(1.8171205928321397d)
+        );
     }
 
     @Test
     public void testShort() throws Exception {
-        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 0}, {(short) 3}, {(short) 1000}});
-        assertEquals(0d, result);
+        assertThat(
+            executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 0}, {(short) 3}, {(short) 1000}}),
+            is(0d)
+        );
     }
 
     @Test
     public void testByte() throws Exception {
-        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}});
-        assertEquals(1.0d, result);
+        assertThat(
+            executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 1}, {(byte) 1}}),
+            is(1.0d)
+        );
     }
 
     @Test
@@ -108,6 +131,6 @@ public class GeometricMeanAggregationtest extends AggregationTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: geometric_mean(INPUT(0))," +
                                         " no overload found for matching argument types: (boolean).");
-        executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}});
+        executeAggregation(DataTypes.BOOLEAN, new Object[][]{});
     }
 }
