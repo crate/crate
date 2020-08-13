@@ -422,9 +422,6 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
     debug = true
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
-    if (System.getProperty('useSystemJdk') == null) {
-        executable = rootProject.jdks.runtime.getBinJavaPath()
-    }
     systemProperties += ['es.path.home': "${rootDir}/sandbox/crate"]
     systemProperties System.getProperties()
 }
@@ -434,9 +431,6 @@ task(run, dependsOn: 'classes', type: JavaExec) {
     debug = false
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
-    if (System.getProperty('useSystemJdk') == null) {
-        executable = rootProject.jdks.runtime.getBinJavaPath()
-    }
     systemProperties += ['es.path.home': "${rootDir}/sandbox/crate"]
     systemProperties System.getProperties()
 }
