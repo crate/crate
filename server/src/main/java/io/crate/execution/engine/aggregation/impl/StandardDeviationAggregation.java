@@ -26,16 +26,28 @@ import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
 import io.crate.types.FixedWidthType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.TimestampType;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -197,5 +209,128 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     @Override
     public DataType<?> partialType() {
         return StdDevStateType.INSTANCE;
+    }
+
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
+                                                       List<MappedFieldType> fieldTypes) {
+        switch (argumentTypes.get(0).id()) {
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
+                return new LongStandardDeviation(fieldTypes.get(0).name());
+
+            case FloatType.ID:
+                return new FloatStandardDeviation(fieldTypes.get(0).name());
+            case DoubleType.ID:
+                return new DoubleStandardDeviation(fieldTypes.get(0).name());
+
+            default:
+                return null;
+        }
+    }
+
+    private static class LongStandardDeviation implements DocValueAggregator<StandardDeviation> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public LongStandardDeviation(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public StandardDeviation initialState() {
+            return new StandardDeviation();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(StandardDeviation state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                double value = values.nextValue();
+                state.increment(value);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(StandardDeviation state) {
+            return state;
+        }
+    }
+
+    private static class DoubleStandardDeviation implements DocValueAggregator<StandardDeviation> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public DoubleStandardDeviation(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public StandardDeviation initialState() {
+            return new StandardDeviation();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(StandardDeviation state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                double value = NumericUtils.sortableLongToDouble(values.nextValue());
+                state.increment(value);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(StandardDeviation state) {
+            return state;
+        }
+    }
+
+    private static class FloatStandardDeviation implements DocValueAggregator<StandardDeviation> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public FloatStandardDeviation(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public StandardDeviation initialState() {
+            return new StandardDeviation();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(StandardDeviation state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                double value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                state.increment(value);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(StandardDeviation state) {
+            return state;
+        }
     }
 }
