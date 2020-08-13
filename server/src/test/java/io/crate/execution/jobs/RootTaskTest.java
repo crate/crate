@@ -68,17 +68,6 @@ public class RootTaskTest extends ESTestCase {
     private String coordinatorNode = "dummyNode";
 
     @Test
-    public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
-        RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
-        builder.addTask(new AbstractTaskTest.TestingTask());
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Task for 0 already added");
-        builder.addTask(new AbstractTaskTest.TestingTask());
-        builder.build();
-    }
-
-    @Test
     public void testKillPropagatesToSubContexts() throws Exception {
         RootTask.Builder builder =
             new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
@@ -91,8 +80,8 @@ public class RootTaskTest extends ESTestCase {
         builder.addTask(ctx2);
         RootTask rootTask = builder.build();
 
-        assertThat(rootTask.kill(null), is(2L));
-        assertThat(rootTask.kill(null), is(0L)); // second call is ignored, only killed once
+        assertThat(rootTask.kill(null), is(1L)); // killing the first task triggers killing the others, so count is 1
+        assertThat(rootTask.kill(null), is(0L)); // Everything is killed already
 
         assertThat(ctx1.numKill.get(), is(1));
         assertThat(ctx2.numKill.get(), is(1));
@@ -128,6 +117,7 @@ public class RootTaskTest extends ESTestCase {
         RoutedCollectPhase collectPhase = Mockito.mock(RoutedCollectPhase.class);
         Routing routing = Mockito.mock(Routing.class);
         when(routing.containsShards(localNodeId)).thenReturn(false);
+        when(collectPhase.phaseId()).thenReturn(1);
         when(collectPhase.routing()).thenReturn(routing);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
 
@@ -171,11 +161,8 @@ public class RootTaskTest extends ESTestCase {
         // other contexts must be killed with same failure
         verify(distResultRXTask, times(1)).kill(failure);
 
-        final Field tasksByPhaseId = RootTask.class.getDeclaredField("tasksByPhaseId");
-        tasksByPhaseId.setAccessible(true);
-        int size = ((ConcurrentMap<Integer, Task>) tasksByPhaseId.get(rootTask)).size();
-
-        assertThat(size, is(0));
+        assertThat(rootTask.getTask(1).completionFuture().isDone(), is(true));
+        assertThat(rootTask.getTask(2).completionFuture().isDone(), is(true));
     }
 
     @Test

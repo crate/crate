@@ -179,9 +179,9 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
 
     private int numContexts(RootTask rootTask) throws Exception {
-        Field tasksByPhaseId = RootTask.class.getDeclaredField("tasksByPhaseId");
-        tasksByPhaseId.setAccessible(true);
-        return ((Map) tasksByPhaseId.get(rootTask)).size();
+        Field orderedTasks = RootTask.class.getDeclaredField("orderedTasks");
+        orderedTasks.setAccessible(true);
+        return (int) ((List<Task>)(List) orderedTasks.get(rootTask)).stream().filter(x -> !x.completionFuture().isDone()).count();
     }
 
     @Test
