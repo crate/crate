@@ -57,12 +57,12 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.planner.distribution.DistributionInfo;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.TypeSignature;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -126,7 +126,9 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -171,7 +173,7 @@ public abstract class AggregationTest extends ESTestCase {
                                      Object[][] data) throws Exception {
         return executeAggregation(
             boundSignature,
-            Lists2.map(boundSignature.getArgumentTypes(), TypeSignature::createType),
+            boundSignature.getArgumentDataTypes(),
             boundSignature.getReturnType().createType(),
             data
         );
@@ -511,7 +513,7 @@ public abstract class AggregationTest extends ESTestCase {
 
     protected Symbol normalize(String functionName, Symbol... args) {
         List<Symbol> arguments = Arrays.asList(args);
-        AggregationFunction function = (AggregationFunction) functions.get(
+        AggregationFunction<?,?> function = (AggregationFunction<?, ?>) functions.get(
             null,
             functionName,
             arguments,
@@ -520,6 +522,27 @@ public abstract class AggregationTest extends ESTestCase {
         return function.normalizeSymbol(
             new Function(function.signature(), arguments, function.partialType()),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext())
+        );
+    }
+
+    public void assertHasDocValueAggregator(String functionName, List<DataType<?>> argumentTypes) {
+        var aggregationFunction = (AggregationFunction<?, ?>) functions.get(
+            null,
+            functionName,
+            InputColumn.mapToInputColumns(argumentTypes),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
+        var docValueAggregator =  aggregationFunction.getDocValueAggregator(
+            argumentTypes,
+            Lists2.map(argumentTypes, dataType -> mock(MappedFieldType.class))
+        );
+        assertThat(
+            "DocValueAggregator is not implemented for "
+            + functionName + "(" + argumentTypes.stream()
+                .map(DataType::toString)
+                .collect(Collectors.joining(", ")) + ")",
+            docValueAggregator,
+            is(not(nullValue()))
         );
     }
 }

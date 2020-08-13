@@ -21,7 +21,7 @@ package org.elasticsearch.action;
 
 import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.rest.RestStatus;
 
 import java.util.Objects;
@@ -30,7 +30,7 @@ import java.util.Objects;
  * An exception indicating that a failure occurred performing an operation on the shard.
  *
  */
-public abstract class ShardOperationFailedException implements Writeable, ToXContent {
+public abstract class ShardOperationFailedException implements Writeable, ToXContentObject {
 
     protected String index;
     protected int shardId = -1;

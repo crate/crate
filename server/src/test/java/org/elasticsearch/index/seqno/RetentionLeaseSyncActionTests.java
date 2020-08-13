@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
+import org.elasticsearch.action.support.ActionTestUtils;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -109,15 +110,16 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseSyncAction.Request request = new RetentionLeaseSyncAction.Request(indexShard.shardId(), retentionLeases);
 
-        final TransportWriteAction.WritePrimaryResult<RetentionLeaseSyncAction.Request, ReplicationResponse> result =
-            action.shardOperationOnPrimary(request, indexShard);
-
-        // the retention leases on the shard should be persisted
-        verify(indexShard).persistRetentionLeases();
-        // we should forward the request containing the current retention leases to the replica
-        assertThat(result.replicaRequest(), sameInstance(request));
-        // we should start with an empty replication response
-        assertNull(result.finalResponseIfSuccessful.getShardInfo());
+        action.shardOperationOnPrimary(request, indexShard,
+            ActionTestUtils.assertNoFailureListener(result -> {
+                    // the retention leases on the shard should be persisted
+                    verify(indexShard).persistRetentionLeases();
+                    // we should forward the request containing the current retention leases to the replica
+                    assertThat(result.replicaRequest(), sameInstance(request));
+                    // we should start with an empty replication response
+                    assertNull(result.finalResponseIfSuccessful.getShardInfo());
+                }
+            ));
     }
 
     @Test
@@ -151,7 +153,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
                 action.shardOperationOnReplica(request, indexShard);
         // the retention leases on the shard should be updated
         verify(indexShard).updateRetentionLeasesOnReplica(retentionLeases);
-        // the retention leases on the shard should be persisteed
+        // the retention leases on the shard should be persisted
         verify(indexShard).persistRetentionLeases();
         // the result should indicate success
         final AtomicBoolean success = new AtomicBoolean();

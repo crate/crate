@@ -89,7 +89,7 @@ public class IndicesModule extends AbstractModule {
         return Collections.emptyList();
     }
 
-    private Map<String, Mapper.TypeParser> getMappers(List<MapperPlugin> mapperPlugins) {
+    public static Map<String, Mapper.TypeParser> getMappers(List<MapperPlugin> mapperPlugins) {
         Map<String, Mapper.TypeParser> mappers = new LinkedHashMap<>();
 
         // builtin mappers
@@ -139,7 +139,7 @@ public class IndicesModule extends AbstractModule {
         return Collections.unmodifiableMap(builtInMetadataMappers);
     }
 
-    private static Map<String, MetadataFieldMapper.TypeParser> getMetadataMappers(List<MapperPlugin> mapperPlugins) {
+    public static Map<String, MetadataFieldMapper.TypeParser> getMetadataMappers(List<MapperPlugin> mapperPlugins) {
         Map<String, MetadataFieldMapper.TypeParser> metadataMappers = new LinkedHashMap<>();
         int i = 0;
         Map.Entry<String, MetadataFieldMapper.TypeParser> fieldNamesEntry = null;

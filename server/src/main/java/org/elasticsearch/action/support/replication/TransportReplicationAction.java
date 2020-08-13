@@ -29,6 +29,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -211,8 +212,8 @@ public abstract class TransportReplicationAction<
      * @param shardRequest the request to the primary shard
      * @param primary      the primary shard to perform the operation on
      */
-    protected abstract PrimaryResult<ReplicaRequest, Response> shardOperationOnPrimary(
-            Request shardRequest, IndexShard primary) throws Exception;
+    protected abstract void shardOperationOnPrimary(Request shardRequest, IndexShard primary,
+        ActionListener<PrimaryResult<ReplicaRequest, Response>> listener);
 
     /**
      * Synchronously execute the specified replica operation. This is done under a permit from
@@ -488,7 +489,7 @@ public abstract class TransportReplicationAction<
         }
     }
 
-    protected static class PrimaryResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>,
+    public static class PrimaryResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>,
             Response extends ReplicationResponse>
             implements ReplicationOperation.PrimaryResult<ReplicaRequest> {
         final ReplicaRequest replicaRequest;
@@ -625,6 +626,7 @@ public abstract class TransportReplicationAction<
         @Override
         public void onResponse(Releasable releasable) {
             try {
+                assert replica.getActiveOperationsCount() != 0 : "must perform shard operation under a permit";
                 final ReplicaResult replicaResult = shardOperationOnReplica(request, replica);
                 releasable.close(); // release shard operation lock before responding to caller
                 final TransportReplicationAction.ReplicaResponse response =
@@ -1039,11 +1041,16 @@ public abstract class TransportReplicationAction<
         }
 
         @Override
-        public PrimaryResult perform(Request request) throws Exception {
-            PrimaryResult result = shardOperationOnPrimary(request, indexShard);
-            assert result.replicaRequest() == null || result.finalFailure == null : "a replica request [" + result.replicaRequest()
-                + "] with a primary failure [" + result.finalFailure + "]";
-            return result;
+        public void perform(Request request, ActionListener<PrimaryResult<ReplicaRequest, Response>> listener) {
+            if (Assertions.ENABLED) {
+                listener = ActionListener.map(listener, result -> {
+                    assert result.replicaRequest() == null || result.finalFailure == null : "a replica request [" + result.replicaRequest()
+                        + "] with a primary failure [" + result.finalFailure + "]";
+                    return result;
+                });
+            }
+            assert indexShard.getActiveOperationsCount() != 0 : "must perform shard operation under a permit";
+            shardOperationOnPrimary(request, indexShard, listener);
         }
 
         @Override
