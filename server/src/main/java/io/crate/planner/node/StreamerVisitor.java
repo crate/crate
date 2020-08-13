@@ -47,7 +47,7 @@ public class StreamerVisitor {
     }
 
     public static Streamer<?>[] streamersFromOutputs(ExecutionPhase executionPhase) {
-        return EXECUTION_PHASE_STREAMER_VISITOR.process(executionPhase, null);
+        return executionPhase.accept(EXECUTION_PHASE_STREAMER_VISITOR, null);
     }
 
     private static class ExecutionPhaseStreamerVisitor extends ExecutionPhaseVisitor<Void, Streamer<?>[]> {

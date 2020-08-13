@@ -247,7 +247,7 @@ public class JobSetup {
 
     private Boolean createContexts(ExecutionPhase phase, Context context) {
         try {
-            return innerPreparer.process(phase, context);
+            return phase.accept(innerPreparer, context);
         } catch (Throwable t) {
             IllegalArgumentException e = new IllegalArgumentException(String.format(
                 Locale.ENGLISH,

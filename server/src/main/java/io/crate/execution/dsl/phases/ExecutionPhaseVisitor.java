@@ -24,10 +24,6 @@ package io.crate.execution.dsl.phases;
 
 public class ExecutionPhaseVisitor<C, R> {
 
-    public R process(ExecutionPhase phase, C context) {
-        return phase.accept(this, context);
-    }
-
     protected R visitExecutionPhase(ExecutionPhase phase, C context) {
         return null;
     }

@@ -84,7 +84,7 @@ public final class PlanPrinter {
 
         static MapBuilder<String, Object> toBuilder(ExecutionPhase executionPhase) {
             assert executionPhase != null : "executionPhase must not be null";
-            return INSTANCE.process(executionPhase, null);
+            return executionPhase.accept(INSTANCE, null);
         }
 
         private static List<Map<String, Object>> projections(Iterable<Projection> projections) {
