@@ -48,10 +48,13 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class NodeStatsCollectSource implements CollectSource {
@@ -72,22 +75,22 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Override
-    public BatchIterator<Row> getIterator(TransactionContext txnCtx,
-                                          CollectPhase phase,
-                                          CollectTask collectTask,
-                                          boolean supportMoveToStart) {
+    public CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,
+                                                             CollectPhase phase,
+                                                             CollectTask collectTask,
+                                                             boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         if (!WhereClause.canMatch(collectPhase.where())) {
-            return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+            return completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
         }
         Collection<DiscoveryNode> nodes = filterNodes(
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             collectPhase.where(),
             functions);
         if (nodes.isEmpty()) {
-            return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+            return completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
         }
-        return NodeStats.newInstance(nodeStatsAction, collectPhase, nodes, txnCtx, inputFactory);
+        return completedFuture(NodeStats.newInstance(nodeStatsAction, collectPhase, nodes, txnCtx, inputFactory));
     }
 
     static Collection<DiscoveryNode> filterNodes(Collection<DiscoveryNode> nodes, Symbol predicate, Functions functions) {

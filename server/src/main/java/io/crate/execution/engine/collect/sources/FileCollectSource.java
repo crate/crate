@@ -48,6 +48,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class FileCollectSource implements CollectSource {
@@ -66,17 +67,17 @@ public class FileCollectSource implements CollectSource {
     }
 
     @Override
-    public BatchIterator<Row> getIterator(TransactionContext txnCtx,
-                                          CollectPhase collectPhase,
-                                          CollectTask collectTask,
-                                          boolean supportMoveToStart) {
+    public CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,
+                                                             CollectPhase collectPhase,
+                                                             CollectTask collectTask,
+                                                             boolean supportMoveToStart) {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
 
         List<String> fileUris = targetUriToStringList(txnCtx, functions, fileUriCollectPhase.targetUri());
-        return FileReadingIterator.newInstance(
+        return CompletableFuture.completedFuture(FileReadingIterator.newInstance(
             fileUris,
             ctx.topLevelInputs(),
             ctx.expressions(),
@@ -86,7 +87,7 @@ public class FileCollectSource implements CollectSource {
             fileUriCollectPhase.nodeIds().size(),
             getReaderNumber(fileUriCollectPhase.nodeIds(), clusterService.state().nodes().getLocalNodeId()),
             fileUriCollectPhase.inputFormat()
-        );
+        ));
     }
 
     private static int getReaderNumber(Collection<String> nodeIds, String localNodeId) {

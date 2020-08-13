@@ -31,6 +31,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -49,10 +50,10 @@ public class MapSideDataCollectOperation {
         this.threadPool = threadPool;
     }
 
-    public BatchIterator<Row> createIterator(TransactionContext txnCtx,
-                                             CollectPhase collectPhase,
-                                             boolean requiresScroll,
-                                             CollectTask collectTask) {
+    public CompletableFuture<BatchIterator<Row>> createIterator(TransactionContext txnCtx,
+                                                                CollectPhase collectPhase,
+                                                                boolean requiresScroll,
+                                                                CollectTask collectTask) {
         CollectSource service = collectSourceResolver.getService(collectPhase);
         return service.getIterator(txnCtx, collectPhase, collectTask, requiresScroll);
     }

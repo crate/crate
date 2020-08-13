@@ -113,10 +113,5 @@ public class CountTaskTest extends ESTestCase {
         public CompletableFuture<Long> count(TransactionContext txnCtx, Map<String, IntIndexedContainer> indexShardMap, Symbol filter) {
             return future;
         }
-
-        @Override
-        public long count(TransactionContext txnCtx, Index index, int shardId, Symbol filter) {
-            return 0;
-        }
     }
 }

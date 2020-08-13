@@ -122,7 +122,10 @@ public class TableParameters {
         MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING,
-        IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING
+        IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
+
+        // We want IndexSettings#isExplicitRefresh and it's usages to work
+        IndexSettings.INDEX_REFRESH_INTERVAL_SETTING
     );
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT

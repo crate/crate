@@ -1658,7 +1658,6 @@ How to reindex
     |    max_ngram_diff = 1,                              |
     |    max_shingle_diff = 3,                            |
     |    number_of_replicas = '0-1',                      |
-    |    refresh_interval = 1000,                         |
     |    "routing.allocation.enable" = 'all',             |
     |    "routing.allocation.total_shards_per_node" = -1, |
     |    "store.type" = 'fs',                             |

@@ -22,6 +22,15 @@
 
 package io.crate.execution.engine.collect;
 
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -43,17 +52,12 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.shard.ShardReferenceResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
 
 public abstract class ShardCollectorProvider {
 
     private final ProjectorFactory projectorFactory;
     private final ShardRowContext shardRowContext;
+    private final IndexShard indexShard;
     final EvaluatingNormalizer shardNormalizer;
 
     ShardCollectorProvider(ClusterService clusterService,
@@ -65,6 +69,7 @@ public abstract class ShardCollectorProvider {
                            TransportActionProvider transportActionProvider,
                            IndexShard indexShard,
                            ShardRowContext shardRowContext) {
+        this.indexShard = indexShard;
         this.shardRowContext = shardRowContext;
         shardNormalizer = new EvaluatingNormalizer(
             functions,
@@ -92,9 +97,23 @@ public abstract class ShardCollectorProvider {
         return shardRowContext;
     }
 
-    public BatchIterator<Row> getIterator(RoutedCollectPhase collectPhase,
-                                          boolean requiresScroll,
-                                          CollectTask collectTask) throws Exception {
+    public CompletableFuture<BatchIterator<Row>> getFutureIterator(RoutedCollectPhase collectPhase,
+                                                                   boolean requiresScroll,
+                                                                   CollectTask collectTask) throws Exception {
+        var futureIt = new CompletableFuture<BatchIterator<Row>>();
+        indexShard.awaitShardSearchActive(b -> {
+            try {
+                futureIt.complete(getIterator(collectPhase, requiresScroll, collectTask));
+            } catch (Throwable t) {
+                futureIt.completeExceptionally(t);
+            }
+        });
+        return futureIt;
+    }
+
+    private BatchIterator<Row> getIterator(RoutedCollectPhase collectPhase,
+                                           boolean requiresScroll,
+                                           CollectTask collectTask) throws Exception {
         assert collectPhase.orderBy() == null
             : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
         assert collectPhase.maxRowGranularity() == RowGranularity.DOC :
@@ -122,6 +141,7 @@ public abstract class ShardCollectorProvider {
         );
     }
 
+
     /**
      * @return A BatchIterator which already applies the transformation described in the shardProjections of the collectPhase.
      *         This can be used to return a specialized BatchIterator for certain projections. If this returns null
@@ -135,11 +155,25 @@ public abstract class ShardCollectorProvider {
                                                                boolean requiresScroll,
                                                                CollectTask collectTask);
 
+    public final CompletableFuture<OrderedDocCollector> getFutureOrderedCollector(RoutedCollectPhase collectPhase,
+                                                                                  SharedShardContext sharedShardContext,
+                                                                                  CollectTask collectTask,
+                                                                                  boolean requiresRepeat) {
+        var futureIt = new CompletableFuture<OrderedDocCollector>();
+        indexShard.awaitShardSearchActive(b -> {
+            try {
+                futureIt.complete(getOrderedCollector(collectPhase, sharedShardContext, collectTask, requiresRepeat));
+            } catch (Throwable t) {
+                futureIt.completeExceptionally(t);
+            }
+        });
+        return futureIt;
+    }
 
-    public abstract OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,
-                                                            SharedShardContext sharedShardContext,
-                                                            CollectTask collectTask,
-                                                            boolean requiresRepeat);
+    protected abstract OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,
+                                                               SharedShardContext sharedShardContext,
+                                                               CollectTask collectTask,
+                                                               boolean requiresRepeat);
 
     public ProjectorFactory getProjectorFactory() {
         return projectorFactory;
