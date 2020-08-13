@@ -25,22 +25,40 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
 import io.crate.types.FixedWidthType;
+import io.crate.types.FloatType;
+import io.crate.types.GeoPointType;
+import io.crate.types.IntegerType;
+import io.crate.types.IpType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.fielddata.FieldData;
+import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -53,9 +71,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
             NAME,
             parseTypeSignature("V"),
             DataTypes.LONG.getTypeSignature()
-        )
-            .withTypeVariableConstraints(typeVariable("V")
-        );
+        ).withTypeVariableConstraints(typeVariable("V"));
 
     public static final Signature COUNT_STAR_SIGNATURE =
         Signature.aggregate(NAME, DataTypes.LONG.getTypeSignature());
@@ -189,6 +205,23 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         public String toString() {
             return String.valueOf(value);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            LongState that = (LongState) o;
+            return value == that.value;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
     }
 
     public static class LongStateType extends DataType<LongState>
@@ -260,5 +293,97 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
             return previousAggState.sub(1L);
         }
         return previousAggState;
+    }
+
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
+                                                       List<MappedFieldType> fieldTypes) {
+        if (argumentTypes.size() == 1) {
+            switch (argumentTypes.get(0).id()) {
+                case ByteType.ID:
+                case ShortType.ID:
+                case IntegerType.ID:
+                case LongType.ID:
+                case TimestampType.ID_WITH_TZ:
+                case TimestampType.ID_WITHOUT_TZ:
+                case FloatType.ID:
+                case DoubleType.ID:
+                case GeoPointType.ID:
+                    return new CountNumericDocValueAggregator(fieldTypes.get(0).name());
+                case IpType.ID:
+                case StringType.ID:
+                    return new CountBinaryDocValueAggregator(fieldTypes.get(0).name());
+
+                default:
+                    return null;
+            }
+        }
+        return null;
+    }
+
+    private static class CountNumericDocValueAggregator implements DocValueAggregator<LongState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public CountNumericDocValueAggregator(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public LongState initialState() {
+            return new LongState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(LongState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                state.add(1L);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(LongState state) {
+            return state;
+        }
+    }
+
+    private static class CountBinaryDocValueAggregator implements DocValueAggregator<LongState> {
+
+        private final String columnName;
+        private SortedBinaryDocValues values;
+
+        public CountBinaryDocValueAggregator(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public LongState initialState() {
+            return new LongState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = FieldData.toString(DocValues.getSortedSet(reader, columnName));
+        }
+
+        @Override
+        public void apply(LongState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                state.add(1L);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(LongState state) {
+            return state;
+        }
     }
 }
