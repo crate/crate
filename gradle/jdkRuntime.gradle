@@ -47,4 +47,11 @@ allprojects {
             test.executable = rootProject.jdks.runtime.getBinJavaPath()
         }
     }
+
+    tasks.withType(JavaExec) {
+        dependsOn rootProject.jdks.runtime
+        if (System.getProperty('useSystemJdk') == null) {
+            executable = rootProject.jdks.runtime.getBinJavaPath()
+        }
+    }
 }
