@@ -68,7 +68,6 @@ public class CountTaskTest extends ESTestCase {
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
 
         CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
-        countTask.prepare();
         countTask.start();
         future.complete(1L);
         assertTrue(countTask.isClosed());
@@ -80,7 +79,6 @@ public class CountTaskTest extends ESTestCase {
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
 
         countTask = new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
-        countTask.prepare();
         countTask.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
         assertTrue(countTask.isClosed());
@@ -96,7 +94,6 @@ public class CountTaskTest extends ESTestCase {
 
         CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
 
-        countTask.prepare();
         countTask.start();
         countTask.kill(JobKilledException.of("dummy"));
 

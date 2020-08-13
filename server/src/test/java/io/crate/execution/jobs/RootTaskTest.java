@@ -21,7 +21,31 @@
 
 package io.crate.execution.jobs;
 
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
 import com.google.common.util.concurrent.MoreExecutors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -34,32 +58,8 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.profile.ProfilingContext;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.IntegerType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import java.lang.reflect.Field;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
-
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class RootTaskTest extends ESTestCase {
 
@@ -80,7 +80,7 @@ public class RootTaskTest extends ESTestCase {
         builder.addTask(ctx2);
         RootTask rootTask = builder.build();
 
-        assertThat(rootTask.kill(null), is(1L)); // killing the first task triggers killing the others, so count is 1
+        assertThat(rootTask.kill(null), Matchers.greaterThanOrEqualTo(1L));
         assertThat(rootTask.kill(null), is(0L)); // Everything is killed already
 
         assertThat(ctx1.numKill.get(), is(1));
@@ -88,7 +88,7 @@ public class RootTaskTest extends ESTestCase {
     }
 
     @Test
-    public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Exception {
+    public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Throwable {
         JobsLogs jobsLogs = mock(JobsLogs.class);
         RootTask.Builder builder =
             new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), jobsLogs);
@@ -105,14 +105,16 @@ public class RootTaskTest extends ESTestCase {
             }
         };
         builder.addTask(task);
-        builder.build();
+        RootTask rootTask = builder.build();
 
+        rootTask.start();
         task.kill(new IllegalStateException("dummy"));
+
         verify(jobsLogs).operationFinished(anyInt(), any(UUID.class), eq("dummy"));
     }
 
     @Test
-    public void testFailureClosesAllSubContexts() throws Exception {
+    public void testFailureClosesAllSubContexts() throws Throwable {
         String localNodeId = "localNodeId";
         RoutedCollectPhase collectPhase = Mockito.mock(RoutedCollectPhase.class);
         Routing routing = Mockito.mock(Routing.class);

@@ -145,11 +145,10 @@ public class RootTask implements CompletionListenable<Void> {
         this.participatedNodes = participatingNodes;
         this.jobId = jobId;
         this.jobsLogs = jobsLogs;
-
-        int numTasks = orderedTasks.size();
         this.orderedTasks = orderedTasks;
+        int numTasks = orderedTasks.size();
         this.numActiveTasks = new AtomicInteger(numTasks);
-
+        this.traceEnabled = logger.isTraceEnabled();
         if (profilingContext == null) {
             taskTimersByPhaseId = null;
             profilingFuture = null;
@@ -159,19 +158,9 @@ public class RootTask implements CompletionListenable<Void> {
             taskTimersByPhaseId = new ConcurrentHashMap<>(numTasks);
             profilingFuture = new CompletableFuture<>();
         }
-
-        traceEnabled = logger.isTraceEnabled();
         for (Task task : orderedTasks) {
-            int phaseId = task.id();
-            task.completionFuture().whenComplete(new TaskFinishedListener(phaseId));
-            jobsLogs.operationStarted(phaseId, jobId, task.name(), task::bytesUsed);
-            task.prepare();
-            if (profiler != null) {
-                String subContextName = ProfilingContext.generateProfilingKey(task.id(), task.name());
-                if (taskTimersByPhaseId.put(phaseId, profiler.createTimer(subContextName)) != null) {
-                    throw new IllegalArgumentException("Timer for " + phaseId + " already added");
-                }
-            }
+            jobsLogs.operationStarted(task.id(), jobId, task.name(), task::bytesUsed);
+            task.completionFuture().whenComplete(new TaskFinishedListener(task.id()));
         }
     }
 
@@ -188,16 +177,16 @@ public class RootTask implements CompletionListenable<Void> {
     }
 
     public void start() throws Throwable {
+        if (closed.get()) {
+            return; // got killed before start was called
+        }
         for (Task task : orderedTasks) {
-            if (closed.get()) {
-                break; // got killed before start was called
-            }
+            int phaseId = task.id();
             if (profiler != null) {
-                assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
-                taskTimersByPhaseId.get(task.id()).start();
-            }
-            if (traceEnabled) {
-                logger.trace("Task start id={} ctx={}", task.id(), task);
+                String subContextName = ProfilingContext.generateProfilingKey(phaseId, task.name());
+                if (taskTimersByPhaseId.put(phaseId, profiler.createAndStartTimer(subContextName)) != null) {
+                    throw new IllegalArgumentException("Timer for " + phaseId + " already added");
+                }
             }
             task.start();
         }

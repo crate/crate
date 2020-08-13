@@ -22,19 +22,20 @@
 
 package io.crate.execution.jobs;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.JobKilledException;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.greaterThan;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.greaterThan;
+import javax.annotation.Nonnull;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.exceptions.JobKilledException;
 
 public class AbstractTaskTest extends ESTestCase {
 
@@ -79,7 +80,6 @@ public class AbstractTaskTest extends ESTestCase {
 
     public static class TestingTask extends AbstractTask {
 
-        final AtomicInteger numPrepare = new AtomicInteger();
         final AtomicInteger numStart = new AtomicInteger();
         final AtomicInteger numClose = new AtomicInteger();
         final AtomicInteger numKill = new AtomicInteger();
@@ -113,18 +113,12 @@ public class AbstractTaskTest extends ESTestCase {
         }
 
         @Override
-        public void innerPrepare() {
-            numPrepare.incrementAndGet();
-        }
-
-        @Override
         protected void innerStart() {
             numStart.incrementAndGet();
         }
 
         public List<Integer> stats() {
-            return ImmutableList.of(
-                numPrepare.get(),
+            return List.of(
                 numStart.get(),
                 numClose.get(),
                 numKill.get()
@@ -136,36 +130,32 @@ public class AbstractTaskTest extends ESTestCase {
     @Test
     public void testNormalSequence() throws Exception {
         TestingTask task = new TestingTask();
-        task.prepare();
         task.start();
         task.close();
-        assertThat(task.stats(), contains(1, 1, 1, 0));
+        assertThat(task.stats(), contains(1, 1, 0));
     }
 
     @Test
-    public void testCloseAfterPrepare() throws Exception {
+    public void testCloseAfterStart() throws Exception {
         TestingTask task = new TestingTask();
-        task.prepare();
         task.close();
         task.start();
         task.close();
-        assertThat(task.stats(), contains(1, 0, 1, 0));
+        assertThat(task.stats(), contains(0, 1, 0));
     }
 
     @Test
     public void testParallelClose() throws Exception {
-        testingTask.prepare();
         testingTask.start();
         runAsync(closeRunnable, 3);
-        assertThat(testingTask.stats(), contains(1, 1, 1, 0));
+        assertThat(testingTask.stats(), contains(1, 1, 0));
     }
 
     @Test
     public void testParallelKill() throws Exception {
-        testingTask.prepare();
         testingTask.start();
         runAsync(killRunnable, 3);
-        assertThat(testingTask.stats(), contains(1, 1, 0, 1));
+        assertThat(testingTask.stats(), contains(1, 0, 1));
         assertThat(testingTask.numKill.get(), greaterThan(0));
     }
 

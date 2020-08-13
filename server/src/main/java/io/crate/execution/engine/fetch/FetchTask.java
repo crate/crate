@@ -206,14 +206,14 @@ public class FetchTask implements Task {
     }
 
 
+
     @Override
-    public void prepare() throws Exception {
+    public void start() {
         synchronized (jobId) {
             if (killed != null) {
                 result.completeExceptionally(killed);
                 return;
             }
-
             HashMap<String, RelationName> index2TableIdent = new HashMap<>();
             for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().asMap().entrySet()) {
                 for (String indexName : entry.getValue()) {
@@ -274,10 +274,6 @@ public class FetchTask implements Task {
                 }
             }
         }
-    }
-
-    @Override
-    public void start() {
         if (searchers.isEmpty() || phase.fetchRefs().isEmpty()) {
             // no fetch references means there will be no fetch requests
             // this context is only here to allow the collectors to generate docids with the right bases
