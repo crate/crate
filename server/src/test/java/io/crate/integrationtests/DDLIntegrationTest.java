@@ -295,11 +295,15 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
         execute("refresh table quotes");
 
-        assertThrows(() -> execute("select quote from quotes where quote = ?", new Object[]{quote}),
-            isSQLError(containsString("Cannot search on field [quote] since it is not indexed."),
-                       INTERNAL_ERROR,
-                       INTERNAL_SERVER_ERROR,
-                       5000));
+        assertThrows(
+            () -> execute("select quote from quotes where quote = ?", new Object[]{quote}),
+            isSQLError(
+                containsString("Cannot search on field [quote] since it is not indexed."),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
     }
 
     @Test

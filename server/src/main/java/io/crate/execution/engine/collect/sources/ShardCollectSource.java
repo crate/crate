@@ -33,7 +33,7 @@ import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
-import io.crate.exceptions.UnhandledServerException;
+import io.crate.exceptions.Exceptions;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -358,10 +358,6 @@ public class ShardCollectSource implements CollectSource {
                         break;
                     }
                     throw e;
-                } catch (Throwable t) {
-                    UnhandledServerException unhandledServerException = new UnhandledServerException(t);
-                    unhandledServerException.setStackTrace(t.getStackTrace());
-                    throw unhandledServerException;
                 }
             }
         }
@@ -443,10 +439,8 @@ public class ShardCollectSource implements CollectSource {
                 } catch (IndexNotFoundException e) {
                     // Prevent wrapping this to not break retry-detection
                     throw e;
-                } catch (Exception e) {
-                    UnhandledServerException unhandledServerException = new UnhandledServerException(e);
-                    unhandledServerException.setStackTrace(e.getStackTrace());
-                    throw unhandledServerException;
+                } catch (Throwable t) {
+                    Exceptions.rethrowRuntimeException(t);
                 }
             }
         }
@@ -487,8 +481,6 @@ public class ShardCollectSource implements CollectSource {
                     shardRowContexts.add(shardCollectorProvider.shardRowContext());
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(index.getName(), shard.value));
-                } catch (Throwable t) {
-                    throw new UnhandledServerException(t);
                 }
             }
         }
