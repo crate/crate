@@ -41,9 +41,6 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 import org.apache.commons.math3.util.FastMath;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -301,116 +298,31 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return new LongGeometricMean(fieldTypes.get(0).name());
-
+                return new SortedNumericDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    GeometricMeanState::new,
+                    (values, state) -> state.addValue(values.nextValue())
+                );
             case FloatType.ID:
-                return new FloatGeometricMean(fieldTypes.get(0).name());
+                return new SortedNumericDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    GeometricMeanState::new,
+                    (values, state) -> {
+                        var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                        state.addValue(value);
+                    }
+                );
             case DoubleType.ID:
-                return new DoubleGeometricMean(fieldTypes.get(0).name());
-
+                return new SortedNumericDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    GeometricMeanState::new,
+                    (values, state) -> {
+                        var value = NumericUtils.sortableLongToDouble((values.nextValue()));
+                        state.addValue(value);
+                    }
+                );
             default:
                 return null;
-        }
-    }
-
-    private static class LongGeometricMean implements DocValueAggregator<GeometricMeanState> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        public LongGeometricMean(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public GeometricMeanState initialState() {
-            return new GeometricMeanState();
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(GeometricMeanState state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                state.addValue(values.nextValue());
-            }
-        }
-
-        @Nullable
-        @Override
-        public Object partialResult(GeometricMeanState state) {
-            return state;
-        }
-    }
-
-    private static class DoubleGeometricMean implements DocValueAggregator<GeometricMeanState> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        public DoubleGeometricMean(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public GeometricMeanState initialState() {
-            return new GeometricMeanState();
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(GeometricMeanState state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                double value = NumericUtils.sortableLongToDouble(values.nextValue());
-                state.addValue(value);
-            }
-        }
-
-        @Nullable
-        @Override
-        public Object partialResult(GeometricMeanState state) {
-            return state;
-        }
-    }
-
-    private static class FloatGeometricMean implements DocValueAggregator<GeometricMeanState> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        public FloatGeometricMean(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public GeometricMeanState initialState() {
-            return new GeometricMeanState();
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(GeometricMeanState state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                double value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                state.addValue(value);
-            }
-        }
-
-        @Nullable
-        @Override
-        public Object partialResult(GeometricMeanState state) {
-            return state;
         }
     }
 }

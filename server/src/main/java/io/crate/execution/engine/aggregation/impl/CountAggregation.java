@@ -45,14 +45,9 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
@@ -309,81 +304,22 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
                 case FloatType.ID:
                 case DoubleType.ID:
                 case GeoPointType.ID:
-                    return new CountNumericDocValueAggregator(fieldTypes.get(0).name());
+                    return new SortedNumericDocValueAggregator<>(
+                        fieldTypes.get(0).name(),
+                        LongState::new,
+                        (values, state) -> state.add(1L)
+                    );
                 case IpType.ID:
                 case StringType.ID:
-                    return new CountBinaryDocValueAggregator(fieldTypes.get(0).name());
-
+                    return new BinaryDocValueAggregator<>(
+                        fieldTypes.get(0).name(),
+                        LongState::new,
+                        (values, state) -> state.add(1L)
+                    );
                 default:
                     return null;
             }
         }
         return null;
-    }
-
-    private static class CountNumericDocValueAggregator implements DocValueAggregator<LongState> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        public CountNumericDocValueAggregator(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public LongState initialState() {
-            return new LongState();
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(LongState state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                state.add(1L);
-            }
-        }
-
-        @Nullable
-        @Override
-        public Object partialResult(LongState state) {
-            return state;
-        }
-    }
-
-    private static class CountBinaryDocValueAggregator implements DocValueAggregator<LongState> {
-
-        private final String columnName;
-        private SortedBinaryDocValues values;
-
-        public CountBinaryDocValueAggregator(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public LongState initialState() {
-            return new LongState();
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = FieldData.toString(DocValues.getSortedSet(reader, columnName));
-        }
-
-        @Override
-        public void apply(LongState state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                state.add(1L);
-            }
-        }
-
-        @Nullable
-        @Override
-        public Object partialResult(LongState state) {
-            return state;
-        }
     }
 }
