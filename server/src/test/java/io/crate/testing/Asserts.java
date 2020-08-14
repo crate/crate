@@ -22,26 +22,22 @@
 
 package io.crate.testing;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import org.hamcrest.Matcher;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.function.Executable;
-import org.opentest4j.AssertionFailedError;
 
 public class Asserts {
 
     private Asserts() {}
 
-    public static <T extends Throwable> void assertThrows(Executable executable, Matcher<T> matcher) {
+    public static void assertThrows(Executable executable, Matcher<? super Throwable> matcher) {
         try {
             executable.execute();
+            Assertions.fail("Expected exception to be thrown, but nothing was thrown.");
         } catch (Throwable t) {
-            if (matcher.matches(t)) {
-                return;
-            }
-            throw new AssertionFailedError(
-                String.format("Unmatched %s type thrown with message '%s'",
-                              t.getClass().getCanonicalName(),
-                              t.getMessage()), t);
+            assertThat(t, matcher);
         }
-        throw new AssertionFailedError("Expected exception to be thrown, but nothing was thrown.");
     }
 }
