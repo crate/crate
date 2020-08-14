@@ -23,7 +23,6 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.operation.aggregation.AggregationTest;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
@@ -31,15 +30,17 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static org.hamcrest.Matchers.contains;
+
 
 public class ArrayAggTest extends AggregationTest {
 
     @Test
-    public void test_array_agg_adds_all_items_to_array() throws Exception {
+    public void test_array_agg_adds_all_integer_values_to_array() throws Exception {
         var result = executeAggregation(
             ArrayAgg.SIGNATURE,
             List.of(DataTypes.INTEGER),
-            new ArrayType<>(DataTypes.INTEGER),
+            DataTypes.INTEGER_ARRAY,
             new Object[][]{
                 new Object[]{20},
                 new Object[]{null},
@@ -47,7 +48,52 @@ public class ArrayAggTest extends AggregationTest {
                 new Object[]{24}
             }
         );
-        assertThat((List<Object>) result, Matchers.contains(20, null, 42, 24));
+        assertThat((List<?>) result, contains(20, null, 42, 24));
+    }
+
+    @Test
+    public void test_array_agg_adds_all_float_values_to_array() throws Exception {
+        var result = executeAggregation(
+            ArrayAgg.SIGNATURE,
+            List.of(DataTypes.FLOAT),
+            DataTypes.FLOAT_ARRAY,
+            new Object[][]{
+                new Object[]{2.0f},
+                new Object[]{null},
+                new Object[]{2.4f}
+            }
+        );
+        assertThat((List<?>) result, contains(2.0f, null, 2.4f));
+    }
+
+    @Test
+    public void test_array_agg_adds_all_double_to_array() throws Exception {
+        var result = executeAggregation(
+            ArrayAgg.SIGNATURE,
+            List.of(DataTypes.DOUBLE),
+            DataTypes.DOUBLE_ARRAY,
+            new Object[][]{
+                new Object[]{2.0d},
+                new Object[]{null},
+                new Object[]{2.4d}
+            }
+        );
+        assertThat((List<?>) result, contains(2.0d, null, 2.4d));
+    }
+
+    @Test
+    public void test_array_agg_adds_all_text_values_to_array() throws Exception {
+        var result = executeAggregation(
+            ArrayAgg.SIGNATURE,
+            List.of(DataTypes.STRING),
+            DataTypes.STRING_ARRAY,
+            new Object[][]{
+                new Object[]{"a"},
+                new Object[]{null},
+                new Object[]{"b"}
+            }
+        );
+        assertThat((List<?>) result, contains("a", null, "b"));
     }
 
     @Test
@@ -58,5 +104,19 @@ public class ArrayAggTest extends AggregationTest {
             DataTypes.BIGINT_ARRAY
         ).boundSignature().getReturnType().createType();
         assertThat(returnType, Matchers.is(DataTypes.BIGINT_ARRAY));
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_numeric_types() {
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            assertHasDocValueAggregator(ArrayAgg.NAME, List.of(dataType));
+        }
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_string_based_types() {
+        for (var dataType : List.of(DataTypes.STRING, DataTypes.IP)) {
+            assertHasDocValueAggregator(ArrayAgg.NAME, List.of(dataType));
+        }
     }
 }
