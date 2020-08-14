@@ -30,9 +30,4 @@ public class UnhandledServerException extends RuntimeException implements Unscop
     public UnhandledServerException(String message, Throwable cause) {
         super(message, cause);
     }
-
-    public UnhandledServerException(Throwable cause) {
-        super(cause);
-    }
-
 }

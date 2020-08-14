@@ -107,7 +107,7 @@ Known limitations
     cr> DELETE FROM sensors WHERE type = 'DHT11' 
     ...   AND "_seq_no" = 3
     ...   AND "_primary_term" = 1;
-    UnhandledServerException[io.crate.exceptions.UnsupportedFeatureException: "_seq_no" and "_primary_term" columns can only be used together in the WHERE clause with equals comparisons and if there are also equals comparisons on primary key columns]
+    UnsupportedFeatureException["_seq_no" and "_primary_term" columns can only be used together in the WHERE clause with equals comparisons and if there are also equals comparisons on primary key columns]
 
  - In order to use the optimistic concurrency control mechanism both the
    ``_seq_no`` and ``_primary_term`` columns need to be specified. It is not

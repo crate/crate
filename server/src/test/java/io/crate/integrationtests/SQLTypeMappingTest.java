@@ -208,22 +208,30 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInvalidWhereClause() throws Exception {
         setUpSimple();
 
-        assertThrows(() -> execute("delete from t1 where byte_field=129"),
-                     isSQLError(containsString("Cannot cast `129` of type `integer` to type `char`"),
-                         INTERNAL_ERROR,
-                         INTERNAL_SERVER_ERROR,
-                         5000));
+        assertThrows(
+            () -> execute("delete from t1 where byte_field=129"),
+            isSQLError(
+                containsString("Cannot cast `129` of type `integer` to type `char`"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
     }
 
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         setUpSimple();
 
-        assertThrows(() -> execute("update t1 set byte_field=0 where byte_field in (129)"),
-                     isSQLError(containsString("Cannot cast `[129]` of type `integer_array` to type `char_array`"),
-                         INTERNAL_ERROR,
-                         INTERNAL_SERVER_ERROR,
-                         5000));
+        assertThrows(
+            () -> execute("update t1 set byte_field=0 where byte_field in (129)"),
+            isSQLError(
+                containsString("Cannot cast `[129]` of type `integer_array` to type `char_array`"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
     }
 
     @Test
