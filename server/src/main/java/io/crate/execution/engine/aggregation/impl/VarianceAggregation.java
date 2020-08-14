@@ -40,9 +40,6 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -224,117 +221,31 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return new LongVariance(fieldTypes.get(0).name());
-
+                return new SortedNumericDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    Variance::new,
+                    (values, state) -> state.increment(values.nextValue())
+                );
             case FloatType.ID:
-                return new FloatVariance(fieldTypes.get(0).name());
+                return new SortedNumericDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    Variance::new,
+                    (values, state) -> {
+                        var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                        state.increment(value);
+                    }
+                );
             case DoubleType.ID:
-                return new DoubleVariance(fieldTypes.get(0).name());
-
+                return new SortedNumericDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    Variance::new,
+                    (values, state) -> {
+                        var value = NumericUtils.sortableLongToDouble((values.nextValue()));
+                        state.increment(value);
+                    }
+                );
             default:
                 return null;
-        }
-    }
-
-    private static class LongVariance implements DocValueAggregator<Variance> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        public LongVariance(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public Variance initialState() {
-            return new Variance();
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(Variance state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                double value = values.nextValue();
-                state.increment(value);
-            }
-        }
-
-        @Nullable
-        @Override
-        public Object partialResult(Variance state) {
-            return state;
-        }
-    }
-
-    private static class DoubleVariance implements DocValueAggregator<Variance> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        public DoubleVariance(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public Variance initialState() {
-            return new Variance();
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(Variance state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                double value = NumericUtils.sortableLongToDouble(values.nextValue());
-                state.increment(value);
-            }
-        }
-
-        @Nullable
-        @Override
-        public Object partialResult(Variance state) {
-            return state;
-        }
-    }
-
-    private static class FloatVariance implements DocValueAggregator<Variance> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        public FloatVariance(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public Variance initialState() {
-            return new Variance();
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(Variance state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                double value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                state.increment(value);
-            }
-        }
-
-        @Nullable
-        @Override
-        public Object partialResult(Variance state) {
-            return state;
         }
     }
 }
