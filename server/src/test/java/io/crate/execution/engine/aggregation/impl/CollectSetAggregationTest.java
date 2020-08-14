@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
@@ -47,7 +46,7 @@ public class CollectSetAggregationTest extends AggregationTest {
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                "collect_set",
+                CollectSetAggregation.NAME,
                 argumentType.getTypeSignature(),
                 new ArrayType<>(argumentType).getTypeSignature()
             ),
@@ -56,23 +55,47 @@ public class CollectSetAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testReturnType() throws Exception {
+    public void testReturnType() {
         FunctionImplementation collectSet = functions.get(
-            null, "collect_set", ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
-        assertEquals(new ArrayType<>(DataTypes.INTEGER), collectSet.info().returnType());
+            null,
+            CollectSetAggregation.NAME,
+            List.of(Literal.of(DataTypes.INTEGER, null)),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
+        assertThat(collectSet.boundSignature().getReturnType().createType(), is(DataTypes.INTEGER_ARRAY));
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_numeric_types() {
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            assertHasDocValueAggregator(CountAggregation.NAME, List.of(dataType));
+        }
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_string_based_types() {
+        for (var dataType : List.of(DataTypes.STRING, DataTypes.IP)) {
+            assertHasDocValueAggregator(CountAggregation.NAME, List.of(dataType));
+        }
     }
 
     @Test
     public void testDouble() throws Exception {
         assertThat(
-            (List<Object>) executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}}),
-            is(Matchers.containsInAnyOrder(0.3d, 0.7d)));
+            (List<?>) executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}}),
+            containsInAnyOrder(0.3d, 0.7d)
+        );
     }
 
     @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void testLongSerialization() throws Exception {
         AggregationFunction impl = (AggregationFunction) functions.get(
-                null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
+                null,
+                CollectSetAggregation.NAME,
+                List.of(Literal.of(DataTypes.LONG, null)),
+                SearchPath.pathWithPGCatalogAndDoc()
+        );
 
         Object state = impl.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
 
@@ -80,13 +103,18 @@ public class CollectSetAggregationTest extends AggregationTest {
         impl.partialType().streamer().writeValueTo(streamOutput, state);
 
         Object newState = impl.partialType().streamer().readValueFrom(streamOutput.bytes().streamInput());
-        assertEquals(state, newState);
+        assertThat(state, is(newState));
     }
 
     @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void test_value_adding_and_removal() {
         AggregationFunction impl = (AggregationFunction) functions.get(
-            null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
+            null,
+            CollectSetAggregation.NAME,
+            List.of(Literal.of(DataTypes.LONG, null)),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
         AggregationFunction aggregationFunction = impl.optimizeForExecutionAsWindowFunction();
 
         Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
@@ -97,50 +125,62 @@ public class CollectSetAggregationTest extends AggregationTest {
         aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10) });
 
         Object values = aggregationFunction.terminatePartial(RAM_ACCOUNTING, state);
-        assertThat((List<Object>) values, Matchers.empty());
+        assertThat((List<?>) values, Matchers.empty());
     }
 
     @Test
     public void testFloat() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}}),
-                   is(containsInAnyOrder(0.3f, 0.7f)));
+        assertThat(
+            (List<?>) executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}}),
+            containsInAnyOrder(0.3f, 0.7f)
+        );
     }
 
     @Test
     public void testInteger() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}}),
-                   is(containsInAnyOrder(3, 7)));
+        assertThat(
+            (List<?>) executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}}),
+            containsInAnyOrder(3, 7)
+        );
     }
 
     @Test
     public void testLong() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}}),
-                   is(containsInAnyOrder(3L, 7L)));
+        assertThat(
+            (List<?>) executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}}),
+            containsInAnyOrder(3L, 7L)
+        );
     }
 
     @Test
     public void testShort() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.SHORT,
-                                                 new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}}),
-                   is(containsInAnyOrder((short) 3, (short) 7)));
+        assertThat(
+            (List<?>) executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}}),
+            containsInAnyOrder((short) 3, (short) 7));
     }
 
     @Test
     public void testString() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}}),
-                   is(containsInAnyOrder("Youri", "Ruben")));
+        assertThat(
+            (List<?>) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}}),
+            containsInAnyOrder("Youri", "Ruben")
+        );
     }
 
     @Test
     public void testBoolean() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}}),
-                   is(containsInAnyOrder(true, false)));
+        assertThat(
+            (List<?>) executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}}),
+            containsInAnyOrder(true, false)
+        );
     }
 
     @Test
     public void testNullValue() throws Exception {
-        assertThat("null values currently ignored",
-                   (List<Object>) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}}),
-                   is(containsInAnyOrder("Youri", "Ruben")));
+        assertThat(
+            "null values currently ignored",
+            (List<?>) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}}),
+            containsInAnyOrder("Youri", "Ruben")
+        );
     }
 }

@@ -26,17 +26,35 @@ import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.IpType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 import io.crate.types.UncheckedObjectType;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.index.fielddata.FieldData;
+import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -287,6 +305,217 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         @Override
         public Signature boundSignature() {
             return boundSignature;
+        }
+    }
+
+    @Nullable
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
+                                                       List<MappedFieldType> fieldTypes) {
+        var dataType = argumentTypes.get(0);
+        switch (dataType.id()) {
+            case ByteType.ID:
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
+                return new LongCollectSetNumericDocValueAggregator(
+                    fieldTypes.get(0).name(),
+                    dataType,
+                    innerTypeEstimator
+                );
+            case FloatType.ID:
+                return new FloatCollectSetNumericDocValueAggregator(
+                    fieldTypes.get(0).name(),
+                    innerTypeEstimator
+                );
+            case DoubleType.ID:
+                return new DoubleCollectSetNumericDocValueAggregator(
+                    fieldTypes.get(0).name(),
+                    innerTypeEstimator
+                );
+            case IpType.ID:
+            case StringType.ID:
+                return new CollectSetBinaryDocValueAggregator(
+                    fieldTypes.get(0).name(),
+                    innerTypeEstimator
+                );
+            default:
+                return null;
+        }
+    }
+
+    private static class LongCollectSetNumericDocValueAggregator implements DocValueAggregator<HashMap<Object, Object>> {
+
+        private final String columnName;
+        private final DataType<?> dataType;
+        private final SizeEstimator<Object> sizeEstimator;
+
+        private SortedNumericDocValues values;
+
+        public LongCollectSetNumericDocValueAggregator(String columnName,
+                                                       DataType<?> dataType,
+                                                       SizeEstimator<Object> sizeEstimator) {
+            this.columnName = columnName;
+            this.dataType = dataType;
+            this.sizeEstimator = sizeEstimator;
+        }
+
+        @Override
+        public HashMap<Object, Object> initialState(RamAccounting ramAccounting) {
+            var state = new HashMap<>();
+            ramAccounting.addBytes(RamUsageEstimator.sizeOfMap(state));
+            return state;
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, HashMap<Object, Object> state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                var value = dataType.sanitizeValue(values.nextValue());
+                ramAccounting.addBytes(
+                    RamUsageEstimator.alignObjectSize(sizeEstimator.estimateSize(value) + 48L));
+                state.put(value, PRESENT);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(RamAccounting ramAccounting, HashMap<Object, Object> state) {
+            return state;
+        }
+    }
+
+    private static class FloatCollectSetNumericDocValueAggregator implements DocValueAggregator<HashMap<Float, Object>> {
+
+        private final String columnName;
+        private final SizeEstimator<Object> sizeEstimator;
+
+        private SortedNumericDocValues values;
+
+
+        public FloatCollectSetNumericDocValueAggregator(String columnName,
+                                                        SizeEstimator<Object> sizeEstimator) {
+            this.columnName = columnName;
+            this.sizeEstimator = sizeEstimator;
+        }
+
+        @Override
+        public HashMap<Float, Object> initialState(RamAccounting ramAccounting) {
+            var state = new HashMap<Float, Object>();
+            ramAccounting.addBytes(RamUsageEstimator.sizeOfMap(state));
+            return state;
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, HashMap<Float, Object> state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                ramAccounting.addBytes(
+                    RamUsageEstimator.alignObjectSize(sizeEstimator.estimateSize(value) + 48L));
+                state.put(value, PRESENT);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(RamAccounting ramAccounting, HashMap<Float, Object> state) {
+            return state;
+        }
+    }
+
+    private static class DoubleCollectSetNumericDocValueAggregator implements DocValueAggregator<HashMap<Double, Object>> {
+
+        private final String columnName;
+        private final SizeEstimator<Object> sizeEstimator;
+
+        private SortedNumericDocValues values;
+
+
+        public DoubleCollectSetNumericDocValueAggregator(String columnName,
+                                                         SizeEstimator<Object> sizeEstimator) {
+            this.columnName = columnName;
+            this.sizeEstimator = sizeEstimator;
+        }
+
+        @Override
+        public HashMap<Double, Object> initialState(RamAccounting ramAccounting) {
+            var state = new HashMap<Double, Object>();
+            ramAccounting.addBytes(RamUsageEstimator.sizeOfMap(state));
+            return state;
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, HashMap<Double, Object> state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                var value = NumericUtils.sortableLongToDouble(values.nextValue());
+                ramAccounting.addBytes(
+                    RamUsageEstimator.alignObjectSize(sizeEstimator.estimateSize(value) + 48L));
+                state.put(value, PRESENT);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(RamAccounting ramAccounting, HashMap<Double, Object> state) {
+            return state;
+        }
+    }
+
+    private static class CollectSetBinaryDocValueAggregator implements DocValueAggregator<HashMap<String, Object>> {
+
+        private final String columnName;
+        private final SizeEstimator<Object> sizeEstimator;
+
+        private SortedBinaryDocValues values;
+
+        public CollectSetBinaryDocValueAggregator(String columnName,
+                                                  SizeEstimator<Object> sizeEstimator) {
+            this.columnName = columnName;
+            this.sizeEstimator = sizeEstimator;
+        }
+
+        @Override
+        public HashMap<String, Object> initialState(RamAccounting ramAccounting) {
+            var state = new HashMap<String, Object>();
+            ramAccounting.addBytes(RamUsageEstimator.sizeOfMap(state));
+            return state;
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = FieldData.toString(DocValues.getSortedSet(reader, columnName));
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, HashMap<String, Object> state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                var value = values.nextValue().utf8ToString();
+                ramAccounting.addBytes(
+                    RamUsageEstimator.alignObjectSize(sizeEstimator.estimateSize(value) + 48L));
+                state.put(value, PRESENT);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(RamAccounting ramAccounting, HashMap<String, Object> state) {
+            return state;
         }
     }
 }
