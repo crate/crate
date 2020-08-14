@@ -61,6 +61,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
     }
 
     @Test
+    @Ignore("https://github.com/crate/crate/issues/10326")
     public void testDistributedPushSelectWithFewAvailableThreadsShouldNeverGetStuck() throws Exception {
         execute("create table t (x int) with (number_of_replicas = 0)");
         ensureYellow();
