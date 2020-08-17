@@ -34,6 +34,7 @@ import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import javax.annotation.Nullable;
@@ -581,16 +582,21 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                         }
                     });
                 };
+                final IndexMetadata indexMetadata = clusterService.state().metadata().index(request.shardId().getIndex());
+                final long mappingVersionOnTarget = indexMetadata != null ? indexMetadata.getMappingVersion() : 0L;
                 recoveryTarget.indexTranslogOperations(
                     request.operations(),
                     request.totalTranslogOps(),
                     request.maxSeenAutoIdTimestampOnPrimary(),
                     request.maxSeqNoOfUpdatesOrDeletesOnPrimary(),
                     request.retentionLeases(),
+                    request.mappingVersionOnPrimary(),
                     ActionListener.wrap(
                         checkpoint -> listener.onResponse(new RecoveryTranslogOperationsResponse(checkpoint)),
                         e -> {
-                            if (e instanceof MapperException) {
+                            // do not retry if the mapping on replica is at least as recent as the mapping
+                            // that the primary used to index the operations in the request.
+                            if (mappingVersionOnTarget < request.mappingVersionOnPrimary() && e instanceof MapperException) {
                                 retryOnMappingException.accept(e);
                             } else {
                                 listener.onFailure(e);

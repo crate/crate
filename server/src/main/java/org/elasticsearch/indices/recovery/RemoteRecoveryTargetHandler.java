@@ -135,6 +135,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
                                         long maxSeenAutoIdTimestampOnPrimary,
                                         long maxSeqNoOfDeletesOrUpdatesOnPrimary,
                                         RetentionLeases retentionLeases,
+                                        long mappingVersionOnPrimary,
                                         ActionListener<Long> listener) {
         final RecoveryTranslogOperationsRequest request = new RecoveryTranslogOperationsRequest(
             recoveryId,
@@ -143,7 +144,9 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             totalTranslogOps,
             maxSeenAutoIdTimestampOnPrimary,
             maxSeqNoOfDeletesOrUpdatesOnPrimary,
-            retentionLeases);
+            retentionLeases,
+            mappingVersionOnPrimary
+        );
         transportService.submitRequest(
             targetNode,
             PeerRecoveryTargetService.Actions.TRANSLOG_OPS,

@@ -251,6 +251,7 @@ public class RecoverySourceHandler {
                 final long maxSeenAutoIdTimestamp = shard.getMaxSeenAutoIdTimestamp();
                 final long maxSeqNoOfUpdatesOrDeletes = shard.getMaxSeqNoOfUpdatesOrDeletes();
                 final RetentionLeases retentionLeases = shard.getRetentionLeases();
+                final long mappingVersionOnPrimary = shard.indexSettings().getIndexMetadata().getMappingVersion();
                 phase2(
                     startingSeqNo,
                     endingSeqNo,
@@ -258,7 +259,9 @@ public class RecoverySourceHandler {
                     maxSeenAutoIdTimestamp,
                     maxSeqNoOfUpdatesOrDeletes,
                     retentionLeases,
-                    sendSnapshotStep);
+                    mappingVersionOnPrimary,
+                    sendSnapshotStep
+                );
                 sendSnapshotStep.whenComplete(
                     r -> IOUtils.close(phase2Snapshot),
                     e -> {
@@ -580,6 +583,7 @@ public class RecoverySourceHandler {
                 long maxSeenAutoIdTimestamp,
                 long maxSeqNoOfUpdatesOrDeletes,
                 RetentionLeases retentionLeases,
+                long mappingVersion,
                 ActionListener<SendSnapshotResult> listener) throws IOException {
         if (shard.state() == IndexShardState.CLOSED) {
             throw new IndexShardClosedException(request.shardId());
@@ -643,6 +647,7 @@ public class RecoverySourceHandler {
             maxSeenAutoIdTimestamp,
             maxSeqNoOfUpdatesOrDeletes,
             retentionLeases,
+            mappingVersion,
             batchedListener
         );
     }
@@ -654,6 +659,7 @@ public class RecoverySourceHandler {
                            long maxSeenAutoIdTimestamp,
                            long maxSeqNoOfUpdatesOrDeletes,
                            RetentionLeases retentionLeases,
+                           long mappingVersionOnPrimary,
                            ActionListener<Long> listener) throws IOException {
         final List<Translog.Operation> operations = nextBatch.get();
         // send the leftover operations or if no operations were sent, request
@@ -665,6 +671,7 @@ public class RecoverySourceHandler {
                 maxSeenAutoIdTimestamp,
                 maxSeqNoOfUpdatesOrDeletes,
                 retentionLeases,
+                mappingVersionOnPrimary,
                 ActionListener.wrap(newCheckpoint ->
                     sendBatch(
                         nextBatch,
@@ -674,6 +681,7 @@ public class RecoverySourceHandler {
                         maxSeenAutoIdTimestamp,
                         maxSeqNoOfUpdatesOrDeletes,
                         retentionLeases,
+                        mappingVersionOnPrimary,
                         listener
                     ),
                     listener::onFailure
