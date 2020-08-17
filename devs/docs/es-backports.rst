@@ -424,7 +424,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 2637e499ac8 Fix assertion error when caching the result of a search in a read-only index (#41900)
 - [ ] a3aacc359f9 Remove Version 6 pre-release constants (#41517)
 - [ ] 354118fac6e Replace more uses of immutable map builder (#41823)
-- [ ] 873007dd3e7 ReadOnlyEngine assertion fix (#41842)
+- [x] 873007dd3e7 ReadOnlyEngine assertion fix (#41842)
 - [x] c7df2b82b94 Noop peer recoveries on closed index (#41400)
 - [s] 434efd1664e Add version 7.2.0 constant to master branch
 - [x] 73bfdc4066b Simplify initialization of max_seq_no of updates (#41161)
