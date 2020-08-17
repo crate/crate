@@ -33,7 +33,7 @@ import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.store.FsDirectoryService;
+import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.index.store.Store;
 
 import java.util.Collections;
@@ -112,7 +112,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexModule.INDEX_STORE_TYPE_SETTING,
         IndexModule.INDEX_STORE_PRE_LOAD_SETTING,
         IndexModule.INDEX_QUERY_CACHE_ENABLED_SETTING,
-        FsDirectoryService.INDEX_LOCK_FACTOR_SETTING,
+        FsDirectoryFactory.INDEX_LOCK_FACTOR_SETTING,
         EngineConfig.INDEX_CODEC_SETTING,
         IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
         IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,

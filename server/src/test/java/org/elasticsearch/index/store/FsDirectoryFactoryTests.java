@@ -19,11 +19,19 @@
 
 package org.elasticsearch.index.store;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Locale;
+
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FileSwitchDirectory;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.store.NoLockFactory;
 import org.apache.lucene.store.SimpleFSDirectory;
+import org.apache.lucene.store.SleepingLockWrapper;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -37,26 +45,57 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Locale;
+public class FsDirectoryFactoryTests extends ESTestCase {
 
-public class IndexStoreTests extends ESTestCase {
+
+    @Test
+    public void testPreload() throws IOException {
+        doTestPreload();
+        doTestPreload("nvd", "dvd", "tim");
+        doTestPreload("*");
+    }
+
+    private void doTestPreload(String...preload) throws IOException {
+        Settings build = Settings.builder()
+                .put(IndexModule.INDEX_STORE_TYPE_SETTING.getKey(), "mmapfs")
+                .putList(IndexModule.INDEX_STORE_PRE_LOAD_SETTING.getKey(), preload)
+                .build();
+        IndexSettings settings = IndexSettingsModule.newIndexSettings("foo", build);
+        Path tempDir = createTempDir().resolve(settings.getUUID()).resolve("0");
+        Files.createDirectories(tempDir);
+        ShardPath path = new ShardPath(false, tempDir, tempDir, new ShardId(settings.getIndex(), 0));
+        FsDirectoryFactory fsDirectoryFactory = new FsDirectoryFactory();
+        Directory directory = fsDirectoryFactory.newDirectory(settings, path);
+        assertFalse(directory instanceof SleepingLockWrapper);
+        if (preload.length == 0) {
+            assertTrue(directory.toString(), directory instanceof MMapDirectory);
+            assertFalse(((MMapDirectory) directory).getPreload());
+        } else if (Arrays.asList(preload).contains("*")) {
+            assertTrue(directory.toString(), directory instanceof MMapDirectory);
+            assertTrue(((MMapDirectory) directory).getPreload());
+        } else {
+            assertTrue(directory.toString(), directory instanceof FileSwitchDirectory);
+            FileSwitchDirectory fsd = (FileSwitchDirectory) directory;
+            assertTrue(fsd.getPrimaryDir() instanceof MMapDirectory);
+            assertTrue(((MMapDirectory) fsd.getPrimaryDir()).getPreload());
+            assertTrue(fsd.getSecondaryDir() instanceof MMapDirectory);
+            assertFalse(((MMapDirectory) fsd.getSecondaryDir()).getPreload());
+        }
+    }
 
     @Test
     public void testStoreDirectory() throws IOException {
         Index index = new Index("foo", "fooUUID");
         final Path tempDir = createTempDir().resolve(index.getUUID()).resolve("0");
         // default
-        doTestStoreDirectory(index, tempDir, null, IndexModule.Type.FS);
+        doTestStoreDirectory(tempDir, null, IndexModule.Type.FS);
         // explicit directory impls
         for (IndexModule.Type type : IndexModule.Type.values()) {
-            doTestStoreDirectory(index, tempDir, type.name().toLowerCase(Locale.ROOT), type);
+            doTestStoreDirectory(tempDir, type.name().toLowerCase(Locale.ROOT), type);
         }
     }
 
-    private void doTestStoreDirectory(Index index,
-                                      Path tempDir,
+    private void doTestStoreDirectory(Path tempDir,
                                       String typeSettingValue,
                                       IndexModule.Type type) throws IOException {
         Settings.Builder settingsBuilder = Settings.builder()
@@ -66,9 +105,8 @@ public class IndexStoreTests extends ESTestCase {
         }
         Settings settings = settingsBuilder.build();
         IndexSettings indexSettings = IndexSettingsModule.newIndexSettings("foo", settings);
-        FsDirectoryService service = new FsDirectoryService(
-            indexSettings, new ShardPath(false, tempDir, tempDir, new ShardId(index, 0)));
-        try (Directory directory = service.newFSDirectory(tempDir, NoLockFactory.INSTANCE)) {
+        FsDirectoryFactory service = new FsDirectoryFactory();
+        try (Directory directory = service.newFSDirectory(tempDir, NoLockFactory.INSTANCE, indexSettings)) {
             switch (type) {
                 case HYBRIDFS:
                     assertHybridDirectory(directory);
@@ -98,8 +136,8 @@ public class IndexStoreTests extends ESTestCase {
     }
 
     private void assertHybridDirectory(Directory directory) {
-        assertTrue(directory.toString(), directory instanceof FsDirectoryService.HybridDirectory);
-        Directory randomAccessDirectory = ((FsDirectoryService.HybridDirectory) directory).getDelegate();
+        assertTrue(directory.toString(), directory instanceof FsDirectoryFactory.HybridDirectory);
+        Directory randomAccessDirectory = ((FsDirectoryFactory.HybridDirectory) directory).getDelegate();
         assertTrue("randomAccessDirectory:  " +  randomAccessDirectory.toString(), randomAccessDirectory instanceof MMapDirectory);
     }
 }

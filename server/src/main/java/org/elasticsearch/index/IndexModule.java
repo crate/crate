@@ -40,7 +40,7 @@ import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexingOperationListener;
-import org.elasticsearch.index.store.IndexStore;
+import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
@@ -64,7 +64,7 @@ import java.util.function.Function;
 /**
  * IndexModule represents the central extension point for index level custom implementations like:
  * <ul>
- *      <li>{@link IndexStore} - Custom {@link IndexStore} instances can be registered via {@link IndexStorePlugin}</li>
+ *      <li>{@link DirectoryService} - Custom {@link DirectoryService} instances can be registered via {@link IndexStorePlugin}</li>
  *      <li>{@link IndexEventListener} - Custom {@link IndexEventListener} instances can be registered via
  *      {@link #addIndexEventListener(IndexEventListener)}</li>
  *      <li>Settings update listener - Custom settings update listener can be registered via
@@ -83,6 +83,8 @@ public final class IndexModule {
         Booleans::parseBoolean,
         Property.NodeScope
     );
+
+    private static final FsDirectoryFactory DEFAULT_DIRECTORY_FACTORY = new FsDirectoryFactory();
 
     public static final Setting<String> INDEX_STORE_TYPE_SETTING =
             new Setting<>("index.store.type", "fs", Function.identity(), Property.IndexScope, Property.NodeScope);
@@ -108,7 +110,7 @@ public final class IndexModule {
     private SetOnce<Function<IndexService,
         CheckedFunction<DirectoryReader, DirectoryReader, IOException>>> indexReaderWrapper = new SetOnce<>();
     private final Set<IndexEventListener> indexEventListeners = new HashSet<>();
-    private final Map<String, Function<IndexSettings, IndexStore>> indexStoreFactories;
+    private final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories;
     private final SetOnce<BiFunction<IndexSettings, IndicesQueryCache, QueryCache>> forceQueryCacheProvider = new SetOnce<>();
     private final List<IndexingOperationListener> indexOperationListeners = new ArrayList<>();
     private final AtomicBoolean frozen = new AtomicBoolean(false);
@@ -120,17 +122,17 @@ public final class IndexModule {
      * @param indexSettings       the index settings
      * @param analysisRegistry    the analysis registry
      * @param engineFactory       the engine factory
-     * @param indexStoreFactories the available store types
+     * @param directoryFactories the available store types
      */
     public IndexModule(
             final IndexSettings indexSettings,
             final AnalysisRegistry analysisRegistry,
             final EngineFactory engineFactory,
-            final Map<String, Function<IndexSettings, IndexStore>> indexStoreFactories) {
+            final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories) {
         this.indexSettings = indexSettings;
         this.analysisRegistry = analysisRegistry;
         this.engineFactory = Objects.requireNonNull(engineFactory);
-        this.indexStoreFactories = Collections.unmodifiableMap(indexStoreFactories);
+        this.directoryFactories = Collections.unmodifiableMap(directoryFactories);
     }
 
     /**
@@ -334,7 +336,7 @@ public final class IndexModule {
         Function<IndexService, CheckedFunction<DirectoryReader, DirectoryReader, IOException>> readerWrapperFactory =
             indexReaderWrapper.get() == null ? (shard) -> null : indexReaderWrapper.get();
         eventListener.beforeIndexCreated(indexSettings.getIndex(), indexSettings.getSettings());
-        final IndexStore store = getIndexStore(indexSettings, indexStoreFactories);
+        final IndexStorePlugin.DirectoryFactory directoryFactory = getDirectoryFactory(indexSettings, directoryFactories);
         final QueryCache queryCache;
         if (indexSettings.getValue(INDEX_QUERY_CACHE_ENABLED_SETTING)) {
             BiFunction<IndexSettings, IndicesQueryCache, QueryCache> queryCacheProvider = forceQueryCacheProvider.get();
@@ -358,7 +360,7 @@ public final class IndexModule {
             bigArrays,
             threadPool,
             queryCache,
-            store,
+            directoryFactory,
             eventListener,
             readerWrapperFactory,
             mapperRegistry,
@@ -366,8 +368,8 @@ public final class IndexModule {
         );
     }
 
-    private static IndexStore getIndexStore(
-            final IndexSettings indexSettings, final Map<String, Function<IndexSettings, IndexStore>> indexStoreFactories) {
+    private static IndexStorePlugin.DirectoryFactory getDirectoryFactory(
+            final IndexSettings indexSettings, final Map<String, IndexStorePlugin.DirectoryFactory> indexStoreFactories) {
         final String storeType = indexSettings.getValue(INDEX_STORE_TYPE_SETTING);
         final Type type;
         final Boolean allowMmap = NODE_STORE_ALLOW_MMAP.getWithFallback(indexSettings.getNodeSettings());
@@ -383,20 +385,16 @@ public final class IndexModule {
         if (allowMmap == false && (type == Type.MMAPFS || type == Type.HYBRIDFS)) {
             throw new IllegalArgumentException("store type [" + storeType + "] is not allowed because mmap is disabled");
         }
-        final IndexStore store;
+        final IndexStorePlugin.DirectoryFactory factory;
         if (storeType.isEmpty() || isBuiltinType(storeType)) {
-            store = new IndexStore(indexSettings);
+            factory = DEFAULT_DIRECTORY_FACTORY;
         } else {
-            Function<IndexSettings, IndexStore> factory = indexStoreFactories.get(storeType);
+            factory = indexStoreFactories.get(storeType);
             if (factory == null) {
                 throw new IllegalArgumentException("Unknown store type [" + storeType + "]");
             }
-            store = factory.apply(indexSettings);
-            if (store == null) {
-                throw new IllegalStateException("store must not be null");
-            }
         }
-        return store;
+        return factory;
     }
 
     /**
