@@ -26,6 +26,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.crate.common.MutableFloat;
 import io.crate.types.ByteType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -120,12 +121,10 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
     private static class DoubleMin implements DocValueAggregator<MutableDouble> {
 
         private final String columnName;
-        private final DataType<?> partialType;
         private SortedNumericDocValues values;
 
-        public DoubleMin(String columnName, DataType<?> partialType) {
+        public DoubleMin(String columnName) {
             this.columnName = columnName;
-            this.partialType = partialType;
         }
 
         @Override
@@ -151,27 +150,25 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         @Override
         public Object partialResult(MutableDouble state) {
             if (state.hasValue()) {
-                return partialType.sanitizeValue(state.value());
+                return state.value();
             } else {
                 return null;
             }
         }
     }
 
-    private static class FloatMin implements DocValueAggregator<MutableDouble> {
+    private static class FloatMin implements DocValueAggregator<MutableFloat> {
 
         private final String columnName;
-        private final DataType<?> partialType;
         private SortedNumericDocValues values;
 
-        public FloatMin(String columnName, DataType<?> partialType) {
+        public FloatMin(String columnName) {
             this.columnName = columnName;
-            this.partialType = partialType;
         }
 
         @Override
-        public MutableDouble initialState() {
-            return new MutableDouble(Double.MAX_VALUE);
+        public MutableFloat initialState() {
+            return new MutableFloat(Float.MAX_VALUE);
         }
 
         @Override
@@ -180,7 +177,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void apply(MutableDouble state, int doc) throws IOException {
+        public void apply(MutableFloat state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                 if (value < state.value()) {
@@ -190,9 +187,9 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(MutableDouble state) {
+        public Object partialResult(MutableFloat state) {
             if (state.hasValue()) {
-                return partialType.sanitizeValue(state.value());
+                return state.value();
             } else {
                 return null;
             }
@@ -260,9 +257,9 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
                     return new LongMin(fieldTypes.get(0).name(), arg);
 
                 case FloatType.ID:
-                    return new FloatMin(fieldTypes.get(0).name(), arg);
+                    return new FloatMin(fieldTypes.get(0).name());
                 case DoubleType.ID:
-                    return new DoubleMin(fieldTypes.get(0).name(), arg);
+                    return new DoubleMin(fieldTypes.get(0).name());
 
                 default:
                     return null;

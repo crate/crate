@@ -23,6 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.MutableLong;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
@@ -53,12 +54,11 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
-public class CountAggregation extends AggregationFunction<CountAggregation.LongState, Long> {
+public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
     public static final String NAME = "count";
     public static final Signature SIGNATURE =
@@ -99,9 +99,9 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     @Override
-    public LongState iterate(RamAccounting ramAccounting,
+    public MutableLong iterate(RamAccounting ramAccounting,
                              MemoryManager memoryManager,
-                             LongState state,
+                             MutableLong state,
                              Input... args) {
         if (!hasArgs || args[0].value() != null) {
             return state.add(1L);
@@ -111,12 +111,12 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
 
     @Nullable
     @Override
-    public LongState newState(RamAccounting ramAccounting,
+    public MutableLong newState(RamAccounting ramAccounting,
                               Version indexVersionCreated,
                               Version minNodeInCluster,
                               MemoryManager memoryManager) {
         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
-        return new LongState();
+        return new MutableLong(0L);
     }
 
     @Override
@@ -152,75 +152,17 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     @Override
-    public LongState reduce(RamAccounting ramAccounting, LongState state1, LongState state2) {
-        return state1.merge(state2);
+    public MutableLong reduce(RamAccounting ramAccounting, MutableLong state1, MutableLong state2) {
+        return state1.add(state2.value());
     }
 
     @Override
-    public Long terminatePartial(RamAccounting ramAccounting, LongState state) {
-        return state.value;
+    public Long terminatePartial(RamAccounting ramAccounting, MutableLong state) {
+        return state.value();
     }
 
-    public static class LongState implements Comparable<CountAggregation.LongState> {
-
-        long value = 0L;
-
-        LongState() {
-        }
-
-        public LongState(long value) {
-            this.value = value;
-        }
-
-        public LongState add(long value) {
-            this.value = this.value + value;
-            return this;
-        }
-
-        public LongState sub(long value) {
-            this.value = this.value - value;
-            return this;
-        }
-
-        public LongState merge(LongState otherState) {
-            add(otherState.value);
-            return this;
-        }
-
-        @Override
-        public int compareTo(LongState o) {
-            if (o == null) {
-                return 1;
-            } else {
-                return Long.compare(value, o.value);
-            }
-        }
-
-        @Override
-        public String toString() {
-            return String.valueOf(value);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            LongState that = (LongState) o;
-            return value == that.value;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(value);
-        }
-    }
-
-    public static class LongStateType extends DataType<LongState>
-        implements FixedWidthType, Streamer<LongState> {
+    public static class LongStateType extends DataType<MutableLong>
+        implements FixedWidthType, Streamer<MutableLong> {
 
         public static final int ID = 16384;
         public static final LongStateType INSTANCE = new LongStateType();
@@ -241,32 +183,34 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         }
 
         @Override
-        public Streamer<LongState> streamer() {
+        public Streamer<MutableLong> streamer() {
             return this;
         }
 
         @Override
-        public LongState sanitizeValue(Object value) {
-            return (LongState) value;
+        public MutableLong sanitizeValue(Object value) {
+            return (MutableLong) value;
         }
 
         @Override
-        public int compare(LongState val1, LongState val2) {
+        public int compare(MutableLong val1, MutableLong val2) {
             if (val1 == null) {
                 return -1;
+            } else if (val2 == null) {
+                return 1;
             } else {
-                return val1.compareTo(val2);
+                return Long.compare(val1.value(), val2.value());
             }
         }
 
         @Override
-        public LongState readValueFrom(StreamInput in) throws IOException {
-            return new CountAggregation.LongState(in.readVLong());
+        public MutableLong readValueFrom(StreamInput in) throws IOException {
+            return new MutableLong(in.readVLong());
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, LongState v) throws IOException {
-            out.writeVLong(v.value);
+        public void writeValueTo(StreamOutput out, MutableLong v) throws IOException {
+            out.writeVLong(v.value());
         }
 
         @Override
@@ -281,9 +225,9 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     @Override
-    public LongState removeFromAggregatedState(RamAccounting ramAccounting,
-                                               LongState previousAggState,
-                                               Input[] stateToRemove) {
+    public MutableLong removeFromAggregatedState(RamAccounting ramAccounting,
+                                                 MutableLong previousAggState,
+                                                 Input[] stateToRemove) {
         if (!hasArgs || stateToRemove[0].value() != null) {
             return previousAggState.sub(1L);
         }
@@ -306,14 +250,14 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
                 case GeoPointType.ID:
                     return new SortedNumericDocValueAggregator<>(
                         fieldTypes.get(0).name(),
-                        LongState::new,
+                        () -> new MutableLong(0L),
                         (values, state) -> state.add(1L)
                     );
                 case IpType.ID:
                 case StringType.ID:
                     return new BinaryDocValueAggregator<>(
                         fieldTypes.get(0).name(),
-                        LongState::new,
+                        () -> new MutableLong(0L),
                         (values, state) -> state.add(1L)
                     );
                 default:

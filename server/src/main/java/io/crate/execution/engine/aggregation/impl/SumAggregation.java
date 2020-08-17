@@ -22,6 +22,9 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.breaker.RamAccounting;
+import io.crate.common.MutableDouble;
+import io.crate.common.MutableFloat;
+import io.crate.common.MutableLong;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -190,12 +193,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
     }
 
-    static class SumLongState {
-        private long sum = 0L;
-        private boolean hadValue = false;
-    }
-
-    static class SumLong implements DocValueAggregator<SumLongState> {
+    static class SumLong implements DocValueAggregator<MutableLong> {
 
         private final String columnName;
         private SortedNumericDocValues values;
@@ -205,8 +203,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public SumLongState initialState() {
-            return new SumLongState();
+        public MutableLong initialState() {
+            return new MutableLong(0L);
         }
 
         @Override
@@ -215,26 +213,19 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(SumLongState state, int doc) throws IOException {
+        public void apply(MutableLong state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                state.sum = Math.addExact(state.sum, values.nextValue());
-                state.hadValue = true;
+                state.setValue(Math.addExact(state.value(), values.nextValue()));
             }
         }
 
         @Override
-        public Long partialResult(SumLongState state) {
-            return state.hadValue ? state.sum : null;
+        public Long partialResult(MutableLong state) {
+            return state.hasValue() ? state.value() : null;
         }
     }
 
-    static class SumDoubleState {
-
-        private double sum = 0.0;
-        private boolean hadValue = false;
-    }
-
-    static class SumDouble implements DocValueAggregator<SumDoubleState> {
+    static class SumDouble implements DocValueAggregator<MutableDouble> {
 
         private final String columnName;
         private SortedNumericDocValues values;
@@ -244,8 +235,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public SumDoubleState initialState() {
-            return new SumDoubleState();
+        public MutableDouble initialState() {
+            return new MutableDouble(.0d);
         }
 
         @Override
@@ -254,26 +245,20 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(SumDoubleState state, int doc) throws IOException {
+        public void apply(MutableDouble state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                state.sum += NumericUtils.sortableLongToDouble(values.nextValue());
-                state.hadValue = true;
+                var value = state.value() + NumericUtils.sortableLongToDouble(values.nextValue());
+                state.setValue(value);
             }
         }
 
         @Override
-        public Object partialResult(SumDoubleState state) {
-            return state.hadValue ? state.sum : null;
+        public Object partialResult(MutableDouble state) {
+            return state.hasValue() ? state.value() : null;
         }
     }
 
-    static class SumFloatState {
-
-        private float sum = .0f;
-        private boolean hadValue = false;
-    }
-
-    static class SumFloat implements DocValueAggregator<SumFloatState> {
+    static class SumFloat implements DocValueAggregator<MutableFloat> {
 
         private final String columnName;
         private SortedNumericDocValues values;
@@ -283,8 +268,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public SumFloatState initialState() {
-            return new SumFloatState();
+        public MutableFloat initialState() {
+            return new MutableFloat(.0f);
         }
 
         @Override
@@ -293,16 +278,15 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(SumFloatState state, int doc) throws IOException {
+        public void apply(MutableFloat state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                state.sum += NumericUtils.sortableIntToFloat((int) values.nextValue());
-                state.hadValue = true;
+                state.setValue(state.value() + NumericUtils.sortableIntToFloat((int) values.nextValue()));
             }
         }
 
         @Override
-        public Object partialResult(SumFloatState state) {
-            return state.hadValue ? state.sum : null;
+        public Object partialResult(MutableFloat state) {
+            return state.hasValue() ? state.value() : null;
         }
     }
 }

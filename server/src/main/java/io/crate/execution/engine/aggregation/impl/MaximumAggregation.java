@@ -26,6 +26,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.crate.common.MutableFloat;
 import io.crate.types.ByteType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -121,12 +122,10 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     private static class DoubleMax implements DocValueAggregator<MutableDouble> {
 
         private final String columnName;
-        private final DataType<?> partialType;
         private SortedNumericDocValues values;
 
-        public DoubleMax(String columnName, DataType<?> partialType) {
+        public DoubleMax(String columnName) {
             this.columnName = columnName;
-            this.partialType = partialType;
         }
 
         @Override
@@ -152,7 +151,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Override
         public Object partialResult(MutableDouble state) {
             if (state.hasValue()) {
-                return partialType.sanitizeValue(state.value());
+                return state.value();
             } else {
                 return null;
             }
@@ -160,20 +159,18 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     }
 
 
-    private static class FloatMax implements DocValueAggregator<MutableDouble> {
+    private static class FloatMax implements DocValueAggregator<MutableFloat> {
 
         private final String columnName;
-        private final DataType<?> partialType;
         private SortedNumericDocValues values;
 
-        public FloatMax(String columnName, DataType<?> partialType) {
+        public FloatMax(String columnName) {
             this.columnName = columnName;
-            this.partialType = partialType;
         }
 
         @Override
-        public MutableDouble initialState() {
-            return new MutableDouble(Double.MIN_VALUE);
+        public MutableFloat initialState() {
+            return new MutableFloat(Float.MIN_VALUE);
         }
 
         @Override
@@ -182,7 +179,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void apply(MutableDouble state, int doc) throws IOException {
+        public void apply(MutableFloat state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                 if (value > state.value()) {
@@ -192,9 +189,9 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(MutableDouble state) {
+        public Object partialResult(MutableFloat state) {
             if (state.hasValue()) {
-                return partialType.sanitizeValue(state.value());
+                return state.value();
             } else {
                 return null;
             }
@@ -224,9 +221,9 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
                     return new LongMax(fieldTypes.get(0).name(), arg);
 
                 case FloatType.ID:
-                    return new FloatMax(fieldTypes.get(0).name(), arg);
+                    return new FloatMax(fieldTypes.get(0).name());
                 case DoubleType.ID:
-                    return new DoubleMax(fieldTypes.get(0).name(), arg);
+                    return new DoubleMax(fieldTypes.get(0).name());
 
                 default:
                     return null;
