@@ -46,7 +46,6 @@ existing user-created doc table in the cluster::
     |    max_shingle_diff = 3,                            |
     |    "merge.scheduler.max_thread_count" = 1,          |
     |    number_of_replicas = '0-1',                      |
-    |    refresh_interval = 1000,                         |
     |    "routing.allocation.enable" = 'all',             |
     |    "routing.allocation.total_shards_per_node" = -1, |
     |    "store.type" = 'fs',                             |

@@ -29,6 +29,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.AbstractTask;
@@ -43,6 +44,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class CollectTask extends AbstractTask {
@@ -147,7 +149,6 @@ public class CollectTask extends AbstractTask {
         return collectPhase.name();
     }
 
-
     @Override
     public String toString() {
         return "CollectTask{" +
@@ -161,9 +162,20 @@ public class CollectTask extends AbstractTask {
 
     @Override
     protected void innerStart() {
-        batchIterator = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
-        String threadPoolName = threadPoolName(collectPhase, batchIterator.hasLazyResultSet());
-        collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
+        CompletableFuture<BatchIterator<Row>> futureIt = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
+        futureIt.whenComplete((it, err) -> {
+            if (err == null) {
+                CollectTask.this.batchIterator = it;
+                String threadPoolName = threadPoolName(collectPhase, it.hasLazyResultSet());
+                try {
+                    collectOperation.launch(() -> consumer.accept(it, null), threadPoolName);
+                } catch (Throwable t) {
+                    consumer.accept(null, t);
+                }
+            } else {
+                consumer.accept(null, SQLExceptions.unwrap(err));
+            }
+        });
     }
 
     public TransactionContext txnCtx() {

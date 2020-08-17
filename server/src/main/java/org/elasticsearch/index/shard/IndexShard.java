@@ -39,6 +39,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -221,6 +222,9 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      */
     private final RefreshListeners refreshListeners;
 
+    private final AtomicLong lastSearcherAccess = new AtomicLong();
+    private final AtomicReference<Translog.Location> pendingRefreshLocation = new AtomicReference<>();
+
     public IndexShard(
             ShardRouting shardRouting,
             IndexSettings indexSettings,
@@ -301,6 +305,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         indexShardOperationPermits = new IndexShardOperationPermits(shardId, logger, threadPool);
         readerWrapper = indexReaderWrapper;
         refreshListeners = buildRefreshListeners();
+        lastSearcherAccess.set(threadPool.relativeTimeInMillis());
         persistMetadata(path, indexSettings, shardRouting, null, logger);
     }
 
@@ -1138,8 +1143,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return acquireSearcher(source, Engine.SearcherScope.EXTERNAL);
     }
 
+    private void markSearcherAccessed() {
+        lastSearcherAccess.lazySet(threadPool.relativeTimeInMillis());
+    }
+
     private Engine.Searcher acquireSearcher(String source, Engine.SearcherScope scope) {
         readAllowed();
+        markSearcherAccessed();
         final Engine engine = getEngine();
         final Engine.Searcher searcher = engine.acquireSearcher(source, scope);
         boolean success = false;
@@ -2894,14 +2904,78 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     /**
-     * Returns <code>true</code> iff one or more changes to the engine are not visible to via the current searcher *or* there are pending
-     * refresh listeners.
-     * Otherwise <code>false</code>.
+     * Executes a scheduled refresh if necessary.
      *
-     * @throws AlreadyClosedException if the engine or internal indexwriter in the engine is already closed
+     * @return <code>true</code> iff the engine got refreshed otherwise <code>false</code>
      */
-    public boolean isRefreshNeeded() {
-        return getEngine().refreshNeeded() || (refreshListeners != null && refreshListeners.refreshNeeded());
+    public boolean scheduledRefresh() {
+        verifyNotClosed();
+        boolean listenerNeedsRefresh = refreshListeners.refreshNeeded();
+        if (isReadAllowed() && (listenerNeedsRefresh || getEngine().refreshNeeded())) {
+            if (listenerNeedsRefresh == false // if we have a listener that is waiting for a refresh we need to force it
+                && isSearchIdle() && indexSettings.isExplicitRefresh() == false) {
+                // lets skip this refresh since we are search idle and
+                // don't necessarily need to refresh. the next searcher access will register a refreshListener and that will
+                // cause the next schedule to refresh.
+                final Engine engine = getEngine();
+                engine.maybePruneDeletes(); // try to prune the deletes in the engine if we accumulated some
+                setRefreshPending(engine);
+                return false;
+            } else {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("refresh with source [schedule]");
+                }
+                return getEngine().maybeRefresh("schedule");
+            }
+        }
+        final Engine engine = getEngine();
+        engine.maybePruneDeletes(); // try to prune the deletes in the engine if we accumulated some
+        return false;
+    }
+
+    /**
+     * Returns true if this shards is search idle
+     */
+    final boolean isSearchIdle() {
+        return (threadPool.relativeTimeInMillis() - lastSearcherAccess.get()) >= indexSettings.getSearchIdleAfter().getMillis();
+    }
+
+    /**
+     * Returns the last timestamp the searcher was accessed. This is a relative timestamp in milliseconds.
+     */
+    final long getLastSearcherAccess() {
+        return lastSearcherAccess.get();
+    }
+
+    private void setRefreshPending(Engine engine) {
+        Translog.Location lastWriteLocation = engine.getTranslogLastWriteLocation();
+        Translog.Location location;
+        do {
+            location = this.pendingRefreshLocation.get();
+            if (location != null && lastWriteLocation.compareTo(location) <= 0) {
+                break;
+            }
+        } while (pendingRefreshLocation.compareAndSet(location, lastWriteLocation) == false);
+    }
+
+    /**
+     * Registers the given listener and invokes it once the shard is active again and all
+     * pending refresh translog location has been refreshed. If there is no pending refresh location registered the listener will be
+     * invoked immediately.
+     * @param listener the listener to invoke once the pending refresh location is visible. The listener will be called with
+     *                 <code>true</code> if the listener was registered to wait for a refresh.
+     */
+    public final void awaitShardSearchActive(Consumer<Boolean> listener) {
+        markSearcherAccessed(); // move the shard into non-search idle
+        final Translog.Location location = pendingRefreshLocation.get();
+        if (location != null) {
+            addRefreshListener(location, (b) -> {
+                pendingRefreshLocation.compareAndSet(location, null);
+                listener.accept(true);
+            });
+        } else {
+            listener.accept(false);
+        }
     }
 
     /**

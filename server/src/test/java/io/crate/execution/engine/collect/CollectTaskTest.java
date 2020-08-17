@@ -51,6 +51,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.CompletableFuture;
+
 public class CollectTaskTest extends RandomizedTest {
 
     private CollectTask collectTask;
@@ -130,7 +132,7 @@ public class CollectTaskTest extends RandomizedTest {
 
         BatchIterator<Row> batchIterator = mock(BatchIterator.class);
         when(collectOperationMock.createIterator(eq(txnCtx), eq(collectPhase), anyBoolean(), eq(jobCtx)))
-            .thenReturn(batchIterator);
+            .thenReturn(CompletableFuture.completedFuture(batchIterator));
         jobCtx.start();
         jobCtx.kill(JobKilledException.of("because reasons"));
 

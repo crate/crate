@@ -58,6 +58,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class CollectSourceResolver {
@@ -178,11 +179,11 @@ public class CollectSourceResolver {
     private static class VoidCollectSource implements CollectSource {
 
         @Override
-        public BatchIterator<Row> getIterator(TransactionContext txnCtx,
-                                              CollectPhase collectPhase,
-                                              CollectTask collectTask,
-                                              boolean supportMoveToStart) {
-            return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+        public CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,
+                                                                 CollectPhase collectPhase,
+                                                                 CollectTask collectTask,
+                                                                 boolean supportMoveToStart) {
+            return CompletableFuture.completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
         }
     }
 }

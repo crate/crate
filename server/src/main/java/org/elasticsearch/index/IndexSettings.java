@@ -67,6 +67,9 @@ public final class IndexSettings {
     public static final Setting<TimeValue> INDEX_TRANSLOG_SYNC_INTERVAL_SETTING =
         Setting.timeSetting("index.translog.sync_interval", TimeValue.timeValueSeconds(5), TimeValue.timeValueMillis(100),
             Property.IndexScope);
+    public static final Setting<TimeValue> INDEX_SEARCH_IDLE_AFTER =
+        Setting.timeSetting("index.search.idle.after", TimeValue.timeValueSeconds(30),
+            TimeValue.timeValueMinutes(0), Property.IndexScope, Property.Dynamic);
     public static final Setting<Translog.Durability> INDEX_TRANSLOG_DURABILITY_SETTING =
         new Setting<>("index.translog.durability", Translog.Durability.REQUEST.name(),
             (value) -> Translog.Durability.valueOf(value.toUpperCase(Locale.ROOT)), Property.Dynamic, Property.IndexScope);
@@ -257,6 +260,7 @@ public final class IndexSettings {
     private volatile boolean warmerEnabled;
     private volatile int maxNgramDiff;
     private volatile int maxShingleDiff;
+    private volatile TimeValue searchIdleAfter;
 
     /**
      * The maximum number of refresh listeners allows on this shard.
@@ -335,6 +339,7 @@ public final class IndexSettings {
         maxShingleDiff = scopedSettings.get(MAX_SHINGLE_DIFF_SETTING);
         maxRefreshListeners = scopedSettings.get(MAX_REFRESH_LISTENERS_PER_SHARD);
         this.mergePolicyConfig = new MergePolicyConfig(logger, this);
+        searchIdleAfter = scopedSettings.get(INDEX_SEARCH_IDLE_AFTER);
         singleType = INDEX_MAPPING_SINGLE_TYPE_SETTING.get(indexMetadata.getSettings()); // get this from metadata - it's not registered
         if (singleType == false) {
             throw new AssertionError(
@@ -370,8 +375,13 @@ public final class IndexSettings {
         scopedSettings.addSettingsUpdateConsumer(INDEX_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
         scopedSettings.addSettingsUpdateConsumer(MAX_REFRESH_LISTENERS_PER_SHARD, this::setMaxRefreshListeners);
         scopedSettings.addSettingsUpdateConsumer(DEFAULT_FIELD_SETTING, this::setDefaultFields);
+        scopedSettings.addSettingsUpdateConsumer(INDEX_SEARCH_IDLE_AFTER, this::setSearchIdleAfter);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING, this::setSoftDeleteRetentionOperations);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING, this::setRetentionLeaseMillis);
+    }
+
+    private void setSearchIdleAfter(TimeValue searchIdleAfter) {
+        this.searchIdleAfter = searchIdleAfter;
     }
 
     private void setTranslogFlushThresholdSize(ByteSizeValue byteSizeValue) {
@@ -658,6 +668,20 @@ public final class IndexSettings {
 
     public IndexScopedSettings getScopedSettings() {
         return scopedSettings;
+    }
+
+    /**
+     * Returns true iff the refresh setting exists or in other words is explicitly set.
+     */
+    public boolean isExplicitRefresh() {
+        return INDEX_REFRESH_INTERVAL_SETTING.exists(settings);
+    }
+
+    /**
+     * Returns the time that an index shard becomes search idle unless it's accessed in between
+     */
+    public TimeValue getSearchIdleAfter() {
+        return searchIdleAfter;
     }
 
     /**

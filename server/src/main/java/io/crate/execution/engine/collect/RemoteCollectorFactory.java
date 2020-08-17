@@ -92,10 +92,10 @@ public class RemoteCollectorFactory {
      * <p>
      * This should only be used if a shard is not available on the current node due to a relocation
      */
-    public BatchIterator<Row> createCollector(ShardId shardId,
-                                              RoutedCollectPhase collectPhase,
-                                              CollectTask collectTask,
-                                              ShardCollectorProviderFactory shardCollectorProviderFactory) {
+    public CompletableFuture<BatchIterator<Row>> createCollector(ShardId shardId,
+                                                                 RoutedCollectPhase collectPhase,
+                                                                 CollectTask collectTask,
+                                                                 ShardCollectorProviderFactory shardCollectorProviderFactory) {
         ShardStateObserver shardStateObserver = new ShardStateObserver(clusterService);
         CompletableFuture<ShardRouting> shardBecameActive = shardStateObserver.waitForActiveShard(shardId);
         Runnable onClose = () -> {};
@@ -103,12 +103,13 @@ public class RemoteCollectorFactory {
             shardBecameActive.cancel(true);
             shardBecameActive.completeExceptionally(killReason);
         };
-        return CollectingBatchIterator.newInstance(
-            onClose,
-            kill,
-            () -> shardBecameActive.thenCompose(
-                activePrimaryRouting -> retrieveRows(activePrimaryRouting, collectPhase, collectTask, shardCollectorProviderFactory)),
-            true
+        return shardBecameActive.thenApply(activePrimaryRouting ->
+            CollectingBatchIterator.newInstance(
+                onClose,
+                kill,
+                () -> retrieveRows(activePrimaryRouting, collectPhase, collectTask, shardCollectorProviderFactory),
+                true
+            )
         );
     }
 
@@ -124,13 +125,13 @@ public class RemoteCollectorFactory {
             var indexShard = indicesService.indexServiceSafe(activePrimaryRouting.index())
                 .getShard(activePrimaryRouting.shardId().id());
             var collectorProvider = shardCollectorProviderFactory.create(indexShard);
-            BatchIterator<Row> it;
+            CompletableFuture<BatchIterator<Row>> it;
             try {
-                it = collectorProvider.getIterator(collectPhase, consumer.requiresScroll(), collectTask);
+                it = collectorProvider.getFutureIterator(collectPhase, consumer.requiresScroll(), collectTask);
             } catch (Exception e) {
                 return Exceptions.rethrowRuntimeException(e);
             }
-            consumer.accept(it, null);
+            it.whenComplete(consumer);
         } else {
             UUID childJobId = UUID.randomUUID();
             RemoteCollector remoteCollector = new RemoteCollector(

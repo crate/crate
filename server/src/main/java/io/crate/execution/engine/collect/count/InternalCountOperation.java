@@ -23,6 +23,9 @@ package io.crate.execution.engine.collect.count;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
+
+import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -49,6 +52,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +90,7 @@ public class InternalCountOperation implements CountOperation {
     public CompletableFuture<Long> count(TransactionContext txnCtx,
                                          Map<String, IntIndexedContainer> indexShardMap,
                                          Symbol filter) {
-        List<Supplier<Long>> suppliers = new ArrayList<>();
+        List<CompletableFuture<Supplier<Long>>> futureSuppliers = new ArrayList<>();
         Metadata metadata = clusterService.state().getMetadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
             String indexName = entry.getKey();
@@ -100,37 +104,46 @@ public class InternalCountOperation implements CountOperation {
             final Index index = indexMetadata.getIndex();
             for (IntCursor shardCursor : entry.getValue()) {
                 int shardValue = shardCursor.value;
-                suppliers.add(() -> {
-                    try {
-                        return count(txnCtx, index, shardValue, filter);
-                    } catch (IOException | InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                futureSuppliers.add(prepareGetCount(txnCtx, index, shardValue, filter));
             }
         }
         MergePartialCountFunction mergeFunction = new MergePartialCountFunction();
-        CompletableFuture<List<Long>> futurePartialCounts = ThreadPools.runWithAvailableThreads(
-            executor,
-            ThreadPools.numIdleThreads(executor, numProcessors),
-            suppliers
-        );
-        return futurePartialCounts.thenApply(mergeFunction);
+
+        return CompletableFutures.allAsList(futureSuppliers)
+            .thenCompose(suppliers -> ThreadPools.runWithAvailableThreads(
+                executor,
+                ThreadPools.numIdleThreads(executor, numProcessors),
+                suppliers
+            )).thenApply(mergeFunction);
     }
 
-    @Override
-    public long count(TransactionContext txnCtx, Index index, int shardId, Symbol filter) throws IOException, InterruptedException {
+    public CompletableFuture<Supplier<Long>> prepareGetCount(TransactionContext txnCtx, Index index, int shardId, Symbol filter) {
         IndexService indexService;
         try {
             indexService = indicesService.indexServiceSafe(index);
         } catch (IndexNotFoundException e) {
             if (IndexParts.isPartitioned(index.getName())) {
-                return 0L;
+                return CompletableFuture.completedFuture(() -> 0L);
+            } else {
+                return CompletableFuture.failedFuture(e);
             }
-            throw e;
         }
-
         IndexShard indexShard = indexService.getShard(shardId);
+        CompletableFuture<Supplier<Long>> futureCount = new CompletableFuture<>();
+        indexShard.awaitShardSearchActive(b -> {
+            try {
+                futureCount.complete(() -> syncCount(indexService, indexShard, txnCtx, filter));
+            } catch (Throwable t) {
+                futureCount.completeExceptionally(t);
+            }
+        });
+        return futureCount;
+    }
+
+    private long syncCount(IndexService indexService,
+                           IndexShard indexShard,
+                           TransactionContext txnCtx,
+                           Symbol filter) {
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             String indexName = indexShard.shardId().getIndexName();
             var relationName = RelationName.fromIndexName(indexName);
@@ -145,9 +158,11 @@ public class InternalCountOperation implements CountOperation {
                 indexService.cache()
             );
             if (Thread.interrupted()) {
-                throw new InterruptedException("thread interrupted during count-operation");
+                throw JobKilledException.of("thread interrupted during count-operation");
             }
             return searcher.count(queryCtx.query());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -99,6 +100,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -259,10 +261,10 @@ public class ShardCollectSource implements CollectSource {
 
 
     @Override
-    public BatchIterator<Row> getIterator(TransactionContext txnCtx,
-                                          CollectPhase phase,
-                                          CollectTask collectTask,
-                                          boolean supportMoveToStart) {
+    public CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,
+                                                             CollectPhase phase,
+                                                             CollectTask collectTask,
+                                                             boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         String localNodeId = clusterService.localNode().getId();
 
@@ -277,29 +279,29 @@ public class ShardCollectSource implements CollectSource {
         boolean requireMoveToStartSupport = supportMoveToStart && !projectors.providesIndependentScroll();
 
         if (collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
-            return projectors.wrap(InMemoryBatchIterator.of(
-                getShardsIterator(collectTask.txnCtx(), collectPhase, localNodeId), SentinelRow.SENTINEL, true));
+            return CompletableFuture.completedFuture(projectors.wrap(InMemoryBatchIterator.of(
+                getShardsIterator(collectTask.txnCtx(), collectPhase, localNodeId), SentinelRow.SENTINEL, true)));
         }
         OrderBy orderBy = collectPhase.orderBy();
         if (collectPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
-            return projectors.wrap(createMultiShardScoreDocCollector(
+            return createMultiShardScoreDocCollector(
                 collectPhase,
                 requireMoveToStartSupport,
                 collectTask,
                 localNodeId
-            ));
+            ).thenApply(projectors::wrap);
         }
 
         boolean hasShardProjections = Projections.hasAnyShardProjections(collectPhase.projections());
         Map<String, IntIndexedContainer> indexShards = collectPhase.routing().locations().get(localNodeId);
-        List<BatchIterator<Row>> iterators = indexShards == null
+        List<CompletableFuture<BatchIterator<Row>>> iterators = indexShards == null
             ? Collections.emptyList()
             : getIterators(collectTask, collectPhase, requireMoveToStartSupport, indexShards);
 
-        final BatchIterator<Row> result;
+        final CompletableFuture<BatchIterator<Row>> result;
         switch (iterators.size()) {
             case 0:
-                result = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+                result = CompletableFuture.completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
                 break;
 
             case 1:
@@ -312,28 +314,30 @@ public class ShardCollectSource implements CollectSource {
                     // in order to process shard-based projections concurrently
 
                     //noinspection unchecked
-                    result = CompositeBatchIterator.asyncComposite(
-                        executor,
-                        availableThreads,
-                        iterators.toArray(new BatchIterator[0])
-                    );
+                    result = CompletableFutures.allAsList(iterators)
+                        .thenApply(its -> CompositeBatchIterator.asyncComposite(
+                            executor,
+                            availableThreads,
+                            its.toArray(new BatchIterator[0])
+                        ));
                 } else {
                     //noinspection unchecked
-                    result = CompositeBatchIterator.seqComposite(iterators.toArray(new BatchIterator[0]));
+                    result = CompletableFutures.allAsList(iterators)
+                        .thenApply(its -> CompositeBatchIterator.seqComposite(its.toArray(new BatchIterator[0])));
                 }
         }
-        return projectors.wrap(result);
+        return result.thenApply(it -> projectors.wrap(it));
     }
 
-    private BatchIterator<Row> createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
-                                                                 boolean supportMoveToStart,
-                                                                 CollectTask collectTask,
-                                                                 String localNodeId) {
+    private CompletableFuture<BatchIterator<Row>> createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
+                                                                                    boolean supportMoveToStart,
+                                                                                    CollectTask collectTask,
+                                                                                    String localNodeId) {
 
         Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
         SharedShardContexts sharedShardContexts = collectTask.sharedShardContexts();
         Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
-        List<OrderedDocCollector> orderedDocCollectors = new ArrayList<>();
+        List<CompletableFuture<OrderedDocCollector>> orderedDocCollectors = new ArrayList<>();
         Metadata metadata = clusterService.state().metadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
@@ -345,7 +349,7 @@ public class ShardCollectSource implements CollectSource {
 
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
-                    orderedDocCollectors.add(shardCollectorProvider.getOrderedCollector(
+                    orderedDocCollectors.add(shardCollectorProvider.getFutureOrderedCollector(
                         collectPhase,
                         context,
                         collectTask,
@@ -365,8 +369,9 @@ public class ShardCollectSource implements CollectSource {
 
         OrderBy orderBy = collectPhase.orderBy();
         assert orderBy != null : "orderBy must not be null";
-        return OrderedLuceneBatchIteratorFactory.newInstance(
-            orderedDocCollectors,
+
+        return CompletableFutures.allAsList(orderedDocCollectors).thenApply(collectors -> OrderedLuceneBatchIteratorFactory.newInstance(
+            collectors,
             OrderingByPosition.rowOrdering(
                 OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
                 orderBy.reverseFlags(),
@@ -376,7 +381,7 @@ public class ShardCollectSource implements CollectSource {
             executor,
             availableThreads,
             supportMoveToStart
-        );
+        ));
     }
 
     private ShardCollectorProvider getCollectorProviderSafe(ShardId shardId) {
@@ -391,13 +396,13 @@ public class ShardCollectSource implements CollectSource {
         return shardCollectorProvider;
     }
 
-    private List<BatchIterator<Row>> getIterators(CollectTask collectTask,
-                                                  RoutedCollectPhase collectPhase,
-                                                  boolean requiresScroll,
-                                                  Map<String, IntIndexedContainer> indexShards) {
+    private List<CompletableFuture<BatchIterator<Row>>> getIterators(CollectTask collectTask,
+                                                                     RoutedCollectPhase collectPhase,
+                                                                     boolean requiresScroll,
+                                                                     Map<String, IntIndexedContainer> indexShards) {
 
         Metadata metadata = clusterService.state().metadata();
-        List<BatchIterator<Row>> iterators = new ArrayList<>();
+        List<CompletableFuture<BatchIterator<Row>>> iterators = new ArrayList<>();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
             IndexMetadata indexMD = metadata.index(indexName);
@@ -420,7 +425,7 @@ public class ShardCollectSource implements CollectSource {
                 ShardId shardId = new ShardId(index, shardCursor.value);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
-                    BatchIterator<Row> iterator = shardCollectorProvider.getIterator(
+                    CompletableFuture<BatchIterator<Row>> iterator = shardCollectorProvider.getFutureIterator(
                         collectPhase,
                         requiresScroll,
                         collectTask
