@@ -2653,6 +2653,10 @@ public class InternalEngine extends Engine {
     @Override
     public boolean hasCompleteOperationHistory(String source, MapperService mapperService, long startingSeqNo) throws IOException {
         final long currentLocalCheckpoint = getLocalCheckpointTracker().getProcessedCheckpoint();
+        // avoid scanning translog if not necessary
+        if (startingSeqNo > currentLocalCheckpoint) {
+            return true;
+        }
         final LocalCheckpointTracker tracker = new LocalCheckpointTracker(startingSeqNo, startingSeqNo - 1);
         try (Translog.Snapshot snapshot = getTranslog().newSnapshotFromMinSeqNo(startingSeqNo)) {
             Translog.Operation operation;
