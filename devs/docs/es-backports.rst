@@ -417,7 +417,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 5f9c8ba4652 Avoid unnecessary persistence of retention leases (#42299)
 - [ ] 4b28f5b57c0 remove backcompat handling of 6.1.x versions (#42032)
 - [ ] 0e48bbbfc9d Remove 6.0 version constant uses (#41965)
-- [ ] 6d95386f0d4 Simplify handling of keyword field normalizers (#42002)
+- [x] 6d95386f0d4 Simplify handling of keyword field normalizers (#42002)
 - [x] 80f4846fdb1 shouldRollGeneration should execute under read lock (#41696)
 - [s] 8270c801614 Refactor TransportSingleShardAction to serialize Writeable responses (#41985)
 - [x] 932c2b63b21 Clean up ShardId usage of Streamable (#41843)
