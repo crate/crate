@@ -22,6 +22,9 @@ package org.elasticsearch.index.shard;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.ReferenceManager;
 import io.crate.common.collections.Tuple;
+
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.common.util.concurrent.RunOnce;
 import org.elasticsearch.index.translog.Translog;
 
 import java.io.Closeable;
@@ -51,6 +54,13 @@ public final class RefreshListeners implements ReferenceManager.RefreshListener,
      * Is this closed? If true then we won't add more listeners and have flushed all pending listeners.
      */
     private volatile boolean closed = false;
+
+    /**
+     * Force-refreshes new refresh listeners that are added while {@code >= 0}. Used to prevent becoming blocked on operations waiting for
+     * refresh during relocation.
+     */
+    private int refreshForcers;
+
     /**
      * List of refresh listeners. Defaults to null and built on demand because most refresh cycles won't need it. Entries are never removed
      * from it, rather, it is nulled and rebuilt when needed again. The (hopefully) rare entries that didn't make the current refresh cycle
@@ -69,6 +79,32 @@ public final class RefreshListeners implements ReferenceManager.RefreshListener,
         this.forceRefresh = forceRefresh;
         this.listenerExecutor = listenerExecutor;
         this.logger = logger;
+    }
+
+    /**
+     * Force-refreshes newly added listeners and forces a refresh if there are currently listeners registered. See {@link #refreshForcers}.
+     */
+    public Releasable forceRefreshes() {
+        synchronized (this) {
+            assert refreshForcers >= 0;
+            refreshForcers += 1;
+        }
+        final RunOnce runOnce = new RunOnce(() -> {
+            synchronized (RefreshListeners.this) {
+                assert refreshForcers > 0;
+                refreshForcers -= 1;
+            }
+        });
+        if (refreshNeeded()) {
+            try {
+                forceRefresh.run();
+            } catch (Exception e) {
+                runOnce.run();
+                throw e;
+            }
+        }
+        assert refreshListeners == null;
+        return () -> runOnce.run();
     }
 
     /**
@@ -98,7 +134,7 @@ public final class RefreshListeners implements ReferenceManager.RefreshListener,
                 listeners = new ArrayList<>();
                 refreshListeners = listeners;
             }
-            if (listeners.size() < getMaxRefreshListeners.getAsInt()) {
+            if (refreshForcers == 0 && listeners.size() < getMaxRefreshListeners.getAsInt()) {
                 // We have a free slot so register the listener
                 listeners.add(new Tuple<>(location, listener));
                 return false;
