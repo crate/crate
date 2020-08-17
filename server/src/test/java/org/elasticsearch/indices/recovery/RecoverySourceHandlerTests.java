@@ -259,6 +259,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                                 long timestamp,
                                                 long msu,
                                                 RetentionLeases retentionLeases,
+                                                long mappingVersion,
                                                 ActionListener<Long> listener) {
                 shippedOps.addAll(operations);
                 checkpointOnTarget.set(randomLongBetween(checkpointOnTarget.get(), Long.MAX_VALUE));
@@ -274,6 +275,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             randomNonNegativeLong(),
             randomNonNegativeLong(),
             RetentionLeases.EMPTY,
+            randomNonNegativeLong(),
             future
         );
         final int expectedOps = (int) (endingSeqNo - startingSeqNo + 1);
@@ -301,8 +303,13 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final AtomicBoolean wasFailed = new AtomicBoolean();
         RecoveryTargetHandler recoveryTarget = new TestRecoveryTargetHandler() {
             @Override
-            public void indexTranslogOperations(List<Translog.Operation> operations, int totalTranslogOps, long timestamp,
-                                                long msu, RetentionLeases retentionLeases, ActionListener<Long> listener) {
+            public void indexTranslogOperations(List<Translog.Operation> operations,
+                                                int totalTranslogOps,
+                                                long timestamp,
+                                                long msu,
+                                                RetentionLeases retentionLeases,
+                                                long mappingVersion,
+                                                ActionListener<Long> listener) {
                 if (randomBoolean()) {
                     maybeExecuteAsync(() -> listener.onResponse(SequenceNumbers.NO_OPS_PERFORMED));
                 } else {
@@ -322,6 +329,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             randomNonNegativeLong(),
             randomNonNegativeLong(),
             RetentionLeases.EMPTY,
+            randomNonNegativeLong(),
             future
         );
         if (wasFailed.get()) {
@@ -547,6 +555,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                         long maxSeenAutoIdTimestamp,
                         long maxSeqNoOfUpdatesOrDeletes,
                         RetentionLeases retentionLeases,
+                        long mappingVersion,
                         ActionListener<SendSnapshotResult> listener) throws IOException {
                 phase2Called.set(true);
                 super.phase2(
@@ -556,6 +565,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                     maxSeenAutoIdTimestamp,
                     maxSeqNoOfUpdatesOrDeletes,
                     retentionLeases,
+                    mappingVersion,
                     listener);
             }
 
@@ -835,6 +845,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                             long timestamp,
                                             long msu,
                                             RetentionLeases retentionLeases,
+                                            long mappingVersion,
                                             ActionListener<Long> listener) {
         }
 
