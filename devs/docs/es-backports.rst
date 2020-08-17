@@ -431,7 +431,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 55c36540efd SeqNo CAS linearizability (#38561)
 - [ ] 6d3fd8401d5 Geo: Add GeoJson parser to libs/geo classes (#41575)
 - [ ] eda31b0ac00 Close and acquire commit during reset engine fix (#41584)
-- [ ] 545e56d1d11 Remove some usages of MapBuilder#immutableMap (#41593)
+- [x] 545e56d1d11 Remove some usages of MapBuilder#immutableMap (#41593)
 - [x] f48ddd53fd6 Use Java 11 collections conveniences everywhere (#41399)
 - [x] de222731f8e Remove search analyzers from DocumentFieldMappers (#41484)
 - [s] 34ae1f9c7d4 [Docs] Fix common word repetitions (#39703)
