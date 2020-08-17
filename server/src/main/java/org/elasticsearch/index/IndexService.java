@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.store.Directory;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -71,17 +72,17 @@ import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.ShardPath;
-import org.elasticsearch.index.store.DirectoryService;
-import org.elasticsearch.index.store.IndexStore;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
+import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.CheckedFunction;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 
@@ -90,8 +91,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final IndexEventListener eventListener;
     private final NodeEnvironment nodeEnv;
     private final ShardStoreDeleter shardStoreDeleter;
-    private final IndexStore indexStore;
     private final IndexCache indexCache;
+    private final IndexStorePlugin.DirectoryFactory directoryFactory;
     private final CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper;
     private final MapperService mapperService;
     private final NamedXContentRegistry xContentRegistry;
@@ -126,7 +127,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             BigArrays bigArrays,
             ThreadPool threadPool,
             QueryCache queryCache,
-            IndexStore indexStore,
+            IndexStorePlugin.DirectoryFactory directoryFactory,
             IndexEventListener eventListener,
             Function<IndexService, CheckedFunction<DirectoryReader, DirectoryReader, IOException>> wrapperFactory,
             MapperRegistry mapperRegistry,
@@ -155,7 +156,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.threadPool = threadPool;
         this.eventListener = eventListener;
         this.nodeEnv = nodeEnv;
-        this.indexStore = indexStore;
+        this.directoryFactory = directoryFactory;
         this.engineFactory = Objects.requireNonNull(engineFactory);
         // initialize this last -- otherwise if the wrapper requires any other member to be non-null we fail with an NPE
         this.readerWrapper = wrapperFactory.apply(this);
@@ -338,12 +339,11 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             }
 
             logger.debug("creating shard_id {}", shardId);
-            // TODO we can remove either IndexStore or DirectoryService. All we need is a simple Supplier<Directory>
-            DirectoryService directoryService = indexStore.newDirectoryService(path);
+            Directory directory = directoryFactory.newDirectory(this.indexSettings, path);
             store = new Store(
                 shardId,
                 this.indexSettings,
-                directoryService.newDirectory(),
+                directory,
                 lock,
                 new StoreCloseListener(shardId, () -> eventListener.onStoreClosed(shardId))
             );
@@ -610,9 +610,11 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         return readerWrapper;
     } // pkg private for testing
 
-    final IndexStore getIndexStore() {
-        return indexStore;
-    } // pkg private for testing
+
+    @VisibleForTesting
+    final IndexStorePlugin.DirectoryFactory getDirectoryFactory() {
+        return directoryFactory;
+    }
 
     private void maybeFSyncTranslogs() {
         if (indexSettings.getTranslogDurability() == Translog.Durability.ASYNC) {
