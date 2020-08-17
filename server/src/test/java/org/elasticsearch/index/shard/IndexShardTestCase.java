@@ -394,8 +394,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   @Nullable CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper,
                                   @Nullable EngineFactory engineFactory,
                                   Runnable globalCheckpointSyncer,
-                                  IndexingOperationListener... listeners)
-        throws IOException {
+                                  IndexingOperationListener... listeners) throws IOException {
         // add node id as name to settings for proper logging
         final ShardId shardId = routing.shardId();
         final NodeEnvironment.NodePath nodePath = new NodeEnvironment.NodePath(createTempDir());
@@ -439,8 +438,12 @@ public abstract class IndexShardTestCase extends ESTestCase {
         boolean success = false;
         try {
             IndexCache indexCache = new IndexCache(indexSettings, new DisabledQueryCache(indexSettings));
-            MapperService mapperService = MapperTestUtils.newMapperService(xContentRegistry(), createTempDir(),
-                    indexSettings.getSettings(), "index");
+            MapperService mapperService = MapperTestUtils.newMapperService(
+                xContentRegistry(),
+                createTempDir(),
+                indexSettings.getSettings(),
+                "index"
+            );
             mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
             ClusterSettings clusterSettings = new ClusterSettings(nodeSettings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
             CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(nodeSettings, clusterSettings);
