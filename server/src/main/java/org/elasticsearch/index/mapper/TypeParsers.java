@@ -26,7 +26,6 @@ import org.elasticsearch.common.joda.Joda;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -180,8 +179,6 @@ public class TypeParsers {
                 throw new MapperParsingException("[include_in_all] is not allowed for indices created on or after version 6.0.0 as " +
                                 "[_all] is deprecated. As a replacement, you can use an [copy_to] on mapping fields to create your " +
                                 "own catch all field.");
-            } else if (parseMultiField(builder, name, parserContext, propName, propNode)) {
-                iterator.remove();
             } else if (propName.equals("copy_to")) {
                 if (parserContext.isWithinMultiField()) {
                     throw new MapperParsingException("copy_to in multi fields is not allowed. Found the copy_to in field [" + name + "] " +
@@ -198,58 +195,6 @@ public class TypeParsers {
                 iterator.remove();
             }
         }
-    }
-
-    public static boolean parseMultiField(FieldMapper.Builder builder, String name, Mapper.TypeParser.ParserContext parserContext,
-                                          String propName, Object propNode) {
-        parserContext = parserContext.createMultiFieldContext(parserContext);
-        if (propName.equals("fields")) {
-
-            final Map<String, Object> multiFieldsPropNodes;
-
-            if (propNode instanceof List && ((List<?>) propNode).isEmpty()) {
-                multiFieldsPropNodes = Collections.emptyMap();
-            } else if (propNode instanceof Map) {
-                multiFieldsPropNodes = (Map<String, Object>) propNode;
-            } else {
-                throw new MapperParsingException("expected map for property [fields] on field [" + propNode + "] or " +
-                    "[" + propName + "] but got a " + propNode.getClass());
-            }
-
-            for (Map.Entry<String, Object> multiFieldEntry : multiFieldsPropNodes.entrySet()) {
-                String multiFieldName = multiFieldEntry.getKey();
-                if (multiFieldName.contains(".")) {
-                    throw new MapperParsingException("Field name [" + multiFieldName + "] which is a multi field of [" + name + "] cannot" +
-                        " contain '.'");
-                }
-                if (!(multiFieldEntry.getValue() instanceof Map)) {
-                    throw new MapperParsingException("illegal field [" + multiFieldName + "], only fields can be specified inside fields");
-                }
-                @SuppressWarnings("unchecked")
-                Map<String, Object> multiFieldNodes = (Map<String, Object>) multiFieldEntry.getValue();
-
-                String type;
-                Object typeNode = multiFieldNodes.get("type");
-                if (typeNode != null) {
-                    type = typeNode.toString();
-                } else {
-                    throw new MapperParsingException("no type specified for property [" + multiFieldName + "]");
-                }
-                if (type.equals(ObjectMapper.CONTENT_TYPE) || type.equals(FieldAliasMapper.CONTENT_TYPE)) {
-                    throw new MapperParsingException("Type [" + type + "] cannot be used in multi field");
-                }
-
-                Mapper.TypeParser typeParser = parserContext.typeParser(type);
-                if (typeParser == null) {
-                    throw new MapperParsingException("no handler for type [" + type + "] declared on field [" + multiFieldName + "]");
-                }
-                builder.addMultiField(typeParser.parse(multiFieldName, multiFieldNodes, parserContext));
-                multiFieldNodes.remove("type");
-                DocumentMapperParser.checkNoRemainingFields(propName, multiFieldNodes, parserContext.indexVersionCreated());
-            }
-            return true;
-        }
-        return false;
     }
 
     private static IndexOptions nodeIndexOptionValue(final Object propNode) {
