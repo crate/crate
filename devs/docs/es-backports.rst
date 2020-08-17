@@ -409,7 +409,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [x] 7ab59eef11f Some Cleanup in o.e.i.engine (#42278)
 - [ ] d22844208b2  Remove IndexShard dependency from Repository  (#42213)
 - [ ] e5722145a62 Remove the 6.7 version constants. (#42039)
-- [ ] 57859413eaf Skip global checkpoint sync for closed indices (#41874)
+- [x] 57859413eaf Skip global checkpoint sync for closed indices (#41874)
 - [x] c1aef4bd558 Estimate num history ops should always use translog (#42211)
 - [x] 2d8869175b1 remove backcompat handling of 6.2.x versions (#42044)
 - [x] 4b0f36d361e Execute actions under permit in primary mode only (#42241)

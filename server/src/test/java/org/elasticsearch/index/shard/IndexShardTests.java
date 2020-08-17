@@ -44,6 +44,10 @@ import org.elasticsearch.action.admin.indices.stats.CommonStats;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.routing.RecoverySource;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -56,7 +60,9 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.InternalEngine;
+import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.test.store.MockFSDirectoryService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -568,6 +574,48 @@ public class IndexShardTests extends IndexShardTestCase {
         snapshotThread.join();
 
         closeShard(shard, false);
+    }
+
+    @Test
+    public void testClosedIndicesSkipSyncGlobalCheckpoint() throws Exception {
+        ShardId shardId = new ShardId("index", "_na_", 0);
+        IndexMetadata.Builder indexMetadata = IndexMetadata.builder("index")
+            .putMapping("default", "{ \"properties\": { \"foo\":  { \"type\": \"text\"}}}")
+            .settings(Settings.builder()
+                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 2)
+            )
+            .state(IndexMetadata.State.CLOSE).primaryTerm(0, 1);
+        ShardRouting shardRouting = TestShardRouting.newShardRouting(
+            shardId,
+            randomAlphaOfLength(8),
+            true,
+            ShardRoutingState.INITIALIZING,
+            RecoverySource.EmptyStoreRecoverySource.INSTANCE
+        );
+        AtomicBoolean synced = new AtomicBoolean();
+        IndexShard primaryShard = newShard(
+            shardRouting,
+            indexMetadata.build(),
+            null,
+            new InternalEngineFactory(),
+            () -> synced.set(true)
+        );
+        recoverShardFromStore(primaryShard);
+        IndexShard replicaShard = newShard(shardId, false);
+        recoverReplica(replicaShard, primaryShard, true);
+        int numDocs = between(1, 10);
+        for (int i = 0; i < numDocs; i++) {
+            indexDoc(primaryShard, Integer.toString(i));
+        }
+        assertThat(primaryShard.getLocalCheckpoint(), equalTo(numDocs - 1L));
+        primaryShard.updateLocalCheckpointForShard(replicaShard.shardRouting.allocationId().getId(), primaryShard.getLocalCheckpoint());
+        long globalCheckpointOnReplica = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, primaryShard.getLocalCheckpoint());
+        primaryShard.updateGlobalCheckpointForShard(replicaShard.shardRouting.allocationId().getId(), globalCheckpointOnReplica);
+        primaryShard.maybeSyncGlobalCheckpoint("test");
+        assertFalse("closed indices should skip global checkpoint sync", synced.get());
+        closeShards(primaryShard, replicaShard);
     }
 
     class Result {
