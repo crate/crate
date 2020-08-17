@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -64,6 +65,7 @@ import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.UsageTrackingQueryCachingPolicy;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.util.SetOnce;
 import org.apache.lucene.util.ThreadInterruptedException;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
@@ -107,6 +109,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.EngineFactory;
+import org.elasticsearch.index.engine.ReadOnlyEngine;
 import org.elasticsearch.index.engine.RefreshFailedEngineException;
 import org.elasticsearch.index.engine.Segment;
 import org.elasticsearch.index.mapper.DocumentMapper;
@@ -3063,20 +3066,66 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert getActiveOperationsCount() == OPERATIONS_BLOCKED
             : "resetting engine without blocking operations; active operations are [" + getActiveOperations() + ']';
         sync(); // persist the global checkpoint to disk
+        final SeqNoStats seqNoStats = seqNoStats();
+        final TranslogStats translogStats = translogStats();
+        // flush to make sure the latest commit, which will be opened by the read-only engine, includes all operations.
+        flush(new FlushRequest().waitIfOngoing(true));
+
+        SetOnce<Engine> newEngineReference = new SetOnce<>();
         final long globalCheckpoint = getLastKnownGlobalCheckpoint();
         assert globalCheckpoint == getLastSyncedGlobalCheckpoint();
-        final Engine newEngine;
         synchronized (mutex) {
             verifyNotClosed();
-            IOUtils.close(currentEngineReference.getAndSet(null));
-            newEngine = createNewEngine(newEngineConfig());
-            active.set(true);
+            // we must create both new read-only engine and new read-write engine under mutex to ensure snapshotStoreMetadata,
+            // acquireXXXCommit and close works.
+            final Engine readOnlyEngine =
+                new ReadOnlyEngine(newEngineConfig(), seqNoStats, translogStats, false, Function.identity()) {
+                    @Override
+                    public IndexCommitRef acquireLastIndexCommit(boolean flushFirst) {
+                        synchronized (mutex) {
+                            // ignore flushFirst since we flushed above and we do not want to interfere with ongoing translog replay
+                            return newEngineReference.get().acquireLastIndexCommit(false);
+                        }
+                    }
+
+                    @Override
+                    public IndexCommitRef acquireSafeIndexCommit() {
+                        synchronized (mutex) {
+                            return newEngineReference.get().acquireSafeIndexCommit();
+                        }
+                    }
+
+                    @Override
+                    public void close() throws IOException {
+                        assert Thread.holdsLock(mutex);
+
+                        Engine newEngine = newEngineReference.get();
+                        if (newEngine == currentEngineReference.get()) {
+                            // we successfully installed the new engine so do not close it.
+                            newEngine = null;
+                        }
+                        IOUtils.close(super::close, newEngine);
+                    }
+                };
+            IOUtils.close(currentEngineReference.getAndSet(readOnlyEngine));
+            newEngineReference.set(engineFactory.newReadWriteEngine(newEngineConfig()));
+            onNewEngine(newEngineReference.get());
         }
         final Engine.TranslogRecoveryRunner translogRunner = (engine, snapshot) -> runTranslogRecovery(
             engine, snapshot, Engine.Operation.Origin.LOCAL_RESET, () -> {
                 // TODO: add a dedicate recovery stats for the reset translog
             });
-        newEngine.recoverFromTranslog(translogRunner, globalCheckpoint);
+        newEngineReference.get().recoverFromTranslog(translogRunner, globalCheckpoint);
+        synchronized (mutex) {
+            verifyNotClosed();
+            IOUtils.close(currentEngineReference.getAndSet(newEngineReference.get()));
+            // We set active because we are now writing operations to the engine; this way,
+            // if we go idle after some time and become inactive, we still give sync'd flush a chance to run.
+            active.set(true);
+        }
+        // time elapses after the engine is created above (pulling the config settings) until we set the engine reference, during
+        // which settings changes could possibly have happened, so here we forcefully push any config changes to the new engine.
+        onSettingsChanged();
     }
 
     /**
@@ -3109,5 +3158,14 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      */
     public void advanceMaxSeqNoOfUpdatesOrDeletes(long seqNo) {
         getEngine().advanceMaxSeqNoOfUpdatesOrDeletes(seqNo);
+    }
+
+    /**
+     * Performs the pre-closing checks on the {@link IndexShard}.
+     *
+     * @throws IllegalStateException if the sanity checks failed
+     */
+    public void verifyShardBeforeIndexClosing() throws IllegalStateException {
+        getEngine().verifyEngineBeforeIndexClosing();
     }
 }

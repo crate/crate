@@ -183,6 +183,20 @@ public abstract class Engine implements Closeable {
     }
 
     /**
+     * Performs the pre-closing checks on the {@link Engine}.
+     *
+     * @throws IllegalStateException if the sanity checks failed
+     */
+    public void verifyEngineBeforeIndexClosing() throws IllegalStateException {
+        final long globalCheckpoint = engineConfig.getGlobalCheckpointSupplier().getAsLong();
+        final long maxSeqNo = getSeqNoStats(globalCheckpoint).getMaxSeqNo();
+        if (globalCheckpoint != maxSeqNo) {
+            throw new IllegalStateException("Global checkpoint [" + globalCheckpoint
+                + "] mismatches maximum sequence number [" + maxSeqNo + "] on index shard " + shardId);
+        }
+    }
+
+    /**
      * A throttling class that can be activated, causing the
      * {@code acquireThrottle} method to block on a lock when throttling
      * is enabled
@@ -698,11 +712,6 @@ public abstract class Engine implements Closeable {
      */
     public abstract long getLastSyncedGlobalCheckpoint();
 
-    /**
-     * Returns the latest local checkpoint value that has been processed
-     */
-    public abstract long getProcessedLocalCheckpoint();
-
     /** How much heap is used that would be freed by a refresh.  Note that this may throw {@link AlreadyClosedException}. */
     public abstract long getIndexBufferRAMBytesUsed();
 
@@ -785,7 +794,7 @@ public abstract class Engine implements Closeable {
      */
     public abstract List<Segment> segments(boolean verbose);
 
-    public final boolean refreshNeeded() {
+    public boolean refreshNeeded() {
         if (store.tryIncRef()) {
             /*
               we need to inc the store here since we acquire a searcher and that might keep a file open on the
