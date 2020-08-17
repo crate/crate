@@ -425,11 +425,11 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] a3aacc359f9 Remove Version 6 pre-release constants (#41517)
 - [ ] 354118fac6e Replace more uses of immutable map builder (#41823)
 - [ ] 873007dd3e7 ReadOnlyEngine assertion fix (#41842)
-- [ ] c7df2b82b94 Noop peer recoveries on closed index (#41400)
-- [ ] 434efd1664e Add version 7.2.0 constant to master branch
-- [ ] 73bfdc4066b Simplify initialization of max_seq_no of updates (#41161)
-- [ ] 55c36540efd SeqNo CAS linearizability (#38561)
-- [ ] 6d3fd8401d5 Geo: Add GeoJson parser to libs/geo classes (#41575)
+- [x] c7df2b82b94 Noop peer recoveries on closed index (#41400)
+- [s] 434efd1664e Add version 7.2.0 constant to master branch
+- [x] 73bfdc4066b Simplify initialization of max_seq_no of updates (#41161)
+- [x] 55c36540efd SeqNo CAS linearizability (#38561)
+- [s] 6d3fd8401d5 Geo: Add GeoJson parser to libs/geo classes (#41575)
 - [x] eda31b0ac00 Close and acquire commit during reset engine fix (#41584)
 - [x] 545e56d1d11 Remove some usages of MapBuilder#immutableMap (#41593)
 - [x] f48ddd53fd6 Use Java 11 collections conveniences everywhere (#41399)
