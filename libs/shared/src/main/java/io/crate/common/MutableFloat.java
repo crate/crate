@@ -21,15 +21,12 @@
 
 package io.crate.common;
 
+public final class MutableFloat {
 
-import java.util.Objects;
-
-public final class MutableLong {
-
-    private long value;
+    private float value;
     private boolean hasValue = false;
 
-    public MutableLong(long value) {
+    public MutableFloat(float value) {
         this.value = value;
     }
 
@@ -37,45 +34,12 @@ public final class MutableLong {
         return hasValue;
     }
 
-    public long value() {
+    public float value() {
         return value;
     }
 
-    public void setValue(long value) {
+    public void setValue(float value) {
         this.hasValue = true;
         this.value = value;
-    }
-
-    public MutableLong add(long value) {
-        setValue(this.value + value);
-        return this;
-    }
-
-    public MutableLong sub(long value) {
-        setValue(this.value - value);
-        return this;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        MutableLong that = (MutableLong) o;
-        return value == that.value &&
-               hasValue == that.hasValue;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value, hasValue);
-    }
-
-    @Override
-    public String toString() {
-        return String.valueOf(value);
     }
 }

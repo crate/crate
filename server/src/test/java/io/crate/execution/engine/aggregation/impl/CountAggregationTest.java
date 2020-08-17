@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import io.crate.common.MutableLong;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
@@ -125,12 +126,12 @@ public class CountAggregationTest extends AggregationTest {
 
     @Test
     public void testStreaming() throws Exception {
-        CountAggregation.LongState l1 = new CountAggregation.LongState(12345L);
+        MutableLong l1 = new MutableLong(12345L);
         BytesStreamOutput out = new BytesStreamOutput();
         var streamer = CountAggregation.LongStateType.INSTANCE.streamer();
         streamer.writeValueTo(out, l1);
         StreamInput in = out.bytes().streamInput();
-        CountAggregation.LongState l2 = streamer.readValueFrom(in);
-        assertThat(l1.value, is(l2.value));
+        MutableLong l2 = streamer.readValueFrom(in);
+        assertThat(l1.value(), is(l2.value()));
     }
 }
