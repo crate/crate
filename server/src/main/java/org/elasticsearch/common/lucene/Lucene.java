@@ -196,6 +196,13 @@ public class Lucene {
     }
 
     /**
+     * Returns an index commit for the given {@link SegmentInfos} in the given directory.
+     */
+    public static IndexCommit getIndexCommit(SegmentInfos si, Directory directory) throws IOException {
+        return new CommitPoint(si, directory);
+    }
+
+    /**
      * This method removes all lucene files from the given directory. It will first try to delete all commit points / segments
      * files to ensure broken commits or corrupted indices will not be opened in the future. If any of the segment files can't be deleted
      * this operation fails.

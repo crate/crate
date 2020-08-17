@@ -28,18 +28,23 @@ import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.stats.CommonStats;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.lease.Releasable;
@@ -47,12 +52,16 @@ import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.InternalEngine;
+import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.test.store.MockFSDirectoryService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -441,5 +450,182 @@ public class IndexShardTests extends IndexShardTestCase {
         assertTrue(primary.scheduledRefresh());
         latch1.await();
         closeShards(primary);
+    }
+
+    /**
+     * This test simulates a scenario seen rarely in ConcurrentSeqNoVersioningIT. Closing a shard while engine is inside
+     * resetEngineToGlobalCheckpoint can lead to check index failure in integration tests.
+     */
+    @Test
+    public void testCloseShardWhileResettingEngine() throws Exception {
+        CountDownLatch readyToCloseLatch = new CountDownLatch(1);
+        CountDownLatch closeDoneLatch = new CountDownLatch(1);
+        IndexShard shard = newStartedShard(false, Settings.EMPTY, config -> new InternalEngine(config) {
+            @Override
+            public InternalEngine recoverFromTranslog(TranslogRecoveryRunner translogRecoveryRunner,
+                                                      long recoverUpToSeqNo) throws IOException {
+                readyToCloseLatch.countDown();
+                try {
+                    closeDoneLatch.await();
+                } catch (InterruptedException e) {
+                    throw new AssertionError(e);
+                }
+                return super.recoverFromTranslog(translogRecoveryRunner, recoverUpToSeqNo);
+            }
+        });
+
+        Thread closeShardThread = new Thread(() -> {
+            try {
+                readyToCloseLatch.await();
+                shard.close("testing", false);
+                // in integration tests, this is done as a listener on IndexService.
+                MockFSDirectoryService.checkIndex(logger, shard.store(), shard.shardId);
+            } catch (InterruptedException | IOException e) {
+                throw new AssertionError(e);
+            } finally {
+                closeDoneLatch.countDown();
+            }
+        });
+
+        closeShardThread.start();
+
+        final CountDownLatch engineResetLatch = new CountDownLatch(1);
+        shard.acquireAllReplicaOperationsPermits(shard.getOperationPrimaryTerm(), shard.getLastKnownGlobalCheckpoint(), 0L,
+            ActionListener.wrap(r -> {
+                try (r) {
+                    shard.resetEngineToGlobalCheckpoint();
+                } finally {
+                    engineResetLatch.countDown();
+                }
+            }, Assert::assertNotNull), TimeValue.timeValueMinutes(1L));
+
+        engineResetLatch.await();
+
+        closeShardThread.join();
+
+        // close store.
+        closeShard(shard, false);
+    }
+
+    /**
+     * This test simulates a scenario seen rarely in ConcurrentSeqNoVersioningIT. While engine is inside
+     * resetEngineToGlobalCheckpoint snapshot metadata could fail
+     */
+    @Test
+    public void testSnapshotWhileResettingEngine() throws Exception {
+        CountDownLatch readyToSnapshotLatch = new CountDownLatch(1);
+        CountDownLatch snapshotDoneLatch = new CountDownLatch(1);
+        IndexShard shard = newStartedShard(false, Settings.EMPTY, config -> new InternalEngine(config) {
+            @Override
+            public InternalEngine recoverFromTranslog(TranslogRecoveryRunner translogRecoveryRunner,
+                                                      long recoverUpToSeqNo) throws IOException {
+                InternalEngine internalEngine = super.recoverFromTranslog(translogRecoveryRunner, recoverUpToSeqNo);
+                readyToSnapshotLatch.countDown();
+                try {
+                    snapshotDoneLatch.await();
+                } catch (InterruptedException e) {
+                    throw new AssertionError(e);
+                }
+                return internalEngine;
+            }
+        });
+
+        indexOnReplicaWithGaps(shard, between(0, 1000), Math.toIntExact(shard.getLocalCheckpoint()));
+        final long globalCheckpoint = randomLongBetween(shard.getLastKnownGlobalCheckpoint(), shard.getLocalCheckpoint());
+        shard.updateGlobalCheckpointOnReplica(globalCheckpoint, "test");
+
+        Thread snapshotThread = new Thread(() -> {
+            try {
+                readyToSnapshotLatch.await();
+                shard.snapshotStoreMetadata();
+                try (Engine.IndexCommitRef indexCommitRef = shard.acquireLastIndexCommit(randomBoolean())) {
+                    shard.store().getMetadata(indexCommitRef.getIndexCommit());
+                }
+                try (Engine.IndexCommitRef indexCommitRef = shard.acquireSafeIndexCommit()) {
+                    shard.store().getMetadata(indexCommitRef.getIndexCommit());
+                }
+            } catch (InterruptedException | IOException e) {
+                throw new AssertionError(e);
+            } finally {
+                snapshotDoneLatch.countDown();
+            }
+        });
+
+        snapshotThread.start();
+
+        final CountDownLatch engineResetLatch = new CountDownLatch(1);
+        shard.acquireAllReplicaOperationsPermits(shard.getOperationPrimaryTerm(), shard.getLastKnownGlobalCheckpoint(), 0L,
+            ActionListener.wrap(r -> {
+                try (r) {
+                    shard.resetEngineToGlobalCheckpoint();
+                } finally {
+                    engineResetLatch.countDown();
+                }
+            }, Assert::assertNotNull), TimeValue.timeValueMinutes(1L));
+
+        engineResetLatch.await();
+
+        snapshotThread.join();
+
+        closeShard(shard, false);
+    }
+
+    class Result {
+        private final int localCheckpoint;
+        private final int maxSeqNo;
+
+        Result(final int localCheckpoint, final int maxSeqNo) {
+            this.localCheckpoint = localCheckpoint;
+            this.maxSeqNo = maxSeqNo;
+        }
+    }
+
+    /**
+     * Index on the specified shard while introducing sequence number gaps.
+     *
+     * @param indexShard the shard
+     * @param operations the number of operations
+     * @param offset     the starting sequence number
+     * @return a pair of the maximum sequence number and whether or not a gap was introduced
+     * @throws IOException if an I/O exception occurs while indexing on the shard
+     */
+    private Result indexOnReplicaWithGaps(
+            final IndexShard indexShard,
+            final int operations,
+            final int offset) throws IOException {
+        int localCheckpoint = offset;
+        int max = offset;
+        boolean gap = false;
+        Set<String> ids = new HashSet<>();
+        for (int i = offset + 1; i < operations; i++) {
+            if (!rarely() || i == operations - 1) { // last operation can't be a gap as it's not a gap anymore
+                final String id = ids.isEmpty() || randomBoolean() ? Integer.toString(i) : randomFrom(ids);
+                if (ids.add(id) == false) { // this is an update
+                    indexShard.advanceMaxSeqNoOfUpdatesOrDeletes(i);
+                }
+                SourceToParse sourceToParse = new SourceToParse(indexShard.shardId().getIndexName(), id,
+                        new BytesArray("{}"), XContentType.JSON);
+                indexShard.applyIndexOperationOnReplica(
+                    i,
+                    1,
+                    -1,
+                    false,
+                    sourceToParse
+                );
+                if (!gap && i == localCheckpoint + 1) {
+                    localCheckpoint++;
+                }
+                max = i;
+            } else {
+                gap = true;
+            }
+            if (rarely()) {
+                indexShard.flush(new FlushRequest());
+            }
+        }
+        indexShard.sync(); // advance local checkpoint
+        assert localCheckpoint == indexShard.getLocalCheckpoint();
+        assert !gap || (localCheckpoint != max);
+        return new Result(localCheckpoint, max);
     }
 }
