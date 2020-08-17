@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [windows-latest]
     steps:
       - uses: actions/checkout@v2
       - name: Setup Gradle Java
@@ -23,4 +23,4 @@ jobs:
       - name: Run tests on ${{ matrix.os }}
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: :server:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}
+          arguments: :server:test --tests 'io.crate.integrationtests.KillIntegrationTest' -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }} --stacktrace

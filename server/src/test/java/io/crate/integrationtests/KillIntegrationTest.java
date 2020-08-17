@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
