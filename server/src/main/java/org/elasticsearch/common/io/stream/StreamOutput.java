@@ -19,29 +19,6 @@
 
 package org.elasticsearch.common.io.stream;
 
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.IndexFormatTooNewException;
-import org.apache.lucene.index.IndexFormatTooOldException;
-import org.apache.lucene.store.AlreadyClosedException;
-import org.apache.lucene.store.LockObtainFailedException;
-import org.apache.lucene.util.ArrayUtil;
-import org.apache.lucene.util.BitUtil;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefBuilder;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.Metadata;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.geo.GeoPoint;
-import org.elasticsearch.common.io.stream.Writeable.Writer;
-import org.elasticsearch.common.text.Text;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.joda.time.DateTimeZone;
-import org.joda.time.ReadableInstant;
-
 import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -62,8 +39,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,6 +46,31 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.CorruptIndexException;
+import org.apache.lucene.index.IndexFormatTooNewException;
+import org.apache.lucene.index.IndexFormatTooOldException;
+import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.store.LockObtainFailedException;
+import org.apache.lucene.util.ArrayUtil;
+import org.apache.lucene.util.BitUtil;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefBuilder;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.geo.GeoPoint;
+import org.elasticsearch.common.io.stream.Writeable.Writer;
+import org.elasticsearch.common.text.Text;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.joda.time.DateTimeZone;
+import org.joda.time.ReadableInstant;
+
+import io.crate.common.unit.TimeValue;
 
 /**
  * A stream from another node to this node. Technically, it can also be streamed from a byte array but that is mostly for testing.
@@ -139,7 +139,7 @@ public abstract class StreamOutput extends OutputStream {
      */
     public void setFeatures(final Set<String> features) {
         assert this.features.isEmpty() : this.features;
-        this.features = Collections.unmodifiableSet(new HashSet<>(features));
+        this.features = Set.copyOf(features);
     }
 
     public long position() throws IOException {
@@ -593,57 +593,54 @@ public abstract class StreamOutput extends OutputStream {
         }
     }
 
-    private static final Map<Class<?>, Writer> WRITERS;
-
-    static {
-        Map<Class<?>, Writer> writers = new HashMap<>();
-        writers.put(String.class, (o, v) -> {
+    private static final Map<Class<?>, Writer> WRITERS = Map.ofEntries(
+        Map.entry(String.class, (o, v) -> {
             o.writeByte((byte) 0);
             o.writeString((String) v);
-        });
-        writers.put(Integer.class, (o, v) -> {
+        }),
+        Map.entry(Integer.class, (o, v) -> {
             o.writeByte((byte) 1);
             o.writeInt((Integer) v);
-        });
-        writers.put(Long.class, (o, v) -> {
+        }),
+        Map.entry(Long.class, (o, v) -> {
             o.writeByte((byte) 2);
             o.writeLong((Long) v);
-        });
-        writers.put(Float.class, (o, v) -> {
+        }),
+        Map.entry(Float.class, (o, v) -> {
             o.writeByte((byte) 3);
             o.writeFloat((float) v);
-        });
-        writers.put(Double.class, (o, v) -> {
+        }),
+        Map.entry(Double.class, (o, v) -> {
             o.writeByte((byte) 4);
             o.writeDouble((double) v);
-        });
-        writers.put(Boolean.class, (o, v) -> {
+        }),
+        Map.entry(Boolean.class, (o, v) -> {
             o.writeByte((byte) 5);
             o.writeBoolean((boolean) v);
-        });
-        writers.put(byte[].class, (o, v) -> {
+        }),
+        Map.entry(byte[].class, (o, v) -> {
             o.writeByte((byte) 6);
             final byte[] bytes = (byte[]) v;
             o.writeVInt(bytes.length);
             o.writeBytes(bytes);
-        });
-        writers.put(List.class, (o, v) -> {
+        }),
+        Map.entry(List.class, (o, v) -> {
             o.writeByte((byte) 7);
             final List list = (List) v;
             o.writeVInt(list.size());
             for (Object item : list) {
                 o.writeGenericValue(item);
             }
-        });
-        writers.put(Object[].class, (o, v) -> {
+        }),
+        Map.entry(Object[].class, (o, v) -> {
             o.writeByte((byte) 8);
             final Object[] list = (Object[]) v;
             o.writeVInt(list.length);
             for (Object item : list) {
                 o.writeGenericValue(item);
             }
-        });
-        writers.put(Map.class, (o, v) -> {
+        }),
+        Map.entry(Map.class, (o, v) -> {
             if (v instanceof LinkedHashMap) {
                 o.writeByte((byte) 9);
             } else {
@@ -656,65 +653,64 @@ public abstract class StreamOutput extends OutputStream {
                 o.writeString(entry.getKey());
                 o.writeGenericValue(entry.getValue());
             }
-        });
-        writers.put(Byte.class, (o, v) -> {
+        }),
+        Map.entry(Byte.class, (o, v) -> {
             o.writeByte((byte) 11);
             o.writeByte((Byte) v);
-        });
-        writers.put(Date.class, (o, v) -> {
+        }),
+        Map.entry(Date.class, (o, v) -> {
             o.writeByte((byte) 12);
             o.writeLong(((Date) v).getTime());
-        });
-        writers.put(ReadableInstant.class, (o, v) -> {
+        }),
+        Map.entry(ReadableInstant.class, (o, v) -> {
             o.writeByte((byte) 13);
             final ReadableInstant instant = (ReadableInstant) v;
             o.writeString(instant.getZone().getID());
             o.writeLong(instant.getMillis());
-        });
-        writers.put(BytesReference.class, (o, v) -> {
+        }),
+        Map.entry(BytesReference.class, (o, v) -> {
             o.writeByte((byte) 14);
             o.writeBytesReference((BytesReference) v);
-        });
-        writers.put(Text.class, (o, v) -> {
+        }),
+        Map.entry(Text.class, (o, v) -> {
             o.writeByte((byte) 15);
             o.writeText((Text) v);
-        });
-        writers.put(Short.class, (o, v) -> {
+        }),
+        Map.entry(Short.class, (o, v) -> {
             o.writeByte((byte) 16);
             o.writeShort((Short) v);
-        });
-        writers.put(int[].class, (o, v) -> {
+        }),
+        Map.entry(int[].class, (o, v) -> {
             o.writeByte((byte) 17);
             o.writeIntArray((int[]) v);
-        });
-        writers.put(long[].class, (o, v) -> {
+        }),
+        Map.entry(long[].class, (o, v) -> {
             o.writeByte((byte) 18);
             o.writeLongArray((long[]) v);
-        });
-        writers.put(float[].class, (o, v) -> {
+        }),
+        Map.entry(float[].class, (o, v) -> {
             o.writeByte((byte) 19);
             o.writeFloatArray((float[]) v);
-        });
-        writers.put(double[].class, (o, v) -> {
+        }),
+        Map.entry(double[].class, (o, v) -> {
             o.writeByte((byte) 20);
             o.writeDoubleArray((double[]) v);
-        });
-        writers.put(BytesRef.class, (o, v) -> {
+        }),
+        Map.entry(BytesRef.class, (o, v) -> {
             o.writeByte((byte) 21);
             o.writeBytesRef((BytesRef) v);
-        });
-        writers.put(GeoPoint.class, (o, v) -> {
+        }),
+        Map.entry(GeoPoint.class, (o, v) -> {
             o.writeByte((byte) 22);
             o.writeGeoPoint((GeoPoint) v);
-        });
-        writers.put(ZonedDateTime.class, (o, v) -> {
+        }),
+        Map.entry(ZonedDateTime.class, (o, v) -> {
             o.writeByte((byte) 23);
             final ZonedDateTime zonedDateTime = (ZonedDateTime) v;
             o.writeString(zonedDateTime.getZone().getId());
             o.writeLong(zonedDateTime.toInstant().toEpochMilli());
-        });
-        WRITERS = Collections.unmodifiableMap(writers);
-    }
+        })
+    );
 
     /**
      * Notice: when serialization a map, the stream out map with the stream in map maybe have the
