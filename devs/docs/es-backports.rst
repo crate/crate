@@ -413,7 +413,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] c1aef4bd558 Estimate num history ops should always use translog (#42211)
 - [ ] 2d8869175b1 remove backcompat handling of 6.2.x versions (#42044)
 - [ ] 4b0f36d361e Execute actions under permit in primary mode only (#42241)
-- [ ] f5e54b495db Deprecate support for chained multi-fields. (#41926)
+- [s] f5e54b495db Deprecate support for chained multi-fields. (#41926)
 - [x] 5f9c8ba4652 Avoid unnecessary persistence of retention leases (#42299)
 - [s] 4b28f5b57c0 remove backcompat handling of 6.1.x versions (#42032)
 - [s] 0e48bbbfc9d Remove 6.0 version constant uses (#41965)

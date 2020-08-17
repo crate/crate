@@ -179,8 +179,6 @@ public class DateFieldMapper extends FieldMapper {
                 } else if (propName.equals("ignore_timezone")) {
                     builder.ignoreTimezone(nodeBooleanValue(propNode, "ignore_timezone"));
                     iterator.remove();
-                } else if (TypeParsers.parseMultiField(builder, name, parserContext, propName, propNode)) {
-                    iterator.remove();
                 }
             }
             return builder;
