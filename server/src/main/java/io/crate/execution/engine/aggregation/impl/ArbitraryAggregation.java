@@ -24,15 +24,32 @@ package io.crate.execution.engine.aggregation.impl;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
+import io.crate.common.MutableObject;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.IpType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedBiConsumer;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.List;
 
 public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
@@ -107,5 +124,98 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     @Override
     public Object terminatePartial(RamAccounting ramAccounting, Object state) {
         return state;
+    }
+
+    @Nullable
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
+                                                       List<MappedFieldType> fieldTypes) {
+        var dataType = argumentTypes.get(0);
+        switch (dataType.id()) {
+            case ByteType.ID:
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
+                return new ArbitraryNumericDocValueAggregator(
+                    fieldTypes.get(0).name(),
+                    dataType,
+                    (values, state) -> {
+                        if (!state.hasValue()) {
+                            state.setValue(values.nextValue());
+                        }
+                    }
+                );
+            case FloatType.ID:
+                return new ArbitraryNumericDocValueAggregator(
+                    fieldTypes.get(0).name(),
+                    dataType,
+                    (values, state) -> {
+                        if (!state.hasValue()) {
+                            var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                            state.setValue(value);
+                        }
+                    }
+                );
+            case DoubleType.ID:
+                return new ArbitraryNumericDocValueAggregator(
+                    fieldTypes.get(0).name(),
+                    dataType,
+                    (values, state) -> {
+                        if (!state.hasValue()) {
+                            var value = NumericUtils.sortableLongToDouble(values.nextValue());
+                            state.setValue(value);
+                        }
+                    }
+                );
+            case IpType.ID:
+            case StringType.ID:
+                return new BinaryDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    MutableObject::new,
+                    (values, state) -> {
+                        if (!state.hasValue()) {
+                            state.setValue(values.nextValue().utf8ToString());
+                        }
+                    }
+                ) {
+                    @Nullable
+                    @Override
+                    public Object partialResult(MutableObject state) {
+                        if (state.hasValue()) {
+                            return dataType.sanitizeValue(state.value());
+                        } else {
+                            return null;
+                        }
+                    }
+                };
+            default:
+                return null;
+        }
+    }
+
+    private static class ArbitraryNumericDocValueAggregator extends SortedNumericDocValueAggregator<MutableObject> {
+
+        private final DataType<?> columnDataType;
+
+        public ArbitraryNumericDocValueAggregator(
+            String columnName,
+            DataType<?> columnDataType,
+            CheckedBiConsumer<SortedNumericDocValues, MutableObject, IOException> docValuesConsumer
+        ) {
+            super(columnName, MutableObject::new, docValuesConsumer);
+            this.columnDataType = columnDataType;
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(MutableObject state) {
+            if (state.hasValue()) {
+                return columnDataType.sanitizeValue(state.value());
+            } else {
+                return null;
+            }
+        }
     }
 }

@@ -25,12 +25,12 @@ package io.crate.execution.engine.aggregation.impl;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 
@@ -38,13 +38,13 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     private final String columnName;
     private final Supplier<T> stateInitializer;
-    private final BiConsumer<SortedBinaryDocValues, T> docValuesConsumer;
+    private final CheckedBiConsumer<SortedBinaryDocValues, T, IOException> docValuesConsumer;
 
     protected SortedBinaryDocValues values;
 
     public BinaryDocValueAggregator(String columnName,
                                     Supplier<T> stateInitializer,
-                                    BiConsumer<SortedBinaryDocValues, T> docValuesConsumer) {
+                                    CheckedBiConsumer<SortedBinaryDocValues, T, IOException> docValuesConsumer) {
         this.columnName = columnName;
         this.stateInitializer = stateInitializer;
         this.docValuesConsumer = docValuesConsumer;

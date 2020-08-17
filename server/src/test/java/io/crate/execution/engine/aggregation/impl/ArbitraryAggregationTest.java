@@ -21,15 +21,15 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.oneOf;
@@ -39,7 +39,7 @@ public class ArbitraryAggregationTest extends AggregationTest {
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                "arbitrary",
+                ArbitraryAggregation.NAME,
                 argumentType.getTypeSignature(),
                 argumentType.getTypeSignature()
             ),
@@ -48,66 +48,73 @@ public class ArbitraryAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testReturnType() throws Exception {
-        FunctionImplementation arbitrary = functions.get(
-            null, "arbitrary", ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
-        assertEquals(DataTypes.INTEGER, arbitrary.info().returnType());
+    public void test_return_type_must_be_equal_to_argument_type() {
+        var arbitraryFunction = functions.get(
+            null,
+            ArbitraryAggregation.NAME,
+            List.of(Literal.of(DataTypes.INTEGER, null)),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
+        assertThat(
+            arbitraryFunction.boundSignature().getReturnType().createType(),
+            is(DataTypes.INTEGER)
+        );
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_numeric_types() {
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            assertHasDocValueAggregator(CountAggregation.NAME, List.of(dataType));
+        }
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_string_based_types() {
+        for (var dataType : List.of(DataTypes.STRING, DataTypes.IP)) {
+            assertHasDocValueAggregator(CountAggregation.NAME, List.of(dataType));
+        }
     }
 
     @Test
     public void testDouble() throws Exception {
         Object[][] data = new Object[][]{{0.8d}, {0.3d}};
-        Object result = executeAggregation(DataTypes.DOUBLE, data);
-
-        assertThat(result, is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.DOUBLE, data), is(oneOf(data[0][0], data[1][0])));
     }
 
     @Test
     public void testFloat() throws Exception {
         Object[][] data = new Object[][]{{0.8f}, {0.3f}};
-        Object result = executeAggregation(DataTypes.FLOAT, data);
-
-        assertThat(result, is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.FLOAT, data), is(oneOf(data[0][0], data[1][0])));
     }
 
     @Test
     public void testInteger() throws Exception {
         Object[][] data = new Object[][]{{8}, {3}};
-        Object result = executeAggregation(DataTypes.INTEGER, data);
-
-        assertThat(result, is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.INTEGER, data), is(oneOf(data[0][0], data[1][0])));
     }
 
     @Test
     public void testLong() throws Exception {
         Object[][] data = new Object[][]{{8L}, {3L}};
-        Object result = executeAggregation(DataTypes.LONG, data);
-
-        assertThat(result, is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.LONG, data), is(oneOf(data[0][0], data[1][0])));
     }
 
     @Test
     public void testShort() throws Exception {
         Object[][] data = new Object[][]{{(short) 8}, {(short) 3}};
-        Object result = executeAggregation(DataTypes.SHORT, data);
-
-        assertThat(result, is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.SHORT, data), is(oneOf(data[0][0], data[1][0])));
     }
 
     @Test
     public void testString() throws Exception {
         Object[][] data = new Object[][]{{"Youri"}, {"Ruben"}};
-        Object result = executeAggregation(DataTypes.STRING, data);
-
-        assertThat(result, is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.STRING, data), is(oneOf(data[0][0], data[1][0])));
     }
 
     @Test
     public void testBoolean() throws Exception {
         Object[][] data = new Object[][]{{true}, {false}};
-        Object result = executeAggregation(DataTypes.BOOLEAN, data);
-
-        assertThat(result, is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.BOOLEAN, data), is(oneOf(data[0][0], data[1][0])));
     }
 
     @Test
