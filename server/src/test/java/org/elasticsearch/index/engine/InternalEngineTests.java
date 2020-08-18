@@ -5330,14 +5330,31 @@ public class InternalEngineTests extends EngineTestCase {
             }
             assertThat(operationsInSafeCommit, notNullValue());
             try (InternalEngine engine = new InternalEngine(config)) { // do not recover from translog
+                final Map<BytesRef, Engine.Operation> deletesAfterCheckpoint = new HashMap<>();
+                for (Engine.Operation op : operationsInSafeCommit) {
+                    if (op instanceof Engine.NoOp == false && op.seqNo() > engine.getPersistedLocalCheckpoint()) {
+                        deletesAfterCheckpoint.put(new Term(IdFieldMapper.NAME, Uid.encodeId(op.id())).bytes(), op);
+                    }
+                }
+                deletesAfterCheckpoint.values().removeIf(o -> o instanceof Engine.Delete == false);
+                final Map<BytesRef, VersionValue> versionMap = engine.getVersionMap();
+                for (BytesRef uid : deletesAfterCheckpoint.keySet()) {
+                    final VersionValue versionValue = versionMap.get(uid);
+                    final Engine.Operation op = deletesAfterCheckpoint.get(uid);
+                    final String msg = versionValue + " vs " +
+                        "op[" + op.operationType() + "id=" + op.id() + " seqno=" + op.seqNo() + " term=" + op.primaryTerm() + "]";
+                    assertThat(versionValue, instanceOf(DeleteVersionValue.class));
+                    assertThat(msg, versionValue.seqNo, equalTo(op.seqNo()));
+                    assertThat(msg, versionValue.term, equalTo(op.primaryTerm()));
+                    assertThat(msg, versionValue.version, equalTo(op.version()));
+                }
+                assertThat(versionMap.keySet(), equalTo(deletesAfterCheckpoint.keySet()));
                 final LocalCheckpointTracker tracker = engine.getLocalCheckpointTracker();
                 final Set<Long> seqNosInSafeCommit = operationsInSafeCommit.stream().map(op -> op.seqNo()).collect(Collectors.toSet());
                 for (Engine.Operation op : operations) {
-                    boolean hasProcessedSeqNo = tracker.hasProcessed(op.seqNo());
-                    boolean seqNoIsInSafeCommit = seqNosInSafeCommit.contains(op.seqNo());
-                    assertThat("seq_no=" + op.seqNo() + " max_seq_no=" + tracker.getMaxSeqNo() + " checkpoint=" + tracker.getProcessedCheckpoint() + " hasProcessedSeqNo=" + hasProcessedSeqNo + " seqNoIsInSafeCommit=" + seqNoIsInSafeCommit,
-                               hasProcessedSeqNo,
-                               equalTo(seqNoIsInSafeCommit));
+                    assertThat(
+                        "seq_no=" + op.seqNo() + " max_seq_no=" + tracker.getMaxSeqNo() + " checkpoint=" + tracker.getProcessedCheckpoint(),
+                        tracker.hasProcessed(op.seqNo()), equalTo(seqNosInSafeCommit.contains(op.seqNo())));
                 }
                 engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
                 assertThat(getDocIds(engine, true), equalTo(docs));
