@@ -385,7 +385,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 4de85c4d97b Only load FST off heap if we are actually using mmaps for the term dictionary (#43158)
 - [ ] ef8f90cc2a5 Also mmap terms index (`.tip`) files for hybridfs (#43150)
 - [ ] 62620f28663 Remove usage of FileSwitchDirectory  (#42937)
-- [ ] 8159fdfcc9a Fix assertion in ReadOnlyEngine (#43010)
+- [x] 8159fdfcc9a Fix assertion in ReadOnlyEngine (#43010)
 
 Below are patches deferred. In-between patches we applied or skipped are not
 listed anymore.
