@@ -40,8 +40,10 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -221,24 +223,21 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return new SortedNumericDocValueAggregator<>(
+                return new VarianceDocAggregator(
                     fieldTypes.get(0).name(),
-                    Variance::new,
                     (values, state) -> state.increment(values.nextValue())
                 );
             case FloatType.ID:
-                return new SortedNumericDocValueAggregator<>(
+                return new VarianceDocAggregator(
                     fieldTypes.get(0).name(),
-                    Variance::new,
                     (values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.increment(value);
                     }
                 );
             case DoubleType.ID:
-                return new SortedNumericDocValueAggregator<>(
+                return new VarianceDocAggregator(
                     fieldTypes.get(0).name(),
-                    Variance::new,
                     (values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.increment(value);
@@ -246,6 +245,20 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                 );
             default:
                 return null;
+        }
+    }
+
+    private static final class VarianceDocAggregator extends SortedNumericDocValueAggregator<Variance> {
+
+        public VarianceDocAggregator(String columnName,
+                                     CheckedBiConsumer<SortedNumericDocValues, Variance, IOException> docValuesConsumer) {
+            super(columnName, Variance::new, docValuesConsumer);
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(Variance state) {
+            return state;
         }
     }
 }

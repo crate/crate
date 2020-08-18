@@ -40,8 +40,10 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -219,24 +221,21 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return new SortedNumericDocValueAggregator<>(
+                return new StandardDeviationDocValuesAggregator(
                     fieldTypes.get(0).name(),
-                    StandardDeviation::new,
                     (values, state) -> state.increment(values.nextValue())
                 );
             case FloatType.ID:
-                return new SortedNumericDocValueAggregator<>(
+                return new StandardDeviationDocValuesAggregator(
                     fieldTypes.get(0).name(),
-                    StandardDeviation::new,
                     (values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.increment(value);
                     }
                 );
             case DoubleType.ID:
-                return new SortedNumericDocValueAggregator<>(
+                return new StandardDeviationDocValuesAggregator(
                     fieldTypes.get(0).name(),
-                    StandardDeviation::new,
                     (values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.increment(value);
@@ -244,6 +243,22 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
                 );
             default:
                 return null;
+        }
+    }
+
+    private static class StandardDeviationDocValuesAggregator extends SortedNumericDocValueAggregator<StandardDeviation> {
+
+        public StandardDeviationDocValuesAggregator(
+            String columnName,
+            CheckedBiConsumer<SortedNumericDocValues, StandardDeviation, IOException> docValuesConsumer
+        ) {
+            super(columnName, StandardDeviation::new, docValuesConsumer);
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(StandardDeviation state) {
+            return state;
         }
     }
 }

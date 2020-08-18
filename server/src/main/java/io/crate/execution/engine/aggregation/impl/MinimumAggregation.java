@@ -28,11 +28,10 @@ import javax.annotation.Nullable;
 
 import io.crate.common.MutableFloat;
 import io.crate.types.ByteType;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.breaker.RamAccounting;
@@ -76,35 +75,15 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
     }
 
-    private static class LongMin implements DocValueAggregator<MutableLong> {
+    private static class LongMin extends SortedNumericDocValueAggregator<MutableLong> {
 
-        private final String columnName;
         private final DataType<?> partialType;
-        private SortedNumericDocValues values;
 
-        public LongMin(String columnName, DataType<?> partialType) {
-            this.columnName = columnName;
+        public LongMin(String columnName,
+                       DataType<?> partialType,
+                       CheckedBiConsumer<SortedNumericDocValues, MutableLong, IOException> docValuesConsumer) {
+            super(columnName, () -> new MutableLong(Long.MAX_VALUE), docValuesConsumer);
             this.partialType = partialType;
-        }
-
-        @Override
-        public MutableLong initialState() {
-            return new MutableLong(Long.MAX_VALUE);
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(MutableLong state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                long value = values.nextValue();
-                if (value < state.value()) {
-                    state.setValue(value);
-                }
-            }
         }
 
         @Override
@@ -117,34 +96,11 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
     }
 
+    private static class DoubleMin extends SortedNumericDocValueAggregator<MutableDouble> {
 
-    private static class DoubleMin implements DocValueAggregator<MutableDouble> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        public DoubleMin(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public MutableDouble initialState() {
-            return new MutableDouble(Double.MAX_VALUE);
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(MutableDouble state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                double value = NumericUtils.sortableLongToDouble(values.nextValue());
-                if (value < state.value()) {
-                    state.setValue(value);
-                }
-            }
+        public DoubleMin(String columnName,
+                         CheckedBiConsumer<SortedNumericDocValues, MutableDouble, IOException> docValuesConsumer) {
+            super(columnName, () -> new MutableDouble(Double.MAX_VALUE), docValuesConsumer);
         }
 
         @Override
@@ -157,33 +113,11 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
     }
 
-    private static class FloatMin implements DocValueAggregator<MutableFloat> {
+    private static class FloatMin extends SortedNumericDocValueAggregator<MutableFloat> {
 
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        public FloatMin(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public MutableFloat initialState() {
-            return new MutableFloat(Float.MAX_VALUE);
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(MutableFloat state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                if (value < state.value()) {
-                    state.setValue(value);
-                }
-            }
+        public FloatMin(String columnName,
+                        CheckedBiConsumer<SortedNumericDocValues, MutableFloat, IOException> docValuesConsumer) {
+            super(columnName, () -> new MutableFloat(Float.MAX_VALUE), docValuesConsumer);
         }
 
         @Override
@@ -195,7 +129,6 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
             }
         }
     }
-
 
     private static class VariableMinimumAggregation extends MinimumAggregation {
 
@@ -246,21 +179,44 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         @Override
         public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
                                                            List<MappedFieldType> fieldTypes) {
-            DataType<?> arg = argumentTypes.get(0);
-            switch (arg.id()) {
+            var dataType = argumentTypes.get(0);
+            switch (dataType.id()) {
                 case ByteType.ID:
                 case ShortType.ID:
                 case IntegerType.ID:
                 case LongType.ID:
                 case TimestampType.ID_WITH_TZ:
                 case TimestampType.ID_WITHOUT_TZ:
-                    return new LongMin(fieldTypes.get(0).name(), arg);
-
+                    return new LongMin(
+                        fieldTypes.get(0).name(),
+                        dataType,
+                        (values, state) -> {
+                            long value = values.nextValue();
+                            if (value < state.value()) {
+                                state.setValue(value);
+                            }
+                        }
+                    );
                 case FloatType.ID:
-                    return new FloatMin(fieldTypes.get(0).name());
+                    return new FloatMin(
+                        fieldTypes.get(0).name(),
+                        (values, state) -> {
+                            float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                            if (value < state.value()) {
+                                state.setValue(value);
+                            }
+                        }
+                    );
                 case DoubleType.ID:
-                    return new DoubleMin(fieldTypes.get(0).name());
-
+                    return new DoubleMin(
+                        fieldTypes.get(0).name(),
+                        (values, state) -> {
+                            double value = NumericUtils.sortableLongToDouble(values.nextValue());
+                            if (value < state.value()) {
+                                state.setValue(value);
+                            }
+                        }
+                    );
                 default:
                     return null;
             }

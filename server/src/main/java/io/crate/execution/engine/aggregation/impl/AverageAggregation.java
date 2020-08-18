@@ -38,9 +38,11 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -279,18 +281,16 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             case ShortType.ID:
             case IntegerType.ID:
             case LongType.ID:
-                return new SortedNumericDocValueAggregator<>(
+                return new AverageDocValuesAggregator(
                     fieldTypes.get(0).name(),
-                    AverageAggregation.AverageState::new,
                     (values, state) -> {
                         state.sum += values.nextValue();
                         state.count++;
                     }
                 );
             case FloatType.ID:
-                return new SortedNumericDocValueAggregator<>(
+                return new AverageDocValuesAggregator(
                     fieldTypes.get(0).name(),
-                    AverageAggregation.AverageState::new,
                     (values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.sum += value;
@@ -298,9 +298,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                     }
                 );
             case DoubleType.ID:
-                return new SortedNumericDocValueAggregator<>(
+                return new AverageDocValuesAggregator(
                     fieldTypes.get(0).name(),
-                    AverageAggregation.AverageState::new,
                     (values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.sum += value;
@@ -309,6 +308,22 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                 );
             default:
                 return null;
+        }
+    }
+
+    private static final class AverageDocValuesAggregator extends SortedNumericDocValueAggregator<AverageState> {
+
+        public AverageDocValuesAggregator(
+            String columnName,
+            CheckedBiConsumer<SortedNumericDocValues, AverageState, IOException> docValuesConsumer
+        ) {
+            super(columnName, AverageState::new, docValuesConsumer);
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(AverageState state) {
+            return state;
         }
     }
 }

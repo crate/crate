@@ -39,11 +39,10 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
@@ -175,48 +174,46 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes, List<MappedFieldType> fieldTypes) {
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
+                                                       List<MappedFieldType> fieldTypes) {
         switch (argumentTypes.get(0).id()) {
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
             case LongType.ID:
-                return new SumLong(fieldTypes.get(0).name());
-
+                return new SumLong(
+                    fieldTypes.get(0).name(),
+                    (values, state) -> {
+                        var value = values.nextValue();
+                        state.setValue(Math.addExact(state.value(), value));
+                    }
+                );
             case FloatType.ID:
-                return new SumFloat(fieldTypes.get(0).name());
+                return new SumFloat(
+                    fieldTypes.get(0).name(),
+                    (values, state) -> {
+                        var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                        state.setValue(state.value() + value);
+                    }
+                );
             case DoubleType.ID:
-                return new SumDouble(fieldTypes.get(0).name());
-
+                return new SumDouble(
+                    fieldTypes.get(0).name(),
+                    (values, state) -> {
+                        var value = NumericUtils.sortableLongToDouble(values.nextValue());
+                        state.setValue(state.value() + value);
+                    }
+                );
             default:
                 return null;
         }
     }
 
-    static class SumLong implements DocValueAggregator<MutableLong> {
+    static class SumLong extends SortedNumericDocValueAggregator<MutableLong> {
 
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        SumLong(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public MutableLong initialState() {
-            return new MutableLong(0L);
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(MutableLong state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                state.setValue(Math.addExact(state.value(), values.nextValue()));
-            }
+        public SumLong(String columnName,
+                       CheckedBiConsumer<SortedNumericDocValues, MutableLong, IOException> docValuesConsumer) {
+            super(columnName, () -> new MutableLong(0L), docValuesConsumer);
         }
 
         @Override
@@ -225,63 +222,24 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
     }
 
-    static class SumDouble implements DocValueAggregator<MutableDouble> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        SumDouble(String columnName) {
-            this.columnName = columnName;
+    static class SumDouble extends SortedNumericDocValueAggregator<MutableDouble> {
+        public SumDouble(String columnName,
+                         CheckedBiConsumer<SortedNumericDocValues, MutableDouble, IOException> docValuesConsumer) {
+            super(columnName, () -> new MutableDouble(.0d), docValuesConsumer);
         }
 
-        @Override
-        public MutableDouble initialState() {
-            return new MutableDouble(.0d);
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(MutableDouble state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                var value = state.value() + NumericUtils.sortableLongToDouble(values.nextValue());
-                state.setValue(value);
-            }
-        }
-
+        @Nullable
         @Override
         public Object partialResult(MutableDouble state) {
             return state.hasValue() ? state.value() : null;
         }
     }
 
-    static class SumFloat implements DocValueAggregator<MutableFloat> {
+    static class SumFloat extends SortedNumericDocValueAggregator<MutableFloat> {
 
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        SumFloat(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public MutableFloat initialState() {
-            return new MutableFloat(.0f);
-        }
-
-        @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
-        }
-
-        @Override
-        public void apply(MutableFloat state, int doc) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                state.setValue(state.value() + NumericUtils.sortableIntToFloat((int) values.nextValue()));
-            }
+        public SumFloat(String columnName,
+                        CheckedBiConsumer<SortedNumericDocValues, MutableFloat, IOException> docValuesConsumer) {
+            super(columnName, () -> new MutableFloat(.0f), docValuesConsumer);
         }
 
         @Override

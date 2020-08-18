@@ -28,11 +28,10 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.common.CheckedBiConsumer;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.function.Supplier;
 
-public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T> {
+public abstract class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T> {
 
     private final String columnName;
     private final Supplier<T> stateInitializer;
@@ -63,11 +62,5 @@ public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T>
         if (values.advanceExact(doc) && values.docValueCount() == 1) {
             docValuesConsumer.accept(values, state);
         }
-    }
-
-    @Nullable
-    @Override
-    public Object partialResult(T state) {
-        return state;
     }
 }

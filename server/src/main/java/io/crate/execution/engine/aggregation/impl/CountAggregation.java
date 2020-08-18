@@ -252,14 +252,26 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                         fieldTypes.get(0).name(),
                         () -> new MutableLong(0L),
                         (values, state) -> state.add(1L)
-                    );
+                    ) {
+                        @Nullable
+                        @Override
+                        public Object partialResult(MutableLong state) {
+                            return state;
+                        }
+                    };
                 case IpType.ID:
                 case StringType.ID:
                     return new BinaryDocValueAggregator<>(
                         fieldTypes.get(0).name(),
                         () -> new MutableLong(0L),
                         (values, state) -> state.add(1L)
-                    );
+                    ) {
+                        @Nullable
+                        @Override
+                        public Object partialResult(MutableLong state) {
+                            return state;
+                        }
+                    };
                 default:
                     return null;
             }

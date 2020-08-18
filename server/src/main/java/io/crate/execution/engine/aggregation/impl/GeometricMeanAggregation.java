@@ -41,8 +41,10 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 import org.apache.commons.math3.util.FastMath;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -239,7 +241,9 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     }
 
     @Override
-    public GeometricMeanState reduce(RamAccounting ramAccounting, GeometricMeanState state1, GeometricMeanState state2) {
+    public GeometricMeanState reduce(RamAccounting ramAccounting,
+                                     GeometricMeanState state1,
+                                     GeometricMeanState state2) {
         if (state1 == null) {
             return state2;
         }
@@ -298,24 +302,21 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return new SortedNumericDocValueAggregator<>(
+                return new GeometricMeanDocValuesAggregator(
                     fieldTypes.get(0).name(),
-                    GeometricMeanState::new,
                     (values, state) -> state.addValue(values.nextValue())
                 );
             case FloatType.ID:
-                return new SortedNumericDocValueAggregator<>(
+                return new GeometricMeanDocValuesAggregator(
                     fieldTypes.get(0).name(),
-                    GeometricMeanState::new,
                     (values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.addValue(value);
                     }
                 );
             case DoubleType.ID:
-                return new SortedNumericDocValueAggregator<>(
+                return new GeometricMeanDocValuesAggregator(
                     fieldTypes.get(0).name(),
-                    GeometricMeanState::new,
                     (values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.addValue(value);
@@ -323,6 +324,22 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                 );
             default:
                 return null;
+        }
+    }
+
+    private static final class GeometricMeanDocValuesAggregator extends SortedNumericDocValueAggregator<GeometricMeanState> {
+
+        public GeometricMeanDocValuesAggregator(
+            String columnName,
+            CheckedBiConsumer<SortedNumericDocValues, GeometricMeanState, IOException> docValuesConsumer
+        ) {
+            super(columnName, GeometricMeanState::new, docValuesConsumer);
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(GeometricMeanState state) {
+            return state;
         }
     }
 }
