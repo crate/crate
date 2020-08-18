@@ -1,0 +1,48 @@
+.. _version_4.2.3:
+
+=============
+Version 4.2.3
+=============
+
+Released on 2020-08-18.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.2.3.
+
+    We recommend that you upgrade to the latest 4.1 release before moving to
+    4.2.3.
+
+    A rolling upgrade from 4.1.7+ to 4.2.3 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.2.0` release notes for a full list of changes in the
+4.2 series.
+
+
+Fixes
+=====
+
+- Fixed a regression introduced in 4.2.0 which caused :ref:`fulltext search
+  <predicates_match>` queries of the ``phase`` match type to ignore the
+  ``fuzziness`` option.
+
+- Fixed a regression introduced in 4.2.0 that caused ``sum`` and ``avg``
+  global aggregates to return incorrect results when used on columns of
+  ``real`` or ``double precision`` data types.
+
+- Fixed an issue that caused primary key lookups to return an empty result
+  instead of the row identified by the primary key values, if the primary key
+  consists of multiple columns and if one of them is of type ``BOOLEAN``.
