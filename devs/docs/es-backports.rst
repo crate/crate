@@ -386,7 +386,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] ef8f90cc2a5 Also mmap terms index (`.tip`) files for hybridfs (#43150)
 - [ ] 62620f28663 Remove usage of FileSwitchDirectory  (#42937)
 - [ ] 8159fdfcc9a Fix assertion in ReadOnlyEngine (#43010)
-- [ ] ca5771c1f4a Improve translog corruption detection (#42744)
+- [x] ca5771c1f4a Improve translog corruption detection (#42744)
 - [x] ae96c16f88f Add a merge policy that prunes ID postings for soft-deleted but retained documents (#40741)
 - [s] b6213ffa52d Revert "Add a merge policy that prunes ID postings for soft-deleted but retained documents (#40741)"
 - [s] 186b52c5738 Add a merge policy that prunes ID postings for soft-deleted but retained documents (#40741)
