@@ -376,7 +376,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 70839bf3d64 Cleanup legacy logic in CombinedDeletionPolicy (#43484)
 - [ ] 1ad8af127b1 Added parsing of erroneous field value (#42321)
 - [ ] d7d5e2fd55b Adapt local checkpoint assertion
-- [ ] f27e808c145 Advance checkpoints only after persisting ops (#43205)
+- [x] f27e808c145 Advance checkpoints only after persisting ops (#43205)
 - [x] f47174f04a2 Do not use soft-deletes to resolve indexing strategy (#43336)
 - [s] 99495aa171a Replace Streamable w/ Writeable in SingleShardRequest and subclasses (#43222)
 - [x] bbc29bb0fd7 Rebuild version map when opening internal engine (#43202)
