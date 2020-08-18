@@ -397,7 +397,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 6e39433cd53 Remove "nodes/0" folder prefix from data path (#42489)
 - [ ] f07b90f3c35 Remove support for chained multi-fields. (#42333)
 - [ ] 4a08b3d1c94 remove 6.4.x version constants (#42127)
-- [ ] 1ef00e368b4 Avoid loading retention leases while writing them (#42620)
+- [x] 1ef00e368b4 Avoid loading retention leases while writing them (#42620)
 - [x] 2c8440922f9 Remove PRE_60_NODE_CHECKPOINT (#42527)
 - [x] 70b4f67747c Add debug log for retention leases (#42557)
 - [x] d992b1da009 Shard CLI tool always check shards (#41480)
