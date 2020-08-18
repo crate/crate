@@ -51,6 +51,10 @@ Breaking Changes
 Changes
 =======
 
+- Added the ``read_only_allow_delete`` setting to the ``settings['blocks']``
+  column of the :ref:`information_schema.tables <information_schema_tables>`
+  and :ref:`information_schema.table_partitions <is_table_partitions>` tables.
+
 - Changed the error code for dropping a missing view from the undefined 4040
   to 4041.
 

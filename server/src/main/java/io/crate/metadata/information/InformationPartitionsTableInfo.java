@@ -77,6 +77,7 @@ public class InformationPartitionsTableInfo {
                     .add("read", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_READ_SETTING))
                     .add("write", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_WRITE_SETTING))
                     .add("metadata", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_METADATA_SETTING))
+                    .add("read_only_allow_delete", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING))
                 .endObject()
 
                 .add("codec", STRING, fromSetting(INDEX_CODEC_SETTING))
