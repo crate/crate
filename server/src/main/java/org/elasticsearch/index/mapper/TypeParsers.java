@@ -180,12 +180,7 @@ public class TypeParsers {
                                 "[_all] is deprecated. As a replacement, you can use an [copy_to] on mapping fields to create your " +
                                 "own catch all field.");
             } else if (propName.equals("copy_to")) {
-                if (parserContext.isWithinMultiField()) {
-                    throw new MapperParsingException("copy_to in multi fields is not allowed. Found the copy_to in field [" + name + "] " +
-                        "which is within a multi field.");
-                } else {
-                    parseCopyFields(propNode, builder);
-                }
+                parseCopyFields(propNode, builder);
                 iterator.remove();
             } else if (propName.equals("position")) {
                 builder.position(nodeIntegerValue(propNode));
