@@ -54,14 +54,4 @@ None
 Fixes
 =====
 
-- Fixed a regression introduced in 4.2.0 which caused :ref:`fulltext search
-  <predicates_match>` queries of the ``phase`` match type to ignore the
-  ``fuzziness`` option.
-
-- Fixed a regression introduced in 4.2.0 that caused ``sum`` and ``avg``
-  global aggregates to return incorrect results when used on columns of
-  the ``real``.
-
-- Fixed an issue that caused primary key lookups to return an empty result
-  instead of the row identified by the primary key values, if the primary key
-  consists of multiple columns and if one of them is of type ``BOOLEAN``.
+None
