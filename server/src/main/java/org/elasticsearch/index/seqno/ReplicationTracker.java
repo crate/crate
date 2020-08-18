@@ -546,14 +546,8 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         // local checkpoints only set during primary mode
         assert primaryMode || checkpoints.values().stream().allMatch(lcps -> lcps.localCheckpoint == SequenceNumbers.UNASSIGNED_SEQ_NO);
 
-         // global checkpoints for other shards only set during primary mode
-         assert primaryMode
-                 || checkpoints
-                 .entrySet()
-                 .stream()
-                 .filter(e -> e.getKey().equals(shardAllocationId) == false)
-                 .map(Map.Entry::getValue)
-                 .allMatch(cps -> cps.globalCheckpoint == SequenceNumbers.UNASSIGNED_SEQ_NO);
+        // global checkpoints only set during primary mode
+        assert primaryMode || checkpoints.values().stream().allMatch(cps -> cps.globalCheckpoint == SequenceNumbers.UNASSIGNED_SEQ_NO);
 
         // relocation handoff can only occur in primary mode
         assert !handoffInProgress || primaryMode;
@@ -1025,13 +1019,10 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         primaryMode = false;
         handoffInProgress = false;
         relocated = true;
-        // forget all checkpoint information except for global checkpoint of current shard
+        // forget all checkpoint information
         checkpoints.forEach((key, cps) -> {
             cps.localCheckpoint = SequenceNumbers.UNASSIGNED_SEQ_NO;
-            if (key.equals(shardAllocationId) == false) {
-                // don't throw global checkpoint information of current shard away
-                cps.globalCheckpoint = SequenceNumbers.UNASSIGNED_SEQ_NO;
-            }
+            cps.globalCheckpoint = SequenceNumbers.UNASSIGNED_SEQ_NO;
         });
 
         assert invariant();
