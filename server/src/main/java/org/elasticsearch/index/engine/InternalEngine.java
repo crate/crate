@@ -2304,8 +2304,15 @@ public class InternalEngine extends Engine {
         // always configure soft-deletes field so an engine with soft-deletes disabled can open a Lucene index with soft-deletes.
         iwc.setSoftDeletesField(Lucene.SOFT_DELETES_FIELD);
         if (softDeleteEnabled) {
-            mergePolicy = new RecoverySourcePruneMergePolicy(SourceFieldMapper.RECOVERY_SOURCE_NAME, softDeletesPolicy::getRetentionQuery,
-                new SoftDeletesRetentionMergePolicy(Lucene.SOFT_DELETES_FIELD, softDeletesPolicy::getRetentionQuery, mergePolicy));
+            mergePolicy = new RecoverySourcePruneMergePolicy(
+                SourceFieldMapper.RECOVERY_SOURCE_NAME,
+                softDeletesPolicy::getRetentionQuery,
+                new SoftDeletesRetentionMergePolicy(
+                    Lucene.SOFT_DELETES_FIELD,
+                    softDeletesPolicy::getRetentionQuery,
+                    new PrunePostingsMergePolicy(mergePolicy, IdFieldMapper.NAME)
+                )
+            );
         }
         iwc.setMergePolicy(new ElasticsearchMergePolicy(mergePolicy));
         iwc.setRAMBufferSizeMB(engineConfig.getIndexingBufferSize().getMbFrac());
