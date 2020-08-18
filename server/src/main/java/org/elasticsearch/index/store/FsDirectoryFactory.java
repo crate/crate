@@ -65,11 +65,7 @@ public class FsDirectoryFactory implements IndexStorePlugin.DirectoryFactory {
         final Path location = path.resolveIndex();
         final LockFactory lockFactory = indexSettings.getValue(INDEX_LOCK_FACTOR_SETTING);
         Files.createDirectories(location);
-        Directory wrapped = newFSDirectory(location, lockFactory, indexSettings);
-        Set<String> preLoadExtensions = new HashSet<>(
-                indexSettings.getValue(IndexModule.INDEX_STORE_PRE_LOAD_SETTING));
-        wrapped = setPreload(wrapped, location, lockFactory, preLoadExtensions);
-        return wrapped;
+        return newFSDirectory(location, lockFactory, indexSettings);
     }
 
 
@@ -83,18 +79,19 @@ public class FsDirectoryFactory implements IndexStorePlugin.DirectoryFactory {
         } else {
             type = IndexModule.Type.fromSettingsKey(storeType);
         }
+        Set<String> preLoadExtensions = new HashSet<>(indexSettings.getValue(IndexModule.INDEX_STORE_PRE_LOAD_SETTING));
         switch (type) {
             case HYBRIDFS:
                 // Use Lucene defaults
                 final FSDirectory primaryDirectory = FSDirectory.open(location, lockFactory);
                 if (primaryDirectory instanceof MMapDirectory) {
                     MMapDirectory mMapDirectory = (MMapDirectory) primaryDirectory;
-                    return new HybridDirectory(lockFactory, mMapDirectory);
+                    return new HybridDirectory(lockFactory, setPreload(mMapDirectory, lockFactory, preLoadExtensions));
                 } else {
                     return primaryDirectory;
                 }
             case MMAPFS:
-                return new MMapDirectory(location, lockFactory);
+                return setPreload(new MMapDirectory(location, lockFactory), lockFactory, preLoadExtensions);
             case SIMPLEFS:
                 return new SimpleFSDirectory(location, lockFactory);
             case NIOFS:
@@ -104,26 +101,18 @@ public class FsDirectoryFactory implements IndexStorePlugin.DirectoryFactory {
         }
     }
 
-    private static Directory setPreload(Directory directory, Path location, LockFactory lockFactory,
-            Set<String> preLoadExtensions) throws IOException {
-        if (preLoadExtensions.isEmpty() == false
-                && directory instanceof MMapDirectory
-                && ((MMapDirectory) directory).getPreload() == false) {
+    public static MMapDirectory setPreload(MMapDirectory mMapDirectory,
+                                           LockFactory lockFactory,
+                                           Set<String> preLoadExtensions) throws IOException {
+        assert mMapDirectory.getPreload() == false;
+        if (preLoadExtensions.isEmpty() == false) {
             if (preLoadExtensions.contains("*")) {
-                ((MMapDirectory) directory).setPreload(true);
-                return directory;
+                mMapDirectory.setPreload(true);
+            } else {
+                return new PreLoadMMapDirectory(mMapDirectory, lockFactory, preLoadExtensions);
             }
-            MMapDirectory primary = new MMapDirectory(location, lockFactory);
-            primary.setPreload(true);
-            return new FileSwitchDirectory(preLoadExtensions, primary, directory, true) {
-                @Override
-                public String[] listAll() throws IOException {
-                    // avoid listing twice
-                    return primary.listAll();
-                }
-            };
         }
-        return directory;
+        return mMapDirectory;
     }
 
     public static boolean isHybridFs(Directory directory) {
@@ -155,6 +144,11 @@ public class FsDirectoryFactory implements IndexStorePlugin.DirectoryFactory {
             } else {
                 return super.openInput(name, context);
             }
+        }
+
+        @Override
+        public void close() throws IOException {
+            IOUtils.close(super::close, delegate);
         }
 
         boolean useDelegate(String name) {
@@ -189,9 +183,52 @@ public class FsDirectoryFactory implements IndexStorePlugin.DirectoryFactory {
             }
         }
 
+        MMapDirectory getDelegate() {
+            return delegate;
+        }
+    }
+
+
+    // TODO it would be nice to share code between PreLoadMMapDirectory and HybridDirectory but due to the nesting aspect of
+    // directories here makes it tricky. It would be nice to allow MMAPDirectory to pre-load on a per IndexInput basis.
+    static final class PreLoadMMapDirectory extends MMapDirectory {
+        private final MMapDirectory delegate;
+        private final Set<String> preloadExtensions;
+
+        PreLoadMMapDirectory(MMapDirectory delegate, LockFactory lockFactory, Set<String> preload) throws IOException {
+            super(delegate.getDirectory(), lockFactory);
+            super.setPreload(false);
+            this.delegate = delegate;
+            this.delegate.setPreload(true);
+            this.preloadExtensions = preload;
+            assert getPreload() == false;
+        }
+
         @Override
-        public void close() throws IOException {
+        public void setPreload(boolean preload) {
+            throw new IllegalArgumentException("can't set preload on a preload-wrapper");
+        }
+
+        @Override
+        public IndexInput openInput(String name, IOContext context) throws IOException {
+            if (useDelegate(name)) {
+                // we need to do these checks on the outer directory since the inner doesn't
+                // know about pending deletes
+                ensureOpen();
+                ensureCanRead(name);
+                return delegate.openInput(name, context);
+            }
+            return super.openInput(name, context);
+        }
+
+        @Override
+        public synchronized void close() throws IOException {
             IOUtils.close(super::close, delegate);
+        }
+
+        boolean useDelegate(String name) {
+            final String extension = FileSwitchDirectory.getExtension(name);
+            return preloadExtensions.contains(extension);
         }
 
         MMapDirectory getDelegate() {
