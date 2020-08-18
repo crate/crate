@@ -383,7 +383,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] fdacbaf7f84 Account soft deletes in committed segments (#43126)
 - [ ] a00da6e9539 Allow big integers and decimals to be mapped dynamically. (#42827)
 - [ ] 4de85c4d97b Only load FST off heap if we are actually using mmaps for the term dictionary (#43158)
-- [ ] ef8f90cc2a5 Also mmap terms index (`.tip`) files for hybridfs (#43150)
+- [x] ef8f90cc2a5 Also mmap terms index (`.tip`) files for hybridfs (#43150)
 - [x] 62620f28663 Remove usage of FileSwitchDirectory  (#42937)
 - [x] 8159fdfcc9a Fix assertion in ReadOnlyEngine (#43010)
 
