@@ -379,7 +379,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] f27e808c145 Advance checkpoints only after persisting ops (#43205)
 - [ ] f47174f04a2 Do not use soft-deletes to resolve indexing strategy (#43336)
 - [ ] 99495aa171a Replace Streamable w/ Writeable in SingleShardRequest and subclasses (#43222)
-- [ ] bbc29bb0fd7 Rebuild version map when opening internal engine (#43202)
+- [x] bbc29bb0fd7 Rebuild version map when opening internal engine (#43202)
 - [x] fdacbaf7f84 Account soft deletes in committed segments (#43126)
 - [s] a00da6e9539 Allow big integers and decimals to be mapped dynamically. (#42827)
 - [s] 4de85c4d97b Only load FST off heap if we are actually using mmaps for the term dictionary (#43158)
