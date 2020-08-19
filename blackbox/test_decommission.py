@@ -230,7 +230,7 @@ class TestGracefulStopFull(GracefulStopTest):
         node1, node2, node3 = self.node_names
         client1, client2, client3 = self.clients
         self.set_settings({"cluster.graceful_stop.min_availability": "full"})
-        decommission(client1, node1)
+        decommission(client2, node1)
         self.assertEqual(wait_for_cluster_size(client2, TestGracefulStopFull.NUM_SERVERS - 1), True)
 
         stmt = "select table_name, id from sys.shards where state = 'UNASSIGNED'"
