@@ -22,12 +22,29 @@
 
 package io.crate.cluster.decommission;
 
+import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.transport.TransportRequest;
 
 public class DecommissionNodeRequest extends TransportRequest {
 
-    public static final DecommissionNodeRequest INSTANCE = new DecommissionNodeRequest();
+    public DecommissionNodeRequest() {
+        super();
+    }
 
-    private DecommissionNodeRequest() {
+    public DecommissionNodeRequest(StreamInput in) throws IOException {
+        super(in);
+    }
+
+    @Override
+    public int hashCode() {
+        return getParentTask().hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj == this
+            || (obj instanceof DecommissionNodeRequest && ((DecommissionNodeRequest) obj).getParentTask().equals(getParentTask()));
     }
 }

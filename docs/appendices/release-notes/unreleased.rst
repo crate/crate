@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
-- Fixed a issue that resulted in incorrect results when querying the
+- Fixed an issue that led to a ``Message not fully read`` error when trying to
+  decommission a node using ``ALTER CLUSTER DECOMMISSION``.
+
+- Fixed an issue that resulted in incorrect results when querying the
   ``sys.nodes`` table. Predicates used in the ``WHERE`` clause on columns that
   were absent in the select-list never matched.
