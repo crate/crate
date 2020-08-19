@@ -2146,7 +2146,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             // in the in-sync set just yet but might be blocked on waiting for its persisted local checkpoint to catch up to
             // the global checkpoint.
             final boolean syncNeeded =
-                (asyncDurability && (stats.getGlobalCheckpoint() < stats.getMaxSeqNo()))
+                (asyncDurability && (stats.getGlobalCheckpoint() < stats.getMaxSeqNo() || replicationTracker.pendingInSync()))
                     // check if the persisted global checkpoint
                     || StreamSupport
                             .stream(globalCheckpoints.values().spliterator(), false)
