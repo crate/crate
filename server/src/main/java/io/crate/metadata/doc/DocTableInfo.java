@@ -260,7 +260,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 routing = Collections.emptySet();
             }
             routingMap = indexNameExpressionResolver.resolveSearchRouting(
-                state, routing, indices);
+                state,
+                routing,
+                indices
+            );
         }
 
         if (routingMap == null) {

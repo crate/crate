@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 
 import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
@@ -83,17 +84,25 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
             if (closedMetadata.getState() == IndexMetadata.State.OPEN) {
                 continue;
             }
-            IndexMetadata indexMetadata = IndexMetadata.builder(closedMetadata).state(IndexMetadata.State.OPEN).build();
+            final Settings.Builder updatedSettings = Settings.builder().put(closedMetadata.getSettings());
+            updatedSettings.remove(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey());
+
+            IndexMetadata updatedIndexMetadata = IndexMetadata.builder(closedMetadata)
+                .state(IndexMetadata.State.OPEN)
+                .settingsVersion(closedMetadata.getSettingsVersion() + 1)
+                .settings(updatedSettings)
+                .build();
+
             // The index might be closed because we couldn't import it due to old incompatible version
             // We need to check that this index can be upgraded to the current version
-            indexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(indexMetadata, minIndexCompatibilityVersion);
+            updatedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(updatedIndexMetadata, minIndexCompatibilityVersion);
             try {
-                indicesService.verifyIndexMetadata(indexMetadata, indexMetadata);
+                indicesService.verifyIndexMetadata(updatedIndexMetadata, updatedIndexMetadata);
             } catch (Exception e) {
-                throw new ElasticsearchException("Failed to verify index " + indexMetadata.getIndex(), e);
+                throw new ElasticsearchException("Failed to verify index " + indexName, e);
             }
 
-            mdBuilder.put(indexMetadata, true);
+            mdBuilder.put(updatedIndexMetadata, true);
         }
 
         // remove closed flag at possible partitioned table template

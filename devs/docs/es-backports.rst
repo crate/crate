@@ -395,4 +395,3 @@ listed anymore.
 - [d] c459ea828f6 Remove node.max_local_storage_nodes (#42428)
 - [d] 3af0c1746b3 Expose external refreshes through the stats API (#38643)
 - [d] ef18d3fb5b2 Add analysis modes to restrict token filter use contexts (#36103)
-- [d] 309a3e4ccbc Add support for replicating closed indices (#39499)

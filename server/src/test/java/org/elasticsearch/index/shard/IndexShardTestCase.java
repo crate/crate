@@ -505,6 +505,33 @@ public abstract class IndexShardTestCase extends ESTestCase {
             EMPTY_EVENT_LISTENER, listeners);
     }
 
+
+    /**
+     * Takes an existing shard, closes it and starts a new initialing shard at the same location
+     *
+     * @param routing       the shard routing to use for the newly created shard.
+     * @param listeners     new listerns to use for the newly created shard
+     * @param indexMetadata the index metadata to use for the newly created shard
+     * @param engineFactory the engine factory for the new shard
+     */
+    protected IndexShard reinitShard(IndexShard current,
+                                     ShardRouting routing,
+                                     EngineFactory engineFactory,
+                                     IndexingOperationListener... listeners) throws IOException {
+        closeShards(current);
+        return newShard(
+            routing,
+            current.shardPath(),
+            current.indexSettings().getIndexMetadata(),
+            null,
+            null,
+            engineFactory,
+            current.getGlobalCheckpointSyncer(),
+            EMPTY_EVENT_LISTENER,
+            listeners
+        );
+    }
+
     /**
      * Creates a new empty shard and starts it. The shard will randomly be a replica or a primary.
      */

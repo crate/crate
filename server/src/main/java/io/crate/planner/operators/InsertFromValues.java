@@ -81,6 +81,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.indices.IndexClosedException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -666,6 +667,7 @@ public class InsertFromValues implements LogicalPlan {
                             // we want to report duplicate key exceptions
                             if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&
                                 (partitionWasDeleted(throwable, request.index())
+                                 || throwable instanceof IndexClosedException
                                  || mixedArgumentTypesFailure(throwable))) {
                                 result.complete(compressedResult);
                             } else {

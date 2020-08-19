@@ -70,4 +70,24 @@ public final class DocsStats implements Writeable {
     public long getCount() {
         return this.count;
     }
+
+    public long getDeleted() {
+        return this.deleted;
+    }
+
+    /**
+     * Returns the total size in bytes of all documents in this stats.
+     * This value may be more reliable than {@link StoreStats#getSizeInBytes()} in estimating the index size.
+     */
+    public long getTotalSizeInBytes() {
+        return totalSizeInBytes;
+    }
+
+    /**
+     * Returns the average size in bytes of all documents in this stats.
+     */
+    public long getAverageSizeInBytes() {
+        long totalDocs = count + deleted;
+        return totalDocs == 0 ? 0 : totalSizeInBytes / totalDocs;
+    }
 }

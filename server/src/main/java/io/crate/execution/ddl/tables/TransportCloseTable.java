@@ -23,6 +23,7 @@
 package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -40,6 +41,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.NotifyOnceListener;
 import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
+import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -93,6 +96,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     private final TransportVerifyShardBeforeCloseAction verifyShardBeforeClose;
     private final AllocationService allocationService;
     private final DDLClusterStateService ddlClusterStateService;
+    private final ActiveShardsObserver activeShardsObserver;
 
     @Inject
     public TransportCloseTable(String actionName,
@@ -114,6 +118,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         this.allocationService = allocationService;
         this.ddlClusterStateService = ddlClusterStateService;
         this.verifyShardBeforeClose = verifyShardBeforeClose;
+        this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
     }
 
     @Override
@@ -146,6 +151,10 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                                           DDLClusterStateService ddlClusterStateService,
                                           Map<Index, ClusterBlock> blockedIndices,
                                           Map<Index, AcknowledgedResponse> results) {
+        // Remove the index routing table of closed indices if the cluster is in a mixed version
+        // that does not support the replication of closed indices
+        final boolean removeRoutingTable = currentState.nodes().getMinNodeVersion().before(Version.V_4_3_0);
+
         IndexTemplateMetadata templateMetadata = target.templateMetadata();
         ClusterState updatedState;
         if (templateMetadata == null) {
@@ -188,12 +197,22 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                     continue;
                 }
 
+                blocks.removeIndexBlockWithId(index.getName(), INDEX_CLOSED_BLOCK_ID);
+                blocks.addIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
+                final IndexMetadata.Builder updatedMetadata = IndexMetadata.builder(indexMetadata).state(IndexMetadata.State.CLOSE);
+                if (removeRoutingTable) {
+                    metadata.put(updatedMetadata);
+                    routingTable.remove(index.getName());
+                } else {
+                    metadata.put(updatedMetadata
+                        .settingsVersion(indexMetadata.getSettingsVersion() + 1)
+                        .settings(Settings.builder()
+                            .put(indexMetadata.getSettings())
+                            .put(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), true)));
+                    routingTable.addAsFromOpenToClose(metadata.getSafe(index));
+                }
+
                 LOGGER.debug("closing index {} succeeded", index);
-                blocks
-                    .removeIndexBlockWithId(index.getName(), INDEX_CLOSED_BLOCK_ID)
-                    .addIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
-                metadata.put(IndexMetadata.builder(indexMetadata).state(IndexMetadata.State.CLOSE));
-                routingTable.remove(index.getName());
                 closedIndices.add(index.getName());
             } catch (IndexNotFoundException e) {
                 LOGGER.debug("index {} has been deleted since it was blocked before closing, ignoring", index);
@@ -411,7 +430,26 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public void clusterStateProcessed(final String source, final ClusterState oldState, final ClusterState newState) {
-            listener.onResponse(new AcknowledgedResponse(acknowledged));
+            final String[] indices = results.entrySet().stream()
+                .filter(result -> result.getValue().isAcknowledged())
+                .map(result -> result.getKey().getName())
+                .filter(index -> newState.routingTable().hasIndex(index))
+                .toArray(String[]::new);
+            if (indices.length > 0) {
+                activeShardsObserver.waitForActiveShards(indices, ActiveShardCount.ONE,
+                    request.ackTimeout(), shardsAcknowledged -> {
+                        if (shardsAcknowledged == false && LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("[{}] indices closed, but the operation timed out while waiting " +
+                                "for enough shards to be started.", Arrays.toString(indices));
+                        }
+                        // acknowledged maybe be false but some indices may have been correctly closed, so
+                        // we maintain a kind of coherency by overriding the shardsAcknowledged value
+                        // (see ShardsAcknowledgedResponse constructor)
+                        listener.onResponse(new AcknowledgedResponse(acknowledged));
+                    }, listener::onFailure);
+            } else {
+                listener.onResponse(new AcknowledgedResponse(acknowledged));
+            }
         }
     }
 

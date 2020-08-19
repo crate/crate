@@ -102,7 +102,11 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.indexShard = indexShard;
         this.localNodeId = () -> clusterService.localNode().getId();
         var mapperService = indexShard.mapperService();
-        fieldTypeLookup = mapperService::fullName;
+        if (mapperService == null) {
+            fieldTypeLookup = name -> null;
+        } else {
+            fieldTypeLookup = mapperService::fullName;
+        }
         var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
         this.table = schemas.getTableInfo(relationName, Operation.READ);
         this.docInputFactory = new DocInputFactory(

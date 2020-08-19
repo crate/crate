@@ -510,9 +510,9 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         }
 
         public Builder addAsRecovery(IndexMetadata indexMetadata) {
-            if (indexMetadata.getState() == IndexMetadata.State.OPEN) {
+            if (indexMetadata.getState() == IndexMetadata.State.OPEN || IndexMetadata.isIndexVerifiedBeforeClosed(indexMetadata)) {
                 IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
-                        .initializeAsRecovery(indexMetadata);
+                    .initializeAsRecovery(indexMetadata);
                 add(indexRoutingBuilder);
             }
             return this;
@@ -534,6 +534,13 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
                 add(indexRoutingBuilder);
             }
             return this;
+        }
+
+        public Builder addAsFromOpenToClose(IndexMetadata indexMetadata) {
+            assert IndexMetadata.isIndexVerifiedBeforeClosed(indexMetadata);
+            IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
+                .initializeAsFromOpenToClose(indexMetadata);
+            return add(indexRoutingBuilder);
         }
 
         public Builder addAsRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource) {
