@@ -140,6 +140,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case TimestampType.ID_WITHOUT_TZ:
                 return new ArbitraryNumericDocValueAggregator(
                     fieldTypes.get(0).name(),
+                    partialEstimator,
                     dataType,
                     (values, state) -> {
                         if (!state.hasValue()) {
@@ -150,6 +151,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case FloatType.ID:
                 return new ArbitraryNumericDocValueAggregator(
                     fieldTypes.get(0).name(),
+                    partialEstimator,
                     dataType,
                     (values, state) -> {
                         if (!state.hasValue()) {
@@ -161,6 +163,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case DoubleType.ID:
                 return new ArbitraryNumericDocValueAggregator(
                     fieldTypes.get(0).name(),
+                    partialEstimator,
                     dataType,
                     (values, state) -> {
                         if (!state.hasValue()) {
@@ -182,9 +185,11 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 ) {
                     @Nullable
                     @Override
-                    public Object partialResult(MutableObject state) {
+                    public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
                         if (state.hasValue()) {
-                            return dataType.sanitizeValue(state.value());
+                            var partialResult = state.value();
+                            ramAccounting.addBytes(partialEstimator.estimateSize(partialResult));
+                            return dataType.sanitizeValue(partialResult);
                         } else {
                             return null;
                         }
@@ -198,21 +203,26 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     private static class ArbitraryNumericDocValueAggregator extends SortedNumericDocValueAggregator<MutableObject> {
 
         private final DataType<?> columnDataType;
+        private final SizeEstimator<Object> sizeEstimator;
 
         public ArbitraryNumericDocValueAggregator(
             String columnName,
+            SizeEstimator<Object> sizeEstimator,
             DataType<?> columnDataType,
             CheckedBiConsumer<SortedNumericDocValues, MutableObject, IOException> docValuesConsumer
         ) {
             super(columnName, MutableObject::new, docValuesConsumer);
             this.columnDataType = columnDataType;
+            this.sizeEstimator = sizeEstimator;
         }
 
         @Nullable
         @Override
-        public Object partialResult(MutableObject state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
             if (state.hasValue()) {
-                return columnDataType.sanitizeValue(state.value());
+                var partialResult = state.value();
+                ramAccounting.addBytes(sizeEstimator.estimateSize(partialResult));
+                return columnDataType.sanitizeValue(partialResult);
             } else {
                 return null;
             }

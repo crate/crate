@@ -338,7 +338,8 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
 
         @Nullable
         @Override
-        public Object partialResult(GeometricMeanState state) {
+        public Object partialResult(RamAccounting ramAccounting, GeometricMeanState state) {
+            ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
             return state;
         }
     }

@@ -257,7 +257,8 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
 
         @Nullable
         @Override
-        public Object partialResult(Variance state) {
+        public Object partialResult(RamAccounting ramAccounting, Variance state) {
+            ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
             return state;
         }
     }

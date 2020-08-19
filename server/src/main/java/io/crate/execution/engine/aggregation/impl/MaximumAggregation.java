@@ -88,8 +88,9 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(MutableLong state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableLong state) {
             if (state.hasValue()) {
+                ramAccounting.addBytes(DataTypes.LONG.fixedSize());
                 return partialType.sanitizeValue(state.value());
             } else {
                 return null;
@@ -105,8 +106,9 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(MutableDouble state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableDouble state) {
             if (state.hasValue()) {
+                ramAccounting.addBytes(DataTypes.DOUBLE.fixedSize());
                 return state.value();
             } else {
                 return null;
@@ -122,8 +124,9 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(MutableFloat state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableFloat state) {
             if (state.hasValue()) {
+                ramAccounting.addBytes(DataTypes.FLOAT.fixedSize());
                 return state.value();
             } else {
                 return null;

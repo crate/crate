@@ -26,6 +26,7 @@ import java.io.IOException;
 
 import javax.annotation.Nullable;
 
+import io.crate.breaker.RamAccounting;
 import org.apache.lucene.index.LeafReader;
 
 public interface DocValueAggregator<T> {
@@ -40,5 +41,5 @@ public interface DocValueAggregator<T> {
     // that means there is always a final reduce step necessary
     // → never return final value, but always partial result
     @Nullable
-    public Object partialResult(T state);
+    public Object partialResult(RamAccounting ramAccounting, T state);
 }

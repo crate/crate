@@ -322,7 +322,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
         @Nullable
         @Override
-        public Object partialResult(AverageState state) {
+        public Object partialResult(RamAccounting ramAccounting, AverageState state) {
+            ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
             return state;
         }
     }

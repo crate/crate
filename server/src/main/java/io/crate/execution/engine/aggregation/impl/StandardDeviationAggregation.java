@@ -257,7 +257,8 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
         @Nullable
         @Override
-        public Object partialResult(StandardDeviation state) {
+        public Object partialResult(RamAccounting ramAccounting, StandardDeviation state) {
+            ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
             return state;
         }
     }

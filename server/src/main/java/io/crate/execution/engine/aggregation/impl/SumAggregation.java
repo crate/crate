@@ -217,8 +217,13 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public Long partialResult(MutableLong state) {
-            return state.hasValue() ? state.value() : null;
+        public Long partialResult(RamAccounting ramAccounting, MutableLong state) {
+            if (state.hasValue()) {
+                ramAccounting.addBytes(DataTypes.FLOAT.fixedSize());
+                return state.value();
+            } else {
+                return null;
+            }
         }
     }
 
@@ -230,8 +235,13 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         @Nullable
         @Override
-        public Object partialResult(MutableDouble state) {
-            return state.hasValue() ? state.value() : null;
+        public Object partialResult(RamAccounting ramAccounting, MutableDouble state) {
+            if (state.hasValue()) {
+                ramAccounting.addBytes(DataTypes.DOUBLE.fixedSize());
+                return state.value();
+            } else {
+                return null;
+            }
         }
     }
 
@@ -243,8 +253,13 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public Object partialResult(MutableFloat state) {
-            return state.hasValue() ? state.value() : null;
+        public Object partialResult(RamAccounting ramAccounting, MutableFloat state) {
+            if (state.hasValue()) {
+                ramAccounting.addBytes(DataTypes.LONG.fixedSize());
+                return state.value();
+            } else {
+                return null;
+            }
         }
     }
 }
