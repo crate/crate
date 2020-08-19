@@ -366,9 +366,9 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] f3317eb82d8 Add support for 'flattened object' fields. (#42541)
 - [ ] 6f5b3a6c71f Do not use MockInternalEngine in GatewayIndexStateIT (#43716)
 - [ ] 56ee1a5e007 Allow reloading of search time analyzers (#43313)
-- [ ] 3a7ebb05d02 Avoid AssertionError when closing engine (#43638)
-- [ ] a520a5d761b Add prefix intervals source (#43635)
-- [ ] 1a7730160f0 Adjust bwc assertion after backporting #42201
+- [x] 3a7ebb05d02 Avoid AssertionError when closing engine (#43638)
+- [s] a520a5d761b Add prefix intervals source (#43635)
+- [s] 1a7730160f0 Adjust bwc assertion after backporting #42201
 - [x] f83d8c26667 Ensure relocation target still tracked when start handoff (#42201)
 - [x] 0cfc9ff7759 Sync global checkpoint on pending in-sync shards (#43526)
 - [x] 5e668ad3984 Add additional logging for #43034
