@@ -46,6 +46,7 @@ import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -616,6 +617,27 @@ public class IndexShardTests extends IndexShardTestCase {
         primaryShard.maybeSyncGlobalCheckpoint("test");
         assertFalse("closed indices should skip global checkpoint sync", synced.get());
         closeShards(primaryShard, replicaShard);
+    }
+
+
+    @Test
+    public void testRelocateMissingTarget() throws Exception {
+        final IndexShard shard = newStartedShard(true);
+        final ShardRouting original = shard.routingEntry();
+        final ShardRouting toNode1 = ShardRoutingHelper.relocate(original, "node_1");
+        IndexShardTestCase.updateRoutingEntry(shard, toNode1);
+        IndexShardTestCase.updateRoutingEntry(shard, original);
+        final ShardRouting toNode2 = ShardRoutingHelper.relocate(original, "node_2");
+        IndexShardTestCase.updateRoutingEntry(shard, toNode2);
+        final AtomicBoolean relocated = new AtomicBoolean();
+        final IllegalStateException error = expectThrows(IllegalStateException.class,
+            () -> shard.relocated(toNode1.getTargetRelocatingShard().allocationId().getId(), ctx -> relocated.set(true)));
+        assertThat(error.getMessage(), equalTo("relocation target [" + toNode1.getTargetRelocatingShard().allocationId().getId()
+            + "] is no longer part of the replication group"));
+        assertFalse(relocated.get());
+        shard.relocated(toNode2.getTargetRelocatingShard().allocationId().getId(), ctx -> relocated.set(true));
+        assertTrue(relocated.get());
+        closeShards(shard);
     }
 
     class Result {

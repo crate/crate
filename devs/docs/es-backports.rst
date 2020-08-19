@@ -369,7 +369,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 3a7ebb05d02 Avoid AssertionError when closing engine (#43638)
 - [ ] a520a5d761b Add prefix intervals source (#43635)
 - [ ] 1a7730160f0 Adjust bwc assertion after backporting #42201
-- [ ] f83d8c26667 Ensure relocation target still tracked when start handoff (#42201)
+- [x] f83d8c26667 Ensure relocation target still tracked when start handoff (#42201)
 - [x] 0cfc9ff7759 Sync global checkpoint on pending in-sync shards (#43526)
 - [x] 5e668ad3984 Add additional logging for #43034
 - [x] 893c50f74f5 Assert that NOOPs must succeed (#43483)
