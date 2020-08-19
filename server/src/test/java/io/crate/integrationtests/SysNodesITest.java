@@ -29,7 +29,7 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
-@ESIntegTestCase.ClusterScope(numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numClientNodes = 0, supportsDedicatedMasters = false)
 public class SysNodesITest extends SQLTransportIntegrationTest {
 
     @Override
@@ -56,4 +56,10 @@ public class SysNodesITest extends SQLTransportIntegrationTest {
         assertThat((String) response.rows()[0][0], startsWith("127.0.0.1:"));
     }
 
+
+    @Test
+    public void test_filter_on_not_selected_column_on_sys_nodes_returns_record() throws Exception {
+        execute("select fs from sys.nodes where name = 'node_s0'");
+        assertThat(response.rowCount(), is(1L));
+    }
 }

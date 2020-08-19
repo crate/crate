@@ -54,4 +54,6 @@ None
 Fixes
 =====
 
-None
+- Fixed a issue that resulted in incorrect results when querying the
+  ``sys.nodes`` table. Predicates used in the ``WHERE`` clause on columns that
+  were absent in the select-list never matched.

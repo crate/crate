@@ -117,7 +117,10 @@ public final class NodeStats {
 
         private CompletableFuture<List<NodeStatsContext>> getNodeStatsContexts() {
             Set<ColumnIdent> toCollect = getRootColumns(collectPhase.toCollect());
-            return dataAvailableInClusterState(toCollect) ? getStatsFromLocalState() : getStatsFromRemote(toCollect);
+            toCollect.addAll(getRootColumns(List.of(collectPhase.where())));
+            return dataAvailableInClusterState(toCollect)
+                ? getStatsFromLocalState()
+                : getStatsFromRemote(toCollect);
         }
 
         private CompletableFuture<List<NodeStatsContext>> getStatsFromLocalState() {
