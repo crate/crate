@@ -371,11 +371,11 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 1a7730160f0 Adjust bwc assertion after backporting #42201
 - [ ] f83d8c26667 Ensure relocation target still tracked when start handoff (#42201)
 - [ ] 0cfc9ff7759 Sync global checkpoint on pending in-sync shards (#43526)
-- [ ] 5e668ad3984 Add additional logging for #43034
-- [ ] 893c50f74f5 Assert that NOOPs must succeed (#43483)
-- [ ] 70839bf3d64 Cleanup legacy logic in CombinedDeletionPolicy (#43484)
-- [ ] 1ad8af127b1 Added parsing of erroneous field value (#42321)
-- [ ] d7d5e2fd55b Adapt local checkpoint assertion
+- [x] 5e668ad3984 Add additional logging for #43034
+- [x] 893c50f74f5 Assert that NOOPs must succeed (#43483)
+- [x] 70839bf3d64 Cleanup legacy logic in CombinedDeletionPolicy (#43484)
+- [s] 1ad8af127b1 Added parsing of erroneous field value (#42321)
+- [x] d7d5e2fd55b Adapt local checkpoint assertion
 - [x] f27e808c145 Advance checkpoints only after persisting ops (#43205)
 - [x] f47174f04a2 Do not use soft-deletes to resolve indexing strategy (#43336)
 - [s] 99495aa171a Replace Streamable w/ Writeable in SingleShardRequest and subclasses (#43222)
