@@ -71,7 +71,7 @@ public final class DecommissionNodePlan implements Plan {
             .transportDecommissionNodeAction()
             .execute(
                 targetNodeId,
-                DecommissionNodeRequest.INSTANCE,
+                new DecommissionNodeRequest(),
                 new OneRowActionListener<>(
                     consumer,
                     r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L))
