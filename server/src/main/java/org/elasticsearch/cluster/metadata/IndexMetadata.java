@@ -247,6 +247,10 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
     public static final Setting<Integer> INDEX_FORMAT_SETTING =
             Setting.intSetting(INDEX_FORMAT, 0, Setting.Property.IndexScope, Setting.Property.Final);
 
+
+    public static final Setting<Boolean> VERIFIED_BEFORE_CLOSE_SETTING =
+        Setting.boolSetting("index.verified_before_close", false, Setting.Property.IndexScope, Setting.Property.PrivateIndex);
+
     public static final String KEY_IN_SYNC_ALLOCATIONS = "in_sync_allocations";
     static final String KEY_VERSION = "version";
     static final String KEY_MAPPING_VERSION = "mapping_version";
@@ -1460,5 +1464,12 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             factor = 1;
         }
         return factor;
+    }
+
+
+    public static boolean isIndexVerifiedBeforeClosed(final IndexMetadata indexMetadata) {
+        return indexMetadata.getState() == IndexMetadata.State.CLOSE
+            && VERIFIED_BEFORE_CLOSE_SETTING.exists(indexMetadata.getSettings())
+            && VERIFIED_BEFORE_CLOSE_SETTING.get(indexMetadata.getSettings());
     }
 }

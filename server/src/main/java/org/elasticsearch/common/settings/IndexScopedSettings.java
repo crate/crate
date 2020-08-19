@@ -71,6 +71,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexMetadata.INDEX_PRIORITY_SETTING,
         IndexMetadata.INDEX_DATA_PATH_SETTING,
         IndexMetadata.INDEX_FORMAT_SETTING,
+        IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING,
         MergePolicyConfig.INDEX_COMPOUND_FORMAT_SETTING,
         MergePolicyConfig.INDEX_MERGE_POLICY_DELETES_PCT_ALLOWED_SETTING,
         MergePolicyConfig.INDEX_MERGE_POLICY_EXPUNGE_DELETES_ALLOWED_SETTING,

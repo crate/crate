@@ -57,7 +57,7 @@ public abstract class ShardCollectorProvider {
 
     private final ProjectorFactory projectorFactory;
     private final ShardRowContext shardRowContext;
-    private final IndexShard indexShard;
+    protected final IndexShard indexShard;
     final EvaluatingNormalizer shardNormalizer;
 
     ShardCollectorProvider(ClusterService clusterService,
@@ -119,13 +119,16 @@ public abstract class ShardCollectorProvider {
         assert collectPhase.maxRowGranularity() == RowGranularity.DOC :
             "granularity must be DOC";
 
+        boolean isOpenIndex = indexShard.mapperService() != null;
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, collectTask.txnCtx());
-        BatchIterator<Row> fusedIterator = getProjectionFusedIterator(normalizedCollectNode, collectTask);
-        if (fusedIterator != null) {
-            return fusedIterator;
+        if (isOpenIndex) {
+            BatchIterator<Row> fusedIterator = getProjectionFusedIterator(normalizedCollectNode, collectTask);
+            if (fusedIterator != null) {
+                return fusedIterator;
+            }
         }
         final BatchIterator<Row> iterator;
-        if (WhereClause.canMatch(normalizedCollectNode.where())) {
+        if (isOpenIndex && WhereClause.canMatch(normalizedCollectNode.where())) {
             iterator = getUnorderedIterator(normalizedCollectNode, requiresScroll, collectTask);
         } else {
             iterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);

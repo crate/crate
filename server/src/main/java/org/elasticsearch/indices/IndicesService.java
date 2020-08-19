@@ -88,6 +88,7 @@ import org.elasticsearch.index.IndexService.IndexCreationContext;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.InternalEngineFactory;
+import org.elasticsearch.index.engine.NoOpEngine;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexEventListener;
@@ -377,6 +378,12 @@ public class IndicesService extends AbstractLifecycleComponent
     }
 
     private EngineFactory getEngineFactory(final IndexSettings idxSettings) {
+        final IndexMetadata indexMetadata = idxSettings.getIndexMetadata();
+        if (indexMetadata != null && indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+            // NoOpEngine takes precedence as long as the index is closed
+            return NoOpEngine::new;
+        }
+
         final List<Optional<EngineFactory>> engineFactories =
                 engineFactoryProviders
                         .stream()

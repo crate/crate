@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.admin.cluster.health;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -37,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthRequest> implements IndicesRequest.Replaceable {
 
     private String[] indices;
+    private IndicesOptions indicesOptions = IndicesOptions.lenientExpand();
     private TimeValue timeout = new TimeValue(30, TimeUnit.SECONDS);
     private ClusterHealthStatus waitForStatus;
     private boolean waitForNoRelocatingShards = false;
@@ -70,7 +72,12 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
 
     @Override
     public IndicesOptions indicesOptions() {
-        return IndicesOptions.lenientExpandOpen();
+        return indicesOptions;
+    }
+
+    public ClusterHealthRequest indicesOptions(final IndicesOptions indicesOptions) {
+        this.indicesOptions = indicesOptions;
+        return this;
     }
 
     public TimeValue timeout() {
@@ -228,6 +235,11 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
             waitForEvents = Priority.readFrom(in);
         }
         waitForNoInitializingShards = in.readBoolean();
+        if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
+            indicesOptions = IndicesOptions.readIndicesOptions(in);
+        } else {
+            indicesOptions = IndicesOptions.lenientExpandOpen();
+        }
     }
 
     @Override
@@ -258,6 +270,9 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
             Priority.writeTo(waitForEvents, out);
         }
         out.writeBoolean(waitForNoInitializingShards);
+        if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
+            indicesOptions.writeIndicesOptions(out);
+        }
     }
 
     public enum Level {
