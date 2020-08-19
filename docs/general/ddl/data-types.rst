@@ -962,41 +962,92 @@ subcolumns. One can retrieve them, sort by them and use them in where clauses.
 ``ignored``
 -----------
 
-The third option is ``ignored`` which results in an object that allows
-inserting new subcolumns but this adding will not affect the schema, they are
-not mapped according to their type, which is therefor not guessed as well. You
-can in fact add any value to an added column of the same name. The first value
-added does not determine what you can add further, like with ``dynamic``
-objects.
+The third option is ``ignored``. Explicitly defined columns within an
+``ignored`` object behave the same as those within object columns declared as
+``dynamic`` or ``strict`` (e.g., column constraints are still enforced, columns
+that would be indexed are still indexed, and so on). The difference is that with
+``ignored``, dynamically added columns do not result in a schema update and the
+values won't be indexed. This allows you to store values with a mixed type under
+the same key.
 
-An object configured like this will simply accept and return the columns
-inserted into it, but otherwise ignore them.
-
+An example:
 ::
 
-    cr> create table my_table15 (
-    ...   title text,
-    ...   details object(ignored) as (
-    ...     num_pages integer,
-    ...     font_size real
+    cr> CREATE TABLE metrics (
+    ...   id TEXT PRIMARY KEY,
+    ...   payload OBJECT (IGNORED) as (
+    ...     tag TEXT
     ...   )
     ... );
     CREATE OK, 1 row affected (... sec)
 
-.. hide:
+::
 
-    cr> drop table my_table15;
-    DROP OK, 1 row affected (... sec)
+    cr> INSERT INTO metrics (id, payload) values ('1', {"tag"='AT', "value"=30});
+    INSERT OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO metrics (id, payload) values ('2', {"tag"='AT', "value"='str'});
+    INSERT OK, 1 row affected (... sec)
+
+::
+
+    cr> refresh table metrics;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT payload FROM metrics ORDER BY id;
+    +-------------------------------+
+    | payload                       |
+    +-------------------------------+
+    | {"tag": "AT", "value": 30}    |
+    | {"tag": "AT", "value": "str"} |
+    +-------------------------------+
+    SELECT 2 rows in set (... sec)
 
 .. NOTE::
 
-   ``Ignored`` objects should be mainly used for storing and fetching.
-   Filtering by and ordering on them is possible but very performance
-   intensive. ``Ignored`` objects are a *black box* for the storage engine, so
-   the filtering/ordering is done using an expensive table scan and a
-   filter/order function outside of the storage engine. Using ``ignored``
-   objects for grouping or aggregations is not possible at all and will result
-   in an exception or ``NULL`` value if used with excplicit casts.
+    Given that dynamically added sub-columns of an ``ignored`` objects are not
+    indexed, filter operations on these columns cannot utilize the index and
+    instead a value lookup is performed for each matching row. This can be
+    mitigated by combining a filter using the ``AND`` clause with other
+    predicates on indexed columns.
+
+    Futhermore, values for dynamically added sub-columns of an ``ignored``
+    objects aren't stored in a column store, which means that ordering on these
+    columns or using them with aggregates is also slower than using the same
+    operations on regular columns. For some operations it may also be necessary
+    to add an explicit type cast because there is no type information available
+    in the schema.
+
+    An example:
+    ::
+
+     cr> SELECT id, payload FROM metrics ORDER BY payload['value']::text DESC;
+     +----+-------------------------------+
+     | id | payload                       |
+     +----+-------------------------------+
+     | 2  | {"tag": "AT", "value": "str"} |
+     | 1  | {"tag": "AT", "value": 30}    |
+     +----+-------------------------------+
+     SELECT 2 rows in set (... sec)
+
+    Given that it is possible have values of different types within the same
+    sub-column of an ignored objects, aggregations may fail at runtime:
+
+    ::
+
+     cr> SELECT sum(payload['value']::bigint) FROM metrics;
+     SQLParseException[Cannot cast value `str` to type `bigint`]
+
+
+.. hide:
+
+    cr> drop table metrics;
+    DROP OK, 1 row affected (... sec)
+
 
 .. _data-type-object-literals:
 
@@ -1418,4 +1469,3 @@ See the table below for a full list of aliases:
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
 .. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
-
