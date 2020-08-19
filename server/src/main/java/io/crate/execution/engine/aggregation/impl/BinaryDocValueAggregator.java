@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -51,7 +52,7 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
     }
 
     @Override
-    public T initialState() {
+    public T initialState(RamAccounting ramAccounting) {
         return stateInitializer.get();
     }
 
@@ -61,7 +62,7 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
     }
 
     @Override
-    public void apply(T state, int doc) throws IOException {
+    public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException {
         if (values.advanceExact(doc) && values.docValueCount() == 1) {
             docValuesConsumer.accept(values, state);
         }
@@ -69,7 +70,7 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     @Nullable
     @Override
-    public Object partialResult(T state) {
+    public Object partialResult(RamAccounting ramAccounting, T state) {
         return state;
     }
 }

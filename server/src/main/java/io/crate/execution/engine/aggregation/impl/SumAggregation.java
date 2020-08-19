@@ -203,7 +203,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public MutableLong initialState() {
+        public MutableLong initialState(RamAccounting ramAccounting) {
             return new MutableLong(0L);
         }
 
@@ -213,14 +213,14 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(MutableLong state, int doc) throws IOException {
+        public void apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 state.setValue(Math.addExact(state.value(), values.nextValue()));
             }
         }
 
         @Override
-        public Long partialResult(MutableLong state) {
+        public Long partialResult(RamAccounting ramAccounting, MutableLong state) {
             return state.hasValue() ? state.value() : null;
         }
     }
@@ -235,7 +235,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public MutableDouble initialState() {
+        public MutableDouble initialState(RamAccounting ramAccounting) {
             return new MutableDouble(.0d);
         }
 
@@ -245,7 +245,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(MutableDouble state, int doc) throws IOException {
+        public void apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var value = state.value() + NumericUtils.sortableLongToDouble(values.nextValue());
                 state.setValue(value);
@@ -253,7 +253,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public Object partialResult(MutableDouble state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableDouble state) {
             return state.hasValue() ? state.value() : null;
         }
     }
@@ -268,7 +268,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public MutableFloat initialState() {
+        public MutableFloat initialState(RamAccounting ramAccounting) {
             return new MutableFloat(.0f);
         }
 
@@ -278,14 +278,14 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(MutableFloat state, int doc) throws IOException {
+        public void apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 state.setValue(state.value() + NumericUtils.sortableIntToFloat((int) values.nextValue()));
             }
         }
 
         @Override
-        public Object partialResult(MutableFloat state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableFloat state) {
             return state.hasValue() ? state.value() : null;
         }
     }

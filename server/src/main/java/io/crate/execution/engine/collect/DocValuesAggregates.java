@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.collect;
 
+import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -119,6 +120,7 @@ public class DocValuesAggregates {
                 () -> {
                     try {
                         return CompletableFuture.completedFuture(getRow(
+                            collectTask.getRamAccounting(),
                             killed,
                             searcher,
                             queryContext.query(),
@@ -197,7 +199,8 @@ public class DocValuesAggregates {
 
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Iterable<Row> getRow(AtomicReference<Throwable> killed,
+    private static Iterable<Row> getRow(RamAccounting ramAccounting,
+                                        AtomicReference<Throwable> killed,
                                         Searcher searcher,
                                         Query query,
                                         List<DocValueAggregator> aggregators) throws IOException {
@@ -206,7 +209,7 @@ public class DocValuesAggregates {
         List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
         Object[] cells = new Object[aggregators.size()];
         for (int i = 0; i < aggregators.size(); i++) {
-            cells[i] = aggregators.get(i).initialState();
+            cells[i] = aggregators.get(i).initialState(ramAccounting);
         }
         for (var leaf : leaves) {
             Scorer scorer = weight.scorer(leaf);
@@ -227,12 +230,12 @@ public class DocValuesAggregates {
                     Exceptions.rethrowUnchecked(killCause);
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
-                    aggregators.get(i).apply(cells[i], doc);
+                    aggregators.get(i).apply(ramAccounting, doc, cells[i]);
                 }
             }
         }
         for (int i = 0; i < aggregators.size(); i++) {
-            cells[i] = aggregators.get(i).partialResult(cells[i]);
+            cells[i] = aggregators.get(i).partialResult(ramAccounting, cells[i]);
         }
         return List.of(new RowN(cells));
     }

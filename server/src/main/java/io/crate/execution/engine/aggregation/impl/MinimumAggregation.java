@@ -88,7 +88,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public MutableLong initialState() {
+        public MutableLong initialState(RamAccounting ramAccounting) {
             return new MutableLong(Long.MAX_VALUE);
         }
 
@@ -98,7 +98,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void apply(MutableLong state, int doc) throws IOException {
+        public void apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 long value = values.nextValue();
                 if (value < state.value()) {
@@ -108,7 +108,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(MutableLong state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableLong state) {
             if (state.hasValue()) {
                 return partialType.sanitizeValue(state.value());
             } else {
@@ -128,7 +128,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public MutableDouble initialState() {
+        public MutableDouble initialState(RamAccounting ramAccounting) {
             return new MutableDouble(Double.MAX_VALUE);
         }
 
@@ -138,7 +138,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void apply(MutableDouble state, int doc) throws IOException {
+        public void apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 double value = NumericUtils.sortableLongToDouble(values.nextValue());
                 if (value < state.value()) {
@@ -148,7 +148,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(MutableDouble state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableDouble state) {
             if (state.hasValue()) {
                 return state.value();
             } else {
@@ -167,7 +167,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public MutableFloat initialState() {
+        public MutableFloat initialState(RamAccounting ramAccounting) {
             return new MutableFloat(Float.MAX_VALUE);
         }
 
@@ -177,7 +177,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void apply(MutableFloat state, int doc) throws IOException {
+        public void apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                 if (value < state.value()) {
@@ -187,7 +187,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(MutableFloat state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableFloat state) {
             if (state.hasValue()) {
                 return state.value();
             } else {
