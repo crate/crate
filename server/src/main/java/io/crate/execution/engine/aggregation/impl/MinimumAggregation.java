@@ -89,6 +89,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         @Override
         public MutableLong initialState(RamAccounting ramAccounting) {
+            ramAccounting.addBytes(DataTypes.LONG.fixedSize());
             return new MutableLong(Long.MAX_VALUE);
         }
 
@@ -129,6 +130,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         @Override
         public MutableDouble initialState(RamAccounting ramAccounting) {
+            ramAccounting.addBytes(DataTypes.DOUBLE.fixedSize());
             return new MutableDouble(Double.MAX_VALUE);
         }
 
@@ -168,6 +170,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         @Override
         public MutableFloat initialState(RamAccounting ramAccounting) {
+            ramAccounting.addBytes(DataTypes.FLOAT.fixedSize());
             return new MutableFloat(Float.MAX_VALUE);
         }
 

@@ -31,18 +31,18 @@ import org.elasticsearch.common.CheckedBiConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T> {
 
     private final String columnName;
-    private final Supplier<T> stateInitializer;
+    private final Function<RamAccounting, T> stateInitializer;
     private final CheckedBiConsumer<SortedNumericDocValues, T, IOException> docValuesConsumer;
 
     private SortedNumericDocValues values;
 
     public SortedNumericDocValueAggregator(String columnName,
-                                           Supplier<T> stateInitializer,
+                                           Function<RamAccounting, T> stateInitializer,
                                            CheckedBiConsumer<SortedNumericDocValues, T, IOException> docValuesConsumer) {
         this.columnName = columnName;
         this.stateInitializer = stateInitializer;
@@ -51,7 +51,7 @@ public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T>
 
     @Override
     public T initialState(RamAccounting ramAccounting) {
-        return stateInitializer.get();
+        return stateInitializer.apply(ramAccounting);
     }
 
     @Override

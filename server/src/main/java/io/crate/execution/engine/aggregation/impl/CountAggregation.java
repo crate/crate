@@ -250,14 +250,20 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                 case GeoPointType.ID:
                     return new SortedNumericDocValueAggregator<>(
                         fieldTypes.get(0).name(),
-                        () -> new MutableLong(0L),
+                        (ramAccounting) -> {
+                            ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
+                            return new MutableLong(0L);
+                        },
                         (values, state) -> state.add(1L)
                     );
                 case IpType.ID:
                 case StringType.ID:
                     return new BinaryDocValueAggregator<>(
                         fieldTypes.get(0).name(),
-                        () -> new MutableLong(0L),
+                        (ramAccounting) -> {
+                            ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
+                            return new MutableLong(0L);
+                        },
                         (values, state) -> state.add(1L)
                     );
                 default:
