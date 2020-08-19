@@ -182,7 +182,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 ) {
                     @Nullable
                     @Override
-                    public Object partialResult(MutableObject state) {
+                    public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
                         if (state.hasValue()) {
                             return dataType.sanitizeValue(state.value());
                         } else {
@@ -210,7 +210,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
         @Nullable
         @Override
-        public Object partialResult(MutableObject state) {
+        public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
             if (state.hasValue()) {
                 return columnDataType.sanitizeValue(state.value());
             } else {

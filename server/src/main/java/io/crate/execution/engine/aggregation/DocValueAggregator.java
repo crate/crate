@@ -26,19 +26,20 @@ import java.io.IOException;
 
 import javax.annotation.Nullable;
 
+import io.crate.breaker.RamAccounting;
 import org.apache.lucene.index.LeafReader;
 
 public interface DocValueAggregator<T> {
 
-    public T initialState();
+    public T initialState(RamAccounting ramAccounting);
 
     public void loadDocValues(LeafReader reader) throws IOException;
 
-    public void apply(T state, int doc) throws IOException;
+    public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException;
 
     // Aggregations are executed on shard level,
     // that means there is always a final reduce step necessary
     // → never return final value, but always partial result
     @Nullable
-    public Object partialResult(T state);
+    public Object partialResult(RamAccounting ramAccounting, T state);
 }
