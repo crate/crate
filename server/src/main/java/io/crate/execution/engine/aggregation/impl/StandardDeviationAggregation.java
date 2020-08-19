@@ -221,13 +221,19 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    StandardDeviation::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
+                        return new StandardDeviation();
+                    },
                     (values, state) -> state.increment(values.nextValue())
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    StandardDeviation::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
+                        return new StandardDeviation();
+                    },
                     (values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.increment(value);
@@ -236,7 +242,10 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    StandardDeviation::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
+                        return new StandardDeviation();
+                    },
                     (values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.increment(value);

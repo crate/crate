@@ -223,13 +223,19 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    Variance::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
+                        return new Variance();
+                    },
                     (values, state) -> state.increment(values.nextValue())
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    Variance::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
+                        return new Variance();
+                    },
                     (values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.increment(value);
@@ -238,7 +244,10 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    Variance::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
+                        return new Variance();
+                    },
                     (values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.increment(value);

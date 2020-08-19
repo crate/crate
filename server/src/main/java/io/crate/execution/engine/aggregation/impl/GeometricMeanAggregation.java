@@ -300,13 +300,19 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    GeometricMeanState::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
+                        return new GeometricMeanState();
+                    },
                     (values, state) -> state.addValue(values.nextValue())
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    GeometricMeanState::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
+                        return new GeometricMeanState();
+                    },
                     (values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.addValue(value);
@@ -315,7 +321,10 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    GeometricMeanState::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
+                        return new GeometricMeanState();
+                    },
                     (values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.addValue(value);

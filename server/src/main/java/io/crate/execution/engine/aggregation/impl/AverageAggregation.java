@@ -281,7 +281,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             case LongType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    AverageAggregation.AverageState::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
+                        return new AverageState();
+                    },
                     (values, state) -> {
                         state.sum += values.nextValue();
                         state.count++;
@@ -290,7 +293,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    AverageAggregation.AverageState::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
+                        return new AverageState();
+                    },
                     (values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.sum += value;
@@ -300,7 +306,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    AverageAggregation.AverageState::new,
+                    (ramAccounting) -> {
+                        ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
+                        return new AverageState();
+                    },
                     (values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.sum += value;

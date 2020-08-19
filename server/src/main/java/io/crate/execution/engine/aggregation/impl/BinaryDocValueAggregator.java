@@ -32,19 +32,18 @@ import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.function.Supplier;
-
+import java.util.function.Function;
 
 public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     private final String columnName;
-    private final Supplier<T> stateInitializer;
+    private final Function<RamAccounting, T> stateInitializer;
     private final CheckedBiConsumer<SortedBinaryDocValues, T, IOException> docValuesConsumer;
 
     protected SortedBinaryDocValues values;
 
     public BinaryDocValueAggregator(String columnName,
-                                    Supplier<T> stateInitializer,
+                                    Function<RamAccounting, T> stateInitializer,
                                     CheckedBiConsumer<SortedBinaryDocValues, T, IOException> docValuesConsumer) {
         this.columnName = columnName;
         this.stateInitializer = stateInitializer;
@@ -53,7 +52,7 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     @Override
     public T initialState(RamAccounting ramAccounting) {
-        return stateInitializer.get();
+        return stateInitializer.apply(ramAccounting);
     }
 
     @Override

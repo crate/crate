@@ -41,10 +41,13 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.CheckedBiConsumer;
+import org.elasticsearch.index.fielddata.FieldData;
+import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
@@ -138,81 +141,175 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return new ArbitraryNumericDocValueAggregator(
+                return new LongArbitraryDocValueAggregator(
                     fieldTypes.get(0).name(),
                     dataType,
-                    (values, state) -> {
-                        if (!state.hasValue()) {
-                            state.setValue(values.nextValue());
-                        }
-                    }
+                    partialEstimator
                 );
             case FloatType.ID:
-                return new ArbitraryNumericDocValueAggregator(
+                return new FloatArbitraryDocValueAggregator(
                     fieldTypes.get(0).name(),
-                    dataType,
-                    (values, state) -> {
-                        if (!state.hasValue()) {
-                            var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                            state.setValue(value);
-                        }
-                    }
+                    partialEstimator
                 );
             case DoubleType.ID:
-                return new ArbitraryNumericDocValueAggregator(
+                return new DoubleArbitraryDocValueAggregator(
                     fieldTypes.get(0).name(),
-                    dataType,
-                    (values, state) -> {
-                        if (!state.hasValue()) {
-                            var value = NumericUtils.sortableLongToDouble(values.nextValue());
-                            state.setValue(value);
-                        }
-                    }
+                    partialEstimator
                 );
             case IpType.ID:
             case StringType.ID:
-                return new BinaryDocValueAggregator<>(
+                return new ArbitraryBinaryDocValueAggregator(
                     fieldTypes.get(0).name(),
-                    MutableObject::new,
-                    (values, state) -> {
-                        if (!state.hasValue()) {
-                            state.setValue(values.nextValue().utf8ToString());
-                        }
-                    }
-                ) {
-                    @Nullable
-                    @Override
-                    public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
-                        if (state.hasValue()) {
-                            return dataType.sanitizeValue(state.value());
-                        } else {
-                            return null;
-                        }
-                    }
-                };
+                    dataType,
+                    partialEstimator
+                );
             default:
                 return null;
         }
     }
 
-    private static class ArbitraryNumericDocValueAggregator extends SortedNumericDocValueAggregator<MutableObject> {
+    private static class LongArbitraryDocValueAggregator extends ArbitraryNumericDocValueAggregator {
 
-        private final DataType<?> columnDataType;
+        private final DataType<?> dataType;
+        private final SizeEstimator<Object> sizeEstimator;
 
-        public ArbitraryNumericDocValueAggregator(
-            String columnName,
-            DataType<?> columnDataType,
-            CheckedBiConsumer<SortedNumericDocValues, MutableObject, IOException> docValuesConsumer
-        ) {
-            super(columnName, MutableObject::new, docValuesConsumer);
-            this.columnDataType = columnDataType;
+        public LongArbitraryDocValueAggregator(String columnName,
+                                               DataType<?> dataType,
+                                               SizeEstimator<Object> sizeEstimator) {
+            super(columnName);
+            this.dataType = dataType;
+            this.sizeEstimator = sizeEstimator;
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                if (!state.hasValue()) {
+                    var value = dataType.sanitizeValue(values.nextValue());
+                    ramAccounting.addBytes(sizeEstimator.estimateSize(value));
+                    state.setValue(value);
+                }
+            }
+        }
+    }
+
+    private static class FloatArbitraryDocValueAggregator extends ArbitraryNumericDocValueAggregator {
+
+        private final SizeEstimator<Object> sizeEstimator;
+
+        public FloatArbitraryDocValueAggregator(String columnName,
+                                                SizeEstimator<Object> sizeEstimator) {
+            super(columnName);
+            this.sizeEstimator = sizeEstimator;
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                if (!state.hasValue()) {
+                    var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                    ramAccounting.addBytes(sizeEstimator.estimateSize(value));
+                    state.setValue(value);
+                }
+            }
+        }
+    }
+
+    private static class DoubleArbitraryDocValueAggregator extends ArbitraryNumericDocValueAggregator {
+
+        private final SizeEstimator<Object> sizeEstimator;
+
+        public DoubleArbitraryDocValueAggregator(String columnName,
+                                                 SizeEstimator<Object> sizeEstimator) {
+            super(columnName);
+            this.sizeEstimator = sizeEstimator;
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                if (!state.hasValue()) {
+                    var value = NumericUtils.sortableLongToDouble(values.nextValue());
+                    ramAccounting.addBytes(sizeEstimator.estimateSize(value));
+                    state.setValue(value);
+                }
+            }
+        }
+    }
+
+    private abstract static class ArbitraryNumericDocValueAggregator implements DocValueAggregator<MutableObject> {
+
+        private final String columnName;
+
+        protected SortedNumericDocValues values;
+
+        public ArbitraryNumericDocValueAggregator(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public MutableObject initialState(RamAccounting ramAccounting) {
+            return new MutableObject();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
         }
 
         @Nullable
         @Override
         public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
             if (state.hasValue()) {
-                return columnDataType.sanitizeValue(state.value());
+                return state.value();
+            } else {
+                return null;
+            }
+        }
+    }
+
+    private static class ArbitraryBinaryDocValueAggregator implements DocValueAggregator<MutableObject> {
+
+        private final String columnName;
+        private final DataType<?> dataType;
+        private final SizeEstimator<Object> sizeEstimator;
+
+        private SortedBinaryDocValues values;
+
+        public ArbitraryBinaryDocValueAggregator(String columnName,
+                                                 DataType<?> dataType,
+                                                 SizeEstimator<Object> sizeEstimator) {
+            this.columnName = columnName;
+            this.dataType = dataType;
+            this.sizeEstimator = sizeEstimator;
+        }
+
+        @Override
+        public MutableObject initialState(RamAccounting ramAccounting) {
+            return new MutableObject();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = FieldData.toString(DocValues.getSortedSet(reader, columnName));
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                if (!state.hasValue()) {
+                    var value = dataType.sanitizeValue(values.nextValue().utf8ToString());
+                    ramAccounting.addBytes(sizeEstimator.estimateSize(value));
+                    state.setValue(value);
+                }
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
+            if (state.hasValue()) {
+                return state.value();
             } else {
                 return null;
             }
