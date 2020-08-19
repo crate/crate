@@ -52,6 +52,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.concurrent.AbstractAsyncTask;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
@@ -78,7 +79,6 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
-import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.CheckedFunction;
@@ -713,100 +713,18 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    abstract static class BaseAsyncTask implements Runnable, Closeable {
+    abstract static class BaseAsyncTask extends AbstractAsyncTask {
         protected final IndexService indexService;
-        protected final ThreadPool threadPool;
-        private final TimeValue interval;
-        private Scheduler.ScheduledCancellable scheduledFuture;
-        private final AtomicBoolean closed = new AtomicBoolean(false);
-        private volatile Exception lastThrownException;
 
         BaseAsyncTask(IndexService indexService, TimeValue interval) {
+            super(indexService.logger, indexService.threadPool, interval, true);
             this.indexService = indexService;
-            this.threadPool = indexService.getThreadPool();
-            this.interval = interval;
-            onTaskCompletion();
+            rescheduleIfNecessary();
         }
 
-        boolean mustReschedule() {
+        protected boolean mustReschedule() {
             // don't re-schedule if its closed or if we don't have a single shard here..., we are done
-            return indexService.closed.get() == false
-                && closed.get() == false && interval.millis() > 0;
-        }
-
-        private synchronized void onTaskCompletion() {
-            if (mustReschedule()) {
-                if (indexService.logger.isTraceEnabled()) {
-                    indexService.logger.trace("scheduling {} every {}", toString(), interval);
-                }
-                this.scheduledFuture = threadPool.schedule(BaseAsyncTask.this, interval, getThreadPool());
-            } else {
-                indexService.logger.trace("scheduled {} disabled", toString());
-                this.scheduledFuture = null;
-            }
-        }
-
-        boolean isScheduled() {
-            return scheduledFuture != null;
-        }
-
-        @Override
-        public final void run() {
-            try {
-                runInternal();
-            } catch (Exception ex) {
-                if (lastThrownException == null || sameException(lastThrownException, ex) == false) {
-                    // prevent the annoying fact of logging the same stuff all the time with an interval of 1 sec will spam all your logs
-                    indexService.logger.warn(
-                        () -> new ParameterizedMessage(
-                            "failed to run task {} - suppressing re-occurring exceptions unless the exception changes",
-                            toString()),
-                        ex);
-                    lastThrownException = ex;
-                }
-            } finally {
-                onTaskCompletion();
-            }
-        }
-
-        private static boolean sameException(Exception left, Exception right) {
-            if (left.getClass() == right.getClass()) {
-                if (Objects.equals(left.getMessage(), right.getMessage())) {
-                    StackTraceElement[] stackTraceLeft = left.getStackTrace();
-                    StackTraceElement[] stackTraceRight = right.getStackTrace();
-                    if (stackTraceLeft.length == stackTraceRight.length) {
-                        for (int i = 0; i < stackTraceLeft.length; i++) {
-                            if (stackTraceLeft[i].equals(stackTraceRight[i]) == false) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        protected abstract void runInternal();
-
-        protected String getThreadPool() {
-            return ThreadPool.Names.SAME;
-        }
-
-        @Override
-        public synchronized void close() {
-            if (closed.compareAndSet(false, true) && isScheduled()) {
-                scheduledFuture.cancel();
-                scheduledFuture = null;
-            }
-        }
-
-        TimeValue getInterval() {
-            return interval;
-        }
-
-        boolean isClosed() {
-            return this.closed.get();
+            return indexService.closed.get() == false;
         }
     }
 
