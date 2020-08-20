@@ -24,6 +24,8 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Strings;
 import io.crate.common.collections.Tuple;
+import io.crate.metadata.RelationName;
+
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -40,6 +42,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 public class IndexNameExpressionResolver {
 
