@@ -2669,6 +2669,32 @@ Example:
     +------------------------+
     SELECT 1 row in set (... sec)
 
+.. _pg_get_function_result:
+
+``pg_get_function_result``
+--------------------------
+
+The function ``pg_get_function_result`` returns the text representation of the
+return value's data type of the function referred by the OID.
+
+Returns: ``text``
+
+Synopsis::
+
+   pg_get_function_result(OID)
+
+Example:
+
+::
+
+    cr> select pg_get_function_result(-919555782) as _pg_get_function_result;
+    +-------------------------+
+    | _pg_get_function_result |
+    +-------------------------+
+    | time with time zone     |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
 .. _version:
 
 ``version``

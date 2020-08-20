@@ -56,6 +56,8 @@ Breaking Changes
 Changes
 =======
 
+- Added scalar function :ref:`pg_get_function_result <pg_get_function_result>`.
+
 - Added full support for quoted subscript expressions like ``"myObj['x']"``.
 
 - Changed the error code for the psql protocol from ``XX000`` ``internal_error``

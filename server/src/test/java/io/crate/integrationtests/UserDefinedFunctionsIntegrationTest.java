@@ -60,6 +60,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
@@ -297,6 +298,32 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute("drop function doc.my_func(array(array(integer)), integer, text)");
         execute("select pg_function_is_visible(" + functionOid + ")");
         assertThat(response.rows()[0][0], is(false));
+    }
+
+    @Test
+    public void test_pg_get_function_result() throws Exception {
+        TypeSignature returnTypeSig = TypeSignature.parseTypeSignature("array(array(integer))");
+        String returnType = returnTypeSig.toString();
+        Signature signature = Signature
+            .builder()
+            .kind(FunctionType.SCALAR)
+            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"))
+            .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+            .returnType(returnTypeSig)
+            .build();
+        int functionOid = OidHash.functionOid(signature);
+
+        execute("select pg_get_function_result(?)", new Object[]{functionOid});
+        assertThat(response.rows()[0][0], nullValue());
+
+        execute("create function doc.make_2d_array(integer) returns array(array(integer)) language dummy_lang as ?", new Object[]{returnType});
+
+        execute("select pg_get_function_result(" + functionOid + ")");
+        assertThat(response.rows()[0][0], is(returnType));
+
+        execute("drop function doc.make_2d_array(integer)");
+        execute("select pg_get_function_result(" + functionOid + ")");
+        assertThat(response.rows()[0][0], nullValue());
     }
 
     @Test
