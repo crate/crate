@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that allowed users to use a function in a generated column
+  that didn't fully match the given arguments, leading to a subsequent runtime
+  failure when trying to access tables.
+
 - Fixed an issue that led to a ``Message not fully read`` error when trying to
   decommission a node using ``ALTER CLUSTER DECOMMISSION``.
 
