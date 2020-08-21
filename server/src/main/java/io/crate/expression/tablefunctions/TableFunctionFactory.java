@@ -22,11 +22,13 @@
 
 package io.crate.expression.tablefunctions;
 
+import java.util.List;
+import java.util.Locale;
+
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -35,9 +37,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
 import io.crate.types.TypeSignature;
-
-import java.util.List;
-import java.util.Locale;
 
 public class TableFunctionFactory {
 
@@ -56,13 +55,13 @@ public class TableFunctionFactory {
                     String.format(
                         Locale.ENGLISH,
                         "Window or Aggregate function: '%s' is not allowed in function in FROM clause",
-                        functionImplementation.signature().getName().toString(Style.QUALIFIED)));
+                        functionImplementation.signature().getName().displayName()));
             default:
                 throw new UnsupportedOperationException(
                     String.format(
                         Locale.ENGLISH,
                         "Unknown type function: '%s' is not allowed in function in FROM clause",
-                        functionImplementation.signature().getName().toString(Style.QUALIFIED)));
+                        functionImplementation.signature().getName().displayName()));
         }
         return tableFunction;
     }

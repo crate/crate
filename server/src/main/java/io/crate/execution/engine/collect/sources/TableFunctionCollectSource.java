@@ -36,7 +36,6 @@ import io.crate.execution.engine.collect.ValueAndInputRow;
 import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -80,8 +79,8 @@ public class TableFunctionCollectSource implements CollectSource {
                         return new InputCollectExpression(i);
                     }
                 }
-                throw new IllegalStateException("Column `" + ref + "` not found in "
-                                                + functionImplementation.signature().getName().toString(Style.QUALIFIED));
+                throw new IllegalStateException(
+                    "Column `" + ref + "` not found in " + functionImplementation.signature().getName().displayName());
             });
         for (Symbol symbol : phase.toCollect()) {
             topLevelInputs.add(ctx.add(symbol));

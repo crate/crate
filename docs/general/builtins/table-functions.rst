@@ -197,13 +197,13 @@ Takes an array and returns a set of value and an index into the array.
 
 ::
 
-    cr> SELECT information_schema._pg_expandarray(ARRAY['a', 'b']);
-    +-----------------------------+
-    | _pg_expandarray(['a', 'b']) |
-    +-----------------------------+
-    | ["a", 1]                    |
-    | ["b", 2]                    |
-    +-----------------------------+
+    cr> SELECT information_schema._pg_expandarray(ARRAY['a', 'b']) AS result;
+    +----------+
+    | result   |
+    +----------+
+    | ["a", 1] |
+    | ["b", 2] |
+    +----------+
     SELECT 2 rows in set (... sec)
 
 ::

@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.module.JavaScriptLanguageModule;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
@@ -31,6 +32,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 
@@ -85,5 +87,25 @@ public class JavaScriptUDFIntegrationTest extends SQLTransportIntegrationTest {
         assertFunctionIsCreatedOnAll("test", "subtract", ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
         execute("SELECT test.subtract(a, b) FROM test.t ORDER BY 1");
         assertThat(TestingHelpers.printedTable(response.rows()), is("0\n1\n2\n"));
+    }
+
+    @Test
+    public void test_udf_that_requires_array_arg_can_be_used_as_generated_column() throws Exception {
+        execute(
+            "CREATE OR REPLACE FUNCTION arr_max(xs array(real)) " +
+            " RETURNS real " +
+            " LANGUAGE JAVASCRIPT " +
+            " AS 'function arr_max(xs) { " +
+            "   return Math.max.apply(null, xs); " +
+            " }'"
+        );
+        assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "arr_max", List.of(new ArrayType<>(DataTypes.FLOAT)));
+        execute("create table tbl (xs real[], x as arr_max(xs))");
+        execute("insert into tbl (xs) values ([10.5, 27.4])");
+        execute("refresh table tbl");
+        execute("select x from tbl");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "27.4\n"
+        ));
     }
 }
