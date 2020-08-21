@@ -58,8 +58,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.test.ClusterServiceUtils;
+import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -1380,5 +1383,17 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void test_oidvector_cannot_be_used_in_create_table() throws Exception {
         expectedException.expectMessage("Cannot use the type `oidvector` for column: x");
         analyze("CREATE TABLE tbl (x oidvector)");
+    }
+
+    @Test
+    public void test_generated_column_arguments_are_detected_as_array_and_validation_fails_with_missing_overload() throws Exception {
+        Exception exception = Assertions.assertThrows(
+            Exception.class,
+            () -> analyze("CREATE TABLE tbl (xs int[], x as max(xs))")
+        );
+        assertThat(
+            exception.getMessage(),
+            Matchers.startsWith("Unknown function: max(doc.tbl.xs), no overload found for matching argument types: (integer_array)")
+        );
     }
 }

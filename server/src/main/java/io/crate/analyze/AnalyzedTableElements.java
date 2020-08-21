@@ -413,11 +413,16 @@ public class AnalyzedTableElements<T> {
                                            AnalyzedColumnDefinition<T> columnDefinition,
                                            List<Reference> references) {
         Reference reference;
+
+        DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
+        DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
+            ? new ArrayType<>(type)
+            : type;
         if (columnDefinition.isGenerated() == false) {
             reference = new Reference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
-                columnDefinition.dataType(),
+                realType,
                 columnDefinition.position,
                 null // not required in this context
             );
@@ -426,7 +431,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.position,
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
-                columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType(),
+                realType,
                 "dummy expression, real one not needed here");
         }
         references.add(reference);
