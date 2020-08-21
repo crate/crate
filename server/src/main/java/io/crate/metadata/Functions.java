@@ -46,7 +46,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -107,9 +106,19 @@ public class Functions {
 
                                       SearchPath searchPath) {
         FunctionName fqnName = new FunctionName(suppliedSchema, functionName);
-        FunctionImplementation func = getBuiltinByArgs(fqnName, arguments, searchPath);
+        FunctionImplementation func = resolveFunctionBySignature(
+            fqnName,
+            arguments,
+            searchPath,
+            functionImplementations
+        );
         if (func == null) {
-            func = resolveUserDefinedByArgs(fqnName, arguments, searchPath);
+            func = resolveFunctionBySignature(
+                fqnName,
+                arguments,
+                searchPath,
+                udfFunctionImplementations
+            );
         }
         if (func == null) {
             raiseUnknownFunction(suppliedSchema, functionName, arguments, List.of());
@@ -122,8 +131,8 @@ public class Functions {
     private FunctionImplementation get(Signature signature,
                                        List<DataType<?>> actualArgumentTypes,
                                        DataType<?> actualReturnType,
-                                       Function<FunctionName, List<FunctionProvider>> lookupFunction) {
-        var candidates = lookupFunction.apply(signature.getName());
+                                       Map<FunctionName, List<FunctionProvider>> candidatesByName) {
+        var candidates = candidatesByName.get(signature.getName());
         if (candidates == null) {
             return null;
         }
@@ -139,43 +148,16 @@ public class Functions {
         return null;
     }
 
-    /**
-     * Returns the built-in function implementation for the given function name and argument types.
-     * The types may be cast to match the built-in argument types.
-     *
-     * @param functionName The full qualified function name.
-     * @param arguments The function argument.
-     * @return a function implementation or null if it was not found.
-     */
-    @Nullable
-    private FunctionImplementation getBuiltinByArgs(FunctionName functionName,
-                                                    List<Symbol> arguments,
-                                                    SearchPath searchPath) {
-        return resolveBuiltInFunctionBySignature(
-            functionName,
-            arguments,
-            searchPath
-        );
-    }
-
-    @Nullable
-    public FunctionImplementation resolveBuiltInFunctionBySignature(FunctionName name,
-                                                                    List<Symbol> arguments,
-                                                                    SearchPath searchPath) {
-        return resolveFunctionBySignature(name, arguments, searchPath, functionImplementations::get);
-    }
-
-
     @Nullable
     private static FunctionImplementation resolveFunctionBySignature(FunctionName name,
                                                                      List<Symbol> arguments,
                                                                      SearchPath searchPath,
-                                                                     Function<FunctionName, List<FunctionProvider>> lookupFunction) {
-        var candidates = lookupFunction.apply(name);
+                                                                     Map<FunctionName, List<FunctionProvider>> candidatesByName) {
+        var candidates = candidatesByName.get(name);
         if (candidates == null && name.schema() == null) {
             for (String pathSchema : searchPath) {
                 FunctionName searchPathFunctionName = new FunctionName(pathSchema, name.name());
-                candidates = lookupFunction.apply(searchPathFunctionName);
+                candidates = candidatesByName.get(searchPathFunctionName);
                 if (candidates != null) {
                     break;
                 }
@@ -268,29 +250,6 @@ public class Functions {
         return null;
     }
 
-
-    /**
-     * Returns the user-defined function implementation for the given function name and arguments.
-     * The types may be cast to match the built-in argument types.
-     *
-     * @param functionName The full qualified function name.
-     * @param arguments The function arguments.
-     * @param searchPath The {@link SearchPath} against which to try to resolve the function if it is not identified by
-     *                   a fully qualifed name (ie. `schema.functionName`)
-     * @return a function implementation.
-     */
-    @Nullable
-    private FunctionImplementation resolveUserDefinedByArgs(FunctionName functionName,
-                                                            List<Symbol> arguments,
-                                                            SearchPath searchPath) throws UnsupportedOperationException {
-        return resolveFunctionBySignature(
-            functionName,
-            arguments,
-            searchPath,
-            udfFunctionImplementations::get
-        );
-    }
-
     public FunctionImplementation getQualified(io.crate.expression.symbol.Function function,
                                                SearchPath searchPath) {
         var signature = function.signature();
@@ -334,9 +293,9 @@ public class Functions {
     public FunctionImplementation getQualified(Signature signature,
                                                List<DataType<?>> actualArgumentTypes,
                                                DataType<?> actualReturnType) throws UnsupportedOperationException {
-        FunctionImplementation impl = get(signature, actualArgumentTypes, actualReturnType, functionImplementations::get);
+        FunctionImplementation impl = get(signature, actualArgumentTypes, actualReturnType, functionImplementations);
         if (impl == null) {
-            impl = get(signature, actualArgumentTypes, actualReturnType, udfFunctionImplementations::get);
+            impl = get(signature, actualArgumentTypes, actualReturnType, udfFunctionImplementations);
         }
         return impl;
     }
