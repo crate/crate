@@ -45,12 +45,12 @@ public class DDLClusterStateService {
         clusterStateModifiers.add(modifier);
     }
 
-    ClusterState onCloseTable(ClusterState currentState, RelationName relationName) {
+    public ClusterState onCloseTable(ClusterState currentState, RelationName relationName) {
         return applyOnAllModifiers(currentState,
             (modifier, clusterState) -> modifier.onCloseTable(clusterState, relationName));
     }
 
-    ClusterState onCloseTablePartition(ClusterState currentState, PartitionName partitionName) {
+    public ClusterState onCloseTablePartition(ClusterState currentState, PartitionName partitionName) {
         return applyOnAllModifiers(currentState,
             (modifier, clusterState) -> modifier.onCloseTablePartition(clusterState, partitionName));
     }
