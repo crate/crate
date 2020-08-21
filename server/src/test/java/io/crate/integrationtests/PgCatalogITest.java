@@ -41,7 +41,7 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
 
     @Before
     public void createRelations() {
-        execute("create table doc.t1 (id int primary key, s string)");
+        execute("create table doc.t1 (id int primary key, s string, o object as (a int))");
         execute("create view doc.v1 as select id from doc.t1");
     }
 
@@ -55,7 +55,7 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
         execute("select * from pg_catalog.pg_class where relname in ('t1', 'v1', 'tables', 'nodes') order by relname");
         assertThat(printedTable(response.rows()), is(
             "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| nodes| -458336339| 17| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
-            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| t1| -2048275947| 2| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
+            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| t1| -2048275947| 3| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
             "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
             "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n"));
     }
@@ -76,7 +76,9 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
         execute("select a.* from pg_catalog.pg_attribute as a join pg_catalog.pg_class as c on a.attrelid = c.oid where c.relname = 't1' order by a.attnum");
         assertThat(printedTable(response.rows()), is(
             "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| id| 0| false| 1| NULL| 728874843| 0| NULL| 23| -1\n" +
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1\n"));
+            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1\n" +
+            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| o| 0| false| 3| NULL| 728874843| 0| NULL| 114| -1\n" +
+            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| o['a']| 0| false| NULL| NULL| 728874843| 0| NULL| 23| -1\n"));
     }
 
     @Test
@@ -147,7 +149,7 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
         execute("select ct.oid, ct.relkind, ct.relname, ct.relnamespace, ct.relnatts, ct.relpersistence, ct.relreplident, ct.reltuples" +
                 " from pg_class ct, (select * from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid) i" +
                 " where ct.oid = i.indexrelid;");
-        assertThat(printedTable(response.rows()), is("-649073482| i| t1_pkey| -2048275947| 2| p| p| 0.0\n"));
+        assertThat(printedTable(response.rows()), is("-649073482| i| t1_pkey| -2048275947| 3| p| p| 0.0\n"));
     }
 
     @Test
