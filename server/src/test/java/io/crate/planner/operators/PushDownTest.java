@@ -310,9 +310,9 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "WHERE x > 1"
         );
         var expectedPlan =
-            "Rename[x, \"generate_series(1, x)\"] AS tt\n" +
-            "  └ Eval[x, generate_series(1, x)]\n" +
-            "    └ ProjectSet[generate_series(1, x), x]\n" +
+            "Rename[x, \"pg_catalog.generate_series(1, x)\"] AS tt\n" +
+            "  └ Eval[x, pg_catalog.generate_series(1, x)]\n" +
+            "    └ ProjectSet[pg_catalog.generate_series(1, x), x]\n" +
             "      └ Collect[doc.t1 | [x] | (x > 1)]";
         assertThat(plan, isPlan(expectedPlan));
     }
@@ -328,9 +328,9 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         );
         var expectedPlan =
             "Rename[x, y] AS tt\n" +
-            "  └ Eval[x, generate_series(1, x) AS y]\n" +
-            "    └ Filter[(generate_series(1, x) AS y > 2)]\n" +
-            "      └ ProjectSet[generate_series(1, x), x]\n" +
+            "  └ Eval[x, pg_catalog.generate_series(1, x) AS y]\n" +
+            "    └ Filter[(pg_catalog.generate_series(1, x) AS y > 2)]\n" +
+            "      └ ProjectSet[pg_catalog.generate_series(1, x), x]\n" +
             "        └ Collect[doc.t1 | [x] | (x > 1)]";
         assertThat(plan, isPlan(expectedPlan));
     }

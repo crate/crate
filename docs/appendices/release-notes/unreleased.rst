@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that prevented user defined functions in a custom schema from
+  working if used in a generated column expression.
+
 - Fixed an issue that allowed users to use a function in a generated column
   that didn't fully match the given arguments, leading to a subsequent runtime
   failure when trying to access tables.

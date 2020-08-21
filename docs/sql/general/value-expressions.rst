@@ -136,13 +136,13 @@ Synopsis:
 
 Example::
 
-    cr> SELECT (information_schema._pg_expandarray(ARRAY['a', 'b'])).n
-    +-----------------------------------+
-    | (_pg_expandarray(['a', 'b'])).'n' |
-    +-----------------------------------+
-    |                                 1 |
-    |                                 2 |
-    +-----------------------------------+
+    cr> SELECT (information_schema._pg_expandarray(ARRAY['a', 'b'])).n AS n
+    +---+
+    | n |
+    +---+
+    | 1 |
+    | 2 |
+    +---+
     SELECT 2 rows in set (... sec)
 
 

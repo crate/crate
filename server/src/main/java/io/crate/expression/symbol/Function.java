@@ -468,7 +468,7 @@ public class Function extends Symbol implements Cloneable {
 
     private void printFunctionWithParenthesis(StringBuilder builder, Style style) {
         FunctionName functionName = info.ident().fqnName();
-        builder.append(functionName.toString(style));
+        builder.append(functionName.displayName());
         builder.append("(");
         for (int i = 0; i < arguments.size(); i++) {
             Symbol argument = arguments.get(i);
