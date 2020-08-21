@@ -105,7 +105,7 @@ public class InformationTablesTableInfo {
                         if (partitionedBy == null || partitionedBy.isEmpty()) {
                             return null;
                         }
-                        return Lists2.map(partitionedBy, ColumnIdent::fqn);
+                        return Lists2.map(partitionedBy, ColumnIdent::sqlFqn);
                     }
                     return null;
                 })
