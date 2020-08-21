@@ -22,14 +22,19 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.rule.Util.transpose;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.metadata.FunctionType;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.LogicalPlan;
@@ -37,13 +42,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.Util.transpose;
+import io.crate.statistics.TableStats;
 
 /**
  * Transforms queries like
@@ -98,7 +97,7 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
         ArrayList<Symbol> withAggregates = new ArrayList<>();
         ArrayList<Symbol> withoutAggregates = new ArrayList<>();
         for (Symbol part : parts) {
-            if (SymbolVisitors.any(MoveFilterBeneathGroupBy::isAggregate, part)) {
+            if (SymbolVisitors.any(Symbols::isAggregate, part)) {
                 withAggregates.add(part);
             } else {
                 withoutAggregates.add(part);
@@ -134,7 +133,4 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
         return new Filter(newGroupBy, AndOperator.join(withAggregates));
     }
 
-    private static boolean isAggregate(Symbol s) {
-        return s instanceof Function && ((Function) s).type() == FunctionType.AGGREGATE;
-    }
 }
