@@ -70,6 +70,10 @@ Fixes
   that didn't fully match the given arguments, leading to a subsequent runtime
   failure when trying to access tables.
 
+- Fixed exposure of the full qualified name of a sub-script column in
+  `information_schema.tables.partitioned_by` and
+  `pg_catalog.pg_attribute.attname` to use the CrateDB SQL compatible identifier.
+
 - Fixed an issue that led to a ``Message not fully read`` error when trying to
   decommission a node using ``ALTER CLUSTER DECOMMISSION``.
 
