@@ -322,8 +322,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectPartitionedTablesFromInformationSchemaTable() {
-        execute("create table test (id int primary key, name string) partitioned by (id)");
-        execute("insert into test (id, name) values (1, 'Youri'), (2, 'Ruben')");
+        execute("create table test (id int, name string, o object as (i int), primary key (id, o['i']))" +
+                " partitioned by (o['i'])");
+        execute("insert into test (id, name, o) values (1, 'Youri', {i=10}), (2, 'Ruben', {i=20})");
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
@@ -333,8 +334,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("test", response.rows()[0][0]);
         assertEquals(4, response.rows()[0][1]);
         assertEquals("0-1", response.rows()[0][2]);
-        assertEquals("id", response.rows()[0][3]);
-        assertThat((List<Object>) response.rows()[0][4], Matchers.contains("id"));
+        assertEquals("_id", response.rows()[0][3]);
+        assertThat((List<Object>) response.rows()[0][4], Matchers.contains("o['i']"));
     }
 
     @Test

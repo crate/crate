@@ -313,6 +313,10 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
         return name;
     }
 
+    /**
+     * This is the internal representation of a column identifier and may not supported by the SQL syntax.
+     * For external exposure use {@link #sqlFqn()}.
+     */
     public String fqn() {
         if (isTopLevel()) {
             return name;
