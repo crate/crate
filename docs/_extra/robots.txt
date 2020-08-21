@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /
+
+Sitemap: https://crate.io/docs/crate/reference/en/master/sitemap.xml
