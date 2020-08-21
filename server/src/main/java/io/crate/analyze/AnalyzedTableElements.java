@@ -27,6 +27,8 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -379,6 +381,10 @@ public class AnalyzedTableElements<T> {
         DataType<?> valueType = function.valueType();
         DataType<?> definedType = columnDefinitionWithExpressionSymbols.dataType();
 
+        if (SymbolVisitors.any(Symbols::isAggregate, function)) {
+            throw new UnsupportedOperationException("Aggregation functions are not allowed in generated columns: " + function);
+        }
+
         // check for optional defined type and add `cast` to expression if possible
         if (definedType != null && !definedType.equals(valueType)) {
             final DataType<?> columnDataType;
@@ -394,8 +400,7 @@ public class AnalyzedTableElements<T> {
                 );
             }
 
-            Symbol castFunction = CastFunctionResolver
-                .generateCastFunction(function, columnDataType);
+            Symbol castFunction = CastFunctionResolver.generateCastFunction(function, columnDataType);
             formattedExpression = castFunction.toString(Style.UNQUALIFIED);
         } else {
             if (valueType instanceof ArrayType) {
