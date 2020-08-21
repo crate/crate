@@ -329,7 +329,7 @@ public class Functions {
                       + Lists2.joinOn(
                           ", ",
                           candidates,
-                          c -> c.getSignature().getName().toString(Style.QUALIFIED)
+                          c -> c.getSignature().getName().displayName()
                                + "("
                                + Lists2.joinOn(
                               ", ",
