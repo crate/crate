@@ -44,7 +44,7 @@ public class PgAttributeTable {
     public static SystemTable<ColumnContext> create() {
         return SystemTable.<ColumnContext>builder(IDENT)
             .add("attrelid", INTEGER, c -> relationOid(c.tableInfo))
-            .add("attname", STRING, c -> c.info.column().fqn())
+            .add("attname", STRING, c -> c.info.column().sqlFqn())
             .add("atttypid", INTEGER, c -> PGTypes.get(c.info.valueType()).oid())
             .add("attstattarget", INTEGER, c -> 0)
             .add("attlen", SHORT, c -> PGTypes.get(c.info.valueType()).typeLen())
