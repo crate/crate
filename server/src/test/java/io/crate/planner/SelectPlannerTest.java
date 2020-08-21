@@ -745,8 +745,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testTableFunctionIsExecutedAfterAggregation() {
         LogicalPlan plan = e.logicalPlan("select count(*), generate_series(1, 2) from users");
         assertThat(plan, isPlan(
-            "Eval[count(*), generate_series(1, 2)]\n" +
-            "  └ ProjectSet[generate_series(1, 2), count(*)]\n" +
+            "Eval[count(*), pg_catalog.generate_series(1, 2)]\n" +
+            "  └ ProjectSet[pg_catalog.generate_series(1, 2), count(*)]\n" +
             "    └ Count[doc.users | true]"));
     }
 
@@ -754,8 +754,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testAggregationCanBeUsedAsArgumentToTableFunction() {
         LogicalPlan plan = e.logicalPlan("select count(name), generate_series(1, count(name)) from users");
         assertThat(plan, isPlan(
-            "Eval[count(name), generate_series(1::bigint, count(name))]\n" +
-            "  └ ProjectSet[generate_series(1::bigint, count(name)), count(name)]\n" +
+            "Eval[count(name), pg_catalog.generate_series(1::bigint, count(name))]\n" +
+            "  └ ProjectSet[pg_catalog.generate_series(1::bigint, count(name)), count(name)]\n" +
             "    └ HashAggregate[count(name)]\n" +
             "      └ Collect[doc.users | [name] | true]"));
     }

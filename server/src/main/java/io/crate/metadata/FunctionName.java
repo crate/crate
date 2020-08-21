@@ -22,15 +22,16 @@
 
 package io.crate.metadata;
 
+import java.io.IOException;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ComparisonChain;
-import io.crate.expression.symbol.format.Style;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Objects;
 
 public final class FunctionName implements Comparable<FunctionName>, Writeable {
 
@@ -91,18 +92,16 @@ public final class FunctionName implements Comparable<FunctionName>, Writeable {
 
     @Override
     public String toString() {
-        return "FunctionQualifiedName{" +
+        return "FunctionName{" +
                "schema='" + schema + '\'' +
                ", name='" + name + '\'' +
                '}';
     }
 
-    public String toString(Style style) {
-        String s = "";
-        String schema = schema();
-        if (style != Style.UNQUALIFIED && schema != null) {
-            s = s + schema + ".";
+    public String displayName() {
+        if (schema == null) {
+            return name;
         }
-        return s + name();
+        return schema + "." + name;
     }
 }
