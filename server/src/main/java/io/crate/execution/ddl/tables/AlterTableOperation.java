@@ -39,6 +39,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
@@ -80,13 +82,16 @@ public class AlterTableOperation {
     private final TransportResizeAction transportResizeAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
+    private final TransportCloseTable transportCloseTable;
     private final SQLOperations sqlOperations;
     private Session session;
+
 
     @Inject
     public AlterTableOperation(ClusterService clusterService,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
+                               TransportCloseTable transportCloseTable,
                                TransportResizeAction transportResizeAction,
                                TransportDeleteIndexAction transportDeleteIndexAction,
                                TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
@@ -99,6 +104,7 @@ public class AlterTableOperation {
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportSwapAndDropIndexNameAction = transportSwapAndDropIndexNameAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
+        this.transportCloseTable = transportCloseTable;
         this.transportAlterTableAction = transportAlterTableAction;
         this.sqlOperations = sqlOperations;
     }
@@ -131,14 +137,21 @@ public class AlterTableOperation {
     public CompletableFuture<Long> executeAlterTableOpenClose(DocTableInfo tableInfo,
                                                               boolean openTable,
                                                               @Nullable PartitionName partitionName) {
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         String partitionIndexName = null;
         if (partitionName != null) {
             partitionIndexName = partitionName.asIndexName();
         }
-        OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
-            tableInfo.ident(), partitionIndexName, openTable);
-        transportOpenCloseTableOrPartitionAction.execute(request, listener);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
+        if (openTable || clusterService.state().getNodes().getMinNodeVersion().before(Version.V_4_3_0)) {
+            OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
+                tableInfo.ident(), partitionIndexName, openTable);
+            transportOpenCloseTableOrPartitionAction.execute(request, listener);
+        } else {
+            transportCloseTable.execute(
+                new CloseTableRequest(tableInfo.ident(), partitionIndexName),
+                listener
+            );
+        }
         return listener;
     }
 

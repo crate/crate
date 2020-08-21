@@ -22,12 +22,15 @@
 
 package io.crate.execution;
 
+import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
+import org.elasticsearch.common.inject.AbstractModule;
+
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
-import io.crate.statistics.TransportAnalyzeAction;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.ddl.tables.TransportAlterTableAction;
+import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.execution.ddl.tables.TransportCreateTableAction;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.tables.TransportOpenCloseTableOrPartitionAction;
@@ -47,7 +50,7 @@ import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.lucene.LuceneQueryBuilder;
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.statistics.TransportAnalyzeAction;
 
 public class TransportExecutorModule extends AbstractModule {
 
@@ -71,6 +74,8 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportRenameTableAction.class).asEagerSingleton();
         bind(TransportSwapAndDropIndexNameAction.class).asEagerSingleton();
         bind(TransportOpenCloseTableOrPartitionAction.class).asEagerSingleton();
+        bind(TransportCloseTable.class).asEagerSingleton();
+        bind(TransportVerifyShardBeforeCloseAction.class).asEagerSingleton();
         bind(TransportDropTableAction.class).asEagerSingleton();
         bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
         bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();

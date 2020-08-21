@@ -51,14 +51,14 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-class DDLClusterStateHelpers {
+public class DDLClusterStateHelpers {
 
-    static IndexTemplateMetadata updateTemplate(IndexTemplateMetadata indexTemplateMetadata,
-                                                Map<String, Object> newMappings,
-                                                Map<String, Object> mappingsToRemove,
-                                                Settings newSettings,
-                                                BiConsumer<String, Settings> settingsValidator,
-                                                Predicate<String> settingsFilter) {
+    public static IndexTemplateMetadata updateTemplate(IndexTemplateMetadata indexTemplateMetadata,
+                                                       Map<String, Object> newMappings,
+                                                       Map<String, Object> mappingsToRemove,
+                                                       Settings newSettings,
+                                                       BiConsumer<String, Settings> settingsValidator,
+                                                       Predicate<String> settingsFilter) {
 
         // merge mappings & remove mappings
         Map<String, Object> mapping = removeFromMapping(
