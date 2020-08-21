@@ -87,14 +87,16 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
     @Test
     public void testReturnTypeIsAlwaysLong() {
         // Return type is fixed to Long
-        FunctionImplementation func = functions.resolveBuiltInFunctionBySignature(
-            new FunctionName(null, HyperLogLogDistinctAggregation.NAME),
+        FunctionImplementation func = functions.get(
+            null,
+            HyperLogLogDistinctAggregation.NAME,
             List.of(Literal.of(1)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
         assertEquals(DataTypes.LONG, func.info().returnType());
-        func = functions.resolveBuiltInFunctionBySignature(
-            new FunctionName(null, HyperLogLogDistinctAggregation.NAME),
+        func = functions.get(
+            null,
+            HyperLogLogDistinctAggregation.NAME,
             List.of(Literal.of(1), Literal.of(2)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
