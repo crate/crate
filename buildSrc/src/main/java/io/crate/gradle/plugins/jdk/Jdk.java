@@ -29,8 +29,11 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.TaskDependency;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 public class Jdk implements Buildable, Iterable<File> {
@@ -40,6 +43,9 @@ public class Jdk implements Buildable, Iterable<File> {
     private static final List<String> ALLOWED_ARCH = List.of("x64", "aarch64");
     private static final Pattern VERSION_PATTERN = Pattern.compile(
         "(\\d+)(\\.\\d+\\.\\d+)?\\+(\\d+(?:\\.\\d+)?)(@([a-f0-9]{32}))?");
+    private static final PathMatcher JAVA_MATCHER = FileSystems
+        .getDefault().getPathMatcher("glob:java");
+
 
     private final String name;
     private final Configuration configuration;
@@ -165,7 +171,23 @@ public class Jdk implements Buildable, Iterable<File> {
         return new Object() {
             @Override
             public String toString() {
-                return getJavaHome().getAbsolutePath() + "/bin/java";
+                File binJava = new File(getJavaHome().getAbsolutePath(), "/bin/java");
+                if (binJava.exists()) {
+                    return binJava.getAbsolutePath();
+                }
+                // CrateDB shell script invocation
+                try {
+                    Optional<Path> jdkJava = Files
+                        .walk(Paths.get(path()))
+                        .filter(JAVA_MATCHER::matches)
+                        .findFirst();
+                    if (jdkJava.isPresent()) {
+                        return jdkJava.get().toFile().getAbsolutePath();
+                    }
+                } catch (IOException ignore) {
+                    // path() deleted under the hood, fall through
+                }
+                throw new IllegalStateException("where is java?");
             }
         };
     }
