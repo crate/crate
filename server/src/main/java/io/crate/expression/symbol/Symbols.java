@@ -25,6 +25,7 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
@@ -50,6 +51,10 @@ public class Symbols {
 
     public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
+
+    public static boolean isAggregate(Symbol s) {
+        return s instanceof Function && ((Function) s).type() == FunctionType.AGGREGATE;
+    }
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
         return Lists2.mapLazy(symbols, Symbol::valueType);

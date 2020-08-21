@@ -1396,4 +1396,16 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             Matchers.startsWith("Unknown function: max(doc.tbl.xs), no overload found for matching argument types: (integer_array)")
         );
     }
+
+    @Test
+    public void test_prohibit_using_aggregations_in_generated_columns() throws Exception {
+        Exception exception = Assertions.assertThrows(
+            Exception.class,
+            () -> analyze("CREATE TABLE tbl (x int, y as max(x))")
+        );
+        assertThat(
+            exception.getMessage(),
+            Matchers.startsWith("Aggregation functions are not allowed in generated columns: max(x)")
+        );
+    }
 }
