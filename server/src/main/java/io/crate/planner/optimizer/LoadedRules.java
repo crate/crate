@@ -53,8 +53,6 @@ import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -63,30 +61,30 @@ public class LoadedRules implements SessionSettingProvider {
 
     private static final String OPTIMIZER_SETTING_PREFIX = "optimizer_";
 
-    private final List<Rule<?>> rules = List.of(
-        new RemoveRedundantFetchOrEval(),
-        new MergeAggregateAndCollectToCount(),
-        new MergeFilters(),
-        new MoveFilterBeneathRename(),
-        new MoveFilterBeneathFetchOrEval(),
-        new MoveFilterBeneathOrder(),
-        new MoveFilterBeneathProjectSet(),
-        new MoveFilterBeneathHashJoin(),
-        new MoveFilterBeneathNestedLoop(),
-        new MoveFilterBeneathUnion(),
-        new MoveFilterBeneathGroupBy(),
-        new MoveFilterBeneathWindowAgg(),
-        new MergeFilterAndCollect(),
-        new RewriteFilterOnOuterJoinToInnerJoin(),
-        new MoveOrderBeneathUnion(),
-        new MoveOrderBeneathNestedLoop(),
-        new MoveOrderBeneathFetchOrEval(),
-        new MoveOrderBeneathRename(),
-        new DeduplicateOrder(),
-        new RewriteCollectToGet(),
-        new RewriteGroupByKeysLimitToTopNDistinct(),
-        new RewriteInsertFromSubQueryToInsertFromValues(),
-        new RewriteToQueryThenFetch()
+    private final List<Class<? extends Rule<?>>> rules = List.of(
+        RemoveRedundantFetchOrEval.class,
+        MergeAggregateAndCollectToCount.class,
+        MergeFilters.class,
+        MoveFilterBeneathRename.class,
+        MoveFilterBeneathFetchOrEval.class,
+        MoveFilterBeneathOrder.class,
+        MoveFilterBeneathProjectSet.class,
+        MoveFilterBeneathHashJoin.class,
+        MoveFilterBeneathNestedLoop.class,
+        MoveFilterBeneathUnion.class,
+        MoveFilterBeneathGroupBy.class,
+        MoveFilterBeneathWindowAgg.class,
+        MergeFilterAndCollect.class,
+        RewriteFilterOnOuterJoinToInnerJoin.class,
+        MoveOrderBeneathUnion.class,
+        MoveOrderBeneathNestedLoop.class,
+        MoveOrderBeneathFetchOrEval.class,
+        MoveOrderBeneathRename.class,
+        DeduplicateOrder.class,
+        RewriteCollectToGet.class,
+        RewriteGroupByKeysLimitToTopNDistinct.class,
+        RewriteInsertFromSubQueryToInsertFromValues.class,
+        RewriteToQueryThenFetch.class
     );
 
     @Override
@@ -95,33 +93,25 @@ public class LoadedRules implements SessionSettingProvider {
     }
 
     @VisibleForTesting
-    SessionSetting<?> buildRuleSessionSetting(Rule<?> rule) {
-        var clazz = rule.getClass();
-        var simpleName = clazz.getSimpleName();
+    SessionSetting<?> buildRuleSessionSetting(Class<? extends Rule<?>> rule) {
+        var simpleName = rule.getSimpleName();
         var optimizerRuleName = OPTIMIZER_SETTING_PREFIX + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, simpleName);
         return new SessionSetting<>(
             optimizerRuleName,
-            objects -> { },
+            objects -> {},
             objects -> DataTypes.BOOLEAN.value(objects[0]),
-            (sessionContext, enabled) -> rule.setEnabled(enabled),
-            s -> String.valueOf(rule.isEnabled()),
+            (sessionContext, activateRule) -> {
+                if (activateRule) {
+                    // All rules are activated by default
+                    sessionContext.excludedOptimizerRules().remove(rule);
+                } else {
+                    sessionContext.excludedOptimizerRules().add(rule);
+                }
+            },
+            s -> String.valueOf(s.excludedOptimizerRules().contains(rule) == false),
             () -> String.valueOf(true),
             String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", simpleName),
             DataTypes.BOOLEAN.getName()
         );
-    }
-
-    public List<Rule<?>> rules(List<Class<? extends Rule<?>>> includedRules) {
-        if (includedRules.isEmpty()) {
-            return List.of();
-        }
-        var includes = new HashSet<>(includedRules);
-        var result = new ArrayList<Rule<?>>(includedRules.size());
-        for (var rule : rules) {
-            if (includes.contains(rule.getClass())) {
-                result.add(rule);
-            }
-        }
-        return result;
     }
 }

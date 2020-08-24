@@ -61,22 +61,11 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
 
     private final Pattern<Filter> pattern;
     private final Capture<GroupHashAggregate> groupByCapture;
-    private volatile boolean enabled = true;
 
     public MoveFilterBeneathGroupBy() {
         this.groupByCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(source(), typeOf(GroupHashAggregate.class).capturedAs(groupByCapture));
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

@@ -119,7 +119,6 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
 import io.crate.planner.statement.DeletePlanner;
@@ -169,7 +168,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    TableCreator tableCreator,
                    Schemas schemas,
                    UserManager userManager,
-                   LoadedRules loadedRules,
                    SessionSettingRegistry sessionSettingRegistry) {
         this(
             settings,
@@ -181,7 +179,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             schemas,
             userManager,
             () -> licenseService.getLicenseState() == LicenseService.LicenseState.VALID,
-            loadedRules,
             sessionSettingRegistry
         );
     }
@@ -196,13 +193,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    Schemas schemas,
                    UserManager userManager,
                    BooleanSupplier hasValidLicense,
-                   LoadedRules loadedRules,
                    SessionSettingRegistry sessionSettingRegistry
     ) {
         this.clusterService = clusterService;
         this.functions = functions;
         this.tableStats = tableStats;
-        this.logicalPlanner = new LogicalPlanner(functions, tableStats, () -> clusterService.state().nodes().getMinNodeVersion(), loadedRules);
+        this.logicalPlanner = new LogicalPlanner(functions, tableStats, () -> clusterService.state().nodes().getMinNodeVersion());
         this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(hasValidLicense);
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;

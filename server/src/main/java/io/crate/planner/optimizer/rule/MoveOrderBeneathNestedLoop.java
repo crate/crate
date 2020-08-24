@@ -61,7 +61,6 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
 
     private final Capture<NestedLoopJoin> nlCapture;
     private final Pattern<Order> pattern;
-    private volatile boolean enabled = true;
 
     public MoveOrderBeneathNestedLoop() {
         this.nlCapture = new Capture<>();
@@ -76,16 +75,6 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
     @Override
     public Pattern<Order> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override
