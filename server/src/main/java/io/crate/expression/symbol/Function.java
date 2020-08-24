@@ -79,12 +79,12 @@ public class Function extends Symbol implements Cloneable {
     );
 
     private final List<Symbol> arguments;
-    private final DataType<?> returnType;
+    protected final DataType<?> returnType;
     private final FunctionInfo info;
     @Nullable
-    private final Signature signature;
+    protected final Signature signature;
     @Nullable
-    private final Symbol filter;
+    protected final Symbol filter;
 
     public Function(StreamInput in) throws IOException {
         info = new FunctionInfo(in);

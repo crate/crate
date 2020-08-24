@@ -21,8 +21,43 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.RelationMatchers.isDocTable;
+import static io.crate.testing.SymbolMatchers.isAlias;
+import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.ImmutableList;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.hamcrest.Matchers;
+import org.hamcrest.core.IsInstanceOf;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.common.collections.Lists2;
@@ -32,6 +67,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.engine.aggregation.impl.AverageAggregation;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LteOperator;
@@ -55,8 +91,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -65,36 +104,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimeTZ;
-import org.hamcrest.Matchers;
-import org.hamcrest.core.IsInstanceOf;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.RelationMatchers.isDocTable;
-import static io.crate.testing.SymbolMatchers.isAlias;
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.hamcrest.core.Is.is;
 
 @SuppressWarnings("ConstantConditions")
 public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -1599,15 +1608,15 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         );
         // different instances
         assertThat(outputs.get(0), allOf(
-            not(sameInstance(outputs.get(2))),
-            not(sameInstance(orderBySymbols.get(1))
+            not(Matchers.sameInstance(outputs.get(2))),
+            not(Matchers.sameInstance(orderBySymbols.get(1))
             )));
         assertThat(outputs.get(1),
             equalTo(orderBySymbols.get(2)));
 
         // "order by 1" references output 1, its the same
         assertThat(outputs.get(0), is(equalTo(orderBySymbols.get(0))));
-        assertThat(outputs.get(0), is(sameInstance(orderBySymbols.get(0))));
+        assertThat(outputs.get(0), is(Matchers.sameInstance(orderBySymbols.get(0))));
         assertThat(orderBySymbols.get(0), is(equalTo(orderBySymbols.get(1))));
 
         // check where clause
@@ -2028,5 +2037,39 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void test_select_sys_columns_on_aliased_table() throws Exception {
         AnalyzedRelation rel = analyze("SELECT t._score, t._id, t._version, t._score, t._uid, t._doc, t._raw, t._primary_term FROM t1 as t");
         assertThat(rel.outputs().size(), is(8));
+    }
+
+    @Test
+    public void test_match_with_geo_shape_is_streamed_as_text_type_to_4_1_8_nodes() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("create table test (shape GEO_SHAPE)")
+            .build();
+
+        String stmt = "SELECT * FROM test WHERE MATCH (shape, 'POINT(1.2 1.3)')";
+        QueriedSelectRelation rel = executor.analyze(stmt);
+        Symbol where = rel.where();
+        assertThat(where, instanceOf(MatchPredicate.class));
+
+        DocTableInfo table = executor.resolveTableInfo("test");
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            executor.functions(),
+            RowGranularity.DOC,
+            null,
+            new DocTableRelation(table)
+        );
+        Symbol normalized = normalizer.normalize(where, CoordinatorTxnCtx.systemTransactionContext());
+        assertThat(normalized, isFunction("match"));
+        Function match = (Function) normalized;
+        assertThat(match.arguments().get(1).valueType(), is(DataTypes.GEO_SHAPE));
+        assertThat(match.info().ident().argumentTypes().get(1), is(DataTypes.GEO_SHAPE));
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_4_1_8);
+        match.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_4_1_8);
+        Function serializedTo41 = new Function(in);
+        assertThat(serializedTo41.info().ident().argumentTypes().get(1), is(DataTypes.STRING));
     }
 }
