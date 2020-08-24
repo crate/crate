@@ -1008,4 +1008,49 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         // this must not fail
         e.plan(stmt, UUID.randomUUID(), 0, new RowN("foo"));
     }
+
+
+    @Test
+    public void test_columns_used_in_hash_join_condition_are_not_duplicated_in_outputs() throws Exception {
+        String stmt =
+            "SELECT * FROM " +
+            "   (SELECT a FROM (SELECT * FROM t1) a1) v1 " +
+            "   JOIN " +
+            "   (SELECT b FROM (SELECT * FROM t2) a2) v2 " +
+            "   ON (v1.a = v2.b) ";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "HashJoin[(a = b)]\n" +
+            "  ├ Rename[a] AS v1\n" +
+            "  │  └ Eval[a]\n" +
+            "  │    └ Rename[a] AS a1\n" +
+            "  │      └ Collect[doc.t1 | [a] | true]\n" +
+            "  └ Rename[b] AS v2\n" +
+            "    └ Eval[b]\n" +
+            "      └ Rename[b] AS a2\n" +
+            "        └ Collect[doc.t2 | [b] | true]";
+        assertThat(plan, isPlan(expectedPlan));
+    }
+
+    @Test
+    public void test_columns_used_in_nl_join_condition_are_not_duplicated_in_outputs() throws Exception {
+        String stmt =
+            "SELECT * FROM " +
+            "   (SELECT a FROM (SELECT * FROM t1) a1) v1 " +
+            "   JOIN " +
+            "   (SELECT b FROM (SELECT * FROM t2) a2) v2 " +
+            "   ON (v1.a > v2.b) ";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "NestedLoopJoin[INNER | (a > b)]\n" +
+            "  ├ Rename[a] AS v1\n" +
+            "  │  └ Eval[a]\n" +
+            "  │    └ Rename[a] AS a1\n" +
+            "  │      └ Collect[doc.t1 | [a] | true]\n" +
+            "  └ Rename[b] AS v2\n" +
+            "    └ Eval[b]\n" +
+            "      └ Rename[b] AS a2\n" +
+            "        └ Collect[doc.t2 | [b] | true]";
+        assertThat(plan, isPlan(expectedPlan));
+    }
 }
