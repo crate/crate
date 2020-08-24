@@ -45,22 +45,11 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
 
     private final Capture<Eval> fetchOrEvalCapture;
     private final Pattern<Filter> pattern;
-    private volatile boolean enabled = true;
 
     public MoveFilterBeneathFetchOrEval() {
         this.fetchOrEvalCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(source(), typeOf(Eval.class).capturedAs(fetchOrEvalCapture));
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

@@ -64,7 +64,6 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
         );
 
     private final Pattern<Limit> pattern;
-    private volatile boolean enabled = true;
 
     public RewriteToQueryThenFetch() {
         this.pattern = typeOf(Limit.class);
@@ -73,16 +72,6 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
     @Override
     public Pattern<Limit> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

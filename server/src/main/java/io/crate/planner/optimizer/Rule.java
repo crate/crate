@@ -34,10 +34,6 @@ public interface Rule<T> {
 
     Pattern<T> pattern();
 
-    boolean isEnabled();
-
-    void setEnabled(boolean enabled);
-
     LogicalPlan apply(T plan, Captures captures, TableStats tableStats, TransactionContext txnCtx, Functions functions);
 
     /**
@@ -46,5 +42,4 @@ public interface Rule<T> {
     default Version requiredVersion() {
         return Version.V_4_0_0;
     }
-
 }

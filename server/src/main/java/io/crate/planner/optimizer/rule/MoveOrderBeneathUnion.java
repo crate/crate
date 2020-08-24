@@ -43,7 +43,6 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
 
     private final Capture<Union> unionCapture;
     private final Pattern<Order> pattern;
-    private volatile boolean enabled = true;
 
     public MoveOrderBeneathUnion() {
         this.unionCapture = new Capture<>();
@@ -54,16 +53,6 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
     @Override
     public Pattern<Order> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

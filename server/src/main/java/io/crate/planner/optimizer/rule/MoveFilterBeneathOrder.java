@@ -65,22 +65,11 @@ public final class MoveFilterBeneathOrder implements Rule<Filter> {
 
     private final Capture<Order> orderCapture;
     private final Pattern<Filter> pattern;
-    private volatile boolean enabled = true;
 
     public MoveFilterBeneathOrder() {
         this.orderCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(source(), typeOf(Order.class).capturedAs(orderCapture));
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

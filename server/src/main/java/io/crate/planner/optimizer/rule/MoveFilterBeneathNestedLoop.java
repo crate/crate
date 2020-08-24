@@ -41,7 +41,6 @@ public final class MoveFilterBeneathNestedLoop implements Rule<Filter> {
 
     private final Capture<NestedLoopJoin> joinCapture;
     private final Pattern<Filter> pattern;
-    private volatile boolean enabled = true;
 
     public MoveFilterBeneathNestedLoop() {
         this.joinCapture = new Capture<>();
@@ -53,16 +52,6 @@ public final class MoveFilterBeneathNestedLoop implements Rule<Filter> {
                       // We need to run the filter on top of these null rows to produce the correct results
                       .with(join -> !join.joinType().isOuter())
             );
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override
