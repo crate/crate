@@ -22,6 +22,20 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.operators.Limit.limitAndOffset;
+import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -48,19 +62,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.planner.operators.Limit.limitAndOffset;
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 public class NestedLoopJoin implements LogicalPlan {
 
@@ -260,8 +261,8 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
-        ArrayList<Symbol> lhsToKeep = new ArrayList<>();
-        ArrayList<Symbol> rhsToKeep = new ArrayList<>();
+        LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
+        LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
             SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
@@ -290,8 +291,8 @@ public class NestedLoopJoin implements LogicalPlan {
     @Nullable
     @Override
     public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
-        ArrayList<Symbol> usedFromLeft = new ArrayList<>();
-        ArrayList<Symbol> usedFromRight = new ArrayList<>();
+        LinkedHashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
+        LinkedHashSet<Symbol> usedFromRight = new LinkedHashSet<>();
         for (Symbol usedColumn : usedColumns) {
             SymbolVisitors.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
             SymbolVisitors.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
