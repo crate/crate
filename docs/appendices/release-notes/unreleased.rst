@@ -76,6 +76,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that declared the rule optimizer settings as global. The
+  settings are now session local.
+
 - Fixed an issue that prevented the ``MATCH`` predicate from working in mixed
   clusters running 4.1.8 and 4.2.
 

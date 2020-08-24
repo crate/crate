@@ -43,7 +43,6 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
 
     private final Capture<Rename> renameCapture;
     private final Pattern<Filter> pattern;
-    private volatile boolean enabled = true;
 
     public MoveFilterBeneathRename() {
         this.renameCapture = new Capture<>();
@@ -54,16 +53,6 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
     @Override
     public Pattern<Filter> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

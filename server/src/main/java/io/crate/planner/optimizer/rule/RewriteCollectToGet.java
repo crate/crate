@@ -47,7 +47,6 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 public final class RewriteCollectToGet implements Rule<Collect> {
 
     private final Pattern<Collect> pattern;
-    private volatile boolean enabled = true;
 
     public RewriteCollectToGet() {
         this.pattern = typeOf(Collect.class)
@@ -61,16 +60,6 @@ public final class RewriteCollectToGet implements Rule<Collect> {
     @Override
     public Pattern<Collect> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

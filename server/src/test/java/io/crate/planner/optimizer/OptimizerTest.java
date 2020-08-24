@@ -20,29 +20,34 @@
  * agreement.
  */
 
-package io.crate.metadata.settings;
-
+package io.crate.planner.optimizer;
 
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
 import org.junit.Test;
 
-import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
-public class SessionSettingsTest {
+public class OptimizerTest {
 
     @Test
-    public void testSessionSettingsStreaming() throws IOException {
-        SessionSettings s1 = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, Set.of(
-            MergeFilters.class));
-        BytesStreamOutput out = new BytesStreamOutput();
-        s1.writeTo(out);
+    public void test_rule_filtering() {
+        SessionSettings sessionSettings = new SessionSettings("User",
+                                                              SearchPath.pathWithPGCatalogAndDoc(),
+                                                              true,
+                                                              Set.of(MergeFilters.class));
 
-        SessionSettings s2 = new SessionSettings(out.bytes().streamInput());
-        assertEquals(s1, s2);
+        List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(new MergeFilters()),
+                                                            sessionSettings.excludedOptimizerRules());
+        assertThat(rules.isEmpty(), is(true));
+        rules = Optimizer.removeExcludedRules(List.of(new MoveFilterBeneathHashJoin()), sessionSettings.excludedOptimizerRules());
+        assertThat(rules.size(), is(1));
     }
 }

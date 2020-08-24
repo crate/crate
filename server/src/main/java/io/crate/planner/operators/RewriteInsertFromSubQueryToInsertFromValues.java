@@ -38,7 +38,6 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
 
     private final Capture<TableFunction> capture;
     private final Pattern<Insert> pattern;
-    private volatile boolean enabled = true;
 
     public RewriteInsertFromSubQueryToInsertFromValues() {
         this.capture = new Capture<>();
@@ -49,16 +48,6 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
     @Override
     public Pattern<Insert> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

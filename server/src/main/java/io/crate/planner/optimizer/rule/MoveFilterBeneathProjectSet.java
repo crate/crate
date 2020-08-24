@@ -50,7 +50,6 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
 
     private final Capture<ProjectSet> projectSetCapture;
     private final Pattern<Filter> pattern;
-    private volatile boolean enabled = true;
 
     public MoveFilterBeneathProjectSet() {
         this.projectSetCapture = new Capture<>();
@@ -61,16 +60,6 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
     @Override
     public Pattern<Filter> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override
