@@ -44,7 +44,6 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
 
     private final Capture<Union> unionCapture;
     private final Pattern<Filter> pattern;
-    private volatile boolean enabled = true;
 
     public MoveFilterBeneathUnion() {
         this.unionCapture = new Capture<>();
@@ -55,16 +54,6 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
     @Override
     public Pattern<Filter> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

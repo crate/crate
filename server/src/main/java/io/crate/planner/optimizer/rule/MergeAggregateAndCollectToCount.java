@@ -43,7 +43,6 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
 
     private final Capture<Collect> collectCapture;
     private final Pattern<HashAggregate> pattern;
-    private volatile boolean enabled = true;
 
     public MergeAggregateAndCollectToCount() {
         this.collectCapture = new Capture<>();
@@ -58,16 +57,6 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
     @Override
     public Pattern<HashAggregate> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

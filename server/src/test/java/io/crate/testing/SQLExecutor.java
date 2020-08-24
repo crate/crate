@@ -413,7 +413,6 @@ public class SQLExecutor {
                     schemas,
                     userManager,
                     () -> hasValidLicense,
-                    loadedRules,
                     sessionSettingRegistry
                 ),
                 relationAnalyzer,

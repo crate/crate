@@ -41,22 +41,11 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
 
     private final Capture<HashJoin> joinCapture;
     private final Pattern<Filter> pattern;
-    private volatile boolean enabled = true;
 
     public MoveFilterBeneathHashJoin() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(source(), typeOf(HashJoin.class).capturedAs(joinCapture));
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

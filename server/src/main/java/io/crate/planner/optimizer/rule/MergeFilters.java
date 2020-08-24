@@ -55,22 +55,11 @@ public class MergeFilters implements Rule<Filter> {
 
     private final Capture<Filter> child;
     private final Pattern<Filter> pattern;
-    private volatile boolean enabled = true;
 
     public MergeFilters() {
         child = new Capture<>();
         pattern = typeOf(Filter.class)
             .with(source(), typeOf(Filter.class).capturedAs(child));
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

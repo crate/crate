@@ -43,7 +43,6 @@ public class MergeFilterAndCollect implements Rule<Filter> {
 
     private final Capture<Collect> collectCapture;
     private final Pattern<Filter> pattern;
-    private volatile boolean enabled = true;
 
     public MergeFilterAndCollect() {
         this.collectCapture = new Capture<>();
@@ -54,16 +53,6 @@ public class MergeFilterAndCollect implements Rule<Filter> {
     @Override
     public Pattern<Filter> pattern() {
         return pattern;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     @Override

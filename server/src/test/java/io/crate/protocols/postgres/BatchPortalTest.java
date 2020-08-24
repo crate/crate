@@ -36,7 +36,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.optimizer.LoadedRules;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -89,7 +88,6 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
             sqlExecutor.schemas(),
             new StubUserManager(),
             () -> true,
-            mock(LoadedRules.class),
             mock(SessionSettingRegistry.class)
             ) {
 

@@ -24,34 +24,42 @@ package io.crate.metadata.settings;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.SearchPath;
+import io.crate.planner.optimizer.Rule;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Set;
 
 public final class SessionSettings implements Writeable {
 
     private final String userName;
     private final SearchPath searchPath;
     private final boolean hashJoinsEnabled;
+    private final Set<Class<? extends Rule<?>>> excludedOptimizerRules;
 
     public SessionSettings(StreamInput in) throws IOException {
         this.userName = in.readString();
         this.searchPath = SearchPath.createSearchPathFrom(in);
         this.hashJoinsEnabled = in.readBoolean();
+        // excludedOptimizerRules are only used on the coordinator node
+        // and never needed any other node and therefore are excluded from
+        // serialization on purpose.
+        this.excludedOptimizerRules = Set.of();
     }
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
-        this(userName, searchPath, true);
+        this(userName, searchPath, true, Set.of());
     }
 
-    public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled) {
+    public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled, Set<Class<? extends Rule<?>>> rules) {
         this.userName = userName;
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
+        this.excludedOptimizerRules = rules;
     }
 
     public String userName() {
@@ -68,6 +76,10 @@ public final class SessionSettings implements Writeable {
 
     public boolean hashJoinsEnabled() {
         return hashJoinsEnabled;
+    }
+
+    public Set<Class<? extends Rule<?>>> excludedOptimizerRules() {
+        return excludedOptimizerRules;
     }
 
     @Override

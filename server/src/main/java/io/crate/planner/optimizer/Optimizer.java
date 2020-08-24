@@ -22,6 +22,7 @@
 
 package io.crate.planner.optimizer;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
@@ -33,7 +34,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public class Optimizer {
@@ -53,16 +56,37 @@ public class Optimizer {
     }
 
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
-        LogicalPlan optimizedRoot = tryApplyRules(plan, tableStats, txnCtx);
+        var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
+        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, tableStats, txnCtx);
         var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx));
         return tryApplyRules(
+            applicableRules,
             optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
             tableStats,
             txnCtx
         );
     }
 
-    private LogicalPlan tryApplyRules(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
+    @VisibleForTesting
+    static List<Rule<?>> removeExcludedRules(List<Rule<?>> rules, Set<Class<? extends Rule<?>>> excludedRules) {
+        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
+        if (excludedRules.isEmpty()) {
+            return rules;
+        }
+        var result = new ArrayList<Rule<?>>(rules.size());
+        for (var rule : rules) {
+            if (excludedRules.contains(rule.getClass())) {
+                if (isTraceEnabled) {
+                    LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' excluded from execution");
+                }
+            } else {
+                result.add(rule);
+            }
+        }
+        return result;
+    }
+
+    private LogicalPlan tryApplyRules(List<Rule<?>> rules, LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
         final boolean isTraceEnabled = LOGGER.isTraceEnabled();
         LogicalPlan node = plan;
         // Some rules may only become applicable after another rule triggered, so we keep
@@ -73,12 +97,6 @@ public class Optimizer {
             done = true;
             Version minVersion = minNodeVersionInCluster.get();
             for (Rule rule : rules) {
-                if (!rule.isEnabled()) {
-                    if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' excluded from execution");
-                    }
-                    continue;
-                }
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
@@ -104,5 +122,4 @@ public class Optimizer {
             : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
         return node;
     }
-
 }
