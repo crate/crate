@@ -22,6 +22,21 @@
 
 package io.crate.expression.eval;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.data.Input;
 import io.crate.expression.NestableInput;
@@ -41,16 +56,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
 
 
 /**
@@ -142,22 +147,48 @@ public class EvaluatingNormalizer {
                     }
                 }
 
-                Function function = new Function(
-                    io.crate.expression.predicate.MatchPredicate.SIGNATURE,
-                    List.of(
-                        new Function(
-                            MapFunction.SIGNATURE,
-                            columnBoostMapArgs,
-                            DataTypes.UNTYPED_OBJECT,
-                            null
-                        ),
-                        matchPredicate.queryTerm(),
-                        Literal.of(matchPredicate.matchType()),
-                        matchPredicate.options()
-                    ),
-                    DataTypes.BOOLEAN
+                List<Symbol> arguments = List.of(
+                    new Function(
+                        MapFunction.SIGNATURE,
+                        columnBoostMapArgs,
+                        DataTypes.UNTYPED_OBJECT).accept(this, context),
+                    matchPredicate.queryTerm().accept(this, context),
+                    Literal.of(matchPredicate.matchType()),
+                    matchPredicate.options().accept(this, context)
                 );
-                return ((Symbol) function).accept(this, context);
+                FunctionImplementation implementation = functions.get(
+                    null,
+                    io.crate.expression.predicate.MatchPredicate.NAME,
+                    arguments,
+                    context.sessionSettings().searchPath()
+                );
+                // In 4.1 the match function was registered to (object, text, text, object)
+                //
+                // But now the default constructor for Function creates a FunctionInfo where it uses the types of the arguments
+                // And the arguments here can be (object, geo_shape, text, object) for MATCH on shapes
+                // For mixed cluster compatibility it is necessary to use a "incorrect" FunctionInfo
+                return new Function(implementation.signature(), arguments, DataTypes.BOOLEAN) {
+
+                    @Override
+                    public void writeTo(StreamOutput out) throws IOException {
+                        if (out.getVersion().onOrAfter(Version.V_4_2_4)) {
+                            super.writeTo(out);
+                        } else {
+                            io.crate.expression.predicate.MatchPredicate.INFO.writeTo(out);
+                            if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+                                Symbols.nullableToStream(filter, out);
+                            }
+                            Symbols.toStream(arguments, out);
+                            if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
+                                out.writeBoolean(signature != null);
+                                if (signature != null) {
+                                    signature.writeTo(out);
+                                    DataTypes.toStream(returnType, out);
+                                }
+                            }
+                        }
+                    }
+                };
             }
 
             HashMap<Symbol, Symbol> fieldBoostMap = new HashMap<>(matchPredicate.identBoostMap().size());
