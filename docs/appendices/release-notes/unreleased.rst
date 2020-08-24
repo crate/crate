@@ -76,6 +76,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that prevented the ``MATCH`` predicate from working in mixed
+  clusters running 4.1.8 and 4.2.
+
 - Fixed an issue that prevented user defined functions in a custom schema from
   working if used in a generated column expression.
 
