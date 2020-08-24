@@ -22,9 +22,7 @@
 
 package io.crate.sql.tree;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,11 +31,9 @@ import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class WindowTest {
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
 
     private final Window emptyWindow = new Window(null, List.of(), List.of(), Optional.empty());
 
@@ -81,9 +77,9 @@ public class WindowTest {
         var current = new Window("w", List.of(), orderBy, Optional.empty());
         var provided = new Window(null, List.of(), List.of(), Optional.of(frame));
 
-        thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("Cannot copy window w because it has a frame clause");
-        current.merge(provided);
+        assertThrows(IllegalArgumentException.class,
+                     () -> current.merge(provided),
+                     "Cannot copy window w because it has a frame clause");
     }
 
     @Test
@@ -91,17 +87,17 @@ public class WindowTest {
         Window current = new Window("w", List.of(), orderBy, Optional.empty());
         Window provided = new Window(null, List.of(), orderBy, Optional.empty());
 
-        thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("Cannot override ORDER BY clause of window w");
-        current.merge(provided);
+        assertThrows(IllegalArgumentException.class,
+                     () -> current.merge(provided),
+                     "Cannot override ORDER BY clause of window w");
     }
 
     @Test
     public void test_merge_current_window_cannot_specify_partition_by() {
         var current = new Window("w", partitionBy, List.of(), Optional.empty());
 
-        thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("Cannot override PARTITION BY clause of window w");
-        current.merge(emptyWindow);
+        assertThrows(IllegalArgumentException.class,
+                     () -> current.merge(emptyWindow),
+                     "Cannot override PARTITION BY clause of window w");
     }
 }

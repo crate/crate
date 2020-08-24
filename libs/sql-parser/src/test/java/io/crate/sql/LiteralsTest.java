@@ -25,17 +25,13 @@ package io.crate.sql;
 
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.IntegerLiteral;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class LiteralsTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testEscape() throws Exception {
@@ -235,16 +231,16 @@ public class LiteralsTest {
 
     @Test
     public void testThatInvalidLengthEscapedUnicode16SequenceThrowsException() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(Literals.ESCAPED_UNICODE_ERROR);
-        Literals.replaceEscapedChars("\\u006");
+        assertThrows(IllegalArgumentException.class,
+                     () -> Literals.replaceEscapedChars("\\u006"),
+                     Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
     public void testThatInvalidHexEscapedUnicode16SequenceThrowsException() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(Literals.ESCAPED_UNICODE_ERROR);
-        Literals.replaceEscapedChars("\\u006G");
+        assertThrows(IllegalArgumentException.class,
+                     () -> Literals.replaceEscapedChars("\\u006G"),
+                     Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
@@ -275,16 +271,16 @@ public class LiteralsTest {
 
     @Test
     public void testThatInvalidLengthEscapedUnicode32SequenceThrowsException() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(Literals.ESCAPED_UNICODE_ERROR);
-        Literals.replaceEscapedChars("\\U0061");
+        assertThrows(IllegalArgumentException.class,
+                     () -> Literals.replaceEscapedChars("\\U0061"),
+                     Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
     public void testThatInvalidHexEscapedUnicode32SequenceThrowsException() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(Literals.ESCAPED_UNICODE_ERROR);
-        Literals.replaceEscapedChars("\\U0000006G");
+        assertThrows(IllegalArgumentException.class,
+                     () -> Literals.replaceEscapedChars("\\U0000006G"),
+                     Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test

@@ -23,9 +23,7 @@
 package io.crate.sql.tree;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Comparator;
 import java.util.List;
@@ -34,11 +32,9 @@ import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class UnboundedPrecedingFrameBoundTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private List<Integer> partition;
     private Comparator<Integer> intComparator;
@@ -67,8 +63,8 @@ public class UnboundedPrecedingFrameBoundTest {
 
     @Test
     public void testUnboundePrecedingCannotBeTheEndOfTheFrame() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("UNBOUNDED PRECEDING cannot be the start of a frame");
-        UNBOUNDED_PRECEDING.getEnd(RANGE, 0, 3, 1, null, null, intComparator, partition);
+        assertThrows(IllegalStateException.class,
+                     () -> UNBOUNDED_PRECEDING.getEnd(RANGE, 0, 3, 1, null, null, intComparator, partition),
+                     "UNBOUNDED PRECEDING cannot be the start of a frame");
     }
 }

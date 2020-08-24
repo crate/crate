@@ -70,9 +70,7 @@ import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Window;
 import org.hamcrest.CoreMatchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -80,7 +78,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static java.lang.String.format;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -89,11 +86,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestStatementBuilder {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testBegin() {
@@ -201,16 +196,16 @@ public class TestStatementBuilder {
 
     @Test
     public void test_duplicates_in_window_definitions() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Window w is already defined");
-        printStatement("SELECT x FROM t WINDOW w AS (), w as ()");
+        assertThrows(IllegalArgumentException.class,
+                     () -> printStatement("SELECT x FROM t WINDOW w AS (), w as ()"),
+                     "Window w is already defined");
     }
 
     @Test
     public void test_circular_references_in_window_definitions() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Window ww does not exist");
-        printStatement("SELECT x FROM t WINDOW w AS (ww), ww as (w), www as ()");
+        assertThrows(IllegalArgumentException.class,
+                     () -> printStatement("SELECT x FROM t WINDOW w AS (ww), ww as (w), www as ()"),
+                     "Window ww does not exist");
     }
 
     @Test
@@ -220,9 +215,9 @@ public class TestStatementBuilder {
 
     @Test
     public void testNullNotAllowedAsArgToExtractField() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("no viable alternative at input 'select extract(null'");
-        printStatement("select extract(null from x)");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("select extract(null from x)"),
+                     "no viable alternative at input 'select extract(null'");
     }
 
     @Test
@@ -257,8 +252,9 @@ public class TestStatementBuilder {
 
     @Test
     public void test_decommission_node_id_is_missing() {
-        expectedException.expectMessage(containsString("mismatched input"));
-        printStatement("ALTER CLUSTER DECOMMISSION'");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("ALTER CLUSTER DECOMMISSION'"),
+                     "mismatched input");
     }
 
     @Test
@@ -414,9 +410,9 @@ public class TestStatementBuilder {
 
     @Test
     public void testDeallocateWithoutParamThrowsParsingException() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:11: mismatched input '<EOF>'");
-        printStatement("deallocate");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("deallocate"),
+                     "line 1:11: mismatched input '<EOF>'");
     }
 
     @Test
@@ -460,9 +456,9 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetSessionInvalidSetting() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage(containsString("no viable alternative"));
-        printStatement("set session 'some_setting' TO 1, ON");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("set session 'some_setting' TO 1, ON"),
+                     "no viable alternative");
     }
 
     @Test
@@ -480,30 +476,30 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetLicenseInputWithoutQuotesThrowsParsingException() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage(containsString("no viable alternative at input"));
-        printStatement("set license LICENSE_KEY");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("set license LICENSE_KEY"),
+                     "no viable alternative at input");
     }
 
     @Test
     public void testSetLicenseWithoutParamThrowsParsingException() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage(containsString("no viable alternative at input 'set license'"));
-        printStatement("set license");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("set license"),
+                     "no viable alternative at input 'set license'");
     }
 
     @Test
     public void testSetLicenseLikeAnExpressionThrowsParsingException() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage(containsString("no viable alternative at input"));
-        printStatement("set license key='LICENSE_KEY'");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("set license key='LICENSE_KEY'"),
+                     "no viable alternative at input");
     }
 
     @Test
     public void testSetLicenseMultipleInputThrowsParsingException() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage(containsString("line 1:27: extraneous input ''LICENSE_KEY2'' expecting {<EOF>, ';'}"));
-        printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'"),
+                     "line 1:27: extraneous input ''LICENSE_KEY2'' expecting {<EOF>, ';'}");
     }
 
     @Test
@@ -613,9 +609,9 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateTableColumnTypeOrGeneratedExpressionAreDefined() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column [col1]: data type needs to be provided or column should be defined as a generated expression");
-        printStatement("create table test (col1)");
+        assertThrows(IllegalArgumentException.class,
+                     () -> printStatement("create table test (col1)"),
+                     "Column [col1]: data type needs to be provided or column should be defined as a generated expression");
     }
 
     @Test
@@ -626,16 +622,17 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateTableBothDefaultAndGeneratedExpressionsNotAllowed() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column [col1]: the default and generated expressions are mutually exclusive");
-        printStatement("create table test (col1 int default random() as 1+1)");
+        assertThrows(IllegalArgumentException.class,
+                     () -> printStatement("create table test (col1 int default random() as 1+1)"),
+                     "Column [col1]: the default and generated expressions are mutually exclusive");
     }
 
     @Test
     public void testCreateTableOptionsMultipleTimesNotAllowed() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
-        printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)");
+        assertThrows(ParsingException.class,
+                     () -> printStatement(
+                         "create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)"),
+                     "line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
     }
 
     @Test
@@ -840,12 +837,12 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateFunctionStmtBuilderWithIncorrectFunctionName() {
-        expectedException.expectMessage(containsString("[foo.bar.a] does not conform the " +
-            "[[schema_name .] function_name] format"));
-        expectedException.expect(IllegalArgumentException.class);
-        printStatement("create function foo.bar.a()" +
-            " returns object" +
-            " language sql as 'select 1'");
+        assertThrows(IllegalArgumentException.class,
+                     () -> printStatement("create function foo.bar.a()" +
+                                         " returns object" +
+                                         " language sql as 'select 1'"),
+                     "[foo.bar.a] does not conform the " +
+                     "[[schema_name .] function_name] format");
     }
 
     @Test
@@ -917,9 +914,9 @@ public class TestStatementBuilder {
 
     @Test
     public void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid Escaped String Literal");
-        printStatement("select e'aa\\\\\'bb' as col1");
+        assertThrows(IllegalArgumentException.class,
+                     () -> printStatement("select e'aa\\\\\'bb' as col1"),
+                     "Invalid Escaped String Literal");
     }
 
     @Test
@@ -1013,16 +1010,16 @@ public class TestStatementBuilder {
 
     @Test
     public void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage(containsString("no viable alternative at input 'select array from'"));
-        printStatement("select array from f2");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("select array from f2"),
+                     "no viable alternative at input 'select array from'");
     }
 
    @Test
     public void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage(containsString("no viable alternative at input 'select array()'"));
-        printStatement("select array() as array1 from f2");
+       assertThrows(ParsingException.class,
+                    () -> printStatement("select array() as array1 from f2"),
+                    "no viable alternative at input 'select array()'");
     }
 
     @Test
@@ -1264,8 +1261,9 @@ public class TestStatementBuilder {
         matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2']['4'], 'abc')");
         assertThat(matchPredicate.idents().get(0).columnIdent().toString(), is("\"a\"['1']['2']['4']"));
 
-        expectedException.expect(ParsingException.class);
-        SqlParser.createExpression("match ([1]['1']['2'], 'abc')");
+        assertThrows(ParsingException.class,
+                     () -> SqlParser.createExpression("match ([1]['1']['2'], 'abc')"),
+                     "mismatched input '<EOF>' expecting 'SET'");
     }
 
     @Test
@@ -1518,17 +1516,17 @@ public class TestStatementBuilder {
 
     @Test
     public void testAlterTableAddColumnTypeOrGeneratedExpressionAreDefined() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column [\"col2\"]: data type needs to be provided or column should be defined as a generated expression");
-        printStatement("alter table t add column col2");
+        assertThrows(IllegalArgumentException.class,
+                     () -> printStatement("alter table t add column col2"),
+                     "Column [\"col2\"]: data type needs to be provided or column should be defined as a generated expression");
     }
 
 
     @Test
     public void testAddColumnWithDefaultExpressionIsNotSupported() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("mismatched input 'default'");
-        printStatement("alter table t add col1 text default 'foo'");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("mismatched input 'default'"),
+                     "mismatched input 'default'");
     }
 
 
@@ -1565,9 +1563,9 @@ public class TestStatementBuilder {
 
     @Test
     public void testAlterUserWithMissingProperties() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage(containsString("mismatched input '<EOF>' expecting 'SET'"));
-        printStatement("alter user crate");
+        assertThrows(ParsingException.class,
+                     () -> printStatement("alter user crate"),
+                     "mismatched input '<EOF>' expecting 'SET'");
     }
 
     @Test

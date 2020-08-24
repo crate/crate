@@ -25,20 +25,14 @@ package io.crate.sql;
 
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.IntervalLiteral;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class IntervalLiteralTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testYear() {
@@ -114,22 +108,22 @@ public class IntervalLiteralTest {
 
     @Test
     public void testSecondToHour() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Startfield must be less significant than Endfield");
-        SqlParser.createExpression("INTERVAL '1' SECOND TO HOUR");
+        assertThrows(IllegalArgumentException.class,
+                     () -> SqlParser.createExpression("INTERVAL '1' SECOND TO HOUR"),
+                     "Startfield must be less significant than Endfield");
     }
 
     @Test
     public void testSecondToYear() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Startfield must be less significant than Endfield");
-        SqlParser.createExpression("INTERVAL '1' SECOND TO YEAR");
+        assertThrows(IllegalArgumentException.class,
+                     () -> SqlParser.createExpression("INTERVAL '1' SECOND TO YEAR"),
+                     "Startfield must be less significant than Endfield");
     }
 
     @Test
     public void testDayToYear() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Startfield must be less significant than Endfield");
-        SqlParser.createExpression("INTERVAL '1' DAY TO YEAR");
+        assertThrows(IllegalArgumentException.class,
+                     () -> SqlParser.createExpression("INTERVAL '1' DAY TO YEAR"),
+                     "Startfield must be less significant than Endfield");
     }
 }
