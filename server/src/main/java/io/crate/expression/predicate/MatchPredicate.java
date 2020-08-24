@@ -21,18 +21,26 @@
 
 package io.crate.expression.predicate;
 
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 
-import javax.annotation.Nullable;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 /**
  * The match predicate is only used to generate lucene queries from.
@@ -52,7 +60,7 @@ public class MatchPredicate implements FunctionImplementation {
      * 3. match_type - string (nullable)
      * 4. match_type options - object mapping option name to value (Object) (nullable)
      */
-    public static final Signature SIGNATURE = Signature.scalar(
+    public static final Signature TEXT_MATCH = Signature.scalar(
         NAME,
         DataTypes.UNTYPED_OBJECT.getTypeSignature(),
         DataTypes.STRING.getTypeSignature(),
@@ -61,9 +69,30 @@ public class MatchPredicate implements FunctionImplementation {
         DataTypes.BOOLEAN.getTypeSignature()
     );
 
+    public static final Signature GEO_MATCH = Signature.scalar(
+        NAME,
+        DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+        DataTypes.GEO_SHAPE.getTypeSignature(),
+        DataTypes.STRING.getTypeSignature(),
+        DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+        DataTypes.BOOLEAN.getTypeSignature()
+    );
+
+
+    // IDENT / INFO here are for BWC of mixed clusters running 4.1 and 4.2;
+    public static final FunctionIdent IDENT = new FunctionIdent(
+        new FunctionName(null, NAME),
+        Arrays.asList(ObjectType.UNTYPED, DataTypes.STRING, DataTypes.STRING, ObjectType.UNTYPED)
+    );
+    public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionType.SCALAR, Set.of());
+
     public static void register(PredicateModule module) {
         module.register(
-            SIGNATURE,
+            GEO_MATCH,
+            MatchPredicate::new
+        );
+        module.register(
+            TEXT_MATCH,
             MatchPredicate::new
         );
     }

@@ -74,7 +74,7 @@ public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
         );
     }
 
-    private FunctionInfo(FunctionIdent ident, DataType<?> returnType, FunctionType type, Set<Scalar.Feature> features) {
+    public FunctionInfo(FunctionIdent ident, DataType<?> returnType, FunctionType type, Set<Scalar.Feature> features) {
         assert features.size() < 32 : "features size must not exceed 32";
         this.ident = ident;
         this.returnType = returnType;
