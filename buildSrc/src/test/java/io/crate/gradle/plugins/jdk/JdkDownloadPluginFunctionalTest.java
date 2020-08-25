@@ -24,6 +24,7 @@ package io.crate.gradle.plugins.jdk;
 
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -52,21 +53,25 @@ public class JdkDownloadPluginFunctionalTest {
     public static final String VERSION = "13.0.2+8";
 
     @Test
+    @Ignore
     public void testAarch64LinuxJDKExtraction() {
         assertExtraction("getAarch64LinuxJdk", "bin/java", VENDOR, VERSION);
     }
 
     @Test
+    @Ignore
     public void testX64LinuxJDKExtraction() {
         assertExtraction("getX64LinuxJdk", "bin/java", VENDOR, VERSION);
     }
 
     @Test
+    @Ignore
     public void testMacJDKExtraction() {
         assertExtraction("getMacJdk", "Contents/Home/bin/java", VENDOR, VERSION);
     }
 
     @Test
+    @Ignore
     public void testWindowsJDKExtraction() {
         assertExtraction("getWindowsJdk", "bin/java.exe", VENDOR, VERSION);
     }
