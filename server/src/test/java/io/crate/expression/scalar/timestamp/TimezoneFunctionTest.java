@@ -31,9 +31,6 @@ import org.junit.rules.ExpectedException;
 
 public class TimezoneFunctionTest extends AbstractScalarFunctionsTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void testEvaluateInvalidZoneIsNull() {
         assertEvaluate("timezone(null, 257504400000)", null);

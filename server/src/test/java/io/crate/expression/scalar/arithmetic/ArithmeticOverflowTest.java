@@ -30,9 +30,6 @@ import org.junit.rules.ExpectedException;
 
 public class ArithmeticOverflowTest extends AbstractScalarFunctionsTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void test_integer_overflow() {
         expectedException.expect(IllegalArgumentException.class);

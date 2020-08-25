@@ -56,8 +56,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.hamcrest.Matcher;
 import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.ExpectedException;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
@@ -73,9 +71,6 @@ import static io.crate.execution.engine.sort.Comparators.createComparator;
 import static org.hamcrest.Matchers.instanceOf;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private AbstractModule[] additionalModules;
     private SqlExpressions sqlExpressions;

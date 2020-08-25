@@ -30,9 +30,6 @@ import org.junit.rules.ExpectedException;
 
 public class StringPaddingFunctionTest extends AbstractScalarFunctionsTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void test_lpad_parameter_len_too_big() throws Exception {
         expectedException.expect(IllegalArgumentException.class);

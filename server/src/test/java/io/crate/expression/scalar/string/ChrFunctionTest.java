@@ -30,9 +30,6 @@ import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 
 public class ChrFunctionTest extends AbstractScalarFunctionsTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void test_null_value_returns_null() throws Exception {
         assertEvaluate("chr(null)", null);

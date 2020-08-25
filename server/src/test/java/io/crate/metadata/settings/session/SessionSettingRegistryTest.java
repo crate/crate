@@ -29,9 +29,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.optimizer.LoadedRules;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,11 +41,10 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SessionSettingRegistryTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
     private SessionContext sessionContext = SessionContext.systemSessionContext();
     private NodeContext nodeCtx = createNodeContext();
     private Function<Symbol, Object> eval = s -> SymbolEvaluator.evaluateWithoutParams(
@@ -58,10 +55,10 @@ public class SessionSettingRegistryTest {
 
     @Test
     public void testMaxIndexKeysSessionSettingCannotBeChanged() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("\"max_index_keys\" cannot be changed.");
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.MAX_INDEX_KEYS);
-        setting.apply(sessionContext, generateInput("32"), eval);
+        assertThrows(UnsupportedOperationException.class,
+                     () -> setting.apply(sessionContext, generateInput("32"), eval),
+                     "\"max_index_keys\" cannot be changed.");
     }
 
     @Test

@@ -56,9 +56,6 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         super("create table t (i ip, ia array(ip))");
     }
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         addIPv4Values(writer);
