@@ -30,9 +30,6 @@ import org.junit.rules.ExpectedException;
 
 public class CIDROperatorTest extends AbstractScalarFunctionsTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void test_ipv4_operands_in_wrong_order() {
         expectedException.expect(IllegalArgumentException.class);

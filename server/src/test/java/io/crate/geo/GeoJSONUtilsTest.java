@@ -23,21 +23,17 @@
 package io.crate.geo;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 import java.util.Map;
 
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
@@ -53,9 +49,6 @@ import org.locationtech.spatial4j.shape.jts.JtsGeometry;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 public class GeoJSONUtilsTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -144,14 +137,12 @@ public class GeoJSONUtilsTest {
 
     @Test
     public void testInvalidWKT() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(allOf(
-            startsWith("Cannot convert WKT \""),
-            endsWith("\" to shape")));
-        GeoJSONUtils.wkt2Map("multilinestring (((10.05  10.28  3.4  8.4, 20.95  20.89  4.5  9.5),\n" +
-                             " \n" +
-                             "( 20.95  20.89  4.5  9.5, 31.92  21.45  3.6  8.6)))");
-
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.wkt2Map(
+                         "multilinestring (((10.05  10.28  3.4  8.4, 20.95  20.89  4.5  9.5),\n" +
+                         " \n" +
+                         "( 20.95  20.89  4.5  9.5, 31.92  21.45  3.6  8.6)))"),
+                     "Cannot convert WKT \"multilinestring (((10.05  10.28  3.4  8.4, 20.95  20.89  4.5  9.5)");
     }
 
     @Test
@@ -167,90 +158,90 @@ public class GeoJSONUtilsTest {
 
     @Test
     public void testInvalidMap() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert Map \"{}\" to shape");
-        GeoJSONUtils.map2Shape(Map.<String, Object>of());
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.map2Shape(Map.<String, Object>of()),
+                     "Cannot convert Map \"{}\" to shape");
     }
 
     @Test
     public void testValidateMissingType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid GeoJSON: type field missing");
-        GeoJSONUtils.validateGeoJson(Map.of());
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.validateGeoJson(Map.of()),
+                     "Invalid GeoJSON: type field missing");
     }
 
     @Test
     public void testValidateWrongType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid GeoJSON: invalid type");
-        GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, "Foo"));
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, "Foo")),
+                     "Invalid GeoJSON: invalid type");
     }
 
     @Test
     public void testValidateMissingCoordinates() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid GeoJSON: coordinates field missing");
-        GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING));
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING)),
+                     "Invalid GeoJSON: coordinates field missing");
     }
 
     @Test
     public void testValidateGeometriesMissing() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid GeoJSON: geometries field missing");
-        GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION));
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION)),
+                     "Invalid GeoJSON: coordinates field missing");
     }
 
     @Test
     public void testInvalidGeometryCollection() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid GeoJSON: invalid GeometryCollection");
-        GeoJSONUtils.validateGeoJson(
-            Map.of(
-                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION,
-                GeoJSONUtils.GEOMETRIES_FIELD, List.<Object>of("ABC")
-            )
-        );
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.validateGeoJson(
+                         Map.of(
+                             GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION,
+                             GeoJSONUtils.GEOMETRIES_FIELD, List.<Object>of("ABC")
+                         )
+                     ),
+                     "Invalid GeoJSON: invalid GeometryCollection");
     }
 
     @Test
     public void testValidateInvalidCoordinates() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
-        GeoJSONUtils.validateGeoJson(
-            Map.of(
-                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
-                GeoJSONUtils.COORDINATES_FIELD, "ABC"
-            )
-        );
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.validateGeoJson(
+                         Map.of(
+                             GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+                             GeoJSONUtils.COORDINATES_FIELD, "ABC"
+                         )
+                     ),
+                     "Invalid GeoJSON: invalid GeometryCollection");
     }
 
     @Test
     public void testInvalidNestedCoordinates() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
-        GeoJSONUtils.validateGeoJson(
-            Map.of(
-                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
-                GeoJSONUtils.COORDINATES_FIELD, new double[][]{
-                    {0.0, 1.0},
-                    {1.0, 0.0}
-                }
-            )
-        );
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.validateGeoJson(
+                         Map.of(
+                             GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+                             GeoJSONUtils.COORDINATES_FIELD, new double[][]{
+                                 {0.0, 1.0},
+                                 {1.0, 0.0}
+                             }
+                         )
+                     ),
+                     "Invalid GeoJSON: invalid coordinate");
     }
 
     @Test
     public void testInvalidDepthNestedCoordinates() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
-        GeoJSONUtils.validateGeoJson(
-            Map.of(
-                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POLYGON,
-                GeoJSONUtils.COORDINATES_FIELD, new double[][]{
-                    {0.0, 1.0},
-                    {1.0, 0.0}
-                }
-            )
-        );
+        assertThrows(IllegalArgumentException.class,
+                     () -> GeoJSONUtils.validateGeoJson(
+                         Map.of(
+                             GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POLYGON,
+                             GeoJSONUtils.COORDINATES_FIELD, new double[][]{
+                                 {0.0, 1.0},
+                                 {1.0, 0.0}
+                             }
+                         )
+                     ),
+                     "Invalid GeoJSON: invalid coordinate");
     }
 }

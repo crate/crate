@@ -37,9 +37,7 @@ import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -52,6 +50,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,8 +58,6 @@ public class NodeStatsContextFieldResolverTest {
 
     private NodeStatsContextFieldResolver resolver;
 
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
     private TransportAddress postgresAddress;
 
     @Before
@@ -184,9 +181,9 @@ public class NodeStatsContextFieldResolverTest {
 
     @Test
     public void testResolveForNonExistingColumnIdent() {
-        thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("Cannot resolve NodeStatsContext field for \"dummy\" column ident.");
-        resolver.forTopColumnIdents(ImmutableSet.of(SysNodesTableInfo.Columns.ID, new ColumnIdent("dummy")));
+        assertThrows(IllegalArgumentException.class,
+                     () -> resolver.forTopColumnIdents(ImmutableSet.of(SysNodesTableInfo.Columns.ID, new ColumnIdent("dummy"))),
+                     "Cannot resolve NodeStatsContext field for \"dummy\" column ident.");
     }
 
     private void assertDefaultDiscoveryContext(NodeStatsContext context) {
