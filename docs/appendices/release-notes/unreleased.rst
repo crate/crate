@@ -78,6 +78,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could lead to a ``IndexOutOfBoundsException`` when using
+  virtual tables and joins.
+
 - Fixed an issue that declared the rule optimizer settings as global. The
   settings are now session local.
 

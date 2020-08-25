@@ -226,7 +226,9 @@ public class LogicalPlanner {
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
+        assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(tableStats, relation.outputs());
+        assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         LogicalPlan fetchOptimized = fetchOptimizer.optimize(
             prunedPlan,
             tableStats,
@@ -235,6 +237,7 @@ public class LogicalPlanner {
         if (fetchOptimized != prunedPlan || hints.contains(PlanHint.AVOID_TOP_LEVEL_FETCH)) {
             return fetchOptimized;
         }
+        assert logicalPlan.outputs().equals(fetchOptimized.outputs()) : "Fetch optimized plan must have the same outputs as original plan";
         // Doing a second pass here to also rewrite additional plan patterns to "Fetch"
         // The `fetchOptimizer` operators on `Limit - X` fragments of a tree.
         // This here instead operators on a narrow selection of top-level patterns
