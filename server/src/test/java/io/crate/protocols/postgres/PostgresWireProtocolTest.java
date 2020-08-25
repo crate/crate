@@ -88,6 +88,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         sqlOperations = new SQLOperations(
+            e.nodeCtx,
             e.analyzer,
             e.planner,
             () -> mock(DependencyCarrier.class),

@@ -31,7 +31,7 @@ import java.util.Set;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
@@ -79,7 +79,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             Functions functions) {
+                             NodeContext nodeCtx) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }

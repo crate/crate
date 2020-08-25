@@ -26,7 +26,6 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;

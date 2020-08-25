@@ -13,17 +13,14 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
 import io.crate.metadata.MapBackedRefResolver;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.functions.Signature;
 import org.elasticsearch.test.ESTestCase;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,13 +32,13 @@ import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class EvaluatingNormalizerTest extends ESTestCase {
 
     private ReferenceResolver<NestableInput<?>> referenceResolver;
-    private Functions functions;
+    private NodeContext nodeCtx;
     private Reference dummyLoadInfo;
 
     private final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
@@ -54,7 +51,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, null, null);
 
         referenceImplementationMap.put(dummyLoadIdent.columnIdent(), constant(0.08d));
-        functions = getFunctions();
+        nodeCtx = createNodeContext();
         referenceResolver = new MapBackedRefResolver(referenceImplementationMap);
     }
 
@@ -125,7 +122,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
 
     @Test
     public void testEvaluation() {
-        EvaluatingNormalizer visitor = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver, null);
+        EvaluatingNormalizer visitor = new EvaluatingNormalizer(nodeCtx, RowGranularity.NODE, referenceResolver, null);
 
         Function op_or = prepareFunctionTree();
 
@@ -137,7 +134,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
 
     @Test
     public void testEvaluationClusterGranularity() {
-        EvaluatingNormalizer visitor = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver, null);
+        EvaluatingNormalizer visitor = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, referenceResolver, null);
 
         Function op_or = prepareFunctionTree();
         Symbol query = visitor.normalize(op_or, coordinatorTxnCtx);

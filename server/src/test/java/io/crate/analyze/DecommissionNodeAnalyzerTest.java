@@ -49,7 +49,7 @@ public class DecommissionNodeAnalyzerTest extends CrateDummyClusterServiceUnitTe
         return DecommissionNodePlan.boundNodeIdOrName(
             analyzedStatement,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             new RowN(arguments),
             SubQueryResults.EMPTY
         );

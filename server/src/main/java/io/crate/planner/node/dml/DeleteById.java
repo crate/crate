@@ -90,7 +90,7 @@ public class DeleteById implements Plan {
         return new ShardRequestExecutor<>(
             clusterService,
             plannerContext.transactionContext(),
-            dependencies.functions(),
+            dependencies.nodeContext(),
             table,
             new DeleteRequests(plannerContext.jobId(), requestTimeout),
             dependencies.transportActionProvider().transportShardDeleteAction()::execute,

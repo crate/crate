@@ -31,7 +31,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
@@ -46,11 +46,11 @@ import io.crate.sql.tree.Table;
 class CopyAnalyzer {
 
     private final Schemas schemas;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
-    CopyAnalyzer(Schemas schemas, Functions functions) {
+    CopyAnalyzer(Schemas schemas, NodeContext nodeCtx) {
         this.schemas = schemas;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
     }
 
     AnalyzedCopyFrom analyzeCopyFrom(CopyFrom<Expression> node,
@@ -65,12 +65,12 @@ class CopyAnalyzer {
         var exprCtx = new ExpressionAnalysisContext();
 
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
 
         var normalizer = new EvaluatingNormalizer(
-            functions,
+            nodeCtx,
             RowGranularity.CLUSTER,
             null,
             new TableRelation(tableInfo));
@@ -111,21 +111,21 @@ class CopyAnalyzer {
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions,
+            nodeCtx,
             RowGranularity.CLUSTER,
             null,
             tableRelation);
 
         var exprCtx = new ExpressionAnalysisContext();
         var expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             txnCtx,
+            nodeCtx,
             paramTypeHints,
             new NameFieldProvider(tableRelation),
             null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions,
             txnCtx,
+            nodeCtx,
             paramTypeHints,
             FieldProvider.FIELDS_AS_LITERAL,
             null);

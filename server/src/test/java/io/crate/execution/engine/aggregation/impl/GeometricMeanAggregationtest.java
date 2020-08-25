@@ -56,7 +56,7 @@ public class GeometricMeanAggregationtest extends AggregationTest {
             DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
             Stream.of(DataTypes.TIMESTAMPZ)).collect(Collectors.toList())) {
 
-            FunctionImplementation stddev = functions.get(
+            FunctionImplementation stddev = nodeCtx.functions().get(
                 null,
                 GeometricMeanAggregation.NAME,
                 List.of(Literal.of(type, null)),

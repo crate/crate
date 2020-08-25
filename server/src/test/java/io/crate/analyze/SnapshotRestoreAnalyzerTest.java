@@ -99,7 +99,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             return (T) CreateSnapshotPlan.createRequest(
                 (AnalyzedCreateSnapshot) analyzedStatement,
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 Row.EMPTY,
                 SubQueryResults.EMPTY,
                 e.schemas());
@@ -107,7 +107,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             return (T) RestoreSnapshotPlan.bind(
                 (AnalyzedRestoreSnapshot) analyzedStatement,
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 Row.EMPTY,
                 SubQueryResults.EMPTY,
                 e.schemas());

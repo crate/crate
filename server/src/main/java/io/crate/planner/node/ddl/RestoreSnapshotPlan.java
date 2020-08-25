@@ -40,8 +40,8 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -95,7 +95,7 @@ public class RestoreSnapshotPlan implements Plan {
         BoundRestoreSnapshot stmt = bind(
             restoreSnapshot,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            dependencies.nodeContext(),
             parameters,
             subQueryResults,
             dependencies.schemas()
@@ -143,13 +143,13 @@ public class RestoreSnapshotPlan implements Plan {
     @VisibleForTesting
     public static BoundRestoreSnapshot bind(AnalyzedRestoreSnapshot restoreSnapshot,
                                             CoordinatorTxnCtx txnCtx,
-                                            Functions functions,
+                                            NodeContext nodeCtx,
                                             Row parameters,
                                             SubQueryResults subQueryResults,
                                             Schemas schemas) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
-            functions,
+            nodeCtx,
             x,
             parameters,
             subQueryResults

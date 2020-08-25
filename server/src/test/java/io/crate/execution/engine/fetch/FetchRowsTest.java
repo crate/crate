@@ -38,6 +38,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.Matchers.is;
@@ -68,7 +69,7 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
         );
         var fetchRows = FetchRows.create(
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.functions(),
+            createNodeContext(),
             fetchSources,
             List.of(
                 new FetchReference(new InputColumn(0, DataTypes.LONG), x),

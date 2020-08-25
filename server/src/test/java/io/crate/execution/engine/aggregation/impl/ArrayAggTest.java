@@ -52,7 +52,7 @@ public class ArrayAggTest extends AggregationTest {
 
     @Test
     public void test_array_agg_return_type_is_array_of_argument_type() {
-        DataType<?> returnType = functions.getQualified(
+        DataType<?> returnType = nodeCtx.functions().getQualified(
             ArrayAgg.SIGNATURE,
             List.of(DataTypes.LONG),
             DataTypes.BIGINT_ARRAY

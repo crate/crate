@@ -45,7 +45,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
             .build();
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
         GeneratedColsFromRawInsertSource insertSource = new GeneratedColsFromRawInsertSource(
-            txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
+            txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
         Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
         assertThat(Maps.getByPath(map, "x"), is(1));
         assertThat(Maps.getByPath(map, "y"), is(2));
@@ -58,7 +58,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
             .build();
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
         GeneratedColsFromRawInsertSource insertSource = new GeneratedColsFromRawInsertSource(
-            txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
+            txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
         Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"x\":2}"});
         assertThat(Maps.getByPath(map, "x"), is(2));
         assertThat(Maps.getByPath(map, "y"), is(3));
@@ -71,7 +71,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
         var insertSource = new GeneratedColsFromRawInsertSource(
-            txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
+            txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
         Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
         assertThat(Maps.getByPath(map, "x"), is("ab"));
     }
@@ -83,7 +83,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
         var insertSource = new GeneratedColsFromRawInsertSource(
-            txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
+            txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'abc' is too long for the text type of length: 2");
         insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
@@ -96,7 +96,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
         var insertSource = new GeneratedColsFromRawInsertSource(
-            txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
+            txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'abc' is too long for the text type of length: 2");
         insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});

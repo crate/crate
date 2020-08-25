@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
@@ -52,8 +51,8 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
 
     private CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
     private SqlExpressions expressions;
-    private EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
-    private EqualityExtractor ee = new EqualityExtractor(normalizer);
+    private EvaluatingNormalizer normalizer;
+    private EqualityExtractor ee;
     private ColumnIdent x = new ColumnIdent("x");
     private ColumnIdent i = new ColumnIdent("i");
 
@@ -63,6 +62,8 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableRelation tr1 = (DocTableRelation) sources.get(T3.T1);
         expressions = new SqlExpressions(sources, tr1);
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(expressions.nodeCtx);
+        ee = new EqualityExtractor(normalizer);
     }
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {

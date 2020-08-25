@@ -27,7 +27,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -46,18 +46,18 @@ import java.util.List;
 class AlterTableAnalyzer {
 
     private final Schemas schemas;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
-    AlterTableAnalyzer(Schemas schemas, Functions functions) {
+    AlterTableAnalyzer(Schemas schemas, NodeContext nodeCtx) {
         this.schemas = schemas;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
     }
 
     AnalyzedAlterTable analyze(AlterTable<Expression> node,
                                ParamTypeHints paramTypeHints,
                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
@@ -77,7 +77,7 @@ class AlterTableAnalyzer {
         RelationName relationName = RelationName.fromBlobTable(node.table());
 
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
@@ -118,7 +118,7 @@ class AlterTableAnalyzer {
                                                ParamTypeHints paramTypeHints,
                                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsStrings = new ExpressionAnalyzer(
-            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         Table<Symbol> table = node.table().map(x -> exprAnalyzerWithFieldsAsStrings.convert(x, exprCtx));

@@ -26,7 +26,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
@@ -43,14 +42,12 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 
 public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions e;
     private AbstractTableRelation tr1;
-    private Functions functions = getFunctions();
 
     @Before
     public void setUp() throws Exception {
@@ -72,7 +69,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.isPresent(), Matchers.is(true));
         assertThat(match.value(), Matchers.sameInstance(parentFilter));
 
-        Filter mergedFilter = mergeFilters.apply(match.value(), match.captures(), new TableStats(), CoordinatorTxnCtx.systemTransactionContext(), functions);
+        Filter mergedFilter = mergeFilters.apply(match.value(), match.captures(), new TableStats(), CoordinatorTxnCtx.systemTransactionContext(), e.nodeCtx);
         assertThat(mergedFilter.query(), isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))"));
     }
 }

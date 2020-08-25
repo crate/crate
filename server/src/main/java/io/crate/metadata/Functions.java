@@ -30,6 +30,7 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.functions.BoundVariables;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.SignatureBinder;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -87,6 +88,24 @@ public class Functions {
             .removeIf(function -> schema.equals(function.schema()));
     }
 
+    @Nullable
+    private static Signature findSignatureByOid(Map<FunctionName, List<FunctionProvider>> functions, int oid) {
+        for (Map.Entry<FunctionName, List<FunctionProvider>> func : functions.entrySet()) {
+            for (FunctionProvider sig : func.getValue()) {
+                if (Objects.equals(oid, OidHash.functionOid(sig.getSignature()))) {
+                    return sig.getSignature();
+                }
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public Signature findFunctionSignatureByOid(int oid) {
+        Signature sig = findSignatureByOid(udfFunctionImplementations, oid);
+        return sig != null ? sig : findSignatureByOid(functionImplementations, oid);
+    }
+
     /**
      * Return a function that matches the name/arguments.
      *
@@ -103,7 +122,6 @@ public class Functions {
     public FunctionImplementation get(@Nullable String suppliedSchema,
                                       String functionName,
                                       List<Symbol> arguments,
-
                                       SearchPath searchPath) {
         FunctionName fqnName = new FunctionName(suppliedSchema, functionName);
         FunctionImplementation func = resolveFunctionBySignature(

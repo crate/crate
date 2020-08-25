@@ -48,7 +48,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
@@ -122,7 +122,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static io.crate.metadata.RelationName.fromIndexName;
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
@@ -136,7 +136,7 @@ public abstract class AggregationTest extends ESTestCase {
 
     protected static final RamAccounting RAM_ACCOUNTING = RamAccounting.NO_ACCOUNTING;
 
-    protected Functions functions;
+    protected NodeContext nodeCtx;
     protected MemoryManager memoryManager;
     private ThreadPool threadPool;
 
@@ -147,7 +147,7 @@ public abstract class AggregationTest extends ESTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        functions = getFunctions();
+        nodeCtx = createNodeContext();
         threadPool = new TestThreadPool(getClass().getName(), Settings.EMPTY);
         memoryManager = new OnHeapMemoryManager(RAM_ACCOUNTING::addBytes);
         indicesModule = new IndicesModule(List.of(new MapperPlugin() {
@@ -184,7 +184,7 @@ public abstract class AggregationTest extends ESTestCase {
                                      List<DataType<?>> actualArgumentTypes,
                                      DataType<?> actualReturnType,
                                      Object[][] data) throws Exception {
-        var aggregationFunction = (AggregationFunction) functions.get(
+        var aggregationFunction = (AggregationFunction) nodeCtx.functions().get(
             null,
             maybeUnboundSignature.getName().name(),
             Lists2.map(actualArgumentTypes, t -> new InputColumn(0, t)),
@@ -311,10 +311,10 @@ public abstract class AggregationTest extends ESTestCase {
             4096);
 
         var batchIterator = DocValuesAggregates.tryOptimize(
-            functions,
+            nodeCtx,
             shard,
             mock(DocTableInfo.class),
-            new LuceneQueryBuilder(functions),
+            new LuceneQueryBuilder(nodeCtx),
             shard.mapperService()::fullName,
             collectPhase,
             collectTask
@@ -513,7 +513,7 @@ public abstract class AggregationTest extends ESTestCase {
 
     protected Symbol normalize(String functionName, Symbol... args) {
         List<Symbol> arguments = Arrays.asList(args);
-        AggregationFunction<?,?> function = (AggregationFunction<?, ?>) functions.get(
+        AggregationFunction<?,?> function = (AggregationFunction<?, ?>) nodeCtx.functions().get(
             null,
             functionName,
             arguments,
@@ -521,12 +521,13 @@ public abstract class AggregationTest extends ESTestCase {
         );
         return function.normalizeSymbol(
             new Function(function.signature(), arguments, function.partialType()),
-            new CoordinatorTxnCtx(SessionContext.systemSessionContext())
+            new CoordinatorTxnCtx(SessionContext.systemSessionContext()),
+            nodeCtx
         );
     }
 
     public void assertHasDocValueAggregator(String functionName, List<DataType<?>> argumentTypes) {
-        var aggregationFunction = (AggregationFunction<?, ?>) functions.get(
+        var aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().get(
             null,
             functionName,
             InputColumn.mapToInputColumns(argumentTypes),

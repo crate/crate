@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
+import io.crate.metadata.NodeContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
@@ -48,7 +49,6 @@ import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
-import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -63,7 +63,7 @@ public abstract class ShardCollectorProvider {
     ShardCollectorProvider(ClusterService clusterService,
                            Schemas schemas,
                            NodeJobsCounter nodeJobsCounter,
-                           Functions functions,
+                           NodeContext nodeCtx,
                            ThreadPool threadPool,
                            Settings settings,
                            TransportActionProvider transportActionProvider,
@@ -72,7 +72,7 @@ public abstract class ShardCollectorProvider {
         this.indexShard = indexShard;
         this.shardRowContext = shardRowContext;
         shardNormalizer = new EvaluatingNormalizer(
-            functions,
+            nodeCtx,
             RowGranularity.SHARD,
             new ShardReferenceResolver(schemas, shardRowContext),
             null
@@ -80,11 +80,11 @@ public abstract class ShardCollectorProvider {
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
-            functions,
+            nodeCtx,
             threadPool,
             settings,
             transportActionProvider,
-            new InputFactory(functions),
+            new InputFactory(nodeCtx),
             shardNormalizer,
             t -> null,
             t -> null,

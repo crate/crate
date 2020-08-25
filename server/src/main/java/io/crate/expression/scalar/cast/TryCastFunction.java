@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -62,7 +63,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         try {
             return returnType.explicitCast(args[0].value());
         } catch (ClassCastException | IllegalArgumentException e) {
@@ -82,7 +83,8 @@ public class TryCastFunction extends Scalar<Object, Object> {
 
     @Override
     public Symbol normalizeSymbol(io.crate.expression.symbol.Function symbol,
-                                  TransactionContext txnCtx) {
+                                  TransactionContext txnCtx,
+                                  NodeContext nodeCtx) {
         Symbol argument = symbol.arguments().get(0);
         if (argument.valueType().equals(returnType)) {
             return argument;

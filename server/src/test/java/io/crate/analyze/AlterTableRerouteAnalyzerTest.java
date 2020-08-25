@@ -65,7 +65,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         return (S) AlterTableReroutePlan.createRerouteCommand(
             analyzedStatement,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             new RowN(arguments),
             SubQueryResults.EMPTY,
             DiscoveryNodes.builder()

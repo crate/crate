@@ -69,7 +69,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
     /**
      * Evaluate the function using the provided arguments
      */
-    public abstract ReturnType evaluate(TransactionContext txnCtx, Input<InputType>... args);
+    public abstract ReturnType evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<InputType>... args);
 
     /**
      * Called to return a "optimized" version of a scalar implementation.
@@ -78,17 +78,17 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      * (or rather, a subset of a single query if executed distributed).
      *
      * @param arguments arguments in symbol form. If any symbols are literals, any arguments passed to
-     *                  {@link #evaluate(TransactionContext, Input[])} will have the same value as those literals.
-     *                  (Within the scope of a single operation)
+     *                  {@link #evaluate(TransactionContext, NodeContext, Input[])} will have the same
+     *                  value as those literals. (Within the scope of a single operation)
      */
     public Scalar<ReturnType, InputType> compile(List<Symbol> arguments) {
         return this;
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
         try {
-            return evaluateIfLiterals(this, txnCtx, symbol);
+            return evaluateIfLiterals(this, txnCtx, nodeCtx, symbol);
         } catch (Throwable t) {
             return symbol;
         }
@@ -109,6 +109,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      */
     protected static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar,
                                                                        TransactionContext txnCtx,
+                                                                       NodeContext nodeCtx,
                                                                        Function function) {
         List<Symbol> arguments = function.arguments();
         for (Symbol argument : arguments) {
@@ -123,7 +124,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             idx++;
         }
         //noinspection unchecked
-        return Literal.ofUnchecked(function.valueType(), scalar.evaluate(txnCtx, inputs));
+        return Literal.ofUnchecked(function.valueType(), scalar.evaluate(txnCtx, nodeCtx, inputs));
     }
 
     public enum Feature {

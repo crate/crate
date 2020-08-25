@@ -31,7 +31,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 
@@ -57,7 +57,7 @@ public final class DecommissionNodePlan implements Plan {
         var boundedNodeIdOrName = boundNodeIdOrName(
             analyzedDecommissionNode,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             params,
             subQueryResults);
 
@@ -81,12 +81,12 @@ public final class DecommissionNodePlan implements Plan {
     @VisibleForTesting
     public static String boundNodeIdOrName(AnalyzedDecommissionNode decommissionNode,
                                            CoordinatorTxnCtx txnCtx,
-                                           Functions functions,
+                                           NodeContext nodeCtx,
                                            Row parameters,
                                            SubQueryResults subQueryResults) {
         var boundedNodeIdOrName = SymbolEvaluator.evaluate(
             txnCtx,
-            functions,
+            nodeCtx,
             decommissionNode.nodeIdOrName(),
             parameters,
             subQueryResults

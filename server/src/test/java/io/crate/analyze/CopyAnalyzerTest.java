@@ -75,7 +75,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             return (S) CopyFromPlan.bind(
                 (AnalyzedCopyFrom) analyzedStatement,
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 new RowN(arguments),
                 SubQueryResults.EMPTY
             );
@@ -83,7 +83,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             return (S) CopyToPlan.bind(
                 (AnalyzedCopyTo) analyzedStatement,
                 plannerContext.transactionContext(),
-                plannerContext.functions(),
+                plannerContext.nodeContext(),
                 new RowN(arguments),
                 SubQueryResults.EMPTY
             );

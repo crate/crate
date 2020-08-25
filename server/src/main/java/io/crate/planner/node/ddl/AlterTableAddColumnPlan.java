@@ -36,7 +36,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -82,7 +82,7 @@ public class AlterTableAddColumnPlan implements Plan {
         BoundAddColumn stmt = bind(
             alterTable,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            dependencies.nodeContext(),
             params,
             subQueryResults,
             dependencies.fulltextAnalyzerResolver());
@@ -94,13 +94,13 @@ public class AlterTableAddColumnPlan implements Plan {
     @VisibleForTesting
     public static BoundAddColumn bind(AnalyzedAlterTableAddColumn alterTable,
                                       CoordinatorTxnCtx txnCtx,
-                                      Functions functions,
+                                      NodeContext nodeCtx,
                                       Row params,
                                       SubQueryResults subQueryResults,
                                       FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
-            functions,
+            nodeCtx,
             x,
             params,
             subQueryResults

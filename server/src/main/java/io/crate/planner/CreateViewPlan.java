@@ -34,7 +34,7 @@ import io.crate.execution.ddl.views.CreateViewRequest;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.SqlFormatter;
@@ -71,7 +71,7 @@ public final class CreateViewPlan implements Plan {
         User owner = createViewStmt.owner();
         String formattedQuery = SqlFormatter.formatSql(createViewStmt.query(), makeExpressions(params));
         ensureFormattedQueryCanStillBeAnalyzed(
-            dependencies.functions(), dependencies.schemas(), plannerContext.transactionContext(), formattedQuery);
+            dependencies.nodeContext(), dependencies.schemas(), plannerContext.transactionContext(), formattedQuery);
         CreateViewRequest request = new CreateViewRequest(
             createViewStmt.name(),
             formattedQuery,
@@ -86,11 +86,11 @@ public final class CreateViewPlan implements Plan {
         }));
     }
 
-    private static void ensureFormattedQueryCanStillBeAnalyzed(Functions functions,
+    private static void ensureFormattedQueryCanStillBeAnalyzed(NodeContext nodeCtx,
                                                                Schemas schemas,
                                                                CoordinatorTxnCtx txnCtx,
                                                                String formattedQuery) {
-        RelationAnalyzer analyzer = new RelationAnalyzer(functions, schemas);
+        RelationAnalyzer analyzer = new RelationAnalyzer(nodeCtx, schemas);
         Query query = (Query) SqlParser.createStatement(formattedQuery);
         analyzer.analyze(query, txnCtx, new ParamTypeHints(List.of()) {
 

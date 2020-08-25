@@ -21,14 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;

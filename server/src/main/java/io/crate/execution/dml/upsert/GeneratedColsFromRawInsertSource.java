@@ -28,8 +28,8 @@ import io.crate.data.Input;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -47,16 +47,16 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
     private final Map<Reference, Object> defaults;
 
     GeneratedColsFromRawInsertSource(TransactionContext txnCtx,
-                                     Functions functions,
+                                     NodeContext nodeCtx,
                                      List<GeneratedReference> generatedColumns,
                                      List<Reference> defaultExpressionColumns) {
-        InputFactory inputFactory = new InputFactory(functions);
+        InputFactory inputFactory = new InputFactory(nodeCtx);
         InputFactory.Context<CollectExpression<Map<String, Object>, ?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FromSourceRefResolver.WITHOUT_PARTITIONED_BY_REFS);
         this.generatedCols = new HashMap<>(generatedColumns.size());
         generatedColumns.forEach(r -> generatedCols.put(r, ctx.add(r.generatedExpression())));
         expressions = ctx.expressions();
-        defaults = buildDefaults(defaultExpressionColumns, txnCtx, functions);
+        defaults = buildDefaults(defaultExpressionColumns, txnCtx, nodeCtx);
     }
 
     @Override
@@ -80,10 +80,10 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
 
     private Map<Reference, Object> buildDefaults(List<Reference> defaults,
                                                  TransactionContext txnCtx,
-                                                 Functions functions) {
+                                                 NodeContext nodeCtx) {
         HashMap<Reference, Object> m = new HashMap<>();
         for (Reference ref : defaults) {
-            Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, functions, ref.defaultExpression());
+            Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, nodeCtx, ref.defaultExpression());
             m.put(ref, val);
         }
         return m;

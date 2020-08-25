@@ -32,7 +32,7 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -65,7 +65,7 @@ public class CreateRepositoryPlan implements Plan {
         PutRepositoryRequest request = createRequest(
             createRepository,
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            dependencies.nodeContext(),
             parameters,
             subQueryResults,
             dependencies.repositoryParamValidator());
@@ -78,13 +78,13 @@ public class CreateRepositoryPlan implements Plan {
     @VisibleForTesting
     public static PutRepositoryRequest createRequest(AnalyzedCreateRepository createRepository,
                                                      CoordinatorTxnCtx txnCtx,
-                                                     Functions functions,
+                                                     NodeContext nodeCtx,
                                                      Row parameters,
                                                      SubQueryResults subQueryResults,
                                                      RepositoryParamValidator repositoryParamValidator) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
-            functions,
+            nodeCtx,
             x,
             parameters,
             subQueryResults

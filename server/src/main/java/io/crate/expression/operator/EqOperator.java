@@ -22,6 +22,7 @@
 package io.crate.expression.operator;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 
@@ -55,7 +56,7 @@ public final class EqOperator extends Operator<Object> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         assert args.length == 2 : "number of args must be 2";
         Object left = args[0].value();
         if (left == null) {

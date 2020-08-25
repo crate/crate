@@ -93,7 +93,7 @@ public class UnnestFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_unnest_bound_signature_return_type_resolves_correct_row_type_parameters() {
         var function = (Function) sqlExpressions.asSymbol("unnest([1], ['a'], [{}])");
-        var functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+        var functionImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
             function,
             txnCtx.sessionSettings().searchPath()
         );

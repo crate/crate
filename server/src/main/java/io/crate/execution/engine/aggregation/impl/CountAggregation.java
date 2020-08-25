@@ -31,6 +31,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -130,7 +131,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {
         assert function.arguments().size() <= 1 : "function's number of arguments must be 0 or 1";
 
         if (function.arguments().size() == 1) {

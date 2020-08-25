@@ -30,7 +30,7 @@ import io.crate.execution.engine.collect.LuceneShardCollectorProvider;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -48,7 +48,7 @@ public class ShardCollectorProviderFactory {
     private final TransportActionProvider transportActionProvider;
     private final BlobIndicesService blobIndicesService;
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final NodeJobsCounter nodeJobsCounter;
     private final BigArrays bigArrays;
@@ -60,7 +60,7 @@ public class ShardCollectorProviderFactory {
                                   ThreadPool threadPool,
                                   TransportActionProvider transportActionProvider,
                                   BlobIndicesService blobIndicesService,
-                                  Functions functions,
+                                  NodeContext nodeCtx,
                                   LuceneQueryBuilder luceneQueryBuilder,
                                   NodeJobsCounter nodeJobsCounter,
                                   BigArrays bigArrays) {
@@ -70,7 +70,7 @@ public class ShardCollectorProviderFactory {
         this.threadPool = threadPool;
         this.transportActionProvider = transportActionProvider;
         this.blobIndicesService = blobIndicesService;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeJobsCounter = nodeJobsCounter;
         this.bigArrays = bigArrays;
@@ -84,7 +84,7 @@ public class ShardCollectorProviderFactory {
                 clusterService,
                 schemas,
                 nodeJobsCounter,
-                functions,
+                nodeCtx,
                 threadPool,
                 settings,
                 transportActionProvider
@@ -95,7 +95,7 @@ public class ShardCollectorProviderFactory {
                 luceneQueryBuilder,
                 clusterService,
                 nodeJobsCounter,
-                functions,
+                nodeCtx,
                 threadPool,
                 settings,
                 transportActionProvider,

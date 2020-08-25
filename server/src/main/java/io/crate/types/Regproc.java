@@ -33,7 +33,7 @@ public class Regproc {
     private final String name;
 
     public static Regproc of(@Nonnull String name) {
-        return new Regproc(OidHash.functionOid(name), name);
+        return new Regproc(OidHash.regprocOid(name), name);
     }
 
     public static Regproc of(int functionOid, @Nonnull String name) {

@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -79,8 +80,8 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
     }
 
     @Override
-    public Symbol normalizeSymbol(Function func, TransactionContext txnCtx) {
-        Symbol result = evaluateIfLiterals(this, txnCtx, func);
+    public Symbol normalizeSymbol(Function func, TransactionContext txnCtx, NodeContext nodeCtx) {
+        Symbol result = evaluateIfLiterals(this, txnCtx, nodeCtx, func);
         if (result instanceof Literal) {
             return result;
         }
@@ -127,7 +128,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
 
     @Override
     @SafeVarargs
-    public final Object evaluate(TransactionContext txnCtx, Input<Map<String, Object>>... args) {
+    public final Object evaluate(TransactionContext txnCtx, NodeContext ndeCtx, Input<Map<String, Object>>... args) {
         assert args.length >= 2 : NAME + " takes 2 or more arguments, got " + args.length;
         Object mapValue = args[0].value();
         for (var i = 1; i < args.length; i++) {

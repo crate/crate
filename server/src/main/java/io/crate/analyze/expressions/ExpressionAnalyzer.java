@@ -46,6 +46,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 
+import io.crate.metadata.NodeContext;
 import org.joda.time.Period;
 
 import io.crate.action.sql.Option;
@@ -97,7 +98,6 @@ import io.crate.interval.IntervalParser;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.functions.Signature;
@@ -180,27 +180,27 @@ public class ExpressionAnalyzer {
 
     @Nullable
     private final SubqueryAnalyzer subQueryAnalyzer;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final InnerExpressionAnalyzer innerAnalyzer;
     private final Operation operation;
 
     private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
 
-    public ExpressionAnalyzer(Functions functions,
-                              CoordinatorTxnCtx coordinatorTxnCtx,
+    public ExpressionAnalyzer(CoordinatorTxnCtx coordinatorTxnCtx,
+                              NodeContext nodeCtx,
                               ParamTypeHints paramTypeHints,
                               FieldProvider<?> fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer) {
-        this(functions, coordinatorTxnCtx, paramTypeHints, fieldProvider, subQueryAnalyzer, Operation.READ);
+        this(coordinatorTxnCtx, nodeCtx, paramTypeHints, fieldProvider, subQueryAnalyzer, Operation.READ);
     }
 
-    public ExpressionAnalyzer(Functions functions,
-                              CoordinatorTxnCtx coordinatorTxnCtx,
+    public ExpressionAnalyzer(CoordinatorTxnCtx coordinatorTxnCtx,
+                              NodeContext nodeCtx,
                               ParamTypeHints paramTypeHints,
                               FieldProvider<?> fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer,
                               Operation operation) {
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
         this.paramTypeHints = paramTypeHints;
         this.fieldProvider = fieldProvider;
@@ -222,7 +222,7 @@ public class ExpressionAnalyzer {
     public Symbol convert(Expression expression, ExpressionAnalysisContext expressionAnalysisContext) {
         var symbol = expression.accept(innerAnalyzer, expressionAnalysisContext);
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
-            functions,
+            nodeCtx,
             f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
         );
         return normalizer.normalize(symbol, coordinatorTxnCtx);
@@ -267,8 +267,8 @@ public class ExpressionAnalyzer {
                 arguments,
                 filter,
                 context,
-                functions,
-                coordinatorTxnCtx);
+                coordinatorTxnCtx,
+                nodeCtx);
 
             // define the outer function which contains the inner function as argument.
             String nodeName = "collection_" + name;
@@ -751,7 +751,7 @@ public class ExpressionAnalyzer {
             Symbol left = node.getLeft().accept(this, context);
             Symbol right = node.getRight().accept(this, context);
 
-            Comparison comparison = new Comparison(functions, coordinatorTxnCtx, node.getType(), left, right);
+            Comparison comparison = new Comparison(coordinatorTxnCtx, nodeCtx, node.getType(), left, right);
             comparison.normalize(context);
             return allocateFunction(comparison.operatorName, comparison.arguments(), context);
         }
@@ -1003,14 +1003,14 @@ public class ExpressionAnalyzer {
             Symbol min = node.getMin().accept(this, context);
             Symbol max = node.getMax().accept(this, context);
 
-            Comparison gte = new Comparison(functions, coordinatorTxnCtx, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
+            Comparison gte = new Comparison(coordinatorTxnCtx, nodeCtx, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
             Comparison normalizedGte = gte.normalize(context);
             Symbol gteFunc = allocateFunction(
                 normalizedGte.operatorName,
                 normalizedGte.arguments(),
                 context
             );
-            Comparison lte = new Comparison(functions, coordinatorTxnCtx, ComparisonExpression.Type.LESS_THAN_OR_EQUAL, value, max);
+            Comparison lte = new Comparison(coordinatorTxnCtx, nodeCtx, ComparisonExpression.Type.LESS_THAN_OR_EQUAL, value, max);
             Comparison normalizedLte = lte.normalize(context);
             Symbol lteFunc = allocateFunction(
                 normalizedLte.operatorName,
@@ -1098,23 +1098,23 @@ public class ExpressionAnalyzer {
                                                 WindowDefinition windowDefinition,
                                                 ExpressionAnalysisContext context) {
         return allocateBuiltinOrUdfFunction(
-            schema, functionName, arguments, filter, context, functions, windowDefinition, coordinatorTxnCtx);
+            schema, functionName, arguments, filter, context, windowDefinition, coordinatorTxnCtx, nodeCtx);
     }
 
     private Symbol allocateFunction(String functionName,
                                     List<Symbol> arguments,
                                     ExpressionAnalysisContext context) {
-        return allocateFunction(functionName, arguments, null, context, functions, coordinatorTxnCtx);
+        return allocateFunction(functionName, arguments, null, context, coordinatorTxnCtx, nodeCtx);
     }
 
     public static Symbol allocateFunction(String functionName,
                                           List<Symbol> arguments,
                                           Symbol filter,
                                           ExpressionAnalysisContext context,
-                                          Functions functions,
-                                          CoordinatorTxnCtx coordinatorTxnCtx) {
+                                          CoordinatorTxnCtx coordinatorTxnCtx,
+                                          NodeContext nodeCtx) {
         return allocateBuiltinOrUdfFunction(
-            null, functionName, arguments, filter, context, functions, null, coordinatorTxnCtx);
+            null, functionName, arguments, filter, context, null, coordinatorTxnCtx, nodeCtx);
     }
 
     /**
@@ -1126,9 +1126,9 @@ public class ExpressionAnalyzer {
      * @param arguments The arguments to provide to the {@link Function}.
      * @param filter The filter clause to filter {@link Function}'s input values.
      * @param context Context holding the state for the current translation.
-     * @param functions The {@link Functions} to normalize constant expressions.
      * @param windowDefinition The definition of the window the allocated function will be executed against.
      * @param coordinatorTxnCtx {@link CoordinatorTxnCtx} for this transaction.
+     * @param nodeCtx The {@link NodeContext} to normalize constant expressions.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
     private static Symbol allocateBuiltinOrUdfFunction(@Nullable String schema,
@@ -1136,10 +1136,10 @@ public class ExpressionAnalyzer {
                                                        List<Symbol> arguments,
                                                        @Nullable Symbol filter,
                                                        ExpressionAnalysisContext context,
-                                                       Functions functions,
                                                        @Nullable WindowDefinition windowDefinition,
-                                                       CoordinatorTxnCtx coordinatorTxnCtx) {
-        FunctionImplementation funcImpl = functions.get(
+                                                       CoordinatorTxnCtx coordinatorTxnCtx,
+                                                       NodeContext nodeCtx) {
+        FunctionImplementation funcImpl = nodeCtx.functions().get(
             schema,
             functionName,
             arguments,
@@ -1204,20 +1204,20 @@ public class ExpressionAnalyzer {
 
     private static class Comparison {
 
-        private final Functions functions;
         private final CoordinatorTxnCtx coordinatorTxnCtx;
+        private final NodeContext nodeCtx;
         private ComparisonExpression.Type comparisonExpressionType;
         private Symbol left;
         private Symbol right;
         private String operatorName;
 
-        private Comparison(Functions functions,
-                           CoordinatorTxnCtx coordinatorTxnCtx,
+        private Comparison(CoordinatorTxnCtx coordinatorTxnCtx,
+                           NodeContext nodeCtx,
                            ComparisonExpression.Type comparisonExpressionType,
                            Symbol left,
                            Symbol right) {
-            this.functions = functions;
             this.coordinatorTxnCtx = coordinatorTxnCtx;
+            this.nodeCtx = nodeCtx;
             this.operatorName = Operator.PREFIX + comparisonExpressionType.getValue();
             this.comparisonExpressionType = comparisonExpressionType;
             this.left = left;
@@ -1277,8 +1277,8 @@ public class ExpressionAnalyzer {
                 List.of(left, right),
                 null,
                 context,
-                functions,
-                coordinatorTxnCtx);
+                coordinatorTxnCtx,
+                nodeCtx);
             right = null;
             operatorName = NotPredicate.NAME;
         }

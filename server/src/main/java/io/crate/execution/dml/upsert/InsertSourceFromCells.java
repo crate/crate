@@ -34,7 +34,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
@@ -57,12 +57,12 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     private final List<Reference> partitionedByColumns;
 
     public InsertSourceFromCells(TransactionContext txnCtx,
-                                 Functions functions,
+                                 NodeContext nodeCtx,
                                  DocTableInfo table,
                                  String indexName,
                                  GeneratedColumns.Validation validation,
                                  List<Reference> targets) {
-        Tuple<List<Reference>, Object[]> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, functions);
+        Tuple<List<Reference>, Object[]> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, nodeCtx);
         this.targets = allTargetColumnsAndDefaults.v1();
         this.defaultValues = allTargetColumnsAndDefaults.v2();
         this.partitionedByColumns = table.partitionedByColumns();
@@ -72,7 +72,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             table.partitionedByColumns(),
             indexName
         );
-        InputFactory inputFactory = new InputFactory(functions);
+        InputFactory inputFactory = new InputFactory(nodeCtx);
         if (table.generatedColumns().isEmpty()) {
             generatedColumns = GeneratedColumns.empty();
         } else {
@@ -134,13 +134,13 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     private static Tuple<List<Reference>, Object[]> addDefaults(List<Reference> targets,
                                                                 DocTableInfo table,
                                                                 TransactionContext txnCtx,
-                                                                Functions functions) {
+                                                                NodeContext nodeCtx) {
         ArrayList<Reference> defaultColumns = new ArrayList<>(table.defaultExpressionColumns().size());
         ArrayList<Object> defaultValues = new ArrayList<>();
         for (Reference ref : table.defaultExpressionColumns()) {
             if (targets.contains(ref) == false) {
                 defaultColumns.add(ref);
-                Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, functions, ref.defaultExpression());
+                Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, nodeCtx, ref.defaultExpression());
                 defaultValues.add(val);
             }
         }

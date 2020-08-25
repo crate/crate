@@ -25,6 +25,7 @@ package io.crate.expression.tablefunctions;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -117,7 +118,7 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
 
     @SafeVarargs
     @Override
-    public final Iterable<Row> evaluate(TransactionContext txnCtx, Input<T>... args) {
+    public final Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>... args) {
         assert args.length == 2 || args.length == 3 :
             "Signature must ensure that there are either two or three arguments";
 

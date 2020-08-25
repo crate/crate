@@ -41,7 +41,7 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.DataType;
@@ -63,7 +63,7 @@ import static io.crate.execution.engine.sort.Comparators.createComparator;
 public class WindowProjector {
 
     public static Projector fromProjection(WindowAggProjection projection,
-                                           Functions functions,
+                                           NodeContext nodeCtx,
                                            InputFactory inputFactory,
                                            TransactionContext txnCtx,
                                            RamAccounting ramAccounting,
@@ -85,7 +85,7 @@ public class WindowProjector {
             InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
             ctx.add(windowFunctionSymbol.arguments());
 
-            FunctionImplementation impl = functions.getQualified(
+            FunctionImplementation impl = nodeCtx.functions().getQualified(
                 windowFunctionSymbol,
                 txnCtx.sessionSettings().searchPath()
             );
@@ -135,15 +135,15 @@ public class WindowProjector {
         int numCellsInSourceRow = projection.standalone().size();
         ComputeFrameBoundary<Object[]> computeFrameStart = createComputeStartFrameBoundary(
             numCellsInSourceRow,
-            functions,
             txnCtx,
+            nodeCtx,
             windowDefinition,
             cmpOrderBy
         );
         ComputeFrameBoundary<Object[]> computeFrameEnd = createComputeEndFrameBoundary(
             numCellsInSourceRow,
-            functions,
             txnCtx,
+            nodeCtx,
             windowDefinition,
             cmpOrderBy
         );
@@ -164,15 +164,15 @@ public class WindowProjector {
     }
 
     static ComputeFrameBoundary<Object[]> createComputeEndFrameBoundary(int numCellsInSourceRow,
-                                                                        Functions functions,
                                                                         TransactionContext txnCtx,
+                                                                        NodeContext nodeCtx,
                                                                         WindowDefinition windowDefinition,
                                                                         Comparator<Object[]> cmpOrderBy) {
         var frameDefinition = windowDefinition.windowFrameDefinition();
         var frameBoundEnd = frameDefinition.end();
         var framingMode = frameDefinition.mode();
         DataType offsetType = frameBoundEnd.value().valueType();
-        Object offsetValue = evaluateWithoutParams(txnCtx, functions, frameBoundEnd.value());
+        Object offsetValue = evaluateWithoutParams(txnCtx, nodeCtx, frameBoundEnd.value());
         Object[] endProbeValues = new Object[numCellsInSourceRow];
         BiFunction<Object[], Object[], Object[]> updateProbeValues;
         if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
@@ -194,15 +194,15 @@ public class WindowProjector {
     }
 
     static ComputeFrameBoundary<Object[]> createComputeStartFrameBoundary(int numCellsInSourceRow,
-                                                                          Functions functions,
                                                                           TransactionContext txnCtx,
+                                                                          NodeContext nodeCtx,
                                                                           WindowDefinition windowDefinition,
                                                                           @Nullable Comparator<Object[]> cmpOrderBy) {
         var frameDefinition = windowDefinition.windowFrameDefinition();
         var frameBoundStart = frameDefinition.start();
         var framingMode = frameDefinition.mode();
         DataType offsetType = frameBoundStart.value().valueType();
-        Object offsetValue = evaluateWithoutParams(txnCtx, functions, frameBoundStart.value());
+        Object offsetValue = evaluateWithoutParams(txnCtx, nodeCtx, frameBoundStart.value());
         Object[] startProbeValues = new Object[numCellsInSourceRow];
         BiFunction<Object[], Object[], Object[]> updateStartProbeValue;
         if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {

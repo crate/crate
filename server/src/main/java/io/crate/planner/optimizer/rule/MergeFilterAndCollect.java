@@ -23,7 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
@@ -60,7 +60,7 @@ public class MergeFilterAndCollect implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             Functions functions) {
+                             NodeContext nodeCtx) {
         Collect collect = captures.get(collectCapture);
         Stats stats = tableStats.getStats(collect.relation().tableInfo().ident());
         WhereClause newWhere = collect.where().add(filter.query());

@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 
 import io.crate.Constants;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.test.ESTestCase;
@@ -41,12 +41,12 @@ import java.util.Collections;
 import java.util.Locale;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 
 
 public class DocTableInfoBuilderTest extends ESTestCase {
 
-    private Functions functions = getFunctions();
+    private NodeContext nodeCtx = createNodeContext();
 
     private String randomSchema() {
         if (randomBoolean()) {
@@ -82,7 +82,7 @@ public class DocTableInfoBuilderTest extends ESTestCase {
 
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metadata(metadata).build();
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
-            functions,
+            nodeCtx,
             new RelationName(schemaName, "test"),
             state,
             new IndexNameExpressionResolver()

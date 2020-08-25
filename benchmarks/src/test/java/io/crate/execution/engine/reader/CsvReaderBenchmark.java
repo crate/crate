@@ -1,6 +1,7 @@
 package io.crate.execution.engine.reader;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.data.BatchIterator;
@@ -52,8 +53,8 @@ public class CsvReaderBenchmark {
 
     @Setup
     public void create_temp_file_and_uri() throws IOException {
-        Functions functions = new Functions(Map.of());
-        inputFactory = new InputFactory(functions);
+        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()));
+        inputFactory = new InputFactory(nodeCtx);
         tempFile = File.createTempFile("temp", null);
         fileUri = tempFile.toURI().getPath();
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tempFile), StandardCharsets.UTF_8)) {

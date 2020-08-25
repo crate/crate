@@ -23,6 +23,7 @@
 package io.crate.expression.udf;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -32,12 +33,12 @@ import org.elasticsearch.cluster.service.ClusterService;
 import javax.annotation.Nullable;
 import javax.script.ScriptException;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.mockito.Mockito.mock;
 
 public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
 
-    UserDefinedFunctionService udfService = new UserDefinedFunctionService(mock(ClusterService.class), getFunctions());
+    UserDefinedFunctionService udfService = new UserDefinedFunctionService(mock(ClusterService.class), createNodeContext());
 
     static final UDFLanguage DUMMY_LANG = new UDFLanguage() {
         @Override
@@ -79,7 +80,7 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
         }
 
         @Override
-        public Integer evaluate(TransactionContext txnCtx, Input<Integer>[] args) {
+        public Integer evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Integer>[] args) {
             return RESULT;
         }
     }

@@ -34,7 +34,7 @@ import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import org.apache.logging.log4j.LogManager;
@@ -69,7 +69,7 @@ public class IndexWriterProjector implements Projector {
                                 ScheduledExecutorService scheduler,
                                 Executor executor,
                                 TransactionContext txnCtx,
-                                Functions functions,
+                                NodeContext nodeCtx,
                                 Settings settings,
                                 int targetTableNumShards,
                                 int targetTableNumReplicas,
@@ -99,7 +99,7 @@ public class IndexWriterProjector implements Projector {
             source = new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
         RowShardResolver rowShardResolver = new RowShardResolver(
-            txnCtx, functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+            txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),

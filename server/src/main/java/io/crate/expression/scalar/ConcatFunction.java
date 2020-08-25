@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -90,7 +91,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {
         if (anyNonLiterals(function.arguments())) {
             return function;
         }
@@ -99,7 +100,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
             inputs[i] = ((Input) function.arguments().get(i));
         }
         //noinspection unchecked
-        return Literal.ofUnchecked(boundSignature.getReturnType().createType(), evaluate(txnCtx, inputs));
+        return Literal.ofUnchecked(boundSignature.getReturnType().createType(), evaluate(txnCtx, nodeCtx, inputs));
     }
 
     static class StringConcatFunction extends ConcatFunction {
@@ -109,7 +110,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         }
 
         @Override
-        public String evaluate(TransactionContext txnCtx, Input[] args) {
+        public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
             String firstArg = (String) args[0].value();
             String secondArg = (String) args[1].value();
             if (firstArg == null) {
@@ -132,7 +133,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         }
 
         @Override
-        public String evaluate(TransactionContext txnCtx, Input<String>[] args) {
+        public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < args.length; i++) {
                 String value = args[i].value();

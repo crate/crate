@@ -24,8 +24,8 @@ package io.crate.metadata.doc;
 import io.crate.Constants;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.Logger;
@@ -52,18 +52,18 @@ class DocTableInfoBuilder {
 
     private final RelationName ident;
     private final ClusterState state;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Metadata metadata;
     private String[] concreteIndices;
     private String[] concreteOpenIndices;
     private static final Logger LOGGER = LogManager.getLogger(DocTableInfoBuilder.class);
 
-    DocTableInfoBuilder(Functions functions,
+    DocTableInfoBuilder(NodeContext nodeCtx,
                         RelationName ident,
                         ClusterState state,
                         IndexNameExpressionResolver indexNameExpressionResolver) {
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.ident = ident;
         this.state = state;
@@ -103,7 +103,7 @@ class DocTableInfoBuilder {
         DocIndexMetadata docIndexMetadata;
         IndexMetadata indexMetadata = metadata.index(indexName);
         try {
-            docIndexMetadata = new DocIndexMetadata(functions, indexMetadata, ident);
+            docIndexMetadata = new DocIndexMetadata(nodeCtx, indexMetadata, ident);
         } catch (IOException e) {
             throw new UnhandledServerException("Unable to build DocIndexMetadata", e);
         }
@@ -135,7 +135,7 @@ class DocTableInfoBuilder {
             builder.settings(settings);
             builder.numberOfShards(settings.getAsInt(SETTING_NUMBER_OF_SHARDS, 5));
             builder.numberOfReplicas(settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
-            docIndexMetadata = new DocIndexMetadata(functions, builder.build(), ident);
+            docIndexMetadata = new DocIndexMetadata(nodeCtx, builder.build(), ident);
         } catch (IOException e) {
             throw new UnhandledServerException("Unable to build DocIndexMetadata from template", e);
         }

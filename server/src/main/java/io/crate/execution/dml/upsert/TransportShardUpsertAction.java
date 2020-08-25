@@ -33,8 +33,8 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -90,7 +90,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
 
     private final Schemas schemas;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
     @Inject
     public TransportShardUpsertAction(ThreadPool threadPool,
@@ -100,7 +100,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       TasksService tasksService,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
-                                      Functions functions,
+                                      NodeContext nodeCtx,
                                       Schemas schemas,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         super(
@@ -115,7 +115,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             schemaUpdateClient
         );
         this.schemas = schemas;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         tasksService.addListener(this);
     }
 
@@ -134,18 +134,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
         InsertSourceGen insertSourceGen = insertColumns == null
             ? null
-            : InsertSourceGen.of(txnCtx, functions, tableInfo, indexName, valueValidation, Arrays.asList(insertColumns));
+            : InsertSourceGen.of(txnCtx, nodeCtx, tableInfo, indexName, valueValidation, Arrays.asList(insertColumns));
 
         UpdateSourceGen updateSourceGen = request.updateColumns() == null
             ? null
-            : new UpdateSourceGen(functions,
-                                  txnCtx,
+            : new UpdateSourceGen(txnCtx,
+                                  nodeCtx,
                                   tableInfo,
                                   request.updateColumns());
 
         ReturnValueGen returnValueGen = request.returnValues() == null
             ? null
-            : new ReturnValueGen(functions, txnCtx, tableInfo, request.returnValues());
+            : new ReturnValueGen(txnCtx, nodeCtx, tableInfo, request.returnValues());
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {

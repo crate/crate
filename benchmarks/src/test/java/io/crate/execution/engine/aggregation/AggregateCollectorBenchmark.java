@@ -50,7 +50,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -64,7 +64,7 @@ public class AggregateCollectorBenchmark {
     @Setup
     public void setup() {
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
-        SumAggregation<?> sumAggregation = (SumAggregation<?>) getFunctions().getQualified(
+        SumAggregation<?> sumAggregation = (SumAggregation<?>) createNodeContext().functions().getQualified(
             Signature.aggregate(
                 SumAggregation.NAME,
                 DataTypes.INTEGER.getTypeSignature(),

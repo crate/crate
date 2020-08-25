@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.NodeContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -32,7 +33,6 @@ import io.crate.auth.user.UserManager;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.sql.tree.AlterBlobTable;
@@ -134,6 +134,7 @@ public class Analyzer {
     private final KillAnalyzer killAnalyzer;
     private final SetStatementAnalyzer setStatementAnalyzer;
     private final ResetStatementAnalyzer resetStatementAnalyzer;
+    private final NodeContext nodeCtx;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -142,7 +143,7 @@ public class Analyzer {
      */
     @Inject
     public Analyzer(Schemas schemas,
-                    Functions functions,
+                    NodeContext nodeCtx,
                     RelationAnalyzer relationAnalyzer,
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
@@ -150,42 +151,43 @@ public class Analyzer {
                     UserManager userManager,
                     SessionSettingRegistry sessionSettingRegistry
     ) {
+        this.nodeCtx = nodeCtx;
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);
         this.userManager = userManager;
-        this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
-        this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, functions);
-        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
-        this.swapTableAnalyzer = new SwapTableAnalyzer(functions, schemas);
+        this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
+        this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, nodeCtx);
+        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, nodeCtx);
+        this.swapTableAnalyzer = new SwapTableAnalyzer(nodeCtx, schemas);
         this.viewAnalyzer = new ViewAnalyzer(relationAnalyzer, schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this, schemas, sessionSettingRegistry);
-        this.updateAnalyzer = new UpdateAnalyzer(functions, relationAnalyzer);
-        this.deleteAnalyzer = new DeleteAnalyzer(functions, relationAnalyzer);
-        this.insertAnalyzer = new InsertAnalyzer(functions, schemas, relationAnalyzer);
-        this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, functions);
-        this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, functions);
+        this.updateAnalyzer = new UpdateAnalyzer(nodeCtx, relationAnalyzer);
+        this.deleteAnalyzer = new DeleteAnalyzer(nodeCtx, relationAnalyzer);
+        this.insertAnalyzer = new InsertAnalyzer(nodeCtx, schemas, relationAnalyzer);
+        this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, nodeCtx);
+        this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, nodeCtx);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
-        this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, functions);
+        this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, nodeCtx);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
-        this.userAnalyzer = new UserAnalyzer(functions);
-        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, functions);
-        this.createFunctionAnalyzer = new CreateFunctionAnalyzer(functions);
+        this.userAnalyzer = new UserAnalyzer(nodeCtx);
+        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, nodeCtx);
+        this.createFunctionAnalyzer = new CreateFunctionAnalyzer(nodeCtx);
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
-        this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
-        this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, functions);
+        this.refreshTableAnalyzer = new RefreshTableAnalyzer(nodeCtx, schemas);
+        this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, nodeCtx);
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
-        this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver, functions);
+        this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver, nodeCtx);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
-        this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
-        this.killAnalyzer = new KillAnalyzer(functions);
-        this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
+        this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(nodeCtx);
+        this.killAnalyzer = new KillAnalyzer(nodeCtx);
+        this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(nodeCtx, schemas);
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled(), schemas);
-        this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
-        this.setStatementAnalyzer = new SetStatementAnalyzer(functions);
-        this.resetStatementAnalyzer = new ResetStatementAnalyzer(functions);
+        this.copyAnalyzer = new CopyAnalyzer(schemas, nodeCtx);
+        this.setStatementAnalyzer = new SetStatementAnalyzer(nodeCtx);
+        this.resetStatementAnalyzer = new ResetStatementAnalyzer(nodeCtx);
     }
 
     public AnalyzedStatement analyze(Statement statement,

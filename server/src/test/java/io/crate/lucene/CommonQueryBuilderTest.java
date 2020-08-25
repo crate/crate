@@ -25,7 +25,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.auth.user.User;
-import io.crate.exceptions.ConversionException;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;

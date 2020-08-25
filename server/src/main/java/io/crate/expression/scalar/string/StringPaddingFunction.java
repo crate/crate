@@ -25,6 +25,7 @@ package io.crate.expression.scalar.string;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.ThreeParametersFunction;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -127,7 +128,7 @@ public class StringPaddingFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, Input[] args) {
+    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 2 || args.length == 3 : String.format(
             Locale.ENGLISH,
             "number of arguments must be 2 (optionally 3), got %d instead",

@@ -25,16 +25,11 @@ package io.crate.execution.engine.collect.sources;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.SqlExpressions;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
 
 public class NodeStatsCollectSourceTest extends ESTestCase {
@@ -72,7 +66,7 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
         List<DiscoveryNode> nodes = new ArrayList<>(NodeStatsCollectSource.filterNodes(
             discoveryNodes,
             query,
-            getFunctions()));
+            sqlExpressions.nodeCtx));
         nodes.sort(Comparator.comparing(DiscoveryNode::getId));
         return nodes;
     }

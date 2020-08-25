@@ -126,7 +126,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(updateById.assignmentByTargetCol().values(), contains(isLiteral("Vogon lyric fan")));
         assertThat(updateById.docKeys().size(), is(1));
 
-        assertThat(updateById.docKeys().getOnlyKey().getId(txnCtx, e.functions(), Row.EMPTY, SubQueryResults.EMPTY), is("1"));
+        assertThat(updateById.docKeys().getOnlyKey().getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY), is("1"));
     }
 
     @Test

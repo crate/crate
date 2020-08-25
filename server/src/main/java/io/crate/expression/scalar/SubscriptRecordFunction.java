@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -68,7 +69,7 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
 
     @Override
     @SafeVarargs
-    public final Object evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         Row record = (Row) args[0].value();
         if (record == null) {
             return null;

@@ -35,7 +35,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -105,10 +105,10 @@ public final class WhereClauseOptimizer {
         }
 
         public WhereClause toBoundWhereClause(DocTableInfo table,
-                                              Functions functions,
                                               Row params,
                                               SubQueryResults subQueryResults,
-                                              CoordinatorTxnCtx txnCtx) {
+                                              CoordinatorTxnCtx txnCtx,
+                                              NodeContext nodeCtx) {
             if (docKeys != null) {
                 throw new IllegalStateException(getClass().getSimpleName()
                                                 + " must not be converted to a WhereClause if docKeys are present");
@@ -124,7 +124,7 @@ public final class WhereClauseOptimizer {
                     return WhereClause.NO_MATCH;
                 }
                 WhereClauseAnalyzer.PartitionResult partitionResult =
-                    WhereClauseAnalyzer.resolvePartitions(boundQuery, table, functions, txnCtx);
+                    WhereClauseAnalyzer.resolvePartitions(boundQuery, table, txnCtx, nodeCtx);
                 return new WhereClause(
                     partitionResult.query,
                     partitionResult.partitions,
@@ -144,13 +144,12 @@ public final class WhereClauseOptimizer {
                                          Symbol query,
                                          DocTableInfo table,
                                          TransactionContext txnCtx,
-                                         Functions functions) {
+                                         NodeContext nodeCtx) {
         Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
             query,
             table.generatedColumns(),
             Lists2.concat(table.partitionedByColumns(), Lists2.map(table.primaryKey(), table::getReference)),
-            functions
-        );
+            nodeCtx);
         if (!query.equals(queryGenColsProcessed)) {
             query = normalizer.normalize(queryGenColsProcessed, txnCtx);
         }

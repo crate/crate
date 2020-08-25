@@ -60,7 +60,7 @@ public class AlterTableOpenClosePlan implements Plan {
                               Row params, SubQueryResults subQueryResults) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             plannerContext.transactionContext(),
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             x,
             params,
             subQueryResults

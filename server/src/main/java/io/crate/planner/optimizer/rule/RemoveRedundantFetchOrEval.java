@@ -22,7 +22,7 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Eval;
@@ -55,7 +55,7 @@ public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             Functions functions) {
+                             NodeContext nodeCtx) {
         return plan.source();
     }
 }

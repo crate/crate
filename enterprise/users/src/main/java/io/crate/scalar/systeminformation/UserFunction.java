@@ -22,6 +22,7 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -71,13 +72,13 @@ public class UserFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args.length == 0 : "number of args must be 0";
         return txnCtx.sessionSettings().userName();
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, @Nullable TransactionContext txnCtx) {
+    public Symbol normalizeSymbol(Function symbol, @Nullable TransactionContext txnCtx, NodeContext nodeCtx) {
         if (txnCtx == null) {
             return Literal.NULL;
         }

@@ -25,6 +25,7 @@ package io.crate.expression.scalar.systeminformation;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -58,7 +59,7 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
 
     @SafeVarargs
     @Override
-    public final String evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         // CrateDB doesn't support comments for database objects, so always return null
         return null;
     }

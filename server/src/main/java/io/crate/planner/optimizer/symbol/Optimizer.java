@@ -28,7 +28,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -49,8 +49,8 @@ public class Optimizer {
 
     public static Symbol optimizeCasts(Symbol query, PlannerContext plannerContext) {
         Optimizer optimizer = new Optimizer(
-            plannerContext.functions(),
             plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
             () -> plannerContext.clusterState().nodes().getMinNodeVersion(),
             List.of(
                 MoveReferenceCastToLiteralCastInsideOperators::new,
@@ -67,11 +67,11 @@ public class Optimizer {
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final Visitor visitor = new Visitor();
 
-    public Optimizer(Functions functions,
-                     CoordinatorTxnCtx coordinatorTxnCtx,
+    public Optimizer(CoordinatorTxnCtx coordinatorTxnCtx,
+                     NodeContext nodeCtx,
                      Supplier<Version> minNodeVersionInCluster,
                      List<Function<FunctionSymbolResolver, Rule<?>>> rules) {
         FunctionSymbolResolver functionResolver =
@@ -82,9 +82,8 @@ public class Optimizer {
                         args,
                         null,
                         null,
-                        functions,
-                        coordinatorTxnCtx
-                    );
+                        coordinatorTxnCtx,
+                        nodeCtx);
                 } catch (ConversionException e) {
                     return null;
                 }
@@ -92,7 +91,7 @@ public class Optimizer {
 
         this.rules = Lists2.map(rules, r -> r.apply(functionResolver));
         this.minNodeVersionInCluster = minNodeVersionInCluster;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
     }
 
     public Symbol optimize(Symbol node) {
@@ -117,7 +116,7 @@ public class Optimizer {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
                     }
-                    Symbol transformedNode = rule.apply(match.value(), match.captures(), functions);
+                    Symbol transformedNode = rule.apply(match.value(), match.captures(), nodeCtx);
                     if (transformedNode != null) {
                         if (isTraceEnabled) {
                             LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the symbol");

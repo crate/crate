@@ -44,7 +44,7 @@ import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.table.Operation;
@@ -147,13 +147,13 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     public JobsLogService(Settings settings,
                           ClusterService clusterService,
                           ClusterSettings clusterSettings,
-                          Functions functions,
+                          NodeContext nodeCtx,
                           CircuitBreakerService breakerService) {
         this(
             settings,
             clusterService::localNode,
             clusterSettings,
-            functions,
+            nodeCtx,
             Executors.newSingleThreadScheduledExecutor(),
             breakerService
         );
@@ -163,25 +163,25 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     JobsLogService(Settings settings,
                    Supplier<DiscoveryNode> localNode,
                    ClusterSettings clusterSettings,
-                   Functions functions,
+                   NodeContext nodeCtx,
                    ScheduledExecutorService scheduler,
                    CircuitBreakerService breakerService) {
         this.scheduler = scheduler;
         this.breakerService = breakerService;
-        this.inputFactory = new InputFactory(functions);
+        this.inputFactory = new InputFactory(nodeCtx);
         var jobsLogTable = SysJobsLogTableInfo.create(localNode);
         this.refResolver = new StaticTableReferenceResolver<>(jobsLogTable.expressions());
         TableRelation sysJobsLogRelation = new TableRelation(jobsLogTable);
         systemTransactionCtx = CoordinatorTxnCtx.systemTransactionContext();
         this.expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             systemTransactionCtx,
+            nodeCtx,
             ParamTypeHints.EMPTY,
             new NameFieldProvider(sysJobsLogRelation),
             null,
             Operation.READ
         );
-        normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, refResolver, sysJobsLogRelation);
+        normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.DOC, refResolver, sysJobsLogRelation);
         FILTER_VALIDATOR.validate = this::asSymbol;
 
         isEnabled = STATS_ENABLED_SETTING.setting().get(settings);
@@ -387,8 +387,8 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         /**
          * This is lazy initialized due to a bootstrapping problem:
          *
-         * Settings need to be available in the SQLPlugin which is created *before* components like {@link Functions}.
-         * But {@link Functions} is required to do the validation.
+         * Settings need to be available in the SQLPlugin which is created *before* components like {@link NodeContext}.
+         * But {@link NodeContext} is required to do the validation.
          */
         Consumer<String> validate = s -> { };
 

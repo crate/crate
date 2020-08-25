@@ -22,7 +22,7 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.LogicalPlan;
@@ -69,7 +69,7 @@ public final class DeduplicateOrder implements Rule<Order> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             Functions functions) {
+                             NodeContext nodeCtx) {
         Order childOrder = captures.get(this.childOrder);
         return plan.replaceSources(childOrder.sources());
     }

@@ -32,7 +32,7 @@ import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -60,9 +60,9 @@ public final class UpdateById implements Plan {
                       Map<Reference, Symbol> assignmentByTargetCol,
                       DocKeys docKeys,
                       @Nullable List<Symbol> returnValues,
-                      Functions functions) {
+                      NodeContext nodeCtx) {
         this.table = table;
-        this.assignments = Assignments.convert(assignmentByTargetCol, functions);
+        this.assignments = Assignments.convert(assignmentByTargetCol, nodeCtx);
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.docKeys = docKeys;
         this.returnValues = returnValues == null ? null : returnValues.toArray(new Symbol[0]);
@@ -126,7 +126,7 @@ public final class UpdateById implements Plan {
         return new ShardRequestExecutor<>(
             clusterService,
             txnCtx,
-            dependencies.functions(),
+            dependencies.nodeContext(),
             table,
             updateRequests,
             dependencies.transportActionProvider().transportShardUpsertAction()::execute,

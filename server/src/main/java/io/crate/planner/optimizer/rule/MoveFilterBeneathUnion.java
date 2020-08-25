@@ -24,7 +24,7 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
@@ -61,7 +61,7 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             Functions functions) {
+                             NodeContext nodeCtx) {
         Union union = captures.get(unionCapture);
         LogicalPlan lhs = union.sources().get(0);
         LogicalPlan rhs = union.sources().get(1);

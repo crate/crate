@@ -32,6 +32,7 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.NodeContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -62,7 +63,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -76,6 +77,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
     @Before
     public void prepare() throws Exception {
+        NodeContext nodeCtx = createNodeContext();
         IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         columnName = "x";
         expectedResult = new ArrayList<>(20);
@@ -90,7 +92,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
 
         inExpr = new InputCollectExpression(0);
-        CountAggregation aggregation = (CountAggregation) getFunctions().getQualified(
+        CountAggregation aggregation = (CountAggregation) nodeCtx.functions().getQualified(
             CountAggregation.COUNT_STAR_SIGNATURE,
             Collections.emptyList(),
             CountAggregation.COUNT_STAR_SIGNATURE.getReturnType().createType()

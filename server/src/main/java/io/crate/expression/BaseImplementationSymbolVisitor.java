@@ -33,7 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -44,17 +44,17 @@ import java.util.Locale;
 public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?>> {
 
     protected final TransactionContext txnCtx;
-    protected final Functions functions;
+    protected final NodeContext nodeCtx;
 
-    public BaseImplementationSymbolVisitor(TransactionContext txnCtx, Functions functions) {
+    public BaseImplementationSymbolVisitor(TransactionContext txnCtx, NodeContext nodeCtx) {
         this.txnCtx = txnCtx;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
     }
 
     @Override
     public Input<?> visitFunction(Function function, C context) {
         Signature signature = function.signature();
-        FunctionImplementation functionImplementation = functions.getQualified(
+        FunctionImplementation functionImplementation = nodeCtx.functions().getQualified(
             function,
             txnCtx.sessionSettings().searchPath()
         );
@@ -68,7 +68,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
             for (Symbol argument : function.arguments()) {
                 argumentInputs[i++] = argument.accept(this, context);
             }
-            return new FunctionExpression<>(txnCtx, scalarImpl, argumentInputs);
+            return new FunctionExpression<>(txnCtx, nodeCtx, scalarImpl, argumentInputs);
         } else {
             throw new UnsupportedFeatureException(
                 String.format(

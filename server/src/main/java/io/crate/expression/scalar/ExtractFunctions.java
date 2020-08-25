@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -155,7 +156,7 @@ public class ExtractFunctions {
 
         @Override
         @SafeVarargs
-        public final Number evaluate(TransactionContext txnCtx, Input<Long>... args) {
+        public final Number evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Long>... args) {
             assert args.length == 1 : "extract only takes one argument";
             Long value = args[0].value();
             if (value == null) {

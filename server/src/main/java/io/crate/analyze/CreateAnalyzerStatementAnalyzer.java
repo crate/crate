@@ -27,7 +27,7 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.sql.tree.AnalyzerElement;
 import io.crate.sql.tree.CharFilters;
 import io.crate.sql.tree.CreateAnalyzer;
@@ -48,12 +48,12 @@ import java.util.Map;
 class CreateAnalyzerStatementAnalyzer {
 
     private final FulltextAnalyzerResolver ftResolver;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
     CreateAnalyzerStatementAnalyzer(FulltextAnalyzerResolver ftResolver,
-                                    Functions functions) {
+                                    NodeContext nodeCtx) {
         this.ftResolver = ftResolver;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
     }
 
     private static class Context {
@@ -67,8 +67,8 @@ class CreateAnalyzerStatementAnalyzer {
         private final ExpressionAnalyzer exprAnalyzerWithFieldsAsString;
         private final ExpressionAnalysisContext exprContext;
 
-        Context(Functions functions,
-                CoordinatorTxnCtx transactionContext,
+        Context(CoordinatorTxnCtx transactionContext,
+                NodeContext nodeCtx,
                 ParamTypeHints paramTypeHints) {
             this.genericAnalyzerProperties = new GenericProperties<>();
             this.charFilters = new HashMap<>();
@@ -76,8 +76,8 @@ class CreateAnalyzerStatementAnalyzer {
 
             this.exprContext = new ExpressionAnalysisContext();
             this.exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-                functions,
                 transactionContext,
+                nodeCtx,
                 paramTypeHints,
                 FieldProvider.FIELDS_AS_LITERAL,
                 null);
@@ -108,8 +108,8 @@ class CreateAnalyzerStatementAnalyzer {
         }
 
         var context = new Context(
-            functions,
             transactionContext,
+            nodeCtx,
             paramTypeHints
         );
 

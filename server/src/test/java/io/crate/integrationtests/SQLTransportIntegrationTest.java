@@ -52,6 +52,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
@@ -449,6 +450,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
         Analyzer analyzer = internalCluster().getInstance(Analyzer.class, nodeName);
         Planner planner = internalCluster().getInstance(Planner.class, nodeName);
+        NodeContext nodeCtx = internalCluster().getInstance(NodeContext.class, nodeName);
 
         SessionContext sessionContext = new SessionContext(
             Option.NONE, User.CRATE_USER, sqlExecutor.getCurrentSchema());
@@ -458,8 +460,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             planner.currentClusterState(),
             routingProvider,
             UUID.randomUUID(),
-            planner.functions(),
             coordinatorTxnCtx,
+            nodeCtx,
             0,
             null
         );

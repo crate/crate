@@ -31,7 +31,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
@@ -50,21 +50,21 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
 
     private final SubQueryResults subQueryResults;
 
-    public SymbolEvaluator(TransactionContext txnCtx, Functions functions, SubQueryResults subQueryResults) {
-        super(txnCtx, functions);
+    public SymbolEvaluator(TransactionContext txnCtx, NodeContext nodeCtx, SubQueryResults subQueryResults) {
+        super(txnCtx, nodeCtx);
         this.subQueryResults = subQueryResults;
     }
 
-    public static Object evaluateWithoutParams(TransactionContext txn, Functions functions, Symbol symbol) {
-        return evaluate(txn, functions, symbol, Row.EMPTY, SubQueryResults.EMPTY);
+    public static Object evaluateWithoutParams(TransactionContext txn, NodeContext nodeCtx, Symbol symbol) {
+        return evaluate(txn, nodeCtx, symbol, Row.EMPTY, SubQueryResults.EMPTY);
     }
 
     public static Object evaluate(TransactionContext txnCtx,
-                                  Functions functions,
+                                  NodeContext nodeCtx,
                                   Symbol symbol,
                                   Row params,
                                   SubQueryResults subQueryValues) {
-        SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, functions, subQueryValues);
+        SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, subQueryValues);
         return symbol.accept(symbolEval, params).value();
     }
 

@@ -28,7 +28,7 @@ import io.crate.auth.user.User;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static  io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -46,10 +46,11 @@ import static org.hamcrest.Matchers.is;
 
 public class OptimizerRuleSessionSettingProviderTest {
 
-    private Functions functions = getFunctions();
+    private NodeContext nodeCtx = createNodeContext();
+
     private Function<Symbol, Object> eval = x -> evaluateWithoutParams(
         CoordinatorTxnCtx.systemTransactionContext(),
-        functions,
+        nodeCtx,
         x
     );
 

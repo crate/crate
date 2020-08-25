@@ -82,7 +82,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.LicenseViolationException;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.license.LicenseService;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.TableInfo;
@@ -146,7 +146,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private static final Logger LOGGER = LogManager.getLogger(Planner.class);
 
     private final ClusterService clusterService;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final TableStats tableStats;
     private final LogicalPlanner logicalPlanner;
     private final IsStatementExecutionAllowed isStatementExecutionAllowed;
@@ -161,7 +161,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Inject
     public Planner(Settings settings,
                    ClusterService clusterService,
-                   Functions functions,
+                   NodeContext nodeCtx,
                    TableStats tableStats,
                    LicenseService licenseService,
                    NumberOfShards numberOfShards,
@@ -172,7 +172,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         this(
             settings,
             clusterService,
-            functions,
+            nodeCtx,
             tableStats,
             numberOfShards,
             tableCreator,
@@ -186,7 +186,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @VisibleForTesting
     public Planner(Settings settings,
                    ClusterService clusterService,
-                   Functions functions,
+                   NodeContext nodeCtx,
                    TableStats tableStats,
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
@@ -196,9 +196,9 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    SessionSettingRegistry sessionSettingRegistry
     ) {
         this.clusterService = clusterService;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
         this.tableStats = tableStats;
-        this.logicalPlanner = new LogicalPlanner(functions, tableStats, () -> clusterService.state().nodes().getMinNodeVersion());
+        this.logicalPlanner = new LogicalPlanner(nodeCtx, tableStats, () -> clusterService.state().nodes().getMinNodeVersion());
         this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(hasValidLicense);
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
@@ -290,13 +290,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitAnalyzedUpdateStatement(AnalyzedUpdateStatement update, PlannerContext context) {
         return UpdatePlanner.plan(
-            update, functions, context, new SubqueryPlanner(s -> logicalPlanner.planSubSelect(s, context)));
+            update, context, new SubqueryPlanner(s -> logicalPlanner.planSubSelect(s, context)));
     }
 
     @Override
     protected Plan visitAnalyzedDeleteStatement(AnalyzedDeleteStatement statement, PlannerContext context) {
         return DeletePlanner.planDelete(
-            functions,
             statement,
             new SubqueryPlanner(s -> logicalPlanner.planSubSelect(s, context)),
             context
@@ -552,10 +551,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, PlannerContext context) {
         return new RerouteRetryFailedPlan();
-    }
-
-    public Functions functions() {
-        return functions;
     }
 }
 

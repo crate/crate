@@ -32,6 +32,7 @@ import io.crate.expression.ExpressionsInput;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import org.elasticsearch.Version;
@@ -86,8 +87,8 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function, @Nullable TransactionContext txnCtx) {
-        return aggregationFunction.normalizeSymbol(function, txnCtx);
+    public Symbol normalizeSymbol(Function function, @Nullable TransactionContext txnCtx, NodeContext nodeCtx) {
+        return aggregationFunction.normalizeSymbol(function, txnCtx, nodeCtx);
     }
 
     @Override

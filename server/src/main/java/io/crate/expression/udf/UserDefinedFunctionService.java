@@ -29,7 +29,7 @@ import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -61,13 +61,13 @@ public class UserDefinedFunctionService {
     private static final Logger LOGGER = LogManager.getLogger(UserDefinedFunctionService.class);
 
     private final ClusterService clusterService;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
     private final Map<String, UDFLanguage> languageRegistry = new HashMap<>();
 
     @Inject
-    public UserDefinedFunctionService(ClusterService clusterService, Functions functions) {
+    public UserDefinedFunctionService(ClusterService clusterService, NodeContext nodeCtx) {
         this.clusterService = clusterService;
-        this.functions = functions;
+        this.nodeCtx = nodeCtx;
     }
 
     public UDFLanguage getLanguage(String languageName) throws IllegalArgumentException {
@@ -214,7 +214,7 @@ public class UserDefinedFunctionService {
                 functionName, k -> new ArrayList<>());
             resolvers.add(resolver);
         }
-        functions.registerUdfFunctionImplementationsForSchema(schema, implementations);
+        nodeCtx.functions().registerUdfFunctionImplementationsForSchema(schema, implementations);
     }
 
     @Nullable

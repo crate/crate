@@ -34,7 +34,7 @@ import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.ArrayType;
@@ -56,13 +56,13 @@ public class FileCollectSource implements CollectSource {
     private final ClusterService clusterService;
     private final Map<String, FileInputFactory> fileInputFactoryMap;
     private final InputFactory inputFactory;
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
     @Inject
-    public FileCollectSource(Functions functions, ClusterService clusterService, Map<String, FileInputFactory> fileInputFactoryMap) {
+    public FileCollectSource(NodeContext nodeCtx, ClusterService clusterService, Map<String, FileInputFactory> fileInputFactoryMap) {
         this.fileInputFactoryMap = fileInputFactoryMap;
-        this.functions = functions;
-        this.inputFactory = new InputFactory(functions);
+        this.nodeCtx = nodeCtx;
+        this.inputFactory = new InputFactory(nodeCtx);
         this.clusterService = clusterService;
     }
 
@@ -76,7 +76,7 @@ public class FileCollectSource implements CollectSource {
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
 
-        List<String> fileUris = targetUriToStringList(txnCtx, functions, fileUriCollectPhase.targetUri());
+        List<String> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri());
         return CompletableFuture.completedFuture(FileReadingIterator.newInstance(
             fileUris,
             ctx.topLevelInputs(),
@@ -97,9 +97,9 @@ public class FileCollectSource implements CollectSource {
     }
 
     private static List<String> targetUriToStringList(TransactionContext txnCtx,
-                                                      Functions functions,
+                                                      NodeContext nodeCtx,
                                                       Symbol targetUri) {
-        Object value = SymbolEvaluator.evaluate(txnCtx, functions, targetUri, Row.EMPTY, SubQueryResults.EMPTY);
+        Object value = SymbolEvaluator.evaluate(txnCtx, nodeCtx, targetUri, Row.EMPTY, SubQueryResults.EMPTY);
         if (DataTypes.isSameType(targetUri.valueType(), DataTypes.STRING)) {
             String uri = (String) value;
             return Collections.singletonList(uri);

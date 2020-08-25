@@ -39,7 +39,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -57,6 +56,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -101,7 +101,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             scheduler,
             executor,
             CoordinatorTxnCtx.systemTransactionContext(),
-            TestingHelpers.getFunctions(),
+            createNodeContext(),
             Settings.EMPTY,
             5,
             1,

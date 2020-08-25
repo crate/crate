@@ -25,6 +25,7 @@ package io.crate.expression.scalar;
 import io.crate.Constants;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -64,7 +65,7 @@ final class CurrentDatabaseFunction extends Scalar<String, Void> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, Input[] args) {
+    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         return Constants.DB_NAME;
     }
 }

@@ -25,7 +25,7 @@ package io.crate.planner.optimizer.rule;
 import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
@@ -82,7 +82,7 @@ public final class MoveOrderBeneathRename implements Rule<Order> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             Functions functions) {
+                             NodeContext nodeCtx) {
         Rename rename = captures.get(renameCapture);
         Function<? super Symbol, ? extends Symbol> mapField = FieldReplacer.bind(rename::resolveField);
         OrderBy mappedOrderBy = plan.orderBy().map(mapField);

@@ -27,24 +27,24 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Expression;
 
 public class DecommissionNodeAnalyzer {
 
-    private final Functions functions;
+    private final NodeContext nodeCtx;
 
-    DecommissionNodeAnalyzer(Functions functions) {
-        this.functions = functions;
+    DecommissionNodeAnalyzer(NodeContext nodeCtx) {
+        this.nodeCtx = nodeCtx;
     }
 
     public AnalyzedDecommissionNode analyze(DecommissionNodeStatement<Expression> decommissionNode,
                                             CoordinatorTxnCtx txnCtx,
                                             ParamTypeHints typeHints) {
         var expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
             txnCtx,
+            nodeCtx,
             typeHints,
             FieldProvider.UNSUPPORTED,
             null);

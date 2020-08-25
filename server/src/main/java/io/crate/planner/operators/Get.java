@@ -88,16 +88,16 @@ public class Get implements LogicalPlan {
         List<Symbol> boundOutputs = Lists2.map(
             outputs, s -> SubQueryAndParamBinder.convert(s, params, subQueryResults));
         for (DocKeys.DocKey docKey : docKeys) {
-            String id = docKey.getId(plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults);
+            String id = docKey.getId(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
             if (id == null) {
                 continue;
             }
             List<String> partitionValues = docKey.getPartitionValues(
-                plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults);
+                plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
             String indexName = indexName(docTableInfo, partitionValues);
 
             String routing = docKey.getRouting(
-                plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults);
+                plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
             ShardRouting shardRouting;
             try {
                 shardRouting = plannerContext.resolveShard(indexName, id, routing);
@@ -127,11 +127,11 @@ public class Get implements LogicalPlan {
                 idsByShard.put(shardRouting.shardId(), pkAndVersions);
             }
             long version = docKey
-                .version(plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults)
+                .version(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults)
                 .orElse(Versions.MATCH_ANY);
-            long sequenceNumber = docKey.sequenceNo(plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults)
+            long sequenceNumber = docKey.sequenceNo(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults)
                 .orElse(SequenceNumbers.UNASSIGNED_SEQ_NO);
-            long primaryTerm = docKey.primaryTerm(plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults)
+            long primaryTerm = docKey.primaryTerm(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults)
                 .orElse(SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
             pkAndVersions.add(new PKAndVersion(id, version, sequenceNumber, primaryTerm));
         }

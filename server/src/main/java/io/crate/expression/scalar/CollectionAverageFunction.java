@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -56,7 +57,7 @@ public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
     }
 
     @Override
-    public Double evaluate(TransactionContext txnCtx, Input<List<Object>>... args) {
+    public Double evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... args) {
         List<Object> values = args[0].value();
         if (values == null) {
             return null;

@@ -24,6 +24,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -134,7 +135,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
     }
 
     @Override
-    public Long evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+    public Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         final Long timestamp = (Long) args[timestampIdx].value();
         final Period period = (Period) args[periodIdx].value();
         return apply(timestamp, period);

@@ -78,7 +78,7 @@ public class Count implements LogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         var normalizer = new EvaluatingNormalizer(
-            plannerContext.functions(),
+            plannerContext.nodeContext(),
             RowGranularity.CLUSTER,
             null,
             tableRelation
@@ -91,9 +91,8 @@ public class Count implements LogicalPlan {
         WhereClause boundWhere = WhereClauseAnalyzer.resolvePartitions(
             where.map(binder),
             tableRelation,
-            plannerContext.functions(),
-            plannerContext.transactionContext()
-        );
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext());
         Routing routing = plannerContext.allocateRouting(
             tableRelation.tableInfo(),
             boundWhere,
