@@ -16,9 +16,9 @@ dependencies {
     compile project(path: ':enterprise:functions', configuration: 'testOutput')
     implementation project(':libs:sql-parser')
 
-    compile 'org.openjdk.jmh:jmh-core:1.21'
-    implementation 'org.openjdk.jmh:jmh-generator-annprocess:1.21'
-    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.21'
+    compile 'org.openjdk.jmh:jmh-core:1.25'
+    implementation 'org.openjdk.jmh:jmh-generator-annprocess:1.25'
+    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.25'
 
     // Dependencies of JMH
     runtime 'net.sf.jopt-simple:jopt-simple:4.6'
