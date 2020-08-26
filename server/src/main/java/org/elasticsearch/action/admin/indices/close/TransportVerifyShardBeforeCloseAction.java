@@ -19,8 +19,6 @@
 
 package org.elasticsearch.action.admin.indices.close;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
-
 import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
@@ -32,6 +30,7 @@ import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -118,8 +117,8 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
         }
 
         final ClusterBlocks clusterBlocks = clusterService.state().blocks();
-        if (clusterBlocks.hasIndexBlock(shardId.getIndexName(), INDEX_CLOSED_BLOCK) == false) {
-            throw new IllegalStateException("Index shard " + shardId + " must be blocked by " + INDEX_CLOSED_BLOCK + " before closing");
+        if (clusterBlocks.hasIndexBlock(shardId.getIndexName(), request.clusterBlock()) == false) {
+            throw new IllegalStateException("Index shard " + shardId + " must be blocked by " + request.clusterBlock() + " before closing");
         }
 
         indexShard.verifyShardBeforeIndexClosing();
@@ -151,23 +150,31 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
 
     public static class ShardRequest extends ReplicationRequest<ShardRequest> {
 
+        private final ClusterBlock clusterBlock;
+
         ShardRequest(StreamInput in) throws IOException {
             super(in);
+            this.clusterBlock = new ClusterBlock(in);
         }
 
-        public ShardRequest(ShardId shardId) {
+        public ShardRequest(ShardId shardId, ClusterBlock clusterBlock) {
             super(shardId);
+            this.clusterBlock = clusterBlock;
         }
 
+        public ClusterBlock clusterBlock() {
+            return clusterBlock;
+        }
 
         @Override
         public String toString() {
-            return "verify shard before close {" + shardId + "}";
+            return "verify shard " + shardId + " before close with block " + clusterBlock;
         }
 
         @Override
         public void writeTo(final StreamOutput out) throws IOException {
             super.writeTo(out);
+            clusterBlock.writeTo(out);
         }
     }
 }
