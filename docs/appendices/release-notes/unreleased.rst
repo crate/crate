@@ -78,6 +78,11 @@ Changes
 Fixes
 =====
 
+- Fixed a performance regression that caused ``SELECT`` statements on tables
+  with generated partitioned columns and a predicate that uses a column used to
+  compute the partitioned column to hit all partitions instead of only a
+  subset.
+
 - Fixed an issue that could lead to a ``IndexOutOfBoundsException`` when using
   virtual tables and joins.
 
