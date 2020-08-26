@@ -24,6 +24,8 @@ package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +46,7 @@ import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
@@ -57,6 +60,8 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -67,6 +72,7 @@ import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -82,6 +88,8 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     private static final Logger LOGGER = LogManager.getLogger(TransportCloseTable.class);
     private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/close";
     private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
+    public static final int INDEX_CLOSED_BLOCK_ID = 4;
+
     private final TransportVerifyShardBeforeCloseAction verifyShardBeforeClose;
     private final AllocationService allocationService;
     private final DDLClusterStateService ddlClusterStateService;
@@ -136,6 +144,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     static ClusterState closeRoutingTable(ClusterState currentState,
                                           AlterTableTarget target,
                                           DDLClusterStateService ddlClusterStateService,
+                                          Map<Index, ClusterBlock> blockedIndices,
                                           Map<Index, AcknowledgedResponse> results) {
         IndexTemplateMetadata templateMetadata = target.templateMetadata();
         ClusterState updatedState;
@@ -161,21 +170,31 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         final Set<String> closedIndices = new HashSet<>();
         for (Map.Entry<Index, AcknowledgedResponse> result : results.entrySet()) {
             final Index index = result.getKey();
+            final boolean acknowledged = result.getValue().isAcknowledged();
             try {
-                final IndexMetadata indexMetadata = metadata.getSafe(index);
-                if (indexMetadata.getState() != IndexMetadata.State.CLOSE) {
-                    if (result.getValue().isAcknowledged()) {
-                        LOGGER.debug("closing index {} succeed, removing index routing table", index);
-                        metadata.put(IndexMetadata.builder(indexMetadata).state(IndexMetadata.State.CLOSE));
-                        routingTable.remove(index.getName());
-                        closedIndices.add(index.getName());
-                    } else {
-                        LOGGER.debug("closing index {} failed, removing index block because: {}", index, result.getValue());
-                        blocks.removeIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
-                    }
-                } else {
-                    LOGGER.debug("index {} has been closed since it was blocked before closing, ignoring", index);
+                if (acknowledged == false) {
+                    LOGGER.debug("verification of shards before closing {} failed", index);
+                    continue;
                 }
+                final IndexMetadata indexMetadata = metadata.getSafe(index);
+                if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+                    LOGGER.debug("verification of shards before closing {} succeeded but index is already closed", index);
+                    assert currentState.blocks().hasIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
+                    continue;
+                }
+                final ClusterBlock closingBlock = blockedIndices.get(index);
+                if (currentState.blocks().hasIndexBlock(index.getName(), closingBlock) == false) {
+                    LOGGER.debug("verification of shards before closing {} succeeded but block has been removed in the meantime", index);
+                    continue;
+                }
+
+                LOGGER.debug("closing index {} succeeded", index);
+                blocks
+                    .removeIndexBlockWithId(index.getName(), INDEX_CLOSED_BLOCK_ID)
+                    .addIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
+                metadata.put(IndexMetadata.builder(indexMetadata).state(IndexMetadata.State.CLOSE));
+                routingTable.remove(index.getName());
+                closedIndices.add(index.getName());
             } catch (IndexNotFoundException e) {
                 LOGGER.debug("index {} has been deleted since it was blocked before closing, ignoring", index);
             }
@@ -210,7 +229,17 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         );
     }
 
-    private static ClusterState addCloseBlocks(ClusterState currentState, Index[] indices, Consumer<Index> blockedIndex) {
+
+    /**
+     * Step 1 - Start closing indices by adding a write block
+     *
+     * This step builds the list of indices to close (the ones explicitly requested that are not in CLOSE state) and adds a unique cluster
+     * block (or reuses an existing one) to every index to close in the cluster state. After the cluster state is published, the shards
+     * should start to reject writing operations and we can proceed with step 2.
+     */
+    private static ClusterState addCloseBlocks(ClusterState currentState,
+                                               Index[] indices,
+                                               Map<Index, ClusterBlock> blockedIndices) {
         Metadata.Builder metadata = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
 
@@ -221,6 +250,8 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 indicesToClose.add(indexMetadata);
             } else {
                 LOGGER.debug("index {} is already closed, ignoring", index);
+                assert currentState.blocks().hasIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
+
             }
         }
         if (indicesToClose.isEmpty()) {
@@ -232,10 +263,34 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         for (var indexToClose : indicesToClose) {
             final Index index = indexToClose.getIndex();
-            blockedIndex.accept(index);
-            if (currentState.blocks().hasIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK) == false) {
-                blocks.addIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
+            ClusterBlock indexBlock = null;
+            final Set<ClusterBlock> clusterBlocks = currentState.blocks().indices().get(index.getName());
+            if (clusterBlocks != null) {
+                for (ClusterBlock clusterBlock : clusterBlocks) {
+                    if (clusterBlock.id() == INDEX_CLOSED_BLOCK_ID) {
+                        // Reuse the existing index closed block
+                        indexBlock = clusterBlock;
+                        break;
+                    }
+                }
             }
+            if (indexBlock == null) {
+                indexBlock = new ClusterBlock(
+                    INDEX_CLOSED_BLOCK_ID,
+                    UUIDs.randomBase64UUID(),
+                    "Table or partition preparing to close. Reopen the table to allow " +
+                    "writes again or retry closing the table to fully close it.",
+                    false,
+                    false,
+                    false,
+                    RestStatus.FORBIDDEN,
+                    EnumSet.of(ClusterBlockLevel.WRITE)
+                );
+            }
+            assert Strings.hasLength(indexBlock.uuid()) : "Closing block should have a UUID";
+
+            blocks.addIndexBlock(index.getName(), indexBlock);
+            blockedIndices.put(index, indexBlock);
         }
 
         return ClusterState.builder(currentState)
@@ -249,7 +304,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         private final ActionListener<AcknowledgedResponse> listener;
         private final CloseTableRequest request;
-        private final Set<Index> blockedIndices = new HashSet<>();
+        private final Map<Index, ClusterBlock> blockedIndices = new HashMap<>();
 
         private AddCloseBlocksTask(ActionListener<AcknowledgedResponse> listener,
                                    CloseTableRequest request) {
@@ -266,7 +321,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             if (indices.length == 0) {
                 return currentState;
             }
-            return addCloseBlocks(currentState, indices, blockedIndices::add);
+            return addCloseBlocks(currentState, indices, blockedIndices);
         }
 
         @Override
@@ -287,11 +342,12 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 .execute(new WaitForClosedBlocksApplied(
                     blockedIndices,
                     ActionListener.wrap(
-                        closedBlocksResults -> clusterService.submitStateUpdateTask(
+                        results -> clusterService.submitStateUpdateTask(
                             "close-indices",
                             new CloseRoutingTableTask(
                                 Priority.URGENT,
-                                closedBlocksResults,
+                                blockedIndices,
+                                results,
                                 request,
                                 listener
                             )
@@ -302,19 +358,23 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         }
     }
 
-
     private final class CloseRoutingTableTask extends ClusterStateUpdateTask {
 
-        private final Map<Index, AcknowledgedResponse> closedBlocksResults;
+        private final Map<Index, AcknowledgedResponse> results;
+        private final Map<Index, ClusterBlock> blockedIndices;
         private final ActionListener<AcknowledgedResponse> listener;
         private final CloseTableRequest request;
 
+        boolean acknowledged = true;
+
         private CloseRoutingTableTask(Priority priority,
-                                      Map<Index, AcknowledgedResponse> closedBlocksResults,
+                                      Map<Index, ClusterBlock> blockedIndices,
+                                      Map<Index, AcknowledgedResponse> results,
                                       CloseTableRequest request,
                                       ActionListener<AcknowledgedResponse> listener) {
             super(priority);
-            this.closedBlocksResults = closedBlocksResults;
+            this.blockedIndices = blockedIndices;
+            this.results = results;
             this.listener = listener;
             this.request = request;
         }
@@ -327,7 +387,20 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 request.table(),
                 request.partition()
             );
-            final ClusterState updatedState = closeRoutingTable(currentState, target, ddlClusterStateService, closedBlocksResults);
+            final ClusterState updatedState = closeRoutingTable(
+                currentState,
+                target,
+                ddlClusterStateService,
+                blockedIndices,
+                results
+            );
+            for (Map.Entry<Index, AcknowledgedResponse> result : results.entrySet()) {
+                IndexMetadata updatedMetadata = updatedState.metadata().index(result.getKey());
+                if (updatedMetadata != null && updatedMetadata.getState() != IndexMetadata.State.CLOSE) {
+                    acknowledged = false;
+                    break;
+                }
+            }
             return allocationService.reroute(updatedState, "indices closed");
         }
 
@@ -338,7 +411,6 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public void clusterStateProcessed(final String source, final ClusterState oldState, final ClusterState newState) {
-            boolean acknowledged = closedBlocksResults.values().stream().allMatch(AcknowledgedResponse::isAcknowledged);
             listener.onResponse(new AcknowledgedResponse(acknowledged));
         }
     }
@@ -353,9 +425,9 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
      */
     class WaitForClosedBlocksApplied extends ActionRunnable<Map<Index, AcknowledgedResponse>> {
 
-        private final Set<Index> blockedIndices;
+        private final Map<Index, ClusterBlock> blockedIndices;
 
-        private WaitForClosedBlocksApplied(Set<Index> blockedIndices,
+        private WaitForClosedBlocksApplied(Map<Index, ClusterBlock> blockedIndices,
                                            ActionListener<Map<Index, AcknowledgedResponse>> listener) {
             super(listener);
             if (blockedIndices == null || blockedIndices.isEmpty()) {
@@ -369,17 +441,18 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             final Map<Index, AcknowledgedResponse> results = ConcurrentCollections.newConcurrentMap();
             final CountDown countDown = new CountDown(blockedIndices.size());
             final ClusterState state = clusterService.state();
-            for (Index blockedIndex : blockedIndices) {
-                waitForShardsReadyForClosing(blockedIndex, state, response -> {
-                    results.put(blockedIndex, response);
+            blockedIndices.forEach((index, block) -> {
+                waitForShardsReadyForClosing(index, block, state, response -> {
+                    results.put(index, response);
                     if (countDown.countDown()) {
                         listener.onResponse(Collections.unmodifiableMap(results));
                     }
                 });
-            }
+            });
         }
 
         private void waitForShardsReadyForClosing(final Index index,
+                                                  final ClusterBlock closingBlock,
                                                   final ClusterState state,
                                                   final Consumer<AcknowledgedResponse> onResponse) {
             final IndexMetadata indexMetadata = state.metadata().index(index);
@@ -390,6 +463,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             }
             final IndexRoutingTable indexRoutingTable = state.routingTable().index(index);
             if (indexRoutingTable == null || indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+                assert state.blocks().hasIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
                 logger.debug("index {} has been blocked before closing and is already closed, ignoring", index);
                 onResponse.accept(new AcknowledgedResponse(true));
                 return;
@@ -402,7 +476,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             for (IntObjectCursor<IndexShardRoutingTable> shard : shards) {
                 final IndexShardRoutingTable shardRoutingTable = shard.value;
                 final ShardId shardId = shardRoutingTable.shardId();
-                sendVerifyShardBeforeCloseRequest(shardRoutingTable, new NotifyOnceListener<ReplicationResponse>() {
+                sendVerifyShardBeforeCloseRequest(shardRoutingTable, closingBlock, new NotifyOnceListener<ReplicationResponse>() {
                     @Override
                     public void innerOnResponse(final ReplicationResponse replicationResponse) {
                         ReplicationResponse.ShardInfo shardInfo = replicationResponse.getShardInfo();
@@ -427,6 +501,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         }
 
         private void sendVerifyShardBeforeCloseRequest(final IndexShardRoutingTable shardRoutingTable,
+                                                       final ClusterBlock closingBlock,
                                                        final ActionListener<ReplicationResponse> listener) {
             final ShardId shardId = shardRoutingTable.shardId();
             if (shardRoutingTable.primaryShard().unassigned()) {
@@ -437,9 +512,8 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 return;
             }
             TransportVerifyShardBeforeCloseAction.ShardRequest shardRequest =
-                new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId);
+                new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, closingBlock);
 
-            // TODO propagate a task id from the parent CloseIndexRequest to the ShardCloseRequests
             verifyShardBeforeClose.execute(shardRequest, listener);
         }
     }

@@ -22,7 +22,8 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
+import java.util.Set;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -36,9 +37,8 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.indices.IndicesService;
 
-import java.util.Set;
-
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
+import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
+import io.crate.execution.ddl.tables.TransportCloseTable;
 
 
 public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClusterStateTaskExecutor {
@@ -78,6 +78,11 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
             .minimumIndexCompatibilityVersion();
         for (IndexMetadata closedMetadata : indicesToOpen) {
             final String indexName = closedMetadata.getIndex().getName();
+            blocksBuilder.removeIndexBlockWithId(indexName, TransportCloseTable.INDEX_CLOSED_BLOCK_ID);
+
+            if (closedMetadata.getState() == IndexMetadata.State.OPEN) {
+                continue;
+            }
             IndexMetadata indexMetadata = IndexMetadata.builder(closedMetadata).state(IndexMetadata.State.OPEN).build();
             // The index might be closed because we couldn't import it due to old incompatible version
             // We need to check that this index can be upgraded to the current version
@@ -89,7 +94,6 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
             }
 
             mdBuilder.put(indexMetadata, true);
-            blocksBuilder.removeIndexBlock(indexName, INDEX_CLOSED_BLOCK);
         }
 
         // remove closed flag at possible partitioned table template
