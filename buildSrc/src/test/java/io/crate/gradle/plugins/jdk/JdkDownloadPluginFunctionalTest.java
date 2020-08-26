@@ -22,12 +22,13 @@
 
 package io.crate.gradle.plugins.jdk;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,8 +36,13 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.head;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Note: the downloading of the JDK bundles are not covered by the test,
@@ -48,36 +54,34 @@ public class JdkDownloadPluginFunctionalTest {
     private static final Pattern JDK_HOME_LOG = Pattern.compile("JDK HOME: (.*)");
 
     // The JDK vendor and version is hardcoded. It depends on
-    // on the defined fake ivy repository in the testKit directory.
+    // on the fake JDK artifacts from the test resources.
     public static final String VENDOR = "adoptopenjdk";
     public static final String VERSION = "13.0.2+8";
 
     @Test
-    @Ignore
     public void testAarch64LinuxJDKExtraction() {
-        assertExtraction("getAarch64LinuxJdk", "bin/java", VENDOR, VERSION);
+        assertExtraction("getAarch64LinuxJdk", "bin/java", "linux", "aarch64", VENDOR, VERSION);
     }
 
     @Test
-    @Ignore
     public void testX64LinuxJDKExtraction() {
-        assertExtraction("getX64LinuxJdk", "bin/java", VENDOR, VERSION);
+        assertExtraction("getX64LinuxJdk", "bin/java", "linux", "x64", VENDOR, VERSION);
     }
 
     @Test
-    @Ignore
     public void testMacJDKExtraction() {
-        assertExtraction("getMacJdk", "Contents/Home/bin/java", VENDOR, VERSION);
+        assertExtraction("getMacJdk", "Contents/Home/bin/java", "mac", "x64", VENDOR, VERSION);
     }
 
     @Test
-    @Ignore
     public void testWindowsJDKExtraction() {
-        assertExtraction("getWindowsJdk", "bin/java.exe", VENDOR, VERSION);
+        assertExtraction("getWindowsJdk", "bin/java", "windows", "x64", VENDOR, VERSION);
     }
 
     private static void assertExtraction(String task,
                                          String javaBin,
+                                         String os,
+                                         String arch,
                                          String vendor,
                                          String version) {
         runBuild(task, result -> {
@@ -86,11 +90,13 @@ public class JdkDownloadPluginFunctionalTest {
             String jdkHome = matcher.group(1);
             Path javaPath = Paths.get(jdkHome, javaBin);
             assertThat(javaPath.toString(), Files.exists(javaPath), is(true));
-        }, vendor, version);
+        }, os, arch, vendor, version);
     }
 
     private static void runBuild(String task,
                                  Consumer<BuildResult> assertions,
+                                 String os,
+                                 String arch,
                                  String vendor,
                                  String version) {
         var testKitDirPath = Paths.get(
@@ -98,20 +104,80 @@ public class JdkDownloadPluginFunctionalTest {
             "build",
             System.getProperty("user.name")
         );
-        GradleRunner runner = GradleRunner.create()
-            .withDebug(true)
-            .withProjectDir(getTestKitProjectDir("jdk-download"))
-            .withTestKitDir(testKitDirPath.toFile())
-            .withArguments(
-                task,
-                "-Dtests.jdk_vendor=" + vendor,
-                "-Dtests.jdk_version=" + version,
-                "-i"
-            )
-            .withPluginClasspath();
 
-        BuildResult result = runner.build();
-        assertions.accept(result);
+        WireMockServer wireMock = new WireMockServer(0);
+        try {
+            wireMock.stubFor(
+                head(
+                    urlEqualTo(urlPath(vendor, version, os, arch))
+                ).willReturn(aResponse().withStatus(200))
+            );
+            wireMock.stubFor(
+                get(
+                    urlEqualTo(urlPath(vendor, version, os, arch))
+                ).willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withBody(filebytes(vendor, version, os, arch))
+                )
+            );
+            wireMock.start();
+
+            GradleRunner runner = GradleRunner
+                .create()
+                .withDebug(true)
+                .withProjectDir(getTestKitProjectDir("jdk-download"))
+                .withTestKitDir(testKitDirPath.toFile())
+                .withArguments(
+                    task,
+                    "-Dtests.jdk_vendor=" + vendor,
+                    "-Dtests.jdk_version=" + version,
+                    "-Dtests.jdk_repo=" + wireMock.baseUrl(),
+                    "-i")
+                .withPluginClasspath();
+
+            BuildResult result = runner.build();
+            assertions.accept(result);
+        } catch (IOException e) {
+            fail("cannot get artifacts from resources: " + e.getLocalizedMessage());
+        } finally {
+            wireMock.stop();
+        }
+    }
+
+    private static String urlPath(String vendor,
+                                  String version,
+                                  String os,
+                                  String arch) {
+        if (vendor.equals("adoptopenjdk")) {
+            return "/jdk-" +
+                   version + "/" +
+                   os + "/" +
+                   arch + "/" +
+                   "jdk/hotspot/normal/adoptopenjdk";
+        } else {
+            throw new IllegalArgumentException(vendor + " is not supported by the test setup");
+        }
+    }
+
+    private static byte[] filebytes(String vendor,
+                                    String version,
+                                    String os,
+                                    String arch) throws IOException {
+        var extension = os.equals("windows") ? "zip" : "tar.gz";
+        if (vendor.equals("adoptopenjdk")) {
+            try (var inputStream =
+                     JdkDownloadPluginFunctionalTest.class.getResourceAsStream(
+                        "/fake_artifacts/" +
+                        version + "/" +
+                        arch + "_" +
+                        os + "." +
+                        extension)) {
+                return inputStream.readAllBytes();
+            }
+        } else {
+            throw new IllegalArgumentException(vendor + " is not supported by the test setup");
+        }
     }
 
     private static File getTestKitProjectDir(String name) {

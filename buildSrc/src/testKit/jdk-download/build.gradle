@@ -1,11 +1,14 @@
-ext {
-    fakeJdkVendor = Objects.requireNonNull(System.getProperty('tests.jdk_vendor'))
-    fakeJdkVersion = Objects.requireNonNull(System.getProperty('tests.jdk_version'))
-}
+allprojects { p ->
+    ext {
+        fakeJdkVendor = Objects.requireNonNull(System.getProperty('tests.jdk_vendor'))
+        fakeJdkVersion = Objects.requireNonNull(System.getProperty('tests.jdk_version'))
+    }
 
-repositories {
-    flatDir {
-        name "jdk_repo_${fakeJdkVendor}_${fakeJdkVersion}"
-        dirs "${projectDir}/fake_repos/jdk_repo_${fakeJdkVendor}_${fakeJdkVersion}"
+    // wire the jdk repo to wiremock
+    def fakeJdkRepo = Objects.requireNonNull(System.getProperty('tests.jdk_repo'))
+    p.repositories.all { repo ->
+        if (repo.name == "jdk_repo_${fakeJdkVendor}_${fakeJdkVersion}") {
+            repo.setUrl("${fakeJdkRepo}")
+        }
     }
 }
