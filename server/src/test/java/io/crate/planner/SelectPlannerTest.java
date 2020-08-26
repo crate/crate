@@ -70,6 +70,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -115,6 +116,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.IGNORED_NESTED_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
+            .addPartitionedTable(
+                "create table doc.parted_by_generated (" +
+                "   ts timestamp without time zone, " +
+                "   p as date_trunc('month', ts) " +
+                ") partitioned by (p)",
+                new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1577836800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1580515200000")).asIndexName()
+            )
             .addTable(
                 "create table doc.gc_table (" +
                 "   revenue integer," +
@@ -1052,5 +1061,26 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "      └ Rename[b] AS a2\n" +
             "        └ Collect[doc.t2 | [b] | true]";
         assertThat(plan, isPlan(expectedPlan));
+    }
+
+    @Test
+    public void test_collect_execution_plan_is_narrowed_to_matching_generated_partition_columns() throws Exception {
+        String stmt = "SELECT * FROM parted_by_generated WHERE ts >= '2020-02-01'";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "Collect[doc.parted_by_generated | [ts, p AS date_trunc('month', ts)] | (ts >= 1580515200000::bigint)]";
+        assertThat(plan, isPlan(expectedPlan));
+
+        Collect collect = (Collect) ((Merge) e.plan(stmt)).subPlan();;
+        RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
+        Symbol where = routedCollectPhase.where();
+        assertThat(where, TestingHelpers.isSQL("(doc.parted_by_generated.ts >= 1580515200000::bigint)"));
+        assertThat(routedCollectPhase.routing().locations().values().stream()
+            .flatMap(x -> x.keySet().stream())
+            .collect(Collectors.toSet()),
+            contains(
+                ".partitioned.parted_by_generated.04732d9o60qj2d9i60o30c1g"
+            )
+        );
     }
 }
