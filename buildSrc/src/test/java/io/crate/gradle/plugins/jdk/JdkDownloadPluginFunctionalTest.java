@@ -85,6 +85,7 @@ public class JdkDownloadPluginFunctionalTest {
             assertThat("could not find jdk home in: " + result.getOutput(), matcher.find(), is(true));
             String jdkHome = matcher.group(1);
             Path javaPath = Paths.get(jdkHome, javaBin);
+            
             assertThat(javaPath.toString(), Files.exists(javaPath), is(true));
         }, vendor, version);
     }
