@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
@@ -228,14 +229,26 @@ public class Collect implements LogicalPlan {
     }
 
     private RoutedCollectPhase createPhase(PlannerContext plannerContext, java.util.function.Function<Symbol, Symbol> binder) {
-        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
+        WhereClause boundWhere = where.map(binder);
+        if (tableInfo instanceof DocTableInfo) {
+            DocTableInfo docTable = (DocTableInfo) tableInfo;
+            Symbol query = GeneratedColumnExpander.maybeExpand(
+                boundWhere.queryOrFallback(),
+                docTable.generatedColumns(),
+                Lists2.concat(docTable.partitionedByColumns(), Lists2.map(docTable.primaryKey(), docTable::getReference)),
+                plannerContext.nodeContext()
+            );
+            if (!query.equals(boundWhere.queryOrFallback())) {
+                boundWhere = new WhereClause(query, boundWhere.partitions(), boundWhere.clusteredBy());
+            }
+        }
 
         // bind all parameters and possible subQuery values and re-analyze the query
         // (could result in a NO_MATCH, routing could've changed, etc).
         // the <p>where</p> instance variable must be overwritten as the plan creation of outer operators relies on it
         // (e.g. GroupHashAggregate will build different plans based on the collect routing)
         where = WhereClauseAnalyzer.resolvePartitions(
-            where.map(binder),
+            boundWhere,
             relation,
             plannerContext.transactionContext(),
             plannerContext.nodeContext());
@@ -245,6 +258,7 @@ public class Collect implements LogicalPlan {
             throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
         }
 
+        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
         return new RoutedCollectPhase(
             plannerContext.jobId(),
