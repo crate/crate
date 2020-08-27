@@ -364,8 +364,8 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] c900795df87 Trim translog for closed indices (#43156)
 - [x] fd4eb96d1c2 Refactor IndexSearcherWrapper to disallow the wrapping of IndexSearcher (#43645)
 - [ ] f3317eb82d8 Add support for 'flattened object' fields. (#42541)
-- [ ] 6f5b3a6c71f Do not use MockInternalEngine in GatewayIndexStateIT (#43716)
-- [ ] 56ee1a5e007 Allow reloading of search time analyzers (#43313)
+- [x] 6f5b3a6c71f Do not use MockInternalEngine in GatewayIndexStateIT (#43716)
+- [s] 56ee1a5e007 Allow reloading of search time analyzers (#43313)
 - [x] 3a7ebb05d02 Avoid AssertionError when closing engine (#43638)
 - [s] a520a5d761b Add prefix intervals source (#43635)
 - [s] 1a7730160f0 Adjust bwc assertion after backporting #42201
