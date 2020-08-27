@@ -65,7 +65,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     }
 
     @Override
-    protected PutChunkResponse read(StreamInput in) throws IOException {
+    protected PutChunkResponse newResponseInstance(StreamInput in) throws IOException {
         return new PutChunkResponse(in);
     }
 

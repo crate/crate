@@ -100,7 +100,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     }
 
     @Override
-    protected ShardResponse read(StreamInput in) throws IOException {
+    protected ShardResponse newResponseInstance(StreamInput in) throws IOException {
         return new ShardResponse(in);
     }
 
