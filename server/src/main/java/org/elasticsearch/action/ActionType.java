@@ -26,14 +26,14 @@ import org.elasticsearch.transport.TransportResponse;
 /**
  * A generic action. Should strive to make it a singleton.
  */
-public abstract class ActionType<Response extends TransportResponse> {
+public class ActionType<Response extends TransportResponse> {
 
     private final String name;
 
     /**
      * @param name The name of the action, must be unique across actions.
      */
-    protected ActionType(String name) {
+    public ActionType(String name) {
         this.name = name;
     }
 
