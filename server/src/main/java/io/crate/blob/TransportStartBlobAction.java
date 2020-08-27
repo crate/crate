@@ -68,7 +68,7 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
     }
 
     @Override
-    protected StartBlobResponse read(StreamInput in) throws IOException {
+    protected StartBlobResponse newResponseInstance(StreamInput in) throws IOException {
         logger.trace("newResponseInstance");
         return new StartBlobResponse(in);
     }

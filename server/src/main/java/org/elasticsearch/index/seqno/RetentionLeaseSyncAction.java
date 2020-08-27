@@ -180,7 +180,7 @@ public class RetentionLeaseSyncAction extends
     }
 
     @Override
-    protected ReplicationResponse read(StreamInput in) throws IOException {
+    protected ReplicationResponse newResponseInstance(StreamInput in) throws IOException {
         return new ReplicationResponse(in);
     }
 }
