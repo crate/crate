@@ -356,7 +356,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] d87c9fdae44 Refresh translog stats after translog trimming in NoOpEngine (#43825)
 - [ ] d1c6fb865dd Convert replication calls from action.execute to nodeclient (#43834)
 - [ ] 3cc222ed1d3 Return reloaded analyzers in _reload_search_ananlyzer response (#43813)
-- [ ] 217b875e760 Remove sort by primary term when reading soft-deletes (#43845)
+- [x] 217b875e760 Remove sort by primary term when reading soft-deletes (#43845)
 - [x] 03c2b27c191 Expose translog stats in ReadOnlyEngine (#43752)
 - [s] b76d3143feb AsyncIOProcessor preserve thread context (#43729)
 - [x] b33ffc1ae06 Rename Action to ActionType (#43778)
