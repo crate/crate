@@ -11,6 +11,7 @@ pull_request_rules:
       - status-success=ci/jenkins/pr_tests
       - status-success~=^Test CrateDB SQL on ubuntu
       - status-success~=^Test CrateDB SQL on windows
+      - status-success=docs/readthedocs.org:crate
     name: default
   - actions:
       backport:
