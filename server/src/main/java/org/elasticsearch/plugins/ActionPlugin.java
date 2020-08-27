@@ -19,7 +19,7 @@
 
 package org.elasticsearch.plugins;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.common.Strings;
@@ -59,7 +59,7 @@ public interface ActionPlugin {
     }
 
     final class ActionHandler<Request extends TransportRequest, Response extends TransportResponse> {
-        private final Action<Response> action;
+        private final ActionType<Response> action;
         private final Class<? extends TransportAction<Request, Response>> transportAction;
         private final Class<?>[] supportTransportActions;
 
@@ -67,14 +67,14 @@ public interface ActionPlugin {
          * Create a record of an action, the {@linkplain TransportAction} that handles it, and any supporting {@linkplain TransportActions}
          * that are needed by that {@linkplain TransportAction}.
          */
-        public ActionHandler(Action<Response> action, Class<? extends TransportAction<Request, Response>> transportAction,
+        public ActionHandler(ActionType<Response> action, Class<? extends TransportAction<Request, Response>> transportAction,
                              Class<?>... supportTransportActions) {
             this.action = action;
             this.transportAction = transportAction;
             this.supportTransportActions = supportTransportActions;
         }
 
-        public Action<Response> getAction() {
+        public ActionType<Response> getAction() {
             return action;
         }
 

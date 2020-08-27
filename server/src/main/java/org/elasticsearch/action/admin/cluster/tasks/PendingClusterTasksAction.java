@@ -19,9 +19,9 @@
 
 package org.elasticsearch.action.admin.cluster.tasks;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ActionType;
 
-public class PendingClusterTasksAction extends Action<PendingClusterTasksResponse> {
+public class PendingClusterTasksAction extends ActionType<PendingClusterTasksResponse> {
 
     public static final PendingClusterTasksAction INSTANCE = new PendingClusterTasksAction();
     public static final String NAME = "cluster:monitor/task";

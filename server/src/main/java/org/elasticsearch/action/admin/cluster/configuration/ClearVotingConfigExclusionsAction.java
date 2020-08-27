@@ -19,11 +19,11 @@
 
 package org.elasticsearch.action.admin.cluster.configuration;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
-public class ClearVotingConfigExclusionsAction extends Action<ClearVotingConfigExclusionsResponse> {
+public class ClearVotingConfigExclusionsAction extends ActionType<ClearVotingConfigExclusionsResponse> {
 
     public static final ClearVotingConfigExclusionsAction INSTANCE = new ClearVotingConfigExclusionsAction();
     public static final String NAME = "cluster:admin/voting_config/clear_exclusions";
@@ -35,7 +35,7 @@ public class ClearVotingConfigExclusionsAction extends Action<ClearVotingConfigE
     static class ClearVotingConfigExclusionsRequestBuilder extends ActionRequestBuilder<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse> {
 
         ClearVotingConfigExclusionsRequestBuilder(ElasticsearchClient client,
-                                                  Action<ClearVotingConfigExclusionsResponse> action,
+                                                  ActionType<ClearVotingConfigExclusionsResponse> action,
                                                   ClearVotingConfigExclusionsRequest request) {
             super(client, action, request);
         }

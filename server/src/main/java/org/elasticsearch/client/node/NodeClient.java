@@ -21,7 +21,7 @@ package org.elasticsearch.client.node;
 
 import java.util.Map;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
@@ -37,13 +37,13 @@ import org.elasticsearch.transport.TransportResponse;
  */
 public class NodeClient extends AbstractClient {
 
-    private Map<Action, TransportAction> actions;
+    private Map<ActionType, TransportAction> actions;
 
     public NodeClient(Settings settings, ThreadPool threadPool) {
         super(settings, threadPool);
     }
 
-    public void initialize(Map<Action, TransportAction> actions) {
+    public void initialize(Map<ActionType, TransportAction> actions) {
         this.actions = actions;
     }
 
@@ -54,7 +54,7 @@ public class NodeClient extends AbstractClient {
 
     @Override
     public <Request extends TransportRequest,
-            Response extends TransportResponse> void doExecute(Action<Response> action,
+            Response extends TransportResponse> void doExecute(ActionType<Response> action,
                                                                Request request,
                                                                ActionListener<Response> listener) {
 
@@ -63,23 +63,23 @@ public class NodeClient extends AbstractClient {
     }
 
     /**
-     * Execute an {@link Action} locally, returning that {@link Task} used to track it, and linking an {@link ActionListener}. Prefer this
+     * Execute an {@link ActionType} locally, returning that {@link Task} used to track it, and linking an {@link ActionListener}. Prefer this
      * method if you don't need access to the task when listening for the response. This is the method used to implement the {@link Client}
      * interface.
      */
     public <Request extends TransportRequest,
-            Response extends TransportResponse> Task executeLocally(Action<Response> action,
+            Response extends TransportResponse> Task executeLocally(ActionType<Response> action,
                                                                     Request request,
                                                                     ActionListener<Response> listener) {
         return transportAction(action).execute(request, listener);
     }
 
     /**
-     * Get the {@link TransportAction} for an {@link Action}, throwing exceptions if the action isn't available.
+     * Get the {@link TransportAction} for an {@link ActionType}, throwing exceptions if the action isn't available.
      */
     @SuppressWarnings("unchecked")
     private <Request extends TransportRequest,
-             Response extends TransportResponse> TransportAction<Request, Response> transportAction(Action<Response> action) {
+             Response extends TransportResponse> TransportAction<Request, Response> transportAction(ActionType<Response> action) {
         if (actions == null) {
             throw new IllegalStateException("NodeClient has not been initialized");
         }
