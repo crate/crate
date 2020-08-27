@@ -78,34 +78,4 @@ Changes
 Fixes
 =====
 
-- Fixed a performance regression that caused ``SELECT`` statements on tables
-  with generated partitioned columns and a predicate that uses a column used to
-  compute the partitioned column to hit all partitions instead of only a
-  subset.
-
-- Fixed an issue that could lead to a ``IndexOutOfBoundsException`` when using
-  virtual tables and joins.
-
-- Fixed an issue that declared the rule optimizer settings as global. The
-  settings are now session local.
-
-- Fixed an issue that prevented the ``MATCH`` predicate from working in mixed
-  clusters running 4.1.8 and 4.2.
-
-- Fixed an issue that prevented user defined functions in a custom schema from
-  working if used in a generated column expression.
-
-- Fixed an issue that allowed users to use a function in a generated column
-  that didn't fully match the given arguments, leading to a subsequent runtime
-  failure when trying to access tables.
-
-- Fixed exposure of the full qualified name of a sub-script column in
-  `information_schema.tables.partitioned_by` and
-  `pg_catalog.pg_attribute.attname` to use the CrateDB SQL compatible identifier.
-
-- Fixed an issue that led to a ``Message not fully read`` error when trying to
-  decommission a node using ``ALTER CLUSTER DECOMMISSION``.
-
-- Fixed an issue that resulted in incorrect results when querying the
-  ``sys.nodes`` table. Predicates used in the ``WHERE`` clause on columns that
-  were absent in the select-list never matched.
+None
