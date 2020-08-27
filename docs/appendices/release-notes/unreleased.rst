@@ -78,4 +78,5 @@ Changes
 Fixes
 =====
 
-None
+- Fixed a performance regression that caused unnecessary traffic and load to
+  the active master node when processing ``INSERT`` statements.

@@ -700,8 +700,7 @@ public class InsertFromValues implements LogicalPlan {
         return throwable instanceof IndexNotFoundException && IndexParts.isPartitioned(index);
     }
 
-    private static CompletableFuture<AcknowledgedResponse> createIndices(TransportCreatePartitionsAction
-                                                                             createPartitionsAction,
+    private static CompletableFuture<AcknowledgedResponse> createIndices(TransportCreatePartitionsAction createPartitionsAction,
                                                                          Set<String> indices,
                                                                          ClusterService clusterService,
                                                                          UUID jobId) {
@@ -712,7 +711,9 @@ public class InsertFromValues implements LogicalPlan {
                 indicesToCreate.add(index);
             }
         }
-
+        if (indicesToCreate.isEmpty()) {
+            return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
+        }
         FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> listener = new FutureActionListener<>(r -> r);
         createPartitionsAction.execute(new CreatePartitionsRequest(indicesToCreate, jobId), listener);
         return listener;
