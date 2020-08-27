@@ -354,8 +354,8 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 00a5e5a42a3 Adapt version check after backport
 - [ ] e28fb1f0658 Fix index_prefix sub field name on nested text fields (#43862)
 - [ ] d87c9fdae44 Refresh translog stats after translog trimming in NoOpEngine (#43825)
-- [ ] d1c6fb865dd Convert replication calls from action.execute to nodeclient (#43834)
-- [ ] 3cc222ed1d3 Return reloaded analyzers in _reload_search_ananlyzer response (#43813)
+- [x] d1c6fb865dd Convert replication calls from action.execute to nodeclient (#43834)
+- [s] 3cc222ed1d3 Return reloaded analyzers in _reload_search_ananlyzer response (#43813)
 - [x] 217b875e760 Remove sort by primary term when reading soft-deletes (#43845)
 - [x] 03c2b27c191 Expose translog stats in ReadOnlyEngine (#43752)
 - [s] b76d3143feb AsyncIOProcessor preserve thread context (#43729)
