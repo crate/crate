@@ -19,7 +19,7 @@
 
 package org.elasticsearch.action.support.master;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 import io.crate.common.unit.TimeValue;
@@ -31,7 +31,7 @@ import org.elasticsearch.transport.TransportResponse;
 public abstract class MasterNodeOperationRequestBuilder<Request extends MasterNodeRequest<Request>, Response extends TransportResponse, RequestBuilder extends MasterNodeOperationRequestBuilder<Request, Response, RequestBuilder>>
         extends ActionRequestBuilder<Request, Response> {
 
-    protected MasterNodeOperationRequestBuilder(ElasticsearchClient client, Action<Response> action, Request request) {
+    protected MasterNodeOperationRequestBuilder(ElasticsearchClient client, ActionType<Response> action, Request request) {
         super(client, action, request);
     }
 
