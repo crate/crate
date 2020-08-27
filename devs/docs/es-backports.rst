@@ -349,10 +349,10 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] b842ea8a8ae Some Cleanup in o.e.i.shard (#44097)
 - [ ] d01d831a196 Removed writeTo from TransportResponse and ActionResponse (#44092)
 - [ ] 688cf832fe1 Enable indexing optimization using sequence numbers on replicas (#43616)
-- [ ] 819abe95233 Improve RetentionLease(Bgrd)SyncAction#toString() (#43987)
+- [x] 819abe95233 Improve RetentionLease(Bgrd)SyncAction#toString() (#43987)
 - [x] 399d53e5c03 Refactor index engines to manage readers instead of searchers (#43860)
-- [ ] 00a5e5a42a3 Adapt version check after backport
-- [ ] e28fb1f0658 Fix index_prefix sub field name on nested text fields (#43862)
+- [s] 00a5e5a42a3 Adapt version check after backport
+- [d] e28fb1f0658 Fix index_prefix sub field name on nested text fields (#43862)
 - [x] d87c9fdae44 Refresh translog stats after translog trimming in NoOpEngine (#43825)
 - [x] d1c6fb865dd Convert replication calls from action.execute to nodeclient (#43834)
 - [s] 3cc222ed1d3 Return reloaded analyzers in _reload_search_ananlyzer response (#43813)
