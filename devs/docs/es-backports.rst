@@ -353,7 +353,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [x] 399d53e5c03 Refactor index engines to manage readers instead of searchers (#43860)
 - [ ] 00a5e5a42a3 Adapt version check after backport
 - [ ] e28fb1f0658 Fix index_prefix sub field name on nested text fields (#43862)
-- [ ] d87c9fdae44 Refresh translog stats after translog trimming in NoOpEngine (#43825)
+- [x] d87c9fdae44 Refresh translog stats after translog trimming in NoOpEngine (#43825)
 - [x] d1c6fb865dd Convert replication calls from action.execute to nodeclient (#43834)
 - [s] 3cc222ed1d3 Return reloaded analyzers in _reload_search_ananlyzer response (#43813)
 - [x] 217b875e760 Remove sort by primary term when reading soft-deletes (#43845)
