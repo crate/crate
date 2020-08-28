@@ -28,6 +28,7 @@ import io.crate.action.sql.Session;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -138,7 +139,7 @@ public class TableHealthService {
             .iterator();
     }
 
-
+    @Nullable
     private TableHealth tableHealthFromEntry(Map.Entry<TablePartitionIdent, ShardsInfo> entry) {
         TablePartitionIdent ident = entry.getKey();
         ShardsInfo shardsInfo = entry.getValue();
@@ -149,7 +150,21 @@ public class TableHealthService {
         } catch (RelationUnknown e) {
             return null;
         }
-        return calculateHealth(ident, shardsInfo, tableInfo.numberOfShards());
+        int shardsCount = tableInfo.numberOfShards();
+        if (ident.partitionIdent != null) {
+            var partitionIndexName = IndexParts.toIndexName(
+                ident.tableSchema,
+                ident.tableName,
+                ident.partitionIdent
+            );
+            var indexMetaData = clusterService.state().getMetadata().index(partitionIndexName);
+            if (indexMetaData == null) {
+                return null;
+            }
+            shardsCount = indexMetaData.getNumberOfShards();
+        }
+
+        return calculateHealth(ident, shardsInfo, shardsCount);
     }
 
     @VisibleForTesting

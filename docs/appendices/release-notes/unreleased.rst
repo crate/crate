@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Fixed an issue resulting wrongly in a `RED` ``sys.health.health`` state for
+  healthy partitions with less shards configured than the actual partitioned
+  table.
+
 - Fixed the resulting value for ``sys.health.partition_ident`` for
   non-partitioned tables. As documented, a `NULL` value should be returned
   instead of an empty string.
