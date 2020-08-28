@@ -19,17 +19,6 @@
 
 package org.elasticsearch.index.shard;
 
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Assertions;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.CheckedRunnable;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.threadpool.ThreadPool;
-
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,6 +30,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Assertions;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRunnable;
+import org.elasticsearch.common.CheckedRunnable;
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.IOUtils;
 
 /**
  * Tracks shard operation permits. Each operation on the shard obtains a permit. When we need to block operations (e.g., to transition
@@ -256,11 +258,26 @@ final class IndexShardOperationPermits implements Closeable {
                 if (queuedBlockOperations > 0) {
                     final ActionListener<Releasable> wrappedListener;
                     if (executorOnDelay != null) {
-                        wrappedListener = new PermitAwareThreadedActionListener(
-                            threadPool,
-                            executorOnDelay,
+                        wrappedListener = ActionListener.delegateFailure(
                             onAcquired,
-                            forceExecution
+                            (l, r) -> threadPool.executor(executorOnDelay).execute(new ActionRunnable<>(l) {
+
+                                @Override
+                                public boolean isForceExecution() {
+                                    return forceExecution;
+                                }
+
+                                @Override
+                                protected void doRun() {
+                                    listener.onResponse(r);
+                                }
+
+                                @Override
+                                public void onRejection(Exception e) {
+                                    IOUtils.closeWhileHandlingException(r);
+                                    super.onRejection(e);
+                                }
+                            })
                         );
                     } else {
                         wrappedListener = onAcquired;
@@ -347,57 +364,4 @@ final class IndexShardOperationPermits implements Closeable {
             }
         }
     }
-
-    /**
-     * A permit-aware action listener wrapper that spawns onResponse listener invocations off on a configurable thread-pool.
-     * Being permit-aware, it also releases the permit when hitting thread-pool rejections and falls back to the
-     * invoker's thread to communicate failures.
-     */
-    private static class PermitAwareThreadedActionListener implements ActionListener<Releasable> {
-
-        private final ThreadPool threadPool;
-        private final String executor;
-        private final ActionListener<Releasable> listener;
-        private final boolean forceExecution;
-
-        private PermitAwareThreadedActionListener(ThreadPool threadPool, String executor, ActionListener<Releasable> listener,
-                                                  boolean forceExecution) {
-            this.threadPool = threadPool;
-            this.executor = executor;
-            this.listener = listener;
-            this.forceExecution = forceExecution;
-        }
-
-        @Override
-        public void onResponse(final Releasable releasable) {
-            threadPool.executor(executor).execute(new AbstractRunnable() {
-                @Override
-                public boolean isForceExecution() {
-                    return forceExecution;
-                }
-
-                @Override
-                protected void doRun() throws Exception {
-                    listener.onResponse(releasable);
-                }
-
-                @Override
-                public void onRejection(Exception e) {
-                    IOUtils.closeWhileHandlingException(releasable);
-                    super.onRejection(e);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    listener.onFailure(e); // will possibly execute on the caller thread
-                }
-            });
-        }
-
-        @Override
-        public void onFailure(final Exception e) {
-            listener.onFailure(e);
-        }
-    }
-
 }

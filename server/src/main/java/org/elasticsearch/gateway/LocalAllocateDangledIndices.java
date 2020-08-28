@@ -19,10 +19,16 @@
 
 package org.elasticsearch.gateway;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlocks;
@@ -40,16 +46,10 @@ import org.elasticsearch.discovery.MasterNotDiscoveredException;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
-import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
 
 public class LocalAllocateDangledIndices {
 
@@ -79,7 +79,7 @@ public class LocalAllocateDangledIndices {
             new AllocateDangledRequestHandler());
     }
 
-    public void allocateDangled(Collection<IndexMetadata> indices, final Listener listener) {
+    public void allocateDangled(Collection<IndexMetadata> indices, final ActionListener<AllocateDangledResponse> listener) {
         ClusterState clusterState = clusterService.state();
         DiscoveryNode masterNode = clusterState.nodes().getMasterNode();
         if (masterNode == null) {
@@ -88,33 +88,12 @@ public class LocalAllocateDangledIndices {
         }
         AllocateDangledRequest request = new AllocateDangledRequest(clusterService.localNode(),
             indices.toArray(new IndexMetadata[indices.size()]));
-        transportService.sendRequest(masterNode, ACTION_NAME, request, new TransportResponseHandler<AllocateDangledResponse>() {
-            @Override
-            public AllocateDangledResponse read(StreamInput in) throws IOException {
-                return new AllocateDangledResponse(in);
-            }
-
-            @Override
-            public void handleResponse(AllocateDangledResponse response) {
-                listener.onResponse(response);
-            }
-
-            @Override
-            public void handleException(TransportException exp) {
-                listener.onFailure(exp);
-            }
-
-            @Override
-            public String executor() {
-                return ThreadPool.Names.SAME;
-            }
-        });
-    }
-
-    public interface Listener {
-        void onResponse(AllocateDangledResponse response);
-
-        void onFailure(Throwable e);
+        transportService.sendRequest(
+            masterNode,
+            ACTION_NAME,
+            request,
+            new ActionListenerResponseHandler<>(listener, AllocateDangledResponse::new, ThreadPool.Names.SAME)
+        );
     }
 
     class AllocateDangledRequestHandler implements TransportRequestHandler<AllocateDangledRequest> {
@@ -249,10 +228,6 @@ public class LocalAllocateDangledIndices {
 
         AllocateDangledResponse(boolean ack) {
             this.ack = ack;
-        }
-
-        public boolean ack() {
-            return ack;
         }
 
         public AllocateDangledResponse(StreamInput in) throws IOException {
