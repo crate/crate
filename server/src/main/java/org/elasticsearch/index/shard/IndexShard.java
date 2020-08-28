@@ -807,7 +807,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     public Engine.IndexResult getFailedIndexResult(Exception e, long version) {
-        return new Engine.IndexResult(e, version, getOperationPrimaryTerm());
+        return new Engine.IndexResult(e, version);
     }
 
     public Engine.DeleteResult applyDeleteOperationOnPrimary(long version,
