@@ -66,9 +66,8 @@ public class DocumentMapperParser {
         indexVersionCreated = indexSettings.getIndexVersionCreated();
     }
 
-    public Mapper.TypeParser.ParserContext parserContext(String type) {
+    public Mapper.TypeParser.ParserContext parserContext() {
         return new Mapper.TypeParser.ParserContext(
-            type,
             mapperService,
             typeParsers::get,
             indexVersionCreated,
@@ -96,7 +95,7 @@ public class DocumentMapperParser {
             throw new MapperParsingException("Failed to derive type");
         }
 
-        Mapper.TypeParser.ParserContext parserContext = parserContext(type);
+        Mapper.TypeParser.ParserContext parserContext = parserContext();
         // parse RootObjectMapper
         DocumentMapper.Builder docBuilder = new DocumentMapper.Builder(
                 (RootObjectMapper.Builder) rootObjectTypeParser.parse(type, mapping, parserContext), mapperService);
