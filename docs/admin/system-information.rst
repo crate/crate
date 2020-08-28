@@ -1785,8 +1785,8 @@ because there are not enough eligible nodes available.
     +--------+----------------+-----------------+----------+------------+--------------+------------------------+
     | health | missing_shards | partition_ident | severity | table_name | table_schema | underreplicated_shards |
     +--------+----------------+-----------------+----------+------------+--------------+------------------------+
-    | GREEN  |              0 |                 |        1 | locations  | doc          |                      0 |
-    | GREEN  |              0 |                 |        1 | quotes     | doc          |                      0 |
+    | GREEN  |              0 |            NULL |        1 | locations  | doc          |                      0 |
+    | GREEN  |              0 |            NULL |        1 | quotes     | doc          |                      0 |
     +--------+----------------+-----------------+----------+------------+--------------+------------------------+
     SELECT 2 rows in set (... sec)
 
