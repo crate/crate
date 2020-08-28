@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.exceptions.DuplicateKeyException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -74,6 +75,8 @@ public class PGError {
             status = PGErrorStatus.FEATURE_NOT_SUPPORTED;
         } else if (throwable instanceof DuplicateKeyException) {
             status = PGErrorStatus.UNIQUE_VIOLATION;
+        } else if (throwable instanceof RelationUnknown) {
+            status = PGErrorStatus.UNDEFINED_TABLE;
         }
         return new PGError(status, SQLExceptions.messageOf(throwable), throwable);
     }

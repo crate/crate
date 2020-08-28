@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -89,7 +90,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
         assertThrows(() -> execute("select count(race), suess.cluster.name from characters"),
-            isSQLError(is("Relation 'suess.cluster' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
+            isSQLError(is("Relation 'suess.cluster' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
     @Test
@@ -196,7 +197,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
         assertThrows(() -> execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"}),
-                     isSQLError(is("Relation 'non_existent' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
+                     isSQLError(is("Relation 'non_existent' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
     @Test

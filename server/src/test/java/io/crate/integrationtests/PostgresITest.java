@@ -62,6 +62,7 @@ import java.util.StringJoiner;
 import java.util.UUID;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isPGError;
@@ -726,7 +727,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             conn.createStatement().execute("set session search_path to DEFAULT");
             assertThrows(() -> conn.createStatement().execute("select * from foo"),
-                         isPGError(is("Relation 'foo' unknown"), INTERNAL_ERROR));
+                         isPGError(is("Relation 'foo' unknown"), UNDEFINED_TABLE));
         }
     }
 
