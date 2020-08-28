@@ -5296,7 +5296,7 @@ public class InternalEngineTests extends EngineTestCase {
                                                   NoMergePolicy.INSTANCE,
                                                   indexWriterFactory)) {
             final ParsedDocument doc = testParsedDocument("1", null, testDocumentWithTextField(), SOURCE, null);
-            Engine.Operation.Origin origin = randomFrom(REPLICA, LOCAL_RESET);
+            Engine.Operation.Origin origin = randomFrom(REPLICA, LOCAL_RESET, PEER_RECOVERY);
             Engine.Index index = new Engine.Index(
                 newUid(doc),
                 doc,

@@ -725,10 +725,15 @@ public abstract class IndexShardTestCase extends ESTestCase {
             inSyncIds,
             routingTable
         );
-        PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
-        recovery.recoverToTarget(future);
-        future.actionGet();
-        recoveryTarget.markAsDone();
+        try {
+            PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
+            recovery.recoverToTarget(future);
+            future.actionGet();
+            recoveryTarget.markAsDone();
+        } catch (Exception e) {
+            recoveryTarget.fail(new RecoveryFailedException(request, e), false);
+            throw e;
+        }
     }
 
     protected void startReplicaAfterRecovery(IndexShard replica, IndexShard primary, Set<String> inSyncIds,
