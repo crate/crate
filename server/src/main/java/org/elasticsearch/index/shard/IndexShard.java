@@ -1465,11 +1465,20 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             : "expected empty set of retention leases with recovery source [" + recoveryState.getRecoverySource()
             + "] but got " + getRetentionLeases();
 
-        createNewEngine(config);
-        verifyNotClosed();
-        // We set active because we are now writing operations to the engine; this way, if we go idle after some time and become inactive,
-        // we still give sync'd flush a chance to run:
-        active.set(true);
+        synchronized (mutex) {
+            verifyNotClosed();
+            assert currentEngineReference.get() == null : "engine is running";
+            // we must create a new engine under mutex (see IndexShard#snapshotStoreMetadata).
+            final Engine newEngine = engineFactory.newReadWriteEngine(config);
+            onNewEngine(newEngine);
+            currentEngineReference.set(newEngine);
+            // We set active because we are now writing operations to the engine; this way,
+            // if we go idle after some time and become inactive, we still give sync'd flush a chance to run.
+            active.set(true);
+        }
+        // time elapses after the engine is created above (pulling the config settings) until we set the engine reference, during
+        // which settings changes could possibly have happened, so here we forcefully push any config changes to the new engine.
+        onSettingsChanged();
         assert assertSequenceNumbersInCommit();
         assert recoveryState.getStage() == RecoveryState.Stage.TRANSLOG : "TRANSLOG stage expected but was: " + recoveryState.getStage();
     }
@@ -2435,31 +2444,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 }
             }
         }
-    }
-
-    private Engine createNewEngine(EngineConfig config) {
-        synchronized (mutex) {
-            verifyNotClosed();
-            assert this.currentEngineReference.get() == null;
-            Engine engine = newEngine(config);
-            onNewEngine(engine); // call this before we pass the memory barrier otherwise actions that happen
-            // inside the callback are not visible. This one enforces happens-before
-            this.currentEngineReference.set(engine);
-        }
-
-        // time elapses after the engine is created above (pulling the config settings) until we set the engine reference, during which
-        // settings changes could possibly have happened, so here we forcefully push any config changes to the new engine:
-        Engine engine = getEngineOrNull();
-
-        // engine could perhaps be null if we were e.g. concurrently closed:
-        if (engine != null) {
-            engine.onSettingsChanged();
-        }
-        return engine;
-    }
-
-    protected Engine newEngine(EngineConfig config) {
-        return engineFactory.newReadWriteEngine(config);
     }
 
     private static void persistMetadata(
