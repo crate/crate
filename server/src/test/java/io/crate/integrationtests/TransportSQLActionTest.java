@@ -47,6 +47,7 @@ import java.util.UUID;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -1526,7 +1527,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String stmtStrWhere = "select ''" + uniqueId + "'' from foobar";
         assertThrows(() -> execute(stmtStr),
                      isSQLError(containsString("Relation 'foobar' unknown"),
-                                INTERNAL_ERROR,
+                                UNDEFINED_TABLE,
                                 NOT_FOUND,
                                 4041));
         execute("select stmt from sys.jobs where stmt='" + stmtStrWhere + "'");

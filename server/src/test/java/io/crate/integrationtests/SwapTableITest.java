@@ -25,7 +25,7 @@ package io.crate.integrationtests;
 import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -59,7 +59,7 @@ public class SwapTableITest extends SQLTransportIntegrationTest {
 
         assertThrows(() ->  execute("select * from t1"),
                      isSQLError(containsString("Relation 't1' unknown"),
-                                INTERNAL_ERROR,
+                                UNDEFINED_TABLE,
                                 NOT_FOUND,
                                 4041));
     }

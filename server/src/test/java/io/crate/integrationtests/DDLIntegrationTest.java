@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -684,7 +685,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropUnknownTable() throws Exception {
         assertThrows(() -> execute("drop table test"),
-                     isSQLError(is("Relation 'test' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
+                     isSQLError(is("Relation 'test' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
     @Test

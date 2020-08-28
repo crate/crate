@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
@@ -318,7 +319,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     public void testSelectShardIdFromSysNodes() throws Exception {
         assertThrows(() -> execute(
             "select sys.shards.id from sys.nodes"),
-                     isSQLError(is("Relation 'sys.shards' unknown"), INTERNAL_ERROR, NOT_FOUND, 4041));
+                     isSQLError(is("Relation 'sys.shards' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
     @Test
