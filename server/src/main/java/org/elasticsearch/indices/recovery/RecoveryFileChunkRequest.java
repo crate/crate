@@ -76,10 +76,6 @@ public final class RecoveryFileChunkRequest extends TransportRequest {
         return position;
     }
 
-    public String checksum() {
-        return metadata.checksum();
-    }
-
     public long length() {
         return metadata.length();
     }
