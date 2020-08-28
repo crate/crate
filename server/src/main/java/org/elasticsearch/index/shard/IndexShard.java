@@ -358,11 +358,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final ShardRouting currentRouting;
         synchronized (mutex) {
             currentRouting = this.shardRouting;
+            assert currentRouting != null : "shardRouting must not be null";
 
             if (!newRouting.shardId().equals(shardId())) {
                 throw new IllegalArgumentException("Trying to set a routing entry with shardId " + newRouting.shardId() + " on a shard with shardId " + shardId());
             }
-            if (currentRouting == null || newRouting.isSameAllocation(currentRouting) == false) {
+            if (newRouting.isSameAllocation(currentRouting) == false) {
                 throw new IllegalArgumentException("Trying to set a routing entry with a different allocation. Current " + currentRouting + ", new " + newRouting);
             }
             if (currentRouting.primary() && newRouting.primary() == false) {
@@ -551,8 +552,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public void relocated(final String targetAllocationId,
                           final Consumer<ReplicationTracker.PrimaryContext> consumer) throws IllegalIndexShardStateException, IllegalStateException, InterruptedException {
         assert shardRouting.primary() : "only primaries can be marked as relocated: " + shardRouting;
-        final Releasable forceRefreshes = refreshListeners.forceRefreshes();
-        try {
+        try (Releasable forceRefreshes = refreshListeners.forceRefreshes()) {
             indexShardOperationPermits.blockOperations(30, TimeUnit.MINUTES, () -> {
                 forceRefreshes.close();
 
@@ -586,8 +586,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             // Fail primary relocation source and target shards.
             failShard("timed out waiting for relocation hand-off to complete", null);
             throw new IndexShardClosedException(shardId(), "timed out waiting for relocation hand-off to complete");
-        } finally {
-            forceRefreshes.close();
         }
     }
 
@@ -1472,7 +1470,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         // We set active because we are now writing operations to the engine; this way, if we go idle after some time and become inactive,
         // we still give sync'd flush a chance to run:
         active.set(true);
-        assertSequenceNumbersInCommit();
+        assert assertSequenceNumbersInCommit();
         assert recoveryState.getStage() == RecoveryState.Stage.TRANSLOG : "TRANSLOG stage expected but was: " + recoveryState.getStage();
     }
 
@@ -1491,7 +1489,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return true;
     }
 
-    protected void onNewEngine(Engine newEngine) {
+    private void onNewEngine(Engine newEngine) {
         refreshListeners.setCurrentRefreshLocationSupplier(newEngine::getTranslogLastWriteLocation);
     }
 
@@ -1793,10 +1791,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public List<Segment> segments(boolean verbose) {
         return getEngine().segments(verbose);
-    }
-
-    public void flushAndCloseEngine() throws IOException {
-        getEngine().flushAndClose();
     }
 
     public String getHistoryUUID() {

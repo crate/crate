@@ -99,7 +99,7 @@ final class StoreRecovery {
         return false;
     }
 
-    boolean recoverFromLocalShards(BiConsumer<String, MappingMetadata> mappingUpdateConsumer, final IndexShard indexShard, final List<LocalShardSnapshot> shards) throws IOException {
+    boolean recoverFromLocalShards(BiConsumer<String, MappingMetadata> mappingUpdateConsumer, final IndexShard indexShard, final List<LocalShardSnapshot> shards) {
         if (canRecover(indexShard)) {
             RecoverySource.Type recoveryType = indexShard.recoveryState().getRecoverySource().getType();
             assert
@@ -399,12 +399,7 @@ final class StoreRecovery {
             recoveryState.getIndex().updateVersion(version);
             if (recoveryState.getRecoverySource().getType() == RecoverySource.Type.LOCAL_SHARDS) {
                 assert indexShouldExists;
-                store.bootstrapNewHistory();
-                final SegmentInfos segmentInfos = store.readLastCommittedSegmentsInfo();
-                final long localCheckpoint = Long.parseLong(segmentInfos.userData.get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));
-                final String translogUUID = Translog.createEmptyTranslog(
-                    indexShard.shardPath().resolveTranslog(), localCheckpoint, shardId, indexShard.getPendingPrimaryTerm());
-                store.associateIndexWithNewTranslog(translogUUID);
+                bootstrap(indexShard, store);
                 writeEmptyRetentionLeasesFile(indexShard);
             } else if (indexShouldExists) {
                 if (recoveryState.getRecoverySource().shouldBootstrapNewHistoryUUID()) {
@@ -477,12 +472,7 @@ final class StoreRecovery {
             repository.restoreShard(indexShard.store(), restoreSource.snapshot().getSnapshotId(),
                                     restoreSource.version(), indexId, snapshotShardId, indexShard.recoveryState());
             final Store store = indexShard.store();
-            store.bootstrapNewHistory();
-            final SegmentInfos segmentInfos = store.readLastCommittedSegmentsInfo();
-            final long localCheckpoint = Long.parseLong(segmentInfos.userData.get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));
-            final String translogUUID = Translog.createEmptyTranslog(
-                indexShard.shardPath().resolveTranslog(), localCheckpoint, shardId, indexShard.getPendingPrimaryTerm());
-            store.associateIndexWithNewTranslog(translogUUID);
+            bootstrap(indexShard, store);
             assert indexShard.shardRouting.primary() : "only primary shards can recover from store";
             writeEmptyRetentionLeasesFile(indexShard);
             indexShard.openEngineAndRecoverFromTranslog();
@@ -494,4 +484,12 @@ final class StoreRecovery {
         }
     }
 
+    private void bootstrap(final IndexShard indexShard, final Store store) throws IOException {
+        store.bootstrapNewHistory();
+        final SegmentInfos segmentInfos = store.readLastCommittedSegmentsInfo();
+        final long localCheckpoint = Long.parseLong(segmentInfos.userData.get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));
+        final String translogUUID = Translog.createEmptyTranslog(
+            indexShard.shardPath().resolveTranslog(), localCheckpoint, shardId, indexShard.getPendingPrimaryTerm());
+        store.associateIndexWithNewTranslog(translogUUID);
+    }
 }
