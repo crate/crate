@@ -326,7 +326,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 192845be8df Cleanup Various Action- Listener and Runnable Usages (#42273)
 - [ ] b07310022d2 [SPATIAL] New ShapeFieldMapper for indexing cartesian geometries (#44980)
 - [ ] 7e627d27e5c Geo: move indexShape to AbstractGeometryFieldMapper.Indexer (#44979)
-- [ ] 0b9b91a63c1 Remove leniency during replay translog in peer recovery (#44989)
+- [x] 0b9b91a63c1 Remove leniency during replay translog in peer recovery (#44989)
 - [x] c9049cfca14 Remove leniency in reset engine from translog (#44711)
 - [d] 94b684630c8 [GEO] Refactor DeprecatedParameters in AbstractGeometryFieldMapper (#44923)
 - [x] 690136327fe Cleanup Deadcode o.e.indices (#44931)
