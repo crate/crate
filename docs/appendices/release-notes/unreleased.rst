@@ -51,6 +51,9 @@ Breaking Changes
 Changes
 =======
 
+- Changed the error code for the psql protocol when a document exists
+  already from `XX000` `internal_error` to `23505` `unique_violation`.
+
 - Added scalar function :ref:`pg_function_is_visible <pg_function_is_visible>`.
 
 - Added the ``read_only_allow_delete`` setting to the ``settings['blocks']``

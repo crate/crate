@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.exceptions.DuplicateKeyException;
 import io.crate.exceptions.SQLExceptions;
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -71,6 +72,8 @@ public class PGError {
         var status = PGErrorStatus.INTERNAL_ERROR;
         if (throwable instanceof IllegalArgumentException || throwable instanceof UnsupportedOperationException) {
             status = PGErrorStatus.FEATURE_NOT_SUPPORTED;
+        } else if (throwable instanceof DuplicateKeyException) {
+            status = PGErrorStatus.UNIQUE_VIOLATION;
         }
         return new PGError(status, SQLExceptions.messageOf(throwable), throwable);
     }
