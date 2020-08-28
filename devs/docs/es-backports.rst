@@ -322,7 +322,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 302d29c8705 Trim local translog in peer recovery (#44756)
 - [ ] 01287eacb2f Use index for peer recovery instead of translog (#45136)
 - [ ] 48d31194c25 Always use primary term of operation in InternalEngine (#45083)
-- [ ] 0a6adceaa36 Use IndicesModule named writables in elasticsearch-shard tool (#45036)
+- [x] 0a6adceaa36 Use IndicesModule named writables in elasticsearch-shard tool (#45036)
 - [x] 192845be8df Cleanup Various Action- Listener and Runnable Usages (#42273)
 - [d] b07310022d2 [SPATIAL] New ShapeFieldMapper for indexing cartesian geometries (#44980)
 - [d] 7e627d27e5c Geo: move indexShape to AbstractGeometryFieldMapper.Indexer (#44979)
