@@ -62,10 +62,15 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
     }
 
     private static PartitionInfo createPartitionInfo(ObjectObjectCursor<String, IndexMetadata> indexMetadataEntry) {
-        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexMetadataEntry.key);
+        var indexName = indexMetadataEntry.key;
+        var indexMetadata = indexMetadataEntry.value;
+        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
         try {
-            IndexMetadata indexMetadata = indexMetadataEntry.value;
             MappingMetadata mappingMetadata = indexMetadata.mapping(Constants.DEFAULT_MAPPING_TYPE);
+            if (mappingMetadata == null) {
+                LOGGER.trace("Cannot resolve mapping definition of index {}", indexName);
+                return null;
+            }
             Map<String, Object> mappingMap = mappingMetadata.sourceAsMap();
             Map<String, Object> valuesMap = buildValuesMap(partitionName, mappingMetadata);
             Settings settings = indexMetadata.getSettings();
@@ -80,7 +85,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                     valuesMap,
                     indexMetadata.getSettings());
         } catch (Exception e) {
-            LOGGER.trace("error extracting partition infos from index {}", e, indexMetadataEntry.key);
+            LOGGER.trace("error extracting partition infos from index " + indexMetadata, e);
             return null; // must filter on null
         }
     }
