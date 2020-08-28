@@ -44,8 +44,8 @@ public class SysHealthITest extends SQLTransportIntegrationTest {
         execute("create table doc.t3 (id int) with(number_of_replicas=0)");
 
         execute("select * from sys.health order by severity desc");
-        assertThat(printedTable(response.rows()), is("RED| 2| | 3| t1| doc| 0\n" +
-                                                     "YELLOW| 0| | 2| t2| doc| 4\n" +
-                                                     "GREEN| 0| | 1| t3| doc| 0\n"));
+        assertThat(printedTable(response.rows()), is("RED| 2| NULL| 3| t1| doc| 0\n" +
+                                                     "YELLOW| 0| NULL| 2| t2| doc| 4\n" +
+                                                     "GREEN| 0| NULL| 1| t3| doc| 0\n"));
     }
 }

@@ -54,5 +54,9 @@ None
 Fixes
 =====
 
+- Fixed the resulting value for ``sys.health.partition_ident`` for
+  non-partitioned tables. As documented, a `NULL` value should be returned
+  instead of an empty string.
+
 - Fixed a performance regression that caused unnecessary traffic and load to
   the active master node when processing ``INSERT`` statements.

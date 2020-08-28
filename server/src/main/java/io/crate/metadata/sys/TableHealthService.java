@@ -204,8 +204,9 @@ public class TableHealthService {
 
         @Override
         public void setNextRow(Row row) {
+            var partitionIdent = (String) row.get(2);
             TablePartitionIdent ident = new TablePartitionIdent(
-                (String) row.get(0), (String) row.get(1), (String) row.get(2));
+                (String) row.get(0), (String) row.get(1), partitionIdent.isEmpty() ? null : partitionIdent);
             ShardsInfo shardsInfo = tables.getOrDefault(ident, new ShardsInfo());
             String routingState = (String) row.get(3);
             boolean primary = (boolean) row.get(4);
