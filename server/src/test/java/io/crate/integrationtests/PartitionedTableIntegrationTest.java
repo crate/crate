@@ -28,6 +28,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
@@ -66,6 +67,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -432,7 +434,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThrows(() -> execute("insert into parted (id, name, date) values (?, ?, ?)",
                                    new Object[]{42, "Zaphod", 0L}),
                      isSQLError(is("A document with the same primary key exists already"),
-                         INTERNAL_ERROR,
+                         UNIQUE_VIOLATION,
                          CONFLICT,
                          4091));
     }
