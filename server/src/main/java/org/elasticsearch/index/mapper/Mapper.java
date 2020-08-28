@@ -77,8 +77,6 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
         class ParserContext {
 
-            private final String type;
-
             private final MapperService mapperService;
 
             private final Function<String, TypeParser> typeParsers;
@@ -87,20 +85,14 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
             private final Supplier<QueryShardContext> queryShardContextSupplier;
 
-            public ParserContext(String type,
-                                 MapperService mapperService,
+            public ParserContext(MapperService mapperService,
                                  Function<String, TypeParser> typeParsers,
                                  Version indexVersionCreated,
                                  Supplier<QueryShardContext> queryShardContextSupplier) {
-                this.type = type;
                 this.mapperService = mapperService;
                 this.typeParsers = typeParsers;
                 this.indexVersionCreated = indexVersionCreated;
                 this.queryShardContextSupplier = queryShardContextSupplier;
-            }
-
-            public String type() {
-                return type;
             }
 
             public IndexAnalyzers getIndexAnalyzers() {
