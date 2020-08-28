@@ -23,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
@@ -30,14 +31,13 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import io.crate.common.io.IOUtils;
 import org.elasticsearch.discovery.PeerFinder.TransportAddressConnector;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ConnectionProfile;
-import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportRequestOptions.Type;
 import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.transport.Transport.Connection;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
@@ -67,7 +67,8 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
 
     @Override
     public void connectToRemoteMasterNode(TransportAddress transportAddress, ActionListener<DiscoveryNode> listener) {
-        transportService.getThreadPool().generic().execute(new AbstractRunnable() {
+        transportService.getThreadPool().generic().execute(new ActionRunnable<>(listener) {
+
             @Override
             protected void doRun() throws Exception {
 
@@ -106,11 +107,6 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                     LOGGER.trace("[{}] full connection successful: {}", this, remoteNode);
                     listener.onResponse(remoteNode);
                 }
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                listener.onFailure(e);
             }
 
             @Override
