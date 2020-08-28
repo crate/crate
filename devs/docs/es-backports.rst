@@ -348,7 +348,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 23b8185fdc9 Convert ReplicationResponse to Writeable (#43953)
 - [ ] b842ea8a8ae Some Cleanup in o.e.i.shard (#44097)
 - [ ] d01d831a196 Removed writeTo from TransportResponse and ActionResponse (#44092)
-- [ ] 688cf832fe1 Enable indexing optimization using sequence numbers on replicas (#43616)
+- [x] 688cf832fe1 Enable indexing optimization using sequence numbers on replicas (#43616)
 - [x] 819abe95233 Improve RetentionLease(Bgrd)SyncAction#toString() (#43987)
 - [x] 399d53e5c03 Refactor index engines to manage readers instead of searchers (#43860)
 - [s] 00a5e5a42a3 Adapt version check after backport
