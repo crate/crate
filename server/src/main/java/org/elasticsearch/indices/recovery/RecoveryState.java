@@ -655,20 +655,17 @@ public class RecoveryState implements ToXContentFragment, Writeable {
 
         private final Map<String, File> fileDetails = new HashMap<>();
 
-        private long version;
         private long sourceThrottlingInNanos;
         private long targetThrottleTimeInNanos;
 
         public Index() {
             super();
-            version = UNKNOWN;
             sourceThrottlingInNanos = UNKNOWN;
             targetThrottleTimeInNanos = UNKNOWN;
         }
 
         public synchronized void reset() {
             super.reset();
-            version = UNKNOWN;
             fileDetails.clear();
             sourceThrottlingInNanos = UNKNOWN;
             targetThrottleTimeInNanos = UNKNOWN;
@@ -683,10 +680,6 @@ public class RecoveryState implements ToXContentFragment, Writeable {
         public synchronized void addRecoveredBytesToFile(String name, long bytes) {
             File file = fileDetails.get(name);
             file.addRecoveredBytes(bytes);
-        }
-
-        public synchronized long version() {
-            return this.version;
         }
 
         public synchronized void addSourceThrottling(long timeInNanos) {
@@ -820,10 +813,6 @@ public class RecoveryState implements ToXContentFragment, Writeable {
                 }
             }
             return reused;
-        }
-
-        public synchronized void updateVersion(long version) {
-            this.version = version;
         }
 
         public Index(StreamInput in) throws IOException {
