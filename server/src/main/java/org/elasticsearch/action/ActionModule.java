@@ -19,6 +19,11 @@
 
 package org.elasticsearch.action;
 
+import static java.util.Collections.unmodifiableMap;
+
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction;
@@ -84,15 +89,13 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.seqno.GlobalCheckpointSyncAction;
+import org.elasticsearch.index.seqno.RetentionLeaseBackgroundSyncAction;
+import org.elasticsearch.index.seqno.RetentionLeaseSyncAction;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.util.List;
-import java.util.Map;
-
-import static java.util.Collections.unmodifiableMap;
 
 /**
  * Builds and binds the generic action map, all {@link TransportAction}s
@@ -123,7 +126,7 @@ public class ActionModule extends AbstractModule {
             }
 
             public <Request extends TransportRequest, Response extends TransportResponse> void register(
-                    Action<Response> action, Class<? extends TransportAction<Request, Response>> transportAction,
+                    ActionType<Response> action, Class<? extends TransportAction<Request, Response>> transportAction,
                     Class<?>... supportTransportActions) {
                 register(new ActionHandler<>(action, transportAction, supportTransportActions));
             }
@@ -162,6 +165,11 @@ public class ActionModule extends AbstractModule {
 
         actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
 
+        // internal actions
+        actions.register(GlobalCheckpointSyncAction.TYPE, GlobalCheckpointSyncAction.class);
+        actions.register(RetentionLeaseBackgroundSyncAction.TYPE, RetentionLeaseBackgroundSyncAction.class);
+        actions.register(RetentionLeaseSyncAction.TYPE, RetentionLeaseSyncAction.class);
+
         return unmodifiableMap(actions.getRegistry());
     }
 
@@ -169,10 +177,10 @@ public class ActionModule extends AbstractModule {
     protected void configure() {
         bind(DestructiveOperations.class).toInstance(destructiveOperations);
 
-        // register Action -> transportAction Map used by NodeClient
+        // register ActionType -> transportAction Map used by NodeClient
         @SuppressWarnings("rawtypes")
-        MapBinder<Action, TransportAction> transportActionsBinder
-                = MapBinder.newMapBinder(binder(), Action.class, TransportAction.class);
+        MapBinder<ActionType, TransportAction> transportActionsBinder
+                = MapBinder.newMapBinder(binder(), ActionType.class, TransportAction.class);
         for (ActionHandler<?, ?> action : actions.values()) {
             // bind the action as eager singleton, so the map binder one will reuse it
             bind(action.getTransportAction()).asEagerSingleton();

@@ -46,7 +46,7 @@ import java.util.Map;
  */
 public final class ElasticsearchMergePolicy extends FilterMergePolicy {
 
-    private static Logger logger = LogManager.getLogger(ElasticsearchMergePolicy.class);
+    private static final Logger LOGGER = LogManager.getLogger(ElasticsearchMergePolicy.class);
 
     // True if the next merge request should do segment upgrades:
     private volatile boolean upgradeInProgress;
@@ -94,7 +94,7 @@ public final class ElasticsearchMergePolicy extends FilterMergePolicy {
 
                     // TODO: Use IndexUpgradeMergePolicy instead.  We should be comparing codecs,
                     // for now we just assume every minor upgrade has a new format.
-                    logger.debug("Adding segment {} to be upgraded", info.info.name);
+                    LOGGER.debug("Adding segment {} to be upgraded", info.info.name);
                     spec.add(new OneMerge(Collections.singletonList(info)));
                 }
 
@@ -102,14 +102,14 @@ public final class ElasticsearchMergePolicy extends FilterMergePolicy {
 
                 if (spec.merges.size() == MAX_CONCURRENT_UPGRADE_MERGES) {
                     // hit our max upgrades, so return the spec.  we will get a cascaded call to continue.
-                    logger.debug("Returning {} merges for upgrade", spec.merges.size());
+                    LOGGER.debug("Returning {} merges for upgrade", spec.merges.size());
                     return spec;
                 }
             }
 
             // We must have less than our max upgrade merges, so the next return will be our last in upgrading mode.
             if (spec.merges.isEmpty() == false) {
-                logger.debug("Returning {} merges for end of upgrade", spec.merges.size());
+                LOGGER.debug("Returning {} merges for end of upgrade", spec.merges.size());
                 return spec;
             }
 

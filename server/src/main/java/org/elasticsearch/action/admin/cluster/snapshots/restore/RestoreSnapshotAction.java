@@ -19,12 +19,12 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ActionType;
 
 /**
  * Restore snapshot action
  */
-public class RestoreSnapshotAction extends Action<RestoreSnapshotResponse> {
+public class RestoreSnapshotAction extends ActionType<RestoreSnapshotResponse> {
 
     public static final RestoreSnapshotAction INSTANCE = new RestoreSnapshotAction();
     public static final String NAME = "cluster:admin/snapshot/restore";

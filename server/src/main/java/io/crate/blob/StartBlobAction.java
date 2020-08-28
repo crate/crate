@@ -21,9 +21,9 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ActionType;
 
-public class StartBlobAction extends Action<StartBlobResponse> {
+public class StartBlobAction extends ActionType<StartBlobResponse> {
 
     public static final StartBlobAction INSTANCE = new StartBlobAction();
     public static final String NAME = "internal:crate:blob/start_blob";

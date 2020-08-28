@@ -48,6 +48,8 @@ import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.index.translog.TranslogConfig;
+import org.elasticsearch.index.translog.TranslogDeletionPolicy;
 import org.elasticsearch.index.translog.TranslogStats;
 
 import io.crate.common.io.IOUtils;
@@ -63,12 +65,13 @@ public class ReadOnlyEngine extends Engine {
 
     private final SegmentInfos lastCommittedSegmentInfos;
     private final SeqNoStats seqNoStats;
-    private final TranslogStats translogStats;
     private final ElasticsearchReaderManager readerManager;
     private final IndexCommit indexCommit;
     private final Lock indexWriterLock;
     private final DocsStats docsStats;
     private final RamAccountingRefreshListener refreshListener;
+
+    protected volatile TranslogStats translogStats;
 
     /**
      * Creates a new ReadOnlyEngine. This ctor can also be used to open a read-only engine on top of an already opened
@@ -101,7 +104,6 @@ public class ReadOnlyEngine extends Engine {
                 // yet this makes sure nobody else does. including some testing tools that try to be messy
                 indexWriterLock = obtainLock ? directory.obtainLock(IndexWriter.WRITE_LOCK_NAME) : null;
                 this.lastCommittedSegmentInfos = Lucene.readSegmentInfos(directory);
-                this.translogStats = translogStats == null ? new TranslogStats(0, 0, 0, 0) : translogStats;
                 if (seqNoStats == null) {
                     seqNoStats = buildSeqNoStats(config, lastCommittedSegmentInfos);
                     ensureMaxSeqNoEqualsToGlobalCheckpoint(seqNoStats);
@@ -111,6 +113,8 @@ public class ReadOnlyEngine extends Engine {
                 reader = wrapReader(open(indexCommit), readerWrapperFunction);
                 readerManager = new ElasticsearchReaderManager(reader, refreshListener);
                 this.docsStats = docsStats(lastCommittedSegmentInfos);
+                assert translogStats != null || obtainLock : "mutiple translogs instances should not be opened at the same time";
+                this.translogStats = translogStats != null ? translogStats : translogStats(config, lastCommittedSegmentInfos);
                 this.indexWriterLock = indexWriterLock;
                 success = true;
             } finally {
@@ -206,6 +210,31 @@ public class ReadOnlyEngine extends Engine {
         long maxSeqNo = seqNoStats.maxSeqNo;
         long localCheckpoint = seqNoStats.localCheckpoint;
         return new SeqNoStats(maxSeqNo, localCheckpoint, config.getGlobalCheckpointSupplier().getAsLong());
+    }
+
+    private static TranslogStats translogStats(final EngineConfig config, final SegmentInfos infos) throws IOException {
+        final String translogUuid = infos.getUserData().get(Translog.TRANSLOG_UUID_KEY);
+        if (translogUuid == null) {
+            throw new IllegalStateException("commit doesn't contain translog unique id");
+        }
+        final long translogGenOfLastCommit = Long.parseLong(infos.getUserData().get(Translog.TRANSLOG_GENERATION_KEY));
+        final TranslogConfig translogConfig = config.getTranslogConfig();
+        final TranslogDeletionPolicy translogDeletionPolicy = new TranslogDeletionPolicy(
+            config.getIndexSettings().getTranslogRetentionSize().getBytes(),
+            config.getIndexSettings().getTranslogRetentionAge().getMillis()
+        );
+        translogDeletionPolicy.setTranslogGenerationOfLastCommit(translogGenOfLastCommit);
+
+        try (Translog translog = new Translog(
+            translogConfig,
+            translogUuid,
+            translogDeletionPolicy,
+            config.getGlobalCheckpointSupplier(),
+            config.getPrimaryTermSupplier(),
+            seqNo -> {})) {
+
+            return translog.stats();
+        }
     }
 
     @Override

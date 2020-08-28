@@ -69,7 +69,7 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
     }
 
     @Override
-    protected DeleteBlobResponse read(StreamInput in) throws IOException {
+    protected DeleteBlobResponse newResponseInstance(StreamInput in) throws IOException {
         return new DeleteBlobResponse(in);
     }
 

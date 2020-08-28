@@ -19,10 +19,10 @@
 
 package org.elasticsearch.index.seqno;
 
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.ExceptionsHelper;
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -32,14 +32,11 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 /**
  * Background global checkpoint sync action initiated when a shard goes inactive. This is needed because while we send the global checkpoint
@@ -52,6 +49,7 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
         ReplicationResponse> {
 
     public static final String ACTION_NAME = "indices:admin/seq_no/global_checkpoint_sync";
+    public static final ActionType<ReplicationResponse> TYPE = new ActionType<>(ACTION_NAME);
 
     @Inject
     public GlobalCheckpointSyncAction(
@@ -74,22 +72,8 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
                 ThreadPool.Names.MANAGEMENT);
     }
 
-    public void updateGlobalCheckpointForShard(final ShardId shardId) {
-        execute(
-            new Request(shardId),
-            ActionListener.wrap(
-                r -> {},
-                e -> {
-                    if (ExceptionsHelper.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
-                        logger.info(new ParameterizedMessage("{} global checkpoint sync failed", shardId), e);
-                    }
-                }
-            )
-        );
-    }
-
     @Override
-    protected ReplicationResponse read(StreamInput in) throws IOException {
+    protected ReplicationResponse newResponseInstance(StreamInput in) throws IOException {
         return new ReplicationResponse(in);
     }
 

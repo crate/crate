@@ -19,13 +19,13 @@
 
 package org.elasticsearch.action.admin.cluster.repositories.delete;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
 /**
  * Unregister repository action
  */
-public class DeleteRepositoryAction extends Action<AcknowledgedResponse> {
+public class DeleteRepositoryAction extends ActionType<AcknowledgedResponse> {
 
     public static final DeleteRepositoryAction INSTANCE = new DeleteRepositoryAction();
     public static final String NAME = "cluster:admin/repository/delete";

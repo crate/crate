@@ -190,7 +190,7 @@ public abstract class TransportReplicationAction<
         return new ReplicasProxy(primaryTerm);
     }
 
-    protected abstract Response read(StreamInput in) throws IOException;
+    protected abstract Response newResponseInstance(StreamInput in) throws IOException;
 
     /**
      * Resolves derived values in the request. For example, the target shard id of the incoming request, if not set at request construction.
@@ -410,20 +410,23 @@ public abstract class TransportReplicationAction<
                     transportService.sendRequest(relocatingNode, transportPrimaryAction,
                         new ConcreteShardRequest<>(request, primary.allocationId().getRelocationId(), primaryTerm),
                         transportOptions,
-                        new TransportChannelResponseHandler<>(logger, channel, "rerouting indexing to target primary " + primary,
-                            TransportReplicationAction.this::read) {
+                        new TransportChannelResponseHandler<>(
+                            logger,
+                            channel,
+                            "rerouting indexing to target primary " + primary,
+                            TransportReplicationAction.this::newResponseInstance) {
 
-                            @Override
-                            public void handleResponse(Response response) {
-                                setPhase(replicationTask, "finished");
-                                super.handleResponse(response);
-                            }
+                                @Override
+                                public void handleResponse(Response response) {
+                                    setPhase(replicationTask, "finished");
+                                    super.handleResponse(response);
+                                }
 
-                            @Override
-                            public void handleException(TransportException exp) {
-                                setPhase(replicationTask, "finished");
-                                super.handleException(exp);
-                            }
+                                @Override
+                                public void handleException(TransportException exp) {
+                                    setPhase(replicationTask, "finished");
+                                    super.handleException(exp);
+                                }
                         });
                 } else {
                     setPhase(replicationTask, "primary");
@@ -881,7 +884,7 @@ public abstract class TransportReplicationAction<
 
                 @Override
                 public Response read(StreamInput in) throws IOException {
-                    return TransportReplicationAction.this.read(in);
+                    return TransportReplicationAction.this.newResponseInstance(in);
                 }
 
                 @Override
