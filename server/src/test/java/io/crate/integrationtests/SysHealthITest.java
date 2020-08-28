@@ -48,4 +48,22 @@ public class SysHealthITest extends SQLTransportIntegrationTest {
                                                      "YELLOW| 0| NULL| 2| t2| doc| 4\n" +
                                                      "GREEN| 0| NULL| 1| t3| doc| 0\n"));
     }
+
+    @Test
+    public void test_health_of_partitioned_table_with_different_number_of_shards_per_partition() {
+        execute("create table doc.p1 (id int, p int)" +
+                " clustered into 2 shards" +
+                " partitioned by (p) " +
+                " with (number_of_replicas=0)"
+        );
+        execute("insert into doc.p1 (id, p) values (1, 1)");
+        execute("alter table doc.p1 set (number_of_shards = 4)");
+        execute("insert into doc.p1 (id, p) values (2, 2)");
+        refresh();
+
+        execute("select * from sys.health order by severity, partition_ident desc");
+        assertThat(printedTable(response.rows()), is(
+            "GREEN| 0| 04134| 1| p1| doc| 0\n" +
+            "GREEN| 0| 04132| 1| p1| doc| 0\n"));
+    }
 }
