@@ -24,10 +24,8 @@ import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -42,7 +40,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -55,7 +52,8 @@ import org.elasticsearch.transport.TransportService;
 public class RetentionLeaseSyncAction extends
         TransportWriteAction<RetentionLeaseSyncAction.Request, RetentionLeaseSyncAction.Request, ReplicationResponse> {
 
-    public static String ACTION_NAME = "indices:admin/seq_no/retention_lease_sync";
+    public static final String ACTION_NAME = "indices:admin/seq_no/retention_lease_sync";
+    public static final ActionType<ReplicationResponse> TYPE = new ActionType<>(ACTION_NAME);
 
     private static final Logger LOGGER = LogManager.getLogger(RetentionLeaseSyncAction.class);
 
@@ -84,34 +82,6 @@ public class RetentionLeaseSyncAction extends
             RetentionLeaseSyncAction.Request::new,
             ThreadPool.Names.MANAGEMENT,
             false);
-    }
-
-    /**
-     * Sync the specified retention leases for the specified shard. The callback is invoked when the sync succeeds or fails.
-     *
-     * @param shardId         the shard to sync
-     * @param retentionLeases the retention leases to sync
-     * @param listener        the callback to invoke when the sync completes normally or abnormally
-     */
-    public void sync(
-            final ShardId shardId,
-            final RetentionLeases retentionLeases,
-            final ActionListener<ReplicationResponse> listener) {
-        Objects.requireNonNull(shardId);
-        Objects.requireNonNull(retentionLeases);
-        Objects.requireNonNull(listener);
-        execute(
-            new RetentionLeaseSyncAction.Request(shardId, retentionLeases),
-            ActionListener.wrap(
-                listener::onResponse,
-                e -> {
-                    if (ExceptionsHelper.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
-                        getLogger().warn(new ParameterizedMessage("{} retention lease sync failed", shardId), e);
-                    }
-                    listener.onFailure(e);
-                }
-            )
-        );
     }
 
     @Override
@@ -168,7 +138,7 @@ public class RetentionLeaseSyncAction extends
 
         @Override
         public String toString() {
-            return "Request{" +
+            return "RetentionLeaseSyncAction.Request{" +
                     "retentionLeases=" + retentionLeases +
                     ", shardId=" + shardId +
                     ", timeout=" + timeout +
@@ -180,7 +150,7 @@ public class RetentionLeaseSyncAction extends
     }
 
     @Override
-    protected ReplicationResponse read(StreamInput in) throws IOException {
+    protected ReplicationResponse newResponseInstance(StreamInput in) throws IOException {
         return new ReplicationResponse(in);
     }
 }

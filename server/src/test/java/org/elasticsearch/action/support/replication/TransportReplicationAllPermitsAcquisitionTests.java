@@ -451,7 +451,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         }
 
         @Override
-        protected Response read(StreamInput in) throws IOException {
+        protected Response newResponseInstance(StreamInput in) throws IOException {
             return new Response();
         }
 
