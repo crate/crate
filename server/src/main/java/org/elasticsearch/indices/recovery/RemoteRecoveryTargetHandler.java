@@ -220,7 +220,8 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             fileChunkRequestOptions,
             new ActionListenerResponseHandler<>(
                 ActionListener.map(listener, r -> null),
-                in -> TransportResponse.Empty.INSTANCE
+                in -> TransportResponse.Empty.INSTANCE,
+                ThreadPool.Names.GENERIC
             )
         );
     }

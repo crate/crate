@@ -19,7 +19,21 @@
 
 package org.elasticsearch.indices.recovery;
 
-import io.crate.common.CheckedSupplier;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.IntSupplier;
+import java.util.stream.StreamSupport;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CorruptIndexException;
@@ -38,19 +52,16 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
-import io.crate.common.collections.Tuple;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.CancellableThreads;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.RecoveryEngineException;
-import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
@@ -62,24 +73,11 @@ import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteTransportException;
+import org.elasticsearch.transport.Transports;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.function.IntSupplier;
-import java.util.stream.StreamSupport;
-
-import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
+import io.crate.common.CheckedSupplier;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 /**
  * RecoverySourceHandler handles the three phases of shard recovery, which is
@@ -104,6 +102,8 @@ public class RecoverySourceHandler {
     private final RecoveryTargetHandler recoveryTarget;
     private final int maxConcurrentFileChunks;
     protected final CancellableThreads cancellableThreads = new CancellableThreads();
+    private final List<Closeable> resources = new CopyOnWriteArrayList<>();
+
 
     public RecoverySourceHandler(final IndexShard shard,
                                  RecoveryTargetHandler recoveryTarget,
@@ -131,7 +131,6 @@ public class RecoverySourceHandler {
      */
 
     public void recoverToTarget(ActionListener<RecoveryResponse> listener) {
-        final List<Closeable> resources = new CopyOnWriteArrayList<>();
         final Closeable releaseResources = () -> IOUtils.close(resources);
         final ActionListener<RecoveryResponse> wrappedListener = ActionListener.notifyOnce(listener);
         try {
@@ -466,6 +465,7 @@ public class RecoverySourceHandler {
                     new ByteSizeValue(existingTotalSizeInBytes)
                 );
                 final StepListener<Void> sendFileInfoStep = new StepListener<>();
+                final StepListener<Void> sendFilesStep = new StepListener<>();
                 final StepListener<Void> cleanFilesStep = new StepListener<>();
                 cancellableThreads.execute(() -> recoveryTarget.receiveFileInfo(
                     phase1FileNames,
@@ -475,13 +475,16 @@ public class RecoverySourceHandler {
                     translogOps.getAsInt(),
                     sendFileInfoStep
                 ));
-                sendFileInfoStep.whenComplete(
-                    r -> {
-                        sendFiles(store, phase1Files.toArray(new StoreFileMetadata[0]), translogOps);
-                        cleanFiles(store, recoverySourceMetadata, translogOps, globalCheckpoint, cleanFilesStep);
-                    },
+                sendFileInfoStep.whenComplete(r ->
+                    sendFiles(store, phase1Files.toArray(new StoreFileMetadata[0]), translogOps, sendFilesStep),
                     listener::onFailure
                 );
+
+                sendFilesStep.whenComplete(r ->
+                    cleanFiles(store, recoverySourceMetadata, translogOps, globalCheckpoint, cleanFilesStep),
+                    listener::onFailure
+                );
+
 
                 final long totalSize = totalSizeInBytes;
                 final long existingTotalSize = existingTotalSizeInBytes;
@@ -669,6 +672,7 @@ public class RecoverySourceHandler {
                            long mappingVersionOnPrimary,
                            ActionListener<Long> listener) throws IOException {
         assert ThreadPool.assertCurrentMethodIsNotCalledRecursively();
+        assert Transports.assertNotTransportThread(RecoverySourceHandler.this + "[send translog]");
         final List<Translog.Operation> operations = nextBatch.get();
         // send the leftover operations or if no operations were sent, request
         // the target to respond with its local checkpoint
@@ -769,59 +773,79 @@ public class RecoverySourceHandler {
                 '}';
     }
 
-    void sendFiles(Store store, StoreFileMetadata[] files, IntSupplier translogOps) throws Exception {
+    private static class FileChunk implements MultiFileTransfer.ChunkRequest {
+        final StoreFileMetadata md;
+        final BytesReference content;
+        final long position;
+        final boolean lastChunk;
+
+        FileChunk(StoreFileMetadata md, BytesReference content, long position, boolean lastChunk) {
+            this.md = md;
+            this.content = content;
+            this.position = position;
+            this.lastChunk = lastChunk;
+        }
+
+        @Override
+        public boolean lastChunk() {
+            return lastChunk;
+        }
+    }
+
+    void sendFiles(Store store, StoreFileMetadata[] files, IntSupplier translogOps, ActionListener<Void> listener) {
         ArrayUtil.timSort(files, Comparator.comparingLong(StoreFileMetadata::length)); // send smallest first
-        final LocalCheckpointTracker requestSeqIdTracker = new LocalCheckpointTracker(NO_OPS_PERFORMED, NO_OPS_PERFORMED);
-        final AtomicReference<Tuple<StoreFileMetadata, Exception>> error = new AtomicReference<>();
-        final byte[] buffer = new byte[chunkSizeInBytes];
-        for (final StoreFileMetadata md : files) {
-            if (error.get() != null) {
-                break;
-            }
-            try (IndexInput indexInput = store.directory().openInput(md.name(), IOContext.READONCE);
-                 InputStream in = new InputStreamIndexInput(indexInput, md.length())) {
-                long position = 0;
-                int bytesRead;
-                while ((bytesRead = in.read(buffer, 0, buffer.length)) != -1) {
-                    final BytesArray content = new BytesArray(buffer, 0, bytesRead);
-                    final boolean lastChunk = position + content.length() == md.length();
-                    final long requestSeqId = requestSeqIdTracker.generateSeqNo();
-                    cancellableThreads
-                        .execute(() -> requestSeqIdTracker.waitForProcessedOpsToComplete(requestSeqId - maxConcurrentFileChunks));
-                    cancellableThreads.checkForCancel();
-                    if (error.get() != null) {
-                        break;
-                    }
-                    final long requestFilePosition = position;
-                    cancellableThreads.executeIO(() -> recoveryTarget.writeFileChunk(
-                        md,
-                        requestFilePosition,
-                        content,
-                        lastChunk,
-                        translogOps.getAsInt(),
-                        ActionListener.wrap(
-                            r -> requestSeqIdTracker.markSeqNoAsProcessed(requestSeqId),
-                            e -> {
-                                error.compareAndSet(null, Tuple.tuple(md, e));
-                                requestSeqIdTracker.markSeqNoAsProcessed(requestSeqId);
-                            }))
-                    );
-                    position += content.length();
+        final MultiFileTransfer<FileChunk> multiFileSender =
+            new MultiFileTransfer<>(logger, listener, maxConcurrentFileChunks, Arrays.asList(files)) {
+
+                final byte[] buffer = new byte[chunkSizeInBytes];
+                InputStreamIndexInput currentInput = null;
+                long offset = 0;
+
+                @Override
+                protected void onNewFile(StoreFileMetadata md) throws IOException {
+                    offset = 0;
+                    IOUtils.close(currentInput, () -> currentInput = null);
+                    final IndexInput indexInput = store.directory().openInput(md.name(), IOContext.READONCE);
+                    currentInput = new InputStreamIndexInput(indexInput, md.length()) {
+                        @Override
+                        public void close() throws IOException {
+                            IOUtils.close(indexInput, super::close); // InputStreamIndexInput's close is a noop
+                        }
+                    };
                 }
-            } catch (Exception e) {
-                error.compareAndSet(null, Tuple.tuple(md, e));
-                break;
-            }
-        }
-        // When we terminate exceptionally, we don't wait for the outstanding requests as we don't use their results anyway.
-        // This allows us to end quickly and eliminate the complexity of handling requestSeqIds in case of error.
-        if (error.get() == null) {
-            cancellableThreads.execute(
-                () -> requestSeqIdTracker.waitForProcessedOpsToComplete(requestSeqIdTracker.getMaxSeqNo()));
-        }
-        if (error.get() != null) {
-            handleErrorOnSendFiles(store, error.get().v2(), new StoreFileMetadata[] { error.get().v1() });
-        }
+
+                @Override
+                protected FileChunk nextChunkRequest(StoreFileMetadata md) throws IOException {
+                    assert Transports.assertNotTransportThread("read file chunk");
+                    cancellableThreads.checkForCancel();
+                    final int bytesRead = currentInput.read(buffer);
+                    if (bytesRead == -1) {
+                        throw new CorruptIndexException("file truncated; length=" + md.length() + " offset=" + offset, md.name());
+                    }
+                    final boolean lastChunk = offset + bytesRead == md.length();
+                    final FileChunk chunk = new FileChunk(md, new BytesArray(buffer, 0, bytesRead), offset, lastChunk);
+                    offset += bytesRead;
+                    return chunk;
+                }
+
+                @Override
+                protected void sendChunkRequest(FileChunk request, ActionListener<Void> listener) {
+                    cancellableThreads.execute(() -> recoveryTarget.writeFileChunk(
+                        request.md, request.position, request.content, request.lastChunk, translogOps.getAsInt(), listener));
+                }
+
+                @Override
+                protected void handleError(StoreFileMetadata md, Exception e) throws Exception {
+                    handleErrorOnSendFiles(store, e, new StoreFileMetadata[]{md});
+                }
+
+                @Override
+                public void close() throws IOException {
+                    IOUtils.close(currentInput, () -> currentInput = null);
+                }
+            };
+        resources.add(multiFileSender);
+        multiFileSender.start();
     }
 
 
@@ -858,6 +882,7 @@ public class RecoverySourceHandler {
 
     private void handleErrorOnSendFiles(Store store, Exception e, StoreFileMetadata[] mds) throws Exception {
         final IOException corruptIndexException = ExceptionsHelper.unwrapCorruption(e);
+        assert Transports.assertNotTransportThread(RecoverySourceHandler.this + "[handle error on send/clean files]");
         if (corruptIndexException != null) {
             Exception localException = null;
             for (StoreFileMetadata md : mds) {
@@ -882,9 +907,8 @@ public class RecoverySourceHandler {
                     shardId, request.targetNode(), mds), corruptIndexException);
                 throw remoteException;
             }
-        } else {
-            throw e;
         }
+        throw e;
     }
 
     protected void failEngine(IOException cause) {
