@@ -97,7 +97,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntSupplier;
-import java.util.function.Supplier;
 import java.util.zip.CRC32;
 
 import static java.util.Collections.emptyMap;
@@ -535,9 +534,9 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             between(1, 8)) {
 
             @Override
-            public SendFileResult phase1(final IndexCommit snapshot, final long globalCheckpoint, final Supplier<Integer> translogOps) {
+            public void phase1(IndexCommit snapshot, long globalCheckpoint, IntSupplier translogOps, ActionListener<SendFileResult> listener) {
                 phase1Called.set(true);
-                return super.phase1(snapshot, globalCheckpoint, translogOps);
+                super.phase1(snapshot, globalCheckpoint, translogOps, listener);
             }
 
             @Override
@@ -854,7 +853,10 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         }
 
         @Override
-        public void cleanFiles(int totalTranslogOps, long globalCheckpoint, Store.MetadataSnapshot sourceMetadata) {
+        public void cleanFiles(int totalTranslogOps,
+                               long globalCheckpoint,
+                               Store.MetadataSnapshot sourceMetadata,
+                               ActionListener<Void> listener) {
         }
 
         @Override
