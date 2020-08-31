@@ -20,6 +20,7 @@
 package org.elasticsearch.index.engine;
 
 import static java.util.Collections.shuffle;
+import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_RESET;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PEER_RECOVERY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
@@ -5276,7 +5277,7 @@ public class InternalEngineTests extends EngineTestCase {
     }
 
     @Test
-    public void testHandleDocumentFailureOnReplica() throws Exception {
+    public void testTreatDocumentFailureAsFatalError() throws Exception {
         AtomicReference<IOException> addDocException = new AtomicReference<>();
         IndexWriterFactory indexWriterFactory = (dir, iwc) -> new IndexWriter(dir, iwc) {
             @Override
@@ -5295,6 +5296,7 @@ public class InternalEngineTests extends EngineTestCase {
                                                   NoMergePolicy.INSTANCE,
                                                   indexWriterFactory)) {
             final ParsedDocument doc = testParsedDocument("1", null, testDocumentWithTextField(), SOURCE, null);
+            Engine.Operation.Origin origin = randomFrom(REPLICA, LOCAL_RESET, PEER_RECOVERY);
             Engine.Index index = new Engine.Index(
                 newUid(doc),
                 doc,
@@ -5302,7 +5304,7 @@ public class InternalEngineTests extends EngineTestCase {
                 primaryTerm.get(),
                 randomNonNegativeLong(),
                 null,
-                REPLICA,
+                origin,
                 System.nanoTime(),
                 -1,
                 false,

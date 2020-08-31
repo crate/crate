@@ -19,6 +19,16 @@
 
 package org.elasticsearch.indices.recovery;
 
+import static io.crate.common.unit.TimeValue.timeValueMillis;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.StringJoiner;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -31,17 +41,14 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.CancellableThreads;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -58,7 +65,6 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogCorruptedException;
 import org.elasticsearch.indices.recovery.RecoveriesCollection.RecoveryRef;
-import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -69,13 +75,7 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.StringJoiner;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-
-import static io.crate.common.unit.TimeValue.timeValueMillis;
+import io.crate.common.unit.TimeValue;
 
 /**
  * The recovery target handles recoveries of peer shards of the shard+node to recover to.
@@ -94,7 +94,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         public static final String TRANSLOG_OPS = "internal:index/shard/recovery/translog_ops";
         public static final String PREPARE_TRANSLOG = "internal:index/shard/recovery/prepare_translog";
         public static final String FINALIZE = "internal:index/shard/recovery/finalize";
-        public static final String WAIT_CLUSTERSTATE = "internal:index/shard/recovery/wait_clusterstate";
         public static final String HANDOFF_PRIMARY_CONTEXT = "internal:index/shard/recovery/handoff_primary_context";
     }
 
@@ -114,7 +113,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         this.transportService = transportService;
         this.recoverySettings = recoverySettings;
         this.clusterService = clusterService;
-        this.onGoingRecoveries = new RecoveriesCollection(LOGGER, threadPool, this::waitForClusterState);
+        this.onGoingRecoveries = new RecoveriesCollection(LOGGER, threadPool);
 
         transportService.registerRequestHandler(Actions.FILES_INFO, RecoveryFilesInfoRequest::new, ThreadPool.Names.GENERIC, new
                 FilesInfoRequestHandler());
@@ -128,8 +127,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                 new TranslogOperationsRequestHandler());
         transportService.registerRequestHandler(Actions.FINALIZE, RecoveryFinalizeRecoveryRequest::new, ThreadPool.Names.GENERIC, new
                 FinalizeRecoveryRequestHandler());
-        transportService.registerRequestHandler(Actions.WAIT_CLUSTERSTATE, RecoveryWaitForClusterStateRequest::new,
-            ThreadPool.Names.GENERIC, new WaitForClusterStateRequestHandler());
         transportService.registerRequestHandler(
                 Actions.HANDOFF_PRIMARY_CONTEXT,
                 RecoveryHandoffPrimaryContextRequest::new,
@@ -516,18 +513,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         }
     }
 
-    class WaitForClusterStateRequestHandler implements TransportRequestHandler<RecoveryWaitForClusterStateRequest> {
-
-        @Override
-        public void messageReceived(RecoveryWaitForClusterStateRequest request, TransportChannel channel, Task task) throws Exception {
-            try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId()
-            )) {
-                recoveryRef.target().ensureClusterStateVersion(request.clusterStateVersion());
-            }
-            channel.sendResponse(TransportResponse.Empty.INSTANCE);
-        }
-    }
-
     class HandoffPrimaryContextRequestHandler implements TransportRequestHandler<RecoveryHandoffPrimaryContextRequest> {
 
         @Override
@@ -603,50 +588,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                             }
                         })
                 );
-            }
-        }
-    }
-
-    private void waitForClusterState(long clusterStateVersion) {
-        final ClusterState clusterState = clusterService.state();
-        ClusterStateObserver observer = new ClusterStateObserver(
-            clusterState,
-            clusterService,
-            TimeValue.timeValueMinutes(5),
-            LOGGER
-        );
-        if (clusterState.getVersion() >= clusterStateVersion) {
-            LOGGER.trace("node has cluster state with version higher than {} (current: {})",
-                         clusterStateVersion, clusterState.getVersion());
-        } else {
-            LOGGER.trace("waiting for cluster state version {} (current: {})",
-                         clusterStateVersion, clusterState.getVersion());
-            final PlainActionFuture<Long> future = new PlainActionFuture<>();
-            observer.waitForNextChange(new ClusterStateObserver.Listener() {
-
-                @Override
-                public void onNewClusterState(ClusterState state) {
-                    future.onResponse(state.getVersion());
-                }
-
-                @Override
-                public void onClusterServiceClose() {
-                    future.onFailure(new NodeClosedException(clusterService.localNode()));
-                }
-
-                @Override
-                public void onTimeout(TimeValue timeout) {
-                    future.onFailure(new IllegalStateException("cluster state never updated to version " + clusterStateVersion));
-                }
-            }, newState -> newState.getVersion() >= clusterStateVersion);
-            try {
-                long currentVersion = future.get();
-                LOGGER.trace("successfully waited for cluster state with version {} (current: {})", clusterStateVersion, currentVersion);
-            } catch (Exception e) {
-                LOGGER.debug(() -> new ParameterizedMessage(
-                        "failed waiting for cluster state with version {} (current: {})",
-                        clusterStateVersion, clusterService.state().getVersion()), e);
-                throw ExceptionsHelper.convertToRuntime(e);
             }
         }
     }

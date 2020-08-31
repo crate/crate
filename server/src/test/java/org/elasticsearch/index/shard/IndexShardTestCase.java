@@ -646,10 +646,13 @@ public abstract class IndexShardTestCase extends ESTestCase {
 
     /** recovers a replica from the given primary **/
     protected void recoverReplica(IndexShard replica, IndexShard primary, boolean startReplica) throws IOException {
-        recoverReplica(replica, primary,
-            (r, sourceNode) -> new RecoveryTarget(r, sourceNode, recoveryListener, version -> {
-            }),
-            true, true);
+        recoverReplica(
+            replica,
+            primary,
+            (r, sourceNode) -> new RecoveryTarget(r, sourceNode, recoveryListener),
+            true,
+            true
+        );
     }
 
     /** recovers a replica from the given primary **/
@@ -722,10 +725,15 @@ public abstract class IndexShardTestCase extends ESTestCase {
             inSyncIds,
             routingTable
         );
-        PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
-        recovery.recoverToTarget(future);
-        future.actionGet();
-        recoveryTarget.markAsDone();
+        try {
+            PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
+            recovery.recoverToTarget(future);
+            future.actionGet();
+            recoveryTarget.markAsDone();
+        } catch (Exception e) {
+            recoveryTarget.fail(new RecoveryFailedException(request, e), false);
+            throw e;
+        }
     }
 
     protected void startReplicaAfterRecovery(IndexShard replica, IndexShard primary, Set<String> inSyncIds,
