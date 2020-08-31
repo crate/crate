@@ -51,6 +51,9 @@ Breaking Changes
 Changes
 =======
 
+- Changed the error code for the psql protocol when a column does not exist
+  from `XX000` `internal_error` to `42703` `undefined_column`.
+
 - Changed the error code for the psql protocol when a relation does not exist
   from `XX000` `internal_error` to `42P01` `undefined_table`.
   

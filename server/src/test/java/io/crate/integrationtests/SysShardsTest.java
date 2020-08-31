@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -284,27 +285,27 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
         assertThrows(() -> execute("select lol from sys.shards group by table_name"),
-                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
+                     isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
         assertThrows(() -> execute("select max(num_docs) from sys.shards group by lol"),
-                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
+                     isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownOrderBy() throws Exception {
         assertThrows(() -> execute(
             "select sum(num_docs), table_name from sys.shards group by table_name order by lol"),
-                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
+                     isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownWhere() throws Exception {
         assertThrows(() -> execute(
             "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name"),
-                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
+                     isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
         ;
     }
 
@@ -312,7 +313,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     public void testGlobalAggregateUnknownWhere() throws Exception {
         assertThrows(() -> execute(
             "select sum(num_docs) from sys.shards where lol='funky'"),
-                     isSQLError(is("Column lol unknown"), INTERNAL_ERROR, NOT_FOUND, 4043));
+                     isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
     }
 
     @Test
