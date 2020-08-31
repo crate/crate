@@ -51,12 +51,15 @@ Breaking Changes
 Changes
 =======
 
+- Changed the error code for the psql protocol when a relation exists
+  already from `XX000` `internal_error` to `42P07` `duplicate_table`.
+
 - Changed the error code for the psql protocol when a column does not exist
   from `XX000` `internal_error` to `42703` `undefined_column`.
 
 - Changed the error code for the psql protocol when a relation does not exist
   from `XX000` `internal_error` to `42P01` `undefined_table`.
-  
+
 - Changed the error code for the psql protocol when a document exists
   already from `XX000` `internal_error` to `23505` `unique_violation`.
 
