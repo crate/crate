@@ -97,6 +97,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -1580,6 +1581,21 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
         }
     }
 
+    /**
+     * Returns a {@link org.elasticsearch.index.seqno.SequenceNumbers.CommitInfo} of the safe commit if exists.
+     */
+    public Optional<SequenceNumbers.CommitInfo> findSafeIndexCommit(long globalCheckpoint) throws IOException {
+        final List<IndexCommit> commits = DirectoryReader.listCommits(directory);
+        assert commits.isEmpty() == false : "no commit found";
+        final IndexCommit safeCommit = CombinedDeletionPolicy.findSafeCommitPoint(commits, globalCheckpoint);
+        final SequenceNumbers.CommitInfo commitInfo = SequenceNumbers.loadSeqNoInfoFromLuceneCommit(safeCommit.getUserData().entrySet());
+        // all operations of the safe commit must be at most the global checkpoint.
+        if (commitInfo.maxSeqNo <= globalCheckpoint) {
+            return Optional.of(commitInfo);
+        } else {
+            return Optional.empty();
+        }
+    }
 
     private void updateCommitData(IndexWriter writer, Map<String, String> keysToUpdate) throws IOException {
         final Map<String, String> userData = getUserData(writer);

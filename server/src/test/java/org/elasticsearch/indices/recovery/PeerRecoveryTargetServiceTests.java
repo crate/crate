@@ -19,30 +19,46 @@
 
 package org.elasticsearch.indices.recovery;
 
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.empty;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.RecoverySource;
+import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.engine.NoOpEngine;
+import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
+import org.elasticsearch.index.translog.Translog;
 import org.junit.Test;
 
 public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
@@ -128,5 +144,158 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         Store.RecoveryDiff diff = sourceSnapshot.recoveryDiff(targetSnapshot);
         assertThat(diff.different, empty());
         closeShards(sourceShard, targetShard);
+    }
+
+    private SeqNoStats populateRandomData(IndexShard shard) throws IOException {
+        List<Long> seqNos = LongStream.range(0, 100).boxed().collect(Collectors.toList());
+        Randomness.shuffle(seqNos);
+        for (long seqNo : seqNos) {
+            shard.applyIndexOperationOnReplica(
+                seqNo,
+                1,
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                false, new SourceToParse(shard.shardId().getIndexName(), UUIDs.randomBase64UUID(), new BytesArray("{}"), XContentType.JSON)
+            );
+            if (randomInt(100) < 5) {
+                shard.flush(new FlushRequest().waitIfOngoing(true));
+            }
+        }
+        shard.sync();
+        long globalCheckpoint = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, shard.getLocalCheckpoint());
+        shard.updateGlobalCheckpointOnReplica(globalCheckpoint, "test");
+        shard.sync();
+        return shard.seqNoStats();
+    }
+
+    @Test
+    public void testPrepareIndexForPeerRecovery() throws Exception {
+        DiscoveryNode localNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(),
+            Collections.emptyMap(), Collections.emptySet(), Version.CURRENT);
+
+        // empty copy
+        IndexShard shard = newShard(false);
+        shard.markAsRecovering("for testing", new RecoveryState(shard.routingEntry(), localNode, localNode));
+        shard.prepareForIndexRecovery();
+        assertThat(shard.recoverLocallyUpToGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+        assertThat(shard.recoveryState().getTranslog().totalLocal(), equalTo(RecoveryState.Translog.UNKNOWN));
+        assertThat(shard.recoveryState().getTranslog().recoveredOperations(), equalTo(0));
+        assertThat(shard.getLastKnownGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+        closeShards(shard);
+
+        // good copy
+        shard = newStartedShard(false);
+        long globalCheckpoint = populateRandomData(shard).getGlobalCheckpoint();
+        Optional<SequenceNumbers.CommitInfo> safeCommit = shard.store().findSafeIndexCommit(globalCheckpoint);
+        assertTrue(safeCommit.isPresent());
+        int expectedTotalLocal = 0;
+        try (Translog.Snapshot snapshot = getTranslog(shard).newSnapshotFromMinSeqNo(safeCommit.get().localCheckpoint + 1)) {
+            Translog.Operation op;
+            while ((op = snapshot.next()) != null) {
+                if (op.seqNo() <= globalCheckpoint) {
+                    expectedTotalLocal++;
+                }
+            }
+        }
+        IndexShard replica = reinitShard(shard, ShardRoutingHelper.initWithSameId(shard.routingEntry(),
+            RecoverySource.PeerRecoverySource.INSTANCE));
+        replica.markAsRecovering("for testing", new RecoveryState(replica.routingEntry(), localNode, localNode));
+        replica.prepareForIndexRecovery();
+        assertThat(replica.recoverLocallyUpToGlobalCheckpoint(), equalTo(globalCheckpoint + 1));
+        assertThat(replica.recoveryState().getTranslog().totalLocal(), equalTo(expectedTotalLocal));
+        assertThat(replica.recoveryState().getTranslog().recoveredOperations(), equalTo(expectedTotalLocal));
+        assertThat(replica.getLastKnownGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+        closeShards(replica);
+
+        // corrupted copy
+        shard = newStartedShard(false);
+        if (randomBoolean()) {
+            populateRandomData(shard);
+        }
+        shard.store().markStoreCorrupted(new IOException("test"));
+        replica = reinitShard(shard, ShardRoutingHelper.initWithSameId(shard.routingEntry(),
+            RecoverySource.PeerRecoverySource.INSTANCE));
+        replica.markAsRecovering("for testing", new RecoveryState(replica.routingEntry(), localNode, localNode));
+        replica.prepareForIndexRecovery();
+        assertThat(replica.recoverLocallyUpToGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+        assertThat(replica.recoveryState().getTranslog().totalLocal(), equalTo(RecoveryState.Translog.UNKNOWN));
+        assertThat(replica.recoveryState().getTranslog().recoveredOperations(), equalTo(0));
+        assertThat(replica.getLastKnownGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+        closeShards(replica);
+
+        // copy with truncated translog
+        shard = newStartedShard(false);
+        globalCheckpoint = populateRandomData(shard).getGlobalCheckpoint();
+        replica = reinitShard(shard, ShardRoutingHelper.initWithSameId(shard.routingEntry(),
+            RecoverySource.PeerRecoverySource.INSTANCE));
+        String translogUUID = Translog.createEmptyTranslog(replica.shardPath().resolveTranslog(), globalCheckpoint,
+            replica.shardId(), replica.getPendingPrimaryTerm());
+        replica.store().associateIndexWithNewTranslog(translogUUID);
+        safeCommit = replica.store().findSafeIndexCommit(globalCheckpoint);
+        replica.markAsRecovering("for testing", new RecoveryState(replica.routingEntry(), localNode, localNode));
+        replica.prepareForIndexRecovery();
+        if (safeCommit.isPresent()) {
+            assertThat(replica.recoverLocallyUpToGlobalCheckpoint(), equalTo(safeCommit.get().localCheckpoint + 1));
+            assertThat(replica.recoveryState().getTranslog().totalLocal(), equalTo(0));
+        } else {
+            assertThat(replica.recoverLocallyUpToGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+            assertThat(replica.recoveryState().getTranslog().totalLocal(), equalTo(RecoveryState.Translog.UNKNOWN));
+        }
+        assertThat(replica.recoveryState().getTranslog().recoveredOperations(), equalTo(0));
+        assertThat(replica.getLastKnownGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+        closeShards(replica);
+    }
+
+    @Test
+    public void testClosedIndexSkipsLocalRecovery() throws Exception {
+        DiscoveryNode localNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(),
+            Collections.emptyMap(), Collections.emptySet(), Version.CURRENT);
+        IndexShard shard = newStartedShard(false);
+        long globalCheckpoint = populateRandomData(shard).getGlobalCheckpoint();
+        Optional<SequenceNumbers.CommitInfo> safeCommit = shard.store().findSafeIndexCommit(globalCheckpoint);
+        assertTrue(safeCommit.isPresent());
+        final IndexMetadata indexMetadata;
+        if (randomBoolean()) {
+            indexMetadata = IndexMetadata.builder(shard.indexSettings().getIndexMetadata())
+                .settings(shard.indexSettings().getSettings())
+                .state(IndexMetadata.State.CLOSE).build();
+        } else {
+            indexMetadata = IndexMetadata.builder(shard.indexSettings().getIndexMetadata())
+                .settings(Settings.builder().put(shard.indexSettings().getSettings())
+                    .put(IndexMetadata.SETTING_BLOCKS_WRITE, true)).build();
+        }
+        IndexShard replica = reinitShard(
+            shard,
+            ShardRoutingHelper.initWithSameId(shard.routingEntry(), RecoverySource.PeerRecoverySource.INSTANCE),
+            indexMetadata,
+            NoOpEngine::new
+        );
+        replica.markAsRecovering("for testing", new RecoveryState(replica.routingEntry(), localNode, localNode));
+        replica.prepareForIndexRecovery();
+        assertThat(replica.recoverLocallyUpToGlobalCheckpoint(), equalTo(safeCommit.get().localCheckpoint + 1));
+        assertThat(replica.recoveryState().getTranslog().totalLocal(), equalTo(0));
+        assertThat(replica.recoveryState().getTranslog().recoveredOperations(), equalTo(0));
+        assertThat(replica.getLastKnownGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+        closeShards(replica);
+    }
+
+    @Test
+    public void testResetStartingSeqNoIfLastCommitCorrupted() throws Exception {
+        IndexShard shard = newStartedShard(false);
+        populateRandomData(shard);
+        DiscoveryNode pNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(),
+            Collections.emptyMap(), Collections.emptySet(), Version.CURRENT);
+        DiscoveryNode rNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(),
+            Collections.emptyMap(), Collections.emptySet(), Version.CURRENT);
+        shard = reinitShard(shard, ShardRoutingHelper.initWithSameId(shard.routingEntry(), RecoverySource.PeerRecoverySource.INSTANCE));
+        shard.markAsRecovering("peer recovery", new RecoveryState(shard.routingEntry(), pNode, rNode));
+        shard.prepareForIndexRecovery();
+        long startingSeqNo = shard.recoverLocallyUpToGlobalCheckpoint();
+        shard.store().markStoreCorrupted(new IOException("simulated"));
+        RecoveryTarget recoveryTarget = new RecoveryTarget(shard, null, null);
+        StartRecoveryRequest request = PeerRecoveryTargetService.getStartRecoveryRequest(logger, rNode, recoveryTarget, startingSeqNo);
+        assertThat(request.startingSeqNo(), equalTo(UNASSIGNED_SEQ_NO));
+        assertThat(request.metadataSnapshot().size(), equalTo(0));
+        recoveryTarget.decRef();
+        closeShards(shard);
     }
 }
