@@ -465,16 +465,31 @@ public class RecoverySourceHandler {
                     phase1ExistingFileNames.size(),
                     new ByteSizeValue(existingTotalSizeInBytes)
                 );
+                final StepListener<Void> sendFileInfoStep = new StepListener<>();
+                final StepListener<Void> cleanFilesStep = new StepListener<>();
                 cancellableThreads.execute(() -> recoveryTarget.receiveFileInfo(
-                    phase1FileNames, phase1FileSizes, phase1ExistingFileNames, phase1ExistingFileSizes, translogOps.getAsInt()));
-                // How many bytes we've copied since we last called RateLimiter.pause
-                sendFiles(store, phase1Files.toArray(new StoreFileMetadata[0]), translogOps);
+                    phase1FileNames,
+                    phase1FileSizes,
+                    phase1ExistingFileNames,
+                    phase1ExistingFileSizes,
+                    translogOps.getAsInt(),
+                    sendFileInfoStep
+                ));
+                sendFileInfoStep.whenComplete(
+                    r -> {
+                        sendFiles(store, phase1Files.toArray(new StoreFileMetadata[0]), translogOps);
+                        cleanFiles(store, recoverySourceMetadata, translogOps, globalCheckpoint, cleanFilesStep);
+                    },
+                    listener::onFailure
+                );
+
                 final long totalSize = totalSizeInBytes;
                 final long existingTotalSize = existingTotalSizeInBytes;
-                cleanFiles(store, recoverySourceMetadata, translogOps, globalCheckpoint, ActionListener.map(listener, aVoid -> {
+                cleanFilesStep.whenComplete(r -> {
                     final TimeValue took = stopWatch.totalTime();
                     logger.trace("recovery [phase1]: took [{}]", took);
-                    return new SendFileResult(
+
+                    listener.onResponse(new SendFileResult(
                         phase1FileNames,
                         phase1FileSizes,
                         totalSize,
@@ -482,8 +497,8 @@ public class RecoverySourceHandler {
                         phase1ExistingFileSizes,
                         existingTotalSize,
                         took
-                    );
-                }));
+                    ));
+                }, listener::onFailure);
             } else {
                 logger.trace("skipping [phase1]- identical sync id [{}] found on both source and target",
                              recoverySourceMetadata.getSyncId());
