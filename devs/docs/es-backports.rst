@@ -348,7 +348,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 5ec6ad38649 Fix BWC for fileBasedRecovery flag removal (#45185)
 - [ ] 302d29c8705 Trim local translog in peer recovery (#44756)
 - [ ] 6215f98fa68 Remove fileBasedRecovery flag (#45131)
-- [ ] 01287eacb2f Use index for peer recovery instead of translog (#45136)
+- [x] 01287eacb2f Use index for peer recovery instead of translog (#45136)
 
 Below are patches deferred. In-between patches we applied or skipped are not
 listed anymore.

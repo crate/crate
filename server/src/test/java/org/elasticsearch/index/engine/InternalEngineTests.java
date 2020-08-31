@@ -127,6 +127,7 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -2136,7 +2137,7 @@ public class InternalEngineTests extends EngineTestCase {
     }
 
     @Test
-    public void testSeqNoAndCheckpoints() throws IOException {
+    public void testSeqNoAndCheckpoints() throws IOException, InterruptedException {
         final int opCount = randomIntBetween(1, 256);
         long primarySeqNo = SequenceNumbers.NO_OPS_PERFORMED;
         final String[] ids = new String[]{"1", "2", "3"};
@@ -2154,13 +2155,26 @@ public class InternalEngineTests extends EngineTestCase {
             final ShardRouting primary = TestShardRouting.newShardRouting("test",
                                                                           shardId.id(), "node1", null, true,
                                                                           ShardRoutingState.STARTED, allocationId);
-            final ShardRouting replica =
-                TestShardRouting.newShardRouting(shardId, "node2", false, ShardRoutingState.STARTED);
+            final ShardRouting initializingReplica =
+                TestShardRouting.newShardRouting(shardId, "node2", false, ShardRoutingState.INITIALIZING);
             ReplicationTracker gcpTracker = (ReplicationTracker) initialEngine.config().getGlobalCheckpointSupplier();
-            gcpTracker.updateFromMaster(1L, new HashSet<>(Arrays.asList(primary.allocationId().getId(),
-                                                                        replica.allocationId().getId())),
-                                        new IndexShardRoutingTable.Builder(shardId).addShard(primary).addShard(replica).build());
+            gcpTracker.updateFromMaster(1L, new HashSet<>(Collections.singletonList(primary.allocationId().getId())),
+                new IndexShardRoutingTable.Builder(shardId).addShard(primary).build());
             gcpTracker.activatePrimaryMode(primarySeqNo);
+            if (defaultSettings.isSoftDeleteEnabled()) {
+                final CountDownLatch countDownLatch = new CountDownLatch(1);
+                gcpTracker.addPeerRecoveryRetentionLease(initializingReplica.currentNodeId(),
+                    SequenceNumbers.NO_OPS_PERFORMED, ActionListener.wrap(countDownLatch::countDown));
+                countDownLatch.await(5, TimeUnit.SECONDS);
+            }
+            gcpTracker.updateFromMaster(2L, new HashSet<>(Collections.singletonList(primary.allocationId().getId())),
+                new IndexShardRoutingTable.Builder(shardId).addShard(primary).addShard(initializingReplica).build());
+            gcpTracker.initiateTracking(initializingReplica.allocationId().getId());
+            gcpTracker.markAllocationIdAsInSync(initializingReplica.allocationId().getId(), replicaLocalCheckpoint);
+            final ShardRouting replica = initializingReplica.moveToStarted();
+            gcpTracker.updateFromMaster(3L, new HashSet<>(Arrays.asList(primary.allocationId().getId(), replica.allocationId().getId())),
+                new IndexShardRoutingTable.Builder(shardId).addShard(primary).addShard(replica).build());
+
             for (int op = 0; op < opCount; op++) {
                 final String id;
                 // mostly index, sometimes delete
@@ -2217,7 +2231,7 @@ public class InternalEngineTests extends EngineTestCase {
                 }
                 gcpTracker.updateLocalCheckpoint(primary.allocationId().getId(),
                     initialEngine.getPersistedLocalCheckpoint());
-                gcpTracker.updateLocalCheckpoint(replica.allocationId().getId(), replicaLocalCheckpoint);
+                gcpTracker.updateLocalCheckpoint(initializingReplica.allocationId().getId(), replicaLocalCheckpoint);
 
                 if (rarely()) {
                     localCheckpoint = primarySeqNo;

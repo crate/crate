@@ -52,6 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.IntSupplier;
 import java.util.zip.CRC32;
 
@@ -99,6 +100,7 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.ReplicationTracker;
+import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -113,6 +115,7 @@ import org.elasticsearch.test.CorruptionUtils;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
+import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.threadpool.FixedExecutorBuilder;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -506,6 +509,18 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             ((ActionListener<Releasable>)invocation.getArguments()[0]).onResponse(() -> {});
             return null;
         }).when(shard).acquirePrimaryOperationPermit(any(), anyString(), anyObject());
+
+        final IndexMetadata.Builder indexMetadata = IndexMetadata.builder("test").settings(Settings.builder()
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, between(0,5))
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, between(1,5))
+            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), randomBoolean())
+            .put(IndexMetadata.SETTING_VERSION_CREATED, VersionUtils.randomVersion(random()))
+            .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID(random())));
+        if (randomBoolean()) {
+            indexMetadata.state(IndexMetadata.State.CLOSE);
+        }
+        when(shard.indexSettings()).thenReturn(new IndexSettings(indexMetadata.build(), Settings.EMPTY));
+
         final AtomicBoolean phase1Called = new AtomicBoolean();
         final AtomicBoolean prepareTargetForTranslogCalled = new AtomicBoolean();
         final AtomicBoolean phase2Called = new AtomicBoolean();
@@ -517,9 +532,12 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             between(1, 8)) {
 
             @Override
-            public void phase1(IndexCommit snapshot, long globalCheckpoint, IntSupplier translogOps, ActionListener<SendFileResult> listener) {
+            public void phase1(IndexCommit snapshot,
+                               Consumer<ActionListener<RetentionLease>> createRetentionLease,
+                               IntSupplier translogOps,
+                               ActionListener<SendFileResult> listener) {
                 phase1Called.set(true);
-                super.phase1(snapshot, globalCheckpoint, translogOps, listener);
+                super.phase1(snapshot, createRetentionLease, translogOps, listener);
             }
 
             @Override
@@ -783,7 +801,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             @Override
             public void cleanFiles(int totalTranslogOps,
                                    long globalCheckpoint,
-                                   Store.MetadataSnapshot sourceMetaData,
+                                   Store.MetadataSnapshot sourceMetadata,
                                    ActionListener<Void> listener) {
                 recoveryExecutor.execute(() -> listener.onResponse(null));
                 if (randomBoolean()) {
@@ -805,7 +823,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             final CountDownLatch latch = new CountDownLatch(1);
             handler.phase1(
                 DirectoryReader.listCommits(dir).get(0),
-                randomNonNegativeLong(),
+                l -> recoveryExecutor.execute(() -> l.onResponse(null)),
                 () -> 0,
                 new LatchedActionListener<>(phase1Listener, latch));
             latch.await();

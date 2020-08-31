@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -44,6 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -445,6 +447,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                             assert getOperationPrimaryTerm() == newPrimaryTerm;
                             try {
                                 replicationTracker.activatePrimaryMode(getLocalCheckpoint());
+                                ensurePeerRecoveryRetentionLeasesExist();
                                 /*
                                  * If this shard was serving as a replica shard when another shard was promoted to primary then
                                  * its Lucene index was reset during the primary term transition. In particular, the Lucene index
@@ -1290,6 +1293,88 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert currentEngineReference.get() == null;
     }
 
+    /**
+     * A best effort to bring up this shard to the global checkpoint using the local translog before performing a peer recovery.
+     *
+     * @return a sequence number that an operation-based peer recovery can start with.
+     * This is the first operation after the local checkpoint of the safe commit if exists.
+     */
+    public long recoverLocallyUpToGlobalCheckpoint() {
+        if (state != IndexShardState.RECOVERING) {
+            throw new IndexShardNotRecoveringException(shardId, state);
+        }
+        assert recoveryState.getStage() == RecoveryState.Stage.INDEX : "unexpected recovery stage [" + recoveryState.getStage() + "]";
+        assert routingEntry().recoverySource().getType() == RecoverySource.Type.PEER : "not a peer recovery [" + routingEntry() + "]";
+        final Optional<SequenceNumbers.CommitInfo> safeCommit;
+        final long globalCheckpoint;
+        try {
+            final String translogUUID = store.readLastCommittedSegmentsInfo().getUserData().get(Translog.TRANSLOG_UUID_KEY);
+            globalCheckpoint = Translog.readGlobalCheckpoint(translogConfig.getTranslogPath(), translogUUID);
+            safeCommit = store.findSafeIndexCommit(globalCheckpoint);
+        } catch (org.apache.lucene.index.IndexNotFoundException e) {
+            logger.trace("skip local recovery as no index commit found");
+            return UNASSIGNED_SEQ_NO;
+        } catch (Exception e) {
+            logger.debug("skip local recovery as failed to find the safe commit", e);
+            return UNASSIGNED_SEQ_NO;
+        }
+        if (safeCommit.isPresent() == false) {
+            logger.trace("skip local recovery as no safe commit found");
+            return UNASSIGNED_SEQ_NO;
+        }
+        assert safeCommit.get().localCheckpoint <= globalCheckpoint : safeCommit.get().localCheckpoint + " > " + globalCheckpoint;
+        try {
+            maybeCheckIndex(); // check index here and won't do it again if ops-based recovery occurs
+            recoveryState.setStage(RecoveryState.Stage.TRANSLOG);
+            if (safeCommit.get().localCheckpoint == globalCheckpoint) {
+                logger.trace("skip local recovery as the safe commit is up to date; safe commit {} global checkpoint {}",
+                    safeCommit.get(), globalCheckpoint);
+                recoveryState.getTranslog().totalLocal(0);
+                return globalCheckpoint + 1;
+            }
+            if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE ||
+                IndexMetadata.INDEX_BLOCKS_WRITE_SETTING.get(indexSettings.getSettings())) {
+                logger.trace("skip local recovery as the index was closed or not allowed to write; safe commit {} global checkpoint {}",
+                    safeCommit.get(), globalCheckpoint);
+                recoveryState.getTranslog().totalLocal(0);
+                return safeCommit.get().localCheckpoint + 1;
+            }
+            try {
+                final Engine.TranslogRecoveryRunner translogRecoveryRunner = (engine, snapshot) -> {
+                    recoveryState.getTranslog().totalLocal(snapshot.totalOperations());
+                    final int recoveredOps = runTranslogRecovery(engine, snapshot, Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY,
+                        recoveryState.getTranslog()::incrementRecoveredOperations);
+                    recoveryState.getTranslog().totalLocal(recoveredOps); // adjust the total local to reflect the actual count
+                    return recoveredOps;
+                };
+                innerOpenEngineAndTranslog(() -> globalCheckpoint);
+                getEngine().recoverFromTranslog(translogRecoveryRunner, globalCheckpoint);
+                logger.trace("shard locally recovered up to {}", getEngine().getSeqNoStats(globalCheckpoint));
+            } finally {
+                synchronized (mutex) {
+                    IOUtils.close(currentEngineReference.getAndSet(null));
+                }
+            }
+        } catch (Exception e) {
+            logger.debug(new ParameterizedMessage("failed to recover shard locally up to global checkpoint {}", globalCheckpoint), e);
+            return UNASSIGNED_SEQ_NO;
+        }
+        try {
+            // we need to find the safe commit again as we should have created a new one during the local recovery
+            final Optional<SequenceNumbers.CommitInfo> newSafeCommit = store.findSafeIndexCommit(globalCheckpoint);
+            assert newSafeCommit.isPresent() : "no safe commit found after local recovery";
+            return newSafeCommit.get().localCheckpoint + 1;
+        } catch (Exception e) {
+            if (Assertions.ENABLED) {
+                throw new AssertionError(
+                    "failed to find the safe commit after recovering shard locally up to global checkpoint " + globalCheckpoint, e);
+            }
+            logger.debug(new ParameterizedMessage(
+                "failed to find the safe commit after recovering shard locally up to global checkpoint {}", globalCheckpoint), e);
+            return UNASSIGNED_SEQ_NO;
+        }
+    }
+
     public void trimOperationOfPreviousPrimaryTerms(long aboveSeqNo) {
         getEngine().trimOperationsFromTranslog(getOperationPrimaryTerm(), aboveSeqNo);
     }
@@ -1411,11 +1496,23 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return opsRecovered;
     }
 
+    private void loadGlobalCheckpointToReplicationTracker() throws IOException {
+        // we have to set it before we open an engine and recover from the translog because
+        // acquiring a snapshot from the translog causes a sync which causes the global checkpoint to be pulled in,
+        // and an engine can be forced to close in ctor which also causes the global checkpoint to be pulled in.
+        final String translogUUID = store.readLastCommittedSegmentsInfo().getUserData().get(Translog.TRANSLOG_UUID_KEY);
+        final long globalCheckpoint = Translog.readGlobalCheckpoint(translogConfig.getTranslogPath(), translogUUID);
+        replicationTracker.updateGlobalCheckpointOnReplica(globalCheckpoint, "read from translog checkpoint");
+    }
+
     /**
      * opens the engine on top of the existing lucene engine and translog.
      * Operations from the translog will be replayed to bring lucene up to date.
      **/
     public void openEngineAndRecoverFromTranslog() throws IOException {
+        assert recoveryState.getStage() == RecoveryState.Stage.INDEX : "unexpected recovery stage [" + recoveryState.getStage() + "]";
+        maybeCheckIndex();
+        recoveryState.setStage(RecoveryState.Stage.TRANSLOG);
         final RecoveryState.Translog translogRecoveryStats = recoveryState.getTranslog();
         final Engine.TranslogRecoveryRunner translogRecoveryRunner = (engine, snapshot) -> {
             translogRecoveryStats.totalOperations(snapshot.totalOperations());
@@ -1423,7 +1520,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             return runTranslogRecovery(engine, snapshot, Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY,
                 translogRecoveryStats::incrementRecoveredOperations);
         };
-        innerOpenEngineAndTranslog();
+        loadGlobalCheckpointToReplicationTracker();
+        innerOpenEngineAndTranslog(replicationTracker);
         getEngine().recoverFromTranslog(translogRecoveryRunner, Long.MAX_VALUE);
     }
 
@@ -1432,36 +1530,22 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      * The translog is kept but its operations won't be replayed.
      */
     public void openEngineAndSkipTranslogRecovery() throws IOException {
-        innerOpenEngineAndTranslog();
+        assert routingEntry().recoverySource().getType() == RecoverySource.Type.PEER : "not a peer recovery [" + routingEntry() + "]";
+        assert recoveryState.getStage() == RecoveryState.Stage.TRANSLOG : "unexpected recovery stage [" + recoveryState.getStage() + "]";
+        loadGlobalCheckpointToReplicationTracker();
+        innerOpenEngineAndTranslog(replicationTracker);
         getEngine().skipTranslogRecovery();
     }
 
-    private void innerOpenEngineAndTranslog() throws IOException {
+    private void innerOpenEngineAndTranslog(LongSupplier globalCheckpointSupplier) throws IOException {
         if (state != IndexShardState.RECOVERING) {
             throw new IndexShardNotRecoveringException(shardId, state);
         }
-        recoveryState.setStage(RecoveryState.Stage.VERIFY_INDEX);
-        // also check here, before we apply the translog
-        if (Booleans.isTrue(checkIndexOnStartup) || "checksum".equals(checkIndexOnStartup)) {
-            try {
-                checkIndex();
-            } catch (IOException ex) {
-                throw new RecoveryFailedException(recoveryState, "check index failed", ex);
-            }
-        }
-        recoveryState.setStage(RecoveryState.Stage.TRANSLOG);
-
-        final EngineConfig config = newEngineConfig();
+        final EngineConfig config = newEngineConfig(globalCheckpointSupplier);
 
         // we disable deletes since we allow for operations to be executed against the shard while recovering
         // but we need to make sure we don't loose deletes until we are done recovering
         config.setEnableGcDeletes(false);
-        // we have to set it before we open an engine and recover from the translog because
-        // acquiring a snapshot from the translog causes a sync which causes the global checkpoint to be pulled in,
-        // and an engine can be forced to close in ctor which also causes the global checkpoint to be pulled in.
-        final String translogUUID = store.readLastCommittedSegmentsInfo().getUserData().get(Translog.TRANSLOG_UUID_KEY);
-        final long globalCheckpoint = Translog.readGlobalCheckpoint(translogConfig.getTranslogPath(), translogUUID);
-        replicationTracker.updateGlobalCheckpointOnReplica(globalCheckpoint, "read from translog checkpoint");
         updateRetentionLeasesOnReplica(loadRetentionLeases());
         assert recoveryState.getRecoverySource().expectEmptyRetentionLeases() == false || getRetentionLeases().leases().isEmpty()
             : "expected empty set of retention leases with recovery source [" + recoveryState.getRecoverySource()
@@ -1509,14 +1593,22 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      */
     public void performRecoveryRestart() throws IOException {
         synchronized (mutex) {
-            if (state != IndexShardState.RECOVERING) {
-                throw new IndexShardNotRecoveringException(shardId, state);
-            }
             assert refreshListeners.pendingCount() == 0 : "we can't restart with pending listeners";
-            final Engine engine = this.currentEngineReference.getAndSet(null);
-            IOUtils.close(engine);
-            recoveryState().setStage(RecoveryState.Stage.INIT);
+            IOUtils.close(currentEngineReference.getAndSet(null));
+            resetRecoveryStage();
         }
+    }
+
+    /**
+     * If a file-based recovery occurs, a recovery target calls this method to reset the recovery stage.
+     */
+    public void resetRecoveryStage() {
+        assert routingEntry().recoverySource().getType() == RecoverySource.Type.PEER : "not a peer recovery [" + routingEntry() + "]";
+        assert currentEngineReference.get() == null;
+        if (state != IndexShardState.RECOVERING) {
+            throw new IndexShardNotRecoveringException(shardId, state);
+        }
+        recoveryState().setStage(RecoveryState.Stage.INIT);
     }
 
     /**
@@ -2049,6 +2141,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert assertPrimaryMode();
         verifyNotClosed();
         ensureSoftDeletesEnabled("retention leases");
+        replicationTracker.renewPeerRecoveryRetentionLeases();
         final Tuple<Boolean, RetentionLeases> retentionLeases = getRetentionLeases(true);
         if (retentionLeases.v1()) {
             logger.trace("syncing retention leases [{}] after expiration check", retentionLeases.v2());
@@ -2221,6 +2314,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         synchronized (mutex) {
             replicationTracker.activateWithPrimaryContext(primaryContext); // make changes to primaryMode flag only under mutex
         }
+        ensurePeerRecoveryRetentionLeasesExist();
+    }
+
+    private void ensurePeerRecoveryRetentionLeasesExist() {
+        threadPool.generic().execute(() -> replicationTracker.createMissingPeerRecoveryRetentionLeases(ActionListener.wrap(
+            r -> logger.trace("created missing peer recovery retention leases"),
+            e -> logger.debug("failed creating missing peer recovery retention leases", e))));
     }
 
     /**
@@ -2231,6 +2331,17 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public boolean pendingInSync() {
         assert assertPrimaryMode();
         return replicationTracker.pendingInSync();
+    }
+
+    public void maybeCheckIndex() {
+        recoveryState.setStage(RecoveryState.Stage.VERIFY_INDEX);
+        if (Booleans.isTrue(checkIndexOnStartup) || "checksum".equals(checkIndexOnStartup)) {
+            try {
+                checkIndex();
+            } catch (IOException ex) {
+                throw new RecoveryFailedException(recoveryState, "check index failed", ex);
+            }
+        }
     }
 
     void checkIndex() throws IOException {
@@ -2430,6 +2541,24 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return replicationTracker.isRelocated();
     }
 
+    public RetentionLease addPeerRecoveryRetentionLease(String nodeId, long globalCheckpoint,
+                                                        ActionListener<ReplicationResponse> listener) {
+        assert assertPrimaryMode();
+        // only needed for BWC reasons involving rolling upgrades from versions that do not support PRRLs:
+        assert indexSettings.getIndexVersionCreated().before(Version.V_4_3_0);
+        return replicationTracker.addPeerRecoveryRetentionLease(nodeId, globalCheckpoint, listener);
+    }
+
+    public RetentionLease cloneLocalPeerRecoveryRetentionLease(String nodeId, ActionListener<ReplicationResponse> listener) {
+        assert assertPrimaryMode();
+        return replicationTracker.cloneLocalPeerRecoveryRetentionLease(nodeId, listener);
+    }
+
+    public void removePeerRecoveryRetentionLease(String nodeId, ActionListener<ReplicationResponse> listener) {
+        assert assertPrimaryMode();
+        replicationTracker.removePeerRecoveryRetentionLease(nodeId, listener);
+    }
+
     class ShardEventListener implements Engine.EventListener {
         private final CopyOnWriteArrayList<Consumer<ShardFailure>> delegates = new CopyOnWriteArrayList<>();
 
@@ -2481,7 +2610,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return mapperService.documentMapperSafe();
     }
 
-    private EngineConfig newEngineConfig() {
+    private EngineConfig newEngineConfig(LongSupplier globalCheckpointSupplier) {
         return new EngineConfig(
             shardId,
             shardRouting.allocationId().getId(),
@@ -2499,7 +2628,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             Collections.singletonList(refreshListeners),
             Collections.singletonList(new RefreshMetricUpdater(refreshMetric)),
             circuitBreakerService,
-            replicationTracker,
+            globalCheckpointSupplier,
             replicationTracker::getRetentionLeases,
             this::getOperationPrimaryTerm,
             tombstoneDocSupplier()
@@ -2982,7 +3111,9 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         boolean listenerNeedsRefresh = refreshListeners.refreshNeeded();
         if (isReadAllowed() && (listenerNeedsRefresh || getEngine().refreshNeeded())) {
             if (listenerNeedsRefresh == false // if we have a listener that is waiting for a refresh we need to force it
-                && isSearchIdle() && indexSettings.isExplicitRefresh() == false) {
+                && isSearchIdle()
+                && indexSettings.isExplicitRefresh() == false
+                && active.get()) { // it must be active otherwise we might not free up segment memory once the shard became inactive
                 // lets skip this refresh since we are search idle and
                 // don't necessarily need to refresh. the next searcher access will register a refreshListener and that will
                 // cause the next schedule to refresh.
@@ -3145,7 +3276,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             // we must create both new read-only engine and new read-write engine under mutex to ensure snapshotStoreMetadata,
             // acquireXXXCommit and close works.
             final Engine readOnlyEngine =
-                new ReadOnlyEngine(newEngineConfig(), seqNoStats, translogStats, false, Function.identity()) {
+                new ReadOnlyEngine(newEngineConfig(replicationTracker), seqNoStats, translogStats, false, Function.identity()) {
                     @Override
                     public IndexCommitRef acquireLastIndexCommit(boolean flushFirst) {
                         synchronized (mutex) {
@@ -3174,7 +3305,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     }
                 };
             IOUtils.close(currentEngineReference.getAndSet(readOnlyEngine));
-            newEngineReference.set(engineFactory.newReadWriteEngine(newEngineConfig()));
+            newEngineReference.set(engineFactory.newReadWriteEngine(newEngineConfig(replicationTracker)));
             onNewEngine(newEngineReference.get());
         }
         final Engine.TranslogRecoveryRunner translogRunner = (engine, snapshot) -> runTranslogRecovery(

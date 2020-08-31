@@ -403,6 +403,13 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
         return result;
     }
 
+    /**
+     * Returns <code>true</code> iff all shards in the routing table are started otherwise <code>false</code>
+     */
+    public boolean allShardsStarted() {
+        return allShardsStarted;
+    }
+
     @Nullable
     public ShardRouting getByAllocationId(String allocationId) {
         for (ShardRouting shardRouting : assignedShards()) {
