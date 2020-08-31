@@ -302,7 +302,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             .builder()
             .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
             .put(
-                IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING.getKey(),
+                IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(),
                 TimeValue.timeValueMillis(retentionLeaseMillis).getStringRep())
             .build();
         final long primaryTerm = randomLongBetween(1, Long.MAX_VALUE);
