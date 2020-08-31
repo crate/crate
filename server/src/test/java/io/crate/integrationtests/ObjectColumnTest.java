@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -177,7 +178,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
             "update ot set author['name']['middle_name']='Noel' where author['name']['first_name']='Douglas' " +
             "and author['name']['last_name']='Adams'"),
                      isSQLError(is("Column author['name']['middle_name'] unknown"),
-                                INTERNAL_ERROR,
+                                UNDEFINED_COLUMN,
                                 NOT_FOUND,
                                 4043));
     }

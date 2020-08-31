@@ -28,6 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -181,7 +182,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute("select settings['routing']['allocation']['exclude']['foo'] from information_schema.tables " +
             "where table_name = 'settings_table'"),
                      isSQLError(is("Column settings['routing']['allocation']['exclude']['foo'] unknown"),
-                                INTERNAL_ERROR,
+                                UNDEFINED_COLUMN,
                                 NOT_FOUND,
                                 4043));
     }

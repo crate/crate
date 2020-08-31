@@ -25,8 +25,10 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.core.Is.is;
 
 public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
@@ -78,8 +80,8 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (\"name\" string) with (number_of_replicas=0)");
         assertThrows(() -> execute("select count(*) from test where non_existant = 'Some Value'"),
                      isSQLError(is("Column non_existant unknown"),
-                                INTERNAL_ERROR,
-                                HttpResponseStatus.NOT_FOUND,
+                                UNDEFINED_COLUMN,
+                                NOT_FOUND,
                                 4043));
     }
 
