@@ -144,7 +144,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
         final Settings settings = Settings
             .builder()
             .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
-            .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING.getKey(), TimeValue.timeValueMillis(retentionLeaseMillis).getStringRep())
+            .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(), TimeValue.timeValueMillis(retentionLeaseMillis).getStringRep())
             .build();
         // current time is mocked through the thread pool
         final IndexShard indexShard = newStartedShard(primary, settings, new InternalEngineFactory());
@@ -210,7 +210,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
     public void testPersistence() throws IOException {
         final Settings settings = Settings.builder()
                 .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
-                .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING.getKey(), Long.MAX_VALUE, TimeUnit.NANOSECONDS)
+                .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(), Long.MAX_VALUE, TimeUnit.NANOSECONDS)
                 .build();
         final IndexShard indexShard = newStartedShard(
                 true,

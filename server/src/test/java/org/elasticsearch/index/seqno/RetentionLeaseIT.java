@@ -154,7 +154,7 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
                 .indices()
                 .prepareUpdateSettings("tbl")
                 .setSettings(Settings.builder()
-                    .putNull(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING.getKey())
+                    .putNull(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey())
                     .build())
                 .get();
             assertTrue(longTtlResponse.isAcknowledged());
@@ -184,7 +184,7 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
                 .prepareUpdateSettings("tbl")
                 .setSettings(
                     Settings.builder()
-                        .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_SETTING.getKey(), retentionLeaseTimeToLive)
+                        .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(), retentionLeaseTimeToLive)
                         .build())
                 .get();
             assertTrue(shortTtlResponse.isAcknowledged());
