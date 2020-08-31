@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -109,7 +110,7 @@ public class ViewsITest extends SQLTransportIntegrationTest {
 
         assertThrows(() ->  execute("create view v3 as select 1"),
                      isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".v3' already exists"),
-                                INTERNAL_ERROR,
+                                DUPLICATE_TABLE,
                                 CONFLICT,
                                 4093));
     }
@@ -120,7 +121,7 @@ public class ViewsITest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("create view t1 as select 1"),
                      isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists"),
-                                INTERNAL_ERROR,
+                                DUPLICATE_TABLE,
                                 CONFLICT,
                                 4093));
     }
@@ -131,7 +132,7 @@ public class ViewsITest extends SQLTransportIntegrationTest {
 
         assertThrows(() -> execute("create view t1 as select 1"),
                      isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists"),
-                                INTERNAL_ERROR,
+                                DUPLICATE_TABLE,
                                 CONFLICT,
                                 4093));
     }

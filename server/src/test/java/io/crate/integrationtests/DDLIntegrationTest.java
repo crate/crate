@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThrows;
@@ -132,7 +133,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         assertThrows(() -> execute("create table test (col1 integer primary key, col2 string)"),
                      isSQLError(is("Relation 'doc.test' already exists."),
-                                INTERNAL_ERROR,
+                                DUPLICATE_TABLE,
                                 CONFLICT,
                                 4093)
         );
