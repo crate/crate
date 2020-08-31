@@ -27,7 +27,6 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
 
-import java.io.IOException;
 import java.util.List;
 
 
@@ -105,7 +104,7 @@ public interface RecoveryTargetHandler {
      * @param globalCheckpoint the global checkpoint on the primary
      * @param sourceMetadata meta data of the source store
      */
-    void cleanFiles(int totalTranslogOps, long globalCheckpoint, Store.MetadataSnapshot sourceMetadata) throws IOException;
+    void cleanFiles(int totalTranslogOps, long globalCheckpoint, Store.MetadataSnapshot sourceMetadata, ActionListener<Void> listener);
 
     /** writes a partial file chunk to the target store */
     void writeFileChunk(StoreFileMetadata fileMetadata, long position, BytesReference content,

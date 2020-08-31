@@ -164,14 +164,20 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     }
 
     @Override
-    public void cleanFiles(int totalTranslogOps, long globalCheckpoint, Store.MetadataSnapshot sourceMetadata) throws IOException {
+    public void cleanFiles(int totalTranslogOps,
+                           long globalCheckpoint,
+                           Store.MetadataSnapshot sourceMetadata,
+                           ActionListener<Void> listener) {
         transportService.submitRequest(
             targetNode,
             PeerRecoveryTargetService.Actions.CLEAN_FILES,
             new RecoveryCleanFilesRequest(recoveryId, shardId, sourceMetadata, totalTranslogOps, globalCheckpoint),
             TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build(),
-            EmptyTransportResponseHandler.INSTANCE_SAME
-        ).txGet();
+            new ActionListenerResponseHandler<>(
+                ActionListener.map(listener, r -> null),
+                in -> TransportResponse.Empty.INSTANCE, ThreadPool.Names.GENERIC
+            )
+        );
     }
 
     @Override
