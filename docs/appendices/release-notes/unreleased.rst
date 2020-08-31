@@ -51,6 +51,9 @@ Breaking Changes
 Changes
 =======
 
+- Changed the error code for the psql protocol when a column reference
+  is ambiguous from `XX000` `internal_error` to `42702` `ambiguous_column`.
+
 - Changed the error code for the psql protocol when a relation exists
   already from `XX000` `internal_error` to `42P07` `duplicate_table`.
 

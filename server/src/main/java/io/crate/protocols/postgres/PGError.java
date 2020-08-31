@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.DuplicateKeyException;
 import io.crate.exceptions.RelationAlreadyExists;
@@ -83,6 +84,8 @@ public class PGError {
             status = PGErrorStatus.UNDEFINED_COLUMN;
         } else if (throwable instanceof RelationAlreadyExists) {
             status = PGErrorStatus.DUPLICATE_TABLE;
+        } else if (throwable instanceof AmbiguousColumnException) {
+            status = PGErrorStatus.AMBIGUOUS_COLUMN;
         }
         return new PGError(status, SQLExceptions.messageOf(throwable), throwable);
     }
