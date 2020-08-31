@@ -849,7 +849,8 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                     List<Long> phase1FileSizes,
                                     List<String> phase1ExistingFileNames,
                                     List<Long> phase1ExistingFileSizes,
-                                    int totalTranslogOps) {
+                                    int totalTranslogOps,
+                                    ActionListener<Void> listener) {
         }
 
         @Override
