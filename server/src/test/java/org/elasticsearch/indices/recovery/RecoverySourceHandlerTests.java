@@ -262,10 +262,11 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                                 ActionListener<Long> listener) {
                 shippedOps.addAll(operations);
                 checkpointOnTarget.set(randomLongBetween(checkpointOnTarget.get(), Long.MAX_VALUE));
-                maybeExecuteAsync(() -> listener.onResponse(checkpointOnTarget.get()));
+                listener.onResponse(checkpointOnTarget.get());
             }
         };
-        RecoverySourceHandler handler = new RecoverySourceHandler(shard, recoveryTarget, request, fileChunkSizeInBytes, between(1, 10));
+        RecoverySourceHandler handler = new RecoverySourceHandler(
+            shard, new AsyncRecoveryTarget(recoveryTarget, threadPool.generic()), request, fileChunkSizeInBytes, between(1, 10));
         PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainActionFuture<>();
         handler.phase2(
             startingSeqNo,
@@ -310,14 +311,20 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                                 long mappingVersion,
                                                 ActionListener<Long> listener) {
                 if (randomBoolean()) {
-                    maybeExecuteAsync(() -> listener.onResponse(SequenceNumbers.NO_OPS_PERFORMED));
+                    listener.onResponse(SequenceNumbers.NO_OPS_PERFORMED);
                 } else {
-                    maybeExecuteAsync(() -> listener.onFailure(new RuntimeException("test - failed to index")));
+                    listener.onFailure(new RuntimeException("test - failed to index"));
                     wasFailed.set(true);
                 }
             }
         };
-        RecoverySourceHandler handler = new RecoverySourceHandler(shard, recoveryTarget, request, fileChunkSizeInBytes, between(1, 10));
+        RecoverySourceHandler handler = new RecoverySourceHandler(
+            shard,
+            new AsyncRecoveryTarget(recoveryTarget, threadPool.generic()),
+            request,
+            fileChunkSizeInBytes,
+            between(1, 10)
+        );
         PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainActionFuture<>();
         final long startingSeqNo = randomLongBetween(0, ops.size() - 1L);
         final long endingSeqNo = randomLongBetween(startingSeqNo, ops.size() - 1L);
@@ -808,14 +815,6 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             files.add(md);
         }
         return files;
-    }
-
-    private void maybeExecuteAsync(Runnable runnable) {
-        if (randomBoolean()) {
-            threadPool.generic().execute(runnable);
-        } else {
-            runnable.run();
-        }
     }
 
     class TestRecoveryTargetHandler implements RecoveryTargetHandler {

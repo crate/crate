@@ -668,6 +668,7 @@ public class RecoverySourceHandler {
                            RetentionLeases retentionLeases,
                            long mappingVersionOnPrimary,
                            ActionListener<Long> listener) throws IOException {
+        assert ThreadPool.assertCurrentMethodIsNotCalledRecursively();
         final List<Translog.Operation> operations = nextBatch.get();
         // send the leftover operations or if no operations were sent, request
         // the target to respond with its local checkpoint

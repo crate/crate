@@ -24,33 +24,25 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.lucene.index.SegmentInfos;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.RetentionLeaseStats;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
@@ -63,16 +55,12 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
 
     @Override
     protected ThreadPool setUpThreadPool() {
-        final ThreadPool threadPool = mock(ThreadPool.class);
-        doAnswer(invocationOnMock -> currentTimeMillis.get()).when(threadPool).absoluteTimeInMillis();
-        when(threadPool.executor(anyString())).thenReturn(mock(ExecutorService.class));
-        when(threadPool.scheduler()).thenReturn(mock(ScheduledExecutorService.class));
-        return threadPool;
-    }
-
-    @Override
-    protected void tearDownThreadPool() {
-
+        return new TestThreadPool(getClass().getName(), threadPoolSettings()) {
+            @Override
+            public long absoluteTimeInMillis() {
+                return currentTimeMillis.get();
+            }
+        };
     }
 
     @Test
