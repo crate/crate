@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
@@ -49,7 +50,7 @@ public class SysSegmentsTableInfoTest extends SQLTransportIntegrationTest {
                 " from sys.segments order by primary desc");
         assertThat(response.rowCount(), is(2L));
         validateResponse(response.rows()[0], true);
-        validateResponse(response.rows()[1],false);
+        validateResponse(response.rows()[1], false);
     }
 
     @SuppressWarnings("unchecked")
@@ -62,7 +63,7 @@ public class SysSegmentsTableInfoTest extends SQLTransportIntegrationTest {
         assertThat(result[5], is(0));
         assertThat((Long) result[6], greaterThan(2700L));
         assertThat((Long) result[7], greaterThan(900L));
-        assertThat(result[8], is(false));
+        assertThat(result[8], anyOf(is(true), is(false)));
         assertThat(result[9], is(true));
         assertThat(result[10], is(true));
         assertThat(result[11], is(Version.CURRENT.luceneVersion.toString()));
