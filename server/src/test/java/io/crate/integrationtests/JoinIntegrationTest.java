@@ -29,7 +29,6 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -45,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_COLUMN;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
