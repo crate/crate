@@ -19,13 +19,21 @@
 
 package org.elasticsearch.indices.recovery;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.HandledTransportAction;
+import org.elasticsearch.action.support.ChannelActionListener;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
@@ -38,13 +46,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * The source recovery accepts recovery requests from other peer shards and start the recovery process from this
@@ -118,7 +119,7 @@ public class PeerRecoverySourceService implements IndexEventListener {
         public void messageReceived(final StartRecoveryRequest request,
                                     final TransportChannel channel,
                                     Task task) throws Exception {
-            recover(request, new HandledTransportAction.ChannelActionListener<>(channel, Actions.START_RECOVERY, request));
+            recover(request, new ChannelActionListener<>(channel, Actions.START_RECOVERY, request));
         }
     }
 
