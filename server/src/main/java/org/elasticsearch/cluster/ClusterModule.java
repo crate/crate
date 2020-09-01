@@ -19,6 +19,18 @@
 
 package org.elasticsearch.cluster;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.index.NodeMappingRefreshAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -68,18 +80,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.plugins.ClusterPlugin;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 /**
  * Configures classes and services that affect the entire cluster.
  */
@@ -104,23 +104,6 @@ public class ClusterModule extends AbstractModule {
         this.clusterService = clusterService;
         this.indexNameExpressionResolver = new IndexNameExpressionResolver();
         this.allocationService = new AllocationService(allocationDeciders, shardsAllocator, clusterInfoService);
-    }
-
-    public static Map<String, Supplier<ClusterState.Custom>> getClusterStateCustomSuppliers(List<ClusterPlugin> clusterPlugins) {
-        final Map<String, Supplier<ClusterState.Custom>> customSupplier = new HashMap<>();
-        customSupplier.put(SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress::new);
-        customSupplier.put(RestoreInProgress.TYPE, RestoreInProgress::new);
-        customSupplier.put(SnapshotsInProgress.TYPE, SnapshotsInProgress::new);
-        for (ClusterPlugin plugin : clusterPlugins) {
-            Map<String, Supplier<ClusterState.Custom>> initialCustomSupplier = plugin.getInitialClusterStateCustomSupplier();
-            for (String key : initialCustomSupplier.keySet()) {
-                if (customSupplier.containsKey(key)) {
-                    throw new IllegalStateException("custom supplier key [" + key + "] is registered more than once");
-                }
-            }
-            customSupplier.putAll(initialCustomSupplier);
-        }
-        return Collections.unmodifiableMap(customSupplier);
     }
 
     public static List<Entry> getNamedWriteables() {

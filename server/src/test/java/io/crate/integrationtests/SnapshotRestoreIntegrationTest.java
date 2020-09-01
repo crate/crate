@@ -22,9 +22,28 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+
 import com.google.common.base.Joiner;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
+
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -32,7 +51,6 @@ import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
@@ -46,25 +64,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import io.crate.common.unit.TimeValue;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
 
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -444,6 +446,32 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ? order by 1",
             new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("my_table_1") + "\n" + getFqn("my_table_2") + "\n"));
+    }
+
+    @Test
+    public void test_parallel_restore_operations() throws Exception {
+        createTable("my_table_1", false);
+        createTable("my_table_2", false);
+        createSnapshot(SNAPSHOT_NAME, "my_table_1", "my_table_2");
+        waitNoPendingTasksOnAll();
+        execute("drop table my_table_1");
+        execute("drop table my_table_2");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_table_1 with (" +
+                "wait_for_completion=false)");
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_table_2 with (" +
+                "wait_for_completion=false)");
+
+        assertBusy(() -> {
+            execute(
+                "select table_name from information_schema.tables where table_schema = ? order by 1",
+                new Object[] { sqlExecutor.getCurrentSchema() }
+            );
+            assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "my_table_1\n" +
+                "my_table_2\n"
+            ));
+        });
     }
 
     /**
