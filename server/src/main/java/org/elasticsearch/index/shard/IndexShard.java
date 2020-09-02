@@ -1018,7 +1018,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     /**
      * Rolls the tranlog generation and cleans unneeded.
      */
-    private void rollTranslogGeneration() {
+    public void rollTranslogGeneration() {
         final Engine engine = getEngine();
         engine.rollTranslogGeneration();
     }
