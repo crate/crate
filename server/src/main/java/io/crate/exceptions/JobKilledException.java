@@ -21,14 +21,22 @@
 
 package io.crate.exceptions;
 
-import javax.annotation.Nullable;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
 
-public class JobKilledException extends RuntimeException implements UnscopedException {
+import javax.annotation.Nullable;
+import java.io.IOException;
+
+public class JobKilledException extends ElasticsearchException implements UnscopedException {
 
     public static final String MESSAGE = "Job killed";
 
     public static JobKilledException of(@Nullable String reason) {
         return reason == null ? new JobKilledException() : new JobKilledException(reason);
+    }
+
+    public JobKilledException(final StreamInput in) throws IOException {
+        super(in);
     }
 
     private JobKilledException(String reason) {

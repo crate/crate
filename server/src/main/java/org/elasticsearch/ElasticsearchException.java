@@ -993,7 +993,12 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                 org.elasticsearch.index.shard.ShardNotInPrimaryModeException.class,
                 org.elasticsearch.index.shard.ShardNotInPrimaryModeException::new,
                 155,
-                Version.V_4_3_0);
+                Version.V_4_3_0),
+        JOB_KILLED_EXCEPTION(
+            io.crate.exceptions.JobKilledException.class,
+            io.crate.exceptions.JobKilledException::new,
+                156,
+            Version.V_4_3_0);
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;
