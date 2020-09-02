@@ -447,6 +447,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                     new ChannelActionListener<>(channel, Actions.FINALIZE, request);
                 recoveryRef.target().finalizeRecovery(
                     request.globalCheckpoint(),
+                    request.trimAboveSeqNo(),
                     ActionListener.map(listener, nullVal -> TransportResponse.Empty.INSTANCE)
                 );
             }
