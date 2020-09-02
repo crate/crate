@@ -24,6 +24,7 @@ package io.crate.protocols;
 
 import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.AmbiguousColumnException;
+import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.ColumnIdent;
 import io.crate.protocols.postgres.PGError;
@@ -35,6 +36,7 @@ import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_COLUMN;
+import static io.crate.protocols.postgres.PGErrorStatus.INVALID_SCHEMA_NAME;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -49,6 +51,15 @@ public class ErrorMappingTest {
                 AMBIGUOUS_COLUMN,
                 BAD_REQUEST,
                 4006);
+    }
+
+    @Test
+    public void test_invalid_schema_name_exception_error_mapping() {
+        isError(new InvalidSchemaNameException("invalid"),
+                is("schema name \"invalid\" is invalid."),
+                INVALID_SCHEMA_NAME,
+                BAD_REQUEST,
+                4002);
     }
 
     private void isError(Throwable t,
