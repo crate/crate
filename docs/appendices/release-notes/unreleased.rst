@@ -51,6 +51,9 @@ Breaking Changes
 Changes
 =======
 
+- Changed the error code for the psql protocol when a schema name
+  is invalid from `XX000` `internal_error` to `3F000` `invalid_schema_name`.
+
 - Changed the error code for the psql protocol when a column reference
   is ambiguous from `XX000` `internal_error` to `42702` `ambiguous_column`.
 
