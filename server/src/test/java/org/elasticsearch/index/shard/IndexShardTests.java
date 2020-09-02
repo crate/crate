@@ -21,6 +21,7 @@ package org.elasticsearch.index.shard;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -34,7 +35,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -693,6 +696,68 @@ public class IndexShardTests extends IndexShardTestCase {
         shard.relocated(toNode2.getTargetRelocatingShard().allocationId().getId(), ctx -> relocated.set(true));
         assertTrue(relocated.get());
         closeShards(shard);
+    }
+
+    @Test
+    public void testConcurrentAcquireAllReplicaOperationsPermitsWithPrimaryTermUpdate() throws Exception {
+        final IndexShard replica = newStartedShard(false);
+        indexOnReplicaWithGaps(replica, between(0, 1000), Math.toIntExact(replica.getLocalCheckpoint()));
+
+        final int nbTermUpdates = randomIntBetween(1, 5);
+
+        for (int i = 0; i < nbTermUpdates; i++) {
+            long opPrimaryTerm = replica.getOperationPrimaryTerm() + 1;
+            final long globalCheckpoint = replica.getLastKnownGlobalCheckpoint();
+            final long maxSeqNoOfUpdatesOrDeletes = replica.getMaxSeqNoOfUpdatesOrDeletes();
+
+            final int operations = scaledRandomIntBetween(5, 32);
+            final CyclicBarrier barrier = new CyclicBarrier(1 + operations);
+            final CountDownLatch latch = new CountDownLatch(operations);
+
+            final Thread[] threads = new Thread[operations];
+            for (int j = 0; j < operations; j++) {
+                threads[j] = new Thread(() -> {
+                    try {
+                        barrier.await();
+                    } catch (final BrokenBarrierException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    replica.acquireAllReplicaOperationsPermits(
+                        opPrimaryTerm,
+                        globalCheckpoint,
+                        maxSeqNoOfUpdatesOrDeletes,
+                        new ActionListener<Releasable>() {
+                            @Override
+                            public void onResponse(final Releasable releasable) {
+                                try (Releasable ignored = releasable) {
+                                    assertThat(replica.getPendingPrimaryTerm(), greaterThanOrEqualTo(opPrimaryTerm));
+                                    assertThat(replica.getOperationPrimaryTerm(), equalTo(opPrimaryTerm));
+                                } finally {
+                                    latch.countDown();
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(final Exception e) {
+                                try {
+                                    throw new RuntimeException(e);
+                                } finally {
+                                    latch.countDown();
+                                }
+                            }
+                        }, TimeValue.timeValueMinutes(30L));
+                });
+                threads[j].start();
+            }
+            barrier.await();
+            latch.await();
+
+            for (Thread thread : threads) {
+                thread.join();
+            }
+        }
+
+        closeShard(replica, false);
     }
 
     class Result {
