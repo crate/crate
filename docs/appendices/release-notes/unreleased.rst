@@ -93,6 +93,9 @@ Changes
 Fixes
 =====
 
+- Fixed a regression introduced in 4.2.3 that prevented primary key lookups
+  with parameter placeholders from working in some cases.
+
 - Fixed an issue resulting wrongly in a `RED` ``sys.health.health`` state for
   healthy partitions with less shards configured than the actual partitioned
   table.

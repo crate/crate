@@ -22,6 +22,19 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.planner.node.ddl.UpdateSettingsPlan.buildSettingsFrom;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
@@ -35,19 +48,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
-import static io.crate.planner.node.ddl.UpdateSettingsPlan.buildSettingsFrom;
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import io.crate.types.ObjectType;
 
 public class UpdateSettingsPlanTest extends ESTestCase {
 
@@ -92,7 +94,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
     @Test
     public void testUpdateObjectWithParameter() throws Exception {
         List<Assignment<Symbol>> settings = List.of(
-            new Assignment<>(Literal.of("stats"), List.of(new ParameterSymbol(0, DataTypes.LONG))));
+            new Assignment<>(Literal.of("stats"), List.of(new ParameterSymbol(0, ObjectType.UNTYPED))));
 
         Map<String, Object> param = MapBuilder.<String, Object>newMapBuilder()
             .put("enabled", true)

@@ -21,11 +21,15 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -34,17 +38,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
@@ -192,16 +191,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInvalidInsertIntoObject() throws Exception {
         setUpObjectTable();
 
-        var msg = allOf(
-            containsString("Validation failed for object_field"),
-            containsString("for type 'object'")
-        );
-
-        assertThrows(() -> execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
-                         Map.of("created", true, "size", 127),
-                         Map.of("path", "/dev/null", "created", 0)
-                     }),
-                         isSQLError(msg, INTERNAL_ERROR, BAD_REQUEST, 4003));
+        assertThrows(
+            () -> execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
+                Map.of("created", true, "size", 127),
+                Map.of("path", "/dev/null", "created", 0)
+            }),
+            isSQLError(containsString("Cannot cast"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
