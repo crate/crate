@@ -94,6 +94,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.AsyncIOProcessor;
+import org.elasticsearch.common.util.concurrent.RunOnce;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.Index;
@@ -494,7 +495,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                             } catch (final AlreadyClosedException e) {
                                 // okay, the index was deleted
                             }
-                        });
+                        }, null);
                 }
             }
             // set this last, once we finished updating all internal state.
@@ -2601,14 +2602,26 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         acquirePrimaryOperationPermit(onPermitAcquired, executorOnDelay, debugInfo);
     }
 
-    private <E extends Exception> void bumpPrimaryTerm(long newPrimaryTerm, final CheckedRunnable<E> onBlocked) {
+    private <E extends Exception> void bumpPrimaryTerm(long newPrimaryTerm,
+                                                       final CheckedRunnable<E> onBlocked,
+                                                       @Nullable ActionListener<Releasable> combineWithAction) {
         assert Thread.holdsLock(mutex);
-        assert newPrimaryTerm > pendingPrimaryTerm;
+        assert newPrimaryTerm > pendingPrimaryTerm || (newPrimaryTerm >= pendingPrimaryTerm && combineWithAction != null);
         assert getOperationPrimaryTerm() <= pendingPrimaryTerm;
         final CountDownLatch termUpdated = new CountDownLatch(1);
         asyncBlockOperations(new ActionListener<Releasable>() {
             @Override
             public void onFailure(final Exception e) {
+                try {
+                    innerFail(e);
+                } finally {
+                    if (combineWithAction != null) {
+                        combineWithAction.onFailure(e);
+                    }
+                }
+            }
+
+            private void innerFail(final Exception e) {
                 try {
                     failShard("exception during primary term transition", e);
                 } catch (AlreadyClosedException ace) {
@@ -2618,7 +2631,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
             @Override
             public void onResponse(final Releasable releasable) {
-                try (Releasable ignored = releasable) {
+                final RunOnce releaseOnce = new RunOnce(releasable::close);
+                try {
                     assert getOperationPrimaryTerm() <= pendingPrimaryTerm;
                     termUpdated.await();
                     // indexShardOperationPermits doesn't guarantee that async submissions are executed
@@ -2628,7 +2642,17 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                         onBlocked.run();
                     }
                 } catch (final Exception e) {
-                    onFailure(e);
+                    if (combineWithAction == null) {
+                        // otherwise leave it to combineWithAction to release the permit
+                        releaseOnce.run();
+                    }
+                    innerFail(e);
+                } finally {
+                    if (combineWithAction != null) {
+                        combineWithAction.onResponse(releasable);
+                    } else {
+                        releaseOnce.run();
+                    }
                 }
             }
         }, 30, TimeUnit.MINUTES);
@@ -2659,7 +2683,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                                               final ActionListener<Releasable> onPermitAcquired,
                                               final String executorOnDelay,
                                               final Object debugInfo) {
-        innerAcquireReplicaOperationPermit(opPrimaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes, onPermitAcquired,
+        innerAcquireReplicaOperationPermit(opPrimaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes, onPermitAcquired, false,
             (listener) -> indexShardOperationPermits.acquire(listener, executorOnDelay, true, debugInfo));
     }
 
@@ -2686,6 +2710,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             globalCheckpoint,
             maxSeqNoOfUpdatesOrDeletes,
             onPermitAcquired,
+            true,
             (listener) -> asyncBlockOperations(listener, timeout.duration(), timeout.timeUnit())
         );
     }
@@ -2694,11 +2719,43 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                                                     final long globalCheckpoint,
                                                     final long maxSeqNoOfUpdatesOrDeletes,
                                                     final ActionListener<Releasable> onPermitAcquired,
-                                                    final Consumer<ActionListener<Releasable>> consumer) {
+                                                    final boolean allowCombineOperationWithPrimaryTermUpdate,
+                                                    final Consumer<ActionListener<Releasable>> operationExecutor) {
         verifyNotClosed();
-        if (opPrimaryTerm > pendingPrimaryTerm) {
+        // This listener is used for the execution of the operation. If the operation requires all the permits for its
+        // execution and the primary term must be updated first, we can combine the operation execution with the
+        // primary term update. Since indexShardOperationPermits doesn't guarantee that async submissions are executed
+        // in the order submitted, combining both operations ensure that the term is updated before the operation is
+        // executed. It also has the side effect of acquiring all the permits one time instead of two.
+        final ActionListener<Releasable> operationListener = ActionListener.delegateFailure(
+            onPermitAcquired,
+            (delegatedListener, releasable) -> {
+                if (opPrimaryTerm < getOperationPrimaryTerm()) {
+                    releasable.close();
+                    final String message = String.format(
+                        Locale.ROOT,
+                        "%s operation primary term [%d] is too old (current [%d])",
+                        shardId,
+                        opPrimaryTerm,
+                        getOperationPrimaryTerm());
+                    delegatedListener.onFailure(new IllegalStateException(message));
+                } else {
+                    assert assertReplicationTarget();
+                    try {
+                        updateGlobalCheckpointOnReplica(globalCheckpoint, "operation");
+                        advanceMaxSeqNoOfUpdatesOrDeletes(maxSeqNoOfUpdatesOrDeletes);
+                    } catch (Exception e) {
+                        releasable.close();
+                        delegatedListener.onFailure(e);
+                        return;
+                    }
+                    delegatedListener.onResponse(releasable);
+                }
+            }
+        );
+        if (requirePrimaryTermUpdate(opPrimaryTerm, allowCombineOperationWithPrimaryTermUpdate)) {
             synchronized (mutex) {
-                if (opPrimaryTerm > pendingPrimaryTerm) {
+                if (requirePrimaryTermUpdate(opPrimaryTerm, allowCombineOperationWithPrimaryTermUpdate)) {
                     final IndexShardState shardState = state();
                     // only roll translog and update primary term if shard has made it past recovery
                     // Having a new primary term here means that the old primary failed and that there is a new primary, which again
@@ -2709,56 +2766,33 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                         throw new IndexShardNotStartedException(shardId, shardState);
                     }
 
-                    if (opPrimaryTerm > pendingPrimaryTerm) {
-                        bumpPrimaryTerm(opPrimaryTerm, () -> {
-                            updateGlobalCheckpointOnReplica(globalCheckpoint, "primary term transition");
-                            final long currentGlobalCheckpoint = getLastKnownGlobalCheckpoint();
-                            final long maxSeqNo = seqNoStats().getMaxSeqNo();
-                            logger.info("detected new primary with primary term [{}], global checkpoint [{}], max_seq_no [{}]",
-                                opPrimaryTerm, currentGlobalCheckpoint, maxSeqNo);
-                            if (currentGlobalCheckpoint < maxSeqNo) {
-                                resetEngineToGlobalCheckpoint();
-                            } else {
-                                getEngine().rollTranslogGeneration();
-                            }
-                        });
+                    bumpPrimaryTerm(opPrimaryTerm, () -> {
+                        updateGlobalCheckpointOnReplica(globalCheckpoint, "primary term transition");
+                        final long currentGlobalCheckpoint = getLastKnownGlobalCheckpoint();
+                        final long maxSeqNo = seqNoStats().getMaxSeqNo();
+                        logger.info("detected new primary with primary term [{}], global checkpoint [{}], max_seq_no [{}]",
+                            opPrimaryTerm, currentGlobalCheckpoint, maxSeqNo);
+                        if (currentGlobalCheckpoint < maxSeqNo) {
+                            resetEngineToGlobalCheckpoint();
+                        } else {
+                            getEngine().rollTranslogGeneration();
+                        }
+                    }, allowCombineOperationWithPrimaryTermUpdate ? operationListener : null);
+
+                    if (allowCombineOperationWithPrimaryTermUpdate) {
+                        logger.debug("operation execution has been combined with primary term update");
+                        return;
                     }
                 }
             }
         }
         assert opPrimaryTerm <= pendingPrimaryTerm
             : "operation primary term [" + opPrimaryTerm + "] should be at most [" + pendingPrimaryTerm + "]";
-        consumer.accept(new ActionListener<Releasable>() {
-            @Override
-            public void onResponse(final Releasable releasable) {
-                if (opPrimaryTerm < getOperationPrimaryTerm()) {
-                    releasable.close();
-                    final String message = String.format(
-                        Locale.ROOT,
-                        "%s operation primary term [%d] is too old (current [%d])",
-                        shardId,
-                        opPrimaryTerm,
-                        getOperationPrimaryTerm());
-                    onPermitAcquired.onFailure(new IllegalStateException(message));
-                } else {
-                    assert assertReplicationTarget();
-                    try {
-                        updateGlobalCheckpointOnReplica(globalCheckpoint, "operation");
-                        advanceMaxSeqNoOfUpdatesOrDeletes(maxSeqNoOfUpdatesOrDeletes);
-                    } catch (Exception e) {
-                        releasable.close();
-                        onPermitAcquired.onFailure(e);
-                        return;
-                    }
-                    onPermitAcquired.onResponse(releasable);
-                }
-            }
+        operationExecutor.accept(operationListener);
+    }
 
-            @Override
-            public void onFailure(final Exception e) {
-                onPermitAcquired.onFailure(e);
-            }
-        });
+    private boolean requirePrimaryTermUpdate(final long opPrimaryTerm, final boolean allPermits) {
+        return (opPrimaryTerm > pendingPrimaryTerm) || (allPermits && opPrimaryTerm > getOperationPrimaryTerm());
     }
 
     public static final int OPERATIONS_BLOCKED = -1;
