@@ -431,7 +431,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                 final ActionListener<TransportResponse> listener =
                     new ChannelActionListener<>(channel, Actions.PREPARE_TRANSLOG, request);
                 recoveryRef.target().prepareForTranslogOperations(
-                    request.isFileBasedRecovery(),
                     request.totalTranslogOps(),
                     ActionListener.map(listener, nullVal -> TransportResponse.Empty.INSTANCE)
                 );

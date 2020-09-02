@@ -35,11 +35,9 @@ public interface RecoveryTargetHandler {
     /**
      * Prepares the target to receive translog operations, after all file have been copied
      *
-     * @param fileBasedRecovery whether or not this call is part of an file based recovery
      * @param totalTranslogOps  total translog operations expected to be sent
      */
-    void prepareForTranslogOperations(boolean fileBasedRecovery,
-                                      int totalTranslogOps,
+    void prepareForTranslogOperations(int totalTranslogOps,
                                       ActionListener<Void> listener);
 
     /**
