@@ -314,7 +314,6 @@ public class RecoverySourceHandler {
                 assert Transports.assertNotTransportThread(RecoverySourceHandler.this + "[prepareTargetForTranslog]");
                 // For a sequence based recovery, the target can keep its local translog
                 prepareTargetForTranslog(
-                    isSequenceNumberBasedRecovery == false,
                     shard.estimateNumberOfHistoryOperations("peer-recovery", startingSeqNo),
                     prepareEngineStep
                 );
@@ -698,8 +697,7 @@ public class RecoverySourceHandler {
         return true;
     }
 
-    void prepareTargetForTranslog(boolean fileBasedRecovery,
-                                  int totalTranslogOps,
+    void prepareTargetForTranslog(int totalTranslogOps,
                                   ActionListener<TimeValue> listener) {
         StopWatch stopWatch = new StopWatch().start();
         final ActionListener<Void> wrappedListener = ActionListener.wrap(
@@ -715,7 +713,6 @@ public class RecoverySourceHandler {
         logger.trace("recovery [phase1]: prepare remote engine for translog");
         cancellableThreads.execute(
             () -> recoveryTarget.prepareForTranslogOperations(
-                fileBasedRecovery,
                 totalTranslogOps,
                 wrappedListener)
         );
