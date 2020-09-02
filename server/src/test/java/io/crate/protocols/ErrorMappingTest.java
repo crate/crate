@@ -23,6 +23,7 @@
 package io.crate.protocols;
 
 import io.crate.auth.user.AccessControl;
+import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.SQLExceptions;
@@ -35,6 +36,9 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
+import java.util.List;
+
+import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_ALIAS;
 import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_COLUMN;
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_SCHEMA_NAME;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -60,6 +64,15 @@ public class ErrorMappingTest {
                 INVALID_SCHEMA_NAME,
                 BAD_REQUEST,
                 4002);
+    }
+
+    @Test
+    public void test_ambiguous_column_alias_exception_error_mapping() {
+        isError(new AmbiguousColumnAliasException("x", List.of(createReference("x", DataTypes.STRING))),
+                is("Column alias \"x\" is ambiguous"),
+                AMBIGUOUS_ALIAS,
+                BAD_REQUEST,
+                4006);
     }
 
     private void isError(Throwable t,

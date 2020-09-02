@@ -51,6 +51,9 @@ Breaking Changes
 Changes
 =======
 
+- Changed the error code for the psql protocol when a column alias is
+  ambiguous from `XX000` `internal_error` to `42P09` `ambiguous_alias`.
+
 - Changed the error code for the psql protocol when a schema name
   is invalid from `XX000` `internal_error` to `3F000` `invalid_schema_name`.
 

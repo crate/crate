@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.DuplicateKeyException;
@@ -89,6 +90,8 @@ public class PGError {
             status = PGErrorStatus.AMBIGUOUS_COLUMN;
         } else if (throwable instanceof InvalidSchemaNameException) {
             status = PGErrorStatus.INVALID_SCHEMA_NAME;
+        } else if (throwable instanceof AmbiguousColumnAliasException) {
+            status = PGErrorStatus.AMBIGUOUS_ALIAS;
         }
         return new PGError(status, SQLExceptions.messageOf(throwable), throwable);
     }
