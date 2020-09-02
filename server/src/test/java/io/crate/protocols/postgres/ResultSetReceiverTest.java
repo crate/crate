@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.auth.user.AccessControl;
 import io.crate.data.Row1;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
@@ -44,7 +45,7 @@ public class ResultSetReceiverTest {
             "select * from t",
             channel,
             TransactionState.IDLE,
-            RuntimeException::new,
+            AccessControl.DISABLED,
             Collections.singletonList(PGTypes.get(DataTypes.INTEGER)),
             null
         );

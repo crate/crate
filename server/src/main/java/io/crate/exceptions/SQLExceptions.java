@@ -21,10 +21,16 @@
 
 package io.crate.exceptions;
 
+import java.util.Locale;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.auth.user.AccessControl;
-import io.crate.metadata.PartitionName;
-import io.crate.sql.parser.ParsingException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -42,14 +48,9 @@ import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.transport.TransportException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Locale;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import io.crate.auth.user.AccessControl;
+import io.crate.metadata.PartitionName;
+import io.crate.sql.parser.ParsingException;
 
 public class SQLExceptions {
 
@@ -120,29 +121,15 @@ public class SQLExceptions {
         return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
     }
 
-    public static Function<Throwable, Exception> prepareForClientTransmission(AccessControl accessControl) {
-        return e -> prepareForClientTransmission(e, accessControl::ensureMaySee);
-    }
-
     public static RuntimeException prepareForClientTransmission(AccessControl accessControl, Throwable e) {
-        return prepareForClientTransmission(e, accessControl::ensureMaySee);
-    }
-
-    public static RuntimeException prepareForClientTransmission(Throwable e, @Nullable Consumer<Throwable> maskSensitiveInformation) {
         Throwable unwrappedError = SQLExceptions.unwrap(e);
         e = esToCrateException(unwrappedError);
         try {
-            if (maskSensitiveInformation != null) {
-                maskSensitiveInformation.accept(e);
-            }
+            accessControl.ensureMaySee(e);
         } catch (Exception mpe) {
             e = mpe;
         }
-        if (e instanceof RuntimeException) {
-            return (RuntimeException) e;
-        } else {
-            return new RuntimeException(e);
-        }
+        return Exceptions.toRuntimeException(e);
     }
 
     private static Throwable esToCrateException(Throwable unwrappedError) {

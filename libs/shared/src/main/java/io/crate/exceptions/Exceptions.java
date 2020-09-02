@@ -37,10 +37,14 @@ public final class Exceptions {
     }
 
     public static <T> T rethrowRuntimeException(Throwable t) {
+        throw toRuntimeException(t);
+    }
+
+    public static RuntimeException toRuntimeException(Throwable t) {
         if (t instanceof RuntimeException) {
-            throw (RuntimeException) t;
+            return (RuntimeException) t;
         } else {
-            throw new RuntimeException(t);
+            return new RuntimeException(t);
         }
     }
 

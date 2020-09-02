@@ -509,7 +509,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
         if (failure != null) {
             when(session.sync()).thenAnswer(invocationOnMock -> {
-                Messages.sendErrorResponse(channel, failure);
+                Messages.sendErrorResponse(channel, AccessControl.DISABLED, failure);
                 return CompletableFuture.failedFuture(failure);
             });
         } else {
