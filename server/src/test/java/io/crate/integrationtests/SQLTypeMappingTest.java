@@ -21,12 +21,12 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -35,12 +35,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import io.crate.action.sql.SQLActionException;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
@@ -184,12 +185,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         setUpObjectTable();
 
         expectedException.expect(SQLActionException.class);
-        // Value formatting differs between jdbc & non jdbc
-        expectedException.expectMessage(allOf(
-            containsString("Validation failed for object_field"),
-            containsString("Invalid value"),
-            containsString("for type 'object'"))
-        );
         execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
             new HashMap<String, Object>() {{
                 put("created", true);
