@@ -22,6 +22,7 @@
 
 package io.crate.protocols;
 
+import io.crate.auth.user.AccessControl;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.ColumnIdent;
@@ -55,7 +56,7 @@ public class ErrorMappingTest {
                          PGErrorStatus pgErrorStatus,
                          HttpResponseStatus httpResponseStatus,
                          int errorCode) {
-        var throwable = SQLExceptions.prepareForClientTransmission(t, null);
+        var throwable = SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, t);
 
         var pgError = PGError.fromThrowable(throwable);
         assertThat(pgError.status(), is(pgErrorStatus));

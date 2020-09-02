@@ -27,6 +27,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
@@ -228,7 +229,10 @@ public class SQLTransportExecutor {
                                                               @Nullable Object[] args,
                                                               Session session) {
         PlainListenableActionFuture<SQLResponse> actionFuture = PlainListenableActionFuture.newListenableFuture();
-        execute(stmt, args, actionFuture, session);
+        var listener = ActionListener.delegateResponse(actionFuture, (delegate, failure) -> {
+            delegate.onFailure(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, failure));
+        });
+        execute(stmt, args, listener, session);
         return actionFuture;
     }
 
@@ -250,7 +254,7 @@ public class SQLTransportExecutor {
             }
             session.sync();
         } catch (Throwable t) {
-            listener.onFailure(SQLExceptions.prepareForClientTransmission(t, e -> {}));
+            listener.onFailure(Exceptions.toRuntimeException(t));
         }
     }
 
@@ -281,13 +285,13 @@ public class SQLTransportExecutor {
                 if (t == null) {
                     listener.onResponse(rowCounts);
                 } else {
-                    listener.onFailure(SQLExceptions.prepareForClientTransmission(t, e -> {}));
+                    listener.onFailure(Exceptions.toRuntimeException(t));
                 }
                 session.close();
             });
         } catch (Throwable t) {
             session.close();
-            listener.onFailure(SQLExceptions.prepareForClientTransmission(t, e -> {}));
+            listener.onFailure(Exceptions.toRuntimeException(t));
         }
     }
 
@@ -508,7 +512,10 @@ public class SQLTransportExecutor {
     private long[] executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         try {
             AdapterActionFuture<long[], long[]> actionFuture = new PlainActionFuture<>();
-            execute(stmt, bulkArgs, actionFuture);
+            var listener = ActionListener.delegateResponse(actionFuture, (delegate, failure) -> {
+                delegate.onFailure(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, failure));
+            });
+            execute(stmt, bulkArgs, listener);
             return actionFuture.actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {}", e, stmt);
@@ -593,7 +600,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.prepareForClientTransmission(t, e -> {}));
+            listener.onFailure(Exceptions.toRuntimeException(t));
             super.fail(t);
         }
 
@@ -651,7 +658,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.prepareForClientTransmission(t, e -> {}));
+            listener.onFailure(Exceptions.toRuntimeException(t));
             super.fail(t);
         }
     }

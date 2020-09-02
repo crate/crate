@@ -23,12 +23,12 @@
 package io.crate.protocols.postgres;
 
 import java.util.List;
-import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.crate.action.sql.BaseResultReceiver;
+import io.crate.auth.user.AccessControl;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.types.PGType;
 import io.netty.channel.Channel;
@@ -37,9 +37,9 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     private final String query;
     private final Channel channel;
-    private final Function<Throwable, Exception> wrapError;
     private final List<PGType<?>> columnTypes;
     private final TransactionState transactionState;
+    private final AccessControl accessControl;
 
     @Nullable
     private final FormatCodes.FormatCode[] formatCodes;
@@ -49,13 +49,13 @@ class ResultSetReceiver extends BaseResultReceiver {
     ResultSetReceiver(String query,
                       Channel channel,
                       TransactionState transactionState,
-                      Function<Throwable, Exception> wrapError,
+                      AccessControl accessControl,
                       List<PGType<?>> columnTypes,
                       @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
         this.transactionState = transactionState;
-        this.wrapError = wrapError;
+        this.accessControl = accessControl;
         this.columnTypes = columnTypes;
         this.formatCodes = formatCodes;
     }
@@ -86,7 +86,6 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        final Exception e = wrapError.apply(throwable);
-        Messages.sendErrorResponse(channel, e).addListener(f -> super.fail(e));
+        Messages.sendErrorResponse(channel, accessControl, throwable).addListener(f -> super.fail(throwable));
     }
 }

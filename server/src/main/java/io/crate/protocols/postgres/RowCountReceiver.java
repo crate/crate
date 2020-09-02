@@ -23,23 +23,23 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
+import io.crate.auth.user.AccessControl;
 import io.crate.data.Row;
 import io.netty.channel.Channel;
 
 import javax.annotation.Nonnull;
-import java.util.function.Function;
 
 class RowCountReceiver extends BaseResultReceiver {
 
     private final Channel channel;
-    private final Function<Throwable, Exception> wrapError;
     private final String query;
+    private final AccessControl accessControl;
     private long rowCount;
 
-    RowCountReceiver(String query, Channel channel, Function<Throwable, Exception> wrapError) {
+    RowCountReceiver(String query, Channel channel, AccessControl accessControl) {
         this.query = query;
         this.channel = channel;
-        this.wrapError = wrapError;
+        this.accessControl = accessControl;
     }
 
     @Override
@@ -61,7 +61,6 @@ class RowCountReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        var t = wrapError.apply(throwable);
-        Messages.sendErrorResponse(channel, t).addListener(f -> super.fail(t));
+        Messages.sendErrorResponse(channel, accessControl, throwable).addListener(f -> super.fail(throwable));
     }
 }

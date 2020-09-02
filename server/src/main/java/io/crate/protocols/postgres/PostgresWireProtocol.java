@@ -34,7 +34,6 @@ import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -303,15 +302,11 @@ public class PostgresWireProtocol {
                 dispatchState(buffer, channel);
             } catch (Throwable t) {
                 ignoreTillSync = true;
-                if (session != null) {
-                    t = SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionContext()), t);
-                }
                 try {
-                    if (session != null) {
-                        AccessControl accessControl = getAccessControl.apply(session.sessionContext());
-                        t = SQLExceptions.prepareForClientTransmission(accessControl, t);
-                    }
-                    Messages.sendErrorResponse(channel, t);
+                    AccessControl accessControl = session == null
+                        ? AccessControl.DISABLED
+                        : getAccessControl.apply(session.sessionContext());
+                    Messages.sendErrorResponse(channel, accessControl, t);
                 } catch (Throwable ti) {
                     LOGGER.error("Error trying to send error to client: {}", t, ti);
                 }
@@ -377,7 +372,11 @@ public class PostgresWireProtocol {
                     channel.close();
                     return;
                 default:
-                    Messages.sendErrorResponse(channel,
+                    Messages.sendErrorResponse(
+                        channel,
+                        session == null
+                            ? AccessControl.DISABLED
+                            : getAccessControl.apply(session.sessionContext()),
                         new UnsupportedOperationException("Unsupported messageType: " + msgType));
             }
         }
@@ -477,7 +476,7 @@ public class PostgresWireProtocol {
                 channel.flush();
             }
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, t);
+            Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionContext()), t);
         }
     }
 
@@ -563,9 +562,16 @@ public class PostgresWireProtocol {
                         break;
 
                     default:
-                        Messages.sendErrorResponse(channel, new UnsupportedOperationException(
-                            String.format(Locale.ENGLISH, "Unsupported format code '%d' for param '%s'",
-                                formatCode.ordinal(), paramType.getName())));
+                        Messages.sendErrorResponse(
+                            channel,
+                            getAccessControl.apply(session.sessionContext()),
+                            new UnsupportedOperationException(String.format(
+                                Locale.ENGLISH,
+                                "Unsupported format code '%d' for param '%s'",
+                                formatCode.ordinal(),
+                                paramType.getName())
+                            )
+                        );
                         return;
                 }
             }
@@ -634,7 +640,7 @@ public class PostgresWireProtocol {
             resultReceiver = new RowCountReceiver(
                 query,
                 channel.bypassDelay(),
-                SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionContext()))
+                getAccessControl.apply(session.sessionContext())
             );
         } else {
             // query with resultSet
@@ -642,7 +648,7 @@ public class PostgresWireProtocol {
                 query,
                 channel.bypassDelay(),
                 session.transactionState(),
-                SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionContext())),
+                getAccessControl.apply(session.sessionContext()),
                 Lists2.map(outputTypes, PGTypes::get),
                 session.getResultFormatCodes(portalName)
             );
@@ -689,7 +695,7 @@ public class PostgresWireProtocol {
             ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel, session.transactionState());
             session.sync().whenComplete(readyForQueryCallback);
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, t);
+            Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionContext()), t);
             Messages.sendReadyForQuery(channel, TransactionState.FAILED_TRANSACTION);
         }
     }
@@ -728,17 +734,16 @@ public class PostgresWireProtocol {
             return result;
         }
 
+        AccessControl accessControl = getAccessControl.apply(session.sessionContext());
         try {
             session.parse("", query, Collections.emptyList());
             session.bind("", "", Collections.emptyList(), null);
             DescribeResult describeResult = session.describe('P', "");
             List<Symbol> fields = describeResult.getFields();
 
-            Function<Throwable, Exception> wrapError = SQLExceptions.prepareForClientTransmission(
-                getAccessControl.apply(session.sessionContext()));
             CompletableFuture<?> execute;
             if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel.bypassDelay(), wrapError);
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel.bypassDelay(), accessControl);
                 execute = session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null);
@@ -746,7 +751,7 @@ public class PostgresWireProtocol {
                     query,
                     channel.bypassDelay(),
                     TransactionState.IDLE,
-                    wrapError,
+                    accessControl,
                     Lists2.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
@@ -757,7 +762,7 @@ public class PostgresWireProtocol {
             }
             return session.sync();
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, t);
+            Messages.sendErrorResponse(channel, accessControl, t);
             result.completeExceptionally(t);
             return result;
         }

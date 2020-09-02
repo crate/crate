@@ -22,7 +22,9 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.auth.user.AccessControl;
 import io.crate.data.Row;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.protocols.postgres.types.PGType;
@@ -179,8 +181,8 @@ public class Messages {
                           METHOD_NAME_CLIENT_AUTH, errorCode);
     }
 
-    static ChannelFuture sendErrorResponse(Channel channel, Throwable throwable) {
-        var error = PGError.fromThrowable(throwable);
+    static ChannelFuture sendErrorResponse(Channel channel, AccessControl accessControl, Throwable throwable) {
+        var error = PGError.fromThrowable(SQLExceptions.prepareForClientTransmission(accessControl, throwable));
         byte[] msg = error.message().getBytes(StandardCharsets.UTF_8);
         byte[] errorCode = error.status().code().getBytes(StandardCharsets.UTF_8);
         byte[] lineNumber = null;
