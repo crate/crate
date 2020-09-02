@@ -23,9 +23,14 @@ package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLActionException;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -45,7 +50,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -1800,5 +1812,95 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "1\n"
         ));
+    }
+
+    @Test
+    public void test_primary_key_lookup_with_param_that_requires_cast_to_column_type() throws Exception {
+        execute("create table tbl (ts timestamp with time zone primary key, path text primary key)");
+        execute("INSERT INTO tbl (ts, path) VALUES ('2017-06-21T00:00:00.000000Z', 'c1')");
+
+        execute("select _id, path from tbl where ts = '2017-06-21' and path = 'c1'");
+        assertThat(printedTable(response.rows()), is(
+            "Ag0xNDk4MDAzMjAwMDAwAmMx| c1\n"
+        ));
+        execute("select _id, path from tbl where ts = ? and path = ?", new Object[] { "2017-06-21", "c1" });
+        assertThat(printedTable(response.rows()), is(
+            "Ag0xNDk4MDAzMjAwMDAwAmMx| c1\n"
+        ));
+    }
+
+    @Test
+    public void test_primary_key_lookups_returns_inserted_records() throws Exception {
+        int numKeys = randomIntBetween(1, 3);
+        Random random = RandomizedContext.current().getRandom();
+        StringBuilder createTable = new StringBuilder("CREATE TABLE tbl (");
+        ArrayList<DataType<?>> types = new ArrayList<>();
+        List<DataType<?>> typeCandidates = DataTypes.PRIMITIVE_TYPES.stream()
+            .filter(x -> !DataTypes.STORAGE_UNSUPPORTED.contains(x))
+            .collect(Collectors.toList());
+        for (int i = 0; i < numKeys; i++) {
+            var type = RandomPicks.randomFrom(random, typeCandidates);
+            types.add(type);
+            createTable.append("col");
+            createTable.append(i);
+            createTable.append(' ');
+            createTable.append(type.getName());
+            createTable.append(" PRIMARY KEY");
+            if (i + 1 < numKeys) {
+                createTable.append(", ");
+            }
+        }
+        createTable.append(")");
+        execute(createTable.toString());
+
+        String insert = "INSERT INTO tbl VALUES ("
+            + String.join(", ", Lists2.map(types, ignored -> "?"))
+            + ")";
+        Object[] args = new Object[types.size()];
+        for (int i = 0; i < types.size(); i++) {
+            var type = types.get(i);
+            args[i] = DataTypeTesting.getDataGenerator(type).get();
+        }
+        execute(insert, args);
+
+        StringBuilder selectInlineValues = new StringBuilder("SELECT 1 FROM tbl WHERE ");
+        StringBuilder selectParams = new StringBuilder("SELECT 1 FROM tbl WHERE ");
+        for (int i = 0; i < args.length; i++) {
+            var arg = args[i];
+            selectInlineValues.append("col");
+            selectParams.append("col");
+
+            selectInlineValues.append(i);
+            selectParams.append(i);
+
+            selectInlineValues.append(" = ");
+            if (arg instanceof String) {
+                selectInlineValues.append("'");
+                selectInlineValues.append(arg);
+                selectInlineValues.append("'");
+            } else {
+                selectInlineValues.append(arg);
+            }
+            selectParams.append(" = ?");
+
+            if (i + 1 < args.length) {
+                selectInlineValues.append(" AND ");
+                selectParams.append(" AND ");
+            }
+        }
+
+        execute(selectParams.toString(), args);
+        assertThat(
+            selectParams.toString() + " with values " + Arrays.toString(args) + " must return a record",
+            response.rowCount(),
+            is(1L)
+        );
+
+        execute(selectInlineValues.toString());
+        assertThat(
+            selectInlineValues.toString() + " must return a record",
+            response.rowCount(),
+            is(1L)
+        );
     }
 }

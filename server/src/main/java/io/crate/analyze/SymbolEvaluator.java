@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -70,7 +71,14 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
 
     @Override
     public Input<?> visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
-        return () -> params.get(parameterSymbol.index());
+        return () -> {
+            Object value = params.get(parameterSymbol.index());
+            try {
+                return parameterSymbol.valueType().implicitCast(value);
+            } catch (ClassCastException | IllegalArgumentException e) {
+                throw new ConversionException(value, parameterSymbol.valueType());
+            }
+        };
     }
 
     @Override
