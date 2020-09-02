@@ -71,6 +71,7 @@ import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.MetadataSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
@@ -157,8 +158,8 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION;
 import static io.crate.blob.v2.BlobIndex.fullIndexName;
-import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -226,7 +227,9 @@ public class SQLExecutor {
         private boolean hasValidLicense = true;
         private Schemas schemas;
         private LoadedRules loadedRules = new LoadedRules();
-        private SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules));
+        private SessionSettingRegistry sessionSettingRegistry;
+        private MetadataSettings metadataSettings;
+
 
         private Builder(ClusterService clusterService,
                         int numNodes,
@@ -238,6 +241,8 @@ public class SQLExecutor {
             }
             this.random = random;
             this.clusterService = clusterService;
+            metadataSettings = new MetadataSettings(clusterService.getSettings(), clusterService.getClusterSettings());
+            sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules, metadataSettings));
             addNodesToClusterState(numNodes);
             nodeCtx = createNodeContext(additionalModules);
             UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
@@ -418,7 +423,7 @@ public class SQLExecutor {
                     sessionSettingRegistry
                 ),
                 relationAnalyzer,
-                new SessionContext(Option.NONE, user, searchPath),
+                new SessionContext(Option.NONE, user, metadataSettings::exposeObjectColumns, searchPath),
                 schemas,
                 random,
                 fulltextAnalyzerResolver

@@ -34,6 +34,7 @@ import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.metadata.settings.MetadataSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -95,7 +96,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> true),
             Settings.EMPTY,
             clusterService,
-            USER_MANAGER_PROVIDER
+            USER_MANAGER_PROVIDER,
+            new MetadataSettings(clusterService.getSettings(), clusterService.getClusterSettings())
         ) {
             @Override
             public Session createSession(@Nullable String defaultSchema, @Nullable User user) {

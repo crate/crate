@@ -28,9 +28,11 @@ import io.crate.planner.optimizer.Rule;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 import static io.crate.metadata.SearchPath.createSearchPathFrom;
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
+import static io.crate.metadata.settings.MetadataSettings.EXPOSE_OBJECT_COLUMNS_SETTING;
 import static java.util.Objects.requireNonNull;
 
 public class SessionContext {
@@ -41,19 +43,30 @@ public class SessionContext {
     private SearchPath searchPath;
     private boolean hashJoinEnabled = true;
     private Set<Class<? extends Rule<?>>> excludedOptimizerRules;
+    private final BooleanSupplier exposeObjectColumnsProvider;
+    private boolean exposeObjectColumns;
 
     /**
      * Creates a new SessionContext suitable to use as system SessionContext
      */
     public static SessionContext systemSessionContext() {
-        return new SessionContext(Option.NONE, User.CRATE_USER);
+        return new SessionContext(Option.NONE, User.CRATE_USER, EXPOSE_OBJECT_COLUMNS_SETTING::getDefault);
     }
 
     public SessionContext(Set<Option> options, User user, String... searchPath) {
+        this(options, user, () -> true, searchPath);
+    }
+
+    public SessionContext(Set<Option> options,
+                          User user,
+                          BooleanSupplier exposeObjectColumnsProvider,
+                          String... searchPath) {
         this.options = options;
         this.user = requireNonNull(user, "User is required");
         this.searchPath = createSearchPathFrom(searchPath);
         this.excludedOptimizerRules = new HashSet<>();
+        this.exposeObjectColumnsProvider = exposeObjectColumnsProvider;
+        this.exposeObjectColumns = exposeObjectColumnsProvider.getAsBoolean();
     }
 
     /**
@@ -98,5 +111,14 @@ public class SessionContext {
     public void resetToDefaults() {
         resetSchema();
         hashJoinEnabled = true;
+        exposeObjectColumns = exposeObjectColumnsProvider.getAsBoolean();
+    }
+
+    public boolean exposeObjectColumns() {
+        return exposeObjectColumns;
+    }
+
+    public void setExposeObjectColumns(boolean exposeObjectColumns) {
+        this.exposeObjectColumns = exposeObjectColumns;
     }
 }

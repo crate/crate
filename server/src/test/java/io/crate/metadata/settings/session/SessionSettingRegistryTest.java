@@ -28,7 +28,10 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.settings.MetadataSettings;
 import io.crate.planner.optimizer.LoadedRules;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -37,11 +40,14 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.crate.metadata.settings.MetadataSettings.EXPOSE_OBJECT_COLUMNS_SETTING;
+import static io.crate.metadata.settings.MetadataSettings.EXPOSE_OBJECT_COLUMNS;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 public class SessionSettingRegistryTest {
 
@@ -65,6 +71,18 @@ public class SessionSettingRegistryTest {
     public void testHashJoinSessionSetting() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.HASH_JOIN_KEY);
         assertBooleanNonEmptySetting(sessionContext::isHashJoinEnabled, setting, true);
+    }
+
+    @Test
+    public void test_expose_object_column_session_setting() {
+        var registry = new SessionSettingRegistry(Set.of(
+            new MetadataSettings(
+                Settings.EMPTY,
+                new ClusterSettings(Settings.EMPTY, Set.of(EXPOSE_OBJECT_COLUMNS_SETTING.setting()))
+            )
+        ));
+        SessionSetting<?> setting = registry.settings().get(EXPOSE_OBJECT_COLUMNS);
+        assertBooleanNonEmptySetting(sessionContext::exposeObjectColumns, setting, true);
     }
 
     private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,

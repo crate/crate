@@ -24,7 +24,6 @@ package io.crate.planner.statement;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -70,19 +69,17 @@ public class SetSessionPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(plannerContext.transactionContext(),
                                                                               plannerContext.nodeContext(),
                                                                               x,
                                                                               params,
                                                                               subQueryResults);
-
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         Assignment<Symbol> assignment = settings.get(0);
         String settingName = eval.apply(assignment.columnName()).toString();
-        validateSetting(settingName);
         SessionSetting<?> sessionSetting = sessionSettingRegistry.settings().get(settingName);
         if (sessionSetting == null) {
+            raiseIfUnknownSettingIsGlobalSetting(settingName);
             LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", settingName);
         } else {
             sessionSetting.apply(sessionContext, assignment.expressions(), eval);
@@ -90,13 +87,14 @@ public class SetSessionPlan implements Plan {
         consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }
 
-    @VisibleForTesting
-    static void validateSetting(String settingName) {
+    private static void raiseIfUnknownSettingIsGlobalSetting(String settingName) {
         List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
         if (nameParts.size() != 0) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL",
-                                                             settingName));
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL",
+                settingName
+            ));
         }
     }
 }

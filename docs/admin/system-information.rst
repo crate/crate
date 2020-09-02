@@ -156,6 +156,7 @@ applied cluster settings.
     | settings['discovery']                                                             | object           |
     | settings['discovery']['zen']                                                      | object           |
     | settings['discovery']['zen']['publish_timeout']                                   | text             |
+    | settings['expose_object_columns']                                                 | boolean          |
     | settings['gateway']                                                               | object           |
     | settings['gateway']['expected_nodes']                                             | integer          |
     | settings['gateway']['recover_after_nodes']                                        | integer          |

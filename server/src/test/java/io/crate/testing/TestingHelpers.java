@@ -42,12 +42,17 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.session.SessionSettingModule;
+import io.crate.settings.CrateSetting;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -171,7 +176,12 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext(AbstractModule... additionalModules) {
-        ModulesBuilder modulesBuilder = new ModulesBuilder()
+        Setting<?>[] crateSettings = CrateSettings.CRATE_CLUSTER_SETTINGS.stream()
+            .map(CrateSetting::setting)
+            .toArray(Setting[]::new);
+
+       ModulesBuilder modulesBuilder = new ModulesBuilder()
+            .add(new SettingsModule(Settings.EMPTY, crateSettings))
             .add(new SessionSettingModule())
             .add(new OperatorModule())
             .add(new AggregationImplModule())

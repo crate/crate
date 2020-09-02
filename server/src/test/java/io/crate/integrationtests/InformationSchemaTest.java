@@ -521,7 +521,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(817, response.rowCount());
+        assertEquals(818, response.rowCount());
     }
 
     @Test
@@ -1246,5 +1246,19 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "WHERE table_name = 't'");
         assertThat(printedTable(response.rows()), is("col1| NULL\n" +
                                                      "col2| 1\n"));
+    }
+
+    @Test
+    public void test_object_columns_are_filtered_out_if_disabled_by_setting_in_columns_table() {
+        execute("create table t1 (id int, obj object as (i int))");
+
+        execute("SET GLOBAL TRANSIENT expose_object_columns = false");
+        execute("SELECT column_name " +
+                "FROM information_schema.columns " +
+                "WHERE table_name = 't1'");
+        assertThat(printedTable(response.rows()), is("id\n" +
+                                                     "obj\n"));
+
+        execute("RESET GLOBAL expose_object_columns");
     }
 }

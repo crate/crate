@@ -39,26 +39,33 @@ public final class SessionSettings implements Writeable {
     private final SearchPath searchPath;
     private final boolean hashJoinsEnabled;
     private final Set<Class<? extends Rule<?>>> excludedOptimizerRules;
+    private final boolean exposeObjectColumns;
 
     public SessionSettings(StreamInput in) throws IOException {
         this.userName = in.readString();
         this.searchPath = SearchPath.createSearchPathFrom(in);
         this.hashJoinsEnabled = in.readBoolean();
-        // excludedOptimizerRules are only used on the coordinator node
+        // excludedOptimizerRules and exposeObjectColumns are only used on the coordinator node
         // and never needed any other node and therefore are excluded from
         // serialization on purpose.
         this.excludedOptimizerRules = Set.of();
+        this.exposeObjectColumns = true;
     }
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
-        this(userName, searchPath, true, Set.of());
+        this(userName, searchPath, true, true, Set.of());
     }
 
-    public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled, Set<Class<? extends Rule<?>>> rules) {
+    public SessionSettings(String userName,
+                           SearchPath searchPath,
+                           boolean hashJoinsEnabled,
+                           boolean exposeObjectColumns,
+                           Set<Class<? extends Rule<?>>> rules) {
         this.userName = userName;
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
+        this.exposeObjectColumns = exposeObjectColumns;
         this.excludedOptimizerRules = rules;
     }
 
@@ -76,6 +83,10 @@ public final class SessionSettings implements Writeable {
 
     public boolean hashJoinsEnabled() {
         return hashJoinsEnabled;
+    }
+
+    public boolean exposeObjectColumns() {
+        return exposeObjectColumns;
     }
 
     public Set<Class<? extends Rule<?>>> excludedOptimizerRules() {

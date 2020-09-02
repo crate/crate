@@ -37,7 +37,7 @@ public class SessionSettingsTest {
 
     @Test
     public void testSessionSettingsStreaming() throws IOException {
-        SessionSettings s1 = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, Set.of(
+        SessionSettings s1 = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, true, Set.of(
             MergeFilters.class));
         BytesStreamOutput out = new BytesStreamOutput();
         s1.writeTo(out);

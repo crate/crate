@@ -22,6 +22,8 @@
 
 package io.crate.test.integration;
 
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.settings.CrateSetting;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -50,6 +52,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterStatePublisher;
 import static org.elasticsearch.test.ClusterServiceUtils.createNoOpNodeConnectionsService;
@@ -99,14 +102,28 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
         return EMPTY_CLUSTER_SETTINGS;
     }
 
+    /**
+     * Override this method to provide custom settings (values).
+     * The setting itself must be registered, if not yet, by {@link #additionalClusterSettings()}
+     */
+    protected Settings clusterSettings() {
+        return Settings.EMPTY;
+    }
+
     protected ClusterService createClusterService(Collection<Setting<?>> additionalClusterSettings, Version version) {
         Set<Setting<?>> clusterSettingsSet = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        clusterSettingsSet.addAll(
+            CrateSettings.CRATE_CLUSTER_SETTINGS.stream()
+                .map(CrateSetting::setting)
+                .collect(Collectors.toList())
+        );
         clusterSettingsSet.addAll(additionalClusterSettings);
-        ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, clusterSettingsSet);
+        ClusterSettings clusterSettings = new ClusterSettings(clusterSettings(), clusterSettingsSet);
         ClusterService clusterService = new ClusterService(
             Settings.builder()
                 .put("cluster.name", "ClusterServiceTests")
                 .put(Node.NODE_NAME_SETTING.getKey(), NODE_NAME)
+                .put(clusterSettings())
                 .build(),
             clusterSettings,
             THREAD_POOL

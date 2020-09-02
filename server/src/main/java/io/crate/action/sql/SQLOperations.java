@@ -27,6 +27,7 @@ import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.settings.MetadataSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -57,6 +58,7 @@ public class SQLOperations {
     private final ClusterService clusterService;
     private final UserManager userManager;
     private final boolean isReadOnly;
+    private final MetadataSettings metadataSettings;
     private volatile boolean disabled;
 
     @Inject
@@ -67,7 +69,8 @@ public class SQLOperations {
                          JobsLogs jobsLogs,
                          Settings settings,
                          ClusterService clusterService,
-                         Provider<UserManager> userManagerProvider) {
+                         Provider<UserManager> userManagerProvider,
+                         MetadataSettings metadataSettings) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
@@ -76,6 +79,7 @@ public class SQLOperations {
         this.clusterService = clusterService;
         this.userManager = userManagerProvider.get();
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
+        this.metadataSettings = metadataSettings;
     }
 
     private Session createSession(SessionContext sessionContext) {
@@ -104,9 +108,9 @@ public class SQLOperations {
     public Session createSession(@Nullable String defaultSchema, User user, Set<Option> options) {
         SessionContext sessionContext;
         if (defaultSchema == null) {
-            sessionContext = new SessionContext(options, user);
+            sessionContext = new SessionContext(options, user, metadataSettings::exposeObjectColumns);
         } else {
-            sessionContext = new SessionContext(options, user, defaultSchema);
+            sessionContext = new SessionContext(options, user, metadataSettings::exposeObjectColumns, defaultSchema);
         }
 
         return createSession(sessionContext);

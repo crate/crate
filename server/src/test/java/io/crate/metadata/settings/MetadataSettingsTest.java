@@ -20,28 +20,23 @@
  * agreement.
  */
 
-package io.crate.planner.statement;
+package io.crate.metadata.settings;
 
 import io.crate.data.Row;
-import io.crate.metadata.settings.MetadataSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.statement.SetSessionPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collection;
-import java.util.List;
-
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
-public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
+public class MetadataSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
@@ -53,11 +48,6 @@ public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Override
-    protected Collection<Setting<?>> additionalClusterSettings() {
-        return List.of(MetadataSettings.EXPOSE_OBJECT_COLUMNS_SETTING.setting());
-    }
-
-    @Override
     protected Settings clusterSettings() {
         return Settings.builder()
             .put(MetadataSettings.EXPOSE_OBJECT_COLUMNS, false)
@@ -65,30 +55,10 @@ public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_raise_exception_if_session_setting_is_unknown_but_a_global_setting() {
+    public void test_expose_object_columns_session_setting_overrides_global_setting() throws Exception {
         var plannerCtx = e.getPlannerContext(clusterService.state());
-        SetSessionPlan plan = e.plan("SET SESSION stats.operations_log_size = 10");
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> plan.executeOrFail(
-                mock(DependencyCarrier.class),
-                plannerCtx,
-                new TestingRowConsumer(),
-                Row.EMPTY,
-                SubQueryResults.EMPTY
-            ),
-            "GLOBAL Cluster setting 'stats.operations_log_size' cannot be used with SET SESSION / LOCAL"
-        );
-    }
-
-    @Test
-    public void test_expose_object_columns_session_setting_overwrites_global_setting() throws Exception {
-        var plannerCtx = e.getPlannerContext(clusterService.state());
-        // ensure setting is set to false by custom cluster settings
-        assertThat(
-            plannerCtx.transactionContext().sessionSettings().exposeObjectColumns(),
-            is(false)
-        );
+        assertThat(plannerCtx.transactionContext().sessionSettings().exposeObjectColumns(),
+                   is(false));
 
         SetSessionPlan plan = e.plan("SET SESSION expose_object_columns = true");
         plan.executeOrFail(
@@ -98,9 +68,8 @@ public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
             Row.EMPTY,
             SubQueryResults.EMPTY
         );
-        assertThat(
-            plannerCtx.transactionContext().sessionSettings().exposeObjectColumns(),
-            is(true)
-        );
+
+        assertThat(plannerCtx.transactionContext().sessionSettings().exposeObjectColumns(),
+                   is(true));
     }
 }

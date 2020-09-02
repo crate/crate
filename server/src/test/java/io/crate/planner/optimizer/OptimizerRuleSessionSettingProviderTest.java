@@ -66,6 +66,7 @@ public class OptimizerRuleSessionSettingProviderTest {
         var mergefilterSettings = new SessionSettings("user",
                                                       SearchPath.createSearchPathFrom("dummySchema"),
                                                       true,
+                                                      true,
                                                       Set.of(MergeFilters.class));
 
         assertThat(sessionSetting.getValue(mergefilterSettings), is("false"));

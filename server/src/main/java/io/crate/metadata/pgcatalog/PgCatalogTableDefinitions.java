@@ -22,16 +22,6 @@
 
 package io.crate.metadata.pgcatalog;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static java.util.concurrent.CompletableFuture.completedFuture;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.elasticsearch.common.inject.Inject;
-
 import io.crate.analyze.user.Privilege;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
@@ -40,6 +30,15 @@ import io.crate.metadata.settings.session.NamedSessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.statistics.TableStats;
+import org.elasticsearch.common.inject.Inject;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public class PgCatalogTableDefinitions {
 
@@ -92,6 +91,12 @@ public class PgCatalogTableDefinitions {
             informationSchemaIterables::columns,
             (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn())
                          || user.hasAnyPrivilege(Privilege.Clazz.VIEW, c.tableInfo.ident().fqn()),
+            (tnxCtx, c) -> {
+                if (tnxCtx.sessionSettings().exposeObjectColumns() == false) {
+                    return c.info.column().isTopLevel();
+                }
+                return true;
+            },
             PgAttributeTable.create().expressions()
         ));
         tableDefinitions.put(PgIndexTable.IDENT, new StaticTableDefinition<>(

@@ -22,19 +22,18 @@
 
 package io.crate.metadata.information;
 
-import static java.util.concurrent.CompletableFuture.completedFuture;
+import io.crate.analyze.user.Privilege;
+import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
+import io.crate.expression.reference.StaticTableDefinition;
+import io.crate.metadata.RelationName;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-
-import io.crate.analyze.user.Privilege;
-import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
-import io.crate.expression.reference.StaticTableDefinition;
-import io.crate.metadata.RelationName;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 @Singleton
 public class InformationSchemaTableDefinitions {
@@ -71,6 +70,12 @@ public class InformationSchemaTableDefinitions {
             (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn())
                          // we also need to check for views which have privileges set
                          || user.hasAnyPrivilege(Privilege.Clazz.VIEW, c.tableInfo.ident().fqn()),
+            (tnxCtx, c) -> {
+                if (tnxCtx.sessionSettings().exposeObjectColumns() == false) {
+                    return c.info.column().isTopLevel();
+                }
+                return true;
+            },
             InformationColumnsTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationTableConstraintsTableInfo.IDENT, new StaticTableDefinition<>(

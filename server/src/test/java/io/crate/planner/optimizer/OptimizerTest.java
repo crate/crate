@@ -42,6 +42,7 @@ public class OptimizerTest {
         SessionSettings sessionSettings = new SessionSettings("User",
                                                               SearchPath.pathWithPGCatalogAndDoc(),
                                                               true,
+                                                              true,
                                                               Set.of(MergeFilters.class));
 
         List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(new MergeFilters()),

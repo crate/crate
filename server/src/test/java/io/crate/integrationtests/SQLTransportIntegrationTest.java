@@ -453,7 +453,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         NodeContext nodeCtx = internalCluster().getInstance(NodeContext.class, nodeName);
 
         SessionContext sessionContext = new SessionContext(
-            Option.NONE, User.CRATE_USER, sqlExecutor.getCurrentSchema());
+            Option.NONE, User.CRATE_USER, () -> true, sqlExecutor.getCurrentSchema());
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(

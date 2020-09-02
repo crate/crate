@@ -65,8 +65,18 @@ public class StaticTableDefinition<T> {
     public StaticTableDefinition(Supplier<? extends Iterable<T>> iterable,
                                  BiPredicate<User, T> predicate,
                                  Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories) {
-        this.recordsForUser = (txnCtx, u) -> completedFuture(() -> StreamSupport.stream(iterable.get().spliterator(), false)
-            .filter(t -> u == null || predicate.test(u, t)).iterator());
+        this(iterable, predicate, (tnxCtx, T) -> true, expressionFactories);
+    }
+
+    public StaticTableDefinition(Supplier<? extends Iterable<T>> iterable,
+                                 BiPredicate<User, T> predicate,
+                                 BiPredicate<TransactionContext, T> filterByContext,
+                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories) {
+        this.recordsForUser = (txnCtx, u) -> completedFuture(() -> StreamSupport
+            .stream(iterable.get().spliterator(), false)
+            .filter(t -> u == null || predicate.test(u, t))
+            .filter(t -> filterByContext.test(txnCtx, t))
+            .iterator());
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
         this.involvesIO = true;
     }

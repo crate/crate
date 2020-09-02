@@ -88,7 +88,9 @@ public final class CrateSettings implements ClusterStateListener {
         UDCService.UDC_INITIAL_DELAY_SETTING,
         UDCService.UDC_INTERVAL_SETTING,
 
-        MemoryManagerFactory.MEMORY_ALLOCATION_TYPE
+        MemoryManagerFactory.MEMORY_ALLOCATION_TYPE,
+
+        MetadataSettings.EXPOSE_OBJECT_COLUMNS_SETTING
     );
 
     private static final List<CrateSetting<?>> EXPOSED_ES_SETTINGS = List.of(
