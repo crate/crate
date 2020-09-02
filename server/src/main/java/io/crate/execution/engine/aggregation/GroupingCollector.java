@@ -23,8 +23,8 @@
 package io.crate.execution.engine.aggregation;
 
 import com.google.common.collect.Iterables;
+import io.crate.breaker.MultiSizeEstimator;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -295,30 +295,5 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                 return row;
             }
         });
-    }
-
-
-    private static class MultiSizeEstimator extends SizeEstimator<List<Object>> {
-
-        private final List<SizeEstimator<Object>> subEstimators;
-
-        MultiSizeEstimator(List<? extends DataType> keyTypes) {
-            subEstimators = new ArrayList<>(keyTypes.size());
-            for (DataType keyType : keyTypes) {
-                subEstimators.add(SizeEstimatorFactory.create(keyType));
-            }
-        }
-
-        @Override
-        public long estimateSize(@Nullable List<Object> value) {
-            assert value != null && value.size() == subEstimators.size()
-                : "value must have the same number of items as there are keyTypes/sizeEstimators";
-
-            long size = 0;
-            for (int i = 0; i < value.size(); i++) {
-                size += subEstimators.get(i).estimateSize(value.get(i));
-            }
-            return size;
-        }
     }
 }

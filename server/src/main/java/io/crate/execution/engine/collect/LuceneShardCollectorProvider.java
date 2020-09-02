@@ -175,8 +175,21 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         if (it != null) {
             return it;
         }
+        it = DocValuesGroupByOptimizedIterator.tryOptimize(
+            nodeCtx.functions(),
+            indexShard,
+            table,
+            luceneQueryBuilder,
+            fieldTypeLookup,
+            docInputFactory,
+            normalizedPhase,
+            collectTask
+        );
+        if (it != null) {
+            return it;
+        }
         return DocValuesAggregates.tryOptimize(
-            nodeCtx,
+            nodeCtx.functions(),
             indexShard,
             table,
             luceneQueryBuilder,

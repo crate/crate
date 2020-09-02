@@ -311,7 +311,7 @@ public abstract class AggregationTest extends ESTestCase {
             4096);
 
         var batchIterator = DocValuesAggregates.tryOptimize(
-            nodeCtx,
+            nodeCtx.functions(),
             shard,
             mock(DocTableInfo.class),
             new LuceneQueryBuilder(nodeCtx),
