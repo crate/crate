@@ -22,18 +22,20 @@
 
 package io.crate.testing;
 
+import static io.crate.testing.MoreMatchers.withFeature;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.postgresql.util.PSQLException;
+
 import io.crate.protocols.postgres.PGError;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.rest.action.HttpError;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.hamcrest.Matcher;
-import org.postgresql.util.PSQLException;
-
-import static io.crate.testing.MoreMatchers.withFeature;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 
 public class SQLErrorMatcher {
 
@@ -41,7 +43,37 @@ public class SQLErrorMatcher {
                                                               PGErrorStatus pgErrorStatus,
                                                               HttpResponseStatus httpResponseStatus,
                                                               int errorCode) {
-        return anyOf(isPGError(msg, pgErrorStatus), isHttpError(msg, httpResponseStatus, errorCode));
+        return new BaseMatcher<T>() {
+
+            @Override
+            public boolean matches(Object actual) {
+                if (actual instanceof PSQLException) {
+                    return isPGError(msg, pgErrorStatus).matches(actual);
+                } else {
+                    return isHttpError(msg, httpResponseStatus, errorCode).matches(actual);
+                }
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                msg.describeTo(description);
+                description.appendText(" and pgErrorStatus=");
+                description.appendValue(pgErrorStatus);
+                description.appendText(" and httpResponseStatus=");
+                description.appendValue(httpResponseStatus);
+                description.appendText(" and errorCode=");
+                description.appendValue(errorCode);
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                if (item instanceof PSQLException) {
+                    isPGError(msg, pgErrorStatus).describeMismatch(item, description);
+                } else {
+                    isHttpError(msg, httpResponseStatus, errorCode).describeMismatch(item, description);
+                }
+            }
+        };
     }
 
     public static <T extends Throwable> Matcher<T> isPGError(Matcher<String> msg, PGErrorStatus pgErrorStatus) {
