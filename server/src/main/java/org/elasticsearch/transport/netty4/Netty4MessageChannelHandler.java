@@ -20,8 +20,6 @@
 package org.elasticsearch.transport.netty4;
 
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.transport.TcpHeader;
 import org.elasticsearch.transport.Transports;
 
 import io.netty.buffer.ByteBuf;
@@ -45,23 +43,15 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         Transports.assertTransportThread();
-        if (!(msg instanceof ByteBuf)) {
-            ctx.fireChannelRead(msg);
-            return;
-        }
+        assert msg instanceof ByteBuf : "Expected message type ByteBuf, found: " + msg.getClass();
+
         final ByteBuf buffer = (ByteBuf) msg;
-        final int remainingMessageSize = buffer.getInt(buffer.readerIndex() - TcpHeader.MESSAGE_LENGTH_SIZE);
-        final int expectedReaderIndex = buffer.readerIndex() + remainingMessageSize;
         try {
             Channel channel = ctx.channel();
-            // netty always copies a buffer, either in NioWorker in its read handler, where it copies to a fresh
-            // buffer, or in the cumulative buffer, which is cleaned each time so it could be bigger than the actual size
-            BytesReference reference = Netty4Utils.toBytesReference(buffer, remainingMessageSize);
             Attribute<NettyTcpChannel> channelAttribute = channel.attr(Netty4Transport.CHANNEL_KEY);
-            transport.messageReceived(reference, channelAttribute.get());
+            transport.inboundMessage(channelAttribute.get(), Netty4Utils.toBytesReference(buffer));
         } finally {
-            // Set the expected position of the buffer, no matter what happened
-            buffer.readerIndex(expectedReaderIndex);
+            buffer.release();
         }
     }
 

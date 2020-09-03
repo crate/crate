@@ -752,7 +752,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             // in case we are able to return data, serialize the exception content and sent it back to the client
             if (channel.isOpen()) {
                 BytesArray message = new BytesArray(e.getMessage().getBytes(StandardCharsets.UTF_8));
-                final SendMetricListener closeChannel = new SendMetricListener(message.length()) {
+                final SendMetricListener listener = new SendMetricListener(message.length()) {
                     @Override
                     protected void innerInnerOnResponse(Void v) {
                         CloseableChannel.closeChannel(channel, false);
@@ -764,7 +764,14 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                         CloseableChannel.closeChannel(channel, false);
                     }
                 };
-                internalSendMessage(channel, message, closeChannel);
+                // We do not call internalSendMessage because we are not sending a message that is an
+                // elasticsearch binary message. We are just serializing an exception here. Not formatting it
+                // as an elasticsearch transport message.
+                try {
+                    channel.sendMessage(message, listener);
+                } catch (Exception ex) {
+                    listener.onFailure(ex);
+                }
             }
         } else {
             logger.warn(() -> new ParameterizedMessage("exception caught on transport layer [{}], closing connection", channel), e);
@@ -999,6 +1006,22 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         return new CompositeBytesReference(header, messageBody, zeroCopyBuffer);
     }
 
+    /**
+     * Handles inbound message that has been decoded.
+     *
+     * @param channel the channel the message if fomr
+     * @param message the message
+     */
+    public void inboundMessage(TcpChannel channel, BytesReference message) {
+        try {
+            // Message length of 0 is a ping
+            if (message.length() != 0) {
+                messageReceived(message, channel);
+            }
+        } catch (Exception e) {
+            onException(channel, e);
+        }
+    }
 
     /**
      * Consumes bytes that are available from network reads. This method returns the number of bytes consumed
@@ -1016,15 +1039,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
         if (message == null) {
             return 0;
-        } else if (message.length() == 0) {
-            // This is a ping and should not be handled.
-            return BYTES_NEEDED_FOR_MESSAGE_SIZE;
         } else {
-            try {
-                messageReceived(message, channel);
-            } catch (Exception e) {
-                onException(channel, e);
-            }
+            inboundMessage(channel, message);
             return message.length() + BYTES_NEEDED_FOR_MESSAGE_SIZE;
         }
     }
@@ -1040,7 +1056,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
      * @throws IllegalArgumentException if the message length is greater that the maximum allowed frame size.
      *                                  This is dependent on the available memory.
      */
-    public static BytesReference decodeFrame(BytesReference networkBytes) throws IOException {
+    static BytesReference decodeFrame(BytesReference networkBytes) throws IOException {
         int messageLength = readMessageLength(networkBytes);
         if (messageLength == -1) {
             return null;
