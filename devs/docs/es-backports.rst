@@ -335,7 +335,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 0fb695e2e44 Never release store using CancellableThreads (#45409)
 - [ ] 1bcda083683 Rename PlainTransportFuture -> TransportFuture (#45768)
 - [ ] 4d210dda02d Remove index-N Rebuild in Shard Snapshot Updates (#45740)
-- [ ] 60247d31728 Remove Blocking Transport APIs (#45756)
+- [x] 60247d31728 Remove Blocking Transport APIs (#45756)
 - [x] b0d346fd742 Ignore translog retention policy if soft-deletes enabled (#45473)
 - [s] 8930f7fbf76 Remove support for string in unmapped_type. (#45675)
 - [s] abb30f0f814 Make sure to validate the type before attempting to merge a new mapping. (#45157)

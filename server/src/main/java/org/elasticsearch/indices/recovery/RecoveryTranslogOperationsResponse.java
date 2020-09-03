@@ -21,9 +21,7 @@ package org.elasticsearch.indices.recovery;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.FutureTransportResponseHandler;
 import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportResponseHandler;
 
 import java.io.IOException;
 
@@ -43,13 +41,4 @@ public class RecoveryTranslogOperationsResponse extends TransportResponse {
     public RecoveryTranslogOperationsResponse(final StreamInput in) throws IOException {
         localCheckpoint = in.readZLong();
     }
-
-    static final TransportResponseHandler<RecoveryTranslogOperationsResponse> HANDLER =
-        new FutureTransportResponseHandler<>() {
-            @Override
-            public RecoveryTranslogOperationsResponse read(StreamInput in) throws IOException {
-                return new RecoveryTranslogOperationsResponse(in);
-            }
-        };
-
 }

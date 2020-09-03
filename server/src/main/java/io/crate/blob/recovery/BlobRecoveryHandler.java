@@ -21,19 +21,23 @@
 
 package io.crate.blob.recovery;
 
-import io.crate.blob.BlobContainer;
-import io.crate.blob.BlobTransferTarget;
-import io.crate.blob.v2.BlobIndex;
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
-import io.crate.common.Hex;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.util.CancellableThreads;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
@@ -49,20 +53,16 @@ import org.elasticsearch.indices.recovery.BlobStartRecoveryRequest;
 import org.elasticsearch.indices.recovery.RecoverySourceHandler;
 import org.elasticsearch.indices.recovery.RecoveryTargetHandler;
 import org.elasticsearch.indices.recovery.StartRecoveryRequest;
-import org.elasticsearch.transport.EmptyTransportResponseHandler;
-import org.elasticsearch.transport.FutureTransportResponseHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import io.crate.blob.BlobContainer;
+import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
+import io.crate.common.Hex;
 
 public class BlobRecoveryHandler extends RecoverySourceHandler {
 
@@ -99,20 +99,15 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     }
 
     private Set<BytesArray> getExistingDigestsFromTarget(byte prefix) {
-        BlobStartPrefixResponse response =
-            (BlobStartPrefixResponse) transportService.submitRequest(
-                request.targetNode(),
-                BlobRecoveryTarget.Actions.START_PREFIX,
-                new BlobStartPrefixSyncRequest(request.recoveryId(), request.shardId(), prefix),
-                TransportRequestOptions.EMPTY,
-                new FutureTransportResponseHandler<TransportResponse>() {
-
-                    @Override
-                    public TransportResponse read(StreamInput in) throws IOException {
-                        return new BlobStartPrefixResponse(in);
-                    }
-                }
-            ).txGet();
+        var listener = new PlainActionFuture<BlobStartPrefixResponse>();
+        transportService.sendRequest(
+            request.targetNode(),
+            BlobRecoveryTarget.Actions.START_PREFIX,
+            new BlobStartPrefixSyncRequest(request.recoveryId(), request.shardId(), prefix),
+            TransportRequestOptions.EMPTY,
+            new ActionListenerResponseHandler<>(listener, BlobStartPrefixResponse::new)
+        );
+        BlobStartPrefixResponse response = listener.actionGet();
 
         Set<BytesArray> result = new HashSet<>();
         for (byte[] digests : response.existingDigests) {
@@ -206,31 +201,39 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     }
 
     private void deleteFilesRequest(BytesArray[] digests) {
-        transportService.submitRequest(
+        var listener = new PlainActionFuture<TransportResponse>();
+        transportService.sendRequest(
             request.targetNode(),
             BlobRecoveryTarget.Actions.DELETE_FILE,
             new BlobRecoveryDeleteRequest(request.recoveryId(), digests),
             TransportRequestOptions.EMPTY,
-            EmptyTransportResponseHandler.INSTANCE_SAME
-        ).txGet();
+            new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+        );
+        listener.actionGet();
     }
 
     private void sendFinalizeRecoveryRequest() {
-        transportService.submitRequest(request.targetNode(),
+        var listener = new PlainActionFuture<TransportResponse>();
+        transportService.sendRequest(
+            request.targetNode(),
             BlobRecoveryTarget.Actions.FINALIZE_RECOVERY,
             new BlobFinalizeRecoveryRequest(request.recoveryId()),
             TransportRequestOptions.EMPTY,
-            EmptyTransportResponseHandler.INSTANCE_SAME
-        ).txGet();
+            new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+        );
+        listener.actionGet();
     }
 
     private void sendStartRecoveryRequest() {
-        transportService.submitRequest(request.targetNode(),
+        var listener = new PlainActionFuture<TransportResponse>();
+        transportService.sendRequest(
+            request.targetNode(),
             BlobRecoveryTarget.Actions.START_RECOVERY,
             new BlobStartRecoveryRequest(request.recoveryId(), request.shardId()),
             TransportRequestOptions.EMPTY,
-            EmptyTransportResponseHandler.INSTANCE_SAME
-        ).txGet();
+            new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+        );
+        listener.actionGet();
     }
 
     private class TransferFileRunnable implements CancellableThreads.Interruptable {
@@ -281,13 +284,15 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                      relPath,
                                      fileSize
                         );
-                        transportService.submitRequest(
+                        var listener = new PlainActionFuture<>();
+                        transportService.sendRequest(
                             request.targetNode(),
                             BlobRecoveryTarget.Actions.START_TRANSFER,
                             startTransferRequest,
                             TransportRequestOptions.EMPTY,
-                            EmptyTransportResponseHandler.INSTANCE_SAME
-                        ).txGet();
+                            new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+                        );
+                        listener.actionGet();
 
                         boolean isLast = false;
                         boolean sentChunks = false;
@@ -304,24 +309,30 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                             }
                             content = new BytesArray(buf, 0, bytesRead);
 
-                            transportService.submitRequest(request.targetNode(),
+                            var transferChunkListener = new PlainActionFuture<>();
+                            transportService.sendRequest(
+                                request.targetNode(),
                                 BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
                                 new BlobRecoveryChunkRequest(request.recoveryId(),
                                     startTransferRequest.transferId(), content, isLast),
                                 TransportRequestOptions.EMPTY,
-                                EmptyTransportResponseHandler.INSTANCE_SAME
-                            ).txGet();
+                                new ActionListenerResponseHandler<>(transferChunkListener, in -> TransportResponse.Empty.INSTANCE)
+                            );
+                            transferChunkListener.actionGet();
                         }
 
                         if (!isLast && sentChunks) {
                             LOGGER.error("Sending isLast because it wasn't sent before for {}", relPath);
-                            transportService.submitRequest(request.targetNode(),
+                            var transferMissingChunkListener = new PlainActionFuture<>();
+                            transportService.sendRequest(
+                                request.targetNode(),
                                 BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
                                 new BlobRecoveryChunkRequest(request.recoveryId(),
                                     startTransferRequest.transferId(), BytesArray.EMPTY, true),
                                 TransportRequestOptions.EMPTY,
-                                EmptyTransportResponseHandler.INSTANCE_SAME
-                            ).txGet();
+                                new ActionListenerResponseHandler<>(transferMissingChunkListener, in -> TransportResponse.Empty.INSTANCE)
+                            );
+                            transferMissingChunkListener.actionGet();
                         }
                     }
 
