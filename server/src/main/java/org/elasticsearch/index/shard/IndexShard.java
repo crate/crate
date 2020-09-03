@@ -114,6 +114,7 @@ import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.ReadOnlyEngine;
 import org.elasticsearch.index.engine.RefreshFailedEngineException;
+import org.elasticsearch.index.engine.SafeCommitInfo;
 import org.elasticsearch.index.engine.Segment;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.IdFieldMapper;
@@ -287,7 +288,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             UNASSIGNED_SEQ_NO,
             globalCheckpointListeners::globalCheckpointUpdated,
             threadPool::absoluteTimeInMillis,
-            (retentionLeases, listener) -> retentionLeaseSyncer.sync(shardId, retentionLeases, listener)
+            (retentionLeases, listener) -> retentionLeaseSyncer.sync(shardId, retentionLeases, listener),
+            this::getSafeCommitInfo
         );
 
         // the query cache is a node-level thing, however we want the most popular filters
@@ -2553,6 +2555,11 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public void removePeerRecoveryRetentionLease(String nodeId, ActionListener<ReplicationResponse> listener) {
         assert assertPrimaryMode();
         replicationTracker.removePeerRecoveryRetentionLease(nodeId, listener);
+    }
+
+    private SafeCommitInfo getSafeCommitInfo() {
+        final Engine engine = getEngineOrNull();
+        return engine == null ? SafeCommitInfo.EMPTY : engine.getSafeCommitInfo();
     }
 
     class ShardEventListener implements Engine.EventListener {
