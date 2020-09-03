@@ -336,11 +336,11 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 1bcda083683 Rename PlainTransportFuture -> TransportFuture (#45768)
 - [ ] 4d210dda02d Remove index-N Rebuild in Shard Snapshot Updates (#45740)
 - [ ] 60247d31728 Remove Blocking Transport APIs (#45756)
-- [ ] b0d346fd742 Ignore translog retention policy if soft-deletes enabled (#45473)
-- [ ] 8930f7fbf76 Remove support for string in unmapped_type. (#45675)
-- [ ] abb30f0f814 Make sure to validate the type before attempting to merge a new mapping. (#45157)
-- [ ] d1065fed2b1 Adjust BWC version for #44756
-- [ ] 13a8835e5a8 Geo: Change order of parameter in Geometries to lon, lat (#45332)
+- [x] b0d346fd742 Ignore translog retention policy if soft-deletes enabled (#45473)
+- [s] 8930f7fbf76 Remove support for string in unmapped_type. (#45675)
+- [s] abb30f0f814 Make sure to validate the type before attempting to merge a new mapping. (#45157)
+- [s] d1065fed2b1 Adjust BWC version for #44756
+- [d] 13a8835e5a8 Geo: Change order of parameter in Geometries to lon, lat (#45332)
 - [x] 8d1ea865197 Set start of the week to Monday for root locale (#43652)
 - [x] fd4acb3e8b7 Only retain reasonable history for peer recoveries (#45208)
 - [x] c26f850c443 Call afterWriteOperation after trim translog in peer recovery (#45182)
