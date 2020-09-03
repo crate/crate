@@ -21,21 +21,9 @@
 
 package io.crate;
 
-import io.crate.blob.BlobTransferTarget;
-import io.crate.blob.DigestBlob;
-import io.crate.blob.transfer.BlobHeadRequestHandler;
-import io.crate.blob.transfer.HeadChunkFileTooSmallException;
-import io.crate.blob.transfer.PutHeadChunkRunnable;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.transport.EmptyTransportResponseHandler;
-import org.elasticsearch.transport.TransportFuture;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportService;
-import org.junit.Test;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -45,14 +33,60 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.transport.CapturingTransport;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportService;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.DigestBlob;
+import io.crate.blob.transfer.HeadChunkFileTooSmallException;
+import io.crate.blob.transfer.PutHeadChunkRunnable;
 
 public class BlobHeadRequestHandlerTests extends ESTestCase {
+
+    private ThreadPool threadPool;
+    private ClusterService clusterService;
+    private TransportService transportService;
+
+    @Before
+    public void setUpResources() throws Exception {
+        threadPool = new TestThreadPool(getClass().getName());
+        var transport = new CapturingTransport() {
+            @Override
+            protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
+                super.onSendRequest(requestId, action, request, node);
+                handleResponse(requestId, TransportResponse.Empty.INSTANCE);
+            }
+        };
+        clusterService = ClusterServiceUtils.createClusterService(threadPool);
+        transportService = transport.createTransportService(
+            clusterService.getSettings(),
+            threadPool,
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundAddress -> clusterService.localNode(),
+            null
+        );
+        transportService.start();
+        transportService.acceptIncomingRequests();
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(5, TimeUnit.SECONDS);
+    }
 
     @Test
     public void testPutHeadChunkRunnableFileGrowth() throws Exception {
@@ -63,8 +97,6 @@ public class BlobHeadRequestHandlerTests extends ESTestCase {
 
             UUID transferId = UUID.randomUUID();
             BlobTransferTarget blobTransferTarget = mock(BlobTransferTarget.class);
-            TransportService transportService = mock(TransportService.class);
-            DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
             DigestBlob digestBlob = mock(DigestBlob.class);
             when(digestBlob.file()).thenReturn(file);
 
@@ -80,31 +112,14 @@ public class BlobHeadRequestHandlerTests extends ESTestCase {
                         }
                     }
                 }, 800, TimeUnit.MILLISECONDS);
+                DiscoveryNode node1 = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Version.CURRENT);
                 PutHeadChunkRunnable runnable = new PutHeadChunkRunnable(
-                    digestBlob, 5, transportService, blobTransferTarget, discoveryNode, transferId
+                    digestBlob, 5, transportService, blobTransferTarget, node1, transferId
                 );
-
-                @SuppressWarnings("unchecked")
-                TransportFuture<TransportResponse.Empty> result = mock(TransportFuture.class);
-
-                when(transportService.submitRequest(
-                    eq(discoveryNode),
-                    eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
-                    any(TransportRequest.class),
-                    any(TransportRequestOptions.class),
-                    eq(EmptyTransportResponseHandler.INSTANCE_SAME)
-                )).thenReturn(result);
 
                 runnable.run();
 
                 verify(blobTransferTarget).putHeadChunkTransferFinished(transferId);
-                verify(transportService, times(2)).submitRequest(
-                    eq(discoveryNode),
-                    eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
-                    any(TransportRequest.class),
-                    any(TransportRequestOptions.class),
-                    eq(EmptyTransportResponseHandler.INSTANCE_SAME)
-                );
             } finally {
                 scheduledExecutor.awaitTermination(1, TimeUnit.SECONDS);
                 scheduledExecutor.shutdownNow();
@@ -124,25 +139,15 @@ public class BlobHeadRequestHandlerTests extends ESTestCase {
         }
         UUID transferId = UUID.randomUUID();
         BlobTransferTarget transferTarget = mock(BlobTransferTarget.class);
-        TransportService transportService = mock(TransportService.class);
-        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
+
+        DiscoveryNode node1 = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Version.CURRENT);
 
         DigestBlob digestBlob = mock(DigestBlob.class);
         when(digestBlob.file()).thenReturn(notExisting);
         when(digestBlob.getContainerFile()).thenReturn(file);
         PutHeadChunkRunnable runnable = new PutHeadChunkRunnable(
-            digestBlob, 5, transportService, transferTarget, discoveryNode, transferId
+            digestBlob, 5, transportService, transferTarget, node1, transferId
         );
-
-        @SuppressWarnings("unchecked")
-        TransportFuture<TransportResponse.Empty> result = mock(TransportFuture.class);
-        when(transportService.submitRequest(
-            eq(discoveryNode),
-            eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
-            any(TransportRequest.class),
-            any(TransportRequestOptions.class),
-            eq(EmptyTransportResponseHandler.INSTANCE_SAME)
-        )).thenReturn(result);
 
         runnable.run();
         verify(digestBlob).getContainerFile();

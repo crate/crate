@@ -21,33 +21,7 @@
 
 package io.crate.blob;
 
-import io.crate.blob.exceptions.BlobAlreadyExistsException;
-import io.crate.blob.exceptions.DigestMismatchException;
-import io.crate.blob.transfer.BlobHeadRequestHandler;
-import io.crate.blob.transfer.BlobInfoRequest;
-import io.crate.blob.transfer.BlobTransferInfoResponse;
-import io.crate.blob.transfer.GetBlobHeadRequest;
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.IOUtils;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.stream.StreamInput;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.EmptyTransportResponseHandler;
-import org.elasticsearch.transport.FutureTransportResponseHandler;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportService;
-
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -57,6 +31,31 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.IOUtils;
+import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.blob.exceptions.BlobAlreadyExistsException;
+import io.crate.blob.exceptions.DigestMismatchException;
+import io.crate.blob.transfer.BlobHeadRequestHandler;
+import io.crate.blob.transfer.BlobInfoRequest;
+import io.crate.blob.transfer.BlobTransferInfoResponse;
+import io.crate.blob.transfer.GetBlobHeadRequest;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
+import io.crate.common.unit.TimeValue;
 
 public class BlobTransferTarget {
 
@@ -168,19 +167,15 @@ public class BlobTransferTarget {
         DiscoveryNode recipientNodeId = nodes.get(request.sourceNodeId);
         String senderNodeId = nodes.getLocalNodeId();
 
-        BlobTransferInfoResponse transferInfoResponse =
-            (BlobTransferInfoResponse) transportService.submitRequest(
-                recipientNodeId,
-                BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
-                new BlobInfoRequest(senderNodeId, request.transferId),
-                TransportRequestOptions.EMPTY,
-                new FutureTransportResponseHandler<TransportResponse>() {
-                    @Override
-                    public TransportResponse read(StreamInput in) throws IOException {
-                        return new BlobTransferInfoResponse(in);
-                    }
-                }
-            ).txGet();
+        var listener = new PlainActionFuture<BlobTransferInfoResponse>();
+        transportService.sendRequest(
+            recipientNodeId,
+            BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
+            new BlobInfoRequest(senderNodeId, request.transferId),
+            TransportRequestOptions.EMPTY,
+            new ActionListenerResponseHandler<>(listener, BlobTransferInfoResponse::new)
+        );
+        BlobTransferInfoResponse transferInfoResponse = listener.actionGet();
 
         BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
 
@@ -197,13 +192,15 @@ public class BlobTransferTarget {
                      transferInfoResponse.digest, request.transferId
         );
 
-        transportService.submitRequest(
+        var getBlobHeadListener = new PlainActionFuture<>();
+        transportService.sendRequest(
             recipientNodeId,
             BlobHeadRequestHandler.Actions.GET_BLOB_HEAD,
             new GetBlobHeadRequest(senderNodeId, request.transferId(), request.currentPos),
             TransportRequestOptions.EMPTY,
-            EmptyTransportResponseHandler.INSTANCE_SAME
-        ).txGet();
+            new ActionListenerResponseHandler<>(getBlobHeadListener, in -> TransportResponse.Empty.INSTANCE)
+        );
+        getBlobHeadListener.actionGet();
         return status;
     }
 

@@ -21,16 +21,6 @@
 
 package io.crate.blob.transfer;
 
-import io.crate.blob.BlobTransferTarget;
-import io.crate.blob.DigestBlob;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.transport.EmptyTransportResponseHandler;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportService;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -44,6 +34,19 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.DigestBlob;
 
 public class PutHeadChunkRunnable implements Runnable {
 
@@ -109,13 +112,15 @@ public class PutHeadChunkRunnable implements Runnable {
                 }
                 remainingBytes -= bytesRead;
 
-                transportService.submitRequest(
+                var listener = new PlainActionFuture<TransportResponse>();
+                transportService.sendRequest(
                     recipientNode,
                     BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
                     new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
                     TransportRequestOptions.EMPTY,
-                    EmptyTransportResponseHandler.INSTANCE_SAME
-                ).txGet();
+                    new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+                );
+                listener.actionGet();
             }
 
         } catch (IOException ex) {

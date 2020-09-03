@@ -33,6 +33,7 @@ import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.EmptyTransportResponseHandler;
+import org.elasticsearch.transport.PlainTransportFuture;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
@@ -82,7 +83,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     @Override
     public void prepareForTranslogOperations(int totalTranslogOps,
                                              ActionListener<Void> listener) {
-        transportService.submitRequest(
+        transportService.sendRequest(
             targetNode,
             PeerRecoveryTargetService.Actions.PREPARE_TRANSLOG,
             new RecoveryPrepareForTranslogOperationsRequest(recoveryId, shardId, totalTranslogOps),
@@ -97,7 +98,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
 
     @Override
     public void finalizeRecovery(long globalCheckpoint, long trimAboveSeqNo, ActionListener<Void> listener) {
-        transportService.submitRequest(
+        transportService.sendRequest(
             targetNode,
             PeerRecoveryTargetService.Actions.FINALIZE,
             new RecoveryFinalizeRecoveryRequest(recoveryId, shardId, globalCheckpoint, trimAboveSeqNo),
@@ -112,12 +113,12 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
 
     @Override
     public void handoffPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext) {
-        transportService.submitRequest(
-                targetNode,
-                PeerRecoveryTargetService.Actions.HANDOFF_PRIMARY_CONTEXT,
-                new RecoveryHandoffPrimaryContextRequest(recoveryId, shardId, primaryContext),
-                TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build(),
-                EmptyTransportResponseHandler.INSTANCE_SAME).txGet();
+        PlainTransportFuture<TransportResponse.Empty> handler = new PlainTransportFuture<>(EmptyTransportResponseHandler.INSTANCE_SAME);
+        transportService.sendRequest(
+            targetNode, PeerRecoveryTargetService.Actions.HANDOFF_PRIMARY_CONTEXT,
+            new RecoveryHandoffPrimaryContextRequest(recoveryId, shardId, primaryContext),
+            TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build(), handler);
+        handler.txGet();
     }
 
     @Override
@@ -138,7 +139,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             retentionLeases,
             mappingVersionOnPrimary
         );
-        transportService.submitRequest(
+        transportService.sendRequest(
             targetNode,
             PeerRecoveryTargetService.Actions.TRANSLOG_OPS,
             request,
@@ -155,7 +156,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
                                 List<Long> phase1ExistingFileSizes, int totalTranslogOps, ActionListener<Void> listener) {
         RecoveryFilesInfoRequest recoveryInfoFilesRequest = new RecoveryFilesInfoRequest(recoveryId, shardId,
             phase1FileNames, phase1FileSizes, phase1ExistingFileNames, phase1ExistingFileSizes, totalTranslogOps);
-        transportService.submitRequest(targetNode, PeerRecoveryTargetService.Actions.FILES_INFO, recoveryInfoFilesRequest,
+        transportService.sendRequest(targetNode, PeerRecoveryTargetService.Actions.FILES_INFO, recoveryInfoFilesRequest,
             TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build(),
             new ActionListenerResponseHandler<>(ActionListener.map(listener, r -> null),
                 in -> TransportResponse.Empty.INSTANCE, ThreadPool.Names.GENERIC));
@@ -166,7 +167,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
                            long globalCheckpoint,
                            Store.MetadataSnapshot sourceMetadata,
                            ActionListener<Void> listener) {
-        transportService.submitRequest(
+        transportService.sendRequest(
             targetNode,
             PeerRecoveryTargetService.Actions.CLEAN_FILES,
             new RecoveryCleanFilesRequest(recoveryId, shardId, sourceMetadata, totalTranslogOps, globalCheckpoint),
@@ -207,7 +208,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             throttleTimeInNanos = 0;
         }
 
-        transportService.submitRequest(targetNode, PeerRecoveryTargetService.Actions.FILE_CHUNK,
+        transportService.sendRequest(targetNode, PeerRecoveryTargetService.Actions.FILE_CHUNK,
             new RecoveryFileChunkRequest(recoveryId, shardId, fileMetadata, position, content, lastChunk,
                 totalTranslogOps,
                 /* we send estimateTotalOperations with every request since we collect stats on the target and that way we can
