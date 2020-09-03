@@ -282,28 +282,28 @@ table::
     ... from information_schema.columns
     ... where table_schema = 'doc' and table_name not like 'my_table%'
     ... order by table_name asc, column_name asc;
-    +-------------------+--------------------------------+------+--------------------------+
-    | table_name        | column_name                    |  pos | data_type                |
-    +-------------------+--------------------------------+------+--------------------------+
-    | locations         | date                           |    3 | timestamp with time zone |
-    | locations         | description                    |    6 | text                     |
-    | locations         | id                             |    1 | text                     |
-    | locations         | information                    |    8 | object_array             |
-    | locations         | information['evolution_level'] | NULL | smallint                 |
-    | locations         | information['population']      | NULL | bigint                   |
-    | locations         | kind                           |    4 | text                     |
-    | locations         | name                           |    2 | text                     |
-    | locations         | position                       |    5 | integer                  |
-    | locations         | race                           |    7 | object                   |
-    | locations         | race['description']            | NULL | text                     |
-    | locations         | race['interests']              | NULL | text_array               |
-    | locations         | race['name']                   | NULL | text                     |
-    | partitioned_table | date                           |    3 | timestamp with time zone |
-    | partitioned_table | id                             |    1 | bigint                   |
-    | partitioned_table | title                          |    2 | text                     |
-    | quotes            | id                             |    1 | integer                  |
-    | quotes            | quote                          |    2 | text                     |
-    +-------------------+--------------------------------+------+--------------------------+
+    +-------------------+--------------------------------+-----+--------------------------+
+    | table_name        | column_name                    | pos | data_type                |
+    +-------------------+--------------------------------+-----+--------------------------+
+    | locations         | date                           |   3 | timestamp with time zone |
+    | locations         | description                    |   6 | text                     |
+    | locations         | id                             |   1 | text                     |
+    | locations         | information                    |  11 | object_array             |
+    | locations         | information['evolution_level'] |  12 | smallint                 |
+    | locations         | information['population']      |  13 | bigint                   |
+    | locations         | kind                           |   4 | text                     |
+    | locations         | name                           |   2 | text                     |
+    | locations         | position                       |   5 | integer                  |
+    | locations         | race                           |   7 | object                   |
+    | locations         | race['description']            |   8 | text                     |
+    | locations         | race['interests']              |   9 | text_array               |
+    | locations         | race['name']                   |  10 | text                     |
+    | partitioned_table | date                           |   3 | timestamp with time zone |
+    | partitioned_table | id                             |   1 | bigint                   |
+    | partitioned_table | title                          |   2 | text                     |
+    | quotes            | id                             |   1 | integer                  |
+    | quotes            | quote                          |   2 | text                     |
+    +-------------------+--------------------------------+-----+--------------------------+
     SELECT 18 rows in set (... sec)
 
 You can even query this tables' own columns (attention: this might lead to

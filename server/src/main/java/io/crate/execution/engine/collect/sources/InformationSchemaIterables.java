@@ -447,7 +447,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
         private final Iterator<Reference> columns;
         private final RelationInfo tableInfo;
-        private int ordinal = 1;
+        private int ordinal = 0;
 
         ColumnsIterator(RelationInfo tableInfo) {
             columns = stream(tableInfo.spliterator(), false)
@@ -466,18 +466,20 @@ public class InformationSchemaIterables implements ClusterStateListener {
             if (!hasNext()) {
                 throw new NoSuchElementException("Columns iterator exhausted");
             }
+            ordinal++;
             Reference ref = columns.next();
-            if (ref.column().isTopLevel() == false) {
-                return new ColumnContext(tableInfo, ref, null);
-            }
 
             // Tables created with CrateDB < 4.0 don't have any positional information stored inside the meta data so
             // we must fallback to old behaviour which uses a simple increased iterating based var.
             Integer position = ref.position();
             if (position == null) {
                 position = ordinal;
+            } else if (position != ordinal) {
+                // Sub-columns of object type columns do not have any positional information stored inside the meta
+                // data. But we do expose one now, by using the internal counter.
+                // Thus follow-up column's position must be adjusted.
+                position = ordinal;
             }
-            ordinal++;
             return new ColumnContext(tableInfo, ref, position);
         }
     }
