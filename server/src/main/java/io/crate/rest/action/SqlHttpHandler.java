@@ -23,7 +23,6 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.DescribeResult;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
@@ -66,11 +65,8 @@ import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -219,13 +215,12 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private Session ensureSession(FullHttpRequest request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
         User user = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
-        Set<Option> options = optionsFromUserHeader(request.headers().get(REQUEST_HEADER_USER));
         Session session = this.session;
         if (session == null) {
-            session = sqlOperations.createSession(defaultSchema, user, options);
-        } else if (optionsChanged(user, options, session.sessionContext())) {
+            session = sqlOperations.createSession(defaultSchema, user);
+        } else if (session.sessionContext().user().equals(user) == false) {
             session.close();
-            session = sqlOperations.createSession(defaultSchema, user, options);
+            session = sqlOperations.createSession(defaultSchema, user);
         } else {
             // We don't want to keep "set session" settings across requests yet to not mess with clients doing
             // per request round-robin
@@ -237,10 +232,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
         this.session = session;
         return session;
-    }
-
-    private static boolean optionsChanged(User user, Set<Option> options, SessionContext sessionContext) {
-        return !sessionContext.user().equals(user) || !sessionContext.options().equals(options);
     }
 
     private CompletableFuture<XContentBuilder> executeSimpleRequest(Session session,
@@ -307,13 +298,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                     throw new RuntimeException(e);
                 }
             });
-    }
-
-    private static Set<Option> optionsFromUserHeader(String user) {
-        if (user != null && !user.isEmpty() && user.toLowerCase(Locale.ENGLISH).contains("odbc")) {
-            return EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT);
-        }
-        return Option.NONE;
     }
 
     User userFromAuthHeader(@Nullable String authHeaderValue) {

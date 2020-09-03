@@ -23,7 +23,6 @@ package io.crate.testing;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
@@ -76,7 +75,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql .ResultSetMetaData;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -216,8 +215,7 @@ public class SQLTransportExecutor {
     public Session newSession() {
         return clientProvider.sqlOperations().createSession(
             searchPath.currentSchema(),
-            User.CRATE_USER,
-            Option.NONE
+            User.CRATE_USER
         );
     }
 

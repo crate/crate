@@ -34,7 +34,6 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
@@ -57,7 +56,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
                 return true;
             }
         };
-        accessControl = new AccessControlImpl(userName -> user, new SessionContext(Set.of(), user));
+        accessControl = new AccessControlImpl(userName -> user, new SessionContext(user));
     }
 
     @SuppressWarnings("unchecked")

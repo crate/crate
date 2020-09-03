@@ -491,7 +491,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     private void submitQueriesThroughSimpleQueryMode(String statements, @Nullable Throwable failure) {
         SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
         Session session = mock(Session.class);
-        SessionContext sessionContext = new SessionContext(Set.of(), User.CRATE_USER);
+        SessionContext sessionContext = new SessionContext(User.CRATE_USER);
         when(session.sessionContext()).thenReturn(sessionContext);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
         DescribeResult describeResult = mock(DescribeResult.class);

@@ -23,7 +23,6 @@
 package io.crate.testing;
 
 import io.crate.Constants;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -157,8 +156,8 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION;
 import static io.crate.blob.v2.BlobIndex.fullIndexName;
-import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -418,7 +417,7 @@ public class SQLExecutor {
                     sessionSettingRegistry
                 ),
                 relationAnalyzer,
-                new SessionContext(Option.NONE, user, searchPath),
+                new SessionContext(user, searchPath),
                 schemas,
                 random,
                 fulltextAnalyzerResolver
