@@ -19,23 +19,6 @@
 
 package org.elasticsearch.transport;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.CheckedBiConsumer;
-import org.elasticsearch.common.component.Lifecycle;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.AbstractLifecycleRunnable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.common.util.concurrent.KeyedLock;
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.threadpool.ThreadPool;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
@@ -47,6 +30,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.CheckedBiConsumer;
+import org.elasticsearch.common.component.Lifecycle;
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.common.util.concurrent.KeyedLock;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.io.IOUtils;
 
 /**
  * This class manages node connections. The connection is opened by the underlying transport. Once the
@@ -61,7 +59,6 @@ public class ConnectionManager implements Closeable {
     private final KeyedLock<String> connectionLock = new KeyedLock<>();
     private final Transport transport;
     private final ThreadPool threadPool;
-    private final TimeValue pingSchedule;
     private final ConnectionProfile defaultProfile;
     private final Lifecycle lifecycle = new Lifecycle();
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -69,19 +66,14 @@ public class ConnectionManager implements Closeable {
     private final DelegatingNodeConnectionListener connectionListener = new DelegatingNodeConnectionListener();
 
     public ConnectionManager(Settings settings, Transport transport, ThreadPool threadPool) {
-        this(settings, transport, threadPool, ConnectionProfile.buildDefaultConnectionProfile(settings));
+        this(ConnectionProfile.buildDefaultConnectionProfile(settings), transport, threadPool);
     }
 
-    public ConnectionManager(Settings settings, Transport transport, ThreadPool threadPool, ConnectionProfile defaultProfile) {
+    public ConnectionManager(ConnectionProfile connectionProfile, Transport transport, ThreadPool threadPool) {
         this.transport = transport;
         this.threadPool = threadPool;
-        this.pingSchedule = TransportSettings.PING_SCHEDULE.get(settings);
-        this.defaultProfile = defaultProfile;
+        this.defaultProfile = connectionProfile;
         this.lifecycle.moveToStarted();
-
-        if (pingSchedule.millis() > 0) {
-            threadPool.schedule(new ScheduledPing(), pingSchedule, ThreadPool.Names.GENERIC);
-        }
     }
 
     public void addListener(TransportConnectionListener listener) {
@@ -254,45 +246,6 @@ public class ConnectionManager implements Closeable {
         }
     }
 
-    private class ScheduledPing extends AbstractLifecycleRunnable {
-
-        private ScheduledPing() {
-            super(lifecycle, LOGGER);
-        }
-
-        @Override
-        protected void doRunInLifecycle() {
-            for (Map.Entry<DiscoveryNode, Transport.Connection> entry : connectedNodes.entrySet()) {
-                Transport.Connection connection = entry.getValue();
-                if (connection.sendPing() == false) {
-                    LOGGER.warn("attempted to send ping to connection without support for pings [{}]", connection);
-                }
-            }
-        }
-
-        @Override
-        protected void onAfterInLifecycle() {
-            try {
-                threadPool.schedule(this, pingSchedule, ThreadPool.Names.GENERIC);
-            } catch (EsRejectedExecutionException ex) {
-                if (ex.isExecutorShutdown()) {
-                    LOGGER.debug("couldn't schedule new ping execution, executor is shutting down", ex);
-                } else {
-                    throw ex;
-                }
-            }
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-            if (lifecycle.stoppedOrClosed()) {
-                LOGGER.trace("failed to send ping transport message", e);
-            } else {
-                LOGGER.warn("failed to send ping transport message", e);
-            }
-        }
-    }
-
     private static final class DelegatingNodeConnectionListener implements TransportConnectionListener {
 
         private final CopyOnWriteArrayList<TransportConnectionListener> listeners = new CopyOnWriteArrayList<>();
@@ -324,5 +277,9 @@ public class ConnectionManager implements Closeable {
                 listener.onConnectionClosed(connection);
             }
         }
+    }
+
+    ConnectionProfile getConnectionProfile() {
+        return defaultProfile;
     }
 }

@@ -25,6 +25,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.network.CloseableChannel;
 
+import io.crate.common.unit.TimeValue;
+
 
 /**
  * This is a tcp channel representing a single channel connection to another node. It is the base channel
@@ -32,6 +34,11 @@ import org.elasticsearch.common.network.CloseableChannel;
  * implementations must return channels that adhere to the required method contracts.
  */
 public interface TcpChannel extends CloseableChannel {
+
+    /**
+     * Indicates if the channel is an inbound server channel.
+     */
+    boolean isServerChannel();
 
     /**
      * This returns the profile for this channel.
@@ -70,4 +77,26 @@ public interface TcpChannel extends CloseableChannel {
      * @param listener to be executed
      */
     void addConnectListener(ActionListener<Void> listener);
+
+    /**
+     * Returns stats about this channel
+     */
+    ChannelStats getChannelStats();
+
+    class ChannelStats {
+
+        private volatile long lastAccessedTime;
+
+        public ChannelStats() {
+            lastAccessedTime = TimeValue.nsecToMSec(System.nanoTime());
+        }
+
+        void markAccessed(long relativeMillisTime) {
+            lastAccessedTime = relativeMillisTime;
+        }
+
+        long lastAccessedTime() {
+            return lastAccessedTime;
+        }
+    }
 }
