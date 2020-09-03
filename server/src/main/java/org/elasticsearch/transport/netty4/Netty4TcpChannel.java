@@ -30,13 +30,13 @@ import org.elasticsearch.transport.TransportException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 
-public class NettyTcpChannel implements TcpChannel {
+public class Netty4TcpChannel implements TcpChannel {
 
     private final Channel channel;
     private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
     private final String profile;
 
-    NettyTcpChannel(Channel channel, String profile) {
+    Netty4TcpChannel(Channel channel, String profile) {
         this.channel = channel;
         this.profile = profile;
         this.channel.closeFuture().addListener(f -> {
@@ -106,7 +106,7 @@ public class NettyTcpChannel implements TcpChannel {
 
     @Override
     public String toString() {
-        return "NettyTcpChannel{" +
+        return "Netty4TcpChannel{" +
             "localAddress=" + getLocalAddress() +
             ", remoteAddress=" + channel.remoteAddress() +
             '}';

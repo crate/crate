@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport.netty4;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.transport.Transports;
 
@@ -48,7 +49,7 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
         final ByteBuf buffer = (ByteBuf) msg;
         try {
             Channel channel = ctx.channel();
-            Attribute<NettyTcpChannel> channelAttribute = channel.attr(Netty4Transport.CHANNEL_KEY);
+            Attribute<Netty4TcpChannel> channelAttribute = channel.attr(Netty4Transport.CHANNEL_KEY);
             transport.inboundMessage(channelAttribute.get(), Netty4Utils.toBytesReference(buffer));
         } finally {
             buffer.release();
@@ -58,7 +59,13 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ExceptionsHelper.maybeDieOnAnotherThread(cause);
-        transport.exceptionCaught(ctx, cause);
+        final Throwable unwrapped = ExceptionsHelper.unwrap(cause, ElasticsearchException.class);
+        final Throwable newCause = unwrapped != null ? unwrapped : cause;
+        Netty4TcpChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
+        if (newCause instanceof Error) {
+            transport.onException(tcpChannel, new Exception(newCause));
+        } else {
+            transport.onException(tcpChannel, (Exception) newCause);
+        }
     }
-
 }

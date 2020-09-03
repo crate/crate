@@ -153,7 +153,7 @@ public class TcpTransportTest extends ESTestCase {
                                                                new NetworkService(Collections.emptyList())) {
 
                 @Override
-                protected TcpChannel bind(String name, InetSocketAddress address) {
+                protected TcpServerChannel bind(String name, InetSocketAddress address) {
                     throw new UnsupportedOperationException();
                 }
 
