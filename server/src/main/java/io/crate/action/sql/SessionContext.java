@@ -35,7 +35,6 @@ import static java.util.Objects.requireNonNull;
 
 public class SessionContext {
 
-    private final Set<Option> options;
     private final User user;
 
     private SearchPath searchPath;
@@ -46,11 +45,10 @@ public class SessionContext {
      * Creates a new SessionContext suitable to use as system SessionContext
      */
     public static SessionContext systemSessionContext() {
-        return new SessionContext(Option.NONE, User.CRATE_USER);
+        return new SessionContext(User.CRATE_USER);
     }
 
-    public SessionContext(Set<Option> options, User user, String... searchPath) {
-        this.options = options;
+    public SessionContext(User user, String... searchPath) {
         this.user = requireNonNull(user, "User is required");
         this.searchPath = createSearchPathFrom(searchPath);
         this.excludedOptimizerRules = new HashSet<>();
@@ -61,10 +59,6 @@ public class SessionContext {
      */
     public void resetSchema() {
         searchPath = pathWithPGCatalogAndDoc();
-    }
-
-    public Set<Option> options() {
-        return options;
     }
 
     public SearchPath searchPath() {

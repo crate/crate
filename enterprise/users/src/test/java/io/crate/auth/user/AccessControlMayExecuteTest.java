@@ -20,7 +20,6 @@ package io.crate.auth.user;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.user.Privilege;
@@ -123,7 +122,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     private void analyze(String stmt, User user) {
         e.analyzer.analyze(
             SqlParser.createStatement(stmt),
-            new SessionContext(Option.NONE, user),
+            new SessionContext(user),
             ParamTypeHints.EMPTY);
     }
 

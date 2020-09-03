@@ -18,7 +18,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
@@ -35,12 +34,12 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     private Session createSuperUserSession() {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(null, User.CRATE_USER, Option.NONE);
+        return sqlOperations.createSession(null, User.CRATE_USER);
     }
 
     private Session createUserSession() {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(null, User.of("normal"), Option.NONE);
+        return sqlOperations.createSession(null, User.of("normal"));
     }
 
     @Before
@@ -69,7 +68,7 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
         UserManager userManager = internalCluster().getInstance(UserManager.class);
         User user = Objects.requireNonNull(userManager.findUser(userName), "User " + userName + " must exist");
-        Session session = sqlOperations.createSession(null, user, Option.NONE);
+        Session session = sqlOperations.createSession(null, user);
         return execute(stmt, null, session);
     }
 }

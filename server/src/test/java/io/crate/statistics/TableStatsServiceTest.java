@@ -122,7 +122,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         Mockito.when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
         SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
         Session session = Mockito.mock(Session.class);
-        Mockito.when(sqlOperations.createSession(ArgumentMatchers.anyString(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(session);
+        Mockito.when(sqlOperations.createSession(ArgumentMatchers.anyString(), ArgumentMatchers.any())).thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,

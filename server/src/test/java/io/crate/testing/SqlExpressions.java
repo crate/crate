@@ -22,7 +22,6 @@
 
 package io.crate.testing;
 
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -50,7 +49,6 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-
 import static org.mockito.Mockito.mock;
 
 public class SqlExpressions {
@@ -76,7 +74,7 @@ public class SqlExpressions {
                           User user,
                           AbstractModule... additionalModules) {
         this.nodeCtx = createNodeContext(additionalModules);
-        coordinatorTxnCtx = new CoordinatorTxnCtx(new SessionContext(Option.NONE, user));
+        coordinatorTxnCtx = new CoordinatorTxnCtx(new SessionContext(user));
         expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
             nodeCtx,

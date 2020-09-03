@@ -26,7 +26,6 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.user.User;
 import io.crate.expression.symbol.Literal;
@@ -82,7 +81,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
             SqlParser.createStatement(
                 "CREATE FUNCTION bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new SessionContext(Option.NONE, User.CRATE_USER, "my_schema"),
+            new SessionContext(User.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_schema"));
@@ -94,7 +93,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
         AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) e.analyzer.analyze(
             SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new SessionContext(Option.NONE, User.CRATE_USER, "my_schema"),
+            new SessionContext(User.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_other_schema"));

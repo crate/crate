@@ -27,7 +27,6 @@ import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.TestGroup;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.collect.Multimap;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
@@ -126,7 +125,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -429,7 +427,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, @Nullable String schema) {
-        return execute(stmt, null, createSession(schema, Option.NONE));
+        return execute(stmt, null, createSession(schema));
     }
 
     public static class PlanForNode {
@@ -453,7 +451,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         NodeContext nodeCtx = internalCluster().getInstance(NodeContext.class, nodeName);
 
         SessionContext sessionContext = new SessionContext(
-            Option.NONE, User.CRATE_USER, sqlExecutor.getCurrentSchema());
+            User.CRATE_USER,
+            sqlExecutor.getCurrentSchema()
+        );
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(
@@ -680,7 +680,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
         return sqlOperations.createSession(
-            sqlExecutor.getCurrentSchema(), User.CRATE_USER, Option.NONE);
+            sqlExecutor.getCurrentSchema(), User.CRATE_USER);
     }
 
     /**
@@ -689,12 +689,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * from the default one.
      *
      * @param defaultSchema The default schema to use. Can be null.
-     * @param options Session options. If no specific options are required, use {@link Option#NONE}
      * @return The created session
      */
-    Session createSession(@Nullable String defaultSchema, Set<Option> options) {
+    Session createSession(@Nullable String defaultSchema) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(defaultSchema, User.CRATE_USER, options);
+        return sqlOperations.createSession(defaultSchema, User.CRATE_USER);
     }
 
     /**

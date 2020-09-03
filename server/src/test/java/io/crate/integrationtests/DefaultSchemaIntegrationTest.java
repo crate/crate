@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.Option;
 import io.crate.testing.SQLResponse;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,7 +38,7 @@ public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
     public TemporaryFolder tmpFolder = new TemporaryFolder();
 
     public SQLResponse execute(String stmt, Object[] args, String schema) {
-        return execute(stmt, args, createSession(schema, Option.NONE));
+        return execute(stmt, args, createSession(schema));
     }
 
     @Test
