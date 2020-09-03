@@ -20,7 +20,6 @@
 package org.elasticsearch.transport.netty4;
 
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -61,11 +60,6 @@ public class NettyTcpChannel implements TcpChannel {
     @Override
     public void addCloseListener(ActionListener<Void> listener) {
         closeContext.whenComplete(ActionListener.toBiConsumer(listener));
-    }
-
-    @Override
-    public void setSoLinger(int value) {
-        channel.config().setOption(ChannelOption.SO_LINGER, value);
     }
 
     @Override
