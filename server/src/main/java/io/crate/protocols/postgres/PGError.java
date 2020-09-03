@@ -30,6 +30,8 @@ import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.UserDefinedFunctionUnknownException;
+
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 
@@ -92,6 +94,8 @@ public class PGError {
             status = PGErrorStatus.INVALID_SCHEMA_NAME;
         } else if (throwable instanceof AmbiguousColumnAliasException) {
             status = PGErrorStatus.AMBIGUOUS_ALIAS;
+        } else if (throwable instanceof UserDefinedFunctionUnknownException) {
+            status = PGErrorStatus.UNDEFINED_FUNCTION;
         }
         return new PGError(status, SQLExceptions.messageOf(throwable), throwable);
     }

@@ -27,6 +27,7 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.protocols.postgres.PGError;
 import io.crate.protocols.postgres.PGErrorStatus;
@@ -41,7 +42,9 @@ import java.util.List;
 import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_ALIAS;
 import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_COLUMN;
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_SCHEMA_NAME;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_FUNCTION;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static io.crate.testing.TestingHelpers.createReference;
@@ -73,6 +76,15 @@ public class ErrorMappingTest {
                 AMBIGUOUS_ALIAS,
                 BAD_REQUEST,
                 4006);
+    }
+
+    @Test
+    public void test_user_defined_function_unknown_exception_error_mapping() {
+        isError(new UserDefinedFunctionUnknownException("schema", "foo", List.of(DataTypes.STRING)),
+                is("Cannot resolve user defined function: 'schema.foo(text)'"),
+                UNDEFINED_FUNCTION,
+                NOT_FOUND,
+                4049);
     }
 
     private void isError(Throwable t,

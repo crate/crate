@@ -51,26 +51,16 @@ Breaking Changes
 Changes
 =======
 
-- Changed the error code for the psql protocol when a column alias is
-  ambiguous from `XX000` `internal_error` to `42P09` `ambiguous_alias`.
-
-- Changed the error code for the psql protocol when a schema name
-  is invalid from `XX000` `internal_error` to `3F000` `invalid_schema_name`.
-
-- Changed the error code for the psql protocol when a column reference
-  is ambiguous from `XX000` `internal_error` to `42702` `ambiguous_column`.
-
-- Changed the error code for the psql protocol when a relation exists
-  already from `XX000` `internal_error` to `42P07` `duplicate_table`.
-
-- Changed the error code for the psql protocol when a column does not exist
-  from `XX000` `internal_error` to `42703` `undefined_column`.
-
-- Changed the error code for the psql protocol when a relation does not exist
-  from `XX000` `internal_error` to `42P01` `undefined_table`.
-
-- Changed the error code for the psql protocol when a document exists
-  already from `XX000` `internal_error` to `23505` `unique_violation`.
+- Changed the error code for the psql protocol from ``XX000`` ``internal_error``
+  when:
+  - a user defined function is missing to ``42883`` ``undefined_function``
+  - a column alias is ambiguous to ``42P09`` ``ambiguous_alias``
+  - a schema name is invalid to ``3F000`` ``invalid_schema_name``
+  - a column reference is ambiguous to ``42702`` ``ambiguous_column``
+  - a relation exists already to ``42P07`` ``duplicate_table``
+  - a column does not exist to ``42703`` ``undefined_column``
+  - a relation does not exist to ``42P01`` ``undefined_table``
+  - a document exists already to ``23505`` ``unique_violation``
 
 - Added scalar function :ref:`pg_function_is_visible <pg_function_is_visible>`.
 
