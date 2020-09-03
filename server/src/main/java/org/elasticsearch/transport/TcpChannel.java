@@ -19,7 +19,6 @@
 
 package org.elasticsearch.transport;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -41,15 +40,6 @@ import io.crate.common.unit.TimeValue;
  * implementations must return channels that adhere to the required method contracts.
  */
 public interface TcpChannel extends CloseableChannel {
-
-    /**
-     * This sets the low level socket option {@link java.net.StandardSocketOptions} SO_LINGER on a channel.
-     *
-     * @param value to set for SO_LINGER
-     * @throws IOException that can be throw by the low level socket implementation
-     */
-    void setSoLinger(int value) throws IOException;
-
 
     /**
      * Returns the local address for this channel.
