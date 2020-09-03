@@ -341,7 +341,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] abb30f0f814 Make sure to validate the type before attempting to merge a new mapping. (#45157)
 - [ ] d1065fed2b1 Adjust BWC version for #44756
 - [ ] 13a8835e5a8 Geo: Change order of parameter in Geometries to lon, lat (#45332)
-- [ ] 8d1ea865197 Set start of the week to Monday for root locale (#43652)
+- [x] 8d1ea865197 Set start of the week to Monday for root locale (#43652)
 - [x] fd4acb3e8b7 Only retain reasonable history for peer recoveries (#45208)
 - [x] c26f850c443 Call afterWriteOperation after trim translog in peer recovery (#45182)
 - [x] 6bb6927151c Remove assertion after locally recover replica (#45181)
