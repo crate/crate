@@ -70,6 +70,7 @@ public class ReadOnlyEngine extends Engine {
     private final Lock indexWriterLock;
     private final DocsStats docsStats;
     private final RamAccountingRefreshListener refreshListener;
+    private final SafeCommitInfo safeCommitInfo;
 
     protected volatile TranslogStats translogStats;
 
@@ -116,6 +117,7 @@ public class ReadOnlyEngine extends Engine {
                 assert translogStats != null || obtainLock : "mutiple translogs instances should not be opened at the same time";
                 this.translogStats = translogStats != null ? translogStats : translogStats(config, lastCommittedSegmentInfos);
                 this.indexWriterLock = indexWriterLock;
+                this.safeCommitInfo = new SafeCommitInfo(seqNoStats.getLocalCheckpoint(), lastCommittedSegmentInfos.totalMaxDoc());
                 success = true;
             } finally {
                 if (success == false) {
@@ -413,6 +415,11 @@ public class ReadOnlyEngine extends Engine {
     @Override
     public IndexCommitRef acquireSafeIndexCommit() {
         return acquireLastIndexCommit(false);
+    }
+
+    @Override
+    public SafeCommitInfo getSafeCommitInfo() {
+        return safeCommitInfo;
     }
 
     @Override

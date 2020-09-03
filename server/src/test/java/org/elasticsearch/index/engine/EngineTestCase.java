@@ -676,7 +676,8 @@ public abstract class EngineTestCase extends ESTestCase {
                 SequenceNumbers.NO_OPS_PERFORMED,
                 update -> {},
                 () -> 0L,
-                (leases, listener) -> {}
+                (leases, listener) -> {},
+                () -> SafeCommitInfo.EMPTY
             );
             globalCheckpointSupplier = replicationTracker;
             retentionLeasesSupplier = replicationTracker::getRetentionLeases;
