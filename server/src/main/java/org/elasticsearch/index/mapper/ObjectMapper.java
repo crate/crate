@@ -19,12 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.elasticsearch.ElasticsearchParseException;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.collect.CopyOnWriteHashMap;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,11 +30,16 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.collect.CopyOnWriteHashMap;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.time.IsoLocale;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 
 
 public class ObjectMapper extends Mapper implements Cloneable {
@@ -402,7 +403,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             builder.field("position", position);
         }
         if (dynamic != null) {
-            builder.field("dynamic", dynamic.name().toLowerCase(Locale.ROOT));
+            builder.field("dynamic", dynamic.name().toLowerCase(IsoLocale.ROOT));
         }
         if (enabled != Defaults.ENABLED) {
             builder.field("enabled", enabled);

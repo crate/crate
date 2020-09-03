@@ -47,6 +47,7 @@ import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.time.IsoLocale;
 import org.elasticsearch.common.util.LocaleUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -57,7 +58,7 @@ public class DateFieldMapper extends FieldMapper {
 
     public static final String CONTENT_TYPE = "date";
     public static final FormatDateTimeFormatter DEFAULT_DATE_TIME_FORMATTER = Joda.forPattern(
-            "strict_date_optional_time||epoch_millis", Locale.ROOT);
+            "strict_date_optional_time||epoch_millis", IsoLocale.ROOT);
 
     public static class Defaults {
         public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
@@ -73,7 +74,7 @@ public class DateFieldMapper extends FieldMapper {
         public Builder(String name) {
             super(name, new DateFieldType(), new DateFieldType());
             builder = this;
-            locale = Locale.ROOT;
+            locale = IsoLocale.ROOT;
         }
 
         @Override
@@ -427,7 +428,7 @@ public class DateFieldMapper extends FieldMapper {
         }
 
         if (includeDefaults
-                || fieldType().dateTimeFormatter().locale() != Locale.ROOT) {
+                || fieldType().dateTimeFormatter().locale() != IsoLocale.ROOT) {
             builder.field("locale", fieldType().dateTimeFormatter().locale());
         }
     }

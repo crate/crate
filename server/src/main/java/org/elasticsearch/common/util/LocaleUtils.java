@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
+import org.elasticsearch.common.time.IsoLocale;
+
 /**
  * Utilities for for dealing with {@link Locale} objects
  */
@@ -95,7 +97,7 @@ public class LocaleUtils {
                 return new Locale(parts[0], parts[1]);
             case 1:
                 if ("ROOT".equalsIgnoreCase(parts[0])) {
-                    return Locale.ROOT;
+                    return IsoLocale.ROOT;
                 }
                 // lang
                 return new Locale(parts[0]);
