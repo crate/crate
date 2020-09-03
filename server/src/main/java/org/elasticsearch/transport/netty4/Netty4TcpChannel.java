@@ -38,12 +38,15 @@ import io.netty.channel.ChannelPromise;
 public class Netty4TcpChannel implements TcpChannel {
 
     private final Channel channel;
+    private final boolean isServer;
     private final String profile;
     private final CompletableContext<Void> connectContext;
     private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
+    private final ChannelStats stats = new ChannelStats();
 
-    Netty4TcpChannel(Channel channel, String profile, @Nullable ChannelFuture connectFuture) {
+    Netty4TcpChannel(Channel channel, boolean isServer, String profile, @Nullable ChannelFuture connectFuture) {
         this.channel = channel;
+        this.isServer = isServer;
         this.profile = profile;
         this.connectContext = new CompletableContext<>();
         this.channel.closeFuture().addListener(f -> {
@@ -81,6 +84,11 @@ public class Netty4TcpChannel implements TcpChannel {
     }
 
     @Override
+    public boolean isServerChannel() {
+        return isServer;
+    }
+
+    @Override
     public String getProfile() {
         return profile;
     }
@@ -93,6 +101,11 @@ public class Netty4TcpChannel implements TcpChannel {
     @Override
     public void addConnectListener(ActionListener<Void> listener) {
         connectContext.addListener(ActionListener.toBiConsumer(listener));
+    }
+
+    @Override
+    public ChannelStats getChannelStats() {
+        return stats;
     }
 
     @Override

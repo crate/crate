@@ -39,7 +39,7 @@ import org.mockito.ArgumentCaptor;
 
 import io.crate.common.unit.TimeValue;
 
-public class TcpTransportHandshakerTests extends ESTestCase {
+public class TransportHandshakerTests extends ESTestCase {
 
     private TcpTransportHandshaker handshaker;
     private DiscoveryNode node;
