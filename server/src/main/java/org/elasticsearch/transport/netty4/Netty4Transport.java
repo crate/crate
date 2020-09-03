@@ -26,14 +26,11 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -54,7 +51,6 @@ import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.TransportSettings;
 
 import io.crate.common.SuppressForbidden;
-import io.crate.common.collections.Tuple;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.AdaptiveRecvByteBufAllocator;
@@ -64,6 +60,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.epoll.Epoll;
@@ -110,6 +107,7 @@ public class Netty4Transport extends TcpTransport {
     private final ByteSizeValue receivePredictorMin;
     private final ByteSizeValue receivePredictorMax;
     private volatile Bootstrap clientBootstrap;
+    private volatile EventLoopGroup eventLoopGroup;
     private final Map<String, ServerBootstrap> serverBootstraps = newConcurrentMap();
 
     public Netty4Transport(Settings settings, ThreadPool threadPool, NetworkService networkService, BigArrays bigArrays,
@@ -133,10 +131,16 @@ public class Netty4Transport extends TcpTransport {
     protected void doStart() {
         boolean success = false;
         try {
-            clientBootstrap = createClientBootstrap();
+            ThreadFactory threadFactory = daemonThreadFactory(settings, TRANSPORT_WORKER_THREAD_NAME_PREFIX);
+            if (Epoll.isAvailable()) {
+                eventLoopGroup = new EpollEventLoopGroup(workerCount, threadFactory);
+            } else {
+                eventLoopGroup = new NioEventLoopGroup(workerCount, threadFactory);
+            }
+            clientBootstrap = createClientBootstrap(eventLoopGroup);
             if (NetworkService.NETWORK_SERVER.get(settings)) {
                 for (ProfileSettings profileSettings : profileSettings) {
-                    createServerBootstrap(profileSettings);
+                    createServerBootstrap(profileSettings, eventLoopGroup);
                     bindServer(profileSettings);
                 }
             }
@@ -149,13 +153,12 @@ public class Netty4Transport extends TcpTransport {
         }
     }
 
-    private Bootstrap createClientBootstrap() {
+    private Bootstrap createClientBootstrap(EventLoopGroup eventLoopGroup) {
         final Bootstrap bootstrap = new Bootstrap();
+        bootstrap.group(eventLoopGroup);
         if (Epoll.isAvailable()) {
-            bootstrap.group(new EpollEventLoopGroup(workerCount, daemonThreadFactory(settings, TRANSPORT_CLIENT_BOSS_THREAD_NAME_PREFIX)));
             bootstrap.channel(EpollSocketChannel.class);
         } else {
-            bootstrap.group(new NioEventLoopGroup(workerCount, daemonThreadFactory(settings, TRANSPORT_CLIENT_BOSS_THREAD_NAME_PREFIX)));
             bootstrap.channel(NioSocketChannel.class);
         }
 
@@ -180,7 +183,7 @@ public class Netty4Transport extends TcpTransport {
         return bootstrap;
     }
 
-    private void createServerBootstrap(ProfileSettings profileSettings) {
+    private void createServerBootstrap(ProfileSettings profileSettings, EventLoopGroup eventLoopGroup) {
         String name = profileSettings.profileName;
         if (logger.isDebugEnabled()) {
             logger.debug("using profile[{}], worker_count[{}], port[{}], bind_host[{}], publish_host[{}], compress[{}], "
@@ -189,15 +192,12 @@ public class Netty4Transport extends TcpTransport {
                 receivePredictorMin, receivePredictorMax);
         }
 
-
-        final ThreadFactory workerFactory = daemonThreadFactory(this.settings, TRANSPORT_SERVER_WORKER_THREAD_NAME_PREFIX, name);
         final ServerBootstrap serverBootstrap = new ServerBootstrap();
+        serverBootstrap.group(eventLoopGroup);
 
         if (Epoll.isAvailable()) {
-            serverBootstrap.group(new EpollEventLoopGroup(workerCount, workerFactory));
             serverBootstrap.channel(EpollServerSocketChannel.class);
         } else {
-            serverBootstrap.group(new NioEventLoopGroup(workerCount, workerFactory));
             serverBootstrap.channel(NioServerSocketChannel.class);
         }
 
@@ -280,25 +280,13 @@ public class Netty4Transport extends TcpTransport {
     @SuppressForbidden(reason = "debug")
     protected void stopInternal() {
         Releasables.close(() -> {
-            final List<Tuple<String, Future<?>>> serverBootstrapCloseFutures = new ArrayList<>(serverBootstraps.size());
-            for (final Map.Entry<String, ServerBootstrap> entry : serverBootstraps.entrySet()) {
-                serverBootstrapCloseFutures.add(
-                    Tuple.tuple(entry.getKey(), entry.getValue().config().group().shutdownGracefully(0, 5, TimeUnit.SECONDS)));
-            }
-            for (final Tuple<String, Future<?>> future : serverBootstrapCloseFutures) {
-                future.v2().awaitUninterruptibly();
-                if (!future.v2().isSuccess()) {
-                    logger.debug(
-                        (Supplier<?>) () -> new ParameterizedMessage(
-                            "Error closing server bootstrap for profile [{}]", future.v1()), future.v2().cause());
-                }
+            Future<?> shutdownFuture = eventLoopGroup.shutdownGracefully(0, 5, TimeUnit.SECONDS);
+            shutdownFuture.awaitUninterruptibly();
+            if (shutdownFuture.isSuccess() == false) {
+                logger.warn("Error closing netty event loop group", shutdownFuture.cause());
             }
             serverBootstraps.clear();
-
-            if (clientBootstrap != null) {
-                clientBootstrap.config().group().shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly();
-                clientBootstrap = null;
-            }
+            clientBootstrap = null;
         });
     }
 
