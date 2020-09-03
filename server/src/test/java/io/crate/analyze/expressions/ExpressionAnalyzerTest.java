@@ -22,8 +22,6 @@
 package io.crate.analyze.expressions;
 
 
-import com.google.common.collect.ImmutableList;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
@@ -31,7 +29,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.auth.user.User;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
@@ -47,13 +44,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.ArrayLiteral;
-import io.crate.sql.tree.FunctionCall;
-import io.crate.sql.tree.LongLiteral;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.DummyRelation;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -63,7 +54,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -84,8 +74,6 @@ import static org.hamcrest.Matchers.sameInstance;
  */
 public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private Map<RelationName, AnalyzedRelation> dummySources;
-    private CoordinatorTxnCtx coordinatorTxnCtx;
     private ExpressionAnalysisContext context;
     private ParamTypeHints paramTypeHints;
     private SQLExecutor executor;
@@ -94,15 +82,16 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws Exception {
         paramTypeHints = ParamTypeHints.EMPTY;
-        DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
-        dummySources = Map.of(dummyRelation.relationName(), dummyRelation);
-        coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         context = new ExpressionAnalysisContext();
         executor = SQLExecutor.builder(clusterService)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .addTable(T3.T5_DEFINITION)
             .addTable("create table tarr (xs array(integer))")
+            .addTable("create table nested_obj (" +
+                      "o object as (a object as (b object as (c int)))," +
+                      "\"myObj\" object as (x object as (\"AbC\" int))" +
+                      ")")
             .build();
         expressions = new SqlExpressions(Collections.emptyMap());
     }
@@ -111,84 +100,15 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUnsupportedExpressionCurrentDate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_date");
-        SessionContext sessionContext = SessionContext.systemSessionContext();
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            coordinatorTxnCtx, expressions.nodeCtx, paramTypeHints,
-            new FullQualifiedNameFieldProvider(
-                dummySources,
-                ParentRelations.NO_PARENTS,
-                sessionContext.searchPath().currentSchema()),
-            null);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-
-        expressionAnalyzer.convert(SqlParser.createExpression("current_date"), expressionAnalysisContext);
-    }
-
-    @Test
-    public void testQuotedSubscriptExpression() throws Exception {
-        SessionContext sessionContext = new SessionContext(
-            EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), User.CRATE_USER);
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            new CoordinatorTxnCtx(sessionContext),
-            expressions.nodeCtx,
-            paramTypeHints,
-            new FullQualifiedNameFieldProvider(
-                dummySources,
-                ParentRelations.NO_PARENTS,
-                sessionContext.searchPath().currentSchema()),
-            null);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-
-        ScopedSymbol field1 = (ScopedSymbol) expressionAnalyzer.convert(SqlParser.createExpression("obj['x']"), expressionAnalysisContext);
-        ScopedSymbol field2 = (ScopedSymbol) expressionAnalyzer.convert(SqlParser.createExpression("\"obj['x']\""), expressionAnalysisContext);
-        assertEquals(field1, field2);
-
-        ScopedSymbol field3 = (ScopedSymbol) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']\""), expressionAnalysisContext);
-        assertEquals("myObj['x']", field3.column().toString());
-        ScopedSymbol field4 = (ScopedSymbol) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']['AbC']\""), expressionAnalysisContext);
-        assertEquals("myObj['x']['AbC']", field4.column().toString());
-    }
-
-    @Test
-    public void testSubscriptSplitPatternMatcher() throws Exception {
-        assertEquals("\"foo\".\"bar\"['x']['y']", ExpressionAnalyzer.getQuotedSubscriptLiteral("foo.bar['x']['y']"));
-        assertEquals("\"foo\"['x']['y']", ExpressionAnalyzer.getQuotedSubscriptLiteral("foo['x']['y']"));
-        assertEquals("\"foo\"['x']", ExpressionAnalyzer.getQuotedSubscriptLiteral("foo['x']"));
-        assertEquals("\"myFoo\"['xY']", ExpressionAnalyzer.getQuotedSubscriptLiteral("myFoo['xY']"));
-
-        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("foo"));
-        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("foo.."));
-        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral(".foo."));
-        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("foo.['x']"));
-        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("obj"));
-        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("obj.x"));
-        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("obj[x][y]"));
+        expressions.asSymbol("current_date");
     }
 
     @Test
     public void testAnalyzeSubscriptFunctionCall() throws Exception {
         // Test when use subscript function is used explicitly then it's handled (and validated)
         // the same way it's handled when the subscript operator `[]` is used
-        SessionContext sessionContext = new SessionContext(
-            EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), User.CRATE_USER);
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            new CoordinatorTxnCtx(sessionContext),
-            expressions.nodeCtx,
-            paramTypeHints,
-            new FullQualifiedNameFieldProvider(
-                dummySources,
-                ParentRelations.NO_PARENTS,
-                sessionContext.searchPath().currentSchema()),
-            null);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-        FunctionCall subscriptFunctionCall = new FunctionCall(
-            new QualifiedName("subscript"),
-            ImmutableList.of(
-                new ArrayLiteral(ImmutableList.of(new StringLiteral("obj"))),
-                new LongLiteral(1)));
-
-        Symbol symbol = expressionAnalyzer.convert(subscriptFunctionCall, expressionAnalysisContext);
-        assertThat(symbol, isLiteral("obj"));
+        var symbol = executor.asSymbol("subscript(nested_obj.\"myObj\", 'x')");
+        assertThat(symbol, isReference("myObj['x']"));
     }
 
     @Test
@@ -421,5 +341,23 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Startfield must be less significant than Endfield");
         expressions.asSymbol("INTERVAL '1' MONTH TO YEAR");
+    }
+
+    @Test
+    public void test_quoted_subscript() {
+        var symbol = executor.asSymbol("nested_obj.\"o['a']['b']['c']\"");
+        assertThat(symbol, isReference("o['a']['b']['c']"));
+
+        symbol = executor.asSymbol("nested_obj.\"myObj['x']['AbC']\"");
+        assertThat(symbol, isReference("myObj['x']['AbC']"));
+    }
+
+    @Test
+    public void test_partial_quoted_subscript() {
+        var symbol = executor.asSymbol("nested_obj.\"o['a']['b']\"['c']");
+        assertThat(symbol, isReference("o['a']['b']['c']"));
+
+        symbol = executor.asSymbol("nested_obj.\"myObj['x']\"['AbC']");
+        assertThat(symbol, isReference("myObj['x']['AbC']"));
     }
 }
