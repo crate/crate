@@ -34,9 +34,11 @@ public class NettyTcpChannel implements TcpChannel {
 
     private final Channel channel;
     private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
+    private final String profile;
 
-    NettyTcpChannel(Channel channel) {
+    NettyTcpChannel(Channel channel, String profile) {
         this.channel = channel;
+        this.profile = profile;
         this.channel.closeFuture().addListener(f -> {
             if (f.isSuccess()) {
                 closeContext.complete(null);
@@ -58,6 +60,11 @@ public class NettyTcpChannel implements TcpChannel {
     }
 
     @Override
+    public String getProfile() {
+        return profile;
+    }
+
+    @Override
     public void addCloseListener(ActionListener<Void> listener) {
         closeContext.whenComplete(ActionListener.toBiConsumer(listener));
     }
@@ -70,6 +77,11 @@ public class NettyTcpChannel implements TcpChannel {
     @Override
     public InetSocketAddress getLocalAddress() {
         return (InetSocketAddress) channel.localAddress();
+    }
+
+    @Override
+    public InetSocketAddress getRemoteAddress() {
+        return (InetSocketAddress) channel.remoteAddress();
     }
 
     @Override

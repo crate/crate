@@ -42,11 +42,23 @@ import io.crate.common.unit.TimeValue;
 public interface TcpChannel extends CloseableChannel {
 
     /**
+     * This returns the profile for this channel.
+     */
+    String getProfile();
+
+    /**
      * Returns the local address for this channel.
      *
      * @return the local address of this channel.
      */
     InetSocketAddress getLocalAddress();
+
+    /**
+     * Returns the remote address for this channel. Can be null if channel does not have a remote address.
+     *
+     * @return the remote address of this channel.
+     */
+    InetSocketAddress getRemoteAddress();
 
     /**
      * Sends a tcp message to the channel. The listener will be executed once the send process has been

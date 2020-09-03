@@ -23,6 +23,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.TooLongFrameException;
+
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.transport.TcpHeader;
 import org.elasticsearch.transport.TcpTransport;
 
@@ -39,18 +41,19 @@ final class Netty4SizeHeaderFrameDecoder extends ByteToMessageDecoder {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         try {
-            boolean continueProcessing = TcpTransport.validateMessageHeader(Netty4Utils.toBytesReference(in));
-            final ByteBuf message = in.skipBytes(HEADER_SIZE);
-            if (!continueProcessing) return;
-            out.add(message);
+            BytesReference networkBytes = Netty4Utils.toBytesReference(in);
+            int messageLength = TcpTransport.readMessageLength(networkBytes) + HEADER_SIZE;
+            // If the message length is -1, we have not read a complete header. If the message length is
+            // greater than the network bytes available, we have not read a complete frame.
+            if (messageLength != -1 && messageLength <= networkBytes.length()) {
+                final ByteBuf message = in.skipBytes(HEADER_SIZE);
+                // 6 bytes would mean it is a ping. And we should ignore.
+                if (messageLength != 6) {
+                    out.add(message);
+                }
+            }
         } catch (IllegalArgumentException ex) {
             throw new TooLongFrameException(ex);
-        } catch (IllegalStateException ex) {
-            /* decode will be called until the ByteBuf is fully consumed; when it is fully
-             * consumed, transport#validateMessageHeader will throw an IllegalStateException which
-             * is okay, it means we have finished consuming the ByteBuf and we can get out
-             */
         }
     }
-
 }
