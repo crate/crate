@@ -51,6 +51,8 @@ Breaking Changes
 Changes
 =======
 
+- Added full support for quoted subscript expressions like ``"myObj['x']"``.
+
 - Changed the error code for the psql protocol from ``XX000`` ``internal_error``
   when:
   - a user defined function is missing to ``42883`` ``undefined_function``

@@ -22,34 +22,7 @@
 
 package io.crate.analyze.expressions;
 
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
-import static java.util.stream.Collectors.toList;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Lists;
-
-import io.crate.metadata.NodeContext;
-import org.joda.time.Period;
-
-import io.crate.action.sql.Option;
 import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.NegateLiterals;
@@ -98,6 +71,7 @@ import io.crate.interval.IntervalParser;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.functions.Signature;
@@ -156,6 +130,26 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
+import org.joda.time.Period;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
+import static java.util.stream.Collectors.toList;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -183,8 +177,6 @@ public class ExpressionAnalyzer {
     private final NodeContext nodeCtx;
     private final InnerExpressionAnalyzer innerAnalyzer;
     private final Operation operation;
-
-    private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
 
     public ExpressionAnalyzer(CoordinatorTxnCtx coordinatorTxnCtx,
                               NodeContext nodeCtx,
@@ -419,32 +411,6 @@ public class ExpressionAnalyzer {
         return castList;
     }
 
-    @Nullable
-    static String getQuotedSubscriptLiteral(String nodeName) {
-        Matcher matcher = SUBSCRIPT_SPLIT_PATTERN.matcher(nodeName);
-        if (matcher.matches()) {
-            StringBuilder quoted = new StringBuilder();
-            String group1 = matcher.group(1);
-            if (!group1.isEmpty()) {
-                quoted.append("\"").append(group1).append("\"");
-            } else {
-                quoted.append(group1);
-            }
-            String group2 = matcher.group(2);
-            String group3 = matcher.group(3);
-            if (!group2.isEmpty() && !group3.isEmpty()) {
-                quoted.append(matcher.group(2));
-                quoted.append("\"").append(group3).append("\"");
-            } else if (!group2.isEmpty()) {
-                return null;
-            }
-            quoted.append(matcher.group(4));
-            return quoted.toString();
-        } else {
-            return null;
-        }
-    }
-
     private class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
 
         @Override
@@ -676,6 +642,14 @@ public class ExpressionAnalyzer {
                 Symbol index = node.index().accept(this, context);
                 return allocateFunction(SubscriptFunction.NAME, List.of(base, index), context);
             } else {
+                // Detect and process partial quoted subscript expression
+                var columnName = qualifiedName.getSuffix();
+                var maybeQuotedSubscript = detectAndSanitizeQuotedSubscript(columnName);
+                if (maybeQuotedSubscript != null) {
+                    var subscript = (SubscriptExpression) SqlParser.createExpression(maybeQuotedSubscript);
+                    return visitSubscriptExpression(new SubscriptExpression(subscript, node.index()), context);
+                }
+
                 // Ideally the above base+index + subscriptFunction case would be enough
                 // But:
                 // - We want to avoid subscript functions if possible (we've nested object values in a column store)
@@ -883,20 +857,18 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            try {
-                return fieldProvider.resolveField(node.getName(), null, operation);
-            } catch (ColumnUnknownException exception) {
-                if (coordinatorTxnCtx.sessionContext().options().contains(Option.ALLOW_QUOTED_SUBSCRIPT)) {
-                    String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());
-                    if (quotedSubscriptLiteral != null) {
-                        return SqlParser.createExpression(quotedSubscriptLiteral).accept(this, context);
-                    } else {
-                        throw exception;
-                    }
-                } else {
-                    throw exception;
-                }
+            var qualifiedName = node.getName();
+            var parts = qualifiedName.getParts();
+            var columnName = parts.get(parts.size() - 1);
+
+            // Detect and process quoted subscript expressions
+            var maybeQuotedSubscript = detectAndSanitizeQuotedSubscript(columnName);
+            if (maybeQuotedSubscript != null) {
+                var subscript = (SubscriptExpression) SqlParser.createExpression(maybeQuotedSubscript);
+                return visitSubscriptExpression(subscript, context);
             }
+
+            return fieldProvider.resolveField(node.getName(), null, operation);
         }
 
         @Override
@@ -1200,6 +1172,15 @@ public class ExpressionAnalyzer {
                 "Data types of all result expressions of a CASE statement must be equal, found: %s",
                 results.stream().map(Symbol::valueType).collect(toList())));
         }
+    }
+
+    @Nullable
+    private static String detectAndSanitizeQuotedSubscript(String columnName) {
+        var openSubscriptPos = columnName.indexOf("[");
+        if (openSubscriptPos > -1) {
+            return "\"" + columnName.substring(0, openSubscriptPos) + "\"" + columnName.substring(openSubscriptPos);
+        }
+        return null;
     }
 
     private static class Comparison {

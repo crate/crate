@@ -756,4 +756,16 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is("3\n" +
                                                      "2\n"));
     }
+
+    @Test
+    public void test_quoted_subscript_with_sub_select() {
+        execute("create table nested_obj (o object as (a object as (b object as (c int))))");
+        execute("insert into nested_obj (o) values ({a = {b = {c = 1}}})");
+        execute("refresh table nested_obj");
+
+        execute("select \"o['a']['b']['c']\" from (" +
+                "select o, o['a']['b']['c'] from nested_obj" +
+                ") nobj");
+        assertThat(printedTable(response.rows()), is("1\n"));
+    }
 }
