@@ -22,26 +22,7 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import static io.crate.testing.T3.T1;
-import static io.crate.testing.T3.T1_DEFINITION;
-import static io.crate.testing.T3.T4;
-import static io.crate.testing.T3.T4_DEFINITION;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableList;
-
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -54,6 +35,23 @@ import io.crate.metadata.SystemTable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static io.crate.testing.T3.T1;
+import static io.crate.testing.T3.T1_DEFINITION;
+import static io.crate.testing.T3.T4;
+import static io.crate.testing.T3.T4_DEFINITION;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
 
@@ -90,17 +88,17 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testOrdinalIsNullOnSubColumns() throws Exception {
+    public void testOrdinalIsNotNullOnSubColumns() throws Exception {
         InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(t4Info);
         ImmutableList<ColumnContext> contexts = ImmutableList.copyOf(columns);
 
-        // sub columns must have NULL ordinal value
+        // sub columns must have NON-NULL ordinal value
         assertThat(contexts.get(1).ordinal, is(2));
-        assertThat(contexts.get(2).ordinal, nullValue());
+        assertThat(contexts.get(2).ordinal, is(3));
 
         // array of object sub columns also
-        assertThat(contexts.get(3).ordinal, is(3));
-        assertThat(contexts.get(4).ordinal, nullValue());
+        assertThat(contexts.get(3).ordinal, is(4));
+        assertThat(contexts.get(4).ordinal, is(5));
     }
 
     /**

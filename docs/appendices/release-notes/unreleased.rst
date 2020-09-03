@@ -47,6 +47,11 @@ Breaking Changes
   its type from ``scalar`` to ``table`` type. It now returns a table where each
   row contains a single column ``groups`` of type ``array(text)``.
 
+- Changed values of ``information_schema.columns.ordinal_position`` and
+  ``pg_catalog.pg_attribute.attnum`` for ``object`` data type sub-columns from
+  ``NULL`` to an incremented ordinal. Values of top-level colums may change if
+  their position is after an ``object`` type column.
+
 
 Changes
 =======
