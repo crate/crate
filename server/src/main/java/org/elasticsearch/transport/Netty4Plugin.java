@@ -19,6 +19,14 @@
 
 package org.elasticsearch.transport;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -43,13 +51,6 @@ import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import io.crate.plugin.PipelineRegistry;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
 
 public class Netty4Plugin extends Plugin implements NetworkPlugin {
 
@@ -115,6 +116,7 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
             NETTY_TRANSPORT_NAME,
             () -> new Netty4Transport(
                 settings,
+                Version.CURRENT,
                 threadPool,
                 networkService,
                 bigArrays,

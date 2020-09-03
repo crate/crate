@@ -27,7 +27,6 @@ import io.crate.common.io.IOUtils;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -91,7 +90,7 @@ public interface CloseableChannel extends Closeable {
             IOUtils.close(channels);
         } catch (IOException e) {
             // The CloseableChannel#close method does not throw IOException, so this should not occur.
-            throw new UncheckedIOException(e);
+            throw new AssertionError(e);
         }
         if (blocking) {
             ArrayList<ActionFuture<Void>> futures = new ArrayList<>(channels.size());

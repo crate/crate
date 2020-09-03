@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
@@ -110,9 +110,14 @@ public class Netty4Transport extends TcpTransport {
     private volatile EventLoopGroup eventLoopGroup;
     private final Map<String, ServerBootstrap> serverBootstraps = newConcurrentMap();
 
-    public Netty4Transport(Settings settings, ThreadPool threadPool, NetworkService networkService, BigArrays bigArrays,
-                           NamedWriteableRegistry namedWriteableRegistry, CircuitBreakerService circuitBreakerService) {
-        super("netty", settings, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService);
+    public Netty4Transport(Settings settings,
+                           Version version,
+                           ThreadPool threadPool,
+                           NetworkService networkService,
+                           BigArrays bigArrays,
+                           NamedWriteableRegistry namedWriteableRegistry,
+                           CircuitBreakerService circuitBreakerService) {
+        super("netty", settings, version, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService);
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
         this.workerCount = WORKER_COUNT.get(settings);
 
@@ -229,36 +234,22 @@ public class Netty4Transport extends TcpTransport {
     static final AttributeKey<Netty4TcpServerChannel> SERVER_CHANNEL_KEY = AttributeKey.newInstance("es-server-channel");
 
     @Override
-    protected Netty4TcpChannel initiateChannel(DiscoveryNode node, ActionListener<Void> listener) throws IOException {
+    protected Netty4TcpChannel initiateChannel(DiscoveryNode node) throws IOException {
         InetSocketAddress address = node.getAddress().address();
         Bootstrap bootstrapWithHandler = clientBootstrap.clone();
         bootstrapWithHandler.handler((ChannelHandler) new ClientChannelInitializer());
         bootstrapWithHandler.remoteAddress(address);
-        ChannelFuture channelFuture = bootstrapWithHandler.connect();
+        ChannelFuture connectFuture = bootstrapWithHandler.connect();
 
-        Channel channel = channelFuture.channel();
+        Channel channel = connectFuture.channel();
         if (channel == null) {
-            ExceptionsHelper.maybeDieOnAnotherThread(channelFuture.cause());
-            throw new IOException(channelFuture.cause());
+            ExceptionsHelper.maybeDieOnAnotherThread(connectFuture.cause());
+            throw new IOException(connectFuture.cause());
         }
         addClosedExceptionLogger(channel);
 
-        Netty4TcpChannel nettyChannel = new Netty4TcpChannel(channel, "default");
+        Netty4TcpChannel nettyChannel = new Netty4TcpChannel(channel, "default", connectFuture);
         channel.attr(CHANNEL_KEY).set(nettyChannel);
-
-        channelFuture.addListener(f -> {
-            if (f.isSuccess()) {
-                listener.onResponse(null);
-            } else {
-                Throwable cause = f.cause();
-                if (cause instanceof Error) {
-                    ExceptionsHelper.maybeDieOnAnotherThread(cause);
-                    listener.onFailure(new Exception(cause));
-                } else {
-                    listener.onFailure((Exception) cause);
-                }
-            }
-        });
 
         return nettyChannel;
     }
@@ -313,7 +304,7 @@ public class Netty4Transport extends TcpTransport {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             addClosedExceptionLogger(ch);
-            Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, name);
+            Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, name, ch.newSucceededFuture());
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);
             serverAcceptedChannel(nettyTcpChannel);
             ch.pipeline().addLast("logging", new LoggingHandler(LogLevel.TRACE));

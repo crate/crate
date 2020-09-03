@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.network.NetworkService;
@@ -146,6 +147,7 @@ public class TcpTransportTest extends ESTestCase {
         try {
             final TcpTransport tcpTransport = new TcpTransport("test",
                                                                settings,
+                                                               Version.CURRENT,
                                                                testThreadPool,
                                                                BigArrays.NON_RECYCLING_INSTANCE,
                                                                new NoneCircuitBreakerService(),
@@ -158,8 +160,7 @@ public class TcpTransportTest extends ESTestCase {
                 }
 
                 @Override
-                protected TcpChannel initiateChannel(DiscoveryNode node,
-                                                     ActionListener<Void> connectListener) {
+                protected TcpChannel initiateChannel(DiscoveryNode node) {
                     throw new UnsupportedOperationException();
                 }
 
