@@ -38,7 +38,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nullable;
-import java.util.Set;
 
 
 @Singleton
@@ -98,15 +97,11 @@ public class SQLOperations {
     }
 
     public Session createSession(@Nullable String defaultSchema, User user) {
-        return createSession(defaultSchema, user, Option.NONE);
-    }
-
-    public Session createSession(@Nullable String defaultSchema, User user, Set<Option> options) {
         SessionContext sessionContext;
         if (defaultSchema == null) {
-            sessionContext = new SessionContext(options, user);
+            sessionContext = new SessionContext(user);
         } else {
-            sessionContext = new SessionContext(options, user, defaultSchema);
+            sessionContext = new SessionContext(user, defaultSchema);
         }
 
         return createSession(sessionContext);

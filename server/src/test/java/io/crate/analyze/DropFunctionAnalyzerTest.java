@@ -26,7 +26,6 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.user.User;
 import io.crate.sql.parser.SqlParser;
@@ -66,7 +65,7 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropFunctionWithSessionSetSchema() throws Exception {
         AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.analyze(
             SqlParser.createStatement("DROP FUNCTION bar(long, object)"),
-            new SessionContext(Option.NONE, User.CRATE_USER, "my_schema"),
+            new SessionContext(User.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_schema"));
@@ -77,7 +76,7 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
         AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.analyze(
             SqlParser.createStatement("DROP FUNCTION my_other_schema.bar(long, object)"),
-            new SessionContext(Option.NONE, User.CRATE_USER, "my_schema"),
+            new SessionContext(User.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_other_schema"));

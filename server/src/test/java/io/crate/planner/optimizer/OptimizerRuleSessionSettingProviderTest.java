@@ -22,7 +22,6 @@
 
 package io.crate.planner.optimizer;
 
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.user.User;
 import io.crate.expression.symbol.Literal;
@@ -38,8 +37,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
+import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static  io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -70,7 +69,7 @@ public class OptimizerRuleSessionSettingProviderTest {
 
         assertThat(sessionSetting.getValue(mergefilterSettings), is("false"));
 
-        var sessionContext = new SessionContext(Option.NONE, User.of("user"));
+        var sessionContext = new SessionContext(User.of("user"));
 
         // Disable MergeFilters 'SET SESSION optimizer_merge_filters = false'
         sessionSetting.apply(sessionContext, List.of(Literal.of(false)), eval);
