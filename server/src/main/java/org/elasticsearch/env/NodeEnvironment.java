@@ -21,6 +21,7 @@ package org.elasticsearch.env;
 
 import io.crate.common.CheckedFunction;
 import io.crate.common.SuppressForbidden;
+import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
@@ -662,6 +663,11 @@ public final class NodeEnvironment implements Closeable {
                 shardLock.release();
                 logger.trace("released shard lock for [{}]", shardId);
             }
+
+            @Override
+            public void setDetails(String details) {
+                shardLock.setDetails(details);
+            }
         };
     }
 
@@ -693,13 +699,13 @@ public final class NodeEnvironment implements Closeable {
          */
         private final Semaphore mutex = new Semaphore(1);
         private int waitCount = 1; // guarded by shardLocks
-        private String lockDetails;
         private final ShardId shardId;
+        private volatile Tuple<Long, String> lockDetails;
 
         InternalShardLock(final ShardId shardId, final String details) {
             this.shardId = shardId;
             mutex.acquireUninterruptibly();
-            lockDetails = details;
+            lockDetails = Tuple.tuple(System.nanoTime(), details);
         }
 
         protected void release() {
@@ -730,16 +736,22 @@ public final class NodeEnvironment implements Closeable {
         void acquire(long timeoutInMillis, final String details) throws ShardLockObtainFailedException {
             try {
                 if (mutex.tryAcquire(timeoutInMillis, TimeUnit.MILLISECONDS)) {
-                    lockDetails = details;
+                    setDetails(details);
                 } else {
+                    final Tuple<Long, String> lockDetails = this.lockDetails; // single volatile read
                     throw new ShardLockObtainFailedException(shardId,
-                        "obtaining shard lock timed out after " + timeoutInMillis + "ms, previous lock details: [" + lockDetails +
-                            "] trying to lock for [" + details + "]");
+                        "obtaining shard lock for [" + details + "] timed out after [" + timeoutInMillis +
+                        "ms], lock already held for [" + lockDetails.v2() + "] with age [" +
+                        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lockDetails.v1()) + "ms]");
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new ShardLockObtainFailedException(shardId, "thread interrupted while trying to obtain shard lock", e);
             }
+        }
+
+        public void setDetails(String details) {
+            lockDetails = Tuple.tuple(System.nanoTime(), details);
         }
     }
 

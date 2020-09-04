@@ -73,7 +73,7 @@ should be crossed out as well.
 - [ ] 717db9c4ea7 Optimize a few Spots on IO Loop (#60865)
 - [ ] dbd4fd02545 Convert NumberFieldMapper to parametrized form (#61092)
 - [ ] 5457b343438 Correct how field retrieval handles multifields and copy_to. (#61309)
-- [ ] 98213df9462 Report more details of unobtainable ShardLock (#61255)
+- [x] 98213df9462 Report more details of unobtainable ShardLock (#61255)
 - [ ] 3b442743731 Improve 'ignore_malformed' handling for dates (#60211)
 - [ ] 8e8d6f2ca2f Better error msg when CCS request on node without remote role (#60351)
 - [ ] 2ef5902bfb0 Convert KeywordFieldMapper to parametrized form (#60645)
