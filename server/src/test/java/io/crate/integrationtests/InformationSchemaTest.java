@@ -702,7 +702,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select max(ordinal_position) from information_schema.columns");
         assertEquals(1, response.rowCount());
 
-        assertEquals(34, response.rows()[0][0]);
+        assertEquals(119, response.rows()[0][0]);
 
         execute("create table t1 (id integer, col1 string)");
         ensureGreen();
@@ -1238,6 +1238,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "match_option", "unique_constraint_catalog", "unique_constraint_name", "unique_constraint_schema",
                 "update_rule"));
     }
+
     @Test
     public void test_character_maximum_length_information_schema_columns() {
         execute("CREATE TABLE t (col1 varchar, col2 varchar(1)) CLUSTERED INTO 1 SHARDS");
