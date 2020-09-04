@@ -86,7 +86,15 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             }
             childColumnName = aliasToColumnMapping.get(column.getRoot());
             if (childColumnName == null) {
-                return null;
+                // The column ident maybe a quoted subscript which points to an alias of a sub relation.
+                // Aliases are always strings but due to the support for quoted subscript expressions,
+                // the select column ident may already be expanded to a subscript.
+                var maybeQuotedSubscriptColumnAlias = new ColumnIdent(column.sqlFqn());
+                childColumnName = aliasToColumnMapping.get(maybeQuotedSubscriptColumnAlias);
+                if (childColumnName == null) {
+                    return null;
+                }
+                column = maybeQuotedSubscriptColumnAlias;
             } else {
                 childColumnName = new ColumnIdent(childColumnName.name(), column.path());
             }

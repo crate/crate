@@ -44,6 +44,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -55,7 +56,10 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        executor = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .addTable("create table nested_obj (o object as (a object as (b object as (c int))))")
+            .build();
         t1Info = executor.schemas().getTableInfo(new RelationName("doc", "t1"));
     }
 
@@ -275,5 +279,22 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation queriedTable =
             (QueriedSelectRelation) ((AliasedAnalyzedRelation) relation.from().get(0)).relation();
         assertThat(((DocTableRelation) queriedTable.from().get(0)).tableInfo(), is(t1Info));
+    }
+
+    @Test
+    public void test_quoted_subscript_as_alias_on_sub_select() {
+        QueriedSelectRelation relation = analyze(
+            "select \"foo['bar']['me']\" from (" +
+            "select \"o['a']\" AS \"foo['bar']['me']\" from nested_obj" +
+            ") nobj");
+        assertThat(relation.outputs(), contains(
+            isField("foo['bar']['me']")
+        ));
+
+        QueriedSelectRelation queriedTable =
+            (QueriedSelectRelation) ((AliasedAnalyzedRelation) relation.from().get(0)).relation();
+        assertThat(queriedTable.outputs(), contains(
+            isAlias("foo['bar']['me']", isReference("o['a']"))
+        ));
     }
 }
