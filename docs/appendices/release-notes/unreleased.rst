@@ -56,6 +56,9 @@ Breaking Changes
 Changes
 =======
 
+- Added detailed information to possible errors on ``repository`` creation to
+  give better insights on the root cause of the error.
+
 - Added scalar function :ref:`pg_get_function_result <pg_get_function_result>`.
 
 - Added full support for quoted subscript expressions like ``"myObj['x']"``.
