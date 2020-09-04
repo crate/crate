@@ -26,7 +26,6 @@ import com.sun.net.httpserver.HttpServer;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +35,10 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.is;
 
 public class AzureSnapshotIntegrationTest extends SQLTransportIntegrationTest {
@@ -96,6 +99,18 @@ public class AzureSnapshotIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("DROP SNAPSHOT r1.s1");
         handler.blobs().keySet().forEach(x -> assertThat(x.endsWith("dat"), is(false)));
+    }
+
+    @Test
+    public void test_invalid_settings_to_create_azure_repository() throws Throwable {
+        assertThrows(() -> execute(
+            "CREATE REPOSITORY r1 TYPE AZURE WITH (container = 'invalid', " +
+            "account = 'devstoreaccount1', " +
+            "key = 'ZGV2c3RvcmVhY2NvdW50MQ=='," +
+            "endpoint_suffix = 'ignored;DefaultEndpointsProtocol=http;BlobEndpoint')"),
+                     isSQLError(is("[r1] Unable to verify the repository, [r1] is not accessible on master node: " +
+                                   "IllegalArgumentException 'Invalid connection string.'"),
+                                INTERNAL_ERROR, INTERNAL_SERVER_ERROR, 5000));
     }
 
     private String httpServerUrl() {

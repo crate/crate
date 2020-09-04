@@ -106,6 +106,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -790,8 +791,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 }
                 return seed;
             }
-        } catch (IOException exp) {
-            throw new RepositoryVerificationException(metadata.name(), "path " + basePath() + " is not accessible on master node", exp);
+        } catch (Exception e) {
+            throw new RepositoryVerificationException(metadata.name(),
+                        String.format(Locale.ENGLISH,
+                                      "Unable to verify the repository, [%s] is not accessible on master node: %s '%s'",
+                                      metadata.name(),
+                                      e.getCause().getClass().getSimpleName(),
+                                      e.getCause().getMessage()));
         }
     }
 
