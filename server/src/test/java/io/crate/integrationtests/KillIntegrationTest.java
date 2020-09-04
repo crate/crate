@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.TaskMissing;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.plugin.CrateTestingPlugin;
 import org.elasticsearch.action.ActionFuture;
@@ -38,6 +39,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -95,12 +97,13 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 future.get(10, TimeUnit.SECONDS);
             } catch (Throwable exception) {
                 exception = SQLExceptions.unwrap(exception); // wrapped in ExecutionException
-                assertThat(exception, instanceOf(JobKilledException.class));
-                assertThat(exception.toString(), anyOf(
-                    containsString("Job killed"), // CancellationException
-                    containsString("RootTask for job"), // TaskMissing when root task not found
-                    containsString("Task for job") // TaskMissing when task not found
-                ));
+                assertThat(exception,
+                           anyOf(instanceOf(JobKilledException.class),
+                                 instanceOf(InterruptedException.class),
+                                 instanceOf(CancellationException.class),
+                                 instanceOf(TaskMissing.class)
+                                )
+                );
             }
         } finally {
             waitUntilThreadPoolTasksFinished(ThreadPool.Names.SEARCH);
