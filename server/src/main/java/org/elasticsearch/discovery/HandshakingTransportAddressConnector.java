@@ -19,28 +19,31 @@
 
 package org.elasticsearch.discovery;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
+import org.elasticsearch.action.NotifyOnceListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
-import io.crate.common.io.IOUtils;
 import org.elasticsearch.discovery.PeerFinder.TransportAddressConnector;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ConnectionProfile;
+import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportRequestOptions.Type;
 import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.transport.Transport.Connection;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class HandshakingTransportAddressConnector implements TransportAddressConnector {
 
@@ -70,7 +73,7 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
         transportService.getThreadPool().generic().execute(new ActionRunnable<>(listener) {
 
             @Override
-            protected void doRun() throws Exception {
+            protected void doRun() {
 
                 // TODO if transportService is already connected to this address then skip the handshaking
 
@@ -80,33 +83,77 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                     emptySet(), Version.CURRENT.minimumCompatibilityVersion());
 
                 LOGGER.trace("[{}] opening probe connection", this);
-                final Connection connection = transportService.openConnection(targetNode,
-                    ConnectionProfile.buildSingleChannelProfile(Type.REG, probeConnectTimeout, probeHandshakeTimeout,
-                        TimeValue.MINUS_ONE, null));
-                LOGGER.trace("[{}] opened probe connection", this);
+                transportService.openConnection(
+                    targetNode,
+                    ConnectionProfile.buildSingleChannelProfile(
+                        Type.REG,
+                        probeConnectTimeout,
+                        probeHandshakeTimeout,
+                        TimeValue.MINUS_ONE,
+                        null
+                    ),
+                    new ActionListener<>() {
 
-                DiscoveryNode remoteNode = null;
-                try {
-                    remoteNode = transportService.handshake(connection, probeHandshakeTimeout.millis());
-                    // success means (amongst other things) that the cluster names match
-                    LOGGER.trace("[{}] handshake successful: {}", this, remoteNode);
-                } catch (Exception e) {
-                    LOGGER.error("[" + this + "] error on handshake", e);
-                } finally {
-                    IOUtils.closeWhileHandlingException(connection);
-                }
+                        @Override
+                        public void onResponse(Connection connection) {
+                            LOGGER.trace("[{}] opened probe connection", this);
 
-                if (remoteNode.equals(transportService.getLocalNode())) {
-                    // TODO cache this result for some time? forever?
-                    listener.onFailure(new ConnectTransportException(remoteNode, "local node found"));
-                } else if (remoteNode.isMasterNode() == false) {
-                    // TODO cache this result for some time?
-                    listener.onFailure(new ConnectTransportException(remoteNode, "non-master-eligible node found"));
-                } else {
-                    transportService.connectToNode(remoteNode);
-                    LOGGER.trace("[{}] full connection successful: {}", this, remoteNode);
-                    listener.onResponse(remoteNode);
-                }
+                            // use NotifyOnceListener to make sure the following line does not result in onFailure being called when
+                            // the connection is closed in the onResponse handler
+                            transportService.handshake(connection, probeHandshakeTimeout.millis(), new NotifyOnceListener<DiscoveryNode>() {
+
+                                @Override
+                                protected void innerOnResponse(DiscoveryNode remoteNode) {
+                                    try {
+                                        // success means (amongst other things) that the cluster names match
+                                        LOGGER.trace("[{}] handshake successful: {}", this, remoteNode);
+                                        IOUtils.closeWhileHandlingException(connection);
+
+                                        if (remoteNode.equals(transportService.getLocalNode())) {
+                                            // TODO cache this result for some time? forever?
+                                            listener.onFailure(new ConnectTransportException(remoteNode, "local node found"));
+                                        } else if (remoteNode.isMasterNode() == false) {
+                                            // TODO cache this result for some time?
+                                            listener.onFailure(new ConnectTransportException(remoteNode, "non-master-eligible node found"));
+                                        } else {
+                                            transportService.connectToNode(remoteNode, new ActionListener<Void>() {
+                                                @Override
+                                                public void onResponse(Void ignored) {
+                                                    LOGGER.trace("[{}] full connection successful: {}", this, remoteNode);
+                                                    listener.onResponse(remoteNode);
+                                                }
+
+                                                @Override
+                                                public void onFailure(Exception e) {
+                                                    listener.onFailure(e);
+                                                }
+                                            });
+                                        }
+                                    } catch (Exception e) {
+                                        listener.onFailure(e);
+                                    }
+                                }
+
+                                @Override
+                                protected void innerOnFailure(Exception e) {
+                                    // we opened a connection and successfully performed a low-level handshake, so we were definitely
+                                    // talking to an Elasticsearch node, but the high-level handshake failed indicating some kind of
+                                    // mismatched configurations (e.g. cluster name) that the user should address
+                                    LOGGER.warn(new ParameterizedMessage("handshake failed for [{}]", this), e);
+                                    IOUtils.closeWhileHandlingException(connection);
+                                    listener.onFailure(e);
+                                }
+
+                            });
+
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            listener.onFailure(e);
+                        }
+                    }
+                );
             }
 
             @Override
