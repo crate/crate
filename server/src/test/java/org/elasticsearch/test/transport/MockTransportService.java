@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
@@ -254,8 +255,9 @@ public final class MockTransportService extends TransportService {
      * is added to fail as well.
      */
     public void addFailToSendNoConnectRule(TransportAddress transportAddress) {
-        transport().addConnectBehavior(transportAddress, (transport, discoveryNode, profile) -> {
-            throw new ConnectTransportException(discoveryNode, "DISCONNECT: simulated");
+        transport().addConnectBehavior(transportAddress, (transport, discoveryNode, profile, listener) -> {
+            listener.onFailure(new ConnectTransportException(discoveryNode, "DISCONNECT: simulated"));
+            return () -> {};
         });
 
         transport().addSendBehavior(transportAddress, (connection, requestId, action, request, options) -> {
@@ -316,8 +318,9 @@ public final class MockTransportService extends TransportService {
      * and failing to connect once the rule was added.
      */
     public void addUnresponsiveRule(TransportAddress transportAddress) {
-        transport().addConnectBehavior(transportAddress, (transport, discoveryNode, profile) -> {
-            throw new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated");
+        transport().addConnectBehavior(transportAddress, (transport, discoveryNode, profile, listener) -> {
+            listener.onFailure(new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated"));
+            return () -> {};
         });
 
         transport().addSendBehavior(
@@ -376,12 +379,13 @@ public final class MockTransportService extends TransportService {
             private CountDownLatch stopLatch = new CountDownLatch(1);
 
             @Override
-            public Transport.Connection openConnection(Transport transport,
+            public Releasable openConnection(Transport transport,
                                                        DiscoveryNode discoveryNode,
-                                                       ConnectionProfile profile) {
+                                                       ConnectionProfile profile,
+                                                       ActionListener<Transport.Connection> listener) {
                 TimeValue delay = delaySupplier.get();
                 if (delay.millis() <= 0) {
-                    return original.openConnection(discoveryNode, profile);
+                    return original.openConnection(discoveryNode, profile, listener);
                 }
 
                 // TODO: Replace with proper setting
@@ -389,14 +393,15 @@ public final class MockTransportService extends TransportService {
                 try {
                     if (delay.millis() < connectingTimeout.millis()) {
                         stopLatch.await(delay.millis(), TimeUnit.MILLISECONDS);
-                        return original.openConnection(discoveryNode, profile);
+                        return original.openConnection(discoveryNode, profile, listener);
                     } else {
                         stopLatch.await(connectingTimeout.millis(), TimeUnit.MILLISECONDS);
-                        throw new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated");
+                        listener.onFailure(new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated"));
+                        return () -> {};
                     }
-                } catch (
-                    InterruptedException e) {
-                    throw new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated");
+                } catch (InterruptedException e) {
+                    listener.onFailure(new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated"));
+                    return () -> {};
                 }
             }
 

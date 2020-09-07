@@ -19,6 +19,7 @@
 
 package org.elasticsearch.test.transport;
 
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Randomness;
@@ -29,6 +30,7 @@ import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
@@ -79,10 +81,14 @@ public class MockTransport implements Transport, LifecycleComponent {
                                                    TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                                                    @Nullable ClusterSettings clusterSettings) {
-        StubbableConnectionManager connectionManager = new StubbableConnectionManager(new ConnectionManager(settings, this, threadPool),
-            settings, this, threadPool);
+        StubbableConnectionManager connectionManager = new StubbableConnectionManager(
+            new ConnectionManager(settings, this, threadPool),
+            settings,
+            this,
+            threadPool
+        );
         connectionManager.setDefaultNodeConnectedBehavior((cm, discoveryNode) -> nodeConnected(discoveryNode));
-        connectionManager.setDefaultGetConnectionBehavior((cm, discoveryNode) -> openConnection(discoveryNode, null));
+        connectionManager.setDefaultGetConnectionBehavior((cm, discoveryNode) -> createConnection(discoveryNode));
         return new TransportService(
             settings,
             this,
@@ -169,9 +175,25 @@ public class MockTransport implements Transport, LifecycleComponent {
         }
     }
 
-    @Override
-    public Connection openConnection(DiscoveryNode node, ConnectionProfile profile) {
+    public Connection createConnection(DiscoveryNode node) {
         return new CloseableConnection() {
+            @Override
+            public DiscoveryNode getNode() {
+                return node;
+            }
+
+            @Override
+            public void sendRequest(long requestId, String action, TransportRequest request, TransportRequestOptions options)
+                throws TransportException {
+                requests.put(requestId, Tuple.tuple(node, action));
+                onSendRequest(requestId, action, request, node);
+            }
+        };
+    }
+
+    @Override
+    public Releasable openConnection(DiscoveryNode node, ConnectionProfile profile, ActionListener<Connection> connectionListener) {
+        connectionListener.onResponse(new CloseableConnection() {
             @Override
             public DiscoveryNode getNode() {
                 return node;
@@ -188,7 +210,8 @@ public class MockTransport implements Transport, LifecycleComponent {
             public String toString() {
                 return "MockTransportConnection{node=" + node + ", requests=" + requests + '}';
             }
-        };
+        });
+        return () -> {};
     }
 
     protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
