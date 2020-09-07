@@ -49,7 +49,6 @@ final class OutboundHandler {
     private final MeanMetric transmittedBytesMetric = new MeanMetric();
     private final String nodeName;
     private final Version version;
-    private final String[] features;
     private final ThreadPool threadPool;
     private final BigArrays bigArrays;
 
@@ -57,12 +56,10 @@ final class OutboundHandler {
 
     OutboundHandler(String nodeName,
                     Version version,
-                    String[] features,
                     ThreadPool threadPool,
                     BigArrays bigArrays) {
         this.nodeName = nodeName;
         this.version = version;
-        this.features = features;
         this.threadPool = threadPool;
         this.bigArrays = bigArrays;
     }
@@ -92,7 +89,6 @@ final class OutboundHandler {
                      final boolean isHandshake) throws IOException, TransportException {
         Version version = Version.min(this.version, channelVersion);
         OutboundMessage.Request message = new OutboundMessage.Request(
-            features,
             request,
             version,
             action,
@@ -112,7 +108,6 @@ final class OutboundHandler {
      * @see #sendErrorResponse(Version, Set, TcpChannel, long, String, Exception) for sending error responses
      */
     void sendResponse(final Version nodeVersion,
-                      final Set<String> features,
                       final TcpChannel channel,
                       final long requestId,
                       final String action,
@@ -121,7 +116,6 @@ final class OutboundHandler {
                       final boolean isHandshake) throws IOException {
         Version version = Version.min(this.version, nodeVersion);
         OutboundMessage.Response message = new OutboundMessage.Response(
-            features,
             response,
             version,
             requestId,
@@ -139,7 +133,6 @@ final class OutboundHandler {
      * Sends back an error response to the caller via the given channel
      */
     void sendErrorResponse(final Version nodeVersion,
-                           final Set<String> features,
                            final TcpChannel channel,
                            final long requestId,
                            final String action,
@@ -148,7 +141,6 @@ final class OutboundHandler {
         TransportAddress address = new TransportAddress(channel.getLocalAddress());
         RemoteTransportException tx = new RemoteTransportException(nodeName, address, action, error);
         OutboundMessage.Response message = new OutboundMessage.Response(
-            features,
             tx,
             version,
             requestId,

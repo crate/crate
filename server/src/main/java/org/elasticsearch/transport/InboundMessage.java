@@ -21,10 +21,6 @@ package org.elasticsearch.transport;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -99,9 +95,12 @@ public abstract class InboundMessage extends NetworkMessage implements Closeable
 
                 InboundMessage message;
                 if (TransportStatus.isRequest(status)) {
-                    Set<String> features = Collections.unmodifiableSet(new TreeSet<>(Arrays.asList(streamInput.readStringArray())));
+                    if (remoteVersion.before(Version.V_4_3_0)) {
+                        // discard features
+                        streamInput.readStringArray();
+                    }
                     String action = streamInput.readString();
-                    message = new Request(remoteVersion, status, requestId, action, features, streamInput);
+                    message = new Request(remoteVersion, status, requestId, action, streamInput);
                 } else {
                     message = new Response(remoteVersion, status, requestId, streamInput);
                 }
@@ -136,25 +135,18 @@ public abstract class InboundMessage extends NetworkMessage implements Closeable
     public static class Request extends InboundMessage {
 
         private final String actionName;
-        private final Set<String> features;
 
         Request(Version version,
                        byte status,
                        long requestId,
                        String actionName,
-                       Set<String> features,
                        StreamInput streamInput) {
             super(version, status, requestId, streamInput);
             this.actionName = actionName;
-            this.features = features;
         }
 
         String getActionName() {
             return actionName;
-        }
-
-        Set<String> getFeatures() {
-            return features;
         }
     }
 

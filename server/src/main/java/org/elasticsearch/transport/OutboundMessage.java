@@ -20,6 +20,7 @@
 package org.elasticsearch.transport;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.CompositeBytesReference;
@@ -85,24 +86,23 @@ abstract class OutboundMessage extends NetworkMessage implements Writeable {
 
     static class Request extends OutboundMessage {
 
-        private final String[] features;
         private final String action;
 
-        Request(String[] features,
-                Writeable message,
+        Request(Writeable message,
                 Version version,
                 String action,
                 long requestId,
                 boolean isHandshake,
                 boolean compress) {
             super(version, setStatus(compress, isHandshake, message), requestId, message);
-            this.features = features;
             this.action = action;
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeStringArray(features);
+            if (version.before(Version.V_4_3_0)) {
+                out.writeStringArray(Strings.EMPTY_ARRAY);
+            }
             out.writeString(action);
         }
 
@@ -122,21 +122,19 @@ abstract class OutboundMessage extends NetworkMessage implements Writeable {
 
     static class Response extends OutboundMessage {
 
-        private final Set<String> features;
-
-        Response(Set<String> features,
-                 Writeable message,
+        Response(Writeable message,
                  Version version,
                  long requestId,
                  boolean isHandshake,
                  boolean compress) {
             super(version, setStatus(compress, isHandshake, message), requestId, message);
-            this.features = features;
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.setFeatures(features);
+            if (version.before(Version.V_4_3_0)) {
+                out.setFeatures(Set.of());
+            }
         }
 
         private static byte setStatus(boolean compress, boolean isHandshake, Writeable message) {

@@ -21,7 +21,6 @@ package org.elasticsearch.transport;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -91,7 +90,7 @@ final class TransportHandshaker {
         }
     }
 
-    void handleHandshake(Version version, Set<String> features, TcpChannel channel, long requestId, StreamInput stream) throws IOException {
+    void handleHandshake(Version version, TcpChannel channel, long requestId, StreamInput stream) throws IOException {
         // Must read the handshake request to exhaust the stream
         HandshakeRequest handshakeRequest = new HandshakeRequest(stream);
         final int nextByte = stream.read();
@@ -100,7 +99,7 @@ final class TransportHandshaker {
                 + TransportHandshaker.HANDSHAKE_ACTION_NAME + "], available [" + stream.available() + "]; resetting");
         }
         HandshakeResponse response = new HandshakeResponse(this.version);
-        handshakeResponseSender.sendResponse(version, features, channel, response, requestId);
+        handshakeResponseSender.sendResponse(version, channel, response, requestId);
     }
 
     TransportResponseHandler<HandshakeResponse> removeHandlerForHandshake(long requestId) {
@@ -235,7 +234,8 @@ final class TransportHandshaker {
     @FunctionalInterface
     interface HandshakeResponseSender {
 
-        void sendResponse(Version version, Set<String> features, TcpChannel channel, TransportResponse response, long requestId)
-            throws IOException;
+        void sendResponse(Version version, TcpChannel channel, TransportResponse response, long requestId) throws IOException;
+
     }
+
 }

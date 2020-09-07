@@ -18,6 +18,9 @@
  */
 package org.elasticsearch.transport;
 
+import java.io.IOException;
+import java.util.Collections;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -25,13 +28,7 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.VersionUtils;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 
 public class InboundMessageTests extends ESTestCase {
 
@@ -39,7 +36,6 @@ public class InboundMessageTests extends ESTestCase {
 
     @Test
     public void testReadRequest() throws IOException {
-        String[] features = {"feature1", "feature2"};
         String value = randomAlphaOfLength(10);
         Message message = new Message(value);
         String action = randomAlphaOfLength(10);
@@ -47,7 +43,7 @@ public class InboundMessageTests extends ESTestCase {
         boolean isHandshake = randomBoolean();
         boolean compress = randomBoolean();
         Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());
-        OutboundMessage.Request request = new OutboundMessage.Request(features, message, version, action, requestId,
+        OutboundMessage.Request request = new OutboundMessage.Request(message, version, action, requestId,
             isHandshake, compress);
         BytesReference reference;
         try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
@@ -62,7 +58,6 @@ public class InboundMessageTests extends ESTestCase {
         assertEquals(compress, inboundMessage.isCompress());
         assertEquals(version, inboundMessage.getVersion());
         assertEquals(action, inboundMessage.getActionName());
-        assertEquals(new HashSet<>(Arrays.asList(features)), inboundMessage.getFeatures());
         assertTrue(inboundMessage.isRequest());
         assertFalse(inboundMessage.isResponse());
         assertFalse(inboundMessage.isError());
@@ -71,7 +66,6 @@ public class InboundMessageTests extends ESTestCase {
 
     @Test
     public void testReadResponse() throws IOException {
-        HashSet<String> features = new HashSet<>(Arrays.asList("feature1", "feature2"));
         String value = randomAlphaOfLength(10);
         Message message = new Message(value);
         long requestId = randomLong();
@@ -79,7 +73,7 @@ public class InboundMessageTests extends ESTestCase {
         boolean compress = randomBoolean();
         Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());
         OutboundMessage.Response request = new OutboundMessage.Response(
-            features, message, version, requestId, isHandshake, compress);
+             message, version, requestId, isHandshake, compress);
         BytesReference reference;
         try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
             reference = request.serialize(streamOutput);
@@ -99,14 +93,13 @@ public class InboundMessageTests extends ESTestCase {
 
     @Test
     public void testReadErrorResponse() throws IOException {
-        HashSet<String> features = new HashSet<>(Arrays.asList("feature1", "feature2"));
         RemoteTransportException exception = new RemoteTransportException("error", new IOException());
         long requestId = randomLong();
         boolean isHandshake = randomBoolean();
         boolean compress = randomBoolean();
         Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());
         OutboundMessage.Response request = new OutboundMessage.Response(
-            features, exception, version, requestId, isHandshake, compress);
+            exception, version, requestId, isHandshake, compress);
         BytesReference reference;
         try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
             reference = request.serialize(streamOutput);
@@ -122,25 +115,6 @@ public class InboundMessageTests extends ESTestCase {
         assertFalse(inboundMessage.isRequest());
         assertTrue(inboundMessage.isError());
         assertEquals("[error]", inboundMessage.getStreamInput().readException().getMessage());
-    }
-
-
-    private void testVersionIncompatibility(Version version, Version currentVersion, boolean isHandshake) throws IOException {
-        String[] features = {};
-        String value = randomAlphaOfLength(10);
-        Message message = new Message(value);
-        String action = randomAlphaOfLength(10);
-        long requestId = randomLong();
-        boolean compress = randomBoolean();
-        OutboundMessage.Request request = new OutboundMessage.Request(features, message, version, action, requestId, isHandshake, compress);
-        BytesReference reference;
-        try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
-            reference = request.serialize(streamOutput);
-        }
-
-        BytesReference sliced = reference.slice(6, reference.length() - 6);
-        InboundMessage.Reader reader = new InboundMessage.Reader(currentVersion, registry);
-        reader.deserialize(sliced);
     }
 
     private static final class Message extends TransportMessage {

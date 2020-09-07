@@ -42,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -91,7 +90,6 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.Booleans;
 import io.crate.common.unit.TimeValue;
 
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {
@@ -147,20 +145,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         this.networkService = networkService;
 
         String nodeName = Node.NODE_NAME_SETTING.get(settings);
-        final Settings defaultFeatures = DEFAULT_FEATURES_SETTING.get(settings);
-        String[] features;
-        if (defaultFeatures == null) {
-            features = new String[0];
-        } else {
-            defaultFeatures.names().forEach(key -> {
-                if (Booleans.parseBoolean(defaultFeatures.get(key)) == false) {
-                    throw new IllegalArgumentException("feature settings must have default [true] value");
-                }
-            });
-            // use a sorted set to present the features in a consistent order
-            features = new TreeSet<>(defaultFeatures.names()).toArray(new String[defaultFeatures.names().size()]);
-        }
-        this.outboundHandler = new OutboundHandler(nodeName, version, features, threadPool, bigArrays);
+        this.outboundHandler = new OutboundHandler(nodeName, version, threadPool, bigArrays);
         this.handshaker = new TransportHandshaker(
             version,
             threadPool,
@@ -175,9 +160,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                 false,
                 true
             ),
-            (v, features1, channel, response, requestId) -> outboundHandler.sendResponse(
+            (v, channel, response, requestId) -> outboundHandler.sendResponse(
                 v,
-                features1,
                 channel,
                 requestId,
                 TransportHandshaker.HANDSHAKE_ACTION_NAME,
