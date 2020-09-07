@@ -59,13 +59,6 @@ public class TransportRequestOptions {
         return new Builder();
     }
 
-    public static Builder builder(TransportRequestOptions options) {
-        return new Builder()
-                .withTimeout(options.timeout)
-                .withCompress(options.compress)
-                .withType(options.type());
-    }
-
     public static class Builder {
         private TimeValue timeout;
         private boolean compress;
