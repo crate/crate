@@ -20,8 +20,11 @@ package org.elasticsearch.test.disruption;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import javax.annotation.Nullable;
+
+import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
@@ -87,10 +90,16 @@ public abstract class DisruptableMockTransport extends MockTransport {
     }
 
     @Override
-    public Connection openConnection(DiscoveryNode node, ConnectionProfile profile) {
-        final Optional<DisruptableMockTransport> matchingTransport = getDisruptableMockTransport(node.getAddress());
-        if (matchingTransport.isPresent()) {
-            return new CloseableConnection() {
+    public Releasable openConnection(DiscoveryNode node, ConnectionProfile profile, ActionListener<Connection> listener) {
+        final Optional<DisruptableMockTransport> optionalMatchingTransport = getDisruptableMockTransport(node.getAddress());
+        if (optionalMatchingTransport.isPresent()) {
+            final DisruptableMockTransport matchingTransport = optionalMatchingTransport.get();
+            final ConnectionStatus connectionStatus = getConnectionStatus(matchingTransport.getLocalNode());
+            if (connectionStatus != ConnectionStatus.CONNECTED) {
+                throw new ConnectTransportException(node, "node [" + node + "] is [" + connectionStatus + "] not [CONNECTED]");
+            }
+
+            listener.onResponse(new CloseableConnection() {
                 @Override
                 public DiscoveryNode getNode() {
                     return node;
@@ -99,16 +108,12 @@ public abstract class DisruptableMockTransport extends MockTransport {
                 @Override
                 public void sendRequest(long requestId, String action, TransportRequest request, TransportRequestOptions options)
                     throws TransportException {
-                    onSendRequest(requestId, action, request, matchingTransport.get());
+                    onSendRequest(requestId, action, request, matchingTransport);
                 }
-
-                @Override
-                public String toString() {
-                    return "DisruptableMockTransportConnection{node=" + node + '}';
-                }
-            };
+            });
+            return () -> {};
         } else {
-            throw new ConnectTransportException(node, "node " + node + " does not exist");
+            throw new ConnectTransportException(node, "node [" + node + "] does not exist");
         }
     }
 
