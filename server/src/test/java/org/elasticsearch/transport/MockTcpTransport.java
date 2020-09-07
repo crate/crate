@@ -91,6 +91,7 @@ public class MockTcpTransport extends TcpTransport {
     }
 
     private final ExecutorService executor;
+    private final BigArrays bigArrays;
 
     public MockTcpTransport(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
                             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
@@ -109,6 +110,7 @@ public class MockTcpTransport extends TcpTransport {
               circuitBreakerService,
               namedWriteableRegistry,
               networkService);
+        this.bigArrays = bigArrays;
         // we have our own crazy cached threadpool this one is not bounded at all...
         // using the ES thread factory here is crucial for tests otherwise disruption tests won't block that thread
         executor = Executors.newCachedThreadPool(EsExecutors.daemonThreadFactory(settings,
