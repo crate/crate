@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.metrics.CounterMetric;
@@ -39,7 +42,7 @@ import io.crate.common.unit.TimeValue;
  * Sends and receives transport-level connection handshakes. This class will send the initial handshake,
  * manage state/timeouts while the handshake is in transit, and handle the eventual response.
  */
-final class TcpTransportHandshaker {
+final class TransportHandshaker {
 
     static final String HANDSHAKE_ACTION_NAME = "internal:tcp/handshake";
     private final ConcurrentMap<Long, HandshakeResponseHandler> pendingHandshakes = new ConcurrentHashMap<>();
@@ -50,8 +53,8 @@ final class TcpTransportHandshaker {
     private final HandshakeRequestSender handshakeRequestSender;
     private final HandshakeResponseSender handshakeResponseSender;
 
-    TcpTransportHandshaker(Version version, ThreadPool threadPool, HandshakeRequestSender handshakeRequestSender,
-                           HandshakeResponseSender handshakeResponseSender) {
+    TransportHandshaker(Version version, ThreadPool threadPool, HandshakeRequestSender handshakeRequestSender,
+                        HandshakeResponseSender handshakeResponseSender) {
         this.version = version;
         this.threadPool = threadPool;
         this.handshakeRequestSender = handshakeRequestSender;
@@ -88,11 +91,19 @@ final class TcpTransportHandshaker {
         }
     }
 
-    void handleHandshake(Version version, Set<String> features, TcpChannel channel, long requestId) throws IOException {
-        handshakeResponseSender.sendResponse(version, features, channel, new VersionHandshakeResponse(this.version), requestId);
+    void handleHandshake(Version version, Set<String> features, TcpChannel channel, long requestId, StreamInput stream) throws IOException {
+        // Must read the handshake request to exhaust the stream
+        HandshakeRequest handshakeRequest = new HandshakeRequest(stream);
+        final int nextByte = stream.read();
+        if (nextByte != -1) {
+            throw new IllegalStateException("Handshake request not fully read for requestId [" + requestId + "], action ["
+                + TransportHandshaker.HANDSHAKE_ACTION_NAME + "], available [" + stream.available() + "]; resetting");
+        }
+        HandshakeResponse response = new HandshakeResponse(this.version);
+        handshakeResponseSender.sendResponse(version, features, channel, response, requestId);
     }
 
-    TransportResponseHandler<VersionHandshakeResponse> removeHandlerForHandshake(long requestId) {
+    TransportResponseHandler<HandshakeResponse> removeHandlerForHandshake(long requestId) {
         return pendingHandshakes.remove(requestId);
     }
 
@@ -104,7 +115,7 @@ final class TcpTransportHandshaker {
         return numHandshakes.count();
     }
 
-    private class HandshakeResponseHandler implements TransportResponseHandler<VersionHandshakeResponse> {
+    private class HandshakeResponseHandler implements TransportResponseHandler<HandshakeResponse> {
 
         private final long requestId;
         private final Version currentVersion;
@@ -118,14 +129,14 @@ final class TcpTransportHandshaker {
         }
 
         @Override
-        public VersionHandshakeResponse read(StreamInput in) throws IOException {
-            return new VersionHandshakeResponse(in);
+        public HandshakeResponse read(StreamInput in) throws IOException {
+            return new HandshakeResponse(in);
         }
 
         @Override
-        public void handleResponse(VersionHandshakeResponse response) {
+        public void handleResponse(HandshakeResponse response) {
             if (isDone.compareAndSet(false, true)) {
-                Version version = response.version;
+                Version version = response.responseVersion;
                 if (currentVersion.isCompatible(version) == false) {
                     listener.onFailure(new IllegalStateException("Received message from unsupported version: [" + version
                         + "] minimal compatible version is: [" + currentVersion.minimumCompatibilityVersion() + "]"));
@@ -154,22 +165,64 @@ final class TcpTransportHandshaker {
         }
     }
 
-    static final class VersionHandshakeResponse extends TransportResponse {
+
+    static final class HandshakeRequest extends TransportRequest {
 
         private final Version version;
 
-        VersionHandshakeResponse(Version version) {
+        HandshakeRequest(Version version) {
             this.version = version;
         }
 
-        private VersionHandshakeResponse(StreamInput in) throws IOException {
-            version = Version.readVersion(in);
+        HandshakeRequest(StreamInput streamInput) throws IOException {
+            super(streamInput);
+            BytesReference remainingMessage;
+            try {
+                remainingMessage = streamInput.readBytesReference();
+            } catch (EOFException e) {
+                remainingMessage = null;
+            }
+            if (remainingMessage == null) {
+                version = null;
+            } else {
+                try (StreamInput messageStreamInput = remainingMessage.streamInput()) {
+                    this.version = Version.readVersion(messageStreamInput);
+                }
+            }
+        }
+
+        @Override
+        public void writeTo(StreamOutput streamOutput) throws IOException {
+            super.writeTo(streamOutput);
+            assert version != null;
+            try (BytesStreamOutput messageStreamOutput = new BytesStreamOutput(4)) {
+                Version.writeVersion(version, messageStreamOutput);
+                BytesReference reference = messageStreamOutput.bytes();
+                streamOutput.writeBytesReference(reference);
+            }
+        }
+    }
+
+    static final class HandshakeResponse extends TransportResponse {
+
+        private final Version responseVersion;
+
+        HandshakeResponse(Version version) {
+            this.responseVersion = version;
+        }
+
+        private HandshakeResponse(StreamInput in) throws IOException {
+            responseVersion = Version.readVersion(in);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            assert version != null;
-            Version.writeVersion(version, out);
+            assert responseVersion != null;
+            Version.writeVersion(responseVersion, out);
+        }
+
+        Version getResponseVersion() {
+            return responseVersion;
         }
     }
 

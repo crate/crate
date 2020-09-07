@@ -159,7 +159,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     private final MeanMetric transmittedBytesMetric = new MeanMetric();
     private volatile Map<String, RequestHandlerRegistry> requestHandlers = Collections.emptyMap();
     private final ResponseHandlers responseHandlers = new ResponseHandlers();
-    private final TcpTransportHandshaker handshaker;
+    private final TransportHandshaker handshaker;
     private final TransportKeepAlive keepAlive;
 
     public TcpTransport(String transportName,
@@ -180,14 +180,14 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         this.compress = Transport.TRANSPORT_TCP_COMPRESS.get(settings);
         this.networkService = networkService;
         this.transportName = transportName;
-        this.handshaker = new TcpTransportHandshaker(
+        this.handshaker = new TransportHandshaker(
             version,
             threadPool,
             (node, channel, requestId, v) -> sendRequestToChannel(
                 node,
                 channel,
                 requestId,
-                TcpTransportHandshaker.HANDSHAKE_ACTION_NAME,
+                TransportHandshaker.HANDSHAKE_ACTION_NAME,
                 TransportRequest.Empty.INSTANCE,
                 TransportRequestOptions.EMPTY,
                 v,
@@ -199,7 +199,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                 channel,
                 response,
                 requestId,
-                TcpTransportHandshaker.HANDSHAKE_ACTION_NAME,
+                TransportHandshaker.HANDSHAKE_ACTION_NAME,
                 TransportResponseOptions.EMPTY,
                 TransportStatus.setHandshake((byte) 0)
             )
@@ -1250,7 +1250,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         TransportChannel transportChannel = null;
         try {
             if (TransportStatus.isHandshake(status)) {
-                handshaker.handleHandshake(version, features, channel, requestId);
+                handshaker.handleHandshake(version, features, channel, requestId, stream);
             } else {
                 final RequestHandlerRegistry reg = getRequestHandler(action);
                 if (reg == null) {
