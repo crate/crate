@@ -137,6 +137,7 @@ public class IndicesService extends AbstractLifecycleComponent
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories;
     final AbstractRefCounted indicesRefCount; // pkg-private for testing
+    private final CountDownLatch closeLatch = new CountDownLatch(1);
 
     @Override
     protected void doStart() {
@@ -204,6 +205,8 @@ public class IndicesService extends AbstractLifecycleComponent
                     );
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
+                } finally {
+                    closeLatch.countDown();
                 }
             }
         };
@@ -239,6 +242,18 @@ public class IndicesService extends AbstractLifecycleComponent
     @Override
     protected void doClose() {
         indicesRefCount.decRef();
+    }
+
+    /**
+     * Wait for this {@link IndicesService} to be effectively closed. When this returns {@code true}, all shards and shard stores
+     * are closed and all shard {@link CacheHelper#addClosedListener(org.apache.lucene.index.IndexReader.ClosedListener) closed
+     * listeners} have run. However some {@link IndexEventListener#onStoreClosed(ShardId) shard closed listeners} might not have
+     * run.
+     * @returns true if all shards closed within the given timeout, false otherwise
+     * @throws InterruptedException if the current thread got interrupted while waiting for shards to close
+     */
+    public boolean awaitClose(long timeout, TimeUnit timeUnit) throws InterruptedException {
+        return closeLatch.await(timeout, timeUnit);
     }
 
     /**
