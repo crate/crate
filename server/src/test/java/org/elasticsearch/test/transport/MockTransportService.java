@@ -626,51 +626,6 @@ public final class MockTransportService extends TransportService {
     }
 
     @Override
-    protected boolean traceEnabled() {
-        return super.traceEnabled() || activeTracers.isEmpty() == false;
-    }
-
-    @Override
-    protected void traceReceivedRequest(long requestId, String action) {
-        super.traceReceivedRequest(requestId, action);
-        for (Tracer tracer : activeTracers) {
-            tracer.receivedRequest(requestId, action);
-        }
-    }
-
-    @Override
-    protected void traceResponseSent(long requestId, String action) {
-        super.traceResponseSent(requestId, action);
-        for (Tracer tracer : activeTracers) {
-            tracer.responseSent(requestId, action);
-        }
-    }
-
-    @Override
-    protected void traceResponseSent(long requestId, String action, Exception e) {
-        super.traceResponseSent(requestId, action, e);
-        for (Tracer tracer : activeTracers) {
-            tracer.responseSent(requestId, action, e);
-        }
-    }
-
-    @Override
-    protected void traceReceivedResponse(long requestId, DiscoveryNode sourceNode, String action) {
-        super.traceReceivedResponse(requestId, sourceNode, action);
-        for (Tracer tracer : activeTracers) {
-            tracer.receivedResponse(requestId, sourceNode, action);
-        }
-    }
-
-    @Override
-    protected void traceRequestSent(DiscoveryNode node, long requestId, String action, TransportRequestOptions options) {
-        super.traceRequestSent(node, requestId, action, options);
-        for (Tracer tracer : activeTracers) {
-            tracer.requestSent(node, requestId, action, options);
-        }
-    }
-
-    @Override
     public Transport.Connection openConnection(DiscoveryNode node, ConnectionProfile profile) throws IOException {
         Transport.Connection connection = super.openConnection(node, profile);
 
