@@ -24,8 +24,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.VersionUtils;
 import org.junit.Test;
@@ -58,7 +56,7 @@ public class InboundMessageTests extends ESTestCase {
 
         InboundMessage.Reader reader = new InboundMessage.Reader(version, registry);
         BytesReference sliced = reference.slice(6, reference.length() - 6);
-        InboundMessage.RequestMessage inboundMessage = (InboundMessage.RequestMessage) reader.deserialize(sliced);
+        InboundMessage.Request inboundMessage = (InboundMessage.Request) reader.deserialize(sliced);
 
         assertEquals(isHandshake, inboundMessage.isHandshake());
         assertEquals(compress, inboundMessage.isCompress());
@@ -89,7 +87,7 @@ public class InboundMessageTests extends ESTestCase {
 
         InboundMessage.Reader reader = new InboundMessage.Reader(version, registry);
         BytesReference sliced = reference.slice(6, reference.length() - 6);
-        InboundMessage.ResponseMessage inboundMessage = (InboundMessage.ResponseMessage) reader.deserialize(sliced);
+        InboundMessage.Response inboundMessage = (InboundMessage.Response) reader.deserialize(sliced);
         assertEquals(isHandshake, inboundMessage.isHandshake());
         assertEquals(compress, inboundMessage.isCompress());
         assertEquals(version, inboundMessage.getVersion());
@@ -116,7 +114,7 @@ public class InboundMessageTests extends ESTestCase {
 
         InboundMessage.Reader reader = new InboundMessage.Reader(version, registry);
         BytesReference sliced = reference.slice(6, reference.length() - 6);
-        InboundMessage.ResponseMessage inboundMessage = (InboundMessage.ResponseMessage) reader.deserialize(sliced);
+        InboundMessage.Response inboundMessage = (InboundMessage.Response) reader.deserialize(sliced);
         assertEquals(isHandshake, inboundMessage.isHandshake());
         assertEquals(compress, inboundMessage.isCompress());
         assertEquals(version, inboundMessage.getVersion());
@@ -125,6 +123,7 @@ public class InboundMessageTests extends ESTestCase {
         assertTrue(inboundMessage.isError());
         assertEquals("[error]", inboundMessage.getStreamInput().readException().getMessage());
     }
+
 
     private void testVersionIncompatibility(Version version, Version currentVersion, boolean isHandshake) throws IOException {
         String[] features = {};

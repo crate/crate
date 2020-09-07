@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.transport;
 
 import org.elasticsearch.action.ActionListener;
@@ -29,6 +30,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class FakeTcpChannel implements TcpChannel {
 
     private final boolean isServer;
+    private final InetSocketAddress localAddress;
+    private final InetSocketAddress remoteAddress;
     private final String profile;
     private final ChannelStats stats = new ChannelStats();
     private final CompletableContext<Void> closeContext = new CompletableContext<>();
@@ -43,13 +46,26 @@ public class FakeTcpChannel implements TcpChannel {
         this(isServer, "profile", new AtomicReference<>());
     }
 
+    public FakeTcpChannel(boolean isServer, InetSocketAddress localAddress, InetSocketAddress remoteAddress) {
+        this(isServer, localAddress, remoteAddress, "profile", new AtomicReference<>());
+    }
+
     public FakeTcpChannel(boolean isServer, AtomicReference<BytesReference> messageCaptor) {
         this(isServer, "profile", messageCaptor);
     }
 
-
     public FakeTcpChannel(boolean isServer, String profile, AtomicReference<BytesReference> messageCaptor) {
+        this(isServer, null, null, profile, messageCaptor);
+    }
+
+    public FakeTcpChannel(boolean isServer,
+                          InetSocketAddress localAddress,
+                          InetSocketAddress remoteAddress,
+                          String profile,
+                          AtomicReference<BytesReference> messageCaptor) {
         this.isServer = isServer;
+        this.localAddress = localAddress;
+        this.remoteAddress = remoteAddress;
         this.profile = profile;
         this.messageCaptor = messageCaptor;
         this.listenerCaptor = new AtomicReference<>();
@@ -67,12 +83,12 @@ public class FakeTcpChannel implements TcpChannel {
 
     @Override
     public InetSocketAddress getLocalAddress() {
-        return null;
+        return localAddress;
     }
 
     @Override
     public InetSocketAddress getRemoteAddress() {
-        return null;
+        return remoteAddress;
     }
 
     @Override

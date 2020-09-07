@@ -101,9 +101,9 @@ public abstract class InboundMessage extends NetworkMessage implements Closeable
                 if (TransportStatus.isRequest(status)) {
                     Set<String> features = Collections.unmodifiableSet(new TreeSet<>(Arrays.asList(streamInput.readStringArray())));
                     String action = streamInput.readString();
-                    message = new RequestMessage(remoteVersion, status, requestId, action, features, streamInput);
+                    message = new Request(remoteVersion, status, requestId, action, features, streamInput);
                 } else {
-                    message = new ResponseMessage(remoteVersion, status, requestId, streamInput);
+                    message = new Response(remoteVersion, status, requestId, streamInput);
                 }
                 success = true;
                 return message;
@@ -133,12 +133,12 @@ public abstract class InboundMessage extends NetworkMessage implements Closeable
         }
     }
 
-    public static class RequestMessage extends InboundMessage {
+    public static class Request extends InboundMessage {
 
         private final String actionName;
         private final Set<String> features;
 
-        RequestMessage(Version version,
+        Request(Version version,
                        byte status,
                        long requestId,
                        String actionName,
@@ -158,9 +158,9 @@ public abstract class InboundMessage extends NetworkMessage implements Closeable
         }
     }
 
-    public static class ResponseMessage extends InboundMessage {
+    public static class Response extends InboundMessage {
 
-        ResponseMessage(Version version, byte status, long requestId, StreamInput streamInput) {
+        Response(Version version, byte status, long requestId, StreamInput streamInput) {
             super(version, status, requestId, streamInput);
         }
     }

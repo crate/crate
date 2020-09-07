@@ -114,17 +114,14 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     public static final Setting<Settings> DEFAULT_FEATURES_SETTING = Setting.groupSetting(FEATURE_PREFIX + ".", Setting.Property.NodeScope);
 
     protected final Logger logger = LogManager.getLogger(getClass());
-    private final String[] features;
 
     private final CircuitBreakerService circuitBreakerService;
-    private final Version version;
     protected final ThreadPool threadPool;
     protected final BigArrays bigArrays;
     protected final NetworkService networkService;
     protected final Set<ProfileSettings> profileSettings;
 
-    private static final TransportMessageListener NOOP_LISTENER = new TransportMessageListener() {};
-    private volatile TransportMessageListener messageListener = NOOP_LISTENER;
+    private volatile TransportMessageListener messageListener = TransportMessageListener.NOOP_LISTENER;
 
     private final ConcurrentMap<String, BoundTransportAddress> profileBoundAddresses = newConcurrentMap();
 
@@ -137,7 +134,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     private final ReadWriteLock closeLock = new ReentrantReadWriteLock();
     protected final boolean compress;
     protected final Settings settings;
-    private final String nodeName;
     private volatile BoundTransportAddress boundAddress;
 
     private final MeanMetric readBytesMetric = new MeanMetric();
@@ -157,43 +153,17 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                         NetworkService networkService) {
         this.settings = settings;
         this.profileSettings = getProfileSettings(settings);
-        this.version = version;
         this.threadPool = threadPool;
         this.bigArrays = bigArrays;
         this.circuitBreakerService = circuitBreakerService;
         this.compress = Transport.TRANSPORT_TCP_COMPRESS.get(settings);
         this.networkService = networkService;
-        this.outboundHandler = new OutboundHandler(threadPool, bigArrays);
-        this.handshaker = new TransportHandshaker(
-            version,
-            threadPool,
-            (node, channel, requestId, v) -> sendRequestToChannel(
-                node,
-                channel,
-                requestId,
-                TransportHandshaker.HANDSHAKE_ACTION_NAME,
-                TransportRequest.Empty.INSTANCE,
-                TransportRequestOptions.EMPTY,
-                v,
-                true
-            ),
-            (v, features, channel, response, requestId) -> sendResponse(
-                v,
-                features,
-                channel,
-                response,
-                requestId,
-                TransportHandshaker.HANDSHAKE_ACTION_NAME,
-                TransportResponseOptions.EMPTY,
-                true
-            )
-        );
-        this.keepAlive = new TransportKeepAlive(threadPool, this.outboundHandler::sendBytes);
-        this.reader = new InboundMessage.Reader(version, namedWriteableRegistry);
-        this.nodeName = Node.NODE_NAME_SETTING.get(settings);
+
+        String nodeName = Node.NODE_NAME_SETTING.get(settings);
         final Settings defaultFeatures = DEFAULT_FEATURES_SETTING.get(settings);
+        String[] features;
         if (defaultFeatures == null) {
-            this.features = new String[0];
+            features = new String[0];
         } else {
             defaultFeatures.names().forEach(key -> {
                 if (Booleans.parseBoolean(defaultFeatures.get(key)) == false) {
@@ -201,8 +171,36 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                 }
             });
             // use a sorted set to present the features in a consistent order
-            this.features = new TreeSet<>(defaultFeatures.names()).toArray(new String[defaultFeatures.names().size()]);
+            features = new TreeSet<>(defaultFeatures.names()).toArray(new String[defaultFeatures.names().size()]);
         }
+        this.outboundHandler = new OutboundHandler(nodeName, version, features, threadPool, bigArrays);
+        this.handshaker = new TransportHandshaker(
+            version,
+            threadPool,
+            (node, channel, requestId, v) -> outboundHandler.sendRequest(
+                node,
+                channel,
+                requestId,
+                TransportHandshaker.HANDSHAKE_ACTION_NAME,
+                new TransportHandshaker.HandshakeRequest(version),
+                TransportRequestOptions.EMPTY,
+                v,
+                false,
+                true
+            ),
+            (v, features1, channel, response, requestId) -> outboundHandler.sendResponse(
+                v,
+                features1,
+                channel,
+                requestId,
+                TransportHandshaker.HANDSHAKE_ACTION_NAME,
+                response,
+                false,
+                true
+            )
+        );
+        this.keepAlive = new TransportKeepAlive(threadPool, this.outboundHandler::sendBytes);
+        this.reader = new InboundMessage.Reader(version, namedWriteableRegistry);
     }
 
     @Override
@@ -211,8 +209,9 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     @Override
     public synchronized void setMessageListener(TransportMessageListener listener) {
-        if (messageListener == NOOP_LISTENER) {
+        if (messageListener == TransportMessageListener.NOOP_LISTENER) {
             messageListener = listener;
+            outboundHandler.setMessageListener(listener);
         } else {
             throw new IllegalStateException("Cannot set message listener twice");
         }
@@ -294,7 +293,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                 throw new NodeNotConnectedException(node, "connection already closed");
             }
             TcpChannel channel = channel(options.type());
-            sendRequestToChannel(this.node, channel, requestId, action, request, options, getVersion());
+            outboundHandler.sendRequest(node, channel, requestId, action, request, options, getVersion(), compress, false);
         }
 
         @Override
@@ -710,115 +709,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
      */
     protected abstract void stopInternal();
 
-    private void sendRequestToChannel(final DiscoveryNode node,
-                                      final TcpChannel channel,
-                                      final long requestId,
-                                      final String action,
-                                      final TransportRequest request,
-                                      TransportRequestOptions options,
-                                      Version channelVersion) throws IOException, TransportException {
-        sendRequestToChannel(node, channel, requestId, action, request, options, channelVersion, false);
-    }
-
-    private void sendRequestToChannel(final DiscoveryNode node,
-                                      final TcpChannel channel,
-                                      final long requestId,
-                                      final String action,
-                                      final TransportRequest request,
-                                      TransportRequestOptions options,
-                                      Version channelVersion,
-                                      boolean isHandshake) throws IOException, TransportException {
-        Version version = Version.min(this.version, channelVersion);
-        OutboundMessage.Request message = new OutboundMessage.Request(
-            features,
-            request,
-            version,
-            action,
-            requestId,
-            isHandshake,
-            compress
-        );
-        TransportRequestOptions finalOptions = compress
-            ? TransportRequestOptions.builder(options).withCompress(true).build()
-            : options;
-        ActionListener<Void> listener = ActionListener.wrap(() ->
-            messageListener.onRequestSent(node, requestId, action, request, finalOptions));
-        outboundHandler.sendMessage(channel, message, listener);
-    }
-
-    /**
-     * Sends back an error response to the caller via the given channel
-     *
-     * @param nodeVersion the caller node version
-     * @param features    the caller features
-     * @param channel     the channel to send the response to
-     * @param error       the error to return
-     * @param requestId   the request ID this response replies to
-     * @param action      the action this response replies to
-     */
-    public void sendErrorResponse(
-            final Version nodeVersion,
-            final Set<String> features,
-            final TcpChannel channel,
-            final Exception error,
-            final long requestId,
-            final String action) throws IOException {
-
-        Version version = Version.min(this.version, nodeVersion);
-        TransportAddress address = new TransportAddress(channel.getLocalAddress());
-        RemoteTransportException tx = new RemoteTransportException(nodeName, address, action, error);
-        OutboundMessage.Response message = new OutboundMessage.Response(
-            features,
-            tx,
-            version,
-            requestId,
-            false,
-            false
-        );
-        ActionListener<Void> listener = ActionListener.wrap(() -> messageListener.onResponseSent(requestId, action, error));
-        outboundHandler.sendMessage(channel, message, listener);
-    }
-
-    /**
-     * Sends the response to the given channel. This method should be used to send {@link TransportResponse} objects back to the caller.
-     *
-     * @see #sendErrorResponse(Version, Set, TcpChannel, Exception, long, String) for sending back errors to the caller
-     */
-    public void sendResponse(
-            final Version nodeVersion,
-            final Set<String> features,
-            final TcpChannel channel,
-            final TransportResponse response,
-            final long requestId,
-            final String action,
-            final TransportResponseOptions options) throws IOException {
-        sendResponse(nodeVersion, features, channel, response, requestId, action, options, false);
-    }
-
-    private void sendResponse(
-            final Version nodeVersion,
-            final Set<String> features,
-            final TcpChannel channel,
-            final TransportResponse response,
-            final long requestId,
-            final String action,
-            TransportResponseOptions options,
-            boolean isHandshake) throws IOException {
-        Version version = Version.min(this.version, nodeVersion);
-        OutboundMessage.Response message = new OutboundMessage.Response(
-            features,
-            response,
-            version,
-            requestId,
-            isHandshake,
-            compress
-        );
-        ActionListener<Void> listener = ActionListener.wrap(
-            () -> messageListener.onResponseSent(requestId, action, response, TransportResponseOptions.EMPTY)
-        );
-        outboundHandler.sendMessage(channel, message, listener);
-    }
-
     /**
      * Handles inbound message that has been decoded.
      *
@@ -983,7 +873,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         readBytesMetric.inc(reference.length() + TcpHeader.MARKER_BYTES_SIZE + TcpHeader.MESSAGE_LENGTH_SIZE);
         try (InboundMessage message = reader.deserialize(reference)) {
             if (message.isRequest()) {
-                handleRequest(channel, (InboundMessage.RequestMessage) message, reference.length());
+                handleRequest(channel, (InboundMessage.Request) message, reference.length());
             } else {
                 final TransportResponseHandler<?> handler;
                 long requestId = message.getRequestId();
@@ -1067,7 +957,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
 
-    protected void handleRequest(TcpChannel channel, InboundMessage.RequestMessage message, int messageLengthBytes) throws IOException {
+    protected void handleRequest(TcpChannel channel, InboundMessage.Request message, int messageLengthBytes) throws IOException {
         final Set<String> features = message.getFeatures();
         final String profileName = channel.getProfile();
         final String action = message.getActionName();
@@ -1090,14 +980,15 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                     getInFlightRequestBreaker().addWithoutBreaking(messageLengthBytes);
                 }
                 transportChannel = new TcpTransportChannel(
-                    this,
+                    outboundHandler,
                     channel,
                     action,
                     requestId,
                     version,
                     features,
-                    profileName,
-                    messageLengthBytes
+                    circuitBreakerService,
+                    messageLengthBytes,
+                    compress
                 );
                 final TransportRequest request = reg.newRequest(stream);
                 // in case we throw an exception, i.e. when the limit is hit, we don't want to verify
@@ -1107,8 +998,17 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         } catch (Exception e) {
             // the circuit breaker tripped
             if (transportChannel == null) {
-                transportChannel =
-                        new TcpTransportChannel(this, channel, action, requestId, version, features, profileName, 0);
+                transportChannel = new TcpTransportChannel(
+                    outboundHandler,
+                    channel,
+                    action,
+                    requestId,
+                    version,
+                    features,
+                    circuitBreakerService,
+                    0L,
+                    compress
+                );
             }
             try {
                 transportChannel.sendResponse(e);
