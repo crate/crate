@@ -998,13 +998,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             io.crate.exceptions.JobKilledException.class,
             io.crate.exceptions.JobKilledException::new,
                 156,
-            Version.V_4_3_0),
-        TASK_MISSING_EXCEPTION(
-            io.crate.exceptions.TaskMissing.class,
-            io.crate.exceptions.TaskMissing::new,
-                157,
             Version.V_4_3_0);
-
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

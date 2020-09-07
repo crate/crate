@@ -21,14 +21,10 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.StreamInput;
-
-import java.io.IOException;
 import java.util.Locale;
 import java.util.UUID;
 
-public final class TaskMissing extends ElasticsearchException implements UnscopedException {
+public final class TaskMissing extends UnhandledServerException {
 
     public enum Type {
         ROOT("RootTask"),
@@ -43,10 +39,6 @@ public final class TaskMissing extends ElasticsearchException implements Unscope
         public String friendlyName() {
             return name;
         }
-    }
-
-    public TaskMissing(final StreamInput in) throws IOException {
-        super(in);
     }
 
     public TaskMissing(Type type, UUID jobId) {
