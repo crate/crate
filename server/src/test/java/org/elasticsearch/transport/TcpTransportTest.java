@@ -145,8 +145,7 @@ public class TcpTransportTest extends ESTestCase {
     private void testDefaultSeedAddresses(final Settings settings, Matcher<Iterable<? extends String>> seedAddressesMatcher) {
         final TestThreadPool testThreadPool = new TestThreadPool("test");
         try {
-            final TcpTransport tcpTransport = new TcpTransport("test",
-                                                               settings,
+            final TcpTransport tcpTransport = new TcpTransport(settings,
                                                                Version.CURRENT,
                                                                testThreadPool,
                                                                BigArrays.NON_RECYCLING_INSTANCE,
