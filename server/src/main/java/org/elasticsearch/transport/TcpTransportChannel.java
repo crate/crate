@@ -34,11 +34,16 @@ public final class TcpTransportChannel implements TransportChannel {
     private final String profileName;
     private final long reservedBytes;
     private final AtomicBoolean released = new AtomicBoolean();
-    private final String channelType;
     private final TcpChannel channel;
 
-    TcpTransportChannel(TcpTransport transport, TcpChannel channel, String channelType, String action, long requestId, Version version,
-                        Set<String> features, String profileName, long reservedBytes) {
+    TcpTransportChannel(TcpTransport transport,
+                        TcpChannel channel,
+                        String action,
+                        long requestId,
+                        Version version,
+                        Set<String> features,
+                        String profileName,
+                        long reservedBytes) {
         this.version = version;
         this.features = features;
         this.channel = channel;
@@ -47,7 +52,6 @@ public final class TcpTransportChannel implements TransportChannel {
         this.requestId = requestId;
         this.profileName = profileName;
         this.reservedBytes = reservedBytes;
-        this.channelType = channelType;
     }
 
     @Override
@@ -92,7 +96,7 @@ public final class TcpTransportChannel implements TransportChannel {
 
     @Override
     public String getChannelType() {
-        return channelType;
+        return "transport";
     }
 
     @Override

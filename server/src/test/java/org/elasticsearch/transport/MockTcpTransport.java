@@ -102,8 +102,7 @@ public class MockTcpTransport extends TcpTransport {
     public MockTcpTransport(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
                             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
                             NetworkService networkService, Version mockVersion) {
-        super("mock-tcp-transport",
-              settings,
+        super(settings,
               mockVersion,
               threadPool,
               bigArrays,

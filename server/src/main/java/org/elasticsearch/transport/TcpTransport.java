@@ -139,7 +139,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     protected final Settings settings;
     private final String nodeName;
     private volatile BoundTransportAddress boundAddress;
-    private final String transportName;
 
     private final MeanMetric readBytesMetric = new MeanMetric();
     private volatile Map<String, RequestHandlerRegistry> requestHandlers = Collections.emptyMap();
@@ -149,8 +148,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     private final InboundMessage.Reader reader;
     private final OutboundHandler outboundHandler;
 
-    public TcpTransport(String transportName,
-                        Settings settings,
+    public TcpTransport(Settings settings,
                         Version version,
                         ThreadPool threadPool,
                         BigArrays bigArrays,
@@ -165,7 +163,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         this.circuitBreakerService = circuitBreakerService;
         this.compress = Transport.TRANSPORT_TCP_COMPRESS.get(settings);
         this.networkService = networkService;
-        this.transportName = transportName;
         this.outboundHandler = new OutboundHandler(threadPool, bigArrays);
         this.handshaker = new TransportHandshaker(
             version,
@@ -1094,7 +1091,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                 transportChannel = new TcpTransportChannel(
                     this,
                     channel,
-                    transportName,
                     action,
                     requestId,
                     version,
@@ -1111,7 +1107,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             // the circuit breaker tripped
             if (transportChannel == null) {
                 transportChannel =
-                        new TcpTransportChannel(this, channel, transportName, action, requestId, version, features, profileName, 0);
+                        new TcpTransportChannel(this, channel, action, requestId, version, features, profileName, 0);
             }
             try {
                 transportChannel.sendResponse(e);
