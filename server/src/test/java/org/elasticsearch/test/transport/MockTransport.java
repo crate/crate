@@ -82,7 +82,7 @@ public class MockTransport implements Transport, LifecycleComponent {
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                                                    @Nullable ClusterSettings clusterSettings) {
         StubbableConnectionManager connectionManager = new StubbableConnectionManager(
-            new ConnectionManager(settings, this, threadPool),
+            new ConnectionManager(settings, this),
             settings,
             this,
             threadPool
@@ -192,7 +192,7 @@ public class MockTransport implements Transport, LifecycleComponent {
     }
 
     @Override
-    public Releasable openConnection(DiscoveryNode node, ConnectionProfile profile, ActionListener<Connection> connectionListener) {
+    public void openConnection(DiscoveryNode node, ConnectionProfile profile, ActionListener<Connection> connectionListener) {
         connectionListener.onResponse(new CloseableConnection() {
             @Override
             public DiscoveryNode getNode() {
@@ -211,7 +211,6 @@ public class MockTransport implements Transport, LifecycleComponent {
                 return "MockTransportConnection{node=" + node + ", requests=" + requests + '}';
             }
         });
-        return () -> {};
     }
 
     protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
