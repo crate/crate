@@ -68,6 +68,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.component.Lifecycle;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.metrics.MeanMetric;
@@ -90,6 +91,7 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {
@@ -609,6 +611,11 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     public void onException(TcpChannel channel, Exception e) {
+        handleException(logger, channel, e, lifecycle, outboundHandler);
+    }
+
+    @VisibleForTesting
+    static void handleException(Logger logger, TcpChannel channel, Exception e, Lifecycle lifecycle, OutboundHandler outboundHandler) {
         if (!lifecycle.started()) {
             // just close and ignore - we are already stopped and just need to make sure we release all resources
             CloseableChannel.closeChannel(channel, false);
@@ -616,20 +623,20 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         }
 
         if (isCloseConnectionException(e)) {
-            logger.trace(() -> new ParameterizedMessage(
+            logger.debug(() -> new ParameterizedMessage(
                     "close connection exception caught on transport layer [{}], disconnecting from relevant node", channel), e);
             // close the channel, which will cause a node to be disconnected if relevant
             CloseableChannel.closeChannel(channel, false);
         } else if (isConnectException(e)) {
-            logger.trace(() -> new ParameterizedMessage("connect exception caught on transport layer [{}]", channel), e);
+            logger.debug(() -> new ParameterizedMessage("connect exception caught on transport layer [{}]", channel), e);
             // close the channel as safe measure, which will cause a node to be disconnected if relevant
             CloseableChannel.closeChannel(channel, false);
         } else if (e instanceof BindException) {
-            logger.trace(() -> new ParameterizedMessage("bind exception caught on transport layer [{}]", channel), e);
+            logger.debug(() -> new ParameterizedMessage("bind exception caught on transport layer [{}]", channel), e);
             // close the channel as safe measure, which will cause a node to be disconnected if relevant
             CloseableChannel.closeChannel(channel, false);
         } else if (e instanceof CancelledKeyException) {
-            logger.trace(() -> new ParameterizedMessage(
+            logger.debug(() -> new ParameterizedMessage(
                     "cancelled key exception caught on transport layer [{}], disconnecting from relevant node", channel), e);
             // close the channel as safe measure, which will cause a node to be disconnected if relevant
             CloseableChannel.closeChannel(channel, false);
@@ -647,7 +654,11 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     protected void onServerException(TcpServerChannel channel, Exception e) {
-        logger.error(new ParameterizedMessage("exception from server channel caught on transport layer [channel={}]", channel), e);
+        if (e instanceof BindException) {
+            logger.debug(() -> new ParameterizedMessage("bind exception from server channel caught on transport layer [{}]", channel), e);
+        } else {
+            logger.error(new ParameterizedMessage("exception from server channel caught on transport layer [channel={}]", channel), e);
+        }
     }
 
     protected void serverAcceptedChannel(TcpChannel channel) {
