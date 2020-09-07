@@ -95,7 +95,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 future.get(10, TimeUnit.SECONDS);
             } catch (Throwable exception) {
                 exception = SQLExceptions.unwrap(exception); // wrapped in ExecutionException
-                assertThat(exception, anyOf(instanceOf(JobKilledException.class), instanceOf(InterruptedException.class)));
+                assertThat(exception, instanceOf(JobKilledException.class));
                 assertThat(exception.toString(), anyOf(
                     containsString("Job killed"), // CancellationException
                     containsString("RootTask for job"), // TaskMissing when root task not found
