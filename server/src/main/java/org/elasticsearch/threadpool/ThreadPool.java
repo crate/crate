@@ -250,8 +250,8 @@ public class ThreadPool implements Scheduler, Closeable {
      * Warning: this {@linkplain ExecutorService} will not throw {@link RejectedExecutionException}
      * if you submit a task while it shutdown. It will instead silently queue it and not run it.
      */
-    public Executor generic() {
-        return executor(Names.GENERIC);
+    public ExecutorService generic() {
+        return (ExecutorService) executor(Names.GENERIC);
     }
 
     /**
