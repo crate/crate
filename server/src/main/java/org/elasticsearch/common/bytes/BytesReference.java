@@ -61,6 +61,13 @@ public abstract class BytesReference implements Comparable<BytesReference>, ToXC
     public abstract byte get(int index);
 
     /**
+     * Returns the integer read from the 4 bytes (BE) starting at the given index.
+     */
+    public int getInt(int index) {
+        return (get(index) & 0xFF) << 24 | (get(index + 1) & 0xFF) << 16 | (get(index + 2) & 0xFF) << 8 | get(index + 3) & 0xFF;
+    }
+
+    /**
      * Finds the index of the first occurrence of the given marker between within the given bounds.
      * @param marker marker byte to search
      * @param from lower bound for the index to check (inclusive)

@@ -71,6 +71,12 @@ public final class CompositeBytesReference extends BytesReference {
     }
 
     @Override
+    public int getInt(int index) {
+        final int i = getOffsetIndex(index);
+        return references[i].getInt(index - offsets[i]);
+    }
+
+    @Override
     public int length() {
         return length;
     }
