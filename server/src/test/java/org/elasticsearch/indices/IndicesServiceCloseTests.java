@@ -27,6 +27,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcke
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
@@ -42,7 +43,6 @@ import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.MockHttpTransport;
-import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
 public class IndicesServiceCloseTests extends ESTestCase {
@@ -78,8 +78,10 @@ public class IndicesServiceCloseTests extends ESTestCase {
         Node node = startNode();
         IndicesService indicesService = node.injector().getInstance(IndicesService.class);
         assertEquals(1, indicesService.indicesRefCount.refCount());
+        assertFalse(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
         node.close();
         assertEquals(0, indicesService.indicesRefCount.refCount());
+        assertTrue(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
     }
 
     @Test
@@ -96,9 +98,11 @@ public class IndicesServiceCloseTests extends ESTestCase {
         );
 
         assertEquals(2, indicesService.indicesRefCount.refCount());
+        assertFalse(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
 
         node.close();
         assertEquals(0, indicesService.indicesRefCount.refCount());
+        assertTrue(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
     }
 
     @Test

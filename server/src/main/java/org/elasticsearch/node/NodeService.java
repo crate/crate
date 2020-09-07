@@ -27,6 +27,7 @@ import org.elasticsearch.transport.TransportService;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 public class NodeService implements Closeable {
 
@@ -51,5 +52,13 @@ public class NodeService implements Closeable {
 
     public NodeStats stats() {
         return new NodeStats(transportService.getLocalNode(), System.currentTimeMillis(), monitorService.fsService().stats());
+    }
+
+    /**
+     * Wait for the node to be effectively closed.
+     * @see IndicesService#awaitClose(long, TimeUnit)
+     */
+    public boolean awaitClose(long timeout, TimeUnit timeUnit) throws InterruptedException {
+        return indicesService.awaitClose(timeout, timeUnit);
     }
 }

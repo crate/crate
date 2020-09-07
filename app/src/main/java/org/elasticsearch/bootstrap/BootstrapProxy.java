@@ -58,6 +58,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -165,8 +166,16 @@ public class BootstrapProxy {
                     IOUtils.close(node);
                     LoggerContext context = (LoggerContext) LogManager.getContext(false);
                     Configurator.shutdown(context);
+                    if (node != null && node.awaitClose(10, TimeUnit.SECONDS) == false) {
+                        throw new IllegalStateException(
+                            "Node didn't stop within 10 seconds. " +
+                            "Any outstanding requests or tasks might get killed.");
+                    }
                 } catch (IOException ex) {
                     throw new ElasticsearchException("failed to stop node", ex);
+                } catch (InterruptedException e) {
+                    LogManager.getLogger(BootstrapProxy.class).warn("Thread got interrupted while waiting for the node to shutdown.");
+                    Thread.currentThread().interrupt();
                 }
             }));
         }
@@ -200,6 +209,12 @@ public class BootstrapProxy {
     public static void stop() throws IOException {
         try {
             IOUtils.close(INSTANCE.node);
+            if (INSTANCE.node != null && INSTANCE.node.awaitClose(10, TimeUnit.SECONDS) == false) {
+                throw new IllegalStateException("Node didn't stop within 10 seconds. Any outstanding requests or tasks might get killed.");
+            }
+        } catch (InterruptedException e) {
+            LogManager.getLogger(BootstrapProxy.class).warn("Thread got interrupted while waiting for the node to shutdown.");
+            Thread.currentThread().interrupt();
         } finally {
             INSTANCE.keepAliveLatch.countDown();
         }
