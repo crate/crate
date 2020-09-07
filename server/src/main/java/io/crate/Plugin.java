@@ -21,14 +21,14 @@
 
 package io.crate;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * An extension point allowing to plug in custom functionality.

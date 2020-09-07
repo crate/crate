@@ -63,7 +63,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -92,50 +91,7 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
 
     public static final ClusterState EMPTY_STATE = builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY)).build();
 
-    /**
-     * An interface that implementors use when a class requires a client to maybe have a feature.
-     */
-    public interface FeatureAware {
-
-        /**
-         * An optional feature that is required for the client to have.
-         *
-         * @return an empty optional if no feature is required otherwise a string representing the required feature
-         */
-        default Optional<String> getRequiredFeature() {
-            return Optional.empty();
-        }
-
-        /**
-         * Tests whether or not the custom should be serialized. The criteria are:
-         * <ul>
-         * <li>the output stream must be at least the minimum supported version of the custom</li>
-         * <li>the output stream must have the feature required by the custom (if any) or not be a transport client</li>
-         * </ul>
-         * <p>
-         * That is, we only serialize customs to clients than can understand the custom based on the version of the client and the features
-         * that the client has. For transport clients we can be lenient in requiring a feature in which case we do not send the custom but
-         * for connected nodes we always require that the node has the required feature.
-         *
-         * @param out    the output stream
-         * @param custom the custom to serialize
-         * @param <T>    the type of the custom
-         * @return true if the custom should be serialized and false otherwise
-         */
-        static <T extends VersionedNamedWriteable & FeatureAware> boolean shouldSerialize(final StreamOutput out, final T custom) {
-            if (out.getVersion().before(custom.getMinimalSupportedVersion())) {
-                return false;
-            }
-            if (custom.getRequiredFeature().isPresent()) {
-                final String requiredFeature = custom.getRequiredFeature().get();
-                return out.hasFeature(requiredFeature);
-            }
-            return true;
-        }
-
-    }
-
-    public interface Custom extends NamedDiffable<Custom>, ToXContentFragment, FeatureAware {
+    public interface Custom extends NamedDiffable<Custom>, ToXContentFragment {
 
         /**
          * Returns <code>true</code> iff this {@link Custom} is private to the cluster and should never be send to a client.
@@ -778,13 +734,13 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
         // filter out custom states not supported by the other node
         int numberOfCustoms = 0;
         for (final ObjectCursor<Custom> cursor : customs.values()) {
-            if (FeatureAware.shouldSerialize(out, cursor.value)) {
+            if (VersionedNamedWriteable.shouldSerialize(out, cursor.value)) {
                 numberOfCustoms++;
             }
         }
         out.writeVInt(numberOfCustoms);
         for (final ObjectCursor<Custom> cursor : customs.values()) {
-            if (FeatureAware.shouldSerialize(out, cursor.value)) {
+            if (VersionedNamedWriteable.shouldSerialize(out, cursor.value)) {
                 out.writeNamedWriteable(cursor.value);
             }
         }

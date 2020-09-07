@@ -60,13 +60,12 @@ public class InboundHandlerTests extends ESTestCase {
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
         InboundMessage.Reader reader = new InboundMessage.Reader(version, namedWriteableRegistry);
         TransportHandshaker handshaker = new TransportHandshaker(version, threadPool, (n, c, r, v) -> {
-        }, (v, f, c, r, r_id) -> {
+        }, (v, c, r, r_id) -> {
         });
         TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, TcpChannel::sendMessage);
         OutboundHandler outboundHandler = new OutboundHandler(
             "node",
             version,
-            new String[0],
             threadPool,
             BigArrays.NON_RECYCLING_INSTANCE
         );
@@ -142,7 +141,6 @@ public class InboundHandlerTests extends ESTestCase {
         handler.registerRequestHandler(registry);
         String requestValue = randomAlphaOfLength(10);
         OutboundMessage.Request request = new OutboundMessage.Request(
-            new String[0],
             new TestRequest(requestValue),
             version,
             action,
