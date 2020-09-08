@@ -24,11 +24,8 @@ import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -51,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.IntSupplier;
 import java.util.zip.CRC32;
@@ -116,7 +112,6 @@ import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.test.VersionUtils;
-import org.elasticsearch.threadpool.FixedExecutorBuilder;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -192,6 +187,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         RecoverySourceHandler handler = new RecoverySourceHandler(
             null,
             new AsyncRecoveryTarget(target, recoveryExecutor),
+            threadPool,
             request,
             Math.toIntExact(recoverySettings.getChunkSize().getBytes()),
             between(1, 5)
@@ -262,7 +258,13 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             }
         };
         RecoverySourceHandler handler = new RecoverySourceHandler(
-            shard, new AsyncRecoveryTarget(recoveryTarget, threadPool.generic()), request, fileChunkSizeInBytes, between(1, 10));
+            shard,
+            new AsyncRecoveryTarget(recoveryTarget, threadPool.generic()),
+            shard.getThreadPool(),
+            request,
+            fileChunkSizeInBytes,
+            between(1, 10)
+        );
         PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainActionFuture<>();
         handler.phase2(
             startingSeqNo,
@@ -317,6 +319,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         RecoverySourceHandler handler = new RecoverySourceHandler(
             shard,
             new AsyncRecoveryTarget(recoveryTarget, threadPool.generic()),
+            threadPool,
             request,
             fileChunkSizeInBytes,
             between(1, 10)
@@ -410,6 +413,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         RecoverySourceHandler handler = new RecoverySourceHandler(
             null,
             new AsyncRecoveryTarget(target, recoveryExecutor),
+            threadPool,
             request,
             Math.toIntExact(recoverySettings.getChunkSize().getBytes()),
             between(1, 8)) {
@@ -473,8 +477,14 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                 }
             }
         };
-        RecoverySourceHandler handler = new RecoverySourceHandler(null, new AsyncRecoveryTarget(target, recoveryExecutor),
-            request, Math.toIntExact(recoverySettings.getChunkSize().getBytes()), between(1, 10)) {
+        RecoverySourceHandler handler = new RecoverySourceHandler(
+            null,
+            new AsyncRecoveryTarget(target, recoveryExecutor),
+            threadPool,
+            request,
+            Math.toIntExact(recoverySettings.getChunkSize().getBytes()),
+            between(1, 10)
+        ) {
 
             @Override
             protected void failEngine(IOException cause) {
@@ -527,6 +537,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final RecoverySourceHandler handler = new RecoverySourceHandler(
             shard,
             mock(RecoveryTargetHandler.class),
+            threadPool,
             request,
             Math.toIntExact(recoverySettings.getChunkSize().getBytes()),
             between(1, 8)) {
@@ -601,6 +612,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final RecoverySourceHandler handler = new RecoverySourceHandler(
             shard,
             recoveryTarget,
+            threadPool,
             getStartRecoveryRequest(),
             chunkSize,
             maxConcurrentChunks
@@ -665,6 +677,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final RecoverySourceHandler handler = new RecoverySourceHandler(
             null,
             new AsyncRecoveryTarget(recoveryTarget, recoveryExecutor),
+            threadPool,
             getStartRecoveryRequest(),
             chunkSize,
             maxConcurrentChunks
@@ -729,7 +742,13 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         IndexShard shard = mock(IndexShard.class);
         when(shard.state()).thenReturn(IndexShardState.STARTED);
         RecoverySourceHandler handler = new RecoverySourceHandler(
-            shard, new TestRecoveryTargetHandler(), getStartRecoveryRequest(), between(1, 16), between(1, 4));
+            shard,
+            new TestRecoveryTargetHandler(),
+            threadPool,
+            getStartRecoveryRequest(),
+            between(1, 16),
+            between(1, 4)
+        );
 
         String syncId = UUIDs.randomBase64UUID();
         int numDocs = between(0, 1000);
@@ -812,6 +831,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final RecoverySourceHandler handler = new RecoverySourceHandler(
             shard,
             recoveryTarget,
+            shard.getThreadPool(),
             getStartRecoveryRequest(),
             between(1, 16),
             between(1, 4)

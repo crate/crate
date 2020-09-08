@@ -83,7 +83,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                final TransportService transportService,
                                BlobTransferTarget blobTransferTarget,
                                BlobIndicesService blobIndicesService) {
-        super(shard, recoveryTarget, request, fileChunkSizeInBytes, maxConcurrentFileChunks);
+        super(shard, recoveryTarget, shard.getThreadPool(), request, fileChunkSizeInBytes, maxConcurrentFileChunks);
         assert BlobIndex.isBlobIndex(shard.shardId().getIndexName()) : "Shard must belong to a blob index";
         this.blobShard = blobIndicesService.blobShardSafe(request.shardId());
         this.request = request;
