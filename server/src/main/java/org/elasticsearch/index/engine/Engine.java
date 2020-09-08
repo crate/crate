@@ -1165,6 +1165,31 @@ public abstract class Engine implements Closeable {
             this.ifPrimaryTerm = ifPrimaryTerm;
         }
 
+
+        public Index(Term uid, long primaryTerm, ParsedDocument doc) {
+            this(uid, primaryTerm, doc, Versions.MATCH_ANY);
+        } // TEST ONLY
+
+        Index(Term uid,
+              long primaryTerm,
+              ParsedDocument doc,
+              long version) {
+            this(
+                uid,
+                doc,
+                UNASSIGNED_SEQ_NO,
+                primaryTerm,
+                version,
+                VersionType.INTERNAL,
+                Origin.PRIMARY,
+                System.nanoTime(),
+                -1,
+                false,
+                UNASSIGNED_SEQ_NO,
+                0
+            );
+        } // TEST ONLY
+
         public ParsedDocument parsedDoc() {
             return this.doc;
         }
