@@ -56,6 +56,7 @@ public class PeerRecoverySourceServiceTests extends IndexShardTestCase {
             randomBoolean(),
             randomLong(),
             SequenceNumbers.UNASSIGNED_SEQ_NO);
+        peerRecoverySourceService.start();
         RecoverySourceHandler handler = peerRecoverySourceService.ongoingRecoveries
             .addNewRecovery(startRecoveryRequest, primary);
         DelayRecoveryException delayRecoveryException = expectThrows(

@@ -436,7 +436,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 41d3eb31946 Revert "Sync translog without lock when trim unreferenced readers (#46203)"
 - [ ] b38f4644038 Do not send recovery requests with CancellableThreads (#46287)
 - [ ] fd8183ee51d Sync translog without lock when trim unreferenced readers (#46203)
-- [ ] 12a4177690e Wait for all Rec. to Stop on Node Close (#46178)
+- [x] 12a4177690e Wait for all Rec. to Stop on Node Close (#46178)
 - [x] 911d02b7a9c Enhanced logging when transport is misconfigured to talk to HTTP port (#45964)
 - [x] cb2e7325992 Flush engine after big merge (#46066)
 - [x] a2d4b81b6b5 Handle delete document level failures (#46100)

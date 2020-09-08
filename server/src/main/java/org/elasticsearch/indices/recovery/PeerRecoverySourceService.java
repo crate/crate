@@ -33,9 +33,12 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ChannelActionListener;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
@@ -51,7 +54,7 @@ import org.elasticsearch.transport.TransportService;
  * The source recovery accepts recovery requests from other peer shards and start the recovery process from this
  * source shard to the target shard.
  */
-public class PeerRecoverySourceService implements IndexEventListener {
+public class PeerRecoverySourceService extends AbstractLifecycleComponent implements IndexEventListener {
 
     private static final Logger LOGGER = LogManager.getLogger(PeerRecoverySourceService.class);
 
@@ -76,6 +79,19 @@ public class PeerRecoverySourceService implements IndexEventListener {
         this.indicesService = indicesService;
         this.recoverySettings = recoverySettings;
         transportService.registerRequestHandler(Actions.START_RECOVERY, StartRecoveryRequest::new, ThreadPool.Names.GENERIC, new StartRecoveryTransportRequestHandler());
+    }
+
+    @Override
+    protected void doStart() {
+    }
+
+    @Override
+    protected void doStop() {
+        ongoingRecoveries.awaitEmpty();
+    }
+
+    @Override
+    protected void doClose() {
     }
 
     @Override
@@ -129,9 +145,14 @@ public class PeerRecoverySourceService implements IndexEventListener {
     }
 
     final class OngoingRecoveries {
+
         private final Map<IndexShard, ShardRecoveryContext> ongoingRecoveries = new HashMap<>();
 
+        @Nullable
+        private List<ActionListener<Void>> emptyListeners;
+
         synchronized RecoverySourceHandler addNewRecovery(StartRecoveryRequest request, IndexShard shard) {
+            assert lifecycle.started();
             final ShardRecoveryContext shardContext = ongoingRecoveries.computeIfAbsent(shard, s -> new ShardRecoveryContext());
             RecoverySourceHandler handler = shardContext.addNewRecovery(request, shard);
             shard.recoveryStats().incCurrentAsSource();
@@ -148,6 +169,13 @@ public class PeerRecoverySourceService implements IndexEventListener {
             }
             if (shardRecoveryContext.recoveryHandlers.isEmpty()) {
                 ongoingRecoveries.remove(shard);
+            }
+            if (ongoingRecoveries.isEmpty()) {
+                if (emptyListeners != null) {
+                    final List<ActionListener<Void>> onEmptyListeners = emptyListeners;
+                    emptyListeners = null;
+                    ActionListener.onResponse(onEmptyListeners, null);
+                }
             }
         }
 
@@ -166,6 +194,22 @@ public class PeerRecoverySourceService implements IndexEventListener {
                 }
                 ExceptionsHelper.maybeThrowRuntimeAndSuppress(failures);
             }
+        }
+
+        void awaitEmpty() {
+            assert lifecycle.stoppedOrClosed();
+            final PlainActionFuture<Void> future;
+            synchronized (this) {
+                if (ongoingRecoveries.isEmpty()) {
+                    return;
+                }
+                future = new PlainActionFuture<>();
+                if (emptyListeners == null) {
+                    emptyListeners = new ArrayList<>();
+                }
+                emptyListeners.add(future);
+            }
+            FutureUtils.get(future);
         }
 
         private final class ShardRecoveryContext {
