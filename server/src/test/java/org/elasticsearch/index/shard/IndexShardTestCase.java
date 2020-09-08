@@ -732,6 +732,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         final RecoverySourceHandler recovery = new RecoverySourceHandler(
             primary,
             new AsyncRecoveryTarget(recoveryTarget, threadPool.generic()),
+            threadPool,
             request,
             Math.toIntExact(ByteSizeUnit.MB.toBytes(1)),
             between(1, 8));

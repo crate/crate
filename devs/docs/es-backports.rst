@@ -448,7 +448,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 23673a1eaa0 Fix RemoteClusterConnection close race (#45898)
 - [ ] 9f654fd67ef Fsync translog without writeLock before rolling (#45765)
 - [ ] fab31abbcc0 Log deprecation warning if es.transport.cname_in_publish_address property is specified (#45662)
-- [ ] 0fb695e2e44 Never release store using CancellableThreads (#45409)
+- [x] 0fb695e2e44 Never release store using CancellableThreads (#45409)
 - [x] 1bcda083683 Rename PlainTransportFuture -> TransportFuture (#45768)
 - [x] 4d210dda02d Remove index-N Rebuild in Shard Snapshot Updates (#45740)
 - [x] 60247d31728 Remove Blocking Transport APIs (#45756)

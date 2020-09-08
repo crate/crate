@@ -48,7 +48,9 @@ import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.StepListener;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.ThreadedActionListener;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -108,17 +110,20 @@ public class RecoverySourceHandler {
     private final int chunkSizeInBytes;
     private final RecoveryTargetHandler recoveryTarget;
     private final int maxConcurrentFileChunks;
+    private final ThreadPool threadPool;
     protected final CancellableThreads cancellableThreads = new CancellableThreads();
     private final List<Closeable> resources = new CopyOnWriteArrayList<>();
 
 
     public RecoverySourceHandler(final IndexShard shard,
                                  RecoveryTargetHandler recoveryTarget,
+                                 ThreadPool threadPool,
                                  final StartRecoveryRequest request,
                                  final int fileChunkSizeInBytes,
                                  final int maxConcurrentFileChunks) {
         this.shard = shard;
         this.recoveryTarget = recoveryTarget;
+        this.threadPool = threadPool;
         this.request = request;
         this.shardId = this.request.shardId().id();
         this.logger = Loggers.getLogger(getClass(), request.shardId(), "recover to " + request.targetNode().getName());
@@ -247,8 +252,7 @@ public class RecoverySourceHandler {
 
                 try {
                     final int estimateNumOps = shard.estimateNumberOfHistoryOperations("peer-recovery", startingSeqNo);
-                    shard.store().incRef();
-                    final Releasable releaseStore = Releasables.releaseOnce(shard.store()::decRef);
+                    final Releasable releaseStore = acquireStore(shard.store());
                     resources.add(releaseStore);
                     sendFileStep.whenComplete(r -> IOUtils.close(safeCommitRef, releaseStore), e -> {
                         try {
@@ -417,6 +421,25 @@ public class RecoverySourceHandler {
         final String targetHistoryUUID = request.metadataSnapshot().getHistoryUUID();
         assert targetHistoryUUID != null : "incoming target history N/A";
         return targetHistoryUUID.equals(shard.getHistoryUUID());
+    }
+
+    /**
+     * Increases the store reference and returns a {@link Releasable} that will decrease the store reference using the generic thread pool.
+     * We must never release the store using an interruptible thread as we can risk invalidating the node lock.
+     */
+    private Releasable acquireStore(Store store) {
+        store.incRef();
+        return Releasables.releaseOnce(() -> {
+            final PlainActionFuture<Void> future = new PlainActionFuture<>();
+            threadPool.generic().execute(new ActionRunnable<>(future) {
+                @Override
+                protected void doRun() {
+                    store.decRef();
+                    listener.onResponse(null);
+                }
+            });
+            FutureUtils.get(future);
+        });
     }
 
     static final class SendFileResult {

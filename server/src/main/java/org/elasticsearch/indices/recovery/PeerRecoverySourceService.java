@@ -123,6 +123,11 @@ public class PeerRecoverySourceService implements IndexEventListener {
         }
     }
 
+    // exposed for testing
+    final int numberOfOngoingRecoveries() {
+        return ongoingRecoveries.ongoingRecoveries.size();
+    }
+
     final class OngoingRecoveries {
         private final Map<IndexShard, ShardRecoveryContext> ongoingRecoveries = new HashMap<>();
 
@@ -206,6 +211,7 @@ public class PeerRecoverySourceService implements IndexEventListener {
                     return new RecoverySourceHandler(
                         shard,
                         recoveryTarget,
+                        shard.getThreadPool(),
                         request,
                         recoveryChunkSizeInBytes,
                         recoverySettings.getMaxConcurrentFileChunks());
