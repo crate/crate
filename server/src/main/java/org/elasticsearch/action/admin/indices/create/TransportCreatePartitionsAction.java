@@ -236,7 +236,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
 
                 // now, update the mappings with the actual source
                 HashMap<String, MappingMetadata> mappingsMetadata = new HashMap<>();
-                for (DocumentMapper mapper : mapperService.docMappers(true)) {
+                DocumentMapper mapper = mapperService.documentMapper();
+                if (mapper != null) {
                     MappingMetadata mappingMd = new MappingMetadata(mapper);
                     mappingsMetadata.put(mapper.type(), mappingMd);
                 }

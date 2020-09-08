@@ -700,7 +700,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         Engine.Index operation;
         try {
             operation = prepareIndex(
-                defaultDocMapper(),
+                mapperService.documentMapper(),
                 sourceToParse,
                 seqNo,
                 opPrimaryTerm,
@@ -2627,10 +2627,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         }
     }
 
-    private DocumentMapper defaultDocMapper() {
-        return mapperService.documentMapperSafe();
-    }
-
     private EngineConfig newEngineConfig(LongSupplier globalCheckpointSupplier) {
         return new EngineConfig(
             shardId,
@@ -3267,7 +3263,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
             @Override
             public ParsedDocument newDeleteTombstoneDoc(String id) {
-                return defaultDocMapper().createDeleteTombstoneDoc(shardId.getIndexName(), id);
+                return mapperService.documentMapper().createDeleteTombstoneDoc(shardId.getIndexName(), id);
             }
 
             @Override

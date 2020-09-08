@@ -112,7 +112,7 @@ class DocTableInfoBuilder {
         } catch (Exception e) {
             try {
                 LOGGER.error(
-                    "Could not build DocIndexMetadata from: {}", indexMetadata.mapping("default").getSourceAsMap());
+                    "Could not build DocIndexMetadata from: {}", indexMetadata.mapping().getSourceAsMap());
             } catch (Exception ignored) {
             }
             throw e;

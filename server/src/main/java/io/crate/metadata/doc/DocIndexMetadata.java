@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -158,7 +157,7 @@ public class DocIndexMetadata {
     }
 
     private static Map<String, Object> getMappingMap(IndexMetadata metadata) {
-        MappingMetadata mappingMetadata = metadata.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
+        MappingMetadata mappingMetadata = metadata.mapping();
         if (mappingMetadata == null) {
             return Map.of();
         }

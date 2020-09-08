@@ -32,7 +32,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 
 import io.crate.common.unit.TimeValue;
@@ -71,9 +70,6 @@ public class MappingUpdatedAction {
      * been applied to the master node and propagated to data nodes.
      */
     public void updateMappingOnMaster(Index index, String type, Mapping mappingUpdate, ActionListener<Void> listener) {
-        if (type.equals(MapperService.DEFAULT_MAPPING)) {
-            throw new IllegalArgumentException("_default_ mapping should not be updated");
-        }
         client.preparePutMapping().setConcreteIndex(index).setType(type).setSource(mappingUpdate.toString(), XContentType.JSON)
             .setMasterNodeTimeout(dynamicMappingUpdateTimeout).setTimeout(TimeValue.ZERO)
             .execute(new ActionListener<AcknowledgedResponse>() {

@@ -53,7 +53,6 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 
@@ -448,8 +447,11 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
     }
 
     @Nullable
-    public MappingMetadata mapping(String mappingType) {
-        return mappings.get(mappingType);
+    public MappingMetadata mapping() {
+        for (var cursor : mappings) {
+            return cursor.value;
+        }
+        return null;
     }
 
     // we keep the shrink settings for BWC - this can be removed in 8.0
@@ -470,21 +472,6 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             ? new Index(INDEX_RESIZE_SOURCE_NAME.get(settings), INDEX_RESIZE_SOURCE_UUID.get(settings)) : null;
     }
 
-    /**
-     * Sometimes, the default mapping exists and an actual mapping is not created yet (introduced),
-     * in this case, we want to return the default mapping in case it has some default mapping definitions.
-     * <p>
-     * Note, once the mapping type is introduced, the default mapping is applied on the actual typed MappingMetadata,
-     * setting its routing, timestamp, and so on if needed.
-     */
-    @Nullable
-    public MappingMetadata mappingOrDefault(String mappingType) {
-        MappingMetadata mapping = mappings.get(mappingType);
-        if (mapping != null) {
-            return mapping;
-        }
-        return mappings.get(MapperService.DEFAULT_MAPPING);
-    }
 
     ImmutableOpenMap<String, DiffableStringMap> getCustomData() {
         return this.customData;
@@ -1009,14 +996,6 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         public IndexMetadata build() {
             final ImmutableOpenMap.Builder<String, AliasMetadata> tmpAliases = aliases;
             final Settings tmpSettings = settings;
-
-            // update default mapping on the MappingMetadata
-            if (mappings.containsKey(MapperService.DEFAULT_MAPPING)) {
-                MappingMetadata defaultMapping = mappings.get(MapperService.DEFAULT_MAPPING);
-                for (ObjectCursor<MappingMetadata> cursor : mappings.values()) {
-                    cursor.value.updateDefaultMapping(defaultMapping);
-                }
-            }
 
             Integer maybeNumberOfShards = settings.getAsInt(SETTING_NUMBER_OF_SHARDS, null);
             if (maybeNumberOfShards == null) {

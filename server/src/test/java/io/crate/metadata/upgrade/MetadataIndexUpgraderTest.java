@@ -77,7 +77,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
         IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata);
 
-        MappingMetadata mapping = updatedMetadata.mapping(Constants.DEFAULT_MAPPING_TYPE);
+        MappingMetadata mapping = updatedMetadata.mapping();
         assertThat(mapping.source().string(), Matchers.is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\"}}}}"));
     }
 

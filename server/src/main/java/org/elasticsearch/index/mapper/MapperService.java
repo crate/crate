@@ -48,6 +48,7 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,10 +56,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
 
@@ -80,7 +81,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         MAPPING_RECOVERY;
     }
 
-    public static final String DEFAULT_MAPPING = "_default_";
     public static final String SINGLE_MAPPING_NAME = "_doc";
     public static final Setting<Long> INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING =
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
@@ -96,8 +96,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     private final IndexAnalyzers indexAnalyzers;
 
-    private volatile Map<String, DocumentMapper> mappers = emptyMap();
-
+    private volatile DocumentMapper mapper;
     private volatile FieldTypeLookup fieldTypes;
     private volatile Map<String, ObjectMapper> fullPathObjectMappers = emptyMap();
 
@@ -130,24 +129,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         this.mapperRegistry = mapperRegistry;
     }
 
-    /**
-     * returns an immutable iterator over current document mappers.
-     *
-     * @param includingDefaultMapping indicates whether the iterator should contain the {@link #DEFAULT_MAPPING} document mapper.
-     *                                As is this not really an active type, you would typically set this to false
-     */
-    public Iterable<DocumentMapper> docMappers(final boolean includingDefaultMapping) {
-        return () -> {
-            final Collection<DocumentMapper> documentMappers;
-            if (includingDefaultMapping) {
-                documentMappers = mappers.values();
-            } else {
-                documentMappers = mappers.values().stream().filter(mapper -> !DEFAULT_MAPPING.equals(mapper.type())).collect(Collectors.toList());
-            }
-            return Collections.unmodifiableCollection(documentMappers).iterator();
-        };
-    }
-
     public IndexAnalyzers getIndexAnalyzers() {
         return this.indexAnalyzers;
     }
@@ -172,7 +153,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     public boolean updateMapping(final IndexMetadata currentIndexMetadata, final IndexMetadata newIndexMetadata) throws IOException {
         assert newIndexMetadata.getIndex().equals(index()) : "index mismatch: expected " + index() + " but was " + newIndexMetadata.getIndex();
         // go over and add the relevant mappings (or update them)
-        final Set<String> existingMappers = new HashSet<>(mappers.keySet());
+        final Set<String> existingMappers = new HashSet<>();
+        if (mapper != null) {
+            existingMappers.add(mapper.type());
+        }
         final Map<String, DocumentMapper> updatedEntries;
         try {
             // only update entries if needed
@@ -188,7 +172,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
         for (DocumentMapper documentMapper : updatedEntries.values()) {
             String mappingType = documentMapper.type();
-            CompressedXContent incomingMappingSource = newIndexMetadata.mapping(mappingType).source();
+            CompressedXContent incomingMappingSource = newIndexMetadata.mapping().source();
 
             String op = existingMappers.contains(mappingType) ? "updated" : "added";
             if (logger.isDebugEnabled() && incomingMappingSource.compressed().length < 512) {
@@ -202,9 +186,9 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             // refresh mapping can happen when the parsing/merging of the mapping from the metadata doesn't result in the same
             // mapping, in this case, we send to the master to refresh its own version of the mappings (to conform with the
             // merge version of it, which it does when refreshing the mappings), and warn log it.
-            if (documentMapper(mappingType).mappingSource().equals(incomingMappingSource) == false) {
+            if (documentMapper().mappingSource().equals(incomingMappingSource) == false) {
                 logger.debug("[{}] parsed mapping [{}], and got different sources\noriginal:\n{}\nparsed:\n{}", index(), mappingType,
-                    incomingMappingSource, documentMapper(mappingType).mappingSource());
+                    incomingMappingSource, documentMapper().mappingSource());
 
                 requireRefresh = true;
             }
@@ -224,7 +208,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 // if the mapping version is unchanged, then there should not be any updates and all mappings should be the same
                 assert updatedEntries.isEmpty() : updatedEntries;
                 for (final ObjectCursor<MappingMetadata> mapping : newIndexMetadata.getMappings().values()) {
-                    final CompressedXContent currentSource = currentIndexMetadata.mapping(mapping.value.type()).source();
+                    final CompressedXContent currentSource = currentIndexMetadata.mapping().source();
                     final CompressedXContent newSource = mapping.value.source();
                     assert currentSource.equals(newSource) :
                             "expected current mapping [" + currentSource + "] for type [" + mapping.value.type() + "] "
@@ -239,7 +223,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                                 + "to be less than new mapping version [" + newMappingVersion + "]";
                 assert updatedEntries.isEmpty() == false;
                 for (final DocumentMapper documentMapper : updatedEntries.values()) {
-                    final MappingMetadata currentMapping = currentIndexMetadata.mapping(documentMapper.type());
+                    final MappingMetadata currentMapping = currentIndexMetadata.mapping();
                     if (currentMapping != null) {
                         final CompressedXContent currentSource = currentMapping.source();
                         final CompressedXContent newSource = documentMapper.mappingSource();
@@ -278,7 +262,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         for (ObjectCursor<MappingMetadata> cursor : indexMetadata.getMappings().values()) {
             MappingMetadata mappingMetadata = cursor.value;
             if (onlyUpdateIfNeeded) {
-                DocumentMapper existingMapper = documentMapper(mappingMetadata.type());
+                DocumentMapper existingMapper = documentMapper();
                 if (existingMapper == null || mappingMetadata.source().equals(existingMapper.mappingSource()) == false) {
                     map.put(mappingMetadata.type(), mappingMetadata.source());
                 }
@@ -290,23 +274,19 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     }
 
     private synchronized Map<String, DocumentMapper> internalMerge(Map<String, CompressedXContent> mappings, MergeReason reason) {
-        List<DocumentMapper> documentMappers = new ArrayList<>();
+        DocumentMapper documentMapper = null;
         for (Map.Entry<String, CompressedXContent> entry : mappings.entrySet()) {
             String type = entry.getKey();
-            if (type.equals(DEFAULT_MAPPING)) {
-                continue;
+            if (documentMapper != null) {
+                throw new IllegalArgumentException("Cannot put multiple mappings: " + mappings.keySet());
             }
-
-
             try {
-                DocumentMapper documentMapper = documentParser.parse(type, entry.getValue());
-                documentMappers.add(documentMapper);
+                documentMapper = documentParser.parse(type, entry.getValue());
             } catch (Exception e) {
                 throw new MapperParsingException("Failed to parse mapping [{}]: {}", e, entry.getKey(), e.getMessage());
             }
         }
-
-        return internalMerge(documentMappers, reason);
+        return internalMerge(documentMapper, reason);
     }
 
     static void validateTypeName(String type) {
@@ -330,28 +310,28 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    private synchronized Map<String, DocumentMapper> internalMerge(List<DocumentMapper> documentMappers,
+    private synchronized Map<String, DocumentMapper> internalMerge(DocumentMapper mapper,
                                                                    MergeReason reason) {
         Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
         FieldTypeLookup fieldTypes = this.fieldTypes;
-        Map<String, DocumentMapper> mappers = new HashMap<>(this.mappers);
-        Map<String, DocumentMapper> results = new LinkedHashMap<>(documentMappers.size() + 1);
+        Map<String, DocumentMapper> results = new LinkedHashMap<>(2);
 
-        Set<String> actualTypes = new HashSet<>(mappers.keySet());
-        documentMappers.forEach(mapper -> actualTypes.add(mapper.type()));
-        actualTypes.remove(DEFAULT_MAPPING);
-        if (actualTypes.size() > 1) {
+        if (mapper != null && this.mapper != null && Objects.equals(this.mapper.type(), mapper.type()) == false) {
             throw new IllegalArgumentException(
-                "Rejecting mapping update to [" + index().getName() + "] as the final mapping would have more than 1 type: " + actualTypes);
+                "Rejecting mapping update to ["
+                + index().getName()
+                + "] as the final mapping would have more than 1 type: "
+                + Arrays.asList(this.mapper.type(), mapper.type())
+            );
         }
 
-        for (DocumentMapper mapper : documentMappers) {
+        DocumentMapper newMapper = null;
+        if (mapper != null) {
             // check naming
             validateTypeName(mapper.type());
 
             // compute the merged DocumentMapper
-            DocumentMapper oldMapper = mappers.get(mapper.type());
-            DocumentMapper newMapper;
+            DocumentMapper oldMapper = this.mapper;
             if (oldMapper != null) {
                 newMapper = oldMapper.merge(mapper.mapping());
             } else {
@@ -392,7 +372,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             }
 
             results.put(newMapper.type(), newMapper);
-            mappers.put(newMapper.type(), newMapper);
         }
 
         if (reason == MergeReason.MAPPING_UPDATE) {
@@ -404,24 +383,16 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             checkDepthLimit(fullPathObjectMappers.keySet());
         }
 
-        for (Map.Entry<String, DocumentMapper> entry : mappers.entrySet()) {
-            if (entry.getKey().equals(DEFAULT_MAPPING)) {
-                continue;
-            }
-            DocumentMapper documentMapper = entry.getValue();
-            // apply changes to the field types back
-            DocumentMapper updatedDocumentMapper = documentMapper.updateFieldType(fieldTypes.fullNameToFieldType);
-            if (updatedDocumentMapper != documentMapper) {
+        if (newMapper != null) {
+            DocumentMapper updatedDocumentMapper = newMapper.updateFieldType(fieldTypes.fullNameToFieldType);
+            if (updatedDocumentMapper != newMapper) {
                 // update both mappers and result
-                entry.setValue(updatedDocumentMapper);
-                if (results.containsKey(updatedDocumentMapper.type())) {
-                    results.put(updatedDocumentMapper.type(), updatedDocumentMapper);
-                }
+                newMapper = updatedDocumentMapper;
+                results.put(updatedDocumentMapper.type(), updatedDocumentMapper);
             }
         }
 
         // make structures immutable
-        mappers = Collections.unmodifiableMap(mappers);
         results = Collections.unmodifiableMap(results);
 
         // only need to immutably rewrap these if the previous reference was changed.
@@ -430,7 +401,9 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             fullPathObjectMappers = Collections.unmodifiableMap(fullPathObjectMappers);
         }
 
-        this.mappers = mappers;
+        if (newMapper != null) {
+            this.mapper = newMapper;
+        }
         this.fieldTypes = fieldTypes;
         this.fullPathObjectMappers = fullPathObjectMappers;
 
@@ -441,7 +414,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     }
 
     private boolean assertMappersShareSameFieldType() {
-        for (DocumentMapper mapper : docMappers(false)) {
+        if (mapper != null) {
             List<FieldMapper> fieldMappers = new ArrayList<>();
             Collections.addAll(fieldMappers, mapper.mapping().metadataMappers);
             MapperUtils.collect(mapper.root(), new ArrayList<>(), fieldMappers, new ArrayList<>());
@@ -507,33 +480,11 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     }
 
     /**
-     * Return the set of concrete types that have a mapping.
-     * NOTE: this does not return the default mapping.
-     */
-    public Collection<String> types() {
-        final Set<String> types = new HashSet<>(mappers.keySet());
-        types.remove(DEFAULT_MAPPING);
-        return Collections.unmodifiableSet(types);
-    }
-
-    /**
      * Return the {@link DocumentMapper} for the given type. By using the special
      * {@value #DEFAULT_MAPPING} type, you can get a {@link DocumentMapper} for
      * the default mapping.
      */
-    public DocumentMapper documentMapper(String type) {
-        return mappers.get(type);
-    }
-
-    /**
-     * Returns the document mapper created, including a mapping update if the
-     * type has been dynamically created.
-     */
-    public DocumentMapper documentMapperSafe() {
-        DocumentMapper mapper = mappers.get("default");
-        if (mapper == null) {
-            throw new IllegalArgumentException("Mapper for type `default` not found.");
-        }
+    public DocumentMapper documentMapper() {
         return mapper;
     }
 

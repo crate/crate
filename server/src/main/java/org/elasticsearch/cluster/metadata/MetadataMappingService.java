@@ -174,7 +174,8 @@ public class MetadataMappingService {
         String index = indexService.index().getName();
         try {
             List<String> updatedTypes = new ArrayList<>();
-            for (DocumentMapper mapper : indexService.mapperService().docMappers(true)) {
+            DocumentMapper mapper = indexService.mapperService().documentMapper();
+            if (mapper != null) {
                 final String type = mapper.type();
                 if (!mapper.mappingSource().equals(builder.mapping(type).source())) {
                     updatedTypes.add(type);
@@ -185,7 +186,7 @@ public class MetadataMappingService {
             if (updatedTypes.isEmpty() == false) {
                 LOGGER.warn("[{}] re-syncing mappings with cluster state because of types [{}]", index, updatedTypes);
                 dirty = true;
-                for (DocumentMapper mapper : indexService.mapperService().docMappers(true)) {
+                if (mapper != null) {
                     builder.putMapping(new MappingMetadata(mapper));
                 }
             }
@@ -254,17 +255,11 @@ public class MetadataMappingService {
                 // we used for the validation, it makes this mechanism little less scary (a little)
                 updateList.add(indexMetadata);
                 // try and parse it (no need to add it here) so we can bail early in case of parsing exception
-                DocumentMapper newMapper;
-                DocumentMapper existingMapper = mapperService.documentMapper(request.type());
-                if (MapperService.DEFAULT_MAPPING.equals(request.type())) {
-                    // _default_ types do not go through merging, but we do test the new settings. Also don't apply the old default
-                    newMapper = mapperService.parse(request.type(), mappingUpdateSource);
-                } else {
-                    newMapper = mapperService.parse(request.type(), mappingUpdateSource);
-                    if (existingMapper != null) {
-                        // first, simulate: just call merge and ignore the result
-                        existingMapper.merge(newMapper.mapping());
-                    }
+                DocumentMapper existingMapper = mapperService.documentMapper();
+                DocumentMapper newMapper = mapperService.parse(request.type(), mappingUpdateSource);
+                if (existingMapper != null) {
+                    // first, simulate: just call merge and ignore the result
+                    existingMapper.merge(newMapper.mapping());
                 }
                 if (mappingType == null) {
                     mappingType = newMapper.type();
@@ -274,8 +269,7 @@ public class MetadataMappingService {
             }
             assert mappingType != null;
 
-            if (MapperService.DEFAULT_MAPPING.equals(mappingType) == false
-                    && MapperService.SINGLE_MAPPING_NAME.equals(mappingType) == false
+            if (MapperService.SINGLE_MAPPING_NAME.equals(mappingType) == false
                     && mappingType.charAt(0) == '_') {
                 throw new InvalidTypeNameException("Document mapping type name can't start with '_', found: [" + mappingType + "]");
             }
@@ -288,7 +282,7 @@ public class MetadataMappingService {
                 final Index index = indexMetadata.getIndex();
                 final MapperService mapperService = indexMapperServices.get(index);
                 CompressedXContent existingSource = null;
-                DocumentMapper existingMapper = mapperService.documentMapper(mappingType);
+                DocumentMapper existingMapper = mapperService.documentMapper();
                 if (existingMapper != null) {
                     existingSource = existingMapper.mappingSource();
                 }
@@ -320,7 +314,8 @@ public class MetadataMappingService {
                 IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexMetadata);
                 // Mapping updates on a single type may have side-effects on other types so we need to
                 // update mapping metadata on all types
-                for (DocumentMapper mapper : mapperService.docMappers(true)) {
+                DocumentMapper mapper = mapperService.documentMapper();
+                if (mapper != null) {
                     indexMetadataBuilder.putMapping(new MappingMetadata(mapper.mappingSource()));
                 }
                 if (updatedMapping) {
