@@ -1003,6 +1003,11 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             io.crate.exceptions.TaskMissing.class,
             io.crate.exceptions.TaskMissing::new,
                 157,
+            Version.V_4_3_0),
+        RETENTION_LEASE_INVALID_RETAINING_SEQUENCE_NUMBER_EXCEPTION(
+            org.elasticsearch.index.seqno.RetentionLeaseInvalidRetainingSeqNoException.class,
+            org.elasticsearch.index.seqno.RetentionLeaseInvalidRetainingSeqNoException::new,
+            158,
             Version.V_4_3_0);
 
 
