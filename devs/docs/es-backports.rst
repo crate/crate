@@ -433,7 +433,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] b52c2d5d82a Handle lower retaining seqno retention lease error (#46420)
 - [ ] 4ab71116688 Geo: fix indexing of west to east linestrings crossing the antimeridian (#46601)
 - [ ] d0a7bbcb694 Deprecate `_field_names` disabling (#42854)
-- [ ] 41d3eb31946 Revert "Sync translog without lock when trim unreferenced readers (#46203)"
+- [x] 41d3eb31946 Revert "Sync translog without lock when trim unreferenced readers (#46203)"
 - [x] b38f4644038 Do not send recovery requests with CancellableThreads (#46287)
 - [x] fd8183ee51d Sync translog without lock when trim unreferenced readers (#46203)
 - [x] 12a4177690e Wait for all Rec. to Stop on Node Close (#46178)
