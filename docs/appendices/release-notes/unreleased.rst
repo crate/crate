@@ -56,6 +56,9 @@ Breaking Changes
 Changes
 =======
 
+- Added detailed information on the error when a column with an undefined type
+  is used to ``GROUP BY``.
+
 - Added detailed information to possible errors on ``repository`` creation to
   give better insights on the root cause of the error.
 

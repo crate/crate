@@ -34,6 +34,7 @@ import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;
 import java.util.List;
@@ -63,7 +64,8 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                       " id long primary key," +
                       " name string," +
                       " age integer," +
-                      " height integer)")
+                      " height integer, " +
+                      " details_ignored object(ignored) )")
             .build();
     }
 
@@ -116,6 +118,14 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Aggregate functions are not allowed in GROUP BY");
         analyze("select count(DISTINCT name) from sys.nodes group by 1");
+    }
+
+    @Test
+    public void test_group_by_unknown_column() {
+        Assertions.assertThrows(IllegalArgumentException.class,
+                                () -> analyze("select max(age) from foo.users group by details_ignored['lol']"),
+                                "Cannot group or aggregate on 'details_ignored['lol']' with an undefined type." +
+                                " Using an explicit type cast will make this work but adds processing overhead to the query.");
     }
 
     @Test
