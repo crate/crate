@@ -451,7 +451,8 @@ public class MetadataCreateIndexService {
 
                 // now, update the mappings with the actual source
                 Map<String, MappingMetadata> mappingsMetadata = new HashMap<>();
-                for (DocumentMapper mapper : mapperService.docMappers(true)) {
+                DocumentMapper mapper = mapperService.documentMapper();
+                if (mapper != null) {
                     MappingMetadata mappingMd = new MappingMetadata(mapper);
                     mappingsMetadata.put(mapper.type(), mappingMd);
                 }
@@ -637,9 +638,9 @@ public class MetadataCreateIndexService {
             throw new IllegalStateException("index " + sourceIndex + " must be read-only to resize index. use \"index.blocks.write=true\"");
         }
 
-        if ((targetIndexMappingsTypes.size() > 1 ||
-            (targetIndexMappingsTypes.isEmpty() || targetIndexMappingsTypes.contains(MapperService.DEFAULT_MAPPING)) == false)) {
-            throw new IllegalArgumentException("mappings are not allowed when resizing indices" +
+        if (targetIndexMappingsTypes.size() > 1) {
+            throw new IllegalArgumentException(
+                "mappings are not allowed when resizing indices" +
                 ", all mappings are copied from the source index");
         }
 

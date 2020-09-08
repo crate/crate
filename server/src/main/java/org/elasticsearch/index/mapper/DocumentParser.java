@@ -122,9 +122,6 @@ final class DocumentParser {
     }
 
     private void validateType() {
-        if (docMapper.type().equals(MapperService.DEFAULT_MAPPING)) {
-            throw new IllegalArgumentException("It is forbidden to index into the default mapping [" + MapperService.DEFAULT_MAPPING + "]");
-        }
         if (!docMapper.type().equals("default")) {
             throw new MapperParsingException("DocumentMapper type must be `default`. We don't allow other types");
         }

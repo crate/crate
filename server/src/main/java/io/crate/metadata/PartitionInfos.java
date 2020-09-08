@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.metadata.doc.DocIndexMetadata;
 import io.crate.metadata.doc.PartitionedByMappingExtractor;
@@ -66,7 +65,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
         var indexMetadata = indexMetadataEntry.value;
         PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
         try {
-            MappingMetadata mappingMetadata = indexMetadata.mapping(Constants.DEFAULT_MAPPING_TYPE);
+            MappingMetadata mappingMetadata = indexMetadata.mapping();
             if (mappingMetadata == null) {
                 LOGGER.trace("Cannot resolve mapping definition of index {}", indexName);
                 return null;

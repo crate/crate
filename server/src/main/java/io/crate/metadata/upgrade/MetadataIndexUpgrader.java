@@ -58,7 +58,7 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
         return IndexMetadata.builder(indexMetadata)
             .putMapping(
                 createUpdatedIndexMetadata(
-                    indexMetadata.mapping(Constants.DEFAULT_MAPPING_TYPE),
+                    indexMetadata.mapping(),
                     indexMetadata.getIndex().getName()
                 ))
             .build();
