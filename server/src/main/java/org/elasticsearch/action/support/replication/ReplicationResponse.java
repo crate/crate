@@ -190,7 +190,7 @@ public class ReplicationResponse extends TransportResponse {
                            Exception cause,
                            RestStatus status,
                            boolean primary) {
-                super(shardId.getIndexName(), shardId.getId(), ExceptionsHelper.detailedMessage(cause), status, cause);
+                super(shardId.getIndexName(), shardId.getId(), ExceptionsHelper.stackTrace(cause), status, cause);
                 this.shardId = shardId;
                 this.nodeId = nodeId;
                 this.primary = primary;
