@@ -32,7 +32,6 @@ import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;
 
-import static org.elasticsearch.ExceptionsHelper.detailedMessage;
 import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constructorArg;
 
 public class DefaultShardOperationFailedException extends ShardOperationFailedException {
@@ -51,12 +50,17 @@ public class DefaultShardOperationFailedException extends ShardOperationFailedEx
     }
 
     public DefaultShardOperationFailedException(ElasticsearchException e) {
-        super(e.getIndex() == null ? null : e.getIndex().getName(), e.getShardId() == null ? -1 : e.getShardId().getId(),
-            detailedMessage(e), e.status(), e);
+        super(
+            e.getIndex() == null ? null : e.getIndex().getName(),
+            e.getShardId() == null ? -1 : e.getShardId().getId(),
+            ExceptionsHelper.stackTrace(e),
+            e.status(),
+            e
+        );
     }
 
     public DefaultShardOperationFailedException(String index, int shardId, Throwable cause) {
-        super(index, shardId, detailedMessage(cause), ExceptionsHelper.status(cause), cause);
+        super(index, shardId, ExceptionsHelper.stackTrace(cause), ExceptionsHelper.status(cause), cause);
     }
 
     public DefaultShardOperationFailedException(StreamInput in) throws IOException {
