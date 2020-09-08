@@ -422,7 +422,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] b6454e978e1 Reject regexp queries on the _index field. (#46945)
 - [ ] f6fe55fa60d Remove locking around connection attempts (#46845)
 - [ ] f11a3c22298 Track Shard Snapshot Generation in CS (#46864)
-- [ ] 2351aa3efbd Disallow `_field_names` enabled setting (#46681)
+- [s] 2351aa3efbd Disallow `_field_names` enabled setting (#46681)
 - [ ] 127b8d03642 Add support for aliases in queries on _index. (#46640)
 - [ ] ba9940b7c4c Reduce a bind failure to trace logging (#46891)
 - [ ] 6a5bae184b8 Remove default mapping (#44945)
@@ -432,7 +432,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] c01f58aac9e Remove docs for proxy mode (#46677)
 - [ ] b52c2d5d82a Handle lower retaining seqno retention lease error (#46420)
 - [ ] 4ab71116688 Geo: fix indexing of west to east linestrings crossing the antimeridian (#46601)
-- [ ] d0a7bbcb694 Deprecate `_field_names` disabling (#42854)
+- [s] d0a7bbcb694 Deprecate `_field_names` disabling (#42854)
 - [x] 41d3eb31946 Revert "Sync translog without lock when trim unreferenced readers (#46203)"
 - [x] b38f4644038 Do not send recovery requests with CancellableThreads (#46287)
 - [x] fd8183ee51d Sync translog without lock when trim unreferenced readers (#46203)

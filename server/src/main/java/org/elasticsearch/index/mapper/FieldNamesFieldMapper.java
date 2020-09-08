@@ -19,6 +19,13 @@
 
 package org.elasticsearch.index.mapper;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
@@ -27,16 +34,6 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 
 /**
  * A mapper that indexes the field names of a document under <code>_field_names</code>. This mapper is typically useful in order
@@ -53,7 +50,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     public static class Defaults {
         public static final String NAME = FieldNamesFieldMapper.NAME;
 
-        public static final boolean ENABLED = true;
         public static final MappedFieldType FIELD_TYPE = new FieldNamesFieldType();
 
         static {
@@ -69,7 +65,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     }
 
     public static class Builder extends MetadataFieldMapper.Builder<Builder, FieldNamesFieldMapper> {
-        private boolean enabled = Defaults.ENABLED;
 
         public Builder(MappedFieldType existing) {
             super(Defaults.NAME, existing == null ? Defaults.FIELD_TYPE : existing, Defaults.FIELD_TYPE);
@@ -78,13 +73,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         @Override
         @Deprecated
         public Builder index(boolean index) {
-            enabled(index);
             return super.index(index);
-        }
-
-        public Builder enabled(boolean enabled) {
-            this.enabled = enabled;
-            return this;
         }
 
         @Override
@@ -92,7 +81,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
             setupFieldType(context);
             fieldType.setHasDocValues(false);
             FieldNamesFieldType fieldNamesFieldType = (FieldNamesFieldType)fieldType;
-            fieldNamesFieldType.setEnabled(enabled);
             return new FieldNamesFieldMapper(fieldType, context.indexSettings());
         }
     }
@@ -100,18 +88,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     public static class TypeParser implements MetadataFieldMapper.TypeParser {
         @Override
         public MetadataFieldMapper.Builder<?,?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            Builder builder = new Builder(parserContext.mapperService().fullName(NAME));
-
-            for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
-                Map.Entry<String, Object> entry = iterator.next();
-                String fieldName = entry.getKey();
-                Object fieldNode = entry.getValue();
-                if (fieldName.equals("enabled")) {
-                    builder.enabled(nodeBooleanValue(fieldNode, name + ".enabled"));
-                    iterator.remove();
-                }
-            }
-            return builder;
+            return new Builder(parserContext.mapperService().fullName(NAME));
         }
 
         @Override
@@ -128,14 +105,11 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
     public static final class FieldNamesFieldType extends TermBasedFieldType {
 
-        private boolean enabled = Defaults.ENABLED;
-
         public FieldNamesFieldType() {
         }
 
         protected FieldNamesFieldType(FieldNamesFieldType ref) {
             super(ref);
-            this.enabled = ref.enabled;
         }
 
         @Override
@@ -144,29 +118,8 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (!super.equals(o)) return false;
-            FieldNamesFieldType that = (FieldNamesFieldType) o;
-            return enabled == that.enabled;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(super.hashCode(), enabled);
-        }
-
-        @Override
         public String typeName() {
             return CONTENT_TYPE;
-        }
-
-        public void setEnabled(boolean enabled) {
-            checkIfFrozen();
-            this.enabled = enabled;
-        }
-
-        public boolean isEnabled() {
-            return enabled;
         }
 
         @Override
@@ -245,9 +198,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
     @Override
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
-        if (fieldType().isEnabled() == false) {
-            return;
-        }
         for (ParseContext.Document document : context) {
             final List<String> paths = new ArrayList<>(document.getFields().size());
             String previousPath = ""; // used as a sentinel - field names can't be empty
@@ -282,13 +232,13 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         boolean includeDefaults = params.paramAsBoolean("include_defaults", false);
 
-        if (includeDefaults == false && fieldType().isEnabled() == Defaults.ENABLED) {
+        if (includeDefaults == false) {
             return builder;
         }
 
         builder.startObject(NAME);
-        if (includeDefaults || fieldType().isEnabled() != Defaults.ENABLED) {
-            builder.field("enabled", fieldType().isEnabled());
+        if (includeDefaults) {
+            builder.field("enabled", true);
         }
 
         builder.endObject();
