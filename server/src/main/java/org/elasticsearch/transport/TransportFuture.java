@@ -21,17 +21,16 @@ package org.elasticsearch.transport;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.util.concurrent.BaseFuture;
 
-public class PlainTransportFuture<V extends TransportResponse> extends BaseFuture<V> implements Future<V>, TransportResponseHandler<V> {
+public class TransportFuture<V extends TransportResponse> extends BaseFuture<V> implements TransportResponseHandler<V> {
 
     private final TransportResponseHandler<V> handler;
 
-    public PlainTransportFuture(TransportResponseHandler<V> handler) {
+    public TransportFuture(TransportResponseHandler<V> handler) {
         this.handler = handler;
     }
 

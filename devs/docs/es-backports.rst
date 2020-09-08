@@ -38,7 +38,8 @@ To see if there are new changes you can use
 
     git log --oneline 48d31194c25.. -- \
       server/src/main/java/org/elasticsearch/index/{engine,snapshots,store,translog,shard,seqno,mapper,codec}/ \
-      server/src/main/java/org/elasticsearch/indices/recovery/
+      server/src/main/java/org/elasticsearch/indices/recovery/ \
+      server/src/main/java/org/elasticsearch/transport
 
 Here ``48d31194c25`` is the starting point, it shows any changes since then that
 affected files in the given folder.
@@ -333,8 +334,8 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 18282b0f2b0 Update translog checkpoint after marking ops as persisted (#45634)
 - [ ] 9f654fd67ef Fsync translog without writeLock before rolling (#45765)
 - [ ] 0fb695e2e44 Never release store using CancellableThreads (#45409)
-- [ ] 1bcda083683 Rename PlainTransportFuture -> TransportFuture (#45768)
-- [ ] 4d210dda02d Remove index-N Rebuild in Shard Snapshot Updates (#45740)
+- [x] 1bcda083683 Rename PlainTransportFuture -> TransportFuture (#45768)
+- [x] 4d210dda02d Remove index-N Rebuild in Shard Snapshot Updates (#45740)
 - [x] 60247d31728 Remove Blocking Transport APIs (#45756)
 - [x] b0d346fd742 Ignore translog retention policy if soft-deletes enabled (#45473)
 - [s] 8930f7fbf76 Remove support for string in unmapped_type. (#45675)
