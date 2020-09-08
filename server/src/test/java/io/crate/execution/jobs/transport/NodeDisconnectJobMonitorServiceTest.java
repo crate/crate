@@ -22,6 +22,23 @@
 
 package io.crate.execution.jobs.transport;
 
+import static io.crate.testing.DiscoveryNodes.newNode;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.transport.Transport;
+import org.elasticsearch.transport.TransportService;
+import org.junit.Test;
+
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.DummyTask;
@@ -30,21 +47,6 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.transport.TransportService;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -64,10 +66,10 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             mock(TransportService.class),
             mock(TransportKillJobsNodeAction.class));
 
-        monitorService.onNodeDisconnected(new DiscoveryNode(
-            NODE_ID,
-            buildNewFakeTransportAddress(),
-            Version.CURRENT));
+        monitorService.onNodeDisconnected(
+            new DiscoveryNode(NODE_ID, buildNewFakeTransportAddress(), Version.CURRENT),
+            mock(Transport.Connection.class)
+        );
 
         expectedException.expect(TaskMissing.class);
         tasksService.getTask(context.jobId());
@@ -106,7 +108,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             mock(TransportService.class),
             killAction);
 
-        monitorService.onNodeDisconnected(dataNode);
+        monitorService.onNodeDisconnected(dataNode, mock(Transport.Connection.class));
 
         assertThat(broadcasts.get(), is(1));
     }

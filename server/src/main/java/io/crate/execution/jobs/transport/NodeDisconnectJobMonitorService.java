@@ -22,10 +22,11 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.auth.user.User;
-import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -33,13 +34,14 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import io.crate.auth.user.User;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 
 /**
  * service that listens to node-disconnected-events and kills jobContexts that were started by the nodes that got disconnected
@@ -77,14 +79,13 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
     }
 
     @Override
-    public void onNodeConnected(DiscoveryNode node) {
+    public void onNodeConnected(DiscoveryNode node, Transport.Connection connection) {
     }
 
     @Override
-    public void onNodeDisconnected(final DiscoveryNode node) {
+    public void onNodeDisconnected(DiscoveryNode node, Transport.Connection connection) {
         killJobsCoordinatedBy(node);
         broadcastKillToParticipatingNodes(node);
-
     }
 
     /**
