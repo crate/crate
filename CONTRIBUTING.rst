@@ -4,13 +4,15 @@ Contributing
 
 Thank you for your interest in contributing.
 
-This document is a guideline. Don't worry too much about getting everything
-perfect. We are more than happy to work with you on your contribution.
+This document is a guideline. Don't worry about getting everything perfect.
+We are happy to work with you on your contribution.
 
-Upvoting existing issues or reporting new issues it the easiest way to
-contribute. But we also accept pull requests for the code and for the
-documentation. For more information on how to work on the code or
-documentation, see our `developer guide`_.
+[Upvoting existing issues](#upvoting-issues), [reporting new issues](#reporting-issues),
+or [giving feedback](#tell-us-about-your-experience) about your experience are
+the easiest ways to contribute. 
+
+We also accept pull requests for changes to the code and to the documentation.
+For more information on how to do this, read our `developer guide`_.
 
 If you have any questions, please reach out via any of our `support channels`_.
 
@@ -19,20 +21,11 @@ Upvoting Issues
 ===============
 
 An easy way to contribute is to upvote existing issues that are relevant to
-you. This will give us a better idea what's important for you and other users.
+you. This will give us a better idea what is important for you and other users.
 
 Please avoid content-less ``+1`` comments but instead use the emoji reaction to
 upvote with a 👍. This allows people to `sort issues by reaction`_ and doesn't
 spam the maintainers.
-
-
-Tell us about your experience
-=============================
-
-You don't have to create a detailed bug report or request a new feature to make
-a valuable contribution. Telling us about your experience with CrateDB is
-incredibly valuable as well. Please `get in touch`_ with us to tell us what you
-like and don't like about CrateDB.
 
 
 Reporting Issues
@@ -42,35 +35,44 @@ Before you report an issue, please `search the existing issues`_ to make sure
 someone hasn't already reported it.
 
 When reporting a new issue, include as much detail as possible. For some
-Crate.io_ repositories, issue templates have been configured, and you can just
-follow those.
+Crate.io_ repositories, issue templates have been configured.
 
-For repositories without configured issue templates:
+For repositories without configured issue templates, include:
 
-- Say what you did, what happened, and what you expected to happen
+- What you did, what happened, and what you expected to happen
 
-- Provide steps to reproduce the issue
+- Steps to reproduce the issue
 
-- Say which OS you're using
+- Which operating system you're using
 
-- Say which version of CrateDB you are running
+- Which version of CrateDB you're running
 
-- Include logs or stacktraces
+- Logs or stacktraces
 
   - For example, the ``crash`` CLI client can be started with the ``-v`` option
     to get a stacktrace from the server if a SQL statement resulted in an
-    unexpected error.
+    unexpected error
+
+
+Tell us about your experience
+=============================
+
+You don't have to create a detailed bug report or request a new feature to make
+a valuable contribution. Giving us feedback about your experience with CrateDB is
+incredibly valuable as well. Please `get in touch`_ with us to tell us what you
+like and don't like about CrateDB.
+
 
 Pull Requests
 =============
 
-Before we can accept any pull requests we need you to agree to our CLA_.
+Before we can accept any pull requests, we need you to agree to our CLA_.
 
-Once that is done, we suggest you:
+Once that is complete, you should:
 
-- Create an issue on Github to let us know that you're working on something.
+- Create an issue on GitHub to let us know that you're working on the issue.
 
-- Use a feature branch, not ``master``.
+- Use a feature branch and not ``master``.
 
 - Rebase your feature branch onto ``origin/master`` before creating the pull
   request.
@@ -78,7 +80,7 @@ Once that is done, we suggest you:
 - Be descriptive in your PR and commit messages. What is it for? Why is it
   needed? And so on.
 
-- Run ``./gradlew test itest`` to check that all tests pass.
+- If applicable, run ``./gradlew test itest`` to check that all tests pass.
 
 - Squash related commits.
 
@@ -96,8 +98,8 @@ meaningful commit messages, the commit history does not provide any valuable
 information.
 
 The subject of the commit message (i.e. first line) should contain a summary
-of the changes. Please use imperative mood. The subject can be prefixed with
-"Test: " or "Docs: " to indicate the changes are not primarily to the main
+of the changes. Please use the imperative mood. The subject can be prefixed
+with "Test: " or "Docs: " to indicate the changes are not primarily to the main
 code base. For example::
 
     Add DROP VIEW support to the planner and executor
@@ -110,14 +112,14 @@ Updating Your Branch
 --------------------
 
 If new commits have been added to ``master`` since you created your feature
-branch, please do not merge in to your branch. Instead, rebase your branch::
+branch, please do not merge them in to your branch. Instead, rebase your branch::
 
     $ git fetch origin
     $ git rebase origin/master
 
 This will apply all commits on your feature branch on top of the ``master``
-branch. Any conflicts can be resolved just the same as if ``git merge`` was
-used. After the conflict has been resolved, use ``git rebase --continue`` to
+branch. If there are conflicts, they can be resolved with ``git merge``.
+After the conflict has been resolved, use ``git rebase --continue`` to
 continue the rebase process.
 
 Squashing Minor Commits
@@ -126,22 +128,22 @@ Squashing Minor Commits
 Minor commits that only fix typos or rename variables that are related to a
 bigger change should be squashed into that commit.
 
-This can be done like so::
+This can be done with the following command::
 
     $ git rebase -i origin/master
 
 This will open up a text editor where you can annotate your commits.
 
-Generally, you'll want to leave the first commit on listed as ``pick``, or
+Generally, you'll want to leave the first commit listed as ``pick``, or
 change it to ``reword`` (or ``r`` for short) if you want to change the commit
-message. And then, if you wanted to squash every subsequent commit, you could
+message. And then, if you want to squash every subsequent commit, you could
 mark them all as ``fixup`` (or ``f`` for short).
 
-Once you're done, you can check it worked by running::
+Once you're done, you can check that it worked by running::
 
     $ git log
 
-If you're happy, force push::
+If you're happy with the result, do a **force** push (since you're rewriting history)::
 
     $ git push -f
 
