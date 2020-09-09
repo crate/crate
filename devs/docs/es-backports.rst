@@ -414,7 +414,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 237b238a769 Remove `type` query (#47207)
 - [ ] ff99bc1d3f8 Remove per-type indexing stats (#47203)
 - [ ] 2b8c7c5e11c Remove write lock for Translog.getGeneration (#47036)
-- [ ] b1a03a137fd Remove unused private methods and fields (#47115)
+- [x] b1a03a137fd Remove unused private methods and fields (#47115)
 - [x] 632855885e7 Extract proxy connection logic to specialized class (#46898)
 - [x] 9df6cbef9e4 Remove isRecovering method from Engine (#47039)
 - [d] 65374c9c010 Tidy up Store#trimUnsafeCommits (#47062)
