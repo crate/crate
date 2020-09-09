@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that could lead to the incorrect result of joining more than
+  two tables even if the join condition is satisfied. Only the hash join
+  implementation was affected by the issue.
+
 - Fixed a regression introduced in 4.2.3 that prevented primary key lookups
   with parameter placeholders from working in some cases.
 
