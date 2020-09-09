@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.indices.stats;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -33,7 +35,6 @@ public class CommonStatsFlags implements Writeable, Cloneable {
     public static final CommonStatsFlags NONE = new CommonStatsFlags().clear();
 
     private EnumSet<Flag> flags = EnumSet.allOf(Flag.class);
-    private String[] types = null;
     private String[] groups = null;
     private String[] fieldDataFields = null;
     private String[] completionDataFields = null;
@@ -57,7 +58,9 @@ public class CommonStatsFlags implements Writeable, Cloneable {
                 flags.add(flag);
             }
         }
-        types = in.readStringArray();
+        if (in.getVersion().before(Version.V_4_3_0)) {
+            in.readStringArray();
+        }
         groups = in.readStringArray();
         fieldDataFields = in.readStringArray();
         completionDataFields = in.readStringArray();
@@ -72,7 +75,9 @@ public class CommonStatsFlags implements Writeable, Cloneable {
         }
         out.writeLong(longFlags);
 
-        out.writeStringArrayNullable(types);
+        if (out.getVersion().before(Version.V_4_3_0)) {
+            out.writeStringArrayNullable(Strings.EMPTY_ARRAY);
+        }
         out.writeStringArrayNullable(groups);
         out.writeStringArrayNullable(fieldDataFields);
         out.writeStringArrayNullable(completionDataFields);
@@ -84,7 +89,6 @@ public class CommonStatsFlags implements Writeable, Cloneable {
      */
     public CommonStatsFlags all() {
         flags = EnumSet.allOf(Flag.class);
-        types = null;
         groups = null;
         fieldDataFields = null;
         completionDataFields = null;
@@ -97,7 +101,6 @@ public class CommonStatsFlags implements Writeable, Cloneable {
      */
     public CommonStatsFlags clear() {
         flags = EnumSet.noneOf(Flag.class);
-        types = null;
         groups = null;
         fieldDataFields = null;
         completionDataFields = null;
@@ -111,23 +114,6 @@ public class CommonStatsFlags implements Writeable, Cloneable {
 
     public Flag[] getFlags() {
         return flags.toArray(new Flag[flags.size()]);
-    }
-
-    /**
-     * Document types to return stats for. Mainly affects {@link Flag#Indexing} when
-     * enabled, returning specific indexing stats for those types.
-     */
-    public CommonStatsFlags types(String... types) {
-        this.types = types;
-        return this;
-    }
-
-    /**
-     * Document types to return stats for. Mainly affects {@link Flag#Indexing} when
-     * enabled, returning specific indexing stats for those types.
-     */
-    public String[] types() {
-        return this.types;
     }
 
     /**
