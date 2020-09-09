@@ -917,9 +917,9 @@ Note that adding new columns to an object with a ``dynamic`` policy will affect
 the schema of the table. Once a column is added, it shows up in the
 ``information_schema.columns`` table and its type and attributes are fixed.
 They will have the type that was guessed by their inserted/updated value and
-they will always be ``not_indexed`` which means they are analyzed with the
-:ref:`plain <plain-analyzer>`, which means as-is.
-
+they will always be analyzed as-is with the :ref:`plain <plain-analyzer>`,
+which means the column will be indexed but not tokenized in the case of
+``text`` columns.
 
 If a new column ``a`` was added with type ``integer``, adding strings to this
 column will result in an error.
