@@ -21,6 +21,7 @@
 
 package io.crate.execution.dsl.projection.builder;
 
+import io.crate.common.collections.Lists2;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
@@ -59,11 +60,18 @@ public class ProjectionBuilder {
 
     public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
                                                        Collection<Function> aggregates,
+                                                       java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder,
                                                        AggregateMode mode,
                                                        RowGranularity granularity,
                                                        SearchPath searchPath) {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
-        ArrayList<Aggregation> aggregations = getAggregations(aggregates, mode, sourceSymbols, searchPath);
+        ArrayList<Aggregation> aggregations = getAggregations(
+            aggregates,
+            mode,
+            sourceSymbols,
+            searchPath,
+            subQueryAndParamBinder
+        );
         return new AggregationProjection(aggregations, granularity, mode);
     }
 
@@ -71,19 +79,32 @@ public class ProjectionBuilder {
         Collection<? extends Symbol> inputs,
         Collection<? extends Symbol> keys,
         Collection<Function> values,
+        java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder,
         AggregateMode mode,
         RowGranularity requiredGranularity,
         SearchPath searchPath) {
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
-        ArrayList<Aggregation> aggregations = getAggregations(values, mode, sourceSymbols, searchPath);
-        return new GroupProjection(InputColumns.create(keys, sourceSymbols), aggregations, mode, requiredGranularity);
+        ArrayList<Aggregation> aggregations = getAggregations(
+            values,
+            mode,
+            sourceSymbols,
+            searchPath,
+            subQueryAndParamBinder
+        );
+        return new GroupProjection(
+            Lists2.map(InputColumns.create(keys, sourceSymbols), subQueryAndParamBinder),
+            aggregations,
+            mode,
+            requiredGranularity
+        );
     }
 
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
                                                    AggregateMode mode,
                                                    InputColumns.SourceSymbols sourceSymbols,
-                                                   SearchPath searchPath) {
+                                                   SearchPath searchPath,
+                                                   java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
             assert function.type() == FunctionType.AGGREGATE :
@@ -119,12 +140,13 @@ public class ProjectionBuilder {
             );
             assert aggregationFunction != null :
                 "Aggregation function implementation not found using full qualified lookup: " + function;
+
             Aggregation aggregation = new Aggregation(
                 aggregationFunction.signature(),
                 aggregationFunction.boundSignature().getReturnType().createType(),
                 mode.returnType(aggregationFunction),
-                aggregationInputs,
-                filterInput
+                Lists2.map(aggregationInputs, subQueryAndParamBinder),
+                subQueryAndParamBinder.apply(filterInput)
             );
             aggregations.add(aggregation);
         }

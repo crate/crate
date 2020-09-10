@@ -32,10 +32,11 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -305,7 +306,6 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         List<String> path = column.path();
 
         List<Symbol> arguments = mapTail(rootIC, path, Literal::of);
-        List<DataType<?>> argumentTypes = Symbols.typeView(arguments);
 
         return new Function(
             SubscriptObjectFunction.SIGNATURE,
@@ -330,5 +330,15 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     public Symbol visitAggregation(Aggregation symbol, SourceSymbols sourceSymbols) {
         throw new AssertionError("Aggregation Symbols must not be visited with " +
                                  getClass().getCanonicalName());
+    }
+
+    @Override
+    public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, SourceSymbols sourceSymbols) {
+        return parameterSymbol;
+    }
+
+    @Override
+    public Symbol visitSelectSymbol(SelectSymbol selectSymbol, SourceSymbols sourceSymbols) {
+        return selectSymbol;
     }
 }

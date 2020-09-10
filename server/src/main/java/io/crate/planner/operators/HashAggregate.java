@@ -73,12 +73,10 @@ public class HashAggregate extends ForwardingLogicalPlan {
         ExecutionPlan executionPlan = source.build(
             plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryResults);
 
-        var binder = new SubQueryAndParamBinder(params, subQueryResults);
-        //noinspection unchecked,rawtypes
-        List<Function> boundAggregates = (List<Function>)(List) Lists2.map(aggregates, binder);
-        AggregationOutputValidator.validateOutputs(boundAggregates);
+        AggregationOutputValidator.validateOutputs(aggregates);
+        var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
-        List<Symbol> sourceOutputs = source.outputs();
+        var sourceOutputs = source.outputs();
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
@@ -87,7 +85,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 executionPlan.addProjection(
                     projectionBuilder.aggregationProjection(
                         sourceOutputs,
-                        boundAggregates,
+                        aggregates,
+                        paramBinder,
                         AggregateMode.ITER_PARTIAL,
                         RowGranularity.SHARD,
                         plannerContext.transactionContext().sessionContext().searchPath()
@@ -95,8 +94,9 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 );
                 executionPlan.addProjection(
                     projectionBuilder.aggregationProjection(
-                        boundAggregates,
-                        boundAggregates,
+                        aggregates,
+                        aggregates,
+                        paramBinder,
                         AggregateMode.PARTIAL_FINAL,
                         RowGranularity.CLUSTER,
                         plannerContext.transactionContext().sessionContext().searchPath()
@@ -106,7 +106,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
             }
             AggregationProjection fullAggregation = projectionBuilder.aggregationProjection(
                 sourceOutputs,
-                boundAggregates,
+                aggregates,
+                paramBinder,
                 AggregateMode.ITER_FINAL,
                 RowGranularity.CLUSTER,
                 plannerContext.transactionContext().sessionContext().searchPath()
@@ -116,7 +117,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
             sourceOutputs,
-            boundAggregates,
+            aggregates,
+            paramBinder,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
             plannerContext.transactionContext().sessionContext().searchPath()
@@ -124,8 +126,9 @@ public class HashAggregate extends ForwardingLogicalPlan {
         executionPlan.addProjection(toPartial);
 
         AggregationProjection toFinal = projectionBuilder.aggregationProjection(
-            boundAggregates,
-            boundAggregates,
+            aggregates,
+            aggregates,
+            paramBinder,
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER,
             plannerContext.transactionContext().sessionContext().searchPath()
@@ -146,7 +149,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             ),
             LogicalPlanner.NO_LIMIT,
             0,
-            boundAggregates.size(),
+            aggregates.size(),
             1,
             null
         );
