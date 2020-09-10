@@ -80,7 +80,6 @@ import org.elasticsearch.test.store.MockFSDirectoryFactory;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.common.collections.Tuple;
@@ -196,7 +195,6 @@ public class IndexShardTests extends IndexShardTestCase {
 
 
     @Test
-    @Ignore("https://github.com/crate/crate/issues/10351")
     public void testAcquirePrimaryAllOperationsPermits() throws Exception {
         final IndexShard indexShard = newStartedShard(true);
         assertEquals(0, indexShard.getActiveOperationsCount());
@@ -245,7 +243,6 @@ public class IndexShardTests extends IndexShardTestCase {
                 } else {
                     indexShard.acquireAllPrimaryOperationsPermits(future, TimeValue.timeValueHours(1L));
                 }
-                assertEquals(0, indexShard.getActiveOperationsCount());
             });
             threads[threadId].start();
         }
