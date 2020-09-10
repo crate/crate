@@ -185,4 +185,25 @@ public class SymbolMatchers {
         return both(Matchers.<Symbol>instanceOf(Aggregation.class))
             .and(withFeature(s -> ((Aggregation) s).signature().getName().name(), "name", equalTo(name)));
     }
+
+    @SafeVarargs
+    public static Matcher<Symbol> isAggregation(final String name, Matcher<? super Symbol>... argMatchers) {
+        return both(isAggregation(name))
+            .and(withFeature(s -> ((Aggregation) s).inputs(), "args", contains(argMatchers)));
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Matcher<Symbol> isAggregation(final String name, @Nullable final List<DataType<?>> argumentTypes) {
+        if (argumentTypes == null) {
+            return isAggregation(name);
+        }
+        Matcher[] argMatchers = new Matcher[argumentTypes.size()];
+        ListIterator<DataType<?>> it = argumentTypes.listIterator();
+        while (it.hasNext()) {
+            int i = it.nextIndex();
+            DataType<?> type = it.next();
+            argMatchers[i] = hasDataType(type);
+        }
+        return isAggregation(name, argMatchers);
+    }
 }
