@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -54,7 +55,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.common.collections.Tuple;
@@ -503,7 +503,6 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
     }
 
     @Test
-    @Ignore("https://github.com/crate/crate/issues/10331")
     public void testReplicaIgnoresOlderRetentionLeasesVersion() {
         final AllocationId allocationId = AllocationId.newInitializing();
         final ReplicationTracker replicationTracker = new ReplicationTracker(
@@ -536,8 +535,8 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                     randomNonNegativeLong(),
                     randomAlphaOfLength(8)
                 ));
-                version++;
             }
+            version++;
             if (rarely()) {
                 primaryTerm++;
             }
