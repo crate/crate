@@ -63,14 +63,16 @@ import io.crate.common.unit.TimeValue;
 public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTestCase {
 
     @Test
-    @Ignore("https://github.com/crate/crate/issues/10328")
     public void testAddOrRenewRetentionLease() {
         final AllocationId allocationId = AllocationId.newInitializing();
         long primaryTerm = randomLongBetween(1, Long.MAX_VALUE);
         final ReplicationTracker replicationTracker = new ReplicationTracker(
             new ShardId("test", "_na", 0),
             allocationId.getId(),
-            IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
+            IndexSettingsModule.newIndexSettings("test", Settings.builder()
+                .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
+                .build()
+            ),
             primaryTerm,
             UNASSIGNED_SEQ_NO,
             value -> {},
@@ -87,6 +89,10 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         final int length = randomIntBetween(0, 8);
         final long[] minimumRetainingSequenceNumbers = new long[length];
         for (int i = 0; i < length; i++) {
+            if (rarely() && primaryTerm < Long.MAX_VALUE) {
+                primaryTerm = randomLongBetween(primaryTerm + 1, Long.MAX_VALUE);
+                replicationTracker.setOperationPrimaryTerm(primaryTerm);
+            }
             minimumRetainingSequenceNumbers[i] = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
             replicationTracker.addRetentionLease(
                 Integer.toString(i),
@@ -94,10 +100,6 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                 "test-" + i,
                 ActionListener.wrap(() -> {})
             );
-            if (rarely() && primaryTerm < Long.MAX_VALUE) {
-                primaryTerm = randomLongBetween(primaryTerm + 1, Long.MAX_VALUE);
-                replicationTracker.setOperationPrimaryTerm(primaryTerm);
-            }
             assertRetentionLeases(replicationTracker, i + 1, minimumRetainingSequenceNumbers, primaryTerm, 2 + i, true, false);
         }
 
@@ -110,7 +112,6 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             replicationTracker.renewRetentionLease(Integer.toString(i), minimumRetainingSequenceNumbers[i], "test-" + i);
             assertRetentionLeases(replicationTracker, length, minimumRetainingSequenceNumbers, primaryTerm, 2 + length + i, true, false);
         }
-
     }
 
     @Test
