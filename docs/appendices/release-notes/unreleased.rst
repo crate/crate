@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
+- Fixed an issue which resulted in an error when a parameter symbol
+  (placeholder) is used inside an aggregation.
+
 - Fixed an issue that could lead to the incorrect result of joining more than
   two tables even if the join condition is satisfied. Only the hash join
   implementation was affected by the issue.
