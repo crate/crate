@@ -142,17 +142,14 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundGroupKeys = Lists2.map(groupKeys, paramBinder);
-        //noinspection unchecked,rawtypes
-        List<Function> boundAggregates = (List<Function>)(List) Lists2.map(aggregates, paramBinder);
-        List<Symbol> boundOutputs = Lists2.map(outputs, paramBinder);
 
         List<Symbol> sourceOutputs = source.outputs();
         if (shardsContainAllGroupKeyValues()) {
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 sourceOutputs,
-                boundGroupKeys,
-                boundAggregates,
+                groupKeys,
+                aggregates,
+                paramBinder,
                 AggregateMode.ITER_FINAL,
                 source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER,
                 plannerContext.transactionContext().sessionContext().searchPath()
@@ -166,8 +163,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 executionPlan.addProjection(
                     projectionBuilder.groupProjection(
                         sourceOutputs,
-                        boundGroupKeys,
-                        boundAggregates,
+                        groupKeys,
+                        aggregates,
+                        paramBinder,
                         AggregateMode.ITER_PARTIAL,
                         RowGranularity.SHARD,
                         plannerContext.transactionContext().sessionContext().searchPath()
@@ -175,9 +173,10 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 );
                 executionPlan.addProjection(
                     projectionBuilder.groupProjection(
-                        boundOutputs,
-                        boundGroupKeys,
-                        boundAggregates,
+                        outputs,
+                        groupKeys,
+                        aggregates,
+                        paramBinder,
                         AggregateMode.PARTIAL_FINAL,
                         RowGranularity.NODE,
                         plannerContext.transactionContext().sessionContext().searchPath()
@@ -191,8 +190,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 executionPlan.addProjection(
                     projectionBuilder.groupProjection(
                         sourceOutputs,
-                        boundGroupKeys,
-                        boundAggregates,
+                        groupKeys,
+                        aggregates,
+                        paramBinder,
                         AggregateMode.ITER_FINAL,
                         RowGranularity.NODE,
                         plannerContext.transactionContext().sessionContext().searchPath()
@@ -207,8 +207,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
         GroupProjection toPartial = projectionBuilder.groupProjection(
             sourceOutputs,
-            boundGroupKeys,
-            boundAggregates,
+            groupKeys,
+            aggregates,
+            paramBinder,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
             plannerContext.transactionContext().sessionContext().searchPath()
@@ -217,9 +218,10 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
 
         GroupProjection toFinal = projectionBuilder.groupProjection(
-            boundOutputs,
-            boundGroupKeys,
-            boundAggregates,
+            outputs,
+            groupKeys,
+            aggregates,
+            paramBinder,
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER,
             plannerContext.transactionContext().sessionContext().searchPath()
