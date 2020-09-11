@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Improved the throttling behavior of ``INSERT INTO .. <query>``, it is now
+  more aggressive to reduce the amount of memory used by a ``INSERT INTO``
+  operation.
+
 - Fixed an issue which resulted in an error when a parameter symbol
   (placeholder) is used inside an aggregation.
 

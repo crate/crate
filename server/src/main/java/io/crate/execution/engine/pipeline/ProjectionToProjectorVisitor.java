@@ -527,6 +527,7 @@ public class ProjectionToProjectorVisitor
         );
 
         return new ShardDMLExecutor<>(
+            context.jobId,
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
@@ -550,6 +551,7 @@ public class ProjectionToProjectorVisitor
         TimeValue reqTimeout = ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings);
 
         ShardDMLExecutor<?, ?, ?, ?> shardDMLExecutor = new ShardDMLExecutor<>(
+            context.jobId,
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
