@@ -149,53 +149,48 @@ final class GroupByOptimizedIterator {
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
 
-        try {
-            final QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
-            collectTask.addSearcher(sharedShardContext.readerId(), searcher);
+        final QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+        collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
-            InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
-            docCtx.add(collectPhase.toCollect().stream()::iterator);
+        InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
+        docCtx.add(collectPhase.toCollect().stream()::iterator);
 
-            InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
-            ctxForAggregations.add(groupProjection.values());
-            final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
+        InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
+        ctxForAggregations.add(groupProjection.values());
+        final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
 
-            List<AggregationContext> aggregations = ctxForAggregations.aggregations();
-            List<? extends LuceneCollectorExpression<?>> expressions = docCtx.expressions();
+        List<AggregationContext> aggregations = ctxForAggregations.aggregations();
+        List<? extends LuceneCollectorExpression<?>> expressions = docCtx.expressions();
 
-            RamAccounting ramAccounting = collectTask.getRamAccounting();
+        RamAccounting ramAccounting = collectTask.getRamAccounting();
 
-            CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId());
-            InputRow inputRow = new InputRow(docCtx.topLevelInputs());
+        CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId());
+        InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
-            LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
-                collectPhase.where(),
-                collectTask.txnCtx(),
-                indexShard.mapperService(),
-                indexShard.shardId().getIndexName(),
-                queryShardContext,
-                table,
-                sharedShardContext.indexService().cache()
-            );
+        LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
+            collectPhase.where(),
+            collectTask.txnCtx(),
+            indexShard.mapperService(),
+            indexShard.shardId().getIndexName(),
+            queryShardContext,
+            table,
+            sharedShardContext.indexService().cache()
+        );
 
-            return getIterator(
-                bigArrays,
-                searcher,
-                keyRef.column().fqn(),
-                aggregations,
-                expressions,
-                aggExpressions,
-                ramAccounting,
-                collectTask.memoryManager(),
-                collectTask.minNodeVersion(),
-                inputRow,
-                queryContext.query(),
-                collectorContext,
-                groupProjection.mode());
-        } catch (Throwable t) {
-            searcher.close();
-            throw t;
-        }
+        return getIterator(
+            bigArrays,
+            searcher,
+            keyRef.column().fqn(),
+            aggregations,
+            expressions,
+            aggExpressions,
+            ramAccounting,
+            collectTask.memoryManager(),
+            collectTask.minNodeVersion(),
+            inputRow,
+            queryContext.query(),
+            collectorContext,
+            groupProjection.mode());
     }
 
     static BatchIterator<Row> getIterator(BigArrays bigArrays,
