@@ -56,6 +56,9 @@ Breaking Changes
 Changes
 =======
 
+- Added detailed information on the error when a column with an undefined type
+  is used to ``GROUP BY``.
+
 - Added detailed information to possible errors on ``repository`` creation to
   give better insights on the root cause of the error.
 
@@ -100,6 +103,13 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue which resulted in an error when a parameter symbol
+  (placeholder) is used inside an aggregation.
+
+- Fixed an issue that could lead to the incorrect result of joining more than
+  two tables even if the join condition is satisfied. Only the hash join
+  implementation was affected by the issue.
 
 - Fixed a regression introduced in 4.2.3 that prevented primary key lookups
   with parameter placeholders from working in some cases.

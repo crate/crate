@@ -216,8 +216,6 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
     private ArrayList<TranslogReader> recoverFromFiles(Checkpoint checkpoint) throws IOException {
         boolean success = false;
         ArrayList<TranslogReader> foundTranslogs = new ArrayList<>();
-        final Path tempFile = Files.createTempFile(location, TRANSLOG_FILE_PREFIX, TRANSLOG_FILE_SUFFIX); // a temp file to copy checkpoint to - note it must be in on the same FS otherwise atomic move won't work
-        boolean tempFileRenamed = false;
         try (ReleasableLock ignored = writeLock.acquire()) {
             logger.debug("open uncommitted translog checkpoint {}", checkpoint);
 
@@ -235,8 +233,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
                         "translog file doesn't exist with generation: " + i + " recovering from: " + minGenerationToRecoverFrom
                             + " checkpoint: " + checkpoint.generation + " - translog ids must be consecutive");
                 }
-                final Checkpoint readerCheckpoint = i == checkpoint.generation
-                    ? checkpoint
+                final Checkpoint readerCheckpoint = i == checkpoint.generation ? checkpoint
                     : Checkpoint.read(location.resolve(getCommitCheckpointFileName(i)));
                 final TranslogReader reader = openReader(committedTranslogFile, readerCheckpoint);
                 assert reader.getPrimaryTerm() <= primaryTermSupplier.getAsLong() :
@@ -261,20 +258,32 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
                             + checkpoint + " but got " + checkpointFromDisk);
                 }
             } else {
-                // we first copy this into the temp-file and then fsync it followed by an atomic move into the target file
-                // that way if we hit a disk-full here we are still in an consistent state.
-                Files.copy(location.resolve(CHECKPOINT_FILE_NAME), tempFile, StandardCopyOption.REPLACE_EXISTING);
-                IOUtils.fsync(tempFile, false);
-                Files.move(tempFile, commitCheckpoint, StandardCopyOption.ATOMIC_MOVE);
-                tempFileRenamed = true;
-                // we only fsync the directory the tempFile was already fsynced
-                IOUtils.fsync(commitCheckpoint.getParent(), true);
+                copyCheckpointTo(commitCheckpoint);
             }
             success = true;
         } finally {
             if (success == false) {
                 IOUtils.closeWhileHandlingException(foundTranslogs);
             }
+        }
+        return foundTranslogs;
+    }
+
+    private void copyCheckpointTo(Path targetPath) throws IOException {
+        // a temp file to copy checkpoint to - note it must be in on the same FS otherwise atomic move won't work
+        final Path tempFile = Files.createTempFile(location, TRANSLOG_FILE_PREFIX, CHECKPOINT_SUFFIX);
+        boolean tempFileRenamed = false;
+
+        try {
+            // we first copy this into the temp-file and then fsync it followed by an atomic move into the target file
+            // that way if we hit a disk-full here we are still in an consistent state.
+            Files.copy(location.resolve(CHECKPOINT_FILE_NAME), tempFile, StandardCopyOption.REPLACE_EXISTING);
+            IOUtils.fsync(tempFile, false);
+            Files.move(tempFile, targetPath, StandardCopyOption.ATOMIC_MOVE);
+            tempFileRenamed = true;
+            // we only fsync the directory the tempFile was already fsynced
+            IOUtils.fsync(targetPath.getParent(), true);
+        } finally {
             if (tempFileRenamed == false) {
                 try {
                     Files.delete(tempFile);
@@ -283,7 +292,6 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
                 }
             }
         }
-        return foundTranslogs;
     }
 
     TranslogReader openReader(Path path, Checkpoint checkpoint) throws IOException {
@@ -823,15 +831,9 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
         }
     }
 
-    public TranslogConfig getConfig() {
-        return config;
-    }
-
-    // public for testing
-    public TranslogDeletionPolicy getDeletionPolicy() {
-        return deletionPolicy;
-    }
-
+    /**
+     * return stats
+     */
     public TranslogStats stats() {
         // acquire lock to make the two numbers roughly consistent (no file change half way)
         try (ReleasableLock lock = readLock.acquire()) {
@@ -843,6 +845,16 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
                 sizeInBytesByMinGen(uncommittedGen));
         }
     }
+
+    public TranslogConfig getConfig() {
+        return config;
+    }
+
+    // public for testing
+    public TranslogDeletionPolicy getDeletionPolicy() {
+        return deletionPolicy;
+    }
+
 
     public static class Location implements Comparable<Location> {
 
@@ -1632,13 +1644,8 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             try {
                 final TranslogReader reader = current.closeIntoReader();
                 readers.add(reader);
-                final Path checkpoint = location.resolve(CHECKPOINT_FILE_NAME);
-                assert Checkpoint.read(checkpoint).generation == current.getGeneration();
-                final Path generationCheckpoint =
-                    location.resolve(getCommitCheckpointFileName(current.getGeneration()));
-                Files.copy(checkpoint, generationCheckpoint);
-                IOUtils.fsync(generationCheckpoint, false);
-                IOUtils.fsync(generationCheckpoint.getParent(), true);
+                assert Checkpoint.read(location.resolve(CHECKPOINT_FILE_NAME)).generation == current.getGeneration();
+                copyCheckpointTo(location.resolve(getCommitCheckpointFileName(current.getGeneration())));
                 // create a new translog file; this will sync it and update the checkpoint data;
                 current = createWriter(current.getGeneration() + 1);
                 logger.trace("current translog set to [{}]", current.getGeneration());
@@ -1655,6 +1662,8 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
      * required generation
      */
     public void trimUnreferencedReaders() throws IOException {
+        // move most of the data to disk to reduce the time the lock is held
+        sync();
         try (ReleasableLock ignored = writeLock.acquire()) {
             if (closed.get()) {
                 // we're shutdown potentially on some tragic event, don't delete anything
@@ -1682,6 +1691,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
                 // We now update the checkpoint to ignore the file we are going to remove.
                 // Note that there is a provision in recoverFromFiles to allow for the case where we synced the checkpoint
                 // but crashed before we could delete the file.
+                // sync at once to make sure that there's at most one unreferenced generation.
                 current.sync();
                 deleteReaderFiles(reader);
             }
@@ -1731,24 +1741,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
      * Returns the current generation of this translog. This corresponds to the latest uncommitted translog generation
      */
     public TranslogGeneration getGeneration() {
-        try (ReleasableLock lock = writeLock.acquire()) {
-            return new TranslogGeneration(translogUUID, currentFileGeneration());
-        }
-    }
-
-    /**
-     * Returns <code>true</code> iff the given generation is the current generation of this translog
-     */
-    public boolean isCurrent(TranslogGeneration generation) {
-        try (ReleasableLock lock = writeLock.acquire()) {
-            if (generation != null) {
-                if (generation.translogUUID.equals(translogUUID) == false) {
-                    throw new IllegalArgumentException("commit belongs to a different translog: " + generation.translogUUID + " vs. " + translogUUID);
-                }
-                return generation.translogFileGeneration == currentFileGeneration();
-            }
-        }
-        return false;
+        return new TranslogGeneration(translogUUID, currentFileGeneration());
     }
 
     long getFirstOperationPosition() { // for testing

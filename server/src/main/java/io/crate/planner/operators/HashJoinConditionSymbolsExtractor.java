@@ -33,7 +33,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -76,7 +76,7 @@ public final class HashJoinConditionSymbolsExtractor {
 
     private static class Context {
         boolean insideEqOperator = false;
-        Map<RelationName, List<Symbol>> symbolsPerRelation = new HashMap<>();
+        Map<RelationName, List<Symbol>> symbolsPerRelation = new LinkedHashMap<>();
     }
 
     private static class SymbolExtractor extends DefaultTraversalSymbolVisitor<Context, Void> {

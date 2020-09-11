@@ -23,6 +23,8 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.TableDefinitions;
+import io.crate.data.Row1;
+import io.crate.data.RowN;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
@@ -39,7 +41,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.UUID;
 
+import static io.crate.testing.SymbolMatchers.isAggregation;
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -86,5 +91,17 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
         ));
         // Only u1.ints is in the outputs of the NL (pre projections)
         assertThat(projections.get(0).outputs(), contains(isInputColumn(1)));
+    }
+
+    @Test
+    public void test_aggregation_is_correctly_build_with_parameterized_expression() {
+        Collect plan = e.plan("select sum(x + ?) from t1", UUID.randomUUID(), 0, new Row1(1));
+        var projections = plan.collectPhase().projections();
+        assertThat(projections, contains(
+            instanceOf(AggregationProjection.class),
+            instanceOf(AggregationProjection.class)
+        ));
+        assertThat(projections.get(0).outputs(), contains(isAggregation("sum", isInputColumn(0))));
+        assertThat(projections.get(1).outputs(), contains(isAggregation("sum", isInputColumn(0))));
     }
 }

@@ -24,6 +24,7 @@ package io.crate.expression.symbol;
 
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
+import io.crate.types.DataTypes;
 
 import java.util.List;
 
@@ -62,6 +63,8 @@ public final class GroupAndAggregateSemantics {
         if (!containsAggregations && groupBy.isEmpty()) {
             return;
         }
+        groupBy.forEach(GroupAndAggregateSemantics::ensureTypedGroupKey);
+
         for (int i = 0; i < outputSymbols.size(); i++) {
             Symbol output = outputSymbols.get(i);
             Symbol offender = output.accept(FindOffendingSymbol.INSTANCE, groupBy);
@@ -72,6 +75,48 @@ public final class GroupAndAggregateSemantics {
                 "'" + offender +
                 "' must appear in the GROUP BY clause or be used in an aggregation function. " +
                 "Perhaps you grouped by an alias that clashes with a column in the relations"
+            );
+        }
+    }
+
+    private static void ensureTypedGroupKey(Symbol groupBy) {
+        groupBy.accept(EnsureTypedGroupKey.INSTANCE, null);
+    }
+
+    private static class EnsureTypedGroupKey extends SymbolVisitor<Void, Void> {
+
+        static final EnsureTypedGroupKey INSTANCE = new EnsureTypedGroupKey();
+
+        @Override
+        public Void visitSymbol(Symbol symbol, Void context) {
+            if (symbol.valueType() == DataTypes.UNDEFINED) {
+                raiseException(symbol);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitLiteral(Literal symbol, Void context) {
+            if (symbol.valueType() == DataTypes.UNDEFINED) {
+                if (symbol.value() == null) {
+                    // `NULL` is a valid case
+                    return null;
+                } else {
+                    raiseException(symbol);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitAlias(AliasSymbol aliasSymbol, Void context) {
+            return aliasSymbol.symbol().accept(this, context);
+        }
+
+        private static void raiseException(Symbol symbol) {
+            throw new IllegalArgumentException(
+                "Cannot group or aggregate on '" + symbol.toString() + "' with an undefined type." +
+                " Using an explicit type cast will make this work but adds processing overhead to the query."
             );
         }
     }

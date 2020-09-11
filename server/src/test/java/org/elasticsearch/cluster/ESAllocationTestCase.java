@@ -19,6 +19,17 @@
 
 package org.elasticsearch.cluster;
 
+import static java.util.Collections.emptyMap;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingNode;
@@ -36,19 +47,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-
-import static java.util.Collections.emptyMap;
-import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
-import static org.elasticsearch.common.util.CollectionUtils.arrayAsArrayList;
 
 public abstract class ESAllocationTestCase extends ESTestCase {
     private static final ClusterSettings EMPTY_CLUSTER_SETTINGS =
@@ -102,6 +100,31 @@ public abstract class ESAllocationTestCase extends ESTestCase {
 
     protected static DiscoveryNode newNode(String nodeId, Version version) {
         return new DiscoveryNode(nodeId, buildNewFakeTransportAddress(), emptyMap(), MASTER_DATA_ROLES, version);
+    }
+
+
+    protected static AllocationDeciders yesAllocationDeciders() {
+        return new AllocationDeciders(Arrays.asList(
+            new TestAllocateDecision(Decision.YES),
+            new SameShardAllocationDecider(
+                Settings.EMPTY,
+                new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)
+            )
+        ));
+    }
+
+    protected static AllocationDeciders noAllocationDeciders() {
+        return new AllocationDeciders(Collections.singleton(new TestAllocateDecision(Decision.NO)));
+    }
+
+    protected static AllocationDeciders throttleAllocationDeciders() {
+        return new AllocationDeciders(Arrays.asList(
+            new TestAllocateDecision(Decision.THROTTLE),
+            new SameShardAllocationDecider(
+                Settings.EMPTY,
+                new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)
+            )
+        ));
     }
 
     public static class TestAllocateDecision extends AllocationDecider {

@@ -93,4 +93,36 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
             isFunction(ArithmeticFunctions.Names.ADD, isLiteral(1), isReference("i"))));
         assertThat(symbolsPerRelation.get(tr2.relationName()), containsInAnyOrder(isReference("b"), isReference("i"), isReference("y")));
     }
+
+    @Test
+    public void test_extract_symbols_per_relation_maintains_visit_order() {
+        Symbol joinCondition = sqlExpressions.asSymbol("t1.i = t3.z AND t3.c = t2.b");
+        Map<RelationName, List<Symbol>> symbolsPerRelation =
+            HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        assertThat(
+            symbolsPerRelation.keySet(),
+            contains(
+                RelationName.fromIndexName("t1"),
+                RelationName.fromIndexName("t3"),
+                RelationName.fromIndexName("t2"))
+        );
+        assertThat(
+            symbolsPerRelation.get(RelationName.fromIndexName("t3")),
+            contains(isReference("z"), isReference("c"))
+        );
+    }
+
+    @Test
+    public void test_extract_symbols_per_relation_maintains_visit_order_when_removing_an_entry_from_result() {
+        Symbol joinCondition = sqlExpressions.asSymbol("t1.i = t3.z AND t3.c = t2.b");
+        Map<RelationName, List<Symbol>> symbolsPerRelation =
+            HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        symbolsPerRelation.remove(RelationName.fromIndexName("t3"));
+        assertThat(
+            symbolsPerRelation.keySet(),
+            contains(
+                RelationName.fromIndexName("t1"),
+                RelationName.fromIndexName("t2"))
+        );
+    }
 }

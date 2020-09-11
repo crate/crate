@@ -33,14 +33,9 @@ import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
 
@@ -671,11 +666,11 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGroupByUnknownGroupByColumn() throws Exception {
+    public void test_group_by_undefined_column_casted() throws Exception {
         this.setup.groupBySetup();
-        Assertions.assertThrows(Exception.class,
-                                () -> execute("select max(birthdate) from characters group by details_ignored['lol']",
-                                              "Cannot GROUP BY type: undefined"));
+        execute("select max(age) from characters group by details_ignored['lol']::String");
+        assertEquals(1, response.rowCount());
+        assertEquals(112, response.rows()[0][0]);
     }
 
     @Test
