@@ -44,6 +44,7 @@ import org.apache.logging.log4j.LogManager;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
@@ -66,6 +67,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     public static final int DEFAULT_BULK_SIZE = 10_000;
 
+    private final UUID jobId;
     private final int bulkSize;
     private final ScheduledExecutorService scheduler;
     private final Executor executor;
@@ -78,7 +80,8 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final Collector<ShardResponse, TAcc, TResult> collector;
     private int numItems = -1;
 
-    public ShardDMLExecutor(int bulkSize,
+    public ShardDMLExecutor(UUID jobId,
+                            int bulkSize,
                             ScheduledExecutorService scheduler,
                             Executor executor,
                             CollectExpression<Row, ?> uidExpression,
@@ -89,6 +92,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
                             Collector<ShardResponse, TAcc, TResult> collector
                             ) {
+        this.jobId = jobId;
         this.bulkSize = bulkSize;
         this.scheduler = scheduler;
         this.executor = executor;
@@ -142,6 +146,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         }
 
         return new BatchIteratorBackpressureExecutor<>(
+            jobId,
             scheduler,
             executor,
             reqBatchIterator,
