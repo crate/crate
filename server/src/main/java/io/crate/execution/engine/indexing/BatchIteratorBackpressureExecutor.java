@@ -23,11 +23,15 @@
 package io.crate.execution.engine.indexing;
 
 import io.crate.data.BatchIterator;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import io.crate.common.unit.TimeValue;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
@@ -53,6 +57,9 @@ import java.util.function.Predicate;
  */
 public class BatchIteratorBackpressureExecutor<T, R> {
 
+    private static final Logger LOGGER = LogManager.getLogger(BatchIteratorBackpressureExecutor.class);
+
+    private final UUID jobId;
     private final Executor executor;
     private final BatchIterator<T> batchIterator;
     private final Function<T, CompletableFuture<R>> execute;
@@ -76,7 +83,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
      * @param identity default value (this is the result, if the batchIterator contains no items)
      * @param pauseConsumption predicate used to check if the consumption should be paused
      */
-    public BatchIteratorBackpressureExecutor(ScheduledExecutorService scheduler,
+    public BatchIteratorBackpressureExecutor(UUID jobId,
+                                             ScheduledExecutorService scheduler,
                                              Executor executor,
                                              BatchIterator<T> batchIterator,
                                              Function<T, CompletableFuture<R>> execute,
@@ -84,6 +92,7 @@ public class BatchIteratorBackpressureExecutor<T, R> {
                                              R identity,
                                              Predicate<T> pauseConsumption,
                                              BackoffPolicy backoffPolicy) {
+        this.jobId = jobId;
         this.executor = executor;
         this.batchIterator = batchIterator;
         this.scheduler = scheduler;
@@ -150,9 +159,13 @@ public class BatchIteratorBackpressureExecutor<T, R> {
             while (batchIterator.moveNext()) {
                 T item = batchIterator.currentElement();
                 if (pauseConsumption.test(item)) {
+                    long delayInMs = throttleDelay.next().getMillis();
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Pausing consumption jobId={} delayInMs={}", jobId, delayInMs);
+                    }
                     // release semaphore inside resumeConsumption: after throttle delay has passed
                     // to make sure callbacks of previously triggered async operations don't resume consumption
-                    scheduler.schedule(this::resumeConsumption, throttleDelay.next().getMillis(), TimeUnit.MILLISECONDS);
+                    scheduler.schedule(this::resumeConsumption, delayInMs, TimeUnit.MILLISECONDS);
                     return;
                 }
                 execute(item);
@@ -197,6 +210,9 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     }
 
     private void doResumeConsumption(T item) {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Resuming consumption jobId={}", jobId);
+        }
         // Suspend happened once a batch was ready, so execute it now.
         // consumeIterator would otherwise move past the indexInBulk == bulkSize check and end up building a huge batch
         execute(item);
