@@ -1,23 +1,21 @@
-======================
-Develop Guide - Basics
-======================
+===========
+Basic setup
+===========
 
 Prerequisites
 =============
 
-CrateDB is written in Java_ and includes pre-configured bundled version of
-OpenJDK_ in its build. Nevertheless, to develop CrateDB, you'd still have to
-install Java_ to run the Gradle_ build tool. Some of the tools that are used
-for documentation building, tests, etc. require Python_. To set up you minimal
-development environment, you'll need:
+CrateDB is written in Java_ and includes a pre-configured bundled version of
+OpenJDK_ in its build. But to develop CrateDB, you still have to install Java_
+in order to run the Gradle_ build tool. Some of the tools that are used
+to build documentation and run tests require Python_. 
+
+To set up a minimal development environment, you will need:
 
  - Java_ (>= 11)
  - Python_ (>= 3.7)
 
-Set Up
-======
-
-Clone the repository like so::
+Then, clone the repository and navigate into its directory::
 
     $ git clone https://github.com/crate/crate.git
     $ cd crate
@@ -25,30 +23,27 @@ Clone the repository like so::
 Manual Build
 ============
 
-This project uses Gradle_ as build tool.
+This project uses Gradle_ as a build tool. The most convenient way to build
+and run CrateDB while you are working on the code is to do so directly from
+within your IDE. See the section on `IDE integration`_. 
 
-The most convenient way to build and run CrateDB while you are working on the
-code is to do so directly from within your IDE. See the section on IDE
-integration later in this document. However, if you want to, you can work with
-Gradle directly.
-
-Gradle can be invoked by executing ``./gradlew``. The first time this command
-is executed it is bootstrapped automatically, therefore there is no need to
-install gradle on the system.
+However, you can also use Gradle directly. Gradle can be invoked by executing
+``./gradlew``. The first time this command is executed, it is bootstrapped
+automatically and there is no need to install Gradle on the system.
 
 To compile the CrateDB sources, run::
 
     $ ./gradlew compileJava
 
-Run CrateDB like so::
+To run CrateDB::
 
     $ ./gradlew app:run
 
-The ``run`` command will set the HOME to ``sandbox/crate`` and so use the
-configuration files located there.
+The ``run`` command will set CRATE_HOME to ``sandbox/crate``, so use the
+configuration files located in that directory.
 
 
-Build the CrateDB distribution tarball like so::
+To build the CrateDB distribution tarball, run::
 
     $ ./gradlew distTar
 
@@ -64,11 +59,11 @@ And then start CrateDB like this::
 
     ./app/build/install/crate/bin/crate
 
-Build a tarball of the Community Edition like so::
+To build a tarball of the Community Edition, run::
 
     $ ./gradlew communityEditionDistTar
 
-The tarball can then be found in the ``app/build/distributions`` directory.
+The built tarball will be in the ``app/build/distributions`` directory.
 
 To get a full list of all available tasks, run::
 
@@ -76,7 +71,7 @@ To get a full list of all available tasks, run::
 
 By default, CrateDB uses the pre-configured bundled version of OpenJDK_. It
 is also possible to run, compile, and test CrateDB by configuring the target
-JDK. For instance::
+JDK. For example::
 
     $ ./gradlew distTar -Dbundled_jdk_os=linux \
                         -Dbundled_jdk_arch=aarch64 \
@@ -84,7 +79,7 @@ JDK. For instance::
                         -Dbundled_jdk_version=13.0.2+8
 
 It is possible to compile the code base and run tests with the host system JDK.
-To achieve that, pass the ``-DuseSystemJdk`` system parameter along with a
+To do this, pass the ``-DuseSystemJdk`` system parameter along with a
 Gradle task. For example, to run unit tests with the host system JDK, execute
 the following command::
 
@@ -94,10 +89,11 @@ All the tasks related to packaging and releasing (``distTar``, ``release``) or
 tasks that depend on them (``itest``) will ignore the ``-DuseSystemJdk``
 parameter. This means that the compilation and test execution can be
 done with the system JDK, but releasing and packaging will still use the
-bundled JDK. The ``-DuseSystemJdk`` is useful for doing releases and
-cross-platform builds. For instance, you can build a CrateDB package for
-Windows with the corresponding to the platform bundled JDK on a Linux
-machine::
+bundled JDK. 
+
+The ``-DuseSystemJdk`` is useful for doing releases and cross-platform builds.
+For example, you can build a CrateDB package for Windows with the
+corresponding platform-bundled JDK on a Linux machine::
 
     $ ./gradlew distZip \
                 -Dbundled_jdk_os=windows \
@@ -106,7 +102,7 @@ machine::
                 -Dbundled_jdk_version=13.0.2+8 \
                 -DuseSystemJdk
 
-Currently, we support the following ``JDK`` operation systems and
+Currently, we support ``JDK`` on the following operation systems and
 architectures:
 
     +---------+---------+---------+-----+
@@ -123,7 +119,7 @@ The only supported ``JDK`` vendor is ``AdoptOpenJDK``. To check the available
 Running Tests
 =============
 
-See `Tests cheatsheet <tests.rst>`_.
+Refer to `Tests cheatsheet <tests.rst>`_.
 
 
 Using an IDE
@@ -131,10 +127,14 @@ Using an IDE
 
 We recommend that you use `IntelliJ IDEA`_ for development.
 
-Do **not** use the Gradle plugin in `IntelliJ IDEA`_ but instead use the
+Do **not** use the Gradle plugin in `IntelliJ IDEA`_. Instead, use the
 following Gradle task and then import the ``crate.ipr`` file within Intellij::
 
     $ ./gradlew idea
+
+This will set up the project using the pre-configured code style, code
+inspection, etc. It will also create some run/debug configurations which
+allows you to start Crate from the IDE.
 
 Run/Debug Configurations
 ------------------------
@@ -151,45 +151,46 @@ Here, ``<PROJECT_ROOT>`` is the root of your Git repository.
 Checkstyle
 ----------
 
-The Checkstyle plugin enforces rules defined in `<PROJECT_ROOT>/gradle/checkstyle/rules.xml`.
-Among others, it indicates unused imports, inconsistent formatting, and potential
-bugs. The plugin is run by Gradle after compiling the main sources. It checks the
-main sources only but not the test sources.
-
-If you use IntelliJ, there is a Checkstyle plugin available which let's you check
+If you use IntelliJ, there is a Checkstyle plugin available which lets you check
 Checkstyle compliance from within the IDE.
+
+The Checkstyle plugin enforces rules defined in `<PROJECT_ROOT>/gradle/checkstyle/rules.xml`.
+It checks for things such as unused imports, inconsistent formatting, and potential
+bugs. 
+
+The plugin is run by Gradle after compiling the main sources. Only main sources
+are analyzed and not the test sources.
+
 
 Test Coverage
 --------------
 
-You can create test coverage reports with `jacoco`_::
+You can create test coverage reports with `jacoco`_ by running::
 
     $ ./gradlew jacocoReport
 
-The HTML test coverage report can then be found in the
+The test coverage report (in HTML) can then be found in the
 ``build/reports/jacoco/jacocoHtml`` directory.
 
 Forbidden APIs
 --------------
 
-You can run the `Forbidden APIs`_ tool like so::
+To run the `Forbidden APIs`_ tool::
 
     $ ./gradlew forbiddenApisMain
 
 Troubleshooting
 ===============
 
-If you just pulled some new commits and you're getting strange compile errors,
-try resetting everything and re-compiling::
+If you pulled in some new commits and are getting strange compile errors, try
+to reset everything and re-compile:
 
     $ git clean -xdff
     $ ./gradlew compileTestJava
 
-If you want to get more information for unchecked or deprecation warnings run
-build like so::
+If you want to get more information on unchecked or deprecation warnings, run
+the build with the following command::
 
-    $ ./gradlew -Plint-unchecked compileTestJava
-    $ ./gradlew -Plint-deprecation compileTestJava
     $ ./gradlew -Plint-unchecked -Plint-deprecation compileTestJava
 
 
@@ -199,6 +200,7 @@ build like so::
 .. _Python: http://www.python.org/
 .. _Gradle: http://www.gradle.org/
 .. _logging documentation: https://crate.io/docs/en/stable/configuration.html#logging
+.. _IDE integration: https://github.com/crate/crate/blob/master/devs/docs/basics.rst#using-an-ide
 .. _IntelliJ IDEA: https://www.jetbrains.com/idea/
 .. _jacoco: http://www.eclemma.org/jacoco/
 .. _Forbidden APIs: https://github.com/policeman-tools/forbidden-apis
