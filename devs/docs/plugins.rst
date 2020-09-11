@@ -2,17 +2,16 @@
 Plugins
 =======
 
-CrateDB implements a plugin loading infrastructure making it possible to
-develop plugins for CrateDB.
+CrateDB implements a plugin loading infrastructure. To add functionalities,
+you can develop plugins for CrateDB.
 
-A plugin must at least:
+A plugin must:
 
- - implement the ``io.crate.Plugin`` interface
- - register its implementation at
-   ``META-INF/services/io.crate.Plugin`` so CrateDB plugin load can find
-   it.
+- implement the ``io.crate.Plugin`` interface
+- register its implementation at ``META-INF/services/io.crate.Plugin`` so that
+  CrateDB plugin load can find it
 
-See our `CrateDB example plugin`_ for details about that.
+Refer to our `CrateDB example plugin`_ for more details.
 
 Plugin CrateDB Dependency
 =========================
@@ -81,20 +80,20 @@ Add CrateDB as a dependency:
 Plugin Loading
 ==============
 
-Loading of plugins is done by CrateDB for searching all class path element
+Loading of plugins is done by CrateDB by searching all class path element
 resources for a ``META-INF/services/io.crate.Plugin`` file.
 
-Inside this file just one line is allowed defining the full qualified class
-name which is implementing the `Plugin interface`_. This is almost the same
-like you may know from Java's ServiceLoader.
+Inside this file, one line is allowed to define the full qualified class
+name which implements the `Plugin interface`_. This is similar to Java's
+ServiceLoader.
 
 Constructor with ``Settings`` argument
 --------------------------------------
 
 CrateDB passes a ``Settings`` instance to the plugin implementation constructor
-if such a constructor exists. Otherwise an empty constructor is used. By using
+if such a constructor exists. Otherwise, an empty constructor is used. By using
 the ``Settings`` instance, a plugin can process existing settings and/or
-implement it's own custom setting entries.
+implement its own custom setting entries.
 
 The `CrateDB example plugin`_ makes use of that to implement a custom setting.
 
@@ -103,26 +102,26 @@ The `CrateDB example plugin`_ makes use of that to implement a custom setting.
 Plugin Interface
 ================
 
-CrateDB uses `Guice`_ module binding concept and so does a plugin. As described
-at the ``io.crate.Plugin`` interface, a plugin can load serveral module types
-by implementing relevant methods:
+CrateDB uses the `Guice`_ module binding concept and so do plugins. As
+described in the ``io.crate.Plugin`` interface, a plugin can load several
+module types by implementing relevant methods:
 
  - lifecycle services
  - node level modules
 
 This enables plugin developers to access a lot of functionality. But that comes
-at the price of the API stability: Most of the components in CrateDB are
-considered internal and may change with any version, including hotfix versions.
+at the price of API stability. Most of the components in CrateDB are considered
+internal and may change with any version, including hotfix versions.
 
-The main purpose for the Plugins right now is to add additional scalar
+The main purpose for the plugins right now is to add additional scalar
 functions or aggregation functions. An example of a plugin that does that is
 `CrateDB example plugin`_.
 
 Installing a Plugin
 ===================
 
-Installing a plugin is simply done by copying the plugin's JAR file(s)
-somewhere into the class path or to one of the following places:
+Installing a plugin is done by copying the plugin's JAR file(s) into the class
+path or to one of the following places:
 
  - <CRATE_HOME>/plugins/
  - <CRATE_HOME>/plugins/<SOME_PLUGIN_NAME>/
