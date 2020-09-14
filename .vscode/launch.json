@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "request": "launch",
+            "name": "Debug CrateDB",
+            "args": "-Cpath.home=${workspaceFolder}/sandbox/crate",
+            "vmArgs": "-Xms2G -Xmx2G",
+            "mainClass": "io.crate.bootstrap.CrateDB",
+            "projectName": "app",
+            "console": "integratedTerminal"
+        }
+    ]
+}
