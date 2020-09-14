@@ -740,11 +740,10 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is("1| 2\n"));
     }
 
-    @Ignore("We haven't added inner types for object literals, so this test is expected to fail")
     @Test
     public void testSubscriptOnSubSelectFromUnnestWithObjectLiteral() {
         execute("select col1['b'] from (select * from unnest([{b=1}])) t1");
-        assertThat(printedTable(response.rows()), is(""));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
