@@ -36,6 +36,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import static io.crate.blob.v2.BlobIndex.isBlobIndex;
@@ -53,8 +54,10 @@ public class ShardCollectorProviderFactory {
     private final NodeJobsCounter nodeJobsCounter;
     private final BigArrays bigArrays;
     private final Settings settings;
+    private final CircuitBreakerService circuitBreakerService;
 
     ShardCollectorProviderFactory(ClusterService clusterService,
+                                  CircuitBreakerService circuitBreakerService,
                                   Settings settings,
                                   Schemas schemas,
                                   ThreadPool threadPool,
@@ -65,6 +68,7 @@ public class ShardCollectorProviderFactory {
                                   NodeJobsCounter nodeJobsCounter,
                                   BigArrays bigArrays) {
         this.settings = settings;
+        this.circuitBreakerService = circuitBreakerService;
         this.schemas = schemas;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
@@ -84,6 +88,7 @@ public class ShardCollectorProviderFactory {
                 clusterService,
                 schemas,
                 nodeJobsCounter,
+                circuitBreakerService,
                 functions,
                 threadPool,
                 settings,
@@ -95,6 +100,7 @@ public class ShardCollectorProviderFactory {
                 luceneQueryBuilder,
                 clusterService,
                 nodeJobsCounter,
+                circuitBreakerService,
                 functions,
                 threadPool,
                 settings,

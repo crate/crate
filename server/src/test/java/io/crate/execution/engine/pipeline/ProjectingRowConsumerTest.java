@@ -53,6 +53,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -85,6 +86,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             new NodeJobsCounter(),
+            new NoneCircuitBreakerService(),
             functions,
             THREAD_POOL,
             Settings.EMPTY,

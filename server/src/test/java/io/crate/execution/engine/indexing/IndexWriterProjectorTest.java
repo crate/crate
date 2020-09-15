@@ -49,6 +49,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -84,6 +85,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         IndexWriterProjector writerProjector = new IndexWriterProjector(
             clusterService(),
             new NodeJobsCounter(),
+            new NoopCircuitBreaker("dummy"),
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             CoordinatorTxnCtx.systemTransactionContext(),
