@@ -63,6 +63,7 @@ import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -99,6 +100,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         visitor = new ProjectionToProjectorVisitor(
             clusterService,
             new NodeJobsCounter(),
+            new NoneCircuitBreakerService(),
             nodeCtx,
             THREAD_POOL,
             Settings.EMPTY,

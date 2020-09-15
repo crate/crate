@@ -42,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -66,6 +67,7 @@ public class IndexWriterProjector implements Projector {
 
     public IndexWriterProjector(ClusterService clusterService,
                                 NodeJobsCounter nodeJobsCounter,
+                                CircuitBreaker queryCircuitBreaker,
                                 ScheduledExecutorService scheduler,
                                 Executor executor,
                                 TransactionContext txnCtx,
@@ -117,6 +119,7 @@ public class IndexWriterProjector implements Projector {
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             nodeJobsCounter,
+            queryCircuitBreaker,
             scheduler,
             executor,
             bulkActions,

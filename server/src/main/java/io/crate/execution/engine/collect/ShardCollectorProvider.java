@@ -30,6 +30,7 @@ import io.crate.metadata.NodeContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.WhereClause;
@@ -61,6 +62,7 @@ public abstract class ShardCollectorProvider {
     final EvaluatingNormalizer shardNormalizer;
 
     ShardCollectorProvider(ClusterService clusterService,
+                           CircuitBreakerService circuitBreakerService,
                            Schemas schemas,
                            NodeJobsCounter nodeJobsCounter,
                            NodeContext nodeCtx,
@@ -80,6 +82,7 @@ public abstract class ShardCollectorProvider {
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
+            circuitBreakerService,
             nodeCtx,
             threadPool,
             settings,

@@ -177,6 +177,7 @@ public class JobSetup {
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
+            circuitBreakerService,
             nodeCtx,
             threadPool,
             settings,

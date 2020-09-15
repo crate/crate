@@ -42,6 +42,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -56,12 +57,14 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       ClusterService clusterService,
                                       Schemas schemas,
                                       NodeJobsCounter nodeJobsCounter,
+                                      CircuitBreakerService circuitBreakerService,
                                       NodeContext nodeCtx,
                                       ThreadPool threadPool,
                                       Settings settings,
                                       TransportActionProvider transportActionProvider) {
         super(
             clusterService,
+            circuitBreakerService,
             schemas,
             nodeJobsCounter,
             nodeCtx,
