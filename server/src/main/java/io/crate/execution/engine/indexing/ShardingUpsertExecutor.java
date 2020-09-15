@@ -367,7 +367,7 @@ public class ShardingUpsertExecutor
                         + "ramBytesUsed={} itemsByShard={} itemSize={}",
                     shardedRequests.ramBytesUsed(),
                     shardedRequests.itemsByShard().size(),
-                    shardedRequests.ramBytesUsed() / shardedRequests.itemsByShard().size());
+                    shardedRequests.ramBytesUsed() / Math.max(shardedRequests.itemsByShard().size(), 1));
             }
             return requestsTooBig;
         }
