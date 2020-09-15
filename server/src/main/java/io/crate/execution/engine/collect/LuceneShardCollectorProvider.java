@@ -36,6 +36,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.data.BatchIterator;
@@ -80,6 +81,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         LuceneQueryBuilder luceneQueryBuilder,
                                         ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
+                                        CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
@@ -88,6 +90,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         BigArrays bigArrays) {
         super(
             clusterService,
+            circuitBreakerService,
             schemas,
             nodeJobsCounter,
             nodeCtx,

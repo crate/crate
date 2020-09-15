@@ -53,6 +53,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.HashMap;
@@ -74,6 +75,7 @@ public class CollectSourceResolver {
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
                                  NodeJobsCounter nodeJobsCounter,
+                                 CircuitBreakerService circuitBreakerService,
                                  NodeContext nodeCtx,
                                  Settings settings,
                                  ThreadPool threadPool,
@@ -92,6 +94,7 @@ public class CollectSourceResolver {
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
+            circuitBreakerService,
             nodeCtx,
             threadPool,
             settings,

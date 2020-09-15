@@ -140,6 +140,51 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
         return newUsed;
     }
 
+    @Override
+    public long addBytesRangeAndMaybeBreak(long minAcceptableBytes, long wantedBytes, String label) throws CircuitBreakingException {
+        if (minAcceptableBytes == wantedBytes) {
+            addEstimateBytesAndMaybeBreak(wantedBytes, label);
+            return wantedBytes;
+        }
+        // -1 is no limit
+        if (memoryBytesLimit == -1) {
+            used.addAndGet(wantedBytes);
+            return wantedBytes;
+        }
+        if (memoryBytesLimit == 0) {
+            circuitBreak(label, wantedBytes);
+        }
+
+        long actualIncrement = wantedBytes;
+        long newUsed;
+        long currentUsed;
+        do {
+            currentUsed = this.used.get();
+            newUsed = currentUsed + actualIncrement;
+            long newUsedWithOverhead = (long) (newUsed * overheadConstant);
+            if (newUsedWithOverhead > memoryBytesLimit) {
+                if (((currentUsed + minAcceptableBytes) * overheadConstant) > memoryBytesLimit) {
+                    circuitBreak(label, newUsedWithOverhead);
+                }
+                actualIncrement = (long) ((memoryBytesLimit - currentUsed) / overheadConstant);
+                currentUsed = -1L; // force compareAndSet to fail to have another iteration
+            }
+        } while (!this.used.compareAndSet(currentUsed, newUsed));
+
+        // Additionally, we need to check that we haven't exceeded the parent's limit
+        try {
+            parent.checkParentLimit((long) (actualIncrement * overheadConstant), label);
+        } catch (CircuitBreakingException e) {
+            // If the parent breaker is tripped, this breaker has to be
+            // adjusted back down because the allocation is "blocked" but the
+            // breaker has already been incremented
+            this.addWithoutBreaking(-actualIncrement);
+            throw e;
+        }
+
+        return newUsed - currentUsed;
+    }
+
     private long noLimit(long bytes, String label) {
         long newUsed;
         newUsed = this.used.addAndGet(bytes);
