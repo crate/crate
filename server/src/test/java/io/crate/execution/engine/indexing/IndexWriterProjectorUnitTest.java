@@ -44,6 +44,7 @@ import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
@@ -98,6 +99,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
         IndexWriterProjector indexWriter = new IndexWriterProjector(
             clusterService,
             new NodeJobsCounter(),
+            new NoopCircuitBreaker("dummy"),
             scheduler,
             executor,
             CoordinatorTxnCtx.systemTransactionContext(),

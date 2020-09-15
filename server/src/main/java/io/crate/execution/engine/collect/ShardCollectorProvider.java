@@ -22,6 +22,14 @@
 
 package io.crate.execution.engine.collect;
 
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -43,12 +51,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.shard.ShardReferenceResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
 
 public abstract class ShardCollectorProvider {
 
@@ -57,6 +59,7 @@ public abstract class ShardCollectorProvider {
     final EvaluatingNormalizer shardNormalizer;
 
     ShardCollectorProvider(ClusterService clusterService,
+                           CircuitBreakerService circuitBreakerService,
                            Schemas schemas,
                            NodeJobsCounter nodeJobsCounter,
                            Functions functions,
@@ -75,6 +78,7 @@ public abstract class ShardCollectorProvider {
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
+            circuitBreakerService,
             functions,
             threadPool,
             settings,

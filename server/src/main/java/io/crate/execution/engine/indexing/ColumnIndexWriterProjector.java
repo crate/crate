@@ -41,6 +41,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -58,6 +59,7 @@ public class ColumnIndexWriterProjector implements Projector {
 
     public ColumnIndexWriterProjector(ClusterService clusterService,
                                       NodeJobsCounter nodeJobsCounter,
+                                      CircuitBreaker queryCircuitBreaker,
                                       ScheduledExecutorService scheduler,
                                       Executor executor,
                                       TransactionContext txnCtx,
@@ -123,6 +125,7 @@ public class ColumnIndexWriterProjector implements Projector {
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             nodeJobsCounter,
+            queryCircuitBreaker,
             scheduler,
             executor,
             bulkActions,
