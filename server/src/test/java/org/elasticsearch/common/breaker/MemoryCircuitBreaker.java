@@ -21,6 +21,7 @@ package org.elasticsearch.common.breaker;
 
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -195,6 +196,6 @@ public class MemoryCircuitBreaker implements CircuitBreaker {
      */
     @Override
     public String getName() {
-        return FIELDDATA;
+        return HierarchyCircuitBreakerService.QUERY;
     }
 }
