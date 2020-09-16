@@ -85,7 +85,7 @@ public final class ViewAnalyzer {
             query,
             createView.query(),
             createView.replaceExisting(),
-            txnCtx.sessionContext().user()
+            txnCtx.sessionContext().sessionUser()
         );
     }
 

@@ -65,7 +65,7 @@ class AlterTableAnalyzer {
         DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(
             alterTable.table().getName(),
             Operation.ALTER_BLOCKS,
-            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().sessionUser(),
             txnCtx.sessionContext().searchPath());
 
         return new AnalyzedAlterTable(docTableInfo, alterTable);

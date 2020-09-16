@@ -75,7 +75,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
 
         execute(e.plan("SET SESSION AUTHORIZATION " + user.name()));
 
-        assertThat(sessionContext.user(), is(user));
+        assertThat(sessionContext.sessionUser(), is(user));
     }
 
     @Test
@@ -83,14 +83,14 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
         var sessionContext = e.getSessionContext();
         sessionContext.setSessionUser(User.of("test"));
         assertThat(
-            sessionContext.user(),
+            sessionContext.sessionUser(),
             is(not(sessionContext.authenticatedUser()))
         );
 
         execute(e.plan("SET SESSION AUTHORIZATION DEFAULT"));
 
         assertThat(
-            sessionContext.user(),
+            sessionContext.sessionUser(),
             is(sessionContext.authenticatedUser())
         );
     }

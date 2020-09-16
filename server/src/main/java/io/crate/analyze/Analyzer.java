@@ -404,7 +404,7 @@ public class Analyzer {
         public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeDeny(
                 node,
-                context.sessionContext().user(),
+                context.sessionContext().sessionUser(),
                 context.sessionContext().searchPath());
         }
 
@@ -462,7 +462,7 @@ public class Analyzer {
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeGrant(
                 node,
-                context.sessionContext().user(),
+                context.sessionContext().sessionUser(),
                 context.sessionContext().searchPath());
         }
 
@@ -527,7 +527,7 @@ public class Analyzer {
         public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeRevoke(
                 node,
-                context.sessionContext().user(),
+                context.sessionContext().sessionUser(),
                 context.sessionContext().searchPath());
         }
 
