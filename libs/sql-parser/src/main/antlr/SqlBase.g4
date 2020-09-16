@@ -68,6 +68,7 @@ statement
         transactionMode (',' transactionMode)*                                       #setTransaction
     | SET (SESSION | LOCAL)? SESSION AUTHORIZATION
         (DEFAULT | username=stringLiteralOrIdentifier)                               #setSessionAuthorization
+    | RESET SESSION AUTHORIZATION                                                    #resetSessionAuthorization
     | SET (SESSION | LOCAL)? qname
         (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
     | SET GLOBAL (PERSISTENT | TRANSIENT)?

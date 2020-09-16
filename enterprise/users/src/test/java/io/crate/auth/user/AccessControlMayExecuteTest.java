@@ -541,4 +541,13 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             ParamTypeHints.EMPTY);
         assertThat(validationCallArguments.size(), is(0));
     }
+
+    @Test
+    public void test_reset_session_authorization_from_normal_user_succeeds() {
+        e.analyzer.analyze(
+            SqlParser.createStatement("RESET SESSION AUTHORIZATION"),
+            new SessionContext(superUser, user),
+            ParamTypeHints.EMPTY);
+        assertThat(validationCallArguments.size(), is(0));
+    }
 }

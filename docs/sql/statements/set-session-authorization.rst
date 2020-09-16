@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-set-session-authorization:
 
-=============================
-``SET SESSION AUTHORIZATION``
-=============================
+=======================================
+``SET AND RESET SESSION AUTHORIZATION``
+=======================================
 
 Set the user of the current session.
 
@@ -19,6 +19,7 @@ Synopsis
 
     SET [ SESSION | LOCAL ] SESSION AUTHORIZATION username
     SET [ SESSION | LOCAL ] SESSION AUTHORIZATION DEFAULT
+    RESET SESSION AUTHORIZATION
 
 Description
 ===========
@@ -39,6 +40,9 @@ using ``SET SESSION AUTHORIZATION <real_username>`` or
 
 ``SET LOCAL`` does not have any effect on session. All ``SET LOCAL`` statements
 will be ignored by CrateDB and logged with the ``INFO`` logging level.
+
+The ``DEFAULT`` and ``RESET`` forms reset the session and current user to be
+the originally authenticated user.
 
 Parameters
 ==========

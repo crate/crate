@@ -30,8 +30,8 @@ public class SetSessionAuthorizationStatement extends Statement {
         SESSION, LOCAL
     }
 
-    private final String user;
     @Nullable
+    private final String user;
     private final Scope scope;
 
     public SetSessionAuthorizationStatement(Scope scope) {
@@ -43,6 +43,13 @@ public class SetSessionAuthorizationStatement extends Statement {
         this.user = user;
     }
 
+    /**
+     * user is null for the following statements::
+     * <p>
+     * SET [ SESSION | LOCAL ] SESSION AUTHORIZATION DEFAULT
+     * and
+     * RESET SESSION AUTHORIZATION
+     */
     @Nullable
     public String user() {
         return user;

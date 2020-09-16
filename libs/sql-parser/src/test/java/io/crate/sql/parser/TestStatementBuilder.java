@@ -395,6 +395,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_reset_session_authorization_statement() {
+        printStatement("reset session authorization");
+    }
+
+    @Test
     public void testKillStmtBuilder() {
         printStatement("kill all");
         printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
