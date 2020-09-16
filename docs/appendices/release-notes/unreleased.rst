@@ -53,6 +53,16 @@ Breaking Changes
   their position is after an ``object`` type column.
 
 
+Deprecations
+============
+
+- Deprecated the :ref:`indices.breaker.fielddata.limit
+  <indices.breaker.fielddata.limit>` and
+  :ref:`indices.breaker.fielddata.overhead
+  <indices.breaker.fielddata.overhead>` settings. These no longer have any
+  effect as there is no fielddata cache anymore.
+
+
 Changes
 =======
 

@@ -36,11 +36,7 @@ public interface CircuitBreaker {
      * from by itself.
      */
     String PARENT = "parent";
-    /**
-     * The fielddata breaker tracks data used for fielddata (on fields) as well
-     * as the id cached used for parent/child queries.
-     */
-    String FIELDDATA = "fielddata";
+
     /**
      * The request breaker tracks memory used for particular requests. This
      * includes allocations for things like the cardinality aggregation, and

@@ -1001,9 +1001,8 @@ keeps working.
 Field data circuit breaker
 --------------------------
 
-The field data circuit breaker allows estimation of needed heap memory required
-for loading field data into memory. If a certain limit is reached an exception
-is raised.
+These settings are deprecated and will be removed in CrateDB 5.0. They don't
+have any effect anymore.
 
 .. _indices.breaker.fielddata.limit:
 
@@ -1011,7 +1010,6 @@ is raised.
   | *Default:*   ``60%``
   | *Runtime:*  ``yes``
 
-  Specifies the JVM heap limit for the fielddata breaker.
 
 .. _indices.breaker.fielddata.overhead:
 
@@ -1019,8 +1017,6 @@ is raised.
   | *Default:*   ``1.03``
   | *Runtime:*  ``yes``
 
-  A constant that all field data estimations are multiplied with to determine a
-  final estimation.
 
 Request circuit breaker
 -----------------------
