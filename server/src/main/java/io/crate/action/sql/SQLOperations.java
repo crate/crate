@@ -96,12 +96,12 @@ public class SQLOperations {
         return createSession(SessionContext.systemSessionContext());
     }
 
-    public Session createSession(@Nullable String defaultSchema, User user) {
+    public Session createSession(@Nullable String defaultSchema, User authenticatedUser) {
         SessionContext sessionContext;
         if (defaultSchema == null) {
-            sessionContext = new SessionContext(user);
+            sessionContext = new SessionContext(authenticatedUser);
         } else {
-            sessionContext = new SessionContext(user, defaultSchema);
+            sessionContext = new SessionContext(authenticatedUser, defaultSchema);
         }
 
         return createSession(sessionContext);

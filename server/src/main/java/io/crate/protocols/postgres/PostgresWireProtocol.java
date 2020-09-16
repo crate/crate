@@ -435,9 +435,9 @@ public class PostgresWireProtocol {
     private void finishAuthentication(Channel channel) {
         assert authContext != null : "finishAuthentication() requires an authContext instance";
         try {
-            User user = authContext.authenticate();
+            User authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
-            session = sqlOperations.createSession(database, user);
+            session = sqlOperations.createSession(database, authenticatedUser);
             Messages.sendAuthenticationOK(channel)
                 .addListener(f -> sendParamsAndRdyForQuery(channel));
         } catch (Exception e) {
