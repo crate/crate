@@ -61,7 +61,7 @@ class RefreshTableAnalyzer {
             var tableInfo = (DocTableInfo) schemas.resolveTableInfo(
                 table.getName(),
                 Operation.REFRESH,
-                txnCtx.sessionContext().user(),
+                txnCtx.sessionContext().sessionUser(),
                 txnCtx.sessionContext().searchPath());
             analyzedTables.put(analyzedTable, tableInfo);
         }

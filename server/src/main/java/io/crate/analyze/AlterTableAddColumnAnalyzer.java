@@ -71,7 +71,7 @@ class AlterTableAddColumnAnalyzer {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             alterTable.table().getName(),
             Operation.ALTER,
-            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().sessionUser(),
             txnCtx.sessionContext().searchPath());
         TableReferenceResolver referenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
 

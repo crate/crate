@@ -61,7 +61,7 @@ public final class CoordinatorTxnCtx implements TransactionContext {
 
     @Override
     public SessionSettings sessionSettings() {
-        return new SessionSettings(sessionContext.user().name(),
+        return new SessionSettings(sessionContext.sessionUser().name(),
                                    sessionContext.searchPath(),
                                    sessionContext.isHashJoinEnabled(),
                                    sessionContext.excludedOptimizerRules());

@@ -228,7 +228,7 @@ public class SysShardsTableInfo {
         String[] concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllOpenIndices())
             .filter(index -> !IndexParts.isDangling(index))
             .toArray(String[]::new);
-        User user = sessionContext != null ? sessionContext.user() : null;
+        User user = sessionContext != null ? sessionContext.sessionUser() : null;
         if (user != null) {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
             for (String indexName : concreteIndices) {

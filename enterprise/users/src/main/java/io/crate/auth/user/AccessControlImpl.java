@@ -101,7 +101,7 @@ public final class AccessControlImpl implements AccessControl {
     public AccessControlImpl(UserLookup userLookup, SessionContext sessionContext) {
         this.userLookup = userLookup;
         this.sessionContext = sessionContext;
-        this.sessionUser = sessionContext.user();
+        this.sessionUser = sessionContext.sessionUser();
         this.authenticatedUser = sessionContext.authenticatedUser();
     }
 

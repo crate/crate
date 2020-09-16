@@ -109,7 +109,7 @@ class InsertAnalyzer {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             insert.table().getName(),
             Operation.INSERT,
-            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().sessionUser(),
             txnCtx.sessionContext().searchPath()
         );
         List<Reference> targetColumns =

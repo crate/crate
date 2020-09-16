@@ -150,7 +150,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         QualifiedName fqn = QualifiedName.of("schema", "t");
         SessionContext sessionContext = sqlExecutor.getSessionContext();
         TableInfo tableInfo = sqlExecutor.schemas()
-            .resolveTableInfo(fqn, Operation.READ, sessionContext.user(), sessionContext.searchPath());
+            .resolveTableInfo(fqn, Operation.READ, sessionContext.sessionUser(), sessionContext.searchPath());
 
         RelationName relation = tableInfo.ident();
         assertThat(relation.schema(), is("schema"));
@@ -171,7 +171,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         SessionContext sessionContext = sqlExecutor.getSessionContext();
         expectedException.expect(SchemaUnknownException.class);
         expectedException.expectMessage("Schema 'bogus_schema' unknown");
-        sqlExecutor.schemas().resolveTableInfo(invalidFqn, Operation.READ, sessionContext.user(), sessionContext.searchPath());
+        sqlExecutor.schemas().resolveTableInfo(invalidFqn, Operation.READ, sessionContext.sessionUser(), sessionContext.searchPath());
     }
 
     @Test
@@ -182,7 +182,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         SessionContext sessionContext = sqlExecutor.getSessionContext();
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage("Relation 'missing_table' unknown");
-        sqlExecutor.schemas().resolveTableInfo(table, Operation.READ, sessionContext.user(), sessionContext.searchPath());
+        sqlExecutor.schemas().resolveTableInfo(table, Operation.READ, sessionContext.sessionUser(), sessionContext.searchPath());
     }
 
     @Test
@@ -192,7 +192,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         QualifiedName tableQn = QualifiedName.of("t");
         SessionContext sessionContext = sqlExecutor.getSessionContext();
         TableInfo tableInfo = sqlExecutor.schemas()
-            .resolveTableInfo(tableQn, Operation.READ, sessionContext.user(), sessionContext.searchPath());
+            .resolveTableInfo(tableQn, Operation.READ, sessionContext.sessionUser(), sessionContext.searchPath());
 
         RelationName relation = tableInfo.ident();
         assertThat(relation.schema(), is("schema"));

@@ -91,7 +91,7 @@ public class SessionContext {
         return authenticatedUser;
     }
 
-    public User user() {
+    public User sessionUser() {
         return sessionUser;
     }
 

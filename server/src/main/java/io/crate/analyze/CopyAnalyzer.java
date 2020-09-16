@@ -59,7 +59,7 @@ class CopyAnalyzer {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             node.table().getName(),
             Operation.INSERT,
-            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().sessionUser(),
             txnCtx.sessionContext().searchPath());
 
         var exprCtx = new ExpressionAnalysisContext();
@@ -105,7 +105,7 @@ class CopyAnalyzer {
         TableInfo tableInfo = schemas.resolveTableInfo(
             node.table().getName(),
             Operation.COPY_TO,
-            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().sessionUser(),
             txnCtx.sessionContext().searchPath());
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);

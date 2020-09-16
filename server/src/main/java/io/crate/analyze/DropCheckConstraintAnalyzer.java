@@ -45,7 +45,7 @@ class DropCheckConstraintAnalyzer {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             table.getName(),
             Operation.ALTER,
-            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().sessionUser(),
             txnCtx.sessionContext().searchPath());
         List<CheckConstraint<Symbol>> checkConstraints = tableInfo.checkConstraints();
         for (var checkConstraint : checkConstraints) {
