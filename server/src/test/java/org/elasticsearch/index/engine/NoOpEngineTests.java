@@ -171,9 +171,6 @@ public class NoOpEngineTests extends EngineTestCase {
         for (int i = 0; i < numDocs; i++) {
             engine.index(indexForDoc(createParsedDoc(Integer.toString(i), null)));
             tracker.updateLocalCheckpoint(allocationId.getId(), i);
-            if (rarely()) {
-                engine.flush();
-            }
         }
         engine.flush(true, true);
 
