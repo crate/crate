@@ -46,6 +46,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import static io.crate.metadata.IndexParts.toIndexName;
 import static org.hamcrest.Matchers.equalTo;
@@ -288,6 +291,6 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
                 assertThat(shardStats.getShardRouting().toString(),
                            shardStats.getSeqNoStats().getGlobalCheckpoint(), equalTo(shardStats.getSeqNoStats().getLocalCheckpoint()));
             }
-        });
+        }, 1, TimeUnit.MINUTES);
     }
 }
