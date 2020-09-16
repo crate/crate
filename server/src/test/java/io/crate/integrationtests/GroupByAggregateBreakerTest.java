@@ -43,10 +43,8 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
 
     @Test
     public void selectGroupByWithBreaking() throws Exception {
-        // query takes 252 bytes of memory
-        // 252b * 1.09 = 275b => should break with limit 256b
         assertThrows(() -> execute("select region, count(*) from sys.summits group by 1"),
-                     isSQLError(is("[query] Data too large, data for [collect: 0] would be [305/305b], " +
+                     isSQLError(is("[query] Data too large, data for [collect: 0] would be [280/280b], " +
                                    "which is larger than the limit of [256/256b]"),
                                 INTERNAL_ERROR,
                                 INTERNAL_SERVER_ERROR,

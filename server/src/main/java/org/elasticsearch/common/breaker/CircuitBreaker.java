@@ -112,11 +112,6 @@ public interface CircuitBreaker {
     long getLimit();
 
     /**
-     * @return overhead of circuit breaker
-     */
-    double getOverhead();
-
-    /**
      * @return the number of times the circuit breaker has been tripped
      */
     long getTrippedCount();

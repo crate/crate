@@ -33,7 +33,6 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
 
     private final long memoryBytesLimit;
     private final BreakerSettings settings;
-    private final double overheadConstant;
     private final AtomicLong used;
     private final AtomicLong trippedCount;
     private final Logger logger;
@@ -69,7 +68,6 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
         this.name = settings.getName();
         this.settings = settings;
         this.memoryBytesLimit = settings.getLimit();
-        this.overheadConstant = settings.getOverhead();
         if (oldBreaker == null) {
             this.used = new AtomicLong(0);
             this.trippedCount = new AtomicLong(0);
@@ -125,7 +123,7 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
 
         // Additionally, we need to check that we haven't exceeded the parent's limit
         try {
-            parent.checkParentLimit((long) (bytes * overheadConstant), label);
+            parent.checkParentLimit(bytes, label);
         } catch (CircuitBreakingException e) {
             // If the parent breaker is tripped, this breaker has to be
             // adjusted back down because the allocation is "blocked" but the
@@ -157,19 +155,18 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
         do {
             currentUsed = this.used.get();
             newUsed = currentUsed + actualIncrement;
-            long newUsedWithOverhead = (long) (newUsed * overheadConstant);
-            if (newUsedWithOverhead > memoryBytesLimit) {
-                if (((currentUsed + minAcceptableBytes) * overheadConstant) > memoryBytesLimit) {
-                    circuitBreak(label, newUsedWithOverhead);
+            if (newUsed > memoryBytesLimit) {
+                if ((currentUsed + minAcceptableBytes) > memoryBytesLimit) {
+                    circuitBreak(label, newUsed);
                 }
-                actualIncrement = (long) ((memoryBytesLimit - currentUsed) / overheadConstant);
+                actualIncrement = (long) memoryBytesLimit - currentUsed;
                 currentUsed = -1L; // force compareAndSet to fail to have another iteration
             }
         } while (!this.used.compareAndSet(currentUsed, newUsed));
 
         // Additionally, we need to check that we haven't exceeded the parent's limit
         try {
-            parent.checkParentLimit((long) (actualIncrement * overheadConstant), label);
+            parent.checkParentLimit(actualIncrement, label);
         } catch (CircuitBreakingException e) {
             // If the parent breaker is tripped, this breaker has to be
             // adjusted back down because the allocation is "blocked" but the
@@ -199,20 +196,28 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
         do {
             currentUsed = this.used.get();
             newUsed = currentUsed + bytes;
-            long newUsedWithOverhead = (long) (newUsed * overheadConstant);
             if (logger.isTraceEnabled()) {
-                logger.trace("[{}] Adding [{}][{}] to used bytes [new used: [{}], limit: {} [{}], estimate: {} [{}]]",
-                        this.name,
-                        new ByteSizeValue(bytes), label, new ByteSizeValue(newUsed),
-                        memoryBytesLimit, new ByteSizeValue(memoryBytesLimit),
-                        newUsedWithOverhead, new ByteSizeValue(newUsedWithOverhead));
+                logger.trace(
+                    "[{}] Adding [{}][{}] to used bytes [new used: [{}], limit: {} [{}]]",
+                    this.name,
+                    new ByteSizeValue(bytes),
+                    label,
+                    new ByteSizeValue(newUsed),
+                    memoryBytesLimit,
+                    new ByteSizeValue(memoryBytesLimit)
+                );
             }
-            if (memoryBytesLimit > 0 && newUsedWithOverhead > memoryBytesLimit) {
-                logger.warn("[{}] New used memory {} [{}] for data of [{}] would be larger than configured breaker: {} [{}], breaking",
-                        this.name,
-                        newUsedWithOverhead, new ByteSizeValue(newUsedWithOverhead), label,
-                        memoryBytesLimit, new ByteSizeValue(memoryBytesLimit));
-                circuitBreak(label, newUsedWithOverhead);
+            if (memoryBytesLimit > 0 && newUsed > memoryBytesLimit) {
+                logger.warn(
+                    "[{}] New used memory {} [{}] for data of [{}] would be larger than configured breaker: {} [{}], breaking",
+                    this.name,
+                    newUsed,
+                    new ByteSizeValue(newUsed),
+                    label,
+                    memoryBytesLimit,
+                    new ByteSizeValue(memoryBytesLimit)
+                );
+                circuitBreak(label, newUsed);
             }
             // Attempt to set the new used value, but make sure it hasn't changed
             // underneath us, if it has, keep trying until we are able to set it
@@ -254,14 +259,6 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
     @Override
     public long getLimit() {
         return this.memoryBytesLimit;
-    }
-
-    /**
-     * @return the constant multiplier the breaker uses for aggregations
-     */
-    @Override
-    public double getOverhead() {
-        return this.overheadConstant;
     }
 
     /**
