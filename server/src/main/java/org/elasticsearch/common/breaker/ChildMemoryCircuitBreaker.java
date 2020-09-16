@@ -48,11 +48,8 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      * @param parent parent circuit breaker service to delegate tripped breakers to
      * @param name the name of the breaker
      */
-    public ChildMemoryCircuitBreaker(BreakerSettings settings,
-                                     Logger logger,
-                                     CircuitBreakerService parent,
-                                     String name) {
-        this(settings, null, logger, parent, name);
+    public ChildMemoryCircuitBreaker(BreakerSettings settings, Logger logger, CircuitBreakerService parent) {
+        this(settings, null, logger, parent);
     }
 
     /**
@@ -68,9 +65,8 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
     public ChildMemoryCircuitBreaker(BreakerSettings settings,
                                      ChildMemoryCircuitBreaker oldBreaker,
                                      Logger logger,
-                                     CircuitBreakerService parent,
-                                     String name) {
-        this.name = name;
+                                     CircuitBreakerService parent) {
+        this.name = settings.getName();
         this.settings = settings;
         this.memoryBytesLimit = settings.getLimit();
         this.overheadConstant = settings.getOverhead();

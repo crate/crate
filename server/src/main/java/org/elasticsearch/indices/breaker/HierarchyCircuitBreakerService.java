@@ -351,19 +351,22 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             breakers.put(breakerSettings.getName(), breaker);
         } else {
             CircuitBreaker oldBreaker;
-            CircuitBreaker breaker = new ChildMemoryCircuitBreaker(breakerSettings,
-                    LogManager.getLogger(CHILD_LOGGER_PREFIX + breakerSettings.getName()),
-                    this, breakerSettings.getName());
-
+            CircuitBreaker breaker = new ChildMemoryCircuitBreaker(
+                breakerSettings,
+                LogManager.getLogger(CHILD_LOGGER_PREFIX + breakerSettings.getName()),
+                this
+            );
             for (;;) {
                 oldBreaker = breakers.putIfAbsent(breakerSettings.getName(), breaker);
                 if (oldBreaker == null) {
                     return;
                 }
-                breaker = new ChildMemoryCircuitBreaker(breakerSettings,
-                        (ChildMemoryCircuitBreaker)oldBreaker,
-                        LogManager.getLogger(CHILD_LOGGER_PREFIX + breakerSettings.getName()),
-                        this, breakerSettings.getName());
+                breaker = new ChildMemoryCircuitBreaker(
+                    breakerSettings,
+                    (ChildMemoryCircuitBreaker) oldBreaker,
+                    LogManager.getLogger(CHILD_LOGGER_PREFIX + breakerSettings.getName()),
+                    this
+                );
 
                 if (breakers.replace(breakerSettings.getName(), oldBreaker, breaker)) {
                     return;
