@@ -32,7 +32,7 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
     private Session superUserSession;
     private Session normalUserSession;
 
-    private Session createSuperUserSession() {
+    protected Session createSuperUserSession() {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
         return sqlOperations.createSession(null, User.CRATE_USER);
     }

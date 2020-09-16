@@ -113,6 +113,11 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
+    public R visitSetSessionAuthorizationStatement(AnalyzedSetSessionAuthorizationStatement analysis,
+                                                   C context) {
+        return visitAnalyzedStatement(analysis, context);
+    }
+
     public R visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis, C context) {
         return visitDDLStatement(analysis, context);
     }

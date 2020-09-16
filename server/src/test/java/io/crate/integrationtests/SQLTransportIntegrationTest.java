@@ -525,7 +525,20 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * This is useful to execute a query on a specific node or to test using
      * session options like default schema.
      *
-     * @param stmt the SQL Statement
+     * @param stmt    the SQL Statement
+     * @param session the Session to use
+     * @return the SQLResponse
+     */
+    public SQLResponse execute(String stmt, Session session) {
+        return execute(stmt, null, session);
+    }
+
+    /**
+     * Execute an SQL Statement using a specific {@link Session}
+     * This is useful to execute a query on a specific node or to test using
+     * session options like default schema.
+     *
+     * @param stmt    the SQL Statement
      * @param session the Session to use
      * @return the SQLResponse
      */
