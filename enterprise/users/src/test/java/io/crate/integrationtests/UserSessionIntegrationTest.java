@@ -64,7 +64,7 @@ public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
         execute("SELECT SESSION_USER", session);
         assertThat(response.rows()[0][0], is("test"));
 
-        execute("SET SESSION AUTHORIZATION DEFAULT", session);
+        execute("RESET SESSION AUTHORIZATION", session);
         execute("SELECT SESSION_USER", session);
         assertThat(response.rows()[0][0], is("crate"));
     }

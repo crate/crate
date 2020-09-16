@@ -752,6 +752,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitResetSessionAuthorization(SqlBaseParser.ResetSessionAuthorizationContext ctx) {
+        return new SetSessionAuthorizationStatement(SetSessionAuthorizationStatement.Scope.SESSION);
+    }
+
+    @Override
     public Node visitKill(SqlBaseParser.KillContext context) {
         return new KillStatement<>(
             visitIfPresent(context.jobId, Expression.class).orElse(null));
