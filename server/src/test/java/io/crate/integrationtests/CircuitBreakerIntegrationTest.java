@@ -69,7 +69,7 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
         execute("set global \"indices.breaker.query.limit\"='100b'");
 
         assertThrows(() -> execute("select text from t1 group by text"),
-                     isSQLError(is("[query] Data too large, data for [collect: 0] would be [130/130b], which " +
+                     isSQLError(is("[query] Data too large, data for [collect: 0] would be [120/120b], which " +
                                    "is larger than the limit of [100/100b]"),
                        INTERNAL_ERROR,
                        INTERNAL_SERVER_ERROR,

@@ -70,43 +70,22 @@ public class CrateCircuitBreakerServiceTest extends ESTestCase {
     }
 
     @Test
-    public void testQueryCircuitBreakerDynamicSettings() throws Exception {
-        CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, clusterSettings);
-
-        Settings newSettings = Settings.builder()
-            .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getKey(), 2.0)
-            .build();
-
-        clusterSettings.applySettings(newSettings);
-
-        CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
-        assertThat(breaker, notNullValue());
-        assertThat(breaker, instanceOf(CircuitBreaker.class));
-        assertThat(breaker.getOverhead(), is(2.0));
-    }
-
-    @Test
     public void testQueryBreakerAssignment() throws Exception {
         Settings settings = Settings.builder()
             .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
-            .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getKey(), 1.0)
             .build();
         HierarchyCircuitBreakerService breakerService = new HierarchyCircuitBreakerService(settings, clusterSettings);
 
         CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
         assertThat(breaker.getLimit(), is(10_485_760L));
-        assertThat(breaker.getOverhead(), is(1.0));
 
         Settings newSettings = Settings.builder()
             .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
-            .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getKey(), 2.0)
             .build();
         clusterSettings.applySettings(newSettings);
 
         breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
         assertThat(breaker.getLimit(), is(104_857_600L));
-        assertThat(breaker.getOverhead(), is(2.0));
     }
 
     @Test

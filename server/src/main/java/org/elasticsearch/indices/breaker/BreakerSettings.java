@@ -29,13 +29,11 @@ public class BreakerSettings {
 
     private final String name;
     private final long limitBytes;
-    private final double overhead;
     private final CircuitBreaker.Type type;
 
-    public BreakerSettings(String name, long limitBytes, double overhead, CircuitBreaker.Type type) {
+    public BreakerSettings(String name, long limitBytes, CircuitBreaker.Type type) {
         this.name = name;
         this.limitBytes = limitBytes;
-        this.overhead = overhead;
         this.type = type;
     }
 
@@ -47,10 +45,6 @@ public class BreakerSettings {
         return this.limitBytes;
     }
 
-    public double getOverhead() {
-        return this.overhead;
-    }
-
     public CircuitBreaker.Type getType() {
         return this.type;
     }
@@ -59,7 +53,6 @@ public class BreakerSettings {
     public String toString() {
         return "[" + this.name +
                 ",type=" + this.type.toString() +
-                ",limit=" + this.limitBytes + "/" + new ByteSizeValue(this.limitBytes) +
-                ",overhead=" + this.overhead + "]";
+                ",limit=" + this.limitBytes + "/" + new ByteSizeValue(this.limitBytes) + "]";
     }
 }

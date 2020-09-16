@@ -992,11 +992,13 @@ keeps working.
 .. _indices.breaker.query.overhead:
 
 **indices.breaker.query.overhead**
-  | *Default:*   ``1.09``
+  | *Default:*   ``1.00``
   | *Runtime:*   ``no``
 
-  A constant that all data estimations are multiplied with to determine a final
-  estimation.
+  .. CAUTION::
+  
+      This setting is deprecated and has no effect.
+
 
 Field data circuit breaker
 --------------------------
@@ -1039,8 +1041,9 @@ exception is raised.
   | *Default:*   ``1.0``
   | *Runtime:*  ``yes``
 
-  A constant that all request estimations are multiplied with to determine a
-  final estimation.
+  .. CAUTION::
+  
+      This setting is deprecated and has no effect.
 
 Accounting circuit breaker
 --------------------------
@@ -1062,8 +1065,9 @@ memory used by Lucene for segments.
   | *Default:*  ``1.0``
   | *Runtime:*  ``yes``
 
-  A constant that all accounting estimations are multiplied with to determine a
-  final estimation.
+  .. CAUTION::
+  
+      This setting is deprecated and has no effect.
 
 .. _stats.breaker.log:
 

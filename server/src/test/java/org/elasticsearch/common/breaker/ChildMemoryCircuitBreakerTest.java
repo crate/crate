@@ -36,7 +36,6 @@ public class ChildMemoryCircuitBreakerTest {
             new BreakerSettings(
                 "dummy",
                 500L,
-                1.0d,
                 CircuitBreaker.Type.MEMORY
             ),
             LogManager.getLogger(ChildMemoryCircuitBreakerTest.class),
@@ -53,7 +52,6 @@ public class ChildMemoryCircuitBreakerTest {
             new BreakerSettings(
                 "dummy",
                 500L,
-                1.0d,
                 CircuitBreaker.Type.MEMORY
             ),
             LogManager.getLogger(ChildMemoryCircuitBreakerTest.class),
