@@ -710,24 +710,4 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(orderBy, instanceOf(InputColumn.class));
         assertThat(orderBy.valueType(), is(DataTypes.TIMESTAMPZ));
     }
-
-    @Test
-    @Ignore("Need to figure out a way to test this - the projection no longer matches the loop output")
-    public void testJoinConditionFieldsAreNotPartOfNLOutputInGroupByOnJoin() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
-        Join nl = e.plan("select count(*), u1.name " +
-                         "from users u1 " +
-                         "  inner join users u2 on u1.id = u2.id " +
-                         "group by u1.name");
-        List<Projection> projections = nl.joinPhase().projections();
-        assertThat(projections, contains(
-            instanceOf(EvalProjection.class),
-            instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)
-        ));
-        // Only u1.name is in the outputs of the NL (pre projections)
-        assertThat(projections.get(0).outputs(), contains(isInputColumn(0)));
-    }
 }
