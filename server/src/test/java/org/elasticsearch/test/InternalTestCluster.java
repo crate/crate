@@ -233,7 +233,6 @@ public final class InternalTestCluster extends TestCluster {
     private final Path baseDir;
 
     private ServiceDisruptionScheme activeDisruptionScheme;
-    private final Function<Client, Client> clientWrapper;
 
     private int bootstrapMasterNodeIndex = -1;
 
@@ -248,8 +247,7 @@ public final class InternalTestCluster extends TestCluster {
             final NodeConfigurationSource nodeConfigurationSource,
             final int numClientNodes,
             final String nodePrefix,
-            final Collection<Class<? extends Plugin>> mockPlugins,
-            final Function<Client, Client> clientWrapper) {
+            final Collection<Class<? extends Plugin>> mockPlugins) {
         this(
                 clusterSeed,
                 baseDir,
@@ -262,7 +260,6 @@ public final class InternalTestCluster extends TestCluster {
                 numClientNodes,
                 nodePrefix,
                 mockPlugins,
-                clientWrapper,
                 true);
     }
 
@@ -278,11 +275,9 @@ public final class InternalTestCluster extends TestCluster {
             final int numClientNodes,
             final String nodePrefix,
             final Collection<Class<? extends Plugin>> mockPlugins,
-            final Function<Client, Client> clientWrapper,
             final boolean forbidPrivateIndexSettings) {
         super(clusterSeed);
         this.autoManageMinMasterNodes = autoManageMinMasterNodes;
-        this.clientWrapper = clientWrapper;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.baseDir = baseDir;
         this.clusterName = clusterName;
@@ -827,7 +822,7 @@ public final class InternalTestCluster extends TestCluster {
                 if (nodeClient == null) {
                     nodeClient = node.client();
                 }
-                return clientWrapper.apply(nodeClient);
+                return nodeClient;
             }
         }
 

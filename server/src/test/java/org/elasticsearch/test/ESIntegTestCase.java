@@ -119,7 +119,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
@@ -1096,10 +1095,20 @@ public abstract class ESIntegTestCase extends ESTestCase {
             }
             mockPlugins = mocks;
         }
-        return new InternalTestCluster(seed, createTempDir(), supportsDedicatedMasters, getAutoMinMasterNodes(),
-            minNumDataNodes, maxNumDataNodes,
-            InternalTestCluster.clusterName(scope.name(), seed) + "-cluster", nodeConfigurationSource, getNumClientNodes(),
-            nodePrefix, mockPlugins, getClientWrapper(), forbidPrivateIndexSettings());
+        return new InternalTestCluster(
+            seed,
+            createTempDir(),
+            supportsDedicatedMasters,
+            getAutoMinMasterNodes(),
+            minNumDataNodes,
+            maxNumDataNodes,
+            InternalTestCluster.clusterName(scope.name(), seed) + "-cluster",
+            nodeConfigurationSource,
+            getNumClientNodes(),
+            nodePrefix,
+            mockPlugins,
+            forbidPrivateIndexSettings()
+        );
     }
 
     protected NodeConfigurationSource getNodeConfigSource() {
@@ -1139,15 +1148,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     /** Returns {@code true} iff this test cluster should use a dummy http transport */
     protected boolean addMockHttpTransport() {
         return true;
-    }
-
-    /**
-     * Returns a function that allows to wrap / filter all clients that are exposed by the test cluster. This is useful
-     * for debugging or request / response pre and post processing. It also allows to intercept all calls done by the test
-     * framework. By default this method returns an identity function {@link Function#identity()}.
-     */
-    protected Function<Client,Client> getClientWrapper() {
-        return Function.identity();
     }
 
     /** Return the mock plugins the cluster should use */
