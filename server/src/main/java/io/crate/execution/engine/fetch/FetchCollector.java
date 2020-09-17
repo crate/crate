@@ -77,10 +77,14 @@ class FetchCollector {
     public StreamBucket collect(IntContainer docIds) {
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
         try (var borrowed = fetchTask.searcher(readerId)) {
-            List<LeafReaderContext> leaves = borrowed.item().getTopReaderContext().leaves();
+            var searcher = borrowed.item();
+            List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
             for (IntCursor cursor : docIds) {
                 int docId = cursor.value;
                 int readerIndex = ReaderUtil.subIndex(docId, leaves);
+                if (readerIndex == -1) {
+                    throw new IllegalStateException("jobId=" + fetchTask.jobId() + " docId " + docId + " doesn't fit to leaves of searcher " + readerId + " fetchTask=" + fetchTask);
+                }
                 LeafReaderContext subReaderContext = leaves.get(readerIndex);
                 try {
                     setNextDocId(subReaderContext, docId - subReaderContext.docBase);

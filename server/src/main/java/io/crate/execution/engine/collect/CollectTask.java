@@ -21,11 +21,23 @@
 
 package io.crate.execution.engine.collect;
 
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+import javax.annotation.Nonnull;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.RefCountedItem;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -37,15 +49,6 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.Version;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 public class CollectTask extends AbstractTask {
 
@@ -56,7 +59,7 @@ public class CollectTask extends AbstractTask {
     private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
     private final SharedShardContexts sharedShardContexts;
 
-    private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
+    private final IntObjectHashMap<RefCountedItem<Engine.Searcher>> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final RowConsumer consumer;
     private final int ramAccountingBlockSizeInBytes;
@@ -88,7 +91,7 @@ public class CollectTask extends AbstractTask {
         this.minNodeVersion = minNodeVersion;
     }
 
-    public void addSearcher(int searcherId, Engine.Searcher searcher) {
+    public void addSearcher(int searcherId, RefCountedItem<Engine.Searcher> searcher) {
         if (isClosed()) {
             // if this is closed and addContext is called this means the context got killed.
             searcher.close();
@@ -96,7 +99,7 @@ public class CollectTask extends AbstractTask {
         }
 
         synchronized (subContextLock) {
-            Engine.Searcher replacedSearcher = searchers.put(searcherId, searcher);
+            var replacedSearcher = searchers.put(searcherId, searcher);
             if (replacedSearcher != null) {
                 replacedSearcher.close();
                 searcher.close();
@@ -129,7 +132,7 @@ public class CollectTask extends AbstractTask {
 
     private void closeSearchContexts() {
         synchronized (subContextLock) {
-            for (ObjectCursor<Engine.Searcher> cursor : searchers.values()) {
+            for (var cursor : searchers.values()) {
                 cursor.value.close();
             }
             searchers.clear();

@@ -56,7 +56,6 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
-import org.elasticsearch.index.engine.Engine.Searcher;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
@@ -99,7 +98,7 @@ public class DocValuesAggregates {
         }
         ShardId shardId = indexShard.shardId();
         SharedShardContext shardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
-        Searcher searcher = shardContext.acquireSearcher("doc-value-aggregates: " + LuceneShardCollectorProvider.formatSource(phase));
+        var searcher = shardContext.acquireSearcher("doc-value-aggregates: " + LuceneShardCollectorProvider.formatSource(phase));
         collectTask.addSearcher(shardContext.readerId(), searcher);
         QueryShardContext queryShardContext = shardContext.indexService().newQueryShardContext();
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
@@ -121,7 +120,7 @@ public class DocValuesAggregates {
                     return CompletableFuture.completedFuture(getRow(
                         collectTask.getRamAccounting(),
                         killed,
-                        searcher,
+                        searcher.item(),
                         queryContext.query(),
                         aggregators
                     ));
@@ -211,12 +210,11 @@ public class DocValuesAggregates {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static Iterable<Row> getRow(RamAccounting ramAccounting,
                                         AtomicReference<Throwable> killed,
-                                        Searcher searcher,
+                                        IndexSearcher searcher,
                                         Query query,
                                         List<DocValueAggregator> aggregators) throws IOException {
-        IndexSearcher indexSearcher = searcher;
-        Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
-        List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
+        Weight weight = searcher.createWeight(searcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
+        List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
         Object[] cells = new Object[aggregators.size()];
         for (int i = 0; i < aggregators.size(); i++) {
             cells[i] = aggregators.get(i).initialState(ramAccounting);

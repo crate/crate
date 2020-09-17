@@ -22,6 +22,34 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.execution.dsl.projection.Projections.shardProjections;
+import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.formatSource;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.Bits;
+import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+
 import io.crate.breaker.MultiSizeEstimator;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -52,33 +80,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Bits;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-
-import static io.crate.execution.dsl.projection.Projections.shardProjections;
-import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.formatSource;
 
 final class DocValuesGroupByOptimizedIterator {
 
@@ -131,7 +132,7 @@ final class DocValuesGroupByOptimizedIterator {
 
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
-        Engine.Searcher searcher = sharedShardContext.acquireSearcher("group-by-doc-value-aggregates: " + formatSource(collectPhase));
+        var searcher = sharedShardContext.acquireSearcher("group-by-doc-value-aggregates: " + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
 
@@ -154,7 +155,7 @@ final class DocValuesGroupByOptimizedIterator {
         if (columnKeyRefs.size() == 1) {
             return GroupByIterator.forSingleKey(
                 aggregators,
-                searcher,
+                searcher.item(),
                 columnKeyRefs.get(0),
                 keyExpressions,
                 ramAccounting,
@@ -164,7 +165,7 @@ final class DocValuesGroupByOptimizedIterator {
         } else {
             return GroupByIterator.forManyKeys(
                 aggregators,
-                searcher,
+                searcher.item(),
                 columnKeyRefs,
                 keyExpressions,
                 ramAccounting,
