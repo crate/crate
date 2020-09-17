@@ -2179,52 +2179,50 @@ public final class InternalTestCluster extends TestCluster {
 
     @Override
     public void ensureEstimatedStats() {
-        if (size() > 0) {
-            // Checks that the breakers have been reset without incurring a
-            // network request, because a network request can increment one
-            // of the breakers
-            for (NodeAndClient nodeAndClient : nodes.values()) {
-                final String name = nodeAndClient.name;
-                final CircuitBreakerService breakerService = getInstanceFromNode(CircuitBreakerService.class, nodeAndClient.node);
-                try {
-                    assertBusy(() -> {
-                        CircuitBreaker acctBreaker = breakerService.getBreaker(CircuitBreaker.ACCOUNTING);
-                        assertThat("Accounting breaker not reset to 0 on node: " + name + ", are there still Lucene indices around?",
-                            acctBreaker.getUsed(), equalTo(0L));
-                    });
-                } catch (Exception e) {
-                    throw new AssertionError("Exception during check for accounting breaker reset to 0", e);
-                }
-                // Anything that uses transport or HTTP can increase the
-                // request breaker (because they use bigarrays), because of
-                // that the breaker can sometimes be incremented from ping
-                // requests from other clusters because Jenkins is running
-                // multiple ES testing jobs in parallel on the same machine.
-                // To combat this we check whether the breaker has reached 0
-                // in an assertBusy loop, so it will try for 10 seconds and
-                // fail if it never reached 0
-                try {
-                    assertBusy(() -> {
-                        CircuitBreaker reqBreaker = breakerService.getBreaker(CircuitBreaker.REQUEST);
-                        assertThat("Request breaker not reset to 0 on node: " + name, reqBreaker.getUsed(), equalTo(0L));
-                    });
-                } catch (Exception e) {
-                    throw new AssertionError("Exception during check for request breaker reset to 0", e);
-                }
+        // Checks that the breakers have been reset without incurring a
+        // network request, because a network request can increment one
+        // of the breakers
+        for (NodeAndClient nodeAndClient : nodes.values()) {
+            final String name = nodeAndClient.name;
+            final CircuitBreakerService breakerService = getInstanceFromNode(CircuitBreakerService.class, nodeAndClient.node);
+            try {
+                assertBusy(() -> {
+                    CircuitBreaker acctBreaker = breakerService.getBreaker(CircuitBreaker.ACCOUNTING);
+                    assertThat("Accounting breaker not reset to 0 on node: " + name + ", are there still Lucene indices around?",
+                        acctBreaker.getUsed(), equalTo(0L));
+                });
+            } catch (Exception e) {
+                throw new AssertionError("Exception during check for accounting breaker reset to 0", e);
+            }
+            // Anything that uses transport or HTTP can increase the
+            // request breaker (because they use bigarrays), because of
+            // that the breaker can sometimes be incremented from ping
+            // requests from other clusters because Jenkins is running
+            // multiple ES testing jobs in parallel on the same machine.
+            // To combat this we check whether the breaker has reached 0
+            // in an assertBusy loop, so it will try for 10 seconds and
+            // fail if it never reached 0
+            try {
+                assertBusy(() -> {
+                    CircuitBreaker reqBreaker = breakerService.getBreaker(CircuitBreaker.REQUEST);
+                    assertThat("Request breaker not reset to 0 on node: " + name, reqBreaker.getUsed(), equalTo(0L));
+                });
+            } catch (Exception e) {
+                throw new AssertionError("Exception during check for request breaker reset to 0", e);
+            }
 
-                // RamAccounting release operations can run asynchronous after clients already received results.
-                try {
-                    assertBusy(() -> {
-                        CircuitBreaker crateQueryBreaker = breakerService.getBreaker("query");
-                        if (crateQueryBreaker != null) {
-                            assertThat("Query breaker not reset to 0 on node: " + name,
-                                       crateQueryBreaker.getUsed(),
-                                       equalTo(0L));
-                        }
-                    });
-                } catch (Exception e) {
-                    throw new AssertionError("Exception during check for query breaker reset to 0", e);
-                }
+            // RamAccounting release operations can run asynchronous after clients already received results.
+            try {
+                assertBusy(() -> {
+                    CircuitBreaker crateQueryBreaker = breakerService.getBreaker("query");
+                    if (crateQueryBreaker != null) {
+                        assertThat("Query breaker not reset to 0 on node: " + name,
+                                    crateQueryBreaker.getUsed(),
+                                    equalTo(0L));
+                    }
+                });
+            } catch (Exception e) {
+                throw new AssertionError("Exception during check for query breaker reset to 0", e);
             }
         }
     }
@@ -2248,22 +2246,20 @@ public final class InternalTestCluster extends TestCluster {
 
     private void assertRequestsFinished() {
         assert Thread.holdsLock(this);
-        if (size() > 0) {
-            for (NodeAndClient nodeAndClient : nodes.values()) {
-                CircuitBreaker inFlightRequestsBreaker = getInstance(CircuitBreakerService.class, nodeAndClient.name)
-                    .getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
-                try {
-                    // see #ensureEstimatedStats()
-                    assertBusy(() -> {
-                        // ensure that our size accounting on transport level is reset properly
-                        long bytesUsed = inFlightRequestsBreaker.getUsed();
-                        assertThat("All incoming requests on node [" + nodeAndClient.name + "] should have finished. Expected 0 but got " +
-                            bytesUsed, bytesUsed, equalTo(0L));
-                    });
-                } catch (Exception e) {
-                    logger.error("Could not assert finished requests within timeout", e);
-                    fail("Could not assert finished requests within timeout on node [" + nodeAndClient.name + "]");
-                }
+        for (NodeAndClient nodeAndClient : nodes.values()) {
+            CircuitBreaker inFlightRequestsBreaker = getInstance(CircuitBreakerService.class, nodeAndClient.name)
+                .getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
+            try {
+                // see #ensureEstimatedStats()
+                assertBusy(() -> {
+                    // ensure that our size accounting on transport level is reset properly
+                    long bytesUsed = inFlightRequestsBreaker.getUsed();
+                    assertThat("All incoming requests on node [" + nodeAndClient.name + "] should have finished. Expected 0 but got " +
+                        bytesUsed, bytesUsed, equalTo(0L));
+                });
+            } catch (Exception e) {
+                logger.error("Could not assert finished requests within timeout", e);
+                fail("Could not assert finished requests within timeout on node [" + nodeAndClient.name + "]");
             }
         }
     }
