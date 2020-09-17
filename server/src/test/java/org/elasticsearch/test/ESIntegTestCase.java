@@ -1061,23 +1061,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return Collections.emptyList();
     }
 
-    /**
-     * Returns a collection of plugins that should be loaded when creating a transport client.
-     */
-    protected Collection<Class<? extends Plugin>> transportClientPlugins() {
-        return Collections.emptyList();
-    }
-
-    /**
-     * This method is used to obtain additional settings for clients created by the internal cluster.
-     * These settings will be applied on the client in addition to some randomized settings defined in
-     * the cluster. These settings will also override any other settings the internal cluster might
-     * add by default.
-     */
-    protected Settings transportClientSettings() {
-        return Settings.EMPTY;
-    }
-
     protected TestCluster buildTestCluster(Scope scope, long seed) throws IOException {
         final String nodePrefix;
         switch (scope) {
@@ -1141,22 +1124,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             @Override
             public Collection<Class<? extends Plugin>> nodePlugins() {
                 return ESIntegTestCase.this.nodePlugins();
-            }
-
-            @Override
-            public Settings transportClientSettings() {
-                return Settings.builder().put(networkSettings.build())
-                    .put(ESIntegTestCase.this.transportClientSettings()).build();
-            }
-
-            @Override
-            public Collection<Class<? extends Plugin>> transportClientPlugins() {
-                Collection<Class<? extends Plugin>> plugins = ESIntegTestCase.this.transportClientPlugins();
-                if (plugins.contains(getTestTransportPlugin()) == false) {
-                    plugins = new ArrayList<>(plugins);
-                    plugins.add(getTestTransportPlugin());
-                }
-                return Collections.unmodifiableCollection(plugins);
             }
         };
     }
