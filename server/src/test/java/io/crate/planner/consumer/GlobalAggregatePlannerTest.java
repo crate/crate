@@ -80,20 +80,6 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
     }
 
     @Test
-    @Ignore("TODO: figure out if early output stripping is necessary")
-    public void testJoinConditionFieldsAreNotPartOfNLOutputOnAggOnJoin() throws Exception {
-        Join nl = e.plan("select sum(u1.ints) from users u1 " +
-                         "    inner join users u2 on u1.id = u2.id ");
-        List<Projection> projections = nl.joinPhase().projections();
-        assertThat(projections, contains(
-            instanceOf(EvalProjection.class),
-            instanceOf(AggregationProjection.class)
-        ));
-        // Only u1.ints is in the outputs of the NL (pre projections)
-        assertThat(projections.get(0).outputs(), contains(isInputColumn(1)));
-    }
-
-    @Test
     public void test_aggregation_is_correctly_build_with_parameterized_expression() {
         Collect plan = e.plan("select sum(x + ?) from t1", UUID.randomUUID(), 0, new Row1(1));
         var projections = plan.collectPhase().projections();
