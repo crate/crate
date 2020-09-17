@@ -596,7 +596,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             tableInfo = schemas.resolveTableInfo(
                 tableQualifiedName,
                 context.currentOperation(),
-                context.sessionContext().user(),
+                context.sessionContext().sessionUser(),
                 searchPath
             );
             if (tableInfo instanceof DocTableInfo) {

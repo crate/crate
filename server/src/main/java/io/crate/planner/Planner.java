@@ -65,6 +65,7 @@ import io.crate.analyze.AnalyzedRerouteRetryFailed;
 import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.AnalyzedSetLicenseStatement;
+import io.crate.analyze.AnalyzedSetSessionAuthorizationStatement;
 import io.crate.analyze.AnalyzedSetStatement;
 import io.crate.analyze.AnalyzedSetTransaction;
 import io.crate.analyze.AnalyzedShowCreateTable;
@@ -123,9 +124,11 @@ import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
 import io.crate.planner.statement.DeletePlanner;
 import io.crate.planner.statement.SetLicensePlan;
+import io.crate.planner.statement.SetSessionAuthorizationPlan;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
+import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -470,6 +473,19 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             case GLOBAL:
             default:
                 return new UpdateSettingsPlan(setStatement.settings(), setStatement.isPersistent());
+        }
+    }
+
+    @Override
+    public Plan visitSetSessionAuthorizationStatement(AnalyzedSetSessionAuthorizationStatement analysis,
+                                                      PlannerContext context) {
+        if (analysis.scope() == SetSessionAuthorizationStatement.Scope.LOCAL) {
+            LOGGER.info(
+                "SET LOCAL SESSION AUTHORIZATION 'username' statement will be ignored. " +
+                "CrateDB has no transactions, so any `SET LOCAL` change would be dropped in the next statement.");
+            return NoopPlan.INSTANCE;
+        } else {
+            return new SetSessionAuthorizationPlan(analysis, userManager);
         }
     }
 

@@ -60,6 +60,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.Statement;
@@ -128,7 +129,6 @@ public class TestStatementBuilder {
         printStatement("DISCARD TEMPORARY");
         printStatement("DISCARD TEMP");
     }
-
 
     @Test
     public void testEmptyOverClauseAfterFunction() {
@@ -377,6 +377,26 @@ public class TestStatementBuilder {
         printStatement("set some_setting TO ON");
 
         printStatement("set session characteristics as transaction isolation level read uncommitted");
+    }
+
+    @Test
+    public void test_set_session_authorization_statement_with_user() {
+        printStatement("set session authorization 'test'");
+        printStatement("set session authorization test");
+        printStatement("set session session authorization test");
+        printStatement("set local session authorization 'test'");
+    }
+
+    @Test
+    public void test_set_session_authorization_statement_with_default_user() {
+        printStatement("set session authorization default");
+        printStatement("set session session authorization default");
+        printStatement("set local session authorization default");
+    }
+
+    @Test
+    public void test_reset_session_authorization_statement() {
+        printStatement("reset session authorization");
     }
 
     @Test
@@ -1698,6 +1718,7 @@ public class TestStatementBuilder {
             statement instanceof DropSnapshot ||
             statement instanceof Update ||
             statement instanceof Insert ||
+            statement instanceof SetSessionAuthorizationStatement ||
             statement instanceof Window) {
                 println(SqlFormatter.formatSql(statement));
                 println("");

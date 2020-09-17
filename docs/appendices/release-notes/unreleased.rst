@@ -66,6 +66,9 @@ Deprecations
 Changes
 =======
 
+- Added support for :ref:`SET AND RESET SESSION AUTHORIZATION
+  <ref-set-session-authorization>` SQL statements.
+
 - Added detailed information on the error when a column with an undefined type
   is used to ``GROUP BY``.
 

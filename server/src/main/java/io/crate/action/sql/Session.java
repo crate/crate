@@ -192,12 +192,12 @@ public class Session implements AutoCloseable {
         try {
             plan = planner.plan(analyzedStatement, plannerContext);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(jobId, statement, SQLExceptions.messageOf(t), sessionContext.user());
+            jobsLogs.logPreExecutionFailure(jobId, statement, SQLExceptions.messageOf(t), sessionContext.sessionUser());
             throw t;
         }
 
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
-        jobsLogs.logExecutionStart(jobId, statement, sessionContext.user(), classification);
+        jobsLogs.logExecutionStart(jobId, statement, sessionContext.sessionUser(), classification);
         JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
         if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver(
@@ -267,7 +267,7 @@ public class Session implements AutoCloseable {
             if ("".equals(query)) {
                 statement = EMPTY_STMT;
             } else {
-                jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t), sessionContext.user());
+                jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t), sessionContext.sessionUser());
                 throw t;
             }
         }
@@ -284,7 +284,7 @@ public class Session implements AutoCloseable {
                 UUID.randomUUID(),
                 query,
                 SQLExceptions.messageOf(t),
-                sessionContext.user());
+                sessionContext.sessionUser());
             throw t;
         }
         preparedStatements.put(
@@ -303,7 +303,7 @@ public class Session implements AutoCloseable {
         try {
             preparedStmt = getSafeStmt(statementName);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(UUID.randomUUID(), null, SQLExceptions.messageOf(t), sessionContext.user());
+            jobsLogs.logPreExecutionFailure(UUID.randomUUID(), null, SQLExceptions.messageOf(t), sessionContext.sessionUser());
             throw t;
         }
 
@@ -509,13 +509,13 @@ public class Session implements AutoCloseable {
                 jobId,
                 firstPreparedStatement.rawStatement(),
                 SQLExceptions.messageOf(t),
-                sessionContext.user());
+                sessionContext.sessionUser());
             throw t;
         }
         jobsLogs.logExecutionStart(
             jobId,
             firstPreparedStatement.rawStatement(),
-            sessionContext.user(),
+            sessionContext.sessionUser(),
             StatementClassifier.classify(plan)
         );
 
@@ -578,14 +578,14 @@ public class Session implements AutoCloseable {
         String rawStatement = portal.preparedStmt().rawStatement();
         if (analyzedStmt == null) {
             String errorMsg = "Statement must have been analyzed: " + rawStatement;
-            jobsLogs.logPreExecutionFailure(jobId, rawStatement, errorMsg, sessionContext.user());
+            jobsLogs.logPreExecutionFailure(jobId, rawStatement, errorMsg, sessionContext.sessionUser());
             throw new IllegalStateException(errorMsg);
         }
         Plan plan;
         try {
             plan = planner.plan(analyzedStmt, plannerContext);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(jobId, rawStatement, SQLExceptions.messageOf(t), sessionContext.user());
+            jobsLogs.logPreExecutionFailure(jobId, rawStatement, SQLExceptions.messageOf(t), sessionContext.sessionUser());
             throw t;
         }
         if (!analyzedStmt.isWriteOperation()) {
@@ -610,7 +610,7 @@ public class Session implements AutoCloseable {
             );
         }
         jobsLogs.logExecutionStart(
-            jobId, rawStatement, sessionContext.user(), StatementClassifier.classify(plan));
+            jobId, rawStatement, sessionContext.sessionUser(), StatementClassifier.classify(plan));
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(
             resultReceiver, maxRows, new JobsLogsUpdateListener(jobId, jobsLogs));
         portal.setActiveConsumer(consumer);

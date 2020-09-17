@@ -52,6 +52,7 @@ import io.crate.analyze.AnalyzedPrivileges;
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
+import io.crate.analyze.AnalyzedSetSessionAuthorizationStatement;
 import io.crate.analyze.AnalyzedSetStatement;
 import io.crate.analyze.AnalyzedSetTransaction;
 import io.crate.analyze.AnalyzedShowCreateTable;
@@ -86,7 +87,8 @@ import java.util.Locale;
 
 public final class AccessControlImpl implements AccessControl {
 
-    private final User user;
+    private final User sessionUser;
+    private final User authenticatedUser;
     private final UserLookup userLookup;
     private final SessionContext sessionContext;
 
@@ -99,20 +101,28 @@ public final class AccessControlImpl implements AccessControl {
     public AccessControlImpl(UserLookup userLookup, SessionContext sessionContext) {
         this.userLookup = userLookup;
         this.sessionContext = sessionContext;
-        this.user = sessionContext.user();
+        this.sessionUser = sessionContext.sessionUser();
+        this.authenticatedUser = sessionContext.authenticatedUser();
     }
 
     @Override
     public void ensureMayExecute(AnalyzedStatement statement) {
-        if (!user.isSuperUser()) {
-            statement.accept(new StatementVisitor(userLookup, sessionContext.searchPath().currentSchema()), user);
+        if (!sessionUser.isSuperUser()) {
+            statement.accept(
+                new StatementVisitor(
+                    userLookup,
+                    sessionContext.searchPath().currentSchema(),
+                    authenticatedUser
+                ),
+                sessionUser
+            );
         }
     }
 
     @Override
     public void ensureMaySee(Throwable t) throws MissingPrivilegeException {
-        if (!user.isSuperUser() && t instanceof CrateException) {
-            ((CrateException) t).accept(MaskSensitiveExceptions.INSTANCE, user);
+        if (!sessionUser.isSuperUser() && t instanceof CrateException) {
+            ((CrateException) t).accept(MaskSensitiveExceptions.INSTANCE, sessionUser);
         }
     }
 
@@ -216,8 +226,10 @@ public final class AccessControlImpl implements AccessControl {
 
         private final RelationVisitor relationVisitor;
         private final String defaultSchema;
+        private final User authenticatedUser;
 
-        public StatementVisitor(UserLookup userLookup, String defaultSchema) {
+        public StatementVisitor(UserLookup userLookup, String defaultSchema, User authenticatedUser) {
+            this.authenticatedUser = authenticatedUser;
             this.relationVisitor = new RelationVisitor(userLookup, defaultSchema);
             this.defaultSchema = defaultSchema;
         }
@@ -430,6 +442,19 @@ public final class AccessControlImpl implements AccessControl {
                     user,
                     defaultSchema
                 );
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitSetSessionAuthorizationStatement(AnalyzedSetSessionAuthorizationStatement analysis,
+                                                          User sessionUser) {
+            if (analysis.user() != null && !authenticatedUser.name().equals(analysis.user())) {
+                throw new UnauthorizedException(String.format(
+                    Locale.ENGLISH,
+                    "User \"%s\" is not authorized to execute the statement. " +
+                    "Superuser permissions are required or you can set the session " +
+                    "authorization back to the authenticated user.", sessionUser.name()));
             }
             return null;
         }

@@ -35,7 +35,8 @@ import static java.util.Objects.requireNonNull;
 
 public class SessionContext {
 
-    private final User user;
+    private final User authenticatedUser;
+    private User sessionUser;
 
     private SearchPath searchPath;
     private boolean hashJoinEnabled = true;
@@ -45,11 +46,16 @@ public class SessionContext {
      * Creates a new SessionContext suitable to use as system SessionContext
      */
     public static SessionContext systemSessionContext() {
-        return new SessionContext(User.CRATE_USER);
+        return new SessionContext(User.CRATE_USER, User.CRATE_USER);
     }
 
-    public SessionContext(User user, String... searchPath) {
-        this.user = requireNonNull(user, "User is required");
+    public SessionContext(User authenticatedUser, String... searchPath) {
+        this(authenticatedUser, authenticatedUser, searchPath);
+    }
+
+    public SessionContext(User authenticatedUser, User sessionUser, String... searchPath) {
+        this.authenticatedUser = requireNonNull(authenticatedUser, "Authenticated user is required");
+        this.sessionUser = requireNonNull(sessionUser, "Session user is required");
         this.searchPath = createSearchPathFrom(searchPath);
         this.excludedOptimizerRules = new HashSet<>();
     }
@@ -81,8 +87,16 @@ public class SessionContext {
         this.hashJoinEnabled = hashJoinEnabled;
     }
 
-    public User user() {
-        return user;
+    public User authenticatedUser() {
+        return authenticatedUser;
+    }
+
+    public User sessionUser() {
+        return sessionUser;
+    }
+
+    public void setSessionUser(User user) {
+        sessionUser = user;
     }
 
     public Set<Class<? extends Rule<?>>> excludedOptimizerRules() {

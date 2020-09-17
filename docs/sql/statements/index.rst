@@ -45,8 +45,9 @@ SQL Statements
     revoke
     select
     set
-    set-transaction
     set-license
+    set-session-authorization
+    set-transaction
     show-columns
     show-create-table
     show-schemas
