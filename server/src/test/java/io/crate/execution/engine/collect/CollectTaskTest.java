@@ -23,6 +23,7 @@ package io.crate.execution.engine.collect;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.RefCountedItem;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.exceptions.JobKilledException;
@@ -82,8 +83,8 @@ public class CollectTaskTest extends RandomizedTest {
 
     @Test
     public void testAddingSameContextTwice() throws Exception {
-        Engine.Searcher mock1 = mock(Engine.Searcher.class);
-        Engine.Searcher mock2 = mock(Engine.Searcher.class);
+        RefCountedItem<Engine.Searcher> mock1 = mock(RefCountedItem.class);
+        RefCountedItem<Engine.Searcher> mock2 = mock(RefCountedItem.class);
         try {
             collectTask.addSearcher(1, mock1);
             collectTask.addSearcher(1, mock2);
@@ -97,8 +98,8 @@ public class CollectTaskTest extends RandomizedTest {
 
     @Test
     public void testInnerCloseClosesSearchContexts() throws Exception {
-        Engine.Searcher mock1 = mock(Engine.Searcher.class);
-        Engine.Searcher mock2 = mock(Engine.Searcher.class);
+        RefCountedItem mock1 = mock(RefCountedItem.class);
+        RefCountedItem mock2 = mock(RefCountedItem.class);
 
         collectTask.addSearcher(1, mock1);
         collectTask.addSearcher(2, mock2);
@@ -111,7 +112,7 @@ public class CollectTaskTest extends RandomizedTest {
 
     @Test
     public void testKillOnJobCollectContextPropagatesToCrateCollectors() throws Exception {
-        Engine.Searcher mock1 = mock(Engine.Searcher.class);
+        RefCountedItem mock1 = mock(RefCountedItem.class);
         MapSideDataCollectOperation collectOperationMock = mock(MapSideDataCollectOperation.class);
 
         var ramAccounting = mock(RamAccounting.class);

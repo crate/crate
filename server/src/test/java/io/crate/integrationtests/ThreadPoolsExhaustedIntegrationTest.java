@@ -21,22 +21,22 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
-import io.crate.testing.SQLTransportExecutor;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, maxNumDataNodes = 2)
 public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegrationTest {
@@ -51,7 +51,6 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
     }
 
     @Test
-    @Ignore("https://github.com/crate/crate/issues/10326")
     public void testRegularSelectWithFewAvailableThreadsShouldNeverGetStuck() throws Exception {
         execute("create table t (x int) with (number_of_replicas = 0)");
         ensureYellow();
@@ -61,7 +60,6 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
     }
 
     @Test
-    @Ignore("https://github.com/crate/crate/issues/10326")
     public void testDistributedPushSelectWithFewAvailableThreadsShouldNeverGetStuck() throws Exception {
         execute("create table t (x int) with (number_of_replicas = 0)");
         ensureYellow();
@@ -86,7 +84,8 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
             } catch (Exception e) {
                 assertThat(e.getMessage(), anyOf(
                     Matchers.containsString("rejected execution"),
-                    Matchers.containsString("job killed")));
+                    Matchers.containsString("job killed")
+                ));
             }
         }
     }

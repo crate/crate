@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -129,7 +128,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                                       CollectTask collectTask) {
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
-        Engine.Searcher searcher = sharedShardContext.acquireSearcher("unordered-iterator: " + formatSource(collectPhase));
+        var searcher = sharedShardContext.acquireSearcher("unordered-iterator: " + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexShard indexShard = sharedShardContext.indexShard();
         QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
@@ -146,7 +145,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
 
         return new LuceneBatchIterator(
-            searcher,
+            searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
             Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
@@ -206,7 +205,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
         CollectorContext collectorContext;
         InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx;
-        Engine.Searcher searcher = sharedShardContext.acquireSearcher("ordered-collector: " + formatSource(phase));
+        var searcher = sharedShardContext.acquireSearcher("ordered-collector: " + formatSource(phase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexService indexService = sharedShardContext.indexService();
         QueryShardContext queryShardContext = indexService.newQueryShardContext();
@@ -235,7 +234,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         );
         return new LuceneOrderedDocCollector(
             indexShard.shardId(),
-            searcher,
+            searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
             Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),

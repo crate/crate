@@ -39,7 +39,6 @@ import javax.annotation.concurrent.GuardedBy;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -50,6 +49,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.common.collections.BorrowedItem;
+import io.crate.common.collections.RefCountedItem;
 import io.crate.exceptions.Exceptions;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContext;
@@ -63,7 +63,7 @@ import io.crate.metadata.doc.DocTableInfo;
 
 public class FetchTask implements Task {
 
-    private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
+    private final IntObjectHashMap<RefCountedItem<Engine.Searcher>> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;
     private final String localNodeId;
@@ -101,7 +101,7 @@ public class FetchTask implements Task {
     }
 
     private void closeSearchers() {
-        for (IntObjectCursor<Engine.Searcher> cursor : searchers) {
+        for (var cursor : searchers) {
             cursor.value.close();
         }
         searchers.clear();
@@ -146,12 +146,12 @@ public class FetchTask implements Task {
             if (killed != null) {
                 throw Exceptions.toRuntimeException(killed);
             }
-            final Engine.Searcher searcher = searchers.get(readerId);
+            final var searcher = searchers.get(readerId);
             if (searcher == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Searcher for reader with id %d not found", readerId));
             }
             borrowed++;
-            return new BorrowedItem<>(searcher, () -> {
+            return new BorrowedItem<>(searcher.item(), () -> {
                 synchronized (jobId) {
                     borrowed--;
                     if (borrowed == 0 && killed != null) {
@@ -291,5 +291,9 @@ public class FetchTask implements Task {
     @Override
     public int id() {
         return phase.phaseId();
+    }
+
+    public UUID jobId() {
+        return jobId;
     }
 }

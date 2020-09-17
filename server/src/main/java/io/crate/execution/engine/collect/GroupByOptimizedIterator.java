@@ -147,7 +147,7 @@ final class GroupByOptimizedIterator {
 
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
-        Engine.Searcher searcher = sharedShardContext.acquireSearcher("group-by-ordinals:" + formatSource(collectPhase));
+        var searcher = sharedShardContext.acquireSearcher("group-by-ordinals:" + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
         final QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
@@ -179,7 +179,7 @@ final class GroupByOptimizedIterator {
 
         return getIterator(
             bigArrays,
-            searcher,
+            searcher.item(),
             keyRef.column().fqn(),
             aggregations,
             expressions,
@@ -364,7 +364,7 @@ final class GroupByOptimizedIterator {
     static boolean hasHighCardinalityRatio(Supplier<Engine.Searcher> acquireSearcher, String fieldName) {
         // acquire separate searcher:
         // Can't use sharedShardContexts() yet, if we bail out the "getOrCreateContext" causes issues later on in the fallback logic
-        try (Engine.Searcher searcher = acquireSearcher.get()) {
+        try (var searcher = acquireSearcher.get()) {
             for (LeafReaderContext leaf : searcher.getIndexReader().leaves()) {
                 Terms terms = leaf.reader().terms(fieldName);
                 if (terms == null) {
