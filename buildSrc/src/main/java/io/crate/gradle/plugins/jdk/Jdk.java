@@ -88,7 +88,10 @@ public class Jdk implements Buildable, Iterable<File> {
         if (!versionMatcher.matches()) {
             throw new IllegalArgumentException("malformed version [" + version + "] for jdk [" + name + "]");
         }
-        baseVersion = versionMatcher.group(1) + versionMatcher.group(2);
+        var minor = versionMatcher.group(2);
+        baseVersion = minor == null
+            ? versionMatcher.group(1)
+            : versionMatcher.group(1) + minor;
         major = versionMatcher.group(1);
         build = versionMatcher.group(3);
         hash = versionMatcher.group(5);
