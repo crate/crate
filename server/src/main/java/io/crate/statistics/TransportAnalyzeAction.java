@@ -98,8 +98,8 @@ public final class TransportAnalyzeAction {
         this.clusterService = clusterService;
         transportService.registerRequestHandler(
             INVOKE_ANALYZE,
-            AnalyzeRequest::new,
             ThreadPool.Names.SAME, // goes async right away
+            AnalyzeRequest::new,
             // Explicit generic is required for eclipse JDT, otherwise it won't compile
             new NodeActionRequestHandler<AnalyzeRequest, AcknowledgedResponse>(
                 req -> fetchSamplesThenGenerateAndPublishStats()
@@ -107,8 +107,8 @@ public final class TransportAnalyzeAction {
         );
         transportService.registerRequestHandler(
             FETCH_SAMPLES,
-            FetchSampleRequest::new,
             ThreadPool.Names.SEARCH,
+            FetchSampleRequest::new,
             // Explicit generic is required for eclipse JDT, otherwise it won't compile
             new NodeActionRequestHandler<FetchSampleRequest, FetchSampleResponse>(
                 req -> completedFuture(new FetchSampleResponse(
@@ -117,8 +117,8 @@ public final class TransportAnalyzeAction {
         );
         transportService.registerRequestHandler(
             RECEIVE_TABLE_STATS,
-            PublishTableStatsRequest::new,
             ThreadPool.Names.SAME, // cheap operation
+            PublishTableStatsRequest::new,
             // Explicit generic is required for eclipse JDT, otherwise it won't compile
             new NodeActionRequestHandler<PublishTableStatsRequest, AcknowledgedResponse>(
                 req -> {

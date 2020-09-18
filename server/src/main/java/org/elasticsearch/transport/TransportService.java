@@ -185,9 +185,10 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
         registerRequestHandler(
             HANDSHAKE_ACTION_NAME,
-            HandshakeRequest::new,
             ThreadPool.Names.SAME,
-            false, false,
+            false,
+            false,
+            HandshakeRequest::new,
             (request, channel, task) -> channel.sendResponse(
                 new HandshakeResponse(localNode, clusterName, localNode.getVersion())));
     }
@@ -827,59 +828,18 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      * Registers a new request handler
      *
      * @param action         The action the request handler is associated with
-     * @param reader a callable to be used construct new instances for streaming
-     * @param executor       The executor the request handling will be executed on
-     * @param handler        The handler itself that implements the request handling
-     */
-    public <Request extends TransportRequest> void registerRequestHandler(String action,
-                                                                          Writeable.Reader<Request> reader,
-                                                                          String executor,
-                                                                          TransportRequestHandler<Request> handler) {
-        validateActionName(action);
-        handler = interceptor.interceptHandler(action, executor, false, handler);
-        RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
-            action, reader, taskManager, handler, executor, false, true);
-        transport.registerRequestHandler(reg);
-    }
-
-    /**
-     * Registers a new request handler
-     *
-     * @param action         The action the request handler is associated with
      * @param requestReader  a callable to be used construct new instances for streaming
      * @param executor       The executor the request handling will be executed on
      * @param handler        The handler itself that implements the request handling
      */
-    public <Request extends TransportRequest> void registerRequestHandler(String action, String executor,
+    public <Request extends TransportRequest> void registerRequestHandler(String action,
+                                                                          String executor,
                                                                           Writeable.Reader<Request> requestReader,
                                                                           TransportRequestHandler<Request> handler) {
         validateActionName(action);
         handler = interceptor.interceptHandler(action, executor, false, handler);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
             action, requestReader, taskManager, handler, executor, false, true);
-        transport.registerRequestHandler(reg);
-    }
-
-    /**
-     * Registers a new request handler
-     *
-     * @param action                The action the request handler is associated with
-     * @param reader               The request class that will be used to construct new instances for streaming
-     * @param executor              The executor the request handling will be executed on
-     * @param forceExecution        Force execution on the executor queue and never reject it
-     * @param canTripCircuitBreaker Check the request size and raise an exception in case the limit is breached.
-     * @param handler               The handler itself that implements the request handling
-     */
-    public <Request extends TransportRequest> void registerRequestHandler(String action,
-                                                                          Writeable.Reader<Request> reader,
-                                                                          String executor,
-                                                                          boolean forceExecution,
-                                                                          boolean canTripCircuitBreaker,
-                                                                          TransportRequestHandler<Request> handler) {
-        validateActionName(action);
-        handler = interceptor.interceptHandler(action, executor, forceExecution, handler);
-        RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
-            action, reader, taskManager, handler, executor, forceExecution, canTripCircuitBreaker);
         transport.registerRequestHandler(reg);
     }
 
@@ -894,7 +854,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      * @param handler               The handler itself that implements the request handling
      */
     public <Request extends TransportRequest> void registerRequestHandler(String action,
-                                                                          String executor, boolean forceExecution,
+                                                                          String executor,
+                                                                          boolean forceExecution,
                                                                           boolean canTripCircuitBreaker,
                                                                           Writeable.Reader<Request> requestReader,
                                                                           TransportRequestHandler<Request> handler) {

@@ -97,12 +97,42 @@ public class BlobRecoveryTarget {
         this.blobIndicesService = blobIndicesService;
         this.peerRecoveryTargetService = peerRecoveryTargetService;
 
-        transportService.registerRequestHandler(Actions.START_RECOVERY, BlobStartRecoveryRequest::new, ThreadPool.Names.GENERIC, new StartRecoveryRequestHandler());
-        transportService.registerRequestHandler(Actions.START_PREFIX, BlobStartPrefixSyncRequest::new, ThreadPool.Names.GENERIC, new StartPrefixSyncRequestHandler());
-        transportService.registerRequestHandler(Actions.TRANSFER_CHUNK, BlobRecoveryChunkRequest::new, ThreadPool.Names.GENERIC, new TransferChunkRequestHandler());
-        transportService.registerRequestHandler(Actions.START_TRANSFER, BlobRecoveryStartTransferRequest::new, ThreadPool.Names.GENERIC, new StartTransferRequestHandler());
-        transportService.registerRequestHandler(Actions.DELETE_FILE, BlobRecoveryDeleteRequest::new, ThreadPool.Names.GENERIC, new DeleteFileRequestHandler());
-        transportService.registerRequestHandler(Actions.FINALIZE_RECOVERY, BlobFinalizeRecoveryRequest::new, ThreadPool.Names.GENERIC, new FinalizeRecoveryRequestHandler());
+        transportService.registerRequestHandler(
+            Actions.START_RECOVERY,
+            ThreadPool.Names.GENERIC,
+            BlobStartRecoveryRequest::new,
+            new StartRecoveryRequestHandler()
+        );
+        transportService.registerRequestHandler(
+            Actions.START_PREFIX,
+            ThreadPool.Names.GENERIC,
+            BlobStartPrefixSyncRequest::new,
+            new StartPrefixSyncRequestHandler()
+        );
+        transportService.registerRequestHandler(
+            Actions.TRANSFER_CHUNK,
+            ThreadPool.Names.GENERIC,
+            BlobRecoveryChunkRequest::new,
+            new TransferChunkRequestHandler()
+        );
+        transportService.registerRequestHandler(
+            Actions.START_TRANSFER,
+            ThreadPool.Names.GENERIC,
+            BlobRecoveryStartTransferRequest::new,
+            new StartTransferRequestHandler()
+        );
+        transportService.registerRequestHandler(
+            Actions.DELETE_FILE,
+            ThreadPool.Names.GENERIC,
+            BlobRecoveryDeleteRequest::new,
+            new DeleteFileRequestHandler()
+        );
+        transportService.registerRequestHandler(
+            Actions.FINALIZE_RECOVERY,
+            ThreadPool.Names.GENERIC,
+            BlobFinalizeRecoveryRequest::new,
+            new FinalizeRecoveryRequestHandler()
+        );
     }
 
     class StartRecoveryRequestHandler implements TransportRequestHandler<BlobStartRecoveryRequest> {

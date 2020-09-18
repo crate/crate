@@ -97,8 +97,14 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
         transportNodeBroadcastAction = actionName + "[n]";
 
-        transportService.registerRequestHandler(transportNodeBroadcastAction, NodeRequest::new, executor, false, canTripCircuitBreaker,
-            new BroadcastByNodeTransportRequestHandler());
+        transportService.registerRequestHandler(
+            transportNodeBroadcastAction,
+            executor,
+            false,
+            canTripCircuitBreaker,
+            NodeRequest::new,
+            new BroadcastByNodeTransportRequestHandler()
+        );
     }
 
     private Response newResponse(

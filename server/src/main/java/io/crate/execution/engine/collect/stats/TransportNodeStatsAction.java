@@ -53,9 +53,10 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
                                     Transports transports) {
         this.nodeContextFieldsResolver = nodeContextFieldsResolver;
         this.transports = transports;
-        transportService.registerRequestHandler(ACTION_NAME,
-            NodeStatsRequest::new,
+        transportService.registerRequestHandler(
+            ACTION_NAME,
             EXECUTOR,
+            NodeStatsRequest::new,
             new NodeActionRequestHandler<>(this)
         );
     }
