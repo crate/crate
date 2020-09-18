@@ -38,6 +38,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
@@ -141,10 +142,17 @@ public class ProjectionBuilder {
             assert aggregationFunction != null :
                 "Aggregation function implementation not found using full qualified lookup: " + function;
 
+            var valueType = mode.returnType(aggregationFunction);
+            var functionInfo = FunctionInfo.of(
+                aggregationFunction.signature(),
+                aggregationFunction.boundSignature().getArgumentDataTypes(),
+                valueType
+            );
             Aggregation aggregation = new Aggregation(
                 aggregationFunction.signature(),
+                functionInfo,
                 aggregationFunction.boundSignature().getReturnType().createType(),
-                mode.returnType(aggregationFunction),
+                valueType,
                 Lists2.map(aggregationInputs, subQueryAndParamBinder),
                 subQueryAndParamBinder.apply(filterInput)
             );
