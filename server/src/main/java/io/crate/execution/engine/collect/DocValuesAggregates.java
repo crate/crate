@@ -100,8 +100,8 @@ public class DocValuesAggregates {
         ShardId shardId = indexShard.shardId();
         SharedShardContext shardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         Searcher searcher = shardContext.acquireSearcher(LuceneShardCollectorProvider.formatSource(phase));
-        QueryShardContext queryShardContext = shardContext.indexService().newQueryShardContext();
         collectTask.addSearcher(shardContext.readerId(), searcher);
+        QueryShardContext queryShardContext = shardContext.indexService().newQueryShardContext();
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             phase.where(),
             collectTask.txnCtx(),
