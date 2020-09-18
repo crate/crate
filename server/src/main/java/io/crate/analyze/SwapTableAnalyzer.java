@@ -68,7 +68,7 @@ public final class SwapTableAnalyzer {
             dropSource = exprAnalyzer.convert(dropSourceExpr, new ExpressionAnalysisContext());
         }
         SearchPath searchPath = txnCtx.sessionContext().searchPath();
-        User user = txnCtx.sessionContext().user();
+        User user = txnCtx.sessionContext().sessionUser();
         return new AnalyzedSwapTable(
             (DocTableInfo) schemas.resolveTableInfo(swapTable.source(), Operation.ALTER, user, searchPath),
             (DocTableInfo) schemas.resolveTableInfo(swapTable.target(), Operation.ALTER, user, searchPath),

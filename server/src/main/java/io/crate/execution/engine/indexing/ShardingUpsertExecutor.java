@@ -22,34 +22,8 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.action.FutureActionListener;
-import io.crate.action.LimitedExponentialBackoff;
-import io.crate.breaker.TypeGuessEstimateRowSize;
-import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
-import io.crate.data.Row;
-import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.RowShardResolver;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.support.RetryListener;
-import io.crate.settings.CrateSetting;
-import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.action.bulk.BulkRequestExecutor;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Setting;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.index.shard.ShardId;
+import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
-import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +39,37 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
-import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
+import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.bulk.BulkRequestExecutor;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.action.FutureActionListener;
+import io.crate.action.LimitedExponentialBackoff;
+import io.crate.breaker.TypeGuessEstimateRowSize;
+import io.crate.common.unit.TimeValue;
+import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
+import io.crate.data.Row;
+import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.RowShardResolver;
+import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.support.RetryListener;
+import io.crate.settings.CrateSetting;
+import io.crate.types.DataTypes;
 
 public class ShardingUpsertExecutor
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
@@ -76,6 +80,7 @@ public class ShardingUpsertExecutor
 
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     private static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
+    private static final double BREAKER_LIMIT_PERCENTAGE = 0.15d;
 
     private final GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper;
     private final NodeJobsCounter nodeJobsCounter;
@@ -87,13 +92,15 @@ public class ShardingUpsertExecutor
     private final BulkRequestExecutor<ShardUpsertRequest> requestExecutor;
     private final TransportCreatePartitionsAction createPartitionsAction;
     private final BulkShardCreationLimiter bulkShardCreationLimiter;
-    private final IsUsedBytesOverThreshold isUsedBytesOverThreshold;
     private final UpsertResultCollector resultCollector;
     private final boolean isDebugEnabled;
+    private final CircuitBreaker queryCircuitBreaker;
     private volatile boolean createPartitionsRequestOngoing = false;
+
 
     ShardingUpsertExecutor(ClusterService clusterService,
                            NodeJobsCounter nodeJobsCounter,
+                           CircuitBreaker queryCircuitBreaker,
                            ScheduledExecutorService scheduler,
                            Executor executor,
                            int bulkSize,
@@ -110,6 +117,7 @@ public class ShardingUpsertExecutor
                            int targetTableNumReplicas,
                            UpsertResultContext upsertResultContext) {
         this.nodeJobsCounter = nodeJobsCounter;
+        this.queryCircuitBreaker = queryCircuitBreaker;
         this.scheduler = scheduler;
         this.executor = executor;
         this.bulkSize = bulkSize;
@@ -131,7 +139,6 @@ public class ShardingUpsertExecutor
             targetTableNumShards,
             targetTableNumReplicas,
             clusterService.state().nodes().getDataNodes().size());
-        isUsedBytesOverThreshold = new IsUsedBytesOverThreshold();
         this.resultCollector = upsertResultContext.getResultCollector();
         isDebugEnabled = LOGGER.isDebugEnabled();
     }
@@ -249,6 +256,17 @@ public class ShardingUpsertExecutor
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
+        long reservedBytes;
+        try {
+            reservedBytes = queryCircuitBreaker.addBytesRangeAndMaybeBreak(
+                ByteSizeUnit.MB.toBytes(5),
+                (long) (queryCircuitBreaker.getLimit() * BREAKER_LIMIT_PERCENTAGE),
+                "sharding-upsert-exececutor"
+            );
+        } catch (Throwable t) {
+            return CompletableFuture.failedFuture(t);
+        }
+        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(reservedBytes);
         var reqBatchIterator = BatchIterators.partition(
             batchIterator,
             bulkSize,
@@ -256,18 +274,19 @@ public class ShardingUpsertExecutor
             grouper,
             bulkShardCreationLimiter.or(isUsedBytesOverThreshold)
         );
-
         // If IO is involved the source iterator should pause when the target node reaches a concurrent job counter limit.
         // Without IO, we assume that the source iterates over in-memory structures which should be processed as
         // fast as possible to free resources.
         Predicate<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>> shouldPause =
             this::shouldPauseOnPartitionCreation;
         if (batchIterator.hasLazyResultSet()) {
-            shouldPause = shouldPause.or(this::shouldPauseOnTargetNodeJobsCounter);
+            shouldPause = shouldPause
+                .or(this::shouldPauseOnTargetNodeJobsCounter)
+                .or(isUsedBytesOverThreshold);
         }
-
         BatchIteratorBackpressureExecutor<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>, UpsertResults> executor =
             new BatchIteratorBackpressureExecutor<>(
+                jobId,
                 scheduler,
                 this.executor,
                 reqBatchIterator,
@@ -278,7 +297,10 @@ public class ShardingUpsertExecutor
                 BACKOFF_POLICY
             );
         return executor.consumeIteratorAndExecute()
-            .thenApply(upsertResults -> resultCollector.finisher().apply(upsertResults));
+            .thenApply(upsertResults -> resultCollector.finisher().apply(upsertResults))
+            .whenComplete((res, err) -> {
+                queryCircuitBreaker.addWithoutBreaking(-1 * reservedBytes);
+            });
     }
 
     private class ShardResponseActionListener implements ActionListener<ShardResponse> {
@@ -340,18 +362,27 @@ public class ShardingUpsertExecutor
 
     private static class IsUsedBytesOverThreshold implements Predicate<ShardedRequests<?, ?>> {
 
-        private static final double HEAP_PERCENTAGE = 0.30d;
-
         private final long maxBytesUsableByShardedRequests;
 
-        IsUsedBytesOverThreshold() {
-            var rt = Runtime.getRuntime();
-            maxBytesUsableByShardedRequests = (long) (rt.maxMemory() * HEAP_PERCENTAGE);
+        IsUsedBytesOverThreshold(long maxBytesUsableByShardedRequests) {
+            this.maxBytesUsableByShardedRequests = maxBytesUsableByShardedRequests;
         }
 
         @Override
         public final boolean test(ShardedRequests<?, ?> shardedRequests) {
-            return shardedRequests.usedMemoryEstimate() > maxBytesUsableByShardedRequests;
+            long usedMemoryEstimate = shardedRequests.ramBytesUsed();
+            boolean requestsTooBig = usedMemoryEstimate > maxBytesUsableByShardedRequests;
+            if (requestsTooBig && LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                    "Creating smaller bulk requests because shardedRequests is using too much memory. "
+                        + "ramBytesUsed={} itemsByShard={} itemSize={} maxBytesUsableByShardedRequests={}",
+                    shardedRequests.ramBytesUsed(),
+                    shardedRequests.itemsByShard().size(),
+                    shardedRequests.ramBytesUsed() / Math.max(shardedRequests.itemsByShard().size(), 1),
+                    maxBytesUsableByShardedRequests
+                );
+            }
+            return requestsTooBig;
         }
     }
 }

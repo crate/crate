@@ -100,42 +100,37 @@ public class DocValuesAggregates {
         ShardId shardId = indexShard.shardId();
         SharedShardContext shardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         Searcher searcher = shardContext.acquireSearcher(LuceneShardCollectorProvider.formatSource(phase));
-        try {
-            QueryShardContext queryShardContext = shardContext.indexService().newQueryShardContext();
-            collectTask.addSearcher(shardContext.readerId(), searcher);
-            LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
-                phase.where(),
-                collectTask.txnCtx(),
-                indexShard.mapperService(),
-                indexShard.shardId().getIndexName(),
-                queryShardContext,
-                table,
-                shardContext.indexService().cache()
-            );
+        collectTask.addSearcher(shardContext.readerId(), searcher);
+        QueryShardContext queryShardContext = shardContext.indexService().newQueryShardContext();
+        LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
+            phase.where(),
+            collectTask.txnCtx(),
+            indexShard.mapperService(),
+            indexShard.shardId().getIndexName(),
+            queryShardContext,
+            table,
+            shardContext.indexService().cache()
+        );
 
-            AtomicReference<Throwable> killed = new AtomicReference<>();
-            return CollectingBatchIterator.newInstance(
-                () -> killed.set(BatchIterator.CLOSED),
-                killed::set,
-                () -> {
-                    try {
-                        return CompletableFuture.completedFuture(getRow(
-                            collectTask.getRamAccounting(),
-                            killed,
-                            searcher,
-                            queryContext.query(),
-                            aggregators
-                        ));
-                    } catch (Throwable t) {
-                        return CompletableFuture.failedFuture(t);
-                    }
-                },
-                true
-            );
-        } catch (Throwable t) {
-            searcher.close();
-            throw t;
-        }
+        AtomicReference<Throwable> killed = new AtomicReference<>();
+        return CollectingBatchIterator.newInstance(
+            () -> killed.set(BatchIterator.CLOSED),
+            killed::set,
+            () -> {
+                try {
+                    return CompletableFuture.completedFuture(getRow(
+                        collectTask.getRamAccounting(),
+                        killed,
+                        searcher,
+                        queryContext.query(),
+                        aggregators
+                    ));
+                } catch (Throwable t) {
+                    return CompletableFuture.failedFuture(t);
+                }
+            },
+            true
+        );
     }
 
     @Nullable

@@ -188,6 +188,7 @@ public class ShardCollectSource implements CollectSource {
         BigArrays bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, HierarchyCircuitBreakerService.QUERY, true);
         this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
             clusterService,
+            circuitBreakerService,
             settings,
             schemas,
             threadPool,
@@ -206,6 +207,7 @@ public class ShardCollectSource implements CollectSource {
         sharedProjectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
+            circuitBreakerService,
             nodeCtx,
             threadPool,
             settings,

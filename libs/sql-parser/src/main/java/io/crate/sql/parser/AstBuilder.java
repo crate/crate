@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -695,7 +696,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSetTransaction(SetTransactionContext ctx) {
-        List<TransactionModeContext> transactionModeCtx = ctx.transactionMode();
         List<TransactionMode> modes = Lists2.map(ctx.transactionMode(), AstBuilder::getTransactionMode);
         return new SetTransactionStatement(modes);
     }
@@ -728,6 +728,32 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitResetGlobal(SqlBaseParser.ResetGlobalContext context) {
         return new ResetStatement<>(visitCollection(context.primaryExpression(), Expression.class));
+    }
+
+    @Override
+    public Node visitSetSessionAuthorization(SqlBaseParser.SetSessionAuthorizationContext context) {
+        SetSessionAuthorizationStatement.Scope scope;
+        if (context.LOCAL() != null) {
+            scope = SetSessionAuthorizationStatement.Scope.LOCAL;
+        } else {
+            scope = SetSessionAuthorizationStatement.Scope.SESSION;
+        }
+
+        if (context.DEFAULT() != null) {
+            return new SetSessionAuthorizationStatement(scope);
+        } else {
+            var userNameLiteral = visit(context.username);
+            assert userNameLiteral instanceof StringLiteral
+                : "username must be a StringLiteral because " +
+                  "the parser grammar is restricted to string literals";
+            var userName = ((StringLiteral) userNameLiteral).getValue();
+            return new SetSessionAuthorizationStatement(userName, scope);
+        }
+    }
+
+    @Override
+    public Node visitResetSessionAuthorization(SqlBaseParser.ResetSessionAuthorizationContext ctx) {
+        return new SetSessionAuthorizationStatement(SetSessionAuthorizationStatement.Scope.SESSION);
     }
 
     @Override

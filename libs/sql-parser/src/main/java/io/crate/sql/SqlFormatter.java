@@ -83,6 +83,7 @@ import io.crate.sql.tree.Relation;
 import io.crate.sql.tree.RevokePrivilege;
 import io.crate.sql.tree.Select;
 import io.crate.sql.tree.SelectItem;
+import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.sql.tree.SingleColumn;
 import io.crate.sql.tree.SortItem;
 import io.crate.sql.tree.StringLiteral;
@@ -1069,6 +1070,18 @@ public final class SqlFormatter {
         @Override
         protected Void visitSortItem(SortItem node, Integer indent) {
             node.getSortKey().accept(this, indent);
+            return null;
+        }
+
+        @Override
+        public Void visitSetSessionAuthorizationStatement(SetSessionAuthorizationStatement node,
+                                                          Integer context) {
+            var user = node.user();
+            builder
+                .append("SET ")
+                .append(node.scope())
+                .append(" SESSION AUTHORIZATION ")
+                .append(user != null ? quoteIdentifierIfNeeded(user) : "DEFAULT");
             return null;
         }
 

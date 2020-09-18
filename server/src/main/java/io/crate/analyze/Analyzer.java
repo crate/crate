@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.metadata.NodeContext;
+import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -134,7 +135,6 @@ public class Analyzer {
     private final KillAnalyzer killAnalyzer;
     private final SetStatementAnalyzer setStatementAnalyzer;
     private final ResetStatementAnalyzer resetStatementAnalyzer;
-    private final NodeContext nodeCtx;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -151,7 +151,6 @@ public class Analyzer {
                     UserManager userManager,
                     SessionSettingRegistry sessionSettingRegistry
     ) {
-        this.nodeCtx = nodeCtx;
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);
@@ -405,7 +404,7 @@ public class Analyzer {
         public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeDeny(
                 node,
-                context.sessionContext().user(),
+                context.sessionContext().sessionUser(),
                 context.sessionContext().searchPath());
         }
 
@@ -463,7 +462,7 @@ public class Analyzer {
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeGrant(
                 node,
-                context.sessionContext().user(),
+                context.sessionContext().sessionUser(),
                 context.sessionContext().searchPath());
         }
 
@@ -528,7 +527,7 @@ public class Analyzer {
         public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeRevoke(
                 node,
-                context.sessionContext().user(),
+                context.sessionContext().sessionUser(),
                 context.sessionContext().searchPath());
         }
 
@@ -538,6 +537,12 @@ public class Analyzer {
                 (SetStatement<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitSetSessionAuthorizationStatement(SetSessionAuthorizationStatement node,
+                                                                       Analysis context) {
+            return new AnalyzedSetSessionAuthorizationStatement(node.user(), node.scope());
         }
 
         @Override

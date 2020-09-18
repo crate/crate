@@ -53,8 +53,24 @@ Breaking Changes
   their position is after an ``object`` type column.
 
 
+Deprecations
+============
+
+- Deprecated the ``*.overhead`` setting for all circuit breakers. It now
+  defaults to 1.0 for all of them and changing it has no effect.
+
+- Deprecated the :ref:`indices.breaker.fielddata.limit
+  <indices.breaker.fielddata.limit>` and
+  :ref:`indices.breaker.fielddata.overhead
+  <indices.breaker.fielddata.overhead>` settings. These no longer have any
+  effect as there is no fielddata cache anymore.
+
+
 Changes
 =======
+
+- Added support for :ref:`SET AND RESET SESSION AUTHORIZATION
+  <ref-set-session-authorization>` SQL statements.
 
 - Added detailed information on the error when a column with an undefined type
   is used to ``GROUP BY``.
@@ -103,6 +119,10 @@ Changes
 
 Fixes
 =====
+
+- Improved the throttling behavior of ``INSERT INTO .. <query>``, it is now
+  more aggressive to reduce the amount of memory used by a ``INSERT INTO``
+  operation.
 
 - Fixed an issue which resulted in an error when a parameter symbol
   (placeholder) is used inside an aggregation.

@@ -50,6 +50,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.common.collections.BorrowedItem;
+import io.crate.exceptions.Exceptions;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
@@ -141,11 +142,14 @@ public class FetchTask implements Task {
 
     @Nonnull
     public BorrowedItem<Engine.Searcher> searcher(int readerId) {
-        final Engine.Searcher searcher = searchers.get(readerId);
-        if (searcher == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Searcher for reader with id %d not found", readerId));
-        }
         synchronized (jobId) {
+            if (killed != null) {
+                throw Exceptions.toRuntimeException(killed);
+            }
+            final Engine.Searcher searcher = searchers.get(readerId);
+            if (searcher == null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Searcher for reader with id %d not found", readerId));
+            }
             borrowed++;
             return new BorrowedItem<>(searcher, () -> {
                 synchronized (jobId) {
@@ -174,6 +178,7 @@ public class FetchTask implements Task {
                "phase=" + phase.phaseId() +
                ", borrowed=" + borrowed +
                ", done=" + result.isDone() +
+               ", killed=" + killed +
                ", searchers=" + searchers.keys() +
                '}';
     }
@@ -196,6 +201,7 @@ public class FetchTask implements Task {
 
     public void close() {
         synchronized (jobId) {
+            assert borrowed == 0 : "Close shouldn't be called while searchers are in use";
             closeSearchers();
             if (killed == null) {
                 result.complete(null);

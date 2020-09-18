@@ -132,50 +132,45 @@ final class DocValuesGroupByOptimizedIterator {
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
-        try {
-            QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
-            collectTask.addSearcher(sharedShardContext.readerId(), searcher);
+        collectTask.addSearcher(sharedShardContext.readerId(), searcher);
+        QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
 
-            InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx
-                = docInputFactory.getCtx(collectTask.txnCtx());
-            docCtx.add(columnKeyRefs);
-            List<? extends LuceneCollectorExpression<?>> keyExpressions = docCtx.expressions();
+        InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx
+            = docInputFactory.getCtx(collectTask.txnCtx());
+        docCtx.add(columnKeyRefs);
+        List<? extends LuceneCollectorExpression<?>> keyExpressions = docCtx.expressions();
 
-            LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
-                collectPhase.where(),
-                collectTask.txnCtx(),
-                indexShard.mapperService(),
-                indexShard.shardId().getIndexName(),
-                queryShardContext,
-                table,
-                sharedShardContext.indexService().cache()
+        LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
+            collectPhase.where(),
+            collectTask.txnCtx(),
+            indexShard.mapperService(),
+            indexShard.shardId().getIndexName(),
+            queryShardContext,
+            table,
+            sharedShardContext.indexService().cache()
+        );
+
+        var ramAccounting = collectTask.getRamAccounting();
+        if (columnKeyRefs.size() == 1) {
+            return GroupByIterator.forSingleKey(
+                aggregators,
+                searcher,
+                columnKeyRefs.get(0),
+                keyExpressions,
+                ramAccounting,
+                queryContext.query(),
+                new CollectorContext(sharedShardContext.readerId())
             );
-
-            var ramAccounting = collectTask.getRamAccounting();
-            if (columnKeyRefs.size() == 1) {
-                return GroupByIterator.forSingleKey(
-                    aggregators,
-                    searcher,
-                    columnKeyRefs.get(0),
-                    keyExpressions,
-                    ramAccounting,
-                    queryContext.query(),
-                    new CollectorContext(sharedShardContext.readerId())
-                );
-            } else {
-                return GroupByIterator.forManyKeys(
-                    aggregators,
-                    searcher,
-                    columnKeyRefs,
-                    keyExpressions,
-                    ramAccounting,
-                    queryContext.query(),
-                    new CollectorContext(sharedShardContext.readerId())
-                );
-            }
-        } catch (Throwable t) {
-            searcher.close();
-            throw t;
+        } else {
+            return GroupByIterator.forManyKeys(
+                aggregators,
+                searcher,
+                columnKeyRefs,
+                keyExpressions,
+                ramAccounting,
+                queryContext.query(),
+                new CollectorContext(sharedShardContext.readerId())
+            );
         }
     }
 

@@ -28,6 +28,7 @@ public class CircuitBreakers implements CircuitBreakersMXBean {
     public static final String NAME = "io.crate.monitoring:type=CircuitBreakers";
 
     private final CircuitBreakerService circuitBreakerService;
+    private final CircuitBreakerStats EMPTY_FIELDDATA_STATS = new CircuitBreakerStats("fielddata", -1, -1, 0, 0);
 
     public CircuitBreakers(CircuitBreakerService circuitBreakerService) {
         this.circuitBreakerService = circuitBreakerService;
@@ -40,7 +41,7 @@ public class CircuitBreakers implements CircuitBreakersMXBean {
 
     @Override
     public CircuitBreakerStats getFieldData() {
-        return circuitBreakerService.stats(CircuitBreaker.FIELDDATA);
+        return EMPTY_FIELDDATA_STATS;
     }
 
     @Override

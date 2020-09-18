@@ -36,11 +36,7 @@ public interface CircuitBreaker {
      * from by itself.
      */
     String PARENT = "parent";
-    /**
-     * The fielddata breaker tracks data used for fielddata (on fields) as well
-     * as the id cached used for parent/child queries.
-     */
-    String FIELDDATA = "fielddata";
+
     /**
      * The request breaker tracks memory used for particular requests. This
      * includes allocations for things like the cardinality aggregation, and
@@ -92,6 +88,15 @@ public interface CircuitBreaker {
     double addEstimateBytesAndMaybeBreak(long bytes, String label) throws CircuitBreakingException;
 
     /**
+     * Similar to {@link #addEstimateBytesAndMaybeBreak}, but is more lenient and
+     * doesn't break if `wantedBytes` is not available, but will instead account for
+     * a lower value as long as that value is above `minAcceptableBytes`.
+     *
+     * @return the number of bytes actually accounted for.
+     */
+    long addBytesRangeAndMaybeBreak(long minAcceptableBytes, long wantedBytes, String label);
+
+    /**
      * Adjust the circuit breaker without tripping
      */
     long addWithoutBreaking(long bytes);
@@ -105,11 +110,6 @@ public interface CircuitBreaker {
      * @return maximum number of bytes the circuit breaker can track before tripping
      */
     long getLimit();
-
-    /**
-     * @return overhead of circuit breaker
-     */
-    double getOverhead();
 
     /**
      * @return the number of times the circuit breaker has been tripped

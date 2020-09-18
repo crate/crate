@@ -107,6 +107,8 @@ import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -148,13 +150,16 @@ public class ProjectionToProjectorVisitor
     private final EvaluatingNormalizer normalizer;
     private final Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter;
     private final Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter;
+    private final CircuitBreakerService circuitBreakerService;
     private final Version indexVersionCreated;
     @Nullable
     private final ShardId shardId;
     private final int numProcessors;
 
+
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
+                                        CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
@@ -167,6 +172,7 @@ public class ProjectionToProjectorVisitor
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
+        this.circuitBreakerService = circuitBreakerService;
         this.nodeCtx = nodeCtx;
         this.threadPool = threadPool;
         this.settings = settings;
@@ -182,6 +188,7 @@ public class ProjectionToProjectorVisitor
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
+                                        CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
@@ -192,7 +199,8 @@ public class ProjectionToProjectorVisitor
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter) {
         this(clusterService,
             nodeJobsCounter,
-             nodeCtx,
+            circuitBreakerService,
+            nodeCtx,
             threadPool,
             settings,
             transportActionProvider,
@@ -419,6 +427,7 @@ public class ProjectionToProjectorVisitor
         return new IndexWriterProjector(
             clusterService,
             nodeJobsCounter,
+            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             context.txnCtx,
@@ -467,6 +476,7 @@ public class ProjectionToProjectorVisitor
         return new ColumnIndexWriterProjector(
             clusterService,
             nodeJobsCounter,
+            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             context.txnCtx,
@@ -527,6 +537,7 @@ public class ProjectionToProjectorVisitor
         );
 
         return new ShardDMLExecutor<>(
+            context.jobId,
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
@@ -550,6 +561,7 @@ public class ProjectionToProjectorVisitor
         TimeValue reqTimeout = ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings);
 
         ShardDMLExecutor<?, ?, ?, ?> shardDMLExecutor = new ShardDMLExecutor<>(
+            context.jobId,
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),

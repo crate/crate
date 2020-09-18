@@ -21,6 +21,7 @@ package org.elasticsearch.common.breaker;
 
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -142,6 +143,11 @@ public class MemoryCircuitBreaker implements CircuitBreaker {
         return newUsed;
     }
 
+    @Override
+    public long addBytesRangeAndMaybeBreak(long minAcceptableBytes, long wantedBytes, String label) {
+        throw new UnsupportedOperationException("This class is only used in tests and no test uses this function");
+    }
+
     /**
      * Add an <b>exact</b> number of bytes, not checking for tripping the
      * circuit breaker. This bypasses the overheadConstant multiplication.
@@ -175,14 +181,6 @@ public class MemoryCircuitBreaker implements CircuitBreaker {
     }
 
     /**
-     * @return the constant multiplier the breaker uses for aggregations
-     */
-    @Override
-    public double getOverhead() {
-        return this.overheadConstant;
-    }
-
-    /**
      * @return the number of times the breaker has been tripped
      */
     @Override
@@ -195,6 +193,6 @@ public class MemoryCircuitBreaker implements CircuitBreaker {
      */
     @Override
     public String getName() {
-        return FIELDDATA;
+        return HierarchyCircuitBreakerService.QUERY;
     }
 }

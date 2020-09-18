@@ -18,7 +18,6 @@
 
 package io.crate.auth.user;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
@@ -44,6 +43,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static io.crate.auth.user.User.CRATE_USER;
 import static java.util.Collections.singletonList;
@@ -76,14 +76,14 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
 
-        user = new User("normal", ImmutableSet.of(), ImmutableSet.of(), null) {
+        user = new User("normal", Set.of(), Set.of(), null) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
                 validationCallArguments.add(Lists.newArrayList(type, clazz, ident, user.name()));
                 return true;
             }
         };
-        superUser = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of(), null) {
+        superUser = new User("crate", EnumSet.of(User.Role.SUPERUSER), Set.of(), null) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident, String defaultSchema) {
                 validationCallArguments.add(Lists.newArrayList(type, clazz, ident, superUser.name()));
@@ -497,5 +497,57 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         analyze("SET TRANSACTION READ ONLY");
         assertThat(validationCallArguments.size(), is(0));
     }
-}
 
+    @Test
+    public void test_set_session_user_from_superuser_to_normal_user_succeeds() {
+        analyze("SET SESSION AUTHORIZATION " + user.name(), superUser);
+        assertThat(validationCallArguments.size(), is(0));
+    }
+
+    @Test
+    public void test_set_session_user_from_normal_user_fails() {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage(
+            "User \"normal\" is not authorized to execute the statement. " +
+            "Superuser permissions are required or you can set the session " +
+            "authorization back to the authenticated user.");
+        analyze("SET SESSION AUTHORIZATION 'someuser'", user);
+    }
+
+    @Test
+    public void test_set_session_user_from_normal_user_to_superuser_fails() {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage(
+            "User \"normal\" is not authorized to execute the statement. " +
+            "Superuser permissions are required or you can set the session " +
+            "authorization back to the authenticated user.");
+        analyze("SET SESSION AUTHORIZATION " + superUser.name(), user);
+    }
+
+    @Test
+    public void test_set_session_user_from_normal_to_originally_authenticated_user_succeeds() {
+        e.analyzer.analyze(
+            SqlParser.createStatement("SET SESSION AUTHORIZATION " + superUser.name()),
+            new SessionContext(superUser, user),
+            ParamTypeHints.EMPTY);
+        assertThat(validationCallArguments.size(), is(0));
+    }
+
+    @Test
+    public void test_set_session_user_from_normal_user_to_default_succeeds() {
+        e.analyzer.analyze(
+            SqlParser.createStatement("SET SESSION AUTHORIZATION DEFAULT"),
+            new SessionContext(superUser, user),
+            ParamTypeHints.EMPTY);
+        assertThat(validationCallArguments.size(), is(0));
+    }
+
+    @Test
+    public void test_reset_session_authorization_from_normal_user_succeeds() {
+        e.analyzer.analyze(
+            SqlParser.createStatement("RESET SESSION AUTHORIZATION"),
+            new SessionContext(superUser, user),
+            ParamTypeHints.EMPTY);
+        assertThat(validationCallArguments.size(), is(0));
+    }
+}

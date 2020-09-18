@@ -64,8 +64,11 @@ statement
     | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
     | ALTER USER name=ident SET '(' genericProperties ')'                            #alterUser
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
-    | SET SESSION CHARACTERISTICS AS TRANSACTION transactionMode (',' transactionMode)*  #setTransaction
-    | SET TRANSACTION transactionMode (',' transactionMode)*                             #setTransaction
+    | SET (SESSION CHARACTERISTICS AS)? TRANSACTION
+        transactionMode (',' transactionMode)*                                       #setTransaction
+    | SET (SESSION | LOCAL)? SESSION AUTHORIZATION
+        (DEFAULT | username=stringLiteralOrIdentifier)                               #setSessionAuthorization
+    | RESET SESSION AUTHORIZATION                                                    #resetSessionAuthorization
     | SET (SESSION | LOCAL)? qname
         (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
     | SET GLOBAL (PERSISTENT | TRANSIENT)?
@@ -661,7 +664,7 @@ isolationLevel
     ;
 
 nonReserved
-    : ALIAS | ANALYZE | ANALYZER | AT | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CHECK | CLUSTERED
+    : ALIAS | ANALYZE | ANALYZER | AT | AUTHORIZATION | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CHECK | CLUSTERED
     | COLUMNS | COPY | CURRENT |  DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | ILIKE | INTERVAL | KEY | KILL | LICENSE | LOGICAL | LOCAL
@@ -681,6 +684,7 @@ nonReserved
     | DISCARD | PLANS | SEQUENCES | TEMPORARY | TEMP
     ;
 
+AUTHORIZATION: 'AUTHORIZATION';
 SELECT: 'SELECT';
 FROM: 'FROM';
 TO: 'TO';

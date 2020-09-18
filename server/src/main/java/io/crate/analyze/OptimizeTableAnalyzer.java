@@ -62,7 +62,7 @@ public class OptimizeTableAnalyzer {
             TableInfo tableInfo = schemas.resolveTableInfo(
                 table.getName(),
                 Operation.OPTIMIZE,
-                txnCtx.sessionContext().user(),
+                txnCtx.sessionContext().sessionUser(),
                 txnCtx.sessionContext().searchPath()
             );
             analyzedOptimizeTables.put(table, tableInfo);

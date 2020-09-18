@@ -33,6 +33,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -75,6 +76,7 @@ public class BatchIteratorBackpressureExecutorTest extends ESTestCase {
             return false;
         };
         BatchIteratorBackpressureExecutor<Integer, Integer> executor = new BatchIteratorBackpressureExecutor<>(
+            UUID.randomUUID(),
             scheduler,
             this.executor,
             it,

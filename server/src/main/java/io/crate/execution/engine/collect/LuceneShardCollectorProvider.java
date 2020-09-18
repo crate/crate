@@ -36,6 +36,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.data.BatchIterator;
@@ -80,6 +81,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         LuceneQueryBuilder luceneQueryBuilder,
                                         ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
+                                        CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
@@ -88,6 +90,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         BigArrays bigArrays) {
         super(
             clusterService,
+            circuitBreakerService,
             schemas,
             nodeJobsCounter,
             nodeCtx,
@@ -127,35 +130,30 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
+        collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexShard indexShard = sharedShardContext.indexShard();
-        try {
-            QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
-            LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
-                collectPhase.where(),
-                collectTask.txnCtx(),
-                indexShard.mapperService(),
-                indexShard.shardId().getIndexName(),
-                queryShardContext,
-                table,
-                sharedShardContext.indexService().cache()
-            );
-            collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-            InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
-                docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
+        QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+        LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
+            collectPhase.where(),
+            collectTask.txnCtx(),
+            indexShard.mapperService(),
+            indexShard.shardId().getIndexName(),
+            queryShardContext,
+            table,
+            sharedShardContext.indexService().cache()
+        );
+        InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
+            docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
 
-            return new LuceneBatchIterator(
-                searcher,
-                queryContext.query(),
-                queryContext.minScore(),
-                Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
-                new CollectorContext(sharedShardContext.readerId()),
-                docCtx.topLevelInputs(),
-                docCtx.expressions()
-            );
-        } catch (Throwable t) {
-            searcher.close();
-            throw t;
-        }
+        return new LuceneBatchIterator(
+            searcher,
+            queryContext.query(),
+            queryContext.minScore(),
+            Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
+            new CollectorContext(sharedShardContext.readerId()),
+            docCtx.topLevelInputs(),
+            docCtx.expressions()
+        );
     }
 
     @Nullable
@@ -208,30 +206,21 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
         CollectorContext collectorContext;
         InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx;
-        Engine.Searcher searcher = null;
-        LuceneQueryBuilder.Context queryContext;
-        try {
-            searcher = sharedShardContext.acquireSearcher(formatSource(phase));
-            IndexService indexService = sharedShardContext.indexService();
-            QueryShardContext queryShardContext = indexService.newQueryShardContext();
-            queryContext = luceneQueryBuilder.convert(
-                collectPhase.where(),
-                collectTask.txnCtx(),
-                indexService.mapperService(),
-                indexShard.shardId().getIndexName(),
-                queryShardContext,
-                table,
-                indexService.cache()
-            );
-            collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-            ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
-            collectorContext = new CollectorContext(sharedShardContext.readerId());
-        } catch (Throwable t) {
-            if (searcher != null) {
-                searcher.close();
-            }
-            throw t;
-        }
+        Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(phase));
+        collectTask.addSearcher(sharedShardContext.readerId(), searcher);
+        IndexService indexService = sharedShardContext.indexService();
+        QueryShardContext queryShardContext = indexService.newQueryShardContext();
+        final var queryContext = luceneQueryBuilder.convert(
+            collectPhase.where(),
+            collectTask.txnCtx(),
+            indexService.mapperService(),
+            indexShard.shardId().getIndexName(),
+            queryShardContext,
+            table,
+            indexService.cache()
+        );
+        ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
+        collectorContext = new CollectorContext(sharedShardContext.readerId());
         int batchSize = collectPhase.shardQueueSize(localNodeId.get());
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}][{}] creating LuceneOrderedDocCollector. Expected number of rows to be collected: {}",

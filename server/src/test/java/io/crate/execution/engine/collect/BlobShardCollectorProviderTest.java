@@ -41,6 +41,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -107,7 +108,17 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
                 Schemas schemas = new Schemas(Collections.emptyMap(), clusterService, null);
                 assertNotNull(blobShard);
-                collectorProvider = new BlobShardCollectorProvider(blobShard, clusterService, schemas, null, null, null, Settings.EMPTY, null);
+                collectorProvider = new BlobShardCollectorProvider(
+                    blobShard,
+                    clusterService,
+                    schemas,
+                    null,
+                    new NoneCircuitBreakerService(),
+                    null,
+                    null,
+                    Settings.EMPTY,
+                    null
+                );
                 assertNotNull(collectorProvider);
             } catch (Exception e) {
                 fail("Exception shouldn't be thrown: " + e.getMessage());

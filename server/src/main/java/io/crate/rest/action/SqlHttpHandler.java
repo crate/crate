@@ -214,13 +214,13 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private Session ensureSession(FullHttpRequest request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
-        User user = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
+        User authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Session session = this.session;
         if (session == null) {
-            session = sqlOperations.createSession(defaultSchema, user);
-        } else if (session.sessionContext().user().equals(user) == false) {
+            session = sqlOperations.createSession(defaultSchema, authenticatedUser);
+        } else if (session.sessionContext().authenticatedUser().equals(authenticatedUser) == false) {
             session.close();
-            session = sqlOperations.createSession(defaultSchema, user);
+            session = sqlOperations.createSession(defaultSchema, authenticatedUser);
         } else {
             // We don't want to keep "set session" settings across requests yet to not mess with clients doing
             // per request round-robin
