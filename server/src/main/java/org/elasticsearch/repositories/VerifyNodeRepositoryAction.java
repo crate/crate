@@ -64,7 +64,7 @@ public class VerifyNodeRepositoryAction {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.repositoriesService = repositoriesService;
-        transportService.registerRequestHandler(ACTION_NAME, VerifyNodeRepositoryRequest::new, ThreadPool.Names.SNAPSHOT, new VerifyNodeRepositoryRequestHandler());
+        transportService.registerRequestHandler(ACTION_NAME, ThreadPool.Names.SNAPSHOT, VerifyNodeRepositoryRequest::new, new VerifyNodeRepositoryRequestHandler());
     }
 
     public void verify(String repository, boolean readOnly, String verificationToken, final ActionListener<VerifyResponse> listener) {

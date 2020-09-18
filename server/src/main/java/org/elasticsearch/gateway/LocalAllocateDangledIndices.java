@@ -74,9 +74,10 @@ public class LocalAllocateDangledIndices {
         this.metadataIndexUpgradeService = metadataIndexUpgradeService;
         transportService.registerRequestHandler(
             ACTION_NAME,
-            AllocateDangledRequest::new,
             ThreadPool.Names.SAME,
-            new AllocateDangledRequestHandler());
+            AllocateDangledRequest::new,
+            new AllocateDangledRequestHandler()
+        );
     }
 
     public void allocateDangled(Collection<IndexMetadata> indices, final ActionListener<AllocateDangledResponse> listener) {

@@ -100,7 +100,12 @@ public class IndicesStore implements ClusterStateListener, Closeable {
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.threadPool = threadPool;
-        transportService.registerRequestHandler(ACTION_SHARD_EXISTS, ShardActiveRequest::new, ThreadPool.Names.SAME, new ShardActiveRequestHandler());
+        transportService.registerRequestHandler(
+            ACTION_SHARD_EXISTS,
+            ThreadPool.Names.SAME,
+            ShardActiveRequest::new,
+            new ShardActiveRequestHandler()
+        );
         this.deleteShardTimeout = INDICES_STORE_DELETE_SHARD_TIMEOUT.get(settings);
         // Doesn't make sense to delete shards on non-data nodes
         if (DiscoveryNode.isDataNode(settings)) {

@@ -65,8 +65,8 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> impleme
         this.name = name;
         transportService.registerRequestHandler(
             name,
-            reader,
             ThreadPool.Names.GENERIC,
+            reader,
             new NodeActionRequestHandler<>(this));
     }
 

@@ -89,10 +89,10 @@ public class PublicationTransportHandler {
 
         transportService.registerRequestHandler(
             PUBLISH_STATE_ACTION_NAME,
-            BytesTransportRequest::new,
             ThreadPool.Names.GENERIC,
             false,
             false,
+            BytesTransportRequest::new,
             (request, channel, task) -> channel.sendResponse(handleIncomingPublishRequest(request))
         );
 

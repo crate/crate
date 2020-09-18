@@ -68,10 +68,10 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
 
         transportService.registerRequestHandler(
             TRANSPORT_ACTION,
-            NodeCollectProfileRequest::new,
             EXECUTOR,
             true,
             false,
+            NodeCollectProfileRequest::new,
             new NodeActionRequestHandler<>(this)
         );
     }
