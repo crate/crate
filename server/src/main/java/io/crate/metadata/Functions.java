@@ -89,6 +89,16 @@ public class Functions {
     }
 
     /**
+     * See {@link #get(String, String, List, List, SearchPath)}
+     */
+    public FunctionImplementation get(@Nullable String suppliedSchema,
+                                      String functionName,
+                                      List<Symbol> arguments,
+                                      SearchPath searchPath) {
+        return get(suppliedSchema, functionName, Symbols.typeView(arguments), arguments, searchPath);
+    }
+
+    /**
      * Return a function that matches the name/arguments.
      *
      * <pre>
@@ -101,13 +111,13 @@ public class Functions {
      *
      * @throws UnsupportedOperationException if the function wasn't found
      */
-    public FunctionImplementation get(@Nullable String suppliedSchema,
-                                      String functionName,
-                                      List<Symbol> arguments,
-
-                                      SearchPath searchPath) {
+    private FunctionImplementation get(@Nullable String suppliedSchema,
+                                       String functionName,
+                                       List<DataType<?>> argumentTypes,
+                                       List<Symbol> arguments,
+                                       SearchPath searchPath) {
         FunctionName fqnName = new FunctionName(suppliedSchema, functionName);
-        FunctionImplementation func = getBuiltinByArgs(fqnName, arguments, searchPath);
+        FunctionImplementation func = getBuiltinByArgs(fqnName, argumentTypes, arguments, searchPath);
         if (func == null) {
             func = resolveUserDefinedByArgs(fqnName, arguments, searchPath);
         }
@@ -149,25 +159,29 @@ public class Functions {
      */
     @Nullable
     private FunctionImplementation getBuiltinByArgs(FunctionName functionName,
+                                                    List<DataType<?>> argumentTypes,
                                                     List<Symbol> arguments,
                                                     SearchPath searchPath) {
         return resolveBuiltInFunctionBySignature(
             functionName,
+            argumentTypes,
             arguments,
             searchPath
         );
     }
 
     @Nullable
-    public FunctionImplementation resolveBuiltInFunctionBySignature(FunctionName name,
+    private FunctionImplementation resolveBuiltInFunctionBySignature(FunctionName name,
+                                                                    List<DataType<?>> argumentTypes,
                                                                     List<Symbol> arguments,
                                                                     SearchPath searchPath) {
-        return resolveFunctionBySignature(name, arguments, searchPath, functionImplementations::get);
+        return resolveFunctionBySignature(name, argumentTypes, arguments, searchPath, functionImplementations::get);
     }
 
 
     @Nullable
     private static FunctionImplementation resolveFunctionBySignature(FunctionName name,
+                                                                     List<DataType<?>> argumentTypes,
                                                                      List<Symbol> arguments,
                                                                      SearchPath searchPath,
                                                                      Function<FunctionName, List<FunctionProvider>> lookupFunction) {
@@ -190,7 +204,7 @@ public class Functions {
             var exactCandidates = candidates.stream()
                 .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
                 .collect(Collectors.toList());
-            var match = matchFunctionCandidates(exactCandidates, arguments, SignatureBinder.CoercionType.NONE);
+            var match = matchFunctionCandidates(exactCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
             if (match != null) {
                 return match;
             }
@@ -200,7 +214,7 @@ public class Functions {
             var genericCandidates = candidates.stream()
                 .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
                 .collect(Collectors.toList());
-            match = matchFunctionCandidates(genericCandidates, arguments, SignatureBinder.CoercionType.NONE);
+            match = matchFunctionCandidates(genericCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
             if (match != null) {
                 return match;
             }
@@ -212,7 +226,7 @@ public class Functions {
                 .collect(Collectors.toList());
             match = matchFunctionCandidates(
                 candidatesAllowingCoercion,
-                arguments,
+                argumentTypes,
                 SignatureBinder.CoercionType.PRECEDENCE_ONLY
             );
             if (match != null) {
@@ -220,7 +234,7 @@ public class Functions {
             }
 
             // Last, try all candidates which allow coercion with full coercion.
-            match = matchFunctionCandidates(candidatesAllowingCoercion, arguments, SignatureBinder.CoercionType.FULL);
+            match = matchFunctionCandidates(candidatesAllowingCoercion, argumentTypes, SignatureBinder.CoercionType.FULL);
 
             if (match == null) {
                 raiseUnknownFunction(name.schema(), name.name(), arguments, candidates);
@@ -232,12 +246,12 @@ public class Functions {
 
     @Nullable
     private static FunctionImplementation matchFunctionCandidates(List<FunctionProvider> candidates,
-                                                                  List<Symbol> arguments,
+                                                                  List<DataType<?>> arguments,
                                                                   SignatureBinder.CoercionType coercionType) {
         List<ApplicableFunction> applicableFunctions = new ArrayList<>();
         for (FunctionProvider candidate : candidates) {
             Signature boundSignature = new SignatureBinder(candidate.getSignature(), coercionType)
-                .bind(Lists2.map(arguments, s -> s.valueType().getTypeSignature()));
+                .bind(Lists2.map(arguments, DataType::getTypeSignature));
             if (boundSignature != null) {
                 applicableFunctions.add(
                     new ApplicableFunction(
@@ -285,6 +299,7 @@ public class Functions {
                                                             SearchPath searchPath) throws UnsupportedOperationException {
         return resolveFunctionBySignature(
             functionName,
+            Symbols.typeView(arguments),
             arguments,
             searchPath,
             udfFunctionImplementations::get
@@ -302,6 +317,7 @@ public class Functions {
         return get(
             function.info().ident().fqnName().schema(),
             function.info().ident().fqnName().name(),
+            function.info().ident().argumentTypes(),
             function.arguments(),
             searchPath
             );
@@ -318,6 +334,7 @@ public class Functions {
         return get(
             function.functionIdent().fqnName().schema(),
             function.functionIdent().fqnName().name(),
+            function.functionIdent().argumentTypes(),
             function.inputs(),
             searchPath
             );
@@ -384,13 +401,13 @@ public class Functions {
     }
 
     private static List<ApplicableFunction> selectMostSpecificFunctions(List<ApplicableFunction> applicableFunctions,
-                                                                        List<Symbol> arguments) {
+                                                                        List<DataType<?>> arguments) {
         if (applicableFunctions.isEmpty()) {
             return applicableFunctions;
         }
 
         // Find most specific by number of exact argument type matches
-        List<TypeSignature> argumentTypeSignatures = Lists2.map(arguments, s -> s.valueType().getTypeSignature());
+        List<TypeSignature> argumentTypeSignatures = Lists2.map(arguments, DataType::getTypeSignature);
         List<ApplicableFunction> mostSpecificFunctions = selectMostSpecificFunctions(
             applicableFunctions,
             (l, r) -> hasMoreExactTypeMatches(l, r, argumentTypeSignatures));
@@ -418,7 +435,7 @@ public class Functions {
         //     `concat(array(E), array(E)):array(E)`
         //
         if (returnTypeIsTheSame(mostSpecificFunctions)
-            || arguments.stream().allMatch(s -> s.valueType().id() == DataTypes.UNDEFINED.id())) {
+            || arguments.stream().allMatch(s -> s.id() == DataTypes.UNDEFINED.id())) {
             ApplicableFunction selectedFunction = mostSpecificFunctions.stream()
                 .sorted(Comparator.comparing(Objects::toString))
                 .iterator().next();
