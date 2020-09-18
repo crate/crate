@@ -120,6 +120,9 @@ Changes
 Fixes
 =====
 
+- Fixed a BWC issue with aggregation function resolving in a mixed version
+  cluster where at least one node is on version < 4.2.
+
 - Improved the throttling behavior of ``INSERT INTO .. <query>``, it is now
   more aggressive to reduce the amount of memory used by a ``INSERT INTO``
   operation.
