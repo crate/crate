@@ -92,6 +92,7 @@ class InterceptingRowConsumer implements RowConsumer {
             assert iterator != null : "iterator must be present";
             ThreadPools.forceExecute(executor, () -> consumer.accept(iterator, null));
         } else {
+            consumer.accept(null, failure);
             KillJobsRequest killRequest = new KillJobsRequest(
                 List.of(jobId),
                 User.CRATE_USER.name(),
@@ -102,9 +103,8 @@ class InterceptingRowConsumer implements RowConsumer {
                     @Override
                     public void onResponse(Long numKilled) {
                         if (LOGGER.isTraceEnabled()) {
-                            LOGGER.trace("Killed {} contexts for jobId={} before forwarding the failure={}", numKilled, jobId, failure);
+                            LOGGER.trace("Killed {} contexts for jobId={} forwarding the failure={}", numKilled, jobId, failure);
                         }
-                        consumer.accept(null, failure);
                     }
 
                     @Override
@@ -112,7 +112,6 @@ class InterceptingRowConsumer implements RowConsumer {
                         if (LOGGER.isTraceEnabled()) {
                             LOGGER.trace("Failed to kill jobId={}, forwarding failure={} anyway", jobId, failure);
                         }
-                        consumer.accept(null, failure);
                     }
                 });
         }

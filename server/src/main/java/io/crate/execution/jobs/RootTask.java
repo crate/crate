@@ -338,6 +338,7 @@ public class RootTask implements CompletionListenable<Void> {
         }
 
         private void onFailure(@Nonnull Throwable t) {
+            t = SQLExceptions.unwrap(t);
             failure = t;
             jobsLogs.operationFinished(id, jobId, SQLExceptions.messageOf(t));
             if (finishIfNeeded()) {
