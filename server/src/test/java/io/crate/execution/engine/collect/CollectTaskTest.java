@@ -21,31 +21,8 @@
 
 package io.crate.execution.engine.collect;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.breaker.RamAccounting;
-import io.crate.common.collections.RefCountedItem;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.exceptions.JobKilledException;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.jobs.SharedShardContexts;
-import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RowGranularity;
-import io.crate.testing.TestingRowConsumer;
-
-import org.apache.lucene.search.IndexSearcher;
-import org.elasticsearch.Version;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -55,28 +32,72 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-public class CollectTaskTest extends RandomizedTest {
+import org.apache.lucene.search.IndexSearcher;
+import org.elasticsearch.Version;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.RefCountedItem;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.SentinelRow;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.JobKilledException;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.testing.TestingRowConsumer;
+
+public class CollectTaskTest extends ESTestCase {
 
     private CollectTask collectTask;
     private RoutedCollectPhase collectPhase;
     private String localNodeId;
+    private TestingRowConsumer consumer;
+    private MapSideDataCollectOperation collectOperation;
 
     @Before
     public void setUp() throws Exception {
+        super.setUp();
         localNodeId = "dummyLocalNodeId";
         collectPhase = Mockito.mock(RoutedCollectPhase.class);
         Routing routing = Mockito.mock(Routing.class);
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.routing()).thenReturn(routing);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
+        collectOperation = mock(MapSideDataCollectOperation.class);
+        Mockito
+            .doAnswer(new Answer<>(){
+
+                @Override
+                public Object answer(InvocationOnMock invocation) throws Throwable {
+                    Runnable runnable = invocation.getArgument(0);
+                    runnable.run();
+                    return null;
+                }
+            })
+            .when(collectOperation).launch(Mockito.any(), Mockito.anyString());
+        consumer = new TestingRowConsumer();
         collectTask = new CollectTask(
             collectPhase,
             CoordinatorTxnCtx.systemTransactionContext(),
-            mock(MapSideDataCollectOperation.class),
+            collectOperation,
             RamAccounting.NO_ACCOUNTING,
             ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
-            new TestingRowConsumer(),
+            consumer,
             mock(SharedShardContexts.class),
             Version.CURRENT,
             4096
@@ -94,56 +115,8 @@ public class CollectTaskTest extends RandomizedTest {
             assertFalse(true); // second addContext call should have raised an exception
         } catch (IllegalArgumentException e) {
             verify(mock1, times(1)).close();
-            verify(mock2, times(1)).close();
+            verify(mock2, times(0)).close(); // would be closed via `kill` on the context
         }
-    }
-
-    @Test
-    public void testInnerCloseClosesSearchContexts() throws Exception {
-        RefCountedItem mock1 = mock(RefCountedItem.class);
-        RefCountedItem mock2 = mock(RefCountedItem.class);
-
-        collectTask.addSearcher(1, mock1);
-        collectTask.addSearcher(2, mock2);
-
-        collectTask.innerClose();
-
-        verify(mock1, times(1)).close();
-        verify(mock2, times(1)).close();
-    }
-
-    @Test
-    public void testKillOnJobCollectContextPropagatesToCrateCollectors() throws Exception {
-        RefCountedItem mock1 = mock(RefCountedItem.class);
-        MapSideDataCollectOperation collectOperationMock = mock(MapSideDataCollectOperation.class);
-
-        var ramAccounting = mock(RamAccounting.class);
-        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        CollectTask jobCtx = new CollectTask(
-            collectPhase,
-            txnCtx,
-            collectOperationMock,
-            ramAccounting,
-            ramAcc -> new OnHeapMemoryManager(ramAcc::addBytes),
-            new TestingRowConsumer(),
-            mock(SharedShardContexts.class),
-            Version.CURRENT,
-            4096
-        );
-
-        jobCtx.addSearcher(1, mock1);
-
-        BatchIterator<Row> batchIterator = mock(BatchIterator.class);
-        when(collectOperationMock.createIterator(eq(txnCtx), eq(collectPhase), anyBoolean(), eq(jobCtx)))
-            .thenReturn(CompletableFuture.completedFuture(batchIterator));
-        jobCtx.start();
-        jobCtx.kill(JobKilledException.of("because reasons"));
-
-        verify(batchIterator, times(1)).kill(any(JobKilledException.class));
-        verify(mock1, times(1)).close();
-
-        // CollectTask receives the RamAccountingContext from outside and is not responsible for closing it
-        verify(ramAccounting, times(0)).close();
     }
 
     @Test
@@ -185,5 +158,94 @@ public class CollectTaskTest extends RandomizedTest {
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, false);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.SAME));
+    }
+
+
+    @Test
+    public void test_kill_before_start_triggers_consumer() throws Exception {
+        RefCountedItem<IndexSearcher> searcher = mock(RefCountedItem.class);
+        collectTask.addSearcher(1, searcher);
+        collectTask.kill(JobKilledException.of(null));
+        assertThrows(
+            JobKilledException.class,
+            consumer::getBucket
+        );
+        verify(searcher, times(1)).close();
+    }
+
+    @Test
+    public void test_kill_after_start_but_before_batch_iterator_created_future() throws Exception {
+        var batchIterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+        CompletableFuture<BatchIterator<Row>> futureBatchIterator = new CompletableFuture<>();
+        when(collectOperation.createIterator(Mockito.any(), Mockito.any(), anyBoolean(), Mockito.any()))
+            .thenReturn(futureBatchIterator);
+        collectTask.start();
+        collectTask.kill(JobKilledException.of(null));
+        futureBatchIterator.complete(batchIterator);
+        assertThrows(
+            JobKilledException.class,
+            consumer::getBucket
+        );
+    }
+
+    @Test
+    public void test_kill_after_start_in_different_thread_before_batch_iterator_created_future() throws Exception {
+        var batchIterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+        CompletableFuture<BatchIterator<Row>> futureBatchIterator = new CompletableFuture<>();
+        when(collectOperation.createIterator(Mockito.any(), Mockito.any(), anyBoolean(), Mockito.any()))
+            .thenReturn(futureBatchIterator);
+        collectTask.start();
+        var killThreadStarted = new CountDownLatch(1);
+        var threadsCompleted = new CountDownLatch(2);
+        Thread t1 = new Thread(() -> {
+            killThreadStarted.countDown();
+            collectTask.kill(JobKilledException.of(null));
+            threadsCompleted.countDown();
+        });
+        Thread t2 = new Thread(() -> {
+            try {
+                killThreadStarted.await(1, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                throw Exceptions.toRuntimeException(e);
+            }
+            futureBatchIterator.complete(batchIterator);
+            threadsCompleted.countDown();
+        });
+        t1.start();
+        t2.start();
+        try {
+            consumer.getBucket();
+        } catch (JobKilledException e) {
+            // either success or failure is fine, depending on which thread is faster
+        }
+        threadsCompleted.await(1, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void test_kill_after_start() throws Exception {
+        var batchIterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+        when(collectOperation.createIterator(Mockito.any(), Mockito.any(), anyBoolean(), Mockito.any()))
+            .thenReturn(CompletableFuture.completedFuture(batchIterator));
+        collectTask.start();
+        collectTask.kill(JobKilledException.of(null));
+
+        // start() completes before kill gets a chance for the batchIterator to pick up the failure
+        consumer.getBucket();
+    }
+
+    @Test
+    public void test_add_searcher_after_kill_completed_does_close_searcher() throws Exception {
+        RefCountedItem<IndexSearcher> searcher = mock(RefCountedItem.class);
+        collectTask.kill(JobKilledException.of(null));
+        assertThrows(JobKilledException.class, () -> collectTask.addSearcher(0, searcher));
+        verify(searcher, times(1)).close();
+    }
+
+    @Test
+    public void test_consumer_finished_with_error_if_create_iterator_raises_an_error() throws Exception {
+        when(collectOperation.createIterator(Mockito.any(), Mockito.any(), anyBoolean(), Mockito.any()))
+            .thenThrow(new RuntimeException("create iterator failed"));
+        collectTask.start();
+        assertThrows(RuntimeException.class, consumer::getBucket);
     }
 }
