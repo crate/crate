@@ -92,9 +92,12 @@ public class Id {
         if (numPks == 1 && getOnlyElement(pkColumns).equals(DocSysColumns.ID)) {
             return RANDOM_ID;
         }
-        return compileWithNullValidation(numPks, pkColumns.indexOf(clusteredBy));
+        int idx = -1;
+        if (clusteredBy != null) {
+            idx = pkColumns.indexOf(clusteredBy);
+        }
+        return compileWithNullValidation(numPks, idx);
     }
-
 
     @Nonnull
     private static <T> T ensureNonNull(@Nullable T pkValue) throws IllegalArgumentException {

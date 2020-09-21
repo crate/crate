@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
@@ -36,8 +35,8 @@ import static org.hamcrest.core.Is.is;
 public class IdTest extends ESTestCase {
 
     private static final ColumnIdent _ID = ci("_id");
-    private static final ImmutableList<ColumnIdent> _ID_LIST = ImmutableList.of(_ID);
-    private static final ImmutableList<String> EMPTY_PK_VALUES = ImmutableList.of();
+    private static final List<ColumnIdent> _ID_LIST = List.of(_ID);
+    private static final List<String> EMPTY_PK_VALUES = List.of();
 
     private static ColumnIdent ci(String ident) {
         return new ColumnIdent(ident);
@@ -66,7 +65,7 @@ public class IdTest extends ESTestCase {
 
     @Test
     public void testSinglePrimaryKey() throws Exception {
-        String id = generateId(ImmutableList.of(ci("id")), ImmutableList.of("1"), ci("id"));
+        String id = generateId(List.of(ci("id")), List.of("1"), ci("id"));
 
         assertThat(id, is("1"));
     }
@@ -74,14 +73,14 @@ public class IdTest extends ESTestCase {
     @Test
     public void testSinglePrimaryKeyWithoutValue() throws Exception {
         expectedException.expect(NoSuchElementException.class);
-        generateId(ImmutableList.of(ci("id")), Collections.emptyList(), ci("id"));
+        generateId(List.of(ci("id")), Collections.emptyList(), ci("id"));
     }
 
     @Test
     public void testMultiplePrimaryKey() throws Exception {
         String id = generateId(
-            ImmutableList.of(ci("id"), ci("name")),
-            ImmutableList.of("1", "foo"), null);
+            List.of(ci("id"), ci("name")),
+            List.of("1", "foo"), null);
 
         assertThat(id, is("AgExA2Zvbw=="));
     }
@@ -89,8 +88,8 @@ public class IdTest extends ESTestCase {
     @Test
     public void testMultiplePrimaryKeyWithClusteredBy() throws Exception {
         String id = generateId(
-            ImmutableList.of(ci("id"), ci("name")),
-            ImmutableList.of("1", "foo"),
+            List.of(ci("id"), ci("name")),
+            List.of("1", "foo"),
             ci("name")
         );
         assertThat(id, is("AgNmb28BMQ=="));
@@ -100,6 +99,6 @@ public class IdTest extends ESTestCase {
     public void testNull() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("A primary key value must not be NULL");
-        generateId(ImmutableList.of(ci("id")), Collections.singletonList(null), ci("id"));
+        generateId(List.of(ci("id")), Collections.singletonList(null), ci("id"));
     }
 }

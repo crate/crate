@@ -46,8 +46,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -612,7 +610,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertNotNull(relation.where());
         Function whereClause = (Function) relation.where();
         assertThat(whereClause.name(), is(LikeOperators.OP_LIKE));
-        ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
+        List<DataType> argumentTypes = List.of(DataTypes.STRING, DataTypes.STRING);
         assertEquals(argumentTypes, Symbols.typeView(whereClause.arguments()));
 
         assertThat(whereClause.arguments().get(0), isReference("name"));
@@ -628,7 +626,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertNotNull(relation.where());
         Function whereClause = (Function) relation.where();
         assertThat(whereClause.name(), is(LikeOperators.OP_ILIKE));
-        ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
+        List<DataType> argumentTypes = List.of(DataTypes.STRING, DataTypes.STRING);
         assertEquals(argumentTypes, Symbols.typeView(whereClause.arguments()));
 
         assertThat(whereClause.arguments().get(0), isReference("name"));
@@ -662,7 +660,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation relation = executor.analyze("select * from sys.nodes where name like 1");
 
         // check if the implicit cast of the pattern worked
-        ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
+        List<DataType> argumentTypes = List.of(DataTypes.STRING, DataTypes.STRING);
         Function whereClause = (Function) relation.where();
         assertEquals(argumentTypes, Symbols.typeView(whereClause.arguments()));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
