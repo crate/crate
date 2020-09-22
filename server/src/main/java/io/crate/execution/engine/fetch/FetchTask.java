@@ -258,15 +258,15 @@ public class FetchTask implements Task {
                         int readerId = base + shardId.id();
                         SharedShardContext shardContext = shardContexts.get(readerId);
                         if (shardContext == null) {
-                            shardContext = sharedShardContexts.createContext(shardId, readerId);
-                            shardContexts.put(readerId, shardContext);
-                            if (tablesWithFetchRefs.contains(ident)) {
-                                try {
+                            try {
+                                shardContext = sharedShardContexts.createContext(shardId, readerId);
+                                shardContexts.put(readerId, shardContext);
+                                if (tablesWithFetchRefs.contains(ident)) {
                                     searchers.put(readerId, shardContext.acquireSearcher(source));
-                                } catch (IndexNotFoundException e) {
-                                    if (!IndexParts.isPartitioned(indexName)) {
-                                        throw e;
-                                    }
+                                }
+                            } catch (IndexNotFoundException e) {
+                                if (!IndexParts.isPartitioned(indexName)) {
+                                    throw e;
                                 }
                             }
                         }

@@ -28,6 +28,8 @@ import java.util.function.UnaryOperator;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -45,17 +47,20 @@ public class SharedShardContexts {
         this.wrapSearcher = wrapSearcher;
     }
 
-    public SharedShardContext createContext(ShardId shardId, int readerId) {
+    public SharedShardContext createContext(ShardId shardId, int readerId) throws IndexNotFoundException {
         assert !allocatedShards.containsKey(shardId) : "shardId shouldn't have been allocated yet";
-        SharedShardContext sharedShardContext = new SharedShardContext(indicesService, shardId, readerId, wrapSearcher);
+
+        IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
+        SharedShardContext sharedShardContext = new SharedShardContext(indexService, shardId, readerId, wrapSearcher);
         allocatedShards.put(shardId, sharedShardContext);
         return sharedShardContext;
     }
 
-    public SharedShardContext getOrCreateContext(ShardId shardId) {
+    public SharedShardContext getOrCreateContext(ShardId shardId) throws IndexNotFoundException {
         SharedShardContext sharedShardContext = allocatedShards.get(shardId);
         if (sharedShardContext == null) {
-            sharedShardContext = new SharedShardContext(indicesService, shardId, readerId, wrapSearcher);
+            IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
+            sharedShardContext = new SharedShardContext(indexService, shardId, readerId, wrapSearcher);
             allocatedShards.put(shardId, sharedShardContext);
             readerId++;
         }
