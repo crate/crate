@@ -210,6 +210,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
     }
 
     @Test
+    public void test_cidr_check_with_ip_requiring_all_bits() throws Exception {
+        String hbaAddress = "192.168.0.0/16";
+        assertTrue(isValidAddress(hbaAddress, InetAddresses.forString("192.168.101.92")));
+    }
+
+    @Test
     public void testConvertSettingsToConf() throws Exception {
         Settings settings = Settings.builder()
             .put("auth.host_based.enabled", true)
