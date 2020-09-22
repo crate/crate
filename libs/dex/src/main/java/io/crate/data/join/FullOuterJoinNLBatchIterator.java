@@ -48,7 +48,7 @@ import java.util.function.Predicate;
  *     }
  * </pre>
  */
-class FullOuterJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C> {
+public class FullOuterJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C> {
 
     private final BitSet matchedRows = new BitSet();
     private final Predicate<C> joinCondition;
@@ -57,10 +57,10 @@ class FullOuterJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C> {
     private boolean hadMatch = false;
     private int position = -1;
 
-    FullOuterJoinNLBatchIterator(BatchIterator<L> left,
-                                 BatchIterator<R> right,
-                                 ElementCombiner<L, R, C> combiner,
-                                 Predicate<C> joinCondition) {
+    public FullOuterJoinNLBatchIterator(BatchIterator<L> left,
+                                        BatchIterator<R> right,
+                                        ElementCombiner<L, R, C> combiner,
+                                        Predicate<C> joinCondition) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
     }

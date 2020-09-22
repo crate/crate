@@ -21,6 +21,13 @@
 
 package io.crate.execution.engine.join;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.IntSupplier;
+import java.util.function.Predicate;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
@@ -31,16 +38,16 @@ import io.crate.data.FilteringBatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.join.AntiJoinNLBatchIterator;
 import io.crate.data.join.CombinedRow;
-import io.crate.data.join.JoinBatchIterators;
+import io.crate.data.join.CrossJoinBlockNLBatchIterator;
+import io.crate.data.join.CrossJoinNLBatchIterator;
+import io.crate.data.join.FullOuterJoinNLBatchIterator;
+import io.crate.data.join.LeftJoinNLBatchIterator;
+import io.crate.data.join.RightJoinNLBatchIterator;
+import io.crate.data.join.SemiJoinNLBatchIterator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.types.DataType;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.IntSupplier;
-import java.util.function.Predicate;
 
 
 public class NestedLoopOperation implements CompletionListenable {
@@ -128,19 +135,19 @@ public class NestedLoopOperation implements CompletionListenable {
                     joinCondition);
 
             case LEFT:
-                return JoinBatchIterators.leftJoin(left, right, combiner, joinCondition);
+                return new LeftJoinNLBatchIterator<>(left, right, combiner, joinCondition);
 
             case RIGHT:
-                return JoinBatchIterators.rightJoin(left, right, combiner, joinCondition);
+                return new RightJoinNLBatchIterator<>(left, right, combiner, joinCondition);
 
             case FULL:
-                return JoinBatchIterators.fullOuterJoin(left, right, combiner, joinCondition);
+                return new FullOuterJoinNLBatchIterator<>(left, right, combiner, joinCondition);
 
             case SEMI:
-                return JoinBatchIterators.semiJoin(left, right, combiner, joinCondition);
+                return new SemiJoinNLBatchIterator<>(left, right, combiner, joinCondition);
 
             case ANTI:
-                return JoinBatchIterators.antiJoin(left, right, combiner, joinCondition);
+                return new AntiJoinNLBatchIterator<>(left, right, combiner, joinCondition);
 
             default:
                 throw new AssertionError("Invalid joinType: " + joinType);
@@ -164,9 +171,9 @@ public class NestedLoopOperation implements CompletionListenable {
                 estimatedNumberOfRowsLeft
             );
             var rowAccounting = new RowCellsAccountingWithEstimators(leftSideColumnTypes, ramAccounting, 0);
-            return JoinBatchIterators.crossJoinBlockNL(left, right, combiner, blockSizeCalculator, rowAccounting);
+            return new CrossJoinBlockNLBatchIterator(left, right, combiner, blockSizeCalculator, rowAccounting);
         } else {
-            return JoinBatchIterators.crossJoinNL(left, right, combiner);
+            return new CrossJoinNLBatchIterator<>(left, right, combiner);
         }
     }
 }

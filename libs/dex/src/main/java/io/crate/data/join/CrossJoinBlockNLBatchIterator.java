@@ -60,11 +60,11 @@ public class CrossJoinBlockNLBatchIterator extends JoinBatchIterator<Row, Row, R
     private int bufferPos;
     private boolean rightInitialized;
 
-    CrossJoinBlockNLBatchIterator(BatchIterator<Row> left,
-                                  BatchIterator<Row> right,
-                                  ElementCombiner<Row, Row, Row> combiner,
-                                  IntSupplier blockSizeCalculator,
-                                  RowAccounting<Object[]> rowAccounting) {
+    public CrossJoinBlockNLBatchIterator(BatchIterator<Row> left,
+                                         BatchIterator<Row> right,
+                                         ElementCombiner<Row, Row, Row> combiner,
+                                         IntSupplier blockSizeCalculator,
+                                         RowAccounting<Object[]> rowAccounting) {
         super(left, right, combiner);
         this.blockSizeCalculator = blockSizeCalculator;
         this.blockBuffer = new ArrayList<>(0);
