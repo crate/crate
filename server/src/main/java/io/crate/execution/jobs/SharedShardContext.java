@@ -31,25 +31,22 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesService;
 
 @NotThreadSafe
 public class SharedShardContext {
 
-    private final IndicesService indicesService;
-    private final ShardId shardId;
+    private final IndexService indexService;
     private final int readerId;
     private final UnaryOperator<Engine.Searcher> wrapSearcher;
+    private final IndexShard indexShard;
 
-    private IndexService indexService;
-    private IndexShard indexShard;
 
-    SharedShardContext(IndicesService indicesService,
+    SharedShardContext(IndexService indexService,
                        ShardId shardId,
                        int readerId,
                        UnaryOperator<Engine.Searcher> wrapSearcher) {
-        this.indicesService = indicesService;
-        this.shardId = shardId;
+        this.indexService = indexService;
+        this.indexShard = indexService.getShard(shardId.id());
         this.readerId = readerId;
         this.wrapSearcher = wrapSearcher;
     }
@@ -59,16 +56,10 @@ public class SharedShardContext {
     }
 
     public IndexShard indexShard() {
-        if (indexShard == null) {
-            indexShard = indexService().getShard(shardId.id());
-        }
         return indexShard;
     }
 
-    public IndexService indexService() throws IndexNotFoundException {
-        if (indexService == null) {
-            indexService = indicesService.indexServiceSafe(shardId.getIndex());
-        }
+    public IndexService indexService() {
         return indexService;
     }
 
