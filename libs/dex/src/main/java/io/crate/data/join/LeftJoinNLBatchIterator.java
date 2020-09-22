@@ -39,15 +39,15 @@ import java.util.function.Predicate;
  *     }
  * </pre>
  */
-class LeftJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C> {
+public class LeftJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C> {
 
     private final Predicate<C> joinCondition;
     private boolean hadMatch = false;
 
-    LeftJoinNLBatchIterator(BatchIterator<L> left,
-                            BatchIterator<R> right,
-                            ElementCombiner<L, R, C> combiner,
-                            Predicate<C> joinCondition) {
+    public LeftJoinNLBatchIterator(BatchIterator<L> left,
+                                   BatchIterator<R> right,
+                                   ElementCombiner<L, R, C> combiner,
+                                   Predicate<C> joinCondition) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
     }

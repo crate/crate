@@ -129,7 +129,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
     @Test
     public void testNestedLoopBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> JoinBatchIterators.crossJoinBlockNL(
+            () -> new CrossJoinBlockNLBatchIterator(
                 left.get(),
                 right.get(),
                 new CombinedRow(1, 1),
@@ -148,7 +148,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
     public void testNestedLoopWithBatchedSource() throws Exception {
         int batchSize = 50;
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> JoinBatchIterators.crossJoinBlockNL(
+            () -> new CrossJoinBlockNLBatchIterator(
                 new BatchSimulatingIterator<>(left.get(), batchSize, expectedRowsLeft / batchSize + 1, null),
                 new BatchSimulatingIterator<>(right.get(), batchSize, expectedRowsRight / batchSize + 1, null),
                 new CombinedRow(1, 1),
@@ -165,7 +165,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
 
     @Test
     public void testNestedLoopLeftAndRightEmpty() throws Exception {
-        BatchIterator<Row> iterator = JoinBatchIterators.crossJoinBlockNL(
+        BatchIterator<Row> iterator = new CrossJoinBlockNLBatchIterator(
             InMemoryBatchIterator.empty(SENTINEL),
             InMemoryBatchIterator.empty(SENTINEL),
             new CombinedRow(0, 0),
@@ -179,7 +179,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
 
     @Test
     public void testNestedLoopLeftEmpty() throws Exception {
-        BatchIterator<Row> iterator = JoinBatchIterators.crossJoinBlockNL(
+        BatchIterator<Row> iterator = new CrossJoinBlockNLBatchIterator(
             InMemoryBatchIterator.empty(SENTINEL),
             right.get(),
             new CombinedRow(0, 1),
@@ -193,7 +193,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
 
     @Test
     public void testNestedLoopRightEmpty() throws Exception {
-        BatchIterator<Row> iterator = JoinBatchIterators.crossJoinBlockNL(
+        BatchIterator<Row> iterator = new CrossJoinBlockNLBatchIterator(
             left.get(),
             InMemoryBatchIterator.empty(SENTINEL),
             new CombinedRow(1, 0),
@@ -207,7 +207,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
 
     @Test
     public void testMoveToStartWhileRightSideIsActive() {
-        BatchIterator<Row> batchIterator = JoinBatchIterators.crossJoinBlockNL(
+        BatchIterator<Row> batchIterator = new CrossJoinBlockNLBatchIterator(
             left.get(),
             right.get(),
             new CombinedRow(1, 1),
