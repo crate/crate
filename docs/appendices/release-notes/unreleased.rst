@@ -54,33 +54,4 @@ None
 Fixes
 =====
 
-- Fixed an issue that caused the IP restriction in the host based
-  authentication to not work correctly in all cases.
-
-- Fixed a BWC issue with aggregation function resolving in a mixed version
-  cluster where at least one node is on version < 4.2.
-
-- Improved the throttling behavior of ``INSERT INTO .. <query>``, it is now
-  more aggressive to reduce the amount of memory used by a ``INSERT INTO``
-  operation.
-
-- Fixed an issue which resulted in an error when a parameter symbol
-  (placeholder) is used inside an aggregation.
-
-- Fixed an issue that could lead to the incorrect result of joining more than
-  two tables even if the join condition is satisfied. Only the hash join
-  implementation was affected by the issue.
-
-- Fixed a regression introduced in 4.2.3 that prevented primary key lookups
-  with parameter placeholders from working in some cases.
-
-- Fixed an issue resulting wrongly in a `RED` ``sys.health.health`` state for
-  healthy partitions with less shards configured than the actual partitioned
-  table.
-
-- Fixed the resulting value for ``sys.health.partition_ident`` for
-  non-partitioned tables. As documented, a `NULL` value should be returned
-  instead of an empty string.
-
-- Fixed a performance regression that caused unnecessary traffic and load to
-  the active master node when processing ``INSERT`` statements.
+None
