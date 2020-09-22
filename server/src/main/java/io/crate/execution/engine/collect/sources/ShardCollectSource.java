@@ -352,9 +352,9 @@ public class ShardCollectSource implements CollectSource {
 
             for (IntCursor shard : entry.getValue()) {
                 ShardId shardId = new ShardId(index, shard.value);
-                SharedShardContext context = sharedShardContexts.getOrCreateContext(shardId);
 
                 try {
+                    SharedShardContext context = sharedShardContexts.getOrCreateContext(shardId);
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     orderedDocCollectors.add(shardCollectorProvider.getFutureOrderedCollector(
                         collectPhase,
