@@ -141,9 +141,9 @@ public class HostBasedAuthentication implements Authentication {
     static class Matchers {
 
         // IPv4 127.0.0.1 -> 2130706433
-        private static final int IPV4_LOCALHOST = inetAddressToInt(InetAddresses.forString("127.0.0.1"));
+        private static final long IPV4_LOCALHOST = inetAddressToInt(InetAddresses.forString("127.0.0.1"));
         // IPv6 ::1 -> 1
-        private static final int IPV6_LOCALHOST = inetAddressToInt(InetAddresses.forString("::1"));
+        private static final long IPV6_LOCALHOST = inetAddressToInt(InetAddresses.forString("::1"));
 
         static boolean isValidUser(Map.Entry<String, Map<String, String>> entry, String user) {
             String hbaUser = entry.getValue().get(KEY_USER);
@@ -164,8 +164,8 @@ public class HostBasedAuthentication implements Authentication {
                 return InetAddresses.forString(hbaAddress).equals(address);
             }
             long[] minAndMax = Cidrs.cidrMaskToMinMax(hbaAddress);
-            int addressAsInt = inetAddressToInt(address);
-            return minAndMax[0] <= addressAsInt && addressAsInt < minAndMax[1];
+            long addressAsLong = inetAddressToInt(address);
+            return minAndMax[0] <= addressAsLong && addressAsLong < minAndMax[1];
         }
 
         static boolean isValidProtocol(String hbaProtocol, Protocol protocol) {
@@ -180,8 +180,8 @@ public class HostBasedAuthentication implements Authentication {
                    (hbaConnectionMode.equals(SSL.REQUIRED.VALUE) && connectionProperties.hasSSL());
         }
 
-        private static int inetAddressToInt(InetAddress address) {
-            int net = 0;
+        private static long inetAddressToInt(InetAddress address) {
+            long net = 0;
             for (byte a : address.getAddress()) {
                 net <<= 8;
                 net |= a & 0xFF;
