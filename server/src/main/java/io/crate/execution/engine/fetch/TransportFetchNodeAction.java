@@ -75,7 +75,6 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
         transportService.registerRequestHandler(
             TRANSPORT_ACTION,
-            NodeFetchRequest::new,
             EXECUTOR_NAME,
             // force execution because this handler might receive empty close requests which
             // need to be processed to not leak the FetchTask.
@@ -83,6 +82,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             // If the threadPool is overloaded the query phase would fail first.
             true,
             false,
+            NodeFetchRequest::new,
             new NodeActionRequestHandler<>(this)
         );
     }

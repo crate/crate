@@ -56,6 +56,9 @@ Breaking Changes
 Deprecations
 ============
 
+- Deprecated the ``*.overhead`` setting for all circuit breakers. It now
+  defaults to 1.0 for all of them and changing it has no effect.
+
 - Deprecated the :ref:`indices.breaker.fielddata.limit
   <indices.breaker.fielddata.limit>` and
   :ref:`indices.breaker.fielddata.overhead
@@ -116,6 +119,9 @@ Changes
 
 Fixes
 =====
+
+- Fixed a BWC issue with aggregation function resolving in a mixed version
+  cluster where at least one node is on version < 4.2.
 
 - Improved the throttling behavior of ``INSERT INTO .. <query>``, it is now
   more aggressive to reduce the amount of memory used by a ``INSERT INTO``

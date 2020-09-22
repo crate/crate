@@ -181,14 +181,6 @@ public class MemoryCircuitBreaker implements CircuitBreaker {
     }
 
     /**
-     * @return the constant multiplier the breaker uses for aggregations
-     */
-    @Override
-    public double getOverhead() {
-        return this.overheadConstant;
-    }
-
-    /**
      * @return the number of times the breaker has been tripped
      */
     @Override

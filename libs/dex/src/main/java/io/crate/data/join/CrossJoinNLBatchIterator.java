@@ -40,9 +40,9 @@ import io.crate.data.BatchIterator;
  */
 public class CrossJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C> {
 
-    CrossJoinNLBatchIterator(BatchIterator<L> left,
-                             BatchIterator<R> right,
-                             ElementCombiner<L, R, C> combiner) {
+    public CrossJoinNLBatchIterator(BatchIterator<L> left,
+                                    BatchIterator<R> right,
+                                    ElementCombiner<L, R, C> combiner) {
         super(left, right, combiner);
     }
 

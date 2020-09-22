@@ -36,12 +36,10 @@ public class ChildMemoryCircuitBreakerTest {
             new BreakerSettings(
                 "dummy",
                 500L,
-                1.0d,
                 CircuitBreaker.Type.MEMORY
             ),
             LogManager.getLogger(ChildMemoryCircuitBreakerTest.class),
-            new NoneCircuitBreakerService(),
-            "dummy"
+            new NoneCircuitBreakerService()
         );
         breaker.addEstimateBytesAndMaybeBreak(400L, "reserve 400");
         long reserved = breaker.addBytesRangeAndMaybeBreak(50L, 300L, "reserve another 300");
@@ -54,12 +52,10 @@ public class ChildMemoryCircuitBreakerTest {
             new BreakerSettings(
                 "dummy",
                 500L,
-                1.0d,
                 CircuitBreaker.Type.MEMORY
             ),
             LogManager.getLogger(ChildMemoryCircuitBreakerTest.class),
-            new NoneCircuitBreakerService(),
-            "dummy"
+            new NoneCircuitBreakerService()
         );
         breaker.addEstimateBytesAndMaybeBreak(400L, "reserve 400");
         Assertions.assertThrows(

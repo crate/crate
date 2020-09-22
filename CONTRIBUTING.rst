@@ -7,9 +7,8 @@ Thank you for your interest in contributing.
 This document is a guideline. Don't worry about getting everything perfect.
 We are happy to work with you on your contribution.
 
-[Upvoting existing issues](#upvoting-issues), [reporting new issues](#reporting-issues),
-or [giving feedback](#tell-us-about-your-experience) about your experience are
-the easiest ways to contribute. 
+`Upvoting existing issues`_, `reporting new issues`_, or `giving feedback`_ 
+about your experience are the easiest ways to contribute. 
 
 We also accept pull requests for changes to the code and to the documentation.
 For more information on how to do this, read our `developer guide`_.
@@ -154,6 +153,9 @@ See also: http://www.ericbmerritt.com/2011/09/21/commit-hygiene-and-git.html
 .. _Crate.io: http://crate.io/
 .. _developer guide: devs/docs/index.rst
 .. _get in touch: https://crate.io/contact/
+.. _giving feedback: https://github.com/crate/crate/blob/master/CONTRIBUTING.rst#upvoting-issues
+.. _reporting new issues: https://github.com/crate/crate/blob/master/CONTRIBUTING.rst#reporting-issues
 .. _search the existing issues: https://github.com/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+user%3Acrate+
 .. _sort issues by reaction: https://github.com/crate/crate/issues?q=is%3Aissue+is%3Aopen+sort%3Areactions-%2B1-desc
-.. _support channels: https://crate.io/support/ 
+.. _support channels: https://crate.io/support/
+.. _Upvoting existing issues: https://github.com/crate/crate/blob/master/CONTRIBUTING.rst#upvoting-issues

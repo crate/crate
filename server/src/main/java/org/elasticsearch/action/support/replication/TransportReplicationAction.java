@@ -153,23 +153,23 @@ public abstract class TransportReplicationAction<
         this.transportPrimaryAction = actionName + "[p]";
         this.transportReplicaAction = actionName + "[r]";
 
-        transportService.registerRequestHandler(actionName, reader, ThreadPool.Names.SAME, new OperationTransportHandler());
+        transportService.registerRequestHandler(actionName, ThreadPool.Names.SAME, reader, new OperationTransportHandler());
         transportService.registerRequestHandler(
             transportPrimaryAction,
-            in -> new ConcreteShardRequest<>(in, reader),
             executor,
             forceExecutionOnPrimary,
             true,
+            in -> new ConcreteShardRequest<>(in, reader),
             new PrimaryOperationTransportHandler()
         );
 
         // we must never reject on because of thread pool capacity on replicas
         transportService.registerRequestHandler(
             transportReplicaAction,
-            in -> new ConcreteReplicaRequest<>(in, replicaReader),
             executor,
             true,
             true,
+            in -> new ConcreteReplicaRequest<>(in, replicaReader),
             new ReplicaOperationTransportHandler()
         );
         this.transportOptions = transportOptions();

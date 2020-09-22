@@ -62,9 +62,24 @@ public class BlobHeadRequestHandler {
     }
 
     public void registerHandler() {
-        transportService.registerRequestHandler(Actions.GET_BLOB_HEAD, GetBlobHeadRequest::new, ThreadPool.Names.GENERIC, new GetBlobHeadHandler());
-        transportService.registerRequestHandler(Actions.GET_TRANSFER_INFO, BlobInfoRequest::new, ThreadPool.Names.GENERIC, new GetTransferInfoHandler());
-        transportService.registerRequestHandler(Actions.PUT_BLOB_HEAD_CHUNK, PutBlobHeadChunkRequest::new, ThreadPool.Names.GENERIC, new PutBlobHeadChunkHandler());
+        transportService.registerRequestHandler(
+            Actions.GET_BLOB_HEAD,
+            ThreadPool.Names.GENERIC,
+            GetBlobHeadRequest::new,
+            new GetBlobHeadHandler()
+        );
+        transportService.registerRequestHandler(
+            Actions.GET_TRANSFER_INFO,
+            ThreadPool.Names.GENERIC,
+            BlobInfoRequest::new,
+            new GetTransferInfoHandler()
+        );
+        transportService.registerRequestHandler(
+            Actions.PUT_BLOB_HEAD_CHUNK,
+            ThreadPool.Names.GENERIC,
+            PutBlobHeadChunkRequest::new,
+            new PutBlobHeadChunkHandler()
+        );
     }
 
     private class GetBlobHeadHandler implements TransportRequestHandler<GetBlobHeadRequest> {

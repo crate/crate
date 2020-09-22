@@ -58,11 +58,6 @@ public class NoopCircuitBreaker implements CircuitBreaker {
     }
 
     @Override
-    public double getOverhead() {
-        return 0;
-    }
-
-    @Override
     public long getTrippedCount() {
         return 0;
     }

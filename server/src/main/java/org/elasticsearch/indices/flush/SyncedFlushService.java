@@ -86,14 +86,32 @@ public class SyncedFlushService implements IndexEventListener {
     private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     @Inject
-    public SyncedFlushService(IndicesService indicesService, ClusterService clusterService, TransportService transportService, IndexNameExpressionResolver indexNameExpressionResolver) {
+    public SyncedFlushService(IndicesService indicesService,
+                              ClusterService clusterService,
+                              TransportService transportService,
+                              IndexNameExpressionResolver indexNameExpressionResolver) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        transportService.registerRequestHandler(PRE_SYNCED_FLUSH_ACTION_NAME, PreShardSyncedFlushRequest::new, ThreadPool.Names.FLUSH, new PreSyncedFlushTransportHandler());
-        transportService.registerRequestHandler(SYNCED_FLUSH_ACTION_NAME, ShardSyncedFlushRequest::new, ThreadPool.Names.FLUSH, new SyncedFlushTransportHandler());
-        transportService.registerRequestHandler(IN_FLIGHT_OPS_ACTION_NAME, InFlightOpsRequest::new, ThreadPool.Names.SAME, new InFlightOpCountTransportHandler());
+        transportService.registerRequestHandler(
+            PRE_SYNCED_FLUSH_ACTION_NAME,
+            ThreadPool.Names.FLUSH,
+            PreShardSyncedFlushRequest::new,
+            new PreSyncedFlushTransportHandler()
+        );
+        transportService.registerRequestHandler(
+            SYNCED_FLUSH_ACTION_NAME,
+            ThreadPool.Names.FLUSH,
+            ShardSyncedFlushRequest::new,
+            new SyncedFlushTransportHandler()
+        );
+        transportService.registerRequestHandler(
+            IN_FLIGHT_OPS_ACTION_NAME,
+            ThreadPool.Names.SAME,
+            InFlightOpsRequest::new,
+            new InFlightOpCountTransportHandler()
+        );
     }
 
     @Override

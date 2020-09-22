@@ -2,18 +2,17 @@
 Backporting changes from Elasticsearch
 ======================================
 
-With CrateDB 4.0.0 we integrated the Elasticsearch code and then pruned out
+With CrateDB 4.0.0, we integrated the Elasticsearch code and then pruned out
 everything we don't use.
 
-With CrateDB 4.2.0 we changed the module structure, so that Elasticsearch and
+With CrateDB 4.2.0, we changed the module structure so that Elasticsearch and
 CrateDB code is no longer split, but mixed within the same modules. The
-majority is in ``server``.
+majority is in the ``server`` component.
 
+We still want to keep many of the components up-to-date, while other
+components will converge more and more over time.
 
-We still want to keep many of the components up-to-date, while other components
-will converge more and more over time.
-
-Areas were we want to stay close to Elasticsearch upstream are mostly:
+The areas where we want to stay close to upstream Elasticsearch are mostly:
 
 - Engine
 - Snapshotting
@@ -21,41 +20,44 @@ Areas were we want to stay close to Elasticsearch upstream are mostly:
 - Discovery and master election
 
 
-Applied change sets
-===================
+Applied changesets
+==================
 
 Patches should be applied in order. A backport commit message should be
-prefixed with ``bp:``, this allows us to verify if a patch was applied later on
-using something like this::
+prefixed with ``bp:``. This allows us to verify later on whether a patch was
+applied using something like this::
 
     sh$ git log --oneline --grep 'bp:'
 
 
 If a patch is skipped, use the ``sp:`` prefix instead.
 
-To see if there are new changes you can use
-``git log`` in the Elasticsearch repository, like so::
+To see if there are new changes, you can use ``git log`` in the Elasticsearch
+repository. For example::
 
     git log --oneline 48d31194c25.. -- \
       server/src/main/java/org/elasticsearch/index/{engine,snapshots,store,translog,shard,seqno,mapper,codec}/ \
       server/src/main/java/org/elasticsearch/indices/recovery/ \
       server/src/main/java/org/elasticsearch/transport
 
-Here ``48d31194c25`` is the starting point, it shows any changes since then that
-affected files in the given folder.
+Here ``48d31194c25`` is the starting point, it shows any changes since then
+thatvaffected files in the given folder.
 
-(Note that there may be changes before ``48d31194c25`` that are missing)
+(Note that there may be changes before ``48d31194c25`` that are missing.)
 
-We should eventually bump the reference point, once all patches have been
+We should eventually bump the reference point once all patches have been
 applied to a certain point.
 
-Below lists the change sets we applied. This should be updated whenever a
-backport is made. If a patch is skipped because it is not applicable, it should
-be crossed out as well. ``x`` is used to mark applied patches, ``s`` for
-skipped patches if they're no applicable - for example if the functionality is
-not present in CrateDB. ``d`` marks a delayed patch - a change we should apply,
-but which is non-trivial to apply and at the same time doesn't affect too any
-components, so delaying it doesn't make applying other patches more difficult.
+Below lists the changesets that we applied. This should be updated whenever a
+backport is made. If a patch is skipped because it is not applicable, it
+should be crossed out as well. 
+
+- ``x`` to mark applied patches
+- ``s`` for skipped patches if they are not applicable (for example, if the 
+  functionality is not present in CrateDB)
+- ``d`` marks a delayed patch - a non-trivial change we should apply that
+  does not affect too any components, so delaying it doesn't make applying
+  other patches more difficult
 
 
 - [ ] 1a31f9e332c Keep checkpoint file channel open across fsyncs (#61744)
@@ -71,7 +73,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 717db9c4ea7 Optimize a few Spots on IO Loop (#60865)
 - [ ] dbd4fd02545 Convert NumberFieldMapper to parametrized form (#61092)
 - [ ] 5457b343438 Correct how field retrieval handles multifields and copy_to. (#61309)
-- [ ] 98213df9462 Report more details of unobtainable ShardLock (#61255)
+- [x] 98213df9462 Report more details of unobtainable ShardLock (#61255)
 - [ ] 3b442743731 Improve 'ignore_malformed' handling for dates (#60211)
 - [ ] 8e8d6f2ca2f Better error msg when CCS request on node without remote role (#60351)
 - [ ] 2ef5902bfb0 Convert KeywordFieldMapper to parametrized form (#60645)
@@ -469,9 +471,10 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [x] 302d29c8705 Trim local translog in peer recovery (#44756)
 - [x] 6215f98fa68 Remove fileBasedRecovery flag (#45131)
 - [x] 01287eacb2f Use index for peer recovery instead of translog (#45136)
+- [x] c4b831645cb MINOR: Remove some deadcode in NodeEnv and Related (#34133)
 
-Below are patches deferred. In-between patches we applied or skipped are not
-listed anymore.
+Below lists deferred patches. In-between patches that we applied or skipped
+are not listed anymore.
 
 - [d] b07310022d2 [SPATIAL] New ShapeFieldMapper for indexing cartesian geometries (#44980)
 - [d] 7e627d27e5c Geo: move indexShape to AbstractGeometryFieldMapper.Indexer (#44979)

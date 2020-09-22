@@ -48,10 +48,17 @@ public class Aggregation extends Symbol {
     private final Symbol filter;
 
     public Aggregation(Signature signature, DataType<?> valueType, List<Symbol> inputs) {
-        this(signature, valueType, valueType, inputs, Literal.BOOLEAN_TRUE);
+        this(signature,
+            FunctionInfo.of(signature, Symbols.typeView(inputs), valueType),
+            valueType,
+            valueType,
+            inputs,
+            Literal.BOOLEAN_TRUE
+        );
     }
 
     public Aggregation(Signature signature,
+                       FunctionInfo functionInfo,
                        DataType<?> boundSignatureReturnType,
                        DataType<?> valueType,
                        List<Symbol> inputs,
@@ -60,7 +67,7 @@ public class Aggregation extends Symbol {
         requireNonNull(filter, "filter must not be null");
 
         this.valueType = valueType;
-        this.functionInfo = FunctionInfo.of(signature, Symbols.typeView(inputs), valueType);
+        this.functionInfo = functionInfo;
         this.signature = signature;
         this.boundSignatureReturnType = boundSignatureReturnType;
         this.inputs = inputs;

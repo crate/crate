@@ -1,5 +1,5 @@
 ===============
-Test Cheatsheet
+Test cheatsheet
 ===============
 
 Run tests in a single module using multiple forks::
@@ -36,7 +36,7 @@ More logging::
     $ ./gradlew -PtestLogging -Dtests.loggers.levels=io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE :server:test
 
 
-Or with code changes:
+More logging by changing code:
 
 Use ``@TestLogging(["<packageName1>:<logLevel1>", ...])`` on your test class or
 test method to enable more detailed logging. For example::

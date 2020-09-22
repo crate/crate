@@ -71,8 +71,8 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         this.jobSetup = jobSetup;
         transportService.registerRequestHandler(
             ACTION_NAME,
-            JobRequest::new,
             EXECUTOR,
+            JobRequest::new,
             new NodeActionRequestHandler<>(this));
     }
 

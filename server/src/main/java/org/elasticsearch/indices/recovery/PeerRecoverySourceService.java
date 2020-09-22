@@ -78,7 +78,12 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
         this.transportService = transportService;
         this.indicesService = indicesService;
         this.recoverySettings = recoverySettings;
-        transportService.registerRequestHandler(Actions.START_RECOVERY, StartRecoveryRequest::new, ThreadPool.Names.GENERIC, new StartRecoveryTransportRequestHandler());
+        transportService.registerRequestHandler(
+            Actions.START_RECOVERY,
+            ThreadPool.Names.GENERIC,
+            StartRecoveryRequest::new,
+            new StartRecoveryTransportRequestHandler()
+        );
     }
 
     @Override

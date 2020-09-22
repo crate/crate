@@ -102,9 +102,10 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
         this.killJobsAction = killJobsAction;
         this.backoffPolicy = backoffPolicy;
 
-        transportService.registerRequestHandler(DISTRIBUTED_RESULT_ACTION,
-            DistributedResultRequest::new,
+        transportService.registerRequestHandler(
+            DISTRIBUTED_RESULT_ACTION,
             ThreadPool.Names.SAME, // <- we will dispatch later at the nodeOperation on non failures
+            DistributedResultRequest::new,
             new NodeActionRequestHandler<>(this));
     }
 

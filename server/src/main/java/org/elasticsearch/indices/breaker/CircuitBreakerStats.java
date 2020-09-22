@@ -63,6 +63,12 @@ public class CircuitBreakerStats {
         return this.trippedCount;
     }
 
+    /**
+     * Kept around for BWC of JMX metrics
+     *
+     * Overhead cannot be set by the user anymore and must always be 1.0
+     **/
+    @Deprecated
     public double getOverhead() {
         return this.overhead;
     }
