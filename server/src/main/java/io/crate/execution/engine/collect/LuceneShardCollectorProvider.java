@@ -129,7 +129,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                                       CollectTask collectTask) {
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
-        Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
+        Engine.Searcher searcher = sharedShardContext.acquireSearcher("unordered-iterator: " + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexShard indexShard = sharedShardContext.indexShard();
         QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
@@ -206,7 +206,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
         CollectorContext collectorContext;
         InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx;
-        Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(phase));
+        Engine.Searcher searcher = sharedShardContext.acquireSearcher("ordered-collector: " + formatSource(phase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexService indexService = sharedShardContext.indexService();
         QueryShardContext queryShardContext = indexService.newQueryShardContext();
