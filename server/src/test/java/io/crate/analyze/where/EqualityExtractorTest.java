@@ -21,7 +21,6 @@
 
 package io.crate.analyze.where;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -67,15 +66,15 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {
-        return ee.extractParentMatches(ImmutableList.of(x), query, coordinatorTxnCtx);
+        return ee.extractParentMatches(List.of(x), query, coordinatorTxnCtx);
     }
 
     private List<List<Symbol>> analyzeExactX(Symbol query) {
-        return analyzeExact(query, ImmutableList.of(x));
+        return analyzeExact(query, List.of(x));
     }
 
     private List<List<Symbol>> analyzeExactXI(Symbol query) {
-        return analyzeExact(query, ImmutableList.of(x, i));
+        return analyzeExact(query, List.of(x, i));
     }
 
     private List<List<Symbol>> analyzeExact(Symbol query, List<ColumnIdent> primaryKeys) {
