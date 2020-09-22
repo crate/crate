@@ -120,7 +120,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeNestedLoopJoin(Blackhole blackhole) {
-        BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoinNL(
+        BatchIterator<Row> crossJoin = new CrossJoinNLBatchIterator<>(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1)
@@ -132,7 +132,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeBlockNestedLoopJoin(Blackhole blackhole) {
-        BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoinBlockNL(
+        BatchIterator<Row> crossJoin = new CrossJoinBlockNLBatchIterator(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1),
@@ -146,7 +146,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) {
-        BatchIterator<Row> leftJoin = JoinBatchIterators.leftJoin(
+        BatchIterator<Row> leftJoin = new LeftJoinNLBatchIterator<>(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1),
