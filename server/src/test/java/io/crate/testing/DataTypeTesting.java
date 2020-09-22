@@ -28,7 +28,6 @@ import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -50,6 +49,7 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,14 +58,14 @@ import java.util.function.Supplier;
 
 public class DataTypeTesting {
 
-    public static final List<DataType> ALL_TYPES_EXCEPT_ARRAYS = ImmutableList.<DataType>builder()
-        .addAll(DataTypes.PRIMITIVE_TYPES)
-        .add(DataTypes.GEO_POINT)
-        .add(DataTypes.GEO_SHAPE)
-        .add(DataTypes.INTERVAL)
-        .add(DataTypes.UNTYPED_OBJECT)
-        .build();
-
+    public static final List<DataType<?>> ALL_TYPES_EXCEPT_ARRAYS = new ArrayList<>();
+    static {
+        ALL_TYPES_EXCEPT_ARRAYS.addAll(DataTypes.PRIMITIVE_TYPES);
+        ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.GEO_POINT);
+        ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.GEO_SHAPE);
+        ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.INTERVAL);
+        ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.UNTYPED_OBJECT);
+    }
     public static DataType<?> randomType() {
         return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), ALL_TYPES_EXCEPT_ARRAYS);
     }

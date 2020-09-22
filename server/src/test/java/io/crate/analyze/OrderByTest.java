@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -32,6 +31,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
@@ -45,7 +45,7 @@ public class OrderByTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
-        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(ref("name")), new boolean[]{true}, new boolean[]{true});
+        OrderBy orderBy = new OrderBy(List.<Symbol>of(ref("name")), new boolean[]{true}, new boolean[]{true});
         BytesStreamOutput out = new BytesStreamOutput();
         orderBy.writeTo(out);
 

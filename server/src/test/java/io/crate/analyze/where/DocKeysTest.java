@@ -21,7 +21,6 @@
 
 package io.crate.analyze.where;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -44,8 +43,8 @@ public class DocKeysTest extends ESTestCase {
     @Test
     public void testClusteredIsFirstInId() throws Exception {
         // if a the table is clustered and has a pk, the clustering value is put in front in the id computation
-        List<List<Symbol>> pks = ImmutableList.<List<Symbol>>of(
-            ImmutableList.<Symbol>of(Literal.of(1), Literal.of("Ford"))
+        List<List<Symbol>> pks = List.<List<Symbol>>of(
+            List.<Symbol>of(Literal.of(1), Literal.of("Ford"))
         );
         DocKeys docKeys = new DocKeys(pks, false, false, 1, null);
         DocKeys.DocKey key = docKeys.getOnlyKey();
