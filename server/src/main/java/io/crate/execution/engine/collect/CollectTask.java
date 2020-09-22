@@ -30,8 +30,8 @@ import javax.annotation.Nonnull;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 
+import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.Version;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.breaker.BlockBasedRamAccounting;
@@ -59,7 +59,7 @@ public class CollectTask extends AbstractTask {
     private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
     private final SharedShardContexts sharedShardContexts;
 
-    private final IntObjectHashMap<RefCountedItem<Engine.Searcher>> searchers = new IntObjectHashMap<>();
+    private final IntObjectHashMap<RefCountedItem<IndexSearcher>> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final RowConsumer consumer;
     private final int ramAccountingBlockSizeInBytes;
@@ -91,7 +91,7 @@ public class CollectTask extends AbstractTask {
         this.minNodeVersion = minNodeVersion;
     }
 
-    public void addSearcher(int searcherId, RefCountedItem<Engine.Searcher> searcher) {
+    public void addSearcher(int searcherId, RefCountedItem<IndexSearcher> searcher) {
         if (isClosed()) {
             // if this is closed and addContext is called this means the context got killed.
             searcher.close();
