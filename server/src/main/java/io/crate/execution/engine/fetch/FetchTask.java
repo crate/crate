@@ -231,7 +231,7 @@ public class FetchTask implements Task {
                 tablesWithFetchRefs.add(reference.ident().tableIdent());
             }
 
-            String source = jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
+            String source = "fetch-task: " + jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
             for (Routing routing : routingIterable) {
                 Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
                 Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
