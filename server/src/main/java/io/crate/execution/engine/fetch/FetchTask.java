@@ -40,12 +40,12 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
+import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.common.collections.BorrowedItem;
@@ -63,7 +63,7 @@ import io.crate.metadata.doc.DocTableInfo;
 
 public class FetchTask implements Task {
 
-    private final IntObjectHashMap<RefCountedItem<Engine.Searcher>> searchers = new IntObjectHashMap<>();
+    private final IntObjectHashMap<RefCountedItem<IndexSearcher>> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;
     private final String localNodeId;
@@ -141,7 +141,7 @@ public class FetchTask implements Task {
     }
 
     @Nonnull
-    public BorrowedItem<Engine.Searcher> searcher(int readerId) {
+    public BorrowedItem<IndexSearcher> searcher(int readerId) {
         synchronized (jobId) {
             if (killed != null) {
                 throw Exceptions.toRuntimeException(killed);

@@ -34,6 +34,8 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.testing.TestingRowConsumer;
+
+import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -83,8 +85,8 @@ public class CollectTaskTest extends RandomizedTest {
 
     @Test
     public void testAddingSameContextTwice() throws Exception {
-        RefCountedItem<Engine.Searcher> mock1 = mock(RefCountedItem.class);
-        RefCountedItem<Engine.Searcher> mock2 = mock(RefCountedItem.class);
+        RefCountedItem<IndexSearcher> mock1 = mock(RefCountedItem.class);
+        RefCountedItem<IndexSearcher> mock2 = mock(RefCountedItem.class);
         try {
             collectTask.addSearcher(1, mock1);
             collectTask.addSearcher(1, mock2);
