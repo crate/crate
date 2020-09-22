@@ -1574,8 +1574,8 @@ public class InternalEngine extends Engine {
         assert readLock.isHeldByCurrentThread() || writeLock.isHeldByCurrentThread();
         assert noOp.seqNo() > SequenceNumbers.NO_OPS_PERFORMED;
         final long seqNo = noOp.seqNo();
-        NoOpResult noOpResult = null;
         try (Releasable ignored = noOpKeyedLock.acquire(seqNo)) {
+            NoOpResult noOpResult;
             final Optional<Exception> preFlightError = preFlightCheckForNoOp(noOp);
             if (preFlightError.isPresent()) {
                 noOpResult = new NoOpResult(
@@ -1625,15 +1625,6 @@ public class InternalEngine extends Engine {
             noOpResult.setTook(System.nanoTime() - noOp.startTime());
             noOpResult.freeze();
             return noOpResult;
-        } finally {
-            if (null != noOpResult) {
-                localCheckpointTracker.markSeqNoAsProcessed(noOpResult.getSeqNo());
-                if (noOpResult.getTranslogLocation() == null) {
-                    // the op is coming from the translog (and is hence persisted already) or it does not have a sequence number
-                    assert noOp.origin().isFromTranslog() || noOpResult.getSeqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO;
-                    localCheckpointTracker.markSeqNoAsPersisted(noOpResult.getSeqNo());
-                }
-            }
         }
     }
 
