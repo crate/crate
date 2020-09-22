@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused the IP restriction in the host based
+  authentication to not work correctly in all cases.
+
 - Fixed a BWC issue with aggregation function resolving in a mixed version
   cluster where at least one node is on version < 4.2.
 
