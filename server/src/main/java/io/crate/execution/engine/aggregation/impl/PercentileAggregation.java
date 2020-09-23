@@ -23,7 +23,6 @@ package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
-import io.crate.exceptions.CircuitBreakingException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
@@ -31,6 +30,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
