@@ -254,15 +254,22 @@ public class ShardingUpsertExecutor
         return false;
     }
 
+    static long reserveBytes(CircuitBreaker circuitBreaker) {
+        long minAcceptableBytes = ByteSizeUnit.MB.toBytes(5);
+        long wantedBytes = Math.max((long) (circuitBreaker.getFree() * BREAKER_LIMIT_PERCENTAGE), minAcceptableBytes);
+        return circuitBreaker.addBytesRangeAndMaybeBreak(
+            minAcceptableBytes,
+            wantedBytes,
+            "sharding-upsert-exececutor"
+        );
+    }
+
+
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
         long reservedBytes;
         try {
-            reservedBytes = queryCircuitBreaker.addBytesRangeAndMaybeBreak(
-                ByteSizeUnit.MB.toBytes(5),
-                (long) (queryCircuitBreaker.getLimit() * BREAKER_LIMIT_PERCENTAGE),
-                "sharding-upsert-exececutor"
-            );
+            reservedBytes = reserveBytes(queryCircuitBreaker);
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
         }
