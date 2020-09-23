@@ -21,12 +21,17 @@ package org.elasticsearch.index.engine;
 import io.crate.common.io.IOUtils;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.util.LuceneTestCase;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.store.Store;
+import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.index.translog.TranslogStats;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,9 +42,11 @@ import static org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 public class ReadOnlyEngineTests extends EngineTestCase {
 
+    @Test
     public void testReadOnlyEngine() throws Exception {
         IOUtils.close(engine, store);
         Engine readOnlyEngine = null;
@@ -111,6 +118,63 @@ public class ReadOnlyEngineTests extends EngineTestCase {
         }
     }
 
+    @Test
+    public void test_flushes() throws IOException {
+        IOUtils.close(engine, store);
+        Engine readOnlyEngine = null;
+        AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
+        try (Store store = createStore()) {
+            EngineConfig config = config(
+                defaultSettings,
+                store,
+                createTempDir(),
+                newMergePolicy(),
+                null,
+                null,
+                globalCheckpoint::get);
+            int numDocs = scaledRandomIntBetween(10, 1000);
+            try (InternalEngine engine = createEngine(config)) {
+                for (int i = 0; i < numDocs; i++) {
+                    ParsedDocument doc = testParsedDocument(
+                        Integer.toString(i),
+                        null,
+                        testDocument(),
+                        new BytesArray("{}"),
+                        null
+                    );
+                    engine.index(
+                        new Engine.Index(
+                            newUid(doc),
+                            doc,
+                            i,
+                            primaryTerm.get(),
+                            1,
+                            null,
+                            Engine.Operation.Origin.REPLICA,
+                            System.nanoTime(),
+                            -1,
+                            false,
+                            SequenceNumbers.UNASSIGNED_SEQ_NO,
+                            0));
+                    if (rarely()) {
+                        engine.flush();
+                    }
+                    engine.syncTranslog(); // advance persisted local checkpoint
+                    globalCheckpoint.set(engine.getPersistedLocalCheckpoint());
+                }
+                globalCheckpoint.set(engine.getPersistedLocalCheckpoint());
+                engine.syncTranslog();
+                engine.flushAndClose();
+                readOnlyEngine = new ReadOnlyEngine(engine.engineConfig, null, null, true, Function.identity());
+                Engine.CommitId flush = readOnlyEngine.flush(randomBoolean(), true);
+                assertThat(readOnlyEngine.flush(randomBoolean(), true), is(flush));
+            } finally {
+                IOUtils.close(readOnlyEngine);
+            }
+        }
+    }
+
+    @Test
     public void testEnsureMaxSeqNoIsEqualToGlobalCheckpoint() throws IOException {
         IOUtils.close(engine, store);
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
@@ -143,6 +207,140 @@ public class ReadOnlyEngineTests extends EngineTestCase {
         }
     }
 
+    @Test
+    public void testReadOnly() throws IOException {
+        IOUtils.close(engine, store);
+        final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
+        try (Store store = createStore()) {
+            EngineConfig config = config(
+                defaultSettings,
+                store,
+                createTempDir(),
+                newMergePolicy(),
+                null,
+                null,
+                globalCheckpoint::get);
+            store.createEmpty();
+            try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(
+                config, null, new TranslogStats(0, 0, 0, 0), true, Function.identity())
+            ) {
+                Class<? extends Throwable> expectedException = LuceneTestCase.TEST_ASSERTS_ENABLED ? AssertionError.class :
+                    UnsupportedOperationException.class;
+                expectThrows(expectedException, () -> readOnlyEngine.index(null));
+                expectThrows(expectedException, () -> readOnlyEngine.delete(null));
+                expectThrows(expectedException, () -> readOnlyEngine.noOp(null));
+                expectThrows(UnsupportedOperationException.class, () -> readOnlyEngine.syncFlush(null, null));
+            }
+        }
+    }
+
+    /*
+     * Test that {@link ReadOnlyEngine#verifyEngineBeforeIndexClosing()} never fails
+     * whatever the value of the global checkpoint to check is.
+     */
+    @Test
+    public void test_verify_shard_before_index_closing_is_noop() throws IOException {
+        IOUtils.close(engine, store);
+        AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
+        try (Store store = createStore()) {
+            EngineConfig config = config(
+                defaultSettings,
+                store,
+                createTempDir(),
+                newMergePolicy(),
+                null,
+                null,
+                globalCheckpoint::get
+            );
+            store.createEmpty();
+            try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(
+                config,
+                null,
+                new TranslogStats(0, 0, 0, 0),
+                true,
+                Function.identity())
+            ) {
+                globalCheckpoint.set(randomNonNegativeLong());
+                try {
+                    readOnlyEngine.verifyEngineBeforeIndexClosing();
+                } catch (final IllegalStateException e) {
+                    fail("Read-only engine pre-closing verifications failed");
+                }
+            }
+        }
+    }
+
+    @Test
+    public void test_recover_from_translog_applies_no_operations() throws IOException {
+        IOUtils.close(engine, store);
+        AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
+        try (Store store = createStore()) {
+            EngineConfig config = config(
+                defaultSettings,
+                store,
+                createTempDir(),
+                newMergePolicy(),
+                null,
+                null,
+                globalCheckpoint::get);
+            int numDocs = scaledRandomIntBetween(10, 1000);
+            try (InternalEngine engine = createEngine(config)) {
+                for (int i = 0; i < numDocs; i++) {
+                    ParsedDocument doc = testParsedDocument(
+                        Integer.toString(i),
+                        null,
+                        testDocument(),
+                        new BytesArray("{}"),
+                        null
+                    );
+                    engine.index(new Engine.Index(
+                        newUid(doc),
+                        doc,
+                        i,
+                        primaryTerm.get(),
+                        1,
+                        null,
+                        Engine.Operation.Origin.REPLICA,
+                        System.nanoTime(),
+                        -1,
+                        false,
+                        SequenceNumbers.UNASSIGNED_SEQ_NO,
+                        0));
+                    if (rarely()) {
+                        engine.flush();
+                    }
+                    globalCheckpoint.set(i);
+                }
+                engine.syncTranslog();
+                engine.flushAndClose();
+            }
+            try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, x -> x)) {
+                TranslogHandler translogHandler = new TranslogHandler(xContentRegistry(), config.getIndexSettings());
+                readOnlyEngine.recoverFromTranslog(translogHandler, randomNonNegativeLong());
+                int opsRecovered = translogHandler.run(
+                    readOnlyEngine,
+                    new Translog.Snapshot() {
+                        @Override
+                        public int totalOperations() {
+                            return 0;
+                        }
+
+                        @Override
+                        public Translog.Operation next() {
+                            return null;
+                        }
+
+                        @Override
+                        public void close() {
+
+                        }
+                    });
+                assertThat(opsRecovered, is(0));
+            }
+        }
+    }
+
+    @Test
     public void testTranslogStats() throws IOException {
         IOUtils.close(engine, store);
         try (Store store = createStore()) {
