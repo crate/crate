@@ -97,6 +97,7 @@ import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * A base class for unit tests that need to create and shutdown {@link IndexShard} instances easily,
@@ -238,6 +239,29 @@ public abstract class IndexShardTestCase extends ESTestCase {
     protected void updateMappings(IndexShard shard, IndexMetadata indexMetadata) {
         shard.indexSettings().updateIndexMetadata(indexMetadata);
         shard.mapperService().merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
+    }
+
+    protected void assertDocCount(IndexShard shard, int docDount) throws IOException {
+        assertThat(getShardDocUIDs(shard), hasSize(docDount));
+    }
+
+    protected Engine.DeleteResult deleteDoc(IndexShard shard, String id) throws IOException {
+        Engine.DeleteResult result;
+        if (shard.routingEntry().primary()) {
+            result = shard.applyDeleteOperationOnPrimary(
+                Versions.MATCH_ANY, id, VersionType.INTERNAL, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+            shard.sync(); // advance local checkpoint
+            shard.updateLocalCheckpointForShard(
+                shard.routingEntry().allocationId().getId(),
+                shard.getLocalCheckpoint()
+            );
+        } else {
+            long seqNo = shard.seqNoStats().getMaxSeqNo() + 1;
+            shard.advanceMaxSeqNoOfUpdatesOrDeletes(seqNo); // manually replicate max_seq_no_of_updates
+            result = shard.applyDeleteOperationOnReplica(seqNo, 0L, id);
+            shard.sync(); // advance local checkpoint
+        }
+        return result;
     }
 
     protected void flushShard(IndexShard shard) {
@@ -423,12 +447,47 @@ public abstract class IndexShardTestCase extends ESTestCase {
      * @param indexEventListener            index event listener
      * @param listeners                     an optional set of listeners to add to the shard
      */
+    protected IndexShard newShard(ShardRouting routing,
+                                  ShardPath shardPath,
+                                  IndexMetadata indexMetadata,
+                                  @Nullable CheckedFunction<IndexSettings, Store, IOException> storeProvider,
+                                  @Nullable CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper,
+                                  @Nullable EngineFactory engineFactory,
+                                  Runnable globalCheckpointSyncer,
+                                  IndexEventListener indexEventListener,
+                                  IndexingOperationListener... listeners) throws IOException {
+        return newShard(
+            routing,
+            shardPath,
+            indexMetadata,
+            storeProvider,
+            readerWrapper,
+            engineFactory,
+            globalCheckpointSyncer,
+            RetentionLeaseSyncer.EMPTY,
+            indexEventListener,
+            listeners
+        );
+    }
+
+    /**
+     * creates a new initializing shard.
+     * @param routing                       shard routing to use
+     * @param shardPath                     path to use for shard data
+     * @param indexMetadata                 indexMetadata for the shard, including any mapping
+     * @param storeProvider                 an optional custom store provider to use. If null a default file based store will be created
+     * @param globalCheckpointSyncer        callback for syncing global checkpoints
+     * @param indexEventListener            index event listener
+     * @param listeners                     an optional set of listeners to add to the shard
+     */
     protected IndexShard newShard(ShardRouting routing, ShardPath shardPath, IndexMetadata indexMetadata,
                                   @Nullable CheckedFunction<IndexSettings, Store, IOException> storeProvider,
                                   @Nullable CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper,
                                   @Nullable EngineFactory engineFactory,
                                   Runnable globalCheckpointSyncer,
-                                  IndexEventListener indexEventListener, IndexingOperationListener... listeners) throws IOException {
+                                  RetentionLeaseSyncer retentionLeaseSyncer,
+                                  IndexEventListener indexEventListener,
+                                  IndexingOperationListener... listeners) throws IOException {
         final Settings nodeSettings = Settings.builder().put("node.name", routing.currentNodeId()).build();
         final IndexSettings indexSettings = new IndexSettings(indexMetadata, nodeSettings);
         final IndexShard indexShard;
@@ -462,7 +521,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Arrays.asList(listeners),
                 globalCheckpointSyncer,
-                RetentionLeaseSyncer.EMPTY,
+                retentionLeaseSyncer,
                 breakerService
             );
             indexShard.addShardFailureCallback(DEFAULT_SHARD_FAILURE_HANDLER);

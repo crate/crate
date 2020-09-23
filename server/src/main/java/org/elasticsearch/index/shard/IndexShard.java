@@ -190,12 +190,15 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     private final IndexingOperationListener indexingOperationListeners;
     private final Runnable globalCheckpointSyncer;
+    private final RetentionLeaseSyncer retentionLeaseSyncer;
 
     Runnable getGlobalCheckpointSyncer() {
         return globalCheckpointSyncer;
     }
 
-    private final RetentionLeaseSyncer retentionLeaseSyncer;
+    public RetentionLeaseSyncer getRetentionLeaseSyncer() {
+        return retentionLeaseSyncer;
+    }
 
     @Nullable
     private RecoveryState recoveryState;
@@ -797,8 +800,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return result;
     }
 
-    private Engine.NoOpResult markSeqNoAsNoop(Engine engine, long seqNo, long opPrimaryTerm, String reason,
-                                              Engine.Operation.Origin origin) throws IOException {
+    public Engine.NoOpResult markSeqNoAsNoop(Engine engine, long seqNo, long opPrimaryTerm, String reason,
+                                             Engine.Operation.Origin origin) throws IOException {
         assert opPrimaryTerm <= getOperationPrimaryTerm()
                 : "op term [ " + opPrimaryTerm + " ] > shard term [" + getOperationPrimaryTerm() + "]";
         long startTime = System.nanoTime();
@@ -3262,7 +3265,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     private EngineConfig.TombstoneDocSupplier tombstoneDocSupplier() {
-        final RootObjectMapper.Builder noopRootMapper = new RootObjectMapper.Builder("__noop");
+        final RootObjectMapper.Builder noopRootMapper = new RootObjectMapper.Builder("default");
         final DocumentMapper noopDocumentMapper = mapperService == null
             ? null
             : new DocumentMapper.Builder(noopRootMapper, mapperService).build(mapperService);
