@@ -147,7 +147,7 @@ final class GroupByOptimizedIterator {
 
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
-        Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
+        Engine.Searcher searcher = sharedShardContext.acquireSearcher("group-by-ordinals:" + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
         final QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
