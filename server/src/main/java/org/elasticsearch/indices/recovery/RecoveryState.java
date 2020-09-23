@@ -494,6 +494,10 @@ public class RecoveryState implements ToXContentFragment, Writeable {
             return recovered;
         }
 
+        public synchronized int totalOperationsOnStart() {
+            return totalOnStart;
+        }
+
         /**
          * returns the total number of translog operations needed to be recovered at this moment.
          * Note that this can change as the number of operations grows during recovery.
@@ -720,6 +724,10 @@ public class RecoveryState implements ToXContentFragment, Writeable {
             } else {
                 targetThrottleTimeInNanos += timeInNanos;
             }
+        }
+
+        public synchronized Map<String, File> fileDetails() {
+            return fileDetails;
         }
 
         public synchronized TimeValue sourceThrottling() {
