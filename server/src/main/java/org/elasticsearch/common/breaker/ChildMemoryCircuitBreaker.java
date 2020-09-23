@@ -24,6 +24,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.breaker.BreakerSettings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -136,6 +137,13 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
 
     @Override
     public long addBytesRangeAndMaybeBreak(long minAcceptableBytes, long wantedBytes, String label) throws CircuitBreakingException {
+        if (wantedBytes < minAcceptableBytes) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "wantedBytes (%d) must be larger or equal to minAcceptableBytes (%d)",
+                wantedBytes,
+                minAcceptableBytes));
+        }
         if (minAcceptableBytes == wantedBytes) {
             addEstimateBytesAndMaybeBreak(wantedBytes, label);
             return wantedBytes;

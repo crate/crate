@@ -21,6 +21,7 @@ package org.elasticsearch.common.breaker;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.indices.breaker.BreakerSettings;
@@ -61,6 +62,23 @@ public class ChildMemoryCircuitBreakerTest {
         Assertions.assertThrows(
             CircuitBreakingException.class,
             () -> breaker.addBytesRangeAndMaybeBreak(200L, 300L, "reserve another 300")
+        );
+    }
+
+    @Test
+    public void test_add_bytes_range_where_wanted_bytes_is_lower_than_min_acceptable_bytes_is_illegal() throws Exception {
+        var breaker = new ChildMemoryCircuitBreaker(
+            new BreakerSettings(
+                "dummy",
+                500L,
+                CircuitBreaker.Type.MEMORY
+            ),
+            LogManager.getLogger(ChildMemoryCircuitBreakerTest.class),
+            new NoneCircuitBreakerService()
+        );
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> breaker.addBytesRangeAndMaybeBreak(100L, 50L, "I need memory")
         );
     }
 }
