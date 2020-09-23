@@ -54,4 +54,7 @@ None
 Fixes
 =====
 
-None
+- Changed the memory reservation and circuit breaker behavior for ``INSERT FROM
+  QUERY`` operations to allow for more concurrent operations. After the change
+  introduced in 4.2.5, individual operations could reserve too much memory,
+  causing other operations to fail with a circuit breaker exception.
