@@ -155,8 +155,6 @@ public class SQLExceptions {
             return new InvalidRelationName(partitionName.relationName().fqn(), unwrappedError);
         } else if (unwrappedError instanceof IndexNotFoundException) {
             return new RelationUnknown(((IndexNotFoundException) unwrappedError).getIndex().getName(), unwrappedError);
-        } else if (unwrappedError instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
-            return new CircuitBreakingException(unwrappedError.getMessage());
         } else if (unwrappedError instanceof InterruptedException) {
             return JobKilledException.of(unwrappedError.getMessage());
         } else if (unwrappedError instanceof RepositoryMissingException) {

@@ -33,6 +33,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.breaker.RamAccounting;
@@ -41,7 +42,6 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableLong;
 import io.crate.data.Input;
-import io.crate.exceptions.CircuitBreakingException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
