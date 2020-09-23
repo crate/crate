@@ -129,4 +129,8 @@ public interface CircuitBreaker {
      * @return the name of the breaker
      */
     String getName();
+
+    default long getFree() {
+        return getLimit() - getUsed();
+    }
 }
