@@ -402,6 +402,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
             "max_index_keys| 32| Shows the maximum number of index keys.\n" +
             "optimizer_deduplicate_order| true| Indicates if the optimizer rule DeduplicateOrder is activated.\n" +
             "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.\n" +
+            "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.\n" +
             "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.\n" +
             "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.\n" +
             "optimizer_move_filter_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveFilterBeneathFetchOrEval is activated.\n" +

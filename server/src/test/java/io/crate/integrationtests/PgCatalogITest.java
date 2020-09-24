@@ -111,6 +111,7 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
             "max_index_keys| 32| Shows the maximum number of index keys.| NULL| NULL\n" +
             "optimizer_deduplicate_order| true| Indicates if the optimizer rule DeduplicateOrder is activated.| NULL| NULL\n" +
             "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.| NULL| NULL\n" +
+            "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.| NULL| NULL\n" +
             "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.| NULL| NULL\n" +
             "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.| NULL| NULL\n" +
             "optimizer_move_filter_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveFilterBeneathFetchOrEval is activated.| NULL| NULL\n" +
