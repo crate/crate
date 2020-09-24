@@ -23,6 +23,8 @@
 package io.crate.execution.support;
 
 import io.crate.action.FutureActionListener;
+import io.crate.exceptions.Exceptions;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -86,7 +88,11 @@ public class Transports {
                 String.format(Locale.ENGLISH, "node \"%s\" not found in cluster state!", node)));
             return;
         }
-        transportService.sendRequest(discoveryNode, action, request, options, handler);
+        try {
+            transportService.sendRequest(discoveryNode, action, request, options, handler);
+        } catch (Throwable t) {
+            listener.onFailure(Exceptions.toRuntimeException(t));
+        }
     }
 
     public <TRequest extends TransportRequest, TResponse extends TransportResponse> void sendRequest(

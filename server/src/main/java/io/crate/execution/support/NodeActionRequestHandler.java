@@ -22,6 +22,7 @@
 
 package io.crate.execution.support;
 
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,20 +46,28 @@ public final class NodeActionRequestHandler<TRequest extends TransportRequest, T
 
     @Override
     public void messageReceived(TRequest request, TransportChannel channel, Task task) throws Exception {
-        nodeAction.nodeOperation(request).whenComplete((result, throwable) -> {
-            if (throwable == null) {
-                try {
-                    channel.sendResponse(result);
-                } catch (IOException e) {
-                    LOGGER.error("Error sending response: " + e.getMessage(), e);
+        try {
+            nodeAction.nodeOperation(request).whenComplete((result, throwable) -> {
+                if (throwable == null) {
+                    try {
+                        channel.sendResponse(result);
+                    } catch (IOException e) {
+                        LOGGER.error("Error sending response: " + e.getMessage(), e);
+                    }
+                } else {
+                    try {
+                        channel.sendResponse(Exceptions.toRuntimeException(SQLExceptions.unwrap(throwable)));
+                    } catch (IOException e) {
+                        LOGGER.error("Error sending failure: " + e.getMessage(), e);
+                    }
                 }
-            } else {
-                try {
-                    channel.sendResponse((Exception) SQLExceptions.unwrap(throwable));
-                } catch (IOException e) {
-                    LOGGER.error("Error sending failure: " + e.getMessage(), e);
-                }
+            });
+        } catch (Throwable t) {
+            try {
+                channel.sendResponse(Exceptions.toRuntimeException(SQLExceptions.unwrap(t)));
+            } catch (IOException e) {
+                LOGGER.error("Error sending failure: " + e.getMessage(), e);
             }
-        });
+        }
     }
 }
