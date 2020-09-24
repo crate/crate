@@ -29,6 +29,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
@@ -242,7 +243,7 @@ public class ShardRequestExecutor<Req> {
         if (exception != null) {
             Throwable t = SQLExceptions.unwrap(exception, e -> e instanceof RuntimeException);
             if (!(t instanceof DocumentMissingException) && !(t instanceof VersionConflictEngineException)) {
-                throw new RuntimeException(t);
+                throw Exceptions.toRuntimeException(t);
             }
         }
         for (int i = 0; i < response.itemIndices().size(); i++) {
