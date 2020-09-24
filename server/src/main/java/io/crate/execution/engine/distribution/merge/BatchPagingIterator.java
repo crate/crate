@@ -133,11 +133,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
             }
         } else {
             killed = ex;
-            if (ex instanceof RuntimeException) {
-                throw ((RuntimeException) ex);
-            } else {
-                throw new RuntimeException(ex);
-            }
+            throw Exceptions.toRuntimeException(ex);
         }
     }
 

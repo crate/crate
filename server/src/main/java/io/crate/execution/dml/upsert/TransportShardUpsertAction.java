@@ -24,6 +24,7 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.Exceptions;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
@@ -177,10 +178,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
             } catch (Exception e) {
                 if (retryPrimaryException(e)) {
-                    if (e instanceof RuntimeException) {
-                        throw (RuntimeException) e;
-                    }
-                    throw new RuntimeException(e);
+                    throw Exceptions.toRuntimeException(e);
                 }
                 if (logger.isDebugEnabled()) {
                     logger.debug("Failed to execute upsert shardId={} id={} error={}", request.shardId(), item.id(), e);

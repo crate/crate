@@ -446,8 +446,6 @@ public class ShardCollectSource implements CollectSource {
                         throw e;
                     }
                     iterators.add(remoteCollectorFactory.createCollector(shardId, collectPhase, collectTask, shardCollectorProviderFactory));
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
                 } catch (IndexNotFoundException e) {
                     // Prevent wrapping this to not break retry-detection
                     throw e;
