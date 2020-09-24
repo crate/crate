@@ -103,6 +103,7 @@ public class DistributingConsumer implements RowConsumer {
         if (failure == null) {
             consumeIt(iterator);
         } else {
+            completionFuture.completeExceptionally(failure);
             forwardFailure(null, failure);
         }
     }
