@@ -22,6 +22,16 @@
 
 package io.crate.execution.engine.distribution;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.RowConsumer;
@@ -30,17 +40,6 @@ import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.StreamerVisitor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.UUID;
-import java.util.concurrent.Executor;
 
 @Singleton
 public class DistributingConsumerFactory {
@@ -50,7 +49,6 @@ public class DistributingConsumerFactory {
     private final ClusterService clusterService;
     private final Executor responseExecutor;
     private final TransportDistributedResultAction transportDistributedResultAction;
-    private final Logger distributingDownstreamLogger;
 
     @Inject
     public DistributingConsumerFactory(ClusterService clusterService,
@@ -59,7 +57,6 @@ public class DistributingConsumerFactory {
         this.clusterService = clusterService;
         this.responseExecutor = threadPool.executor(RESPONSE_EXECUTOR_NAME);
         this.transportDistributedResultAction = transportDistributedResultAction;
-        distributingDownstreamLogger = LogManager.getLogger(DistributingConsumer.class);
     }
 
     public RowConsumer create(NodeOperation nodeOperation,
@@ -105,7 +102,6 @@ public class DistributingConsumerFactory {
         }
 
         return new DistributingConsumer(
-            distributingDownstreamLogger,
             responseExecutor,
             jobId,
             multiBucketBuilder,
