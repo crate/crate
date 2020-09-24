@@ -22,7 +22,13 @@
 
 package io.crate.planner.optimizer;
 
+import java.util.List;
+import java.util.Locale;
+
 import com.google.common.base.CaseFormat;
+
+import org.elasticsearch.common.inject.Singleton;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.settings.session.SessionSetting;
@@ -30,6 +36,7 @@ import io.crate.metadata.settings.session.SessionSettingProvider;
 import io.crate.planner.operators.RewriteInsertFromSubQueryToInsertFromValues;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
+import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
@@ -51,10 +58,6 @@ import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Singleton;
-
-import java.util.List;
-import java.util.Locale;
 
 @Singleton
 public class LoadedRules implements SessionSettingProvider {
@@ -64,6 +67,7 @@ public class LoadedRules implements SessionSettingProvider {
     private final List<Class<? extends Rule<?>>> rules = List.of(
         RemoveRedundantFetchOrEval.class,
         MergeAggregateAndCollectToCount.class,
+        MergeAggregateRenameAndCollectToCount.class,
         MergeFilters.class,
         MoveFilterBeneathRename.class,
         MoveFilterBeneathFetchOrEval.class,

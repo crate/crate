@@ -66,7 +66,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private LogicalPlan plan(String statement) {
-        return assertMaxBytesAllocated(ByteSizeUnit.MB.toBytes(25), () -> sqlExecutor.logicalPlan(statement));
+        return assertMaxBytesAllocated(ByteSizeUnit.MB.toBytes(28), () -> sqlExecutor.logicalPlan(statement));
     }
 
     @Test
@@ -193,6 +193,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSelectCountStarIsOptimized() throws Exception {
         LogicalPlan plan = plan("select count(*) from t1 where x > 10");
         assertThat(plan, isPlan("Count[doc.t1 | (x > 10)]"));
+    }
+
+    @Test
+    public void test_select_count_star_on_aliased_table_is_optimized() throws Exception {
+        LogicalPlan plan = plan("select count(*) from t1 as t");
+        assertThat(plan, isPlan("Count[doc.t1 | true]"));
     }
 
     @Test
