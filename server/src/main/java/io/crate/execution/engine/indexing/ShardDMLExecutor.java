@@ -22,26 +22,8 @@
 
 package io.crate.execution.engine.indexing;
 
-import com.google.common.base.Throwables;
-import io.crate.action.FutureActionListener;
-import io.crate.action.LimitedExponentialBackoff;
-import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
-import io.crate.data.CollectionBucket;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.execution.dml.ShardRequest;
-import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.support.RetryListener;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.apache.logging.log4j.LogManager;
+import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -54,7 +36,27 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.cluster.service.ClusterService;
+
+import io.crate.action.FutureActionListener;
+import io.crate.action.LimitedExponentialBackoff;
+import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.exceptions.Exceptions;
+import io.crate.execution.dml.ShardRequest;
+import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.support.RetryListener;
 
 public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                               TItem extends ShardRequest.Item,
@@ -173,8 +175,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private static <A> A processResponse(ShardResponse shardResponse, Function<ShardResponse, A> f) {
         Exception failure = shardResponse.failure();
         if (failure != null) {
-            Throwables.throwIfUnchecked(failure);
-            throw new RuntimeException(failure);
+            throw Exceptions.toRuntimeException(failure);
         }
         return f.apply(shardResponse);
     }

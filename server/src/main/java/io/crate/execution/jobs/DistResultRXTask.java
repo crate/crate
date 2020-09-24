@@ -22,6 +22,7 @@
 package io.crate.execution.jobs;
 
 import io.crate.breaker.RamAccounting;
+import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,10 +60,8 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
             }
             if (ex == null) {
                 return null;
-            } else if (ex instanceof RuntimeException) {
-                throw (RuntimeException) ex;
             } else {
-                throw new RuntimeException(ex);
+                throw Exceptions.toRuntimeException(ex);
             }
         });
     }

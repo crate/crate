@@ -667,7 +667,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(Exceptions.toRuntimeException(t));
+            listener.onFailure(Exceptions.toException(t));
             super.fail(t);
         }
     }
