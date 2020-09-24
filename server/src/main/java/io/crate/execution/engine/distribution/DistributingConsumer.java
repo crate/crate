@@ -28,6 +28,8 @@ import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
+
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -52,7 +54,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DistributingConsumer implements RowConsumer {
 
-    private final Logger logger;
+    private static final Logger LOGGER = LogManager.getLogger(DistributingConsumer.class);
     private final Executor responseExecutor;
     private final UUID jobId;
     private final int targetPhaseId;
@@ -70,8 +72,7 @@ public class DistributingConsumer implements RowConsumer {
 
     private volatile Throwable failure;
 
-    public DistributingConsumer(Logger logger,
-                                Executor responseExecutor,
+    public DistributingConsumer(Executor responseExecutor,
                                 UUID jobId,
                                 MultiBucketBuilder multiBucketBuilder,
                                 int targetPhaseId,
@@ -80,8 +81,7 @@ public class DistributingConsumer implements RowConsumer {
                                 Collection<String> downstreamNodeIds,
                                 TransportDistributedResultAction distributedResultAction,
                                 int pageSize) {
-        this.traceEnabled = logger.isTraceEnabled();
-        this.logger = logger;
+        this.traceEnabled = LOGGER.isTraceEnabled();
         this.responseExecutor = responseExecutor;
         this.jobId = jobId;
         this.multiBucketBuilder = multiBucketBuilder;
@@ -149,7 +149,7 @@ public class DistributingConsumer implements RowConsumer {
                 countdownAndMaybeCloseIt(numActiveRequests, it);
             } else {
                 if (traceEnabled) {
-                    logger.trace("forwardFailure targetNode={} jobId={} targetPhase={}/{} bucket={} failure={}",
+                    LOGGER.trace("forwardFailure targetNode={} jobId={} targetPhase={}/{} bucket={} failure={}",
                         downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, failure);
                 }
                 distributedResultAction.pushResult(downstream.nodeId, request, new ActionListener<>() {
@@ -162,7 +162,7 @@ public class DistributingConsumer implements RowConsumer {
                     @Override
                     public void onFailure(Exception e) {
                         if (traceEnabled) {
-                            logger.trace(
+                            LOGGER.trace(
                                 "Error sending failure to downstream={} jobId={} targetPhase={}/{} bucket={} failure={}",
                                 downstream.nodeId,
                                 jobId,
@@ -199,7 +199,7 @@ public class DistributingConsumer implements RowConsumer {
                 continue;
             }
             if (traceEnabled) {
-                logger.trace("forwardResults targetNode={} jobId={} targetPhase={}/{} bucket={} isLast={}",
+                LOGGER.trace("forwardResults targetNode={} jobId={} targetPhase={}/{} bucket={} isLast={}",
                     downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, isLast);
             }
             distributedResultAction.pushResult(
