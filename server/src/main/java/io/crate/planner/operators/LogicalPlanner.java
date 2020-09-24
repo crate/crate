@@ -34,7 +34,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import io.crate.metadata.NodeContext;
 import org.elasticsearch.Version;
 
 import io.crate.analyze.AnalyzedInsertStatement;
@@ -69,6 +68,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
@@ -79,6 +79,7 @@ import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
+import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
@@ -122,6 +123,7 @@ public class LogicalPlanner {
             List.of(
                 new RemoveRedundantFetchOrEval(),
                 new MergeAggregateAndCollectToCount(),
+                new MergeAggregateRenameAndCollectToCount(),
                 new MergeFilters(),
                 new MoveFilterBeneathRename(),
                 new MoveFilterBeneathFetchOrEval(),

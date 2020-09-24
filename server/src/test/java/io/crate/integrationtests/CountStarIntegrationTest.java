@@ -21,15 +21,13 @@
 
 package io.crate.integrationtests;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
-import org.junit.Test;
-
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.core.Is.is;
+
+import org.junit.Test;
 
 public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -99,7 +97,7 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
         execute("select count(*) from auto_id where _id=''");
         assertThat((Long) response.rows()[0][0], is(0L)); // FOUND NONE
 
-        execute("select count(*) from auto_id where name=','");
+        execute("select count(*) from auto_id AS a where name=','");
         assertThat((Long) response.rows()[0][0], is(1L)); // FOUND ONE
     }
 }
