@@ -66,7 +66,6 @@ import static org.mockito.Mockito.verify;
 
 public class DistributingConsumerTest extends ESTestCase {
 
-    private Logger logger = LogManager.getLogger(DistributingConsumer.class);
     private ExecutorService executorService;
 
     @Before
@@ -168,7 +167,6 @@ public class DistributingConsumerTest extends ESTestCase {
 
     private DistributingConsumer createDistributingConsumer(Streamer<?>[] streamers, TransportDistributedResultAction distributedResultAction) {
         return new DistributingConsumer(
-            logger,
             executorService,
             UUID.randomUUID(),
             new ModuloBucketBuilder(streamers, 1, 0, RamAccounting.NO_ACCOUNTING),
