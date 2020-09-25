@@ -44,9 +44,9 @@ public final class Reservoir<T> {
         this.random = random;
     }
 
-    public void update(T item) {
+    public boolean update(T item) {
         if (itemsSeen == Integer.MAX_VALUE) {
-            return;
+            return false;
         }
         itemsSeen++;
         if (itemsSeen <= maxSamples) {
@@ -54,6 +54,7 @@ public final class Reservoir<T> {
         } else if (random.nextInt(itemsSeen) < maxSamples) {
             samples.set(random.nextInt(maxSamples), item);
         }
+        return true;
     }
 
     public List<T> samples() {
