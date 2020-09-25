@@ -22,19 +22,32 @@
 
 package io.crate.statistics;
 
-import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-import java.util.function.Function;
-
+import io.crate.Streamer;
+import io.crate.breaker.BlockBasedRamAccounting;
+import io.crate.breaker.RamAccounting;
+import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.common.collections.Lists2;
+import io.crate.data.Input;
+import io.crate.data.RowN;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.execution.engine.collect.DocInputFactory;
+import io.crate.execution.engine.fetch.FetchId;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.symbol.Symbols;
+import io.crate.lucene.FieldTypeLookup;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataTypes;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
+import org.apache.lucene.search.CollectionTerminatedException;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.MatchAllDocsQuery;
@@ -53,28 +66,15 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
-import io.crate.Streamer;
-import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RowCellsAccountingWithEstimators;
-import io.crate.common.collections.Lists2;
-import io.crate.data.Input;
-import io.crate.data.RowN;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.execution.engine.collect.DocInputFactory;
-import io.crate.execution.engine.fetch.FetchId;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.expression.symbol.Symbols;
-import io.crate.lucene.FieldTypeLookup;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.types.DataTypes;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.function.Function;
+
+import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 
 public final class ReservoirSampler {
 
@@ -292,7 +292,10 @@ public final class ReservoirSampler {
 
         @Override
         public void collect(int doc) {
-            reservoir.update(FetchId.encode(readerIdx, doc + context.docBase));
+            var shouldContinue = reservoir.update(FetchId.encode(readerIdx, doc + context.docBase));
+            if (shouldContinue == false) {
+                throw new CollectionTerminatedException();
+            }
         }
     }
 }
