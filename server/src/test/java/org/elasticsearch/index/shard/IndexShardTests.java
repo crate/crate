@@ -581,42 +581,6 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testSearchIsReleaseIfWrapperFails() throws IOException {
-        IndexShard shard = newStartedShard(true);
-        updateMappings(shard, IndexMetadata.builder(shard.indexSettings.getIndexMetadata())
-            .putMapping("default", "{ \"properties\": { \"foo\":  { \"type\": \"text\"}}}").build());
-        indexDoc(shard, "0", "{\"foo\" : \"bar\"}");
-        shard.refresh("test");
-        CheckedFunction<DirectoryReader, DirectoryReader, IOException> wrapper = reader -> {
-            throw new RuntimeException("boom");
-        };
-
-        closeShards(shard);
-        IndexShard newShard = newShard(
-            ShardRoutingHelper.initWithSameId(
-                shard.routingEntry(),
-                RecoverySource.ExistingStoreRecoverySource.INSTANCE),
-            shard.shardPath(),
-            shard.indexSettings().getIndexMetadata(),
-            null,
-            wrapper,
-            new InternalEngineFactory(),
-            () -> {},
-            RetentionLeaseSyncer.EMPTY,
-            EMPTY_EVENT_LISTENER);
-
-        recoverShardFromStore(newShard);
-
-        try {
-            newShard.acquireSearcher("test");
-            fail("exception expected");
-        } catch (RuntimeException ex) {
-            //
-        }
-        closeShards(newShard);
-    }
-
-    @Test
     public void testTranslogRecoverySyncsTranslog() throws IOException {
         Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
@@ -1298,7 +1262,6 @@ public class IndexShardTests extends IndexShardTestCase {
             shardPath,
             indexMetaData,
             null,
-            null,
             indexShard.engineFactory,
             indexShard.getGlobalCheckpointSyncer(),
             indexShard.getRetentionLeaseSyncer(),
@@ -1352,7 +1315,6 @@ public class IndexShardTests extends IndexShardTestCase {
             shardPath,
             indexMetaData,
             null,
-            null,
             indexShard.engineFactory,
             indexShard.getGlobalCheckpointSyncer(),
             indexShard.getRetentionLeaseSyncer(),
@@ -1385,7 +1347,6 @@ public class IndexShardTests extends IndexShardTestCase {
             shardRouting,
             shardPath,
             indexMetaData,
-            null,
             null,
             indexShard.engineFactory,
             indexShard.getGlobalCheckpointSyncer(),
@@ -1441,7 +1402,6 @@ public class IndexShardTests extends IndexShardTestCase {
             shardRouting,
             indexShard.shardPath(),
             indexMetaData,
-            null,
             null,
             indexShard.engineFactory,
             indexShard.getGlobalCheckpointSyncer(),
@@ -2355,7 +2315,6 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard primaryShard = newShard(
             shardRouting,
             indexMetadata.build(),
-            null,
             new InternalEngineFactory(),
             () -> synced.set(true)
         );
@@ -2779,7 +2738,6 @@ public class IndexShardTests extends IndexShardTestCase {
                 shardPath,
                 metaData,
                 i -> store,
-                null,
                 new InternalEngineFactory(),
                 () -> { },
                 RetentionLeaseSyncer.EMPTY,
@@ -3466,7 +3424,6 @@ public class IndexShardTests extends IndexShardTestCase {
             shard.shardPath(),
             newShardIndexMetadata,
             null,
-            null,
             shard.getEngineFactory(),
             shard.getGlobalCheckpointSyncer(),
             shard.getRetentionLeaseSyncer(),
@@ -3566,64 +3523,6 @@ public class IndexShardTests extends IndexShardTestCase {
 
         closeShard(source, false);
         closeShards(target);
-    }
-
-    @Test
-    public void testReaderWrapperIsUsed() throws IOException {
-        IndexShard shard = newStartedShard(true);
-        updateMappings(shard, IndexMetadata.builder(shard.indexSettings.getIndexMetadata())
-            .putMapping(
-                "default",
-                "{\"properties\": " +
-                "{\"foo\": { \"type\": \"text\"}, \"foobar\":{ \"type\": \"text\"}}}"
-            ).build());
-        indexDoc(shard, "0", "{\"foo\" : \"bar\"}");
-        indexDoc(shard, "1", "{\"foobar\" : \"bar\"}");
-        shard.refresh("test");
-
-        try (Engine.GetResult getResult = shard
-            .get(new Engine.Get("1", new Term(IdFieldMapper.NAME, Uid.encodeId("1"))))) {
-            assertThat(getResult, is(not(Engine.GetResult.NOT_EXISTS)));
-            assertThat(getResult.searcher(), is(not(nullValue())));
-        }
-        try (Engine.Searcher searcher = shard.acquireSearcher("test")) {
-            TopDocs search = searcher.search(new TermQuery(new Term("foo", "bar")), 10);
-            assertThat(search.totalHits.value, is(1L));
-            search = searcher.search(new TermQuery(new Term("foobar", "bar")), 10);
-            assertThat(search.totalHits.value, is(1L));
-        }
-        CheckedFunction<DirectoryReader, DirectoryReader, IOException> wrapper =
-            reader -> new FieldMaskingReader("foo", reader);
-        closeShards(shard);
-        IndexShard newShard = newShard(
-            ShardRoutingHelper.initWithSameId(
-                shard.routingEntry(),
-                RecoverySource.ExistingStoreRecoverySource.INSTANCE),
-            shard.shardPath(),
-            shard.indexSettings().getIndexMetadata(),
-            null,
-            wrapper,
-            new InternalEngineFactory(),
-            () -> {
-            },
-            EMPTY_EVENT_LISTENER);
-
-        recoverShardFromStore(newShard);
-
-        try (Engine.Searcher searcher = newShard.acquireSearcher("test")) {
-            TopDocs search = searcher.search(new TermQuery(new Term("foo", "bar")), 10);
-            assertThat(search.totalHits.value, is(0L));
-            search = searcher.search(new TermQuery(new Term("foobar", "bar")), 10);
-            assertThat(search.totalHits.value, is(1L));
-        }
-        try (Engine.GetResult getResult = newShard
-            .get(new Engine.Get("1", new Term(IdFieldMapper.NAME, Uid.encodeId("1"))))) {
-            assertThat(getResult, is(not(Engine.GetResult.NOT_EXISTS)));
-            assertThat(getResult.searcher(), is(not(nullValue()))); // make sure get uses the wrapped reader
-            assertThat(getResult.searcher().getIndexReader(), instanceOf(FieldMaskingReader.class));
-        }
-
-        closeShards(newShard);
     }
 
     @Test
@@ -3749,7 +3648,6 @@ public class IndexShardTests extends IndexShardTestCase {
             shardRouting,
             shardPath,
             metaData,
-            null,
             null,
             new InternalEngineFactory(),
             () -> { },
@@ -4120,7 +4018,6 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard primaryShard = newShard(
             shardRouting,
             indexMetadata.build(),
-            null,
             new InternalEngineFactory(),
             () -> synced.set(true)
         );
