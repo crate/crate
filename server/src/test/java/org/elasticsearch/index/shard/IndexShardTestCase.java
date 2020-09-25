@@ -339,7 +339,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             .settings(indexSettings)
             .primaryTerm(0, primaryTerm)
             .putMapping("default", "{ \"properties\": {} }");
-        return newShard(shardRouting, metadata.build(), null, engineFactory, () -> {}, listeners);
+        return newShard(shardRouting, metadata.build(), engineFactory, () -> {}, listeners);
     }
 
     /**
@@ -368,9 +368,8 @@ public abstract class IndexShardTestCase extends ESTestCase {
     protected IndexShard newShard(ShardId shardId,
                                   boolean primary,
                                   String nodeId,
-                                  IndexMetadata indexMetadata,
-                                  @Nullable CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper) throws IOException {
-        return newShard(shardId, primary, nodeId, indexMetadata, readerWrapper, () -> {});
+                                  IndexMetadata indexMetadata) throws IOException {
+        return newShard(shardId, primary, nodeId, indexMetadata, () -> {});
     }
 
     /**
@@ -385,11 +384,10 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   boolean primary,
                                   String nodeId,
                                   IndexMetadata indexMetadata,
-                                  @Nullable CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper,
                                   Runnable globalCheckpointSyncer) throws IOException {
         ShardRouting shardRouting = TestShardRouting.newShardRouting(shardId, nodeId, primary, ShardRoutingState.INITIALIZING,
             primary ? RecoverySource.EmptyStoreRecoverySource.INSTANCE : RecoverySource.PeerRecoverySource.INSTANCE);
-        return newShard(shardRouting, indexMetadata, readerWrapper, new InternalEngineFactory(), globalCheckpointSyncer);
+        return newShard(shardRouting, indexMetadata, new InternalEngineFactory(), globalCheckpointSyncer);
     }
 
     /**
@@ -403,7 +401,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
     protected IndexShard newShard(
             ShardRouting routing, IndexMetadata indexMetadata, EngineFactory engineFactory, IndexingOperationListener... listeners)
         throws IOException {
-        return newShard(routing, indexMetadata, null, engineFactory, () -> {}, listeners);
+        return newShard(routing, indexMetadata, engineFactory, () -> {}, listeners);
     }
 
     /**
@@ -416,7 +414,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
      */
     protected IndexShard newShard(ShardRouting routing,
                                   IndexMetadata indexMetadata,
-                                  @Nullable CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper,
                                   @Nullable EngineFactory engineFactory,
                                   Runnable globalCheckpointSyncer,
                                   IndexingOperationListener... listeners) throws IOException {
@@ -429,7 +426,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
             shardPath,
             indexMetadata,
             null,
-            readerWrapper,
             engineFactory,
             globalCheckpointSyncer,
             EMPTY_EVENT_LISTENER,
@@ -451,7 +447,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   ShardPath shardPath,
                                   IndexMetadata indexMetadata,
                                   @Nullable CheckedFunction<IndexSettings, Store, IOException> storeProvider,
-                                  @Nullable CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper,
                                   @Nullable EngineFactory engineFactory,
                                   Runnable globalCheckpointSyncer,
                                   IndexEventListener indexEventListener,
@@ -461,7 +456,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
             shardPath,
             indexMetadata,
             storeProvider,
-            readerWrapper,
             engineFactory,
             globalCheckpointSyncer,
             RetentionLeaseSyncer.EMPTY,
@@ -480,9 +474,10 @@ public abstract class IndexShardTestCase extends ESTestCase {
      * @param indexEventListener            index event listener
      * @param listeners                     an optional set of listeners to add to the shard
      */
-    protected IndexShard newShard(ShardRouting routing, ShardPath shardPath, IndexMetadata indexMetadata,
+    protected IndexShard newShard(ShardRouting routing,
+                                  ShardPath shardPath,
+                                  IndexMetadata indexMetadata,
                                   @Nullable CheckedFunction<IndexSettings, Store, IOException> storeProvider,
-                                  @Nullable CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper,
                                   @Nullable EngineFactory engineFactory,
                                   Runnable globalCheckpointSyncer,
                                   RetentionLeaseSyncer retentionLeaseSyncer,
@@ -516,7 +511,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 mapperService,
                 engineFactory,
                 indexEventListener,
-                readerWrapper,
                 threadPool,
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Arrays.asList(listeners),
@@ -559,7 +553,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 current.shardPath(),
                 current.indexSettings().getIndexMetadata(),
                 null,
-                null,
                 current.engineFactory,
                 current.getGlobalCheckpointSyncer(),
             EMPTY_EVENT_LISTENER, listeners);
@@ -582,7 +575,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
             routing,
             current.shardPath(),
             current.indexSettings().getIndexMetadata(),
-            null,
             null,
             engineFactory,
             current.getGlobalCheckpointSyncer(),
@@ -609,7 +601,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
             routing,
             current.shardPath(),
             indexMetadata,
-            null,
             null,
             engineFactory,
             current.getGlobalCheckpointSyncer(),

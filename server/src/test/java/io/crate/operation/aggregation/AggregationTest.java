@@ -488,7 +488,6 @@ public abstract class AggregationTest extends ESTestCase {
                 mapperService,
                 new InternalEngineFactory(),
                 EMPTY_EVENT_LISTENER,
-                null,
                 threadPool,
                 BigArrays.NON_RECYCLING_INSTANCE,
                 List.of(),

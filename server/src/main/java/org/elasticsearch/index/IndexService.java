@@ -19,12 +19,27 @@
 
 package org.elasticsearch.index;
 
-import io.crate.common.CheckedFunction;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import static io.crate.common.collections.MapBuilder.newMapBuilder;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Assertions;
@@ -64,25 +79,9 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static io.crate.common.collections.MapBuilder.newMapBuilder;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
 
@@ -91,7 +90,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final ShardStoreDeleter shardStoreDeleter;
     private final IndexCache indexCache;
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
-    private final CheckedFunction<DirectoryReader, DirectoryReader, IOException> readerWrapper;
     private final MapperService mapperService;
     private final NamedXContentRegistry xContentRegistry;
     private final EngineFactory engineFactory;
@@ -127,7 +125,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             QueryCache queryCache,
             IndexStorePlugin.DirectoryFactory directoryFactory,
             IndexEventListener eventListener,
-            Function<IndexService, CheckedFunction<DirectoryReader, DirectoryReader, IOException>> wrapperFactory,
             MapperRegistry mapperRegistry,
             List<IndexingOperationListener> indexingOperationListeners) throws IOException {
         super(indexSettings);
@@ -156,8 +153,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.nodeEnv = nodeEnv;
         this.directoryFactory = directoryFactory;
         this.engineFactory = Objects.requireNonNull(engineFactory);
-        // initialize this last -- otherwise if the wrapper requires any other member to be non-null we fail with an NPE
-        this.readerWrapper = wrapperFactory.apply(this);
         this.indexingOperationListeners = Collections.unmodifiableList(indexingOperationListeners);
         // kick off async ops for the first shard in this index
         this.refreshTask = new AsyncRefreshTask(this);
@@ -355,7 +350,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 mapperService,
                 engineFactory,
                 eventListener,
-                readerWrapper,
                 threadPool,
                 bigArrays,
                 indexingOperationListeners,
@@ -606,11 +600,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     public final EngineFactory getEngineFactory() {
         return engineFactory;
     }
-
-    final CheckedFunction<DirectoryReader, DirectoryReader, IOException> getReaderWrapper() {
-        return readerWrapper;
-    } // pkg private for testing
-
 
     @VisibleForTesting
     final IndexStorePlugin.DirectoryFactory getDirectoryFactory() {
