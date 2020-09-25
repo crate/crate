@@ -22,8 +22,8 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
 import io.crate.auth.user.UserManager;
@@ -58,6 +58,8 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
+
+import java.util.ArrayList;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -106,7 +108,11 @@ public class SystemCollectSource implements CollectSource {
                                                   boolean requiresRepeat,
                                                   Iterable<?> data) {
         if (requiresRepeat) {
-            data = ImmutableList.copyOf(data);
+            var copy = new ArrayList<Object>();
+            for (var record : data) {
+                copy.add(record);
+            }
+            data = copy;
         }
         return RowsTransformer.toRowsIterable(
             txnCtx,

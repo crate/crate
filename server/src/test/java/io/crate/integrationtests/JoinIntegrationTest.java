@@ -1109,4 +1109,14 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute(stmt);
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void test_group_by_on_cross_join_on_system_tables() throws Exception {
+        String stmt = "SELECT c.name as name, max(h.severity) as severity " +
+            "FROM sys.health h, sys.cluster c " +
+            "GROUP BY 1";
+        assertThat(printedTable(execute(stmt).rows()), is(
+            ""
+        ));
+    }
 }
