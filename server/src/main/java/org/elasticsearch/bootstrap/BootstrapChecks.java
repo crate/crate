@@ -212,11 +212,14 @@ final class BootstrapChecks {
             final long maxHeapSize = getMaxHeapSize();
             if (initialHeapSize != 0 && maxHeapSize != 0 && initialHeapSize != maxHeapSize) {
                 final String message = String.format(
-                        Locale.ROOT,
-                        "initial heap size [%d] not equal to maximum heap size [%d]; " +
-                                "this can cause resize pauses and prevents mlockall from locking the entire heap",
-                        getInitialHeapSize(),
-                        getMaxHeapSize());
+                    Locale.ROOT,
+                    "initial heap size [%d] not equal to maximum heap size [%d]; " +
+                        "this can cause resize pauses and prevents mlockall from locking the entire heap. " +
+                        "Set the heap size via the CRATE_HEAP_SIZE environment variable. " +
+                        "See https://crate.io/docs/crate/howtos/en/latest/performance/memory.html",
+                    getInitialHeapSize(),
+                    getMaxHeapSize()
+                );
                 return BootstrapCheckResult.failure(message);
             } else {
                 return BootstrapCheckResult.success();
