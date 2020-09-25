@@ -24,9 +24,11 @@ package io.crate.statistics;
 
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.util.Random;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class ReservoirTest {
@@ -39,5 +41,19 @@ public class ReservoirTest {
             samples.update(i);
         }
         assertThat(samples.samples(), contains(83, 50, 13, 18, 38));
+    }
+
+    @Test
+    public void test_reservoir_is_protected_against_integer_overflow() throws Exception {
+        Random random = new Random(42);
+
+        Reservoir<Long> samples = new Reservoir<>(5, random);
+        Field f1 = samples.getClass().getDeclaredField("itemsSeen");
+        f1.setAccessible(true);
+        int itemsSeen = Integer.MAX_VALUE;
+        f1.set(samples, itemsSeen);
+        samples.update(6L);
+
+        assertThat(samples.samples().size(), is(0));
     }
 }

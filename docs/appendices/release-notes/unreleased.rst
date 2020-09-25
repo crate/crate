@@ -120,6 +120,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue causing a node crash due to OOM when running the ``analyze``
+  on large tables.
+
 - Fixed an issue that caused queries involving a JOIN operation on system
   tables like ``sys.cluster`` to fail.
 
