@@ -120,6 +120,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused queries involving a JOIN operation on system
+  tables like ``sys.cluster`` to fail.
+
 - Changed the memory reservation and circuit breaker behavior for ``INSERT FROM
   QUERY`` operations to allow for more concurrent operations. After the change
   introduced in 4.2.5, individual operations could reserve too much memory,
