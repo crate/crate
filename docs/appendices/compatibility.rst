@@ -1,12 +1,12 @@
 .. _crate_standard_sql:
 
-=============
-Compatibility
-=============
+=================
+SQL compatibility
+=================
 
-CrateDB aims to provide an SQL implementation that is familiar to anyone having
-used other databases providing a standards-compliant SQL language. However, it
-is worth being aware of some unique characteristics in CrateDB's SQL dialect.
+CrateDB aims to provide a `SQL implementation`_ that is familiar to anyone who 
+has used databases that provide a standards-compliant SQL language. However,
+you should be aware of some unique characteristics in CrateDB's SQL dialect.
 
 .. rubric:: Table of contents
 
@@ -20,7 +20,7 @@ Data types
 ----------
 
 CrateDB supports a set of primitive data types. The following table defines
-how data types of standard SQL map to CrateDB :ref:`data-types`.
+how data types of `standard SQL`_ map to CrateDB :ref:`data-types`.
 
 +-----------------------------------+-----------------------------+
 | Standard SQL                      | CrateDB                     |
@@ -52,8 +52,7 @@ Create table
 ------------
 
 :ref:`ref-create-table` supports additional storage and table parameters for
-sharding, replication and routing of the data, and does not support
-inheritance.
+sharding, replication and routing of data, and does not support inheritance.
 
 Alter table
 -----------
@@ -72,7 +71,7 @@ the cluster, its nodes, and their shards.
 BLOB support
 ------------
 
-Standard SQL defines a binary string type, called ``BLOB`` or ``BINARY LARGE
+`Standard SQL`_ defines a binary string type, called ``BLOB`` or ``BINARY LARGE
 OBJECT``. With CrateDB, Binary Data is instead stored in separate BLOB Tables
 (see :ref:`blob_support`) which can be sharded and replicated.
 
@@ -89,18 +88,17 @@ the record is modified. This version number can be used to implement patterns
 like :ref:`sql_occ`, which can be used to solve many of the use cases that
 would otherwise require traditional transactions.
 
+
 Unsupported features and functions
 ==================================
 
-These **features** of standard SQL are not supported:
+These **features** of `standard SQL`_ are not supported:
 
-- Stored Procedures
+- Stored procedures
 
 - Triggers
 
-- ``VALUES`` list used as constant tables
-
-- ``WITH`` Statements
+  - ``WITH`` Queries (Common Table Expressions)
 
 - Sequences
 
@@ -112,17 +110,15 @@ These **features** of standard SQL are not supported:
 
   - Foreign key
 
-  - Check constraints
-
   - Exclusion constraints
 
-These **functions** are either not supported or only partly supported:
+These **functions** of `standard SQL`_ are either not supported or only partly supported:
 
 - Aggregate functions
 
   - Various functions available (see :ref:`aggregation`)
 
-- Window Functions
+- Window functions
 
   - Various functions available (see :ref:`window-functions`)
 
@@ -142,11 +138,17 @@ These **functions** are either not supported or only partly supported:
 
 - XML functions
 
-The currently supported and unsupported features in CrateDB are exposed in the
-:ref:`information_schema` table (see :ref:`sql_features` for usage).
+**Note**: The currently supported and unsupported features in CrateDB are
+exposed in the :ref:`information_schema` table (see :ref:`sql_features` for
+usage).
 
-If you are missing features, functions or dialect improvements and have a great
-use case for it, let us know on `Github`_. We're always improving and extending
-CrateDB, and we love to hear feedback.
+CrateDB also supports the `PostgreSQL wire protocol`_. 
+
+If you have use cases for any missing features, functions, or dialect
+improvements, let us know on `Github`_! We are always improving and extending
+CrateDB and would love to hear your feedback.
 
 .. _Github: https://github.com/crate/crate
+.. _PostgreSQL wire protocol: https://crate.io/docs/crate/reference/en/latest/interfaces/postgres.html
+.. _SQL implementation: https://crate.io/docs/crate/reference/en/latest/appendices/compliance.html
+.. _standard SQL: https://crate.io/docs/crate/reference/en/4.2/appendices/compliance.html
