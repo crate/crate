@@ -59,7 +59,7 @@ public class CollectTask extends AbstractTask {
     private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
     private final SharedShardContexts sharedShardContexts;
 
-    private final IntObjectHashMap<RefCountedItem<IndexSearcher>> searchers = new IntObjectHashMap<>();
+    private final IntObjectHashMap<RefCountedItem<? extends IndexSearcher>> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final RowConsumer consumer;
     private final int ramAccountingBlockSizeInBytes;
@@ -91,7 +91,7 @@ public class CollectTask extends AbstractTask {
         this.minNodeVersion = minNodeVersion;
     }
 
-    public void addSearcher(int searcherId, RefCountedItem<IndexSearcher> searcher) {
+    public void addSearcher(int searcherId, RefCountedItem<? extends IndexSearcher> searcher) {
         if (isClosed()) {
             // if this is closed and addContext is called this means the context got killed.
             searcher.close();

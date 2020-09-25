@@ -21,33 +21,56 @@
 
 package io.crate.common.collections;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 
 public class RefCountedItem<T> implements AutoCloseable {
 
-    private final T item;
-    private final Runnable onClose;
-    private final AtomicInteger refs = new AtomicInteger(1);
+    private final Function<String, T> itemFactory;
+    private final Consumer<T> closeItem;
+    private final ArrayList<String> sources = new ArrayList<>();
 
-    public RefCountedItem(T item, Runnable onClose) {
-        this.item = item;
-        this.onClose = onClose;
+    private int refs = 0;
+    private T item;
+
+    public RefCountedItem(Function<String, T> itemFactory, Consumer<T> closeItem) {
+        this.itemFactory = itemFactory;
+        this.closeItem = closeItem;
     }
 
-    public void inc() {
-        refs.incrementAndGet();
+    public void markAcquired(String source) {
+        synchronized (sources) {
+            sources.add(source);
+            refs++;
+            if (item == null) {
+                item = itemFactory.apply(source);
+            }
+        }
     }
 
     public T item() {
-        return item;
+        synchronized (sources) {
+            if (item == null) {
+                assert !sources.isEmpty() : "Must call `markAcquired` to be able to access the item";
+                item = itemFactory.apply(sources.get(sources.size() - 1));
+            }
+            return item;
+        }
     }
 
     @Override
     public void close() {
-        int remainingRefs = refs.decrementAndGet();
-        assert remainingRefs >= 0 : "refcount must not get negative: " + remainingRefs;
-        if (remainingRefs == 0) {
-            onClose.run();
+        synchronized (sources) {
+            refs--;
+            if (refs == 0) {
+                try {
+                    closeItem.accept(item);
+                } finally {
+                    item = null;
+                }
+            }
         }
     }
 }
