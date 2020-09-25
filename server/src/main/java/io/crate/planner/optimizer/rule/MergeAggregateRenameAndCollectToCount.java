@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -44,14 +45,16 @@ import io.crate.statistics.TableStats;
 public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate> {
 
     private final Capture<Collect> collectCapture;
+    private final Capture<Rename> renameCapture;
     private final Pattern<HashAggregate> pattern;
 
     public MergeAggregateRenameAndCollectToCount() {
         this.collectCapture = new Capture<>();
+        this.renameCapture = new Capture<>();
         this.pattern = typeOf(HashAggregate.class)
             .with(
                 source(),
-                typeOf(Rename.class)
+                typeOf(Rename.class).capturedAs(renameCapture)
                 .with(
                     source(),
                     typeOf(Collect.class)
@@ -76,12 +79,15 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
         Collect collect = captures.get(collectCapture);
+        Rename rename = captures.get(renameCapture);
         var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
-        if (countAggregate.filter() != null) {
+        var filter = countAggregate.filter();
+        if (filter != null) {
+            var mappedFilter = FieldReplacer.replaceFields(filter, rename::resolveField);
             return new Count(
                 countAggregate,
                 collect.relation(),
-                collect.where().add(countAggregate.filter()));
+                collect.where().add(mappedFilter));
         } else {
             return new Count(countAggregate, collect.relation(), collect.where());
         }
