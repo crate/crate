@@ -45,6 +45,9 @@ public final class Reservoir<T> {
     }
 
     public void update(T item) {
+        if (itemsSeen == Integer.MAX_VALUE) {
+            return;
+        }
         itemsSeen++;
         if (itemsSeen <= maxSamples) {
             samples.add(item);
