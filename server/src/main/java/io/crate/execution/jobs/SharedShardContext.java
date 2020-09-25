@@ -41,10 +41,8 @@ public class SharedShardContext {
 
     private final IndexService indexService;
     private final int readerId;
-    private final UnaryOperator<Engine.Searcher> wrapSearcher;
     private final IndexShard indexShard;
-
-    private RefCountedItem<IndexSearcher> searcher;
+    private final RefCountedItem<Engine.Searcher> searcher;
 
     SharedShardContext(IndexService indexService,
                        ShardId shardId,
@@ -53,16 +51,14 @@ public class SharedShardContext {
         this.indexService = indexService;
         this.indexShard = indexService.getShard(shardId.id());
         this.readerId = readerId;
-        this.wrapSearcher = wrapSearcher;
+        this.searcher = new RefCountedItem<Engine.Searcher>(
+            source -> wrapSearcher.apply(indexShard.acquireSearcher(source)),
+            Engine.Searcher::close
+        );
     }
 
-    public synchronized RefCountedItem<IndexSearcher> acquireSearcher(String source) throws IndexNotFoundException {
-        if (searcher == null) {
-            var engineSearcher = wrapSearcher.apply(indexShard().acquireSearcher(source));
-            searcher = new RefCountedItem<>(engineSearcher, engineSearcher::close);
-        } else {
-            searcher.inc();
-        }
+    public RefCountedItem<? extends IndexSearcher> acquireSearcher(String source) throws IndexNotFoundException {
+        searcher.markAcquired(source);
         return searcher;
     }
 

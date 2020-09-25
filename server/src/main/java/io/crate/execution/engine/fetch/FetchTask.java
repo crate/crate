@@ -63,7 +63,7 @@ import io.crate.metadata.doc.DocTableInfo;
 
 public class FetchTask implements Task {
 
-    private final IntObjectHashMap<RefCountedItem<IndexSearcher>> searchers = new IntObjectHashMap<>();
+    private final IntObjectHashMap<RefCountedItem<? extends IndexSearcher>> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;
     private final String localNodeId;
