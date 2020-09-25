@@ -514,7 +514,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             for (IntObjectCursor<IndexShardRoutingTable> shard : shards) {
                 final IndexShardRoutingTable shardRoutingTable = shard.value;
                 final ShardId shardId = shardRoutingTable.shardId();
-                sendVerifyShardBeforeCloseRequest(shardRoutingTable, closingBlock, new NotifyOnceListener<ReplicationResponse>() {
+                sendVerifyShardBeforeCloseRequest(shardRoutingTable, closingBlock, new NotifyOnceListener<>() {
                     @Override
                     public void innerOnResponse(final ReplicationResponse replicationResponse) {
                         ReplicationResponse.ShardInfo shardInfo = replicationResponse.getShardInfo();
@@ -545,14 +545,34 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             if (shardRoutingTable.primaryShard().unassigned()) {
                 logger.debug("primary shard {} is unassigned, ignoring", shardId);
                 final ReplicationResponse response = new ReplicationResponse();
-                response.setShardInfo(new ReplicationResponse.ShardInfo(shardRoutingTable.size(), shardRoutingTable.size()));
+                response.setShardInfo(new ReplicationResponse.ShardInfo(
+                    shardRoutingTable.size(),
+                    shardRoutingTable.size()));
                 listener.onResponse(response);
                 return;
             }
-            TransportVerifyShardBeforeCloseAction.ShardRequest shardRequest =
-                new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, closingBlock);
 
-            verifyShardBeforeClose.execute(shardRequest, listener);
+            var shardRequest = new TransportVerifyShardBeforeCloseAction.ShardRequest(
+                shardId,
+                true,
+                closingBlock
+            );
+            verifyShardBeforeClose.execute(shardRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(ReplicationResponse replicationResponse) {
+                    var shardRequest = new TransportVerifyShardBeforeCloseAction.ShardRequest(
+                        shardId,
+                        false,
+                        closingBlock
+                    );
+                    verifyShardBeforeClose.execute(shardRequest, listener);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    listener.onFailure(e);
+                }
+            });
         }
     }
 }
