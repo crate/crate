@@ -23,8 +23,10 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.TableDefinitions;
+import io.crate.planner.node.dql.CountPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
 import org.junit.Before;
 import org.junit.Test;
@@ -377,6 +379,23 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         var plan = plan("SELECT COUNT(*) FILTER (WHERE x > 1) FROM t1");
         var expectedPlan = "Count[doc.t1 | (x > 1)]";
         assertThat(plan, isPlan(expectedPlan));
+    }
+
+    @Test
+    public void test_count_start_aggregate_filter_on_aliased_table_is_pushed_down() {
+        String stmt = "SELECT COUNT(*) FILTER (WHERE x > 1) FROM t1 as t";
+        var plan = plan(stmt);
+        var expectedPlan = "Count[doc.t1 | (x > 1)]";
+        assertThat(plan, isPlan(expectedPlan));
+
+        CountPlan count = (CountPlan) sqlExecutor.plan(stmt);
+        assertThat(
+            count.countPhase().where(),
+            SymbolMatchers.isFunction("op_>",
+                SymbolMatchers.isReference("x"),
+                SymbolMatchers.isLiteral(1)
+            )
+        );
     }
 
     @Test
