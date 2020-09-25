@@ -41,7 +41,6 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.FileInputStream;
@@ -128,7 +127,6 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
     // multiple threads doing CAS updates.
     // Wait up to 1 minute (+10s in thread to ensure it does not time out) for threads to complete previous round before initiating next
     // round.
-    @Ignore("https://github.com/crate/crate/issues/10364")
     @Test
     public void testSeqNoCASLinearizability() {
         final int disruptTimeSeconds = scaledRandomIntBetween(1, 8);
@@ -136,8 +134,17 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
         int numberOfShards = between(1, 4);
         int numberOfReplicas = randomInt(3);
         logger.info("creating table with {} shards and {} replicas", numberOfShards, numberOfReplicas);
-        execute("create table t (id string primary key, x int) clustered into " + numberOfShards +
-                " shards with (number_of_replicas = " + numberOfReplicas + ")");
+        execute(
+            "create table t (id string primary key, x int) " +
+            "clustered into " + numberOfShards + " shards with (" +
+            "   number_of_replicas = ?, " +
+            "   \"global_checkpoint_sync.interval\" = ?" +
+            ")",
+            new Object[] {
+                numberOfReplicas,
+                "1s"
+            }
+        );
         ensureGreen();
 
         int numberOfKeys = randomIntBetween(1, 10);
