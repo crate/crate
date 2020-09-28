@@ -1693,6 +1693,7 @@ public final class InternalTestCluster extends TestCluster {
         }
 
         assert nodesByRoles.values().stream().mapToInt(List::size).sum() == nodes.size();
+        callback.onAllNodesStopped();
 
         // randomize start up order, but making sure that:
         // 1) A data folder that was assigned to a data node will stay so
@@ -2154,6 +2155,9 @@ public final class InternalTestCluster extends TestCluster {
          * an active client to the node that will be restarted next.
          */
         public void doAfterNodes(int n, Client client) throws Exception {
+        }
+
+        public void onAllNodesStopped() throws Exception {
         }
 
         /**
