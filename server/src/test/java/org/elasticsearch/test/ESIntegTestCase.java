@@ -25,6 +25,7 @@ package org.elasticsearch.test;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+import io.crate.testing.SQLTransportExecutor;
 import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -132,6 +133,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcke
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.startsWith;
@@ -749,6 +751,53 @@ public abstract class ESIntegTestCase extends ESTestCase {
             assertThat(actionGet.getStatus(), equalTo(status));
         }
         return actionGet.getStatus();
+    }
+
+    /**
+     * Waits until at least a give number of document is visible for searchers
+     *
+     * @param numDocs number of documents to wait for
+     * @param indexer a {@link org.elasticsearch.test.BackgroundIndexer}. It will be first checked for documents indexed.
+     *                This saves on unneeded searches.
+     * @param sqlExecutor a {@link io.crate.testing.SQLTransportExecutor}. It will be used to query for the amount of
+     *                    documents indexed.
+     */
+    public void waitForDocs(final long numDocs, final BackgroundIndexer indexer, SQLTransportExecutor sqlExecutor) throws Exception {
+        // indexing threads can wait for up to ~1m before retrying when they first try to index into a shard which is not STARTED.
+        final long maxWaitTimeMs = Math.max(90 * 1000, 200 * numDocs);
+
+        assertBusy(
+            () -> {
+                long lastKnownCount = indexer.totalIndexedDocs();
+
+                if (lastKnownCount >= numDocs) {
+                    try {
+                        var response = sqlExecutor.exec("select count(*) from " + indexer.table);
+                        long count = (long) response.rows()[0][0];
+                        if (count == lastKnownCount) {
+                            // no progress - try to refresh for the next time
+                            client().admin().indices().prepareRefresh().get();
+                        }
+                        lastKnownCount = count;
+                    } catch (Exception e) { // count now acts like search and barfs if all shards failed...
+                        logger.debug("failed to executed count", e);
+                        throw e;
+                    }
+                }
+
+                if (logger.isDebugEnabled()) {
+                    if (lastKnownCount < numDocs) {
+                        logger.debug("[{}] docs indexed. waiting for [{}]", lastKnownCount, numDocs);
+                    } else {
+                        logger.debug("[{}] docs visible for search (needed [{}])", lastKnownCount, numDocs);
+                    }
+                }
+
+                assertThat(lastKnownCount, greaterThanOrEqualTo(numDocs));
+            },
+            maxWaitTimeMs,
+            TimeUnit.MILLISECONDS
+        );
     }
 
     /**
