@@ -1692,6 +1692,7 @@ public final class InternalTestCluster extends TestCluster {
             nodesByRoles.computeIfAbsent(discoveryNode.getRoles(), k -> new ArrayList<>()).add(nodeAndClient);
         }
 
+        callback.onAllNodesStopped();
         assert nodesByRoles.values().stream().mapToInt(List::size).sum() == nodes.size();
 
         // randomize start up order, but making sure that:
@@ -2154,6 +2155,9 @@ public final class InternalTestCluster extends TestCluster {
          * an active client to the node that will be restarted next.
          */
         public void doAfterNodes(int n, Client client) throws Exception {
+        }
+
+        public void onAllNodesStopped() throws Exception {
         }
 
         /**
