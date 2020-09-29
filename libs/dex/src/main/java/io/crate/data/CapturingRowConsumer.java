@@ -59,4 +59,9 @@ public final class CapturingRowConsumer implements RowConsumer {
     public boolean requiresScroll() {
         return requiresScroll;
     }
+
+    @Override
+    public String toString() {
+        return "CapturingRowConsumer{captured=" + batchIterator.isDone() + '}';
+    }
 }
