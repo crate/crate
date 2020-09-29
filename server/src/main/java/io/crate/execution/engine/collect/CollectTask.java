@@ -24,9 +24,11 @@ package io.crate.execution.engine.collect;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 
@@ -41,16 +43,18 @@ import io.crate.common.collections.RefCountedItem;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.Exceptions;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.jobs.Task;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 
-public class CollectTask extends AbstractTask {
+
+public class CollectTask implements Task {
+
 
     private final CollectPhase collectPhase;
     private final TransactionContext txnCtx;
@@ -60,16 +64,22 @@ public class CollectTask extends AbstractTask {
     private final SharedShardContexts sharedShardContexts;
 
     private final IntObjectHashMap<RefCountedItem<? extends IndexSearcher>> searchers = new IntObjectHashMap<>();
-    private final Object subContextLock = new Object();
     private final RowConsumer consumer;
     private final int ramAccountingBlockSizeInBytes;
+
+    @GuardedBy("searchers")
     private final ArrayList<MemoryManager> memoryManagers = new ArrayList<>();
     private final Version minNodeVersion;
+    private final CompletableFuture<Void> consumerCompleted;
+    private final CompletableFuture<BatchIterator<Row>> batchIterator = new CompletableFuture<>();
+    private final AtomicBoolean started = new AtomicBoolean(false);
 
-    private BatchIterator<Row> batchIterator = null;
+    @GuardedBy("searchers")
+    private boolean releasedResources = false;
+
     private long totalBytes = -1;
 
-    public CollectTask(final CollectPhase collectPhase,
+    public CollectTask(CollectPhase collectPhase,
                        TransactionContext txnCtx,
                        MapSideDataCollectOperation collectOperation,
                        RamAccounting ramAccounting,
@@ -78,7 +88,6 @@ public class CollectTask extends AbstractTask {
                        SharedShardContexts sharedShardContexts,
                        Version minNodeVersion,
                        int ramAccountingBlockSizeInBytes) {
-        super(collectPhase.phaseId());
         this.collectPhase = collectPhase;
         this.txnCtx = txnCtx;
         this.collectOperation = collectOperation;
@@ -87,37 +96,113 @@ public class CollectTask extends AbstractTask {
         this.sharedShardContexts = sharedShardContexts;
         this.consumer = consumer;
         this.ramAccountingBlockSizeInBytes = ramAccountingBlockSizeInBytes;
-        this.consumer.completionFuture().whenComplete(closeOrKill(this));
         this.minNodeVersion = minNodeVersion;
+        this.batchIterator.whenComplete((it, err) -> {
+            if (err == null) {
+                try {
+                    String threadPoolName = threadPoolName(collectPhase, it.hasLazyResultSet());
+                    collectOperation.launch(() -> consumer.accept(it, null), threadPoolName);
+                } catch (Throwable t) {
+                    consumer.accept(null, t);
+                }
+            } else {
+                consumer.accept(null, err);
+            }
+        });
+        this.consumerCompleted = consumer.completionFuture().handle((res, err) -> {
+            totalBytes = ramAccounting.totalBytes();
+            releaseResources();
+            if (err != null) {
+                Exceptions.rethrowUnchecked(err);
+            }
+            return null;
+        });
     }
 
-    public void addSearcher(int searcherId, RefCountedItem<? extends IndexSearcher> searcher) {
-        if (isClosed()) {
-            // if this is closed and addContext is called this means the context got killed.
-            searcher.close();
-            return;
-        }
-
-        synchronized (subContextLock) {
-            var replacedSearcher = searchers.put(searcherId, searcher);
-            if (replacedSearcher != null) {
-                replacedSearcher.close();
-                searcher.close();
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "ShardCollectContext for %d already added", searcherId));
+    private void releaseResources() {
+        synchronized (searchers) {
+            if (releasedResources == false) {
+                releasedResources = true;
+                for (var cursor : searchers.values()) {
+                    cursor.value.close();
+                }
+                searchers.clear();
+                for (var memoryManager : memoryManagers) {
+                    memoryManager.close();
+                }
+                memoryManagers.clear();
+            } else {
+                throw new AssertionError("Double release must not happen");
             }
         }
     }
 
     @Override
-    protected void innerClose() {
-        totalBytes = ramAccounting.totalBytes();
-        closeSearchContexts();
-        synchronized (memoryManagers) {
-            for (MemoryManager memoryManager : memoryManagers) {
-                memoryManager.close();
+    public CompletableFuture<Void> completionFuture() {
+        return consumerCompleted;
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        if (started.compareAndSet(false, true)) {
+            consumer.accept(null, throwable);
+        } else {
+            batchIterator.whenComplete((it, err) -> {
+                if (err == null) {
+                    it.kill(throwable);
+                } // else: Consumer must have received a failure already
+            });
+        }
+    }
+
+    @Override
+    public void start() {
+        if (started.compareAndSet(false, true)) {
+            try {
+                var futureIt = collectOperation.createIterator(
+                    txnCtx,
+                    collectPhase,
+                    consumer.requiresScroll(),
+                    this
+                );
+                futureIt.whenComplete((it, err) -> {
+                    if (err == null) {
+                        batchIterator.complete(it);
+                    } else {
+                        batchIterator.completeExceptionally(err);
+                    }
+                });
+            } catch (Throwable t) {
+                batchIterator.completeExceptionally(t);
             }
-            memoryManagers.clear();
+        }
+    }
+
+    @Override
+    public int id() {
+        return collectPhase.phaseId();
+    }
+
+    public void addSearcher(int searcherId, RefCountedItem<? extends IndexSearcher> searcher) {
+        synchronized (searchers) {
+            if (releasedResources == false) {
+                var replacedSearcher = searchers.put(searcherId, searcher);
+                if (replacedSearcher != null) {
+                    replacedSearcher.close();
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "ShardCollectContext for %d already added", searcherId));
+                }
+            } else {
+                searcher.close();
+                // addSearcher call after resource-release should only happen in error case
+                // the join call should trigger the original failure
+                try {
+                    consumerCompleted.join();
+                } catch (CompletionException e) {
+                    throw Exceptions.toRuntimeException(e.getCause());
+                }
+                throw new AssertionError("addSearcher call after resources have already been released once");
+            }
         }
     }
 
@@ -130,23 +215,6 @@ public class CollectTask extends AbstractTask {
         }
     }
 
-    private void closeSearchContexts() {
-        synchronized (subContextLock) {
-            for (var cursor : searchers.values()) {
-                cursor.value.close();
-            }
-            searchers.clear();
-        }
-    }
-
-    @Override
-    public void innerKill(@Nonnull Throwable throwable) {
-        if (batchIterator != null) {
-            batchIterator.kill(throwable);
-        }
-        innerClose();
-    }
-
     @Override
     public String name() {
         return collectPhase.name();
@@ -155,30 +223,13 @@ public class CollectTask extends AbstractTask {
     @Override
     public String toString() {
         return "CollectTask{" +
-               "id=" + id +
+               "id=" + collectPhase.phaseId() +
                ", sharedContexts=" + sharedShardContexts +
                ", consumer=" + consumer +
                ", searchContexts=" + searchers.keys() +
-               ", closed=" + isClosed() +
+               ", batchIterator=" + batchIterator +
+               ", finished=" + consumerCompleted.isDone() +
                '}';
-    }
-
-    @Override
-    protected void innerStart() {
-        CompletableFuture<BatchIterator<Row>> futureIt = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
-        futureIt.whenComplete((it, err) -> {
-            if (err == null) {
-                CollectTask.this.batchIterator = it;
-                String threadPoolName = threadPoolName(collectPhase, it.hasLazyResultSet());
-                try {
-                    collectOperation.launch(() -> consumer.accept(it, null), threadPoolName);
-                } catch (Throwable t) {
-                    consumer.accept(null, t);
-                }
-            } else {
-                consumer.accept(null, SQLExceptions.unwrap(err));
-            }
-        });
     }
 
     public TransactionContext txnCtx() {
@@ -212,10 +263,24 @@ public class CollectTask extends AbstractTask {
 
     public MemoryManager memoryManager() {
         MemoryManager memoryManager = memoryManagerFactory.apply(ramAccounting);
-        synchronized (memoryManagers) {
-            memoryManagers.add(memoryManager);
+        // an atomicBoolean call would not be enough, because without syncronization
+        // the `memoryManagers.add` could be called just right *after* another thread triggered `releaseResources`
+        synchronized (searchers) {
+            if (releasedResources == false) {
+                memoryManagers.add(memoryManager);
+                return memoryManager;
+            } else {
+                memoryManager.close();
+                // memoryManager acess after resource-release should only happen in error case
+                // the join call should trigger the original failure
+                try {
+                    consumerCompleted.join();
+                } catch (CompletionException e) {
+                    throw Exceptions.toRuntimeException(e.getCause());
+                }
+                throw new AssertionError("memoryManager access after resources have already been released once");
+            }
         }
-        return memoryManager;
     }
 
     public Version minNodeVersion() {
