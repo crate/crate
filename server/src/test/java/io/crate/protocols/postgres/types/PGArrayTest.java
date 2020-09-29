@@ -164,8 +164,6 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
     }
 
     @Test
-    @Ignore // For multi-dimensions -1 is used both for "padding" until the max length of the dimension,
-            // but also for null handling, therefore we cannot distinguish between the two
     public void testBinaryEncodingDecodingRoundtrip_MultipleDimensionsWithNulls() {
         List<Object> sourceArray = List.of(
             Arrays.asList(1, 2, 3),
@@ -179,13 +177,16 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         int length = buffer.readInt();
         Object targetArray = pgArray.readBinaryValue(buffer, length);
         buffer.release();
-        assertThat(targetArray, is(sourceArray));
-        // Because of the null handling problem it returns:
-        // {
-        //     {1, 2, 3, null},
-        //     {4, 5, null, null},
-        //     {null, 6, 7, 8},
-        //     {null, null, 9, null}
-        // }
+
+        // For multi-dimensions -1 is used both for "padding" until the max length of the dimension,
+        // but also for null handling, therefore we cannot distinguish between the two.
+        // That is the reason the output is different from the input
+        List<Object> expectedArray = List.of(
+            Arrays.asList(1, 2, 3, null),
+            Arrays.asList(4, 5, null, null),
+            Arrays.asList(null, 6, 7, 8),
+            Arrays.asList(null, null, 9, null)
+        );
+        assertThat(targetArray, is(expectedArray));
     }
 }
