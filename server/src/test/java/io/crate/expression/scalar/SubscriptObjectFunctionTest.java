@@ -69,4 +69,14 @@ public class SubscriptObjectFunctionTest extends AbstractScalarFunctionsTest {
     public void testSubscriptOnObjectWithPath() {
         assertEvaluate("subscript_obj({x={y=10}}, 'x', 'y')", 10);
     }
+
+    @Test
+    public void test_subscript_obj_with_null_argument() throws Exception {
+        assertEvaluate("subscript_obj(null, 'x', 'y')", null);
+    }
+
+    @Test
+    public void test_subscript_obj_with_null_child() throws Exception {
+        assertEvaluate("subscript_obj({x=null}, 'x', 'y')", null);
+    }
 }
