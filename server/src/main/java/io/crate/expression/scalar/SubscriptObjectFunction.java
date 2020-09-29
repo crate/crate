@@ -131,6 +131,9 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
         assert args.length >= 2 : NAME + " takes 2 or more arguments, got " + args.length;
         Object mapValue = args[0].value();
         for (var i = 1; i < args.length; i++) {
+            if (mapValue == null) {
+                return null;
+            }
             mapValue = SubscriptFunction.lookupByName(mapValue, args[i].value());
         }
         return mapValue;
