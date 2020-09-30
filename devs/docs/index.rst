@@ -2,8 +2,9 @@
 Developer Guide
 ===============
 
+
 Contents
-......
+========
 
 - `Basic setup <basics.rst>`_
 - `Documentation <write_docs.rst>`_

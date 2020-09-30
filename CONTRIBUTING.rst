@@ -7,8 +7,8 @@ Thank you for your interest in contributing.
 This document is a guideline. Don't worry about getting everything perfect.
 We are happy to work with you on your contribution.
 
-`Upvoting existing issues`_, `reporting new issues`_, or `giving feedback`_ 
-about your experience are the easiest ways to contribute. 
+`Upvoting existing issues`_, `reporting new issues`_, or `giving feedback`_
+about your experience are the easiest ways to contribute.
 
 We also accept pull requests for changes to the code and to the documentation.
 For more information on how to do this, read our `developer guide`_.
@@ -83,8 +83,10 @@ Once that is complete, you should:
 
 - Squash related commits.
 
+
 General Tips
 ============
+
 
 Meaningful Commit Messages
 --------------------------
@@ -107,6 +109,7 @@ code base. For example::
 
 See also: https://chris.beams.io/posts/git-commit/
 
+
 Updating Your Branch
 --------------------
 
@@ -120,6 +123,7 @@ This will apply all commits on your feature branch on top of the ``master``
 branch. If there are conflicts, they can be resolved with ``git merge``.
 After the conflict has been resolved, use ``git rebase --continue`` to
 continue the rebase process.
+
 
 Squashing Minor Commits
 -----------------------
@@ -146,8 +150,8 @@ If you're happy with the result, do a **force** push (since you're rewriting his
 
     $ git push -f
 
-
 See also: http://www.ericbmerritt.com/2011/09/21/commit-hygiene-and-git.html
+
 
 .. _CLA: https://crate.io/community/contribute/agreements/
 .. _Crate.io: http://crate.io/

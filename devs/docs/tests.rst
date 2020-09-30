@@ -19,7 +19,6 @@ Filter tests::
 
     $ ./gradlew test --tests '*ClassName.testMethodName'
 
-
 Extra options::
 
     $ ./gradlew :server:test -Dtests.seed=8352BE0120F826A9
@@ -30,11 +29,9 @@ Extra options::
 
     $ ./gradlew :server:test -Dtests.verbose=true # log result of all invoked tests
 
-
 More logging::
 
     $ ./gradlew -PtestLogging -Dtests.loggers.levels=io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE :server:test
-
 
 More logging by changing code:
 
