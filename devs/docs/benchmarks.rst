@@ -25,6 +25,7 @@ To save the results to a file, use the ``-rf`` and ``-rff`` options::
 If you are writing new benchmarks, take a look at this `JMH introduction`_ and
 these `JMH samples`_.
 
+
 End-to-end Benchmarks
 =====================
 
@@ -32,7 +33,7 @@ Version-independent benchmarks which can be written using regular SQL
 statements are in the `crate-benchmarks`_ repository.
 
 
+.. _crate-benchmarks: https://github.com/crate/crate-benchmarks
 .. _JMH introduction: http://java-performance.info/jmh/
 .. _JMH samples: http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
 .. _JMH: http://openjdk.java.net/projects/code-tools/jmh/
-.. _crate-benchmarks: https://github.com/crate/crate-benchmarks

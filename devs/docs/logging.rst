@@ -2,8 +2,9 @@
 Logging
 =======
 
+
 Debug and Trace Logging
-.......................
+=======================
 
 With asynchronous programming models, it is often hard to follow the execution
 flow or identify possible bugs. This is especially true for distributed systems.
@@ -50,5 +51,6 @@ For example::
 In your log messages, try to include information about the environment in
 which the operation takes place. For example, ``nodeOperations``,
 ``phaseId``, and so on. Please also consult the `logfmt`_ guidelines.
+
 
 .. _logfmt: https://www.brandur.org/logfmt

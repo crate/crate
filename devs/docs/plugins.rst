@@ -13,11 +13,13 @@ A plugin must:
 
 Refer to our `CrateDB example plugin`_ for more details.
 
+
 Plugin CrateDB Dependency
 =========================
 
 In order to develop a plugin against a CrateDB release, a dependency to the
 CrateDB's server libraries must be set up.
+
 
 Gradle
 ------
@@ -37,6 +39,7 @@ Add CrateDB to compile dependencies:
   dependencies {
       compile 'io.crate:crate:<VERSION>'
   }
+
 
 Maven
 -----
@@ -77,6 +80,7 @@ Add CrateDB as a dependency:
     </dependency>
   </dependencies>
 
+
 Plugin Loading
 ==============
 
@@ -86,6 +90,7 @@ resources for a ``META-INF/services/io.crate.Plugin`` file.
 Inside this file, one line is allowed to define the full qualified class
 name which implements the `Plugin interface`_. This is similar to Java's
 ServiceLoader.
+
 
 Constructor with ``Settings`` argument
 --------------------------------------
@@ -98,6 +103,7 @@ implement its own custom setting entries.
 The `CrateDB example plugin`_ makes use of that to implement a custom setting.
 
 .. highlight:: java
+
 
 Plugin Interface
 ================
@@ -117,6 +123,7 @@ The main purpose for the plugins right now is to add additional scalar
 functions or aggregation functions. An example of a plugin that does that is
 `CrateDB example plugin`_.
 
+
 Installing a Plugin
 ===================
 
@@ -127,5 +134,6 @@ path or to one of the following places:
  - <CRATE_HOME>/plugins/<SOME_PLUGIN_NAME>/
  - <CRATE_HOME>/plugins/<SOME_PLUGIN_NAME>/lib/
 
-.. _`CrateDB example plugin`: https://github.com/crate/crate-example-plugin
+
+.. _CrateDB example plugin: https://github.com/crate/crate-example-plugin
 .. _Guice: https://github.com/google/guice

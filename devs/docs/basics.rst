@@ -2,13 +2,14 @@
 Basic setup
 ===========
 
+
 Prerequisites
 =============
 
 CrateDB is written in Java_ and includes a pre-configured bundled version of
 OpenJDK_ in its build. But to develop CrateDB, you still have to install Java_
 in order to run the Gradle_ build tool. Some of the tools that are used
-to build documentation and run tests require Python_. 
+to build documentation and run tests require Python_.
 
 To set up a minimal development environment, you will need:
 
@@ -20,12 +21,13 @@ Then, clone the repository and navigate into its directory::
     $ git clone https://github.com/crate/crate.git
     $ cd crate
 
+
 Manual Build
 ============
 
 This project uses Gradle_ as a build tool. The most convenient way to build
 and run CrateDB while you are working on the code is to do so directly from
-within your IDE. See the section on `IDE integration`_. 
+within your IDE. See the section on `IDE integration`_.
 
 However, you can also use Gradle directly. Gradle can be invoked by executing
 ``./gradlew``. The first time this command is executed, it is bootstrapped
@@ -41,7 +43,6 @@ To run CrateDB::
 
 The ``run`` command will set CRATE_HOME to ``sandbox/crate``, so use the
 configuration files located in that directory.
-
 
 To build the CrateDB distribution tarball, run::
 
@@ -89,7 +90,7 @@ All the tasks related to packaging and releasing (``distTar``, ``release``) or
 tasks that depend on them (``itest``) will ignore the ``-DuseSystemJdk``
 parameter. This means that the compilation and test execution can be
 done with the system JDK, but releasing and packaging will still use the
-bundled JDK. 
+bundled JDK.
 
 The ``-DuseSystemJdk`` is useful for doing releases and cross-platform builds.
 For example, you can build a CrateDB package for Windows with the
@@ -116,6 +117,7 @@ architectures:
 The only supported ``JDK`` vendor is ``AdoptOpenJDK``. To check the available
 ``JDK`` versions, please see `hosted OpenJDK archives on Crate.io CDN`_.
 
+
 Running Tests
 =============
 
@@ -136,6 +138,7 @@ This will set up the project using the pre-configured code style, code
 inspection, etc. It will also create some run/debug configurations which
 allows you to start Crate from the IDE.
 
+
 Run/Debug Configurations
 ------------------------
 
@@ -148,6 +151,7 @@ directory.
 
 Here, ``<PROJECT_ROOT>`` is the root of your Git repository.
 
+
 Checkstyle
 ----------
 
@@ -156,7 +160,7 @@ Checkstyle compliance from within the IDE.
 
 The Checkstyle plugin enforces rules defined in `<PROJECT_ROOT>/gradle/checkstyle/rules.xml`.
 It checks for things such as unused imports, inconsistent formatting, and potential
-bugs. 
+bugs.
 
 The plugin is run by Gradle after compiling the main sources. Only main sources
 are analyzed and not the test sources.
@@ -172,12 +176,14 @@ You can create test coverage reports with `jacoco`_ by running::
 The test coverage report (in HTML) can then be found in the
 ``build/reports/jacoco/jacocoHtml`` directory.
 
+
 Forbidden APIs
 --------------
 
 To run the `Forbidden APIs`_ tool::
 
     $ ./gradlew forbiddenApisMain
+
 
 Troubleshooting
 ===============
@@ -194,14 +200,14 @@ the build with the following command::
     $ ./gradlew -Plint-unchecked -Plint-deprecation compileTestJava
 
 
-.. _Java: http://www.java.com/
-.. _OpenJDK: https://openjdk.java.net/projects/jdk/11/
-.. _Oracle's Java: http://www.java.com/en/download/help/mac_install.xml
-.. _Python: http://www.python.org/
+.. _Forbidden APIs: https://github.com/policeman-tools/forbidden-apis
 .. _Gradle: http://www.gradle.org/
-.. _logging documentation: https://crate.io/docs/en/stable/configuration.html#logging
+.. _hosted OpenJDK archives on Crate.io CDN: https://cdn.crate.io/downloads/openjdk/
 .. _IDE integration: https://github.com/crate/crate/blob/master/devs/docs/basics.rst#using-an-ide
 .. _IntelliJ IDEA: https://www.jetbrains.com/idea/
 .. _jacoco: http://www.eclemma.org/jacoco/
-.. _Forbidden APIs: https://github.com/policeman-tools/forbidden-apis
-.. _hosted OpenJDK archives on Crate.io CDN: https://cdn.crate.io/downloads/openjdk/
+.. _Java: http://www.java.com/
+.. _logging documentation: https://crate.io/docs/en/stable/configuration.html#logging
+.. _OpenJDK: https://openjdk.java.net/projects/jdk/11/
+.. _Oracle's Java: http://www.java.com/en/download/help/mac_install.xml
+.. _Python: http://www.python.org/

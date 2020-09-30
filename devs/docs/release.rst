@@ -14,6 +14,7 @@ Git workflow
 - Commits must be self-contained. Each commit must compile and tests should
   pass (beware of flaky tests). This is required to be able to use ``git bisect``.
 
+
 Release workflow
 ================
 
@@ -41,7 +42,7 @@ For example::
 
 During this feature freeze, we can no longer merge new features into master.
 We focus on fixes, performance improvements, or other cleanups. At some point,
-we will lift the feature freeze. 
+we will lift the feature freeze.
 
 At this point, a ``major.minor`` release branch is created and we bump the
 ``minor`` version on master.
@@ -83,6 +84,7 @@ The resulting tarball and zip file will be written to the
 
 We also have a Jenkins_ job that will build the tarball.
 
+
 Archiving Docs Versions
 =======================
 
@@ -103,6 +105,7 @@ archived.
 
 You can archive releases by selecting *Edit*, unselecting the *Active*
 checkbox, and then saving the changes.
+
 
 .. _Jenkins: http://jenkins-ci.org/
 .. _versions hosted on ReadTheDocs: https://readthedocs.org/projects/crate/versions/

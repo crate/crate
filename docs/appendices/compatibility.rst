@@ -4,7 +4,7 @@
 SQL compatibility
 =================
 
-CrateDB aims to provide a `SQL implementation`_ that is familiar to anyone who 
+CrateDB aims to provide a `SQL implementation`_ that is familiar to anyone who
 has used databases that provide a standards-compliant SQL language. However,
 you should be aware of some unique characteristics in CrateDB's SQL dialect.
 
@@ -13,8 +13,10 @@ you should be aware of some unique characteristics in CrateDB's SQL dialect.
 .. contents::
    :local:
 
+
 Implementation notes
 ====================
+
 
 Data types
 ----------
@@ -48,17 +50,20 @@ how data types of `standard SQL`_ map to CrateDB :ref:`data-types`.
 | double precision                  | double, double precision    |
 +-----------------------------------+-----------------------------+
 
+
 Create table
 ------------
 
 :ref:`ref-create-table` supports additional storage and table parameters for
 sharding, replication and routing of data, and does not support inheritance.
 
+
 Alter table
 -----------
 
 ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported (see
 :ref:`ref-alter-table`).
+
 
 System information tables
 -------------------------
@@ -68,12 +73,14 @@ have a slightly different schema than specified in standard SQL. They provide
 schema information and can be queried to get real-time statistical data about
 the cluster, its nodes, and their shards.
 
+
 BLOB support
 ------------
 
 `Standard SQL`_ defines a binary string type, called ``BLOB`` or ``BINARY LARGE
 OBJECT``. With CrateDB, Binary Data is instead stored in separate BLOB Tables
 (see :ref:`blob_support`) which can be sharded and replicated.
+
 
 Transactions (``BEGIN``, ``COMMIT``, and ``ROLLBACK``)
 ------------------------------------------------------
@@ -142,11 +149,12 @@ These **functions** of `standard SQL`_ are either not supported or only partly s
 exposed in the :ref:`information_schema` table (see :ref:`sql_features` for
 usage).
 
-CrateDB also supports the `PostgreSQL wire protocol`_. 
+CrateDB also supports the `PostgreSQL wire protocol`_.
 
 If you have use cases for any missing features, functions, or dialect
 improvements, let us know on `Github`_! We are always improving and extending
 CrateDB and would love to hear your feedback.
+
 
 .. _Github: https://github.com/crate/crate
 .. _PostgreSQL wire protocol: https://crate.io/docs/crate/reference/en/latest/interfaces/postgres.html

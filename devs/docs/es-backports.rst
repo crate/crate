@@ -29,7 +29,6 @@ applied using something like this::
 
     sh$ git log --oneline --grep 'bp:'
 
-
 If a patch is skipped, use the ``sp:`` prefix instead.
 
 To see if there are new changes, you can use ``git log`` in the Elasticsearch
