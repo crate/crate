@@ -27,14 +27,18 @@ import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
 import org.graalvm.polyglot.TypeLiteral;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyObject;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 class PolyglotValuesConverter {
 
-    private static final TypeLiteral<Number> NUMBER_TYPE_LITERAL = new TypeLiteral<>() {};
-    private static final TypeLiteral<Map> MAP_TYPE_LITERAL = new TypeLiteral<>() {};
+    private static final TypeLiteral<Number> NUMBER_TYPE_LITERAL = new TypeLiteral<>() {
+    };
+    private static final TypeLiteral<Map> MAP_TYPE_LITERAL = new TypeLiteral<>() {
+    };
 
     static Object toCrateObject(Value value, DataType<?> type) {
         if (value == null) {
@@ -77,10 +81,18 @@ class PolyglotValuesConverter {
         }
     }
 
-    static Object[] toPolyglotValues(Input<Object>[] inputs) {
+    static Object[] toPolyglotValues(Input<Object>[] inputs, List<DataType<?>> dataTypes) {
         Object[] args = new Object[inputs.length];
         for (int i = 0; i < inputs.length; i++) {
-            args[i] = Value.asValue(inputs[i].value());
+            switch (dataTypes.get(i).id()) {
+                case ObjectType.ID:
+                case GeoShapeType.ID:
+                    //noinspection unchecked
+                    args[i] = ProxyObject.fromMap((Map<String, Object>) inputs[i].value());
+                    break;
+                default:
+                    args[i] = Value.asValue(inputs[i].value());
+            }
         }
         return args;
     }

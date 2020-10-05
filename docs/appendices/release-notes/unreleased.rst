@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that prevented an access to the properties of object type
+  arguments in JavaScript user defined functions.
+
 - Fixed a regression introduced in 4.2 that could cause subscript expressions
   to fail with a ``Base argument to subscript must be an object, not null``
   error.
