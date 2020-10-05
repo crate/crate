@@ -27,6 +27,7 @@ import org.elasticsearch.common.inject.Singleton;
 import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 
 /**
@@ -42,7 +43,7 @@ public class NodeJobsCounter {
      */
     public static final long MAX_NODE_CONCURRENT_OPERATIONS = 5;
 
-    private long unknownNodeCount = 0L;
+    private final AtomicLong unknownNodeCount = new AtomicLong();
     // Using single element long[] to avoid autoboxing
     private final Map<String, long[]> operationsCountPerNode = new ConcurrentHashMap<>();
 
@@ -69,7 +70,7 @@ public class NodeJobsCounter {
 
     public void increment(@Nullable String nodeId) {
         if (nodeId == null) {
-            unknownNodeCount++;
+            unknownNodeCount.incrementAndGet();
         } else {
             operationsCountPerNode.compute(nodeId, INCREMENT_COUNTER_FOR_NODE);
         }
@@ -77,20 +78,18 @@ public class NodeJobsCounter {
 
     public void decrement(@Nullable String nodeId) {
         if (nodeId == null) {
-            unknownNodeCount--;
+            unknownNodeCount.decrementAndGet();
         } else {
             operationsCountPerNode.compute(nodeId, DECREMENT_COUNTER_FOR_NODE);
         }
     }
 
     public long getInProgressJobsForNode(@Nullable String nodeId) {
-        long count;
         if (nodeId == null) {
-            count = unknownNodeCount;
+            return unknownNodeCount.get();
         } else {
             long[] countPerNode = operationsCountPerNode.get(nodeId);
-            count = countPerNode == null ? 0L : countPerNode[0];
+            return countPerNode == null ? 0L : countPerNode[0];
         }
-        return count;
     }
 }
