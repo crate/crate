@@ -18,12 +18,14 @@
 
 package io.crate.operation.language;
 
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
+import io.crate.types.TypeSignature;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
@@ -63,7 +65,10 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         try {
             var function = resolvePolyglotFunctionValue(signature.getName().name(), script);
-            var polyglotValueArgs = PolyglotValuesConverter.toPolyglotValues(args);
+            Object[] polyglotValueArgs = PolyglotValuesConverter.toPolyglotValues(
+                args,
+                Lists2.map(signature.getArgumentTypes(), TypeSignature::createType)
+            );
             return PolyglotValuesConverter.toCrateObject(
                 function.execute(polyglotValueArgs),
                 signature.getReturnType().createType());
@@ -97,7 +102,10 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
         @Override
         public final Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
-            var polyglotValueArgs = PolyglotValuesConverter.toPolyglotValues(args);
+            Object[] polyglotValueArgs = PolyglotValuesConverter.toPolyglotValues(
+                args,
+                Lists2.map(signature.getArgumentTypes(), TypeSignature::createType)
+            );
             try {
                 return toCrateObject(
                     function.execute(polyglotValueArgs),
