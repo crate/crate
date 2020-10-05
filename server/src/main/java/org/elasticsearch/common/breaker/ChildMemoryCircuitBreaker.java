@@ -19,13 +19,12 @@
 
 package org.elasticsearch.common.breaker;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.breaker.BreakerSettings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-
-import java.util.Locale;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Breaker that will check a parent's when incrementing
@@ -133,57 +132,6 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
             throw e;
         }
         return newUsed;
-    }
-
-    @Override
-    public long addBytesRangeAndMaybeBreak(long minAcceptableBytes, long wantedBytes, String label) throws CircuitBreakingException {
-        if (wantedBytes < minAcceptableBytes) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "wantedBytes (%d) must be larger or equal to minAcceptableBytes (%d)",
-                wantedBytes,
-                minAcceptableBytes));
-        }
-        if (minAcceptableBytes == wantedBytes) {
-            addEstimateBytesAndMaybeBreak(wantedBytes, label);
-            return wantedBytes;
-        }
-        // -1 is no limit
-        if (memoryBytesLimit == -1) {
-            used.addAndGet(wantedBytes);
-            return wantedBytes;
-        }
-        if (memoryBytesLimit == 0) {
-            circuitBreak(label, wantedBytes);
-        }
-
-        long actualIncrement = wantedBytes;
-        long newUsed;
-        long currentUsed;
-        do {
-            currentUsed = this.used.get();
-            newUsed = currentUsed + actualIncrement;
-            if (newUsed > memoryBytesLimit) {
-                if ((currentUsed + minAcceptableBytes) > memoryBytesLimit) {
-                    circuitBreak(label, newUsed);
-                }
-                actualIncrement = (long) memoryBytesLimit - currentUsed;
-                currentUsed = -1L; // force compareAndSet to fail to have another iteration
-            }
-        } while (!this.used.compareAndSet(currentUsed, newUsed));
-
-        // Additionally, we need to check that we haven't exceeded the parent's limit
-        try {
-            parent.checkParentLimit(actualIncrement, label);
-        } catch (CircuitBreakingException e) {
-            // If the parent breaker is tripped, this breaker has to be
-            // adjusted back down because the allocation is "blocked" but the
-            // breaker has already been incremented
-            this.addWithoutBreaking(-actualIncrement);
-            throw e;
-        }
-
-        return newUsed - currentUsed;
     }
 
     private long noLimit(long bytes, String label) {

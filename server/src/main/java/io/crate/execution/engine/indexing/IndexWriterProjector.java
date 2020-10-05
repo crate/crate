@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.indexing;
 
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
@@ -68,6 +69,7 @@ public class IndexWriterProjector implements Projector {
     public IndexWriterProjector(ClusterService clusterService,
                                 NodeJobsCounter nodeJobsCounter,
                                 CircuitBreaker queryCircuitBreaker,
+                                RamAccounting ramAccounting,
                                 ScheduledExecutorService scheduler,
                                 Executor executor,
                                 TransactionContext txnCtx,
@@ -120,6 +122,7 @@ public class IndexWriterProjector implements Projector {
             clusterService,
             nodeJobsCounter,
             queryCircuitBreaker,
+            ramAccounting,
             scheduler,
             executor,
             bulkActions,

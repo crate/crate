@@ -88,15 +88,6 @@ public interface CircuitBreaker {
     double addEstimateBytesAndMaybeBreak(long bytes, String label) throws CircuitBreakingException;
 
     /**
-     * Similar to {@link #addEstimateBytesAndMaybeBreak}, but is more lenient and
-     * doesn't break if `wantedBytes` is not available, but will instead account for
-     * a lower value as long as that value is above `minAcceptableBytes`.
-     *
-     * @return the number of bytes actually accounted for.
-     */
-    long addBytesRangeAndMaybeBreak(long minAcceptableBytes, long wantedBytes, String label);
-
-    /**
      * Adjust the circuit breaker without tripping
      */
     long addWithoutBreaking(long bytes);

@@ -38,11 +38,6 @@ public class NoopCircuitBreaker implements CircuitBreaker {
     }
 
     @Override
-    public long addBytesRangeAndMaybeBreak(long minAcceptableBytes, long wantedBytes, String label) {
-        return wantedBytes;
-    }
-
-    @Override
     public long addWithoutBreaking(long bytes) {
         return 0;
     }

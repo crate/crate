@@ -143,11 +143,6 @@ public class MemoryCircuitBreaker implements CircuitBreaker {
         return newUsed;
     }
 
-    @Override
-    public long addBytesRangeAndMaybeBreak(long minAcceptableBytes, long wantedBytes, String label) {
-        throw new UnsupportedOperationException("This class is only used in tests and no test uses this function");
-    }
-
     /**
      * Add an <b>exact</b> number of bytes, not checking for tripping the
      * circuit breaker. This bypasses the overheadConstant multiplication.
