@@ -57,6 +57,8 @@ import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
+import io.crate.breaker.BlockBasedRamAccounting;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.TypeGuessEstimateRowSize;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
@@ -80,7 +82,7 @@ public class ShardingUpsertExecutor
 
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     private static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
-    private static final double BREAKER_LIMIT_PERCENTAGE = 0.15d;
+    private static final double BREAKER_LIMIT_PERCENTAGE = 0.50d;
 
     private final GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper;
     private final NodeJobsCounter nodeJobsCounter;
@@ -95,12 +97,14 @@ public class ShardingUpsertExecutor
     private final UpsertResultCollector resultCollector;
     private final boolean isDebugEnabled;
     private final CircuitBreaker queryCircuitBreaker;
+    private final String localNode;
+    private final BlockBasedRamAccounting ramAccounting;
     private volatile boolean createPartitionsRequestOngoing = false;
-
 
     ShardingUpsertExecutor(ClusterService clusterService,
                            NodeJobsCounter nodeJobsCounter,
                            CircuitBreaker queryCircuitBreaker,
+                           RamAccounting ramAccounting,
                            ScheduledExecutorService scheduler,
                            Executor executor,
                            int bulkSize,
@@ -116,6 +120,7 @@ public class ShardingUpsertExecutor
                            int targetTableNumShards,
                            int targetTableNumReplicas,
                            UpsertResultContext upsertResultContext) {
+        this.localNode = clusterService.state().getNodes().getLocalNodeId();
         this.nodeJobsCounter = nodeJobsCounter;
         this.queryCircuitBreaker = queryCircuitBreaker;
         this.scheduler = scheduler;
@@ -126,6 +131,7 @@ public class ShardingUpsertExecutor
         this.requestExecutor = requestExecutor;
         this.createPartitionsAction = createPartitionsAction;
         ToLongFunction<Row> estimateRowSize = new TypeGuessEstimateRowSize();
+        this.ramAccounting = new BlockBasedRamAccounting(ramAccounting::addBytes, (int) ByteSizeUnit.MB.toBytes(2));
         this.grouper = new GroupRowsByShard<>(
             clusterService,
             rowShardResolver,
@@ -254,30 +260,31 @@ public class ShardingUpsertExecutor
         return false;
     }
 
-    static long reserveBytes(CircuitBreaker circuitBreaker) {
-        long minAcceptableBytes = ByteSizeUnit.MB.toBytes(5);
-        long wantedBytes = Math.max((long) (circuitBreaker.getFree() * BREAKER_LIMIT_PERCENTAGE), minAcceptableBytes);
-        return circuitBreaker.addBytesRangeAndMaybeBreak(
-            minAcceptableBytes,
-            wantedBytes,
-            "sharding-upsert-exececutor"
-        );
+    long computeBulkByteThreshold() {
+        long minAcceptableBytes = ByteSizeUnit.KB.toBytes(64);
+        long localJobs = Math.max(1, nodeJobsCounter.getInProgressJobsForNode(localNode));
+        double memoryRatio = 1.0 / localJobs;
+        long wantedBytes = Math.max(
+            (long) (queryCircuitBreaker.getFree() * BREAKER_LIMIT_PERCENTAGE * memoryRatio), minAcceptableBytes);
+        return wantedBytes;
     }
 
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
-        long reservedBytes;
+        nodeJobsCounter.increment(localNode);
+        long bulkBytesThreshold;
         try {
-            reservedBytes = reserveBytes(queryCircuitBreaker);
+            bulkBytesThreshold = computeBulkByteThreshold();
         } catch (Throwable t) {
+            nodeJobsCounter.decrement(localNode);
             return CompletableFuture.failedFuture(t);
         }
-        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(reservedBytes);
+        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(bulkBytesThreshold);
         var reqBatchIterator = BatchIterators.partition(
             batchIterator,
             bulkSize,
-            () -> new ShardedRequests<>(requestFactory),
+            () -> new ShardedRequests<>(requestFactory, ramAccounting),
             grouper,
             bulkShardCreationLimiter.or(isUsedBytesOverThreshold)
         );
@@ -306,7 +313,7 @@ public class ShardingUpsertExecutor
         return executor.consumeIteratorAndExecute()
             .thenApply(upsertResults -> resultCollector.finisher().apply(upsertResults))
             .whenComplete((res, err) -> {
-                queryCircuitBreaker.addWithoutBreaking(-1 * reservedBytes);
+                nodeJobsCounter.decrement(localNode);
             });
     }
 

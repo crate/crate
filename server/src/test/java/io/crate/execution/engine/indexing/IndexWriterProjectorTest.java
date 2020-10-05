@@ -23,6 +23,7 @@
 package io.crate.execution.engine.indexing;
 
 import io.crate.analyze.NumberOfReplicas;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
@@ -86,6 +87,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             clusterService(),
             new NodeJobsCounter(),
             new NoopCircuitBreaker("dummy"),
+            RamAccounting.NO_ACCOUNTING,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             CoordinatorTxnCtx.systemTransactionContext(),

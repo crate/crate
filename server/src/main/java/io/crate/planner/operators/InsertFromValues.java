@@ -29,6 +29,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.TypeGuessEstimateRowSize;
 import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
@@ -245,8 +246,7 @@ public class InsertFromValues implements LogicalPlan {
             plannerContext.jobId(),
             false);
 
-        var shardedRequests = new ShardedRequests<>(builder::newRequest);
-
+        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
         HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
         for (Row row : rows) {
             grouper.accept(shardedRequests, row);
@@ -359,7 +359,7 @@ public class InsertFromValues implements LogicalPlan {
             null,
             plannerContext.jobId(),
             true);
-        var shardedRequests = new ShardedRequests<>(builder::newRequest);
+        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
 
         HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
         IntArrayList bulkIndices = new IntArrayList();
@@ -474,7 +474,8 @@ public class InsertFromValues implements LogicalPlan {
             indexNameResolver,
             collectContext.expressions(),
             itemFactory,
-            true);
+            true
+        );
     }
 
     private static void checkPrimaryKeyValuesNotNull(ArrayList<Input<?>> primaryKeyInputs) {
