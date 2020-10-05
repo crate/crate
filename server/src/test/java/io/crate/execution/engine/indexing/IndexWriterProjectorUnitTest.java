@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.indexing;
 
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -100,6 +101,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             clusterService,
             new NodeJobsCounter(),
             new NoopCircuitBreaker("dummy"),
+            RamAccounting.NO_ACCOUNTING,
             scheduler,
             executor,
             CoordinatorTxnCtx.systemTransactionContext(),

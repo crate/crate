@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.indexing;
 
+import io.crate.breaker.RamAccounting;
 import io.crate.execution.dml.ShardRequest;
 
 import org.apache.lucene.util.Accountable;
@@ -44,6 +45,7 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     final Map<ShardLocation, TReq> itemsByShard = new HashMap<>();
 
     private final Function<ShardId, TReq> requestFactory;
+    private final RamAccounting ramAccounting;
 
     private int location = -1;
     private long usedMemoryEstimate = 0L;
@@ -51,20 +53,23 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     /**
      * @param requestFactory function to create a request
      */
-    public ShardedRequests(Function<ShardId, TReq> requestFactory) {
+    public ShardedRequests(Function<ShardId, TReq> requestFactory, RamAccounting ramAccounting) {
         this.requestFactory = requestFactory;
+        this.ramAccounting = ramAccounting;
     }
 
     /**
      * @param itemSizeInBytes an estimate of how many bytes the item occupies in memory
      */
     public void add(TItem item, long itemSizeInBytes, String indexName, String routing, RowSourceInfo rowSourceInfo) {
+        ramAccounting.addBytes(itemSizeInBytes);
         usedMemoryEstimate += itemSizeInBytes;
         List<ItemAndRoutingAndSourceInfo<TItem>> items = itemsByMissingIndex.computeIfAbsent(indexName, k -> new ArrayList<>());
         items.add(new ItemAndRoutingAndSourceInfo<>(item, routing, rowSourceInfo));
     }
 
     public void add(TItem item, long itemSizeInBytes, ShardLocation shardLocation, RowSourceInfo rowSourceInfo) {
+        ramAccounting.addBytes(itemSizeInBytes);
         usedMemoryEstimate += itemSizeInBytes;
         TReq req = itemsByShard.get(shardLocation);
         if (req == null) {
