@@ -55,7 +55,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     private static final String JS = JavaScriptLanguage.NAME;
 
-    private Map<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
+    private final Map<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
     private UserDefinedFunctionService udfService;
 
     @Override
@@ -349,5 +349,32 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             "function f(a) { return Array.prototype.join.call(a, '.'); }");
         assertEvaluate("f(['a', 'b'])", is("a.b"));
         assertEvaluate("f(['a', 'b'])", is("a.b"), Literal.of(List.of("a", "b"), DataTypes.STRING_ARRAY));
+    }
+
+    @Test
+    public void test_access_object_type_argument_properties_in_function_body() throws Exception {
+        registerUserDefinedFunction(
+            "f_dot",
+            DataTypes.INTEGER,
+            List.of(DataTypes.UNTYPED_OBJECT),
+            "function f_dot(a) { return a.y; }");
+        assertEvaluate("f_dot('{\"x\":1,\"y\":2}')", is(2));
+
+        registerUserDefinedFunction(
+            "f_brackets",
+            DataTypes.INTEGER,
+            List.of(DataTypes.UNTYPED_OBJECT),
+            "function f_brackets(a) { return a[\"x\"]; }");
+        assertEvaluate("f_brackets('{\"x\":1,\"y\":2}')", is(1));
+    }
+
+    @Test
+    public void test_access_geo_shape_type_argument_properties_in_function_body() throws Exception {
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.STRING,
+            List.of(DataTypes.GEO_SHAPE),
+            "function f(a) { return a.type; }");
+        assertEvaluate("f('POINT(1 2)')", is("Point"));
     }
 }
