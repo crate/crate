@@ -22,19 +22,6 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.dml.ShardRequest;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.RowShardResolver;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.IndexNotFoundException;
-
-import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +31,22 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.index.IndexNotFoundException;
+
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.execution.dml.ShardRequest;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.RowShardResolver;
 
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements BiConsumer<ShardedRequests<TReq, TItem>, Row> {
@@ -136,6 +139,8 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             } else {
                 shardedRequests.add(item, sizeEstimate, shardLocation, rowSourceInfo);
             }
+        } catch (CircuitBreakingException e) {
+            throw e;
         } catch (Throwable t) {
             itemFailureRecorder.accept(shardedRequests, t.getMessage());
         }
