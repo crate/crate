@@ -50,6 +50,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
     private final RelationName alias;
     private final Map<ColumnIdent, ColumnIdent> aliasToColumnMapping;
     private final ArrayList<Symbol> outputs;
+    private final ArrayList<ScopedSymbol> scopedSymbols;
 
     public AliasedAnalyzedRelation(AnalyzedRelation relation, RelationName alias) {
         this(relation, alias, List.of());
@@ -60,17 +61,18 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         this.alias = alias;
         aliasToColumnMapping = new HashMap<>(columnAliases.size());
         this.outputs = new ArrayList<>(relation.outputs().size());
+        this.scopedSymbols = new ArrayList<>(relation.outputs().size());
         for (int i = 0; i < relation.outputs().size(); i++) {
             Symbol childOutput = relation.outputs().get(i);
             ColumnIdent childColumn = Symbols.pathFromSymbol(childOutput);
+            ColumnIdent columnAlias = childColumn;
             if (i < columnAliases.size()) {
-                ColumnIdent columnAlias = new ColumnIdent(columnAliases.get(i));
-                aliasToColumnMapping.put(columnAlias, childColumn);
-                outputs.add(new ScopedSymbol(this.alias, columnAlias, childOutput.valueType()));
-            } else {
-                aliasToColumnMapping.put(childColumn, childColumn);
-                outputs.add(new ScopedSymbol(alias, childColumn, childOutput.valueType()));
+                columnAlias = new ColumnIdent(columnAliases.get(i));
             }
+            aliasToColumnMapping.put(columnAlias, childColumn);
+            var scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput.valueType());
+            outputs.add(scopedSymbol);
+            scopedSymbols.add(scopedSymbol);
         }
     }
 
@@ -96,11 +98,15 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             return null;
         }
         ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field.valueType());
-        // If the scopedSymbol exists in `outputs`, return that instance so that IdentityHashMaps work
-        int i = outputs.indexOf(scopedSymbol);
+
+        // If the scopedSymbol exists already, return that instance.
+        // Otherwise (e.g. lazy-loaded subscript expression) it must be stored to comply with
+        // IdentityHashMap constraints.
+        int i = scopedSymbols.indexOf(scopedSymbol);
         if (i >= 0) {
-            return outputs.get(i);
+            return scopedSymbols.get(i);
         }
+        scopedSymbols.add(scopedSymbol);
         return scopedSymbol;
     }
 
