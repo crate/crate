@@ -50,10 +50,10 @@ applied to a certain point.
 
 Below lists the changesets that we applied. This should be updated whenever a
 backport is made. If a patch is skipped because it is not applicable, it
-should be crossed out as well. 
+should be crossed out as well.
 
 - ``x`` to mark applied patches
-- ``s`` for skipped patches if they are not applicable (for example, if the 
+- ``s`` for skipped patches if they are not applicable (for example, if the
   functionality is not present in CrateDB)
 - ``d`` marks a delayed patch - a non-trivial change we should apply that
   does not affect too any components, so delaying it doesn't make applying
@@ -394,6 +394,8 @@ should be crossed out as well.
 - [ ] 458de912561 Make BytesReference an interface (#48171)
 - [ ] 6563c0fb7b2 Remove Redundant Version Param from Repository APIs (#48231)
 - [ ] 602081f19cf [DOCS] Fix typos in InternalEngine.java comments (#46861)
+- [ ] e14300e8e5d Remove followup reroute priority setting (#44611)
+- [ ] 51fb95ef83f Defer reroute when starting shards (#44433)
 - [x] 704317da71c Remove Support for pre-5.x Indices in Restore (#48181)
 - [x] 6531369f11d Don't persist type information to translog (#47229)
 - [s] d6d9fc5881c Don't apply the plugin's reader wrapper in can_match phase (#47816)
