@@ -125,7 +125,7 @@ Fixes
 
 - Fixed a regression introduced in 4.2 that could cause subscript expressions
   to fail with a ``Base argument to subscript must be an object, not null``
-  error.
+  or ``Can't handle Symbol`` error.
 
 - Fixed an issue causing a node crash due to OOM when running the ``analyze``
   on large tables.

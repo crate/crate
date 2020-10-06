@@ -119,4 +119,12 @@ public final class Filter extends ForwardingLogicalPlan {
             .text("]")
             .nest(source::print);
     }
+
+    @Override
+    public String toString() {
+        return "Filter{" +
+            "src=" + source +
+            ", query=" + query +
+            '}';
+    }
 }
