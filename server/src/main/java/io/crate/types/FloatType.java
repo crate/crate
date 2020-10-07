@@ -66,12 +66,11 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         } else if (value instanceof String) {
             return Float.parseFloat((String) value);
         } else if (value instanceof Number) {
-            double doubleValue = ((Number) value).doubleValue();
-            if (!Double.isInfinite(doubleValue)
-                && (doubleValue < -Float.MAX_VALUE || Float.MAX_VALUE < doubleValue)) {
-                throw new IllegalArgumentException("float value out of range: " + doubleValue);
+            float val = ((Number) value).floatValue();
+            if (Float.isInfinite(val)) {
+                throw new IllegalArgumentException("float value out of range: " + value);
             }
-            return ((Number) value).floatValue();
+            return val;
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
