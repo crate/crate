@@ -47,6 +47,12 @@ public class FloatTypeTest extends ESTestCase {
     }
 
     @Test
+    public void test_negative_max_float_value_can_be_casted_to_float() throws Exception {
+        assertThat(FloatType.INSTANCE.implicitCast(-3.4028235e38d), is(- Float.MAX_VALUE));
+        assertThat(FloatType.INSTANCE.implicitCast(-3.4028235e38f), is(- Float.MAX_VALUE));
+    }
+
+    @Test
     public void test_cast_double_to_real_out_of_positive_range_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("float value out of range: 1.7976931348623157E308");
