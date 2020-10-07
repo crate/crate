@@ -84,6 +84,8 @@ Performance improvements
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
 
+- Added scalar function :ref:`translate(string, from, to) <scalar-translate>`.
+
 - Added support for :ref:`SET AND RESET SESSION AUTHORIZATION
   <ref-set-session-authorization>` SQL statements.
 
