@@ -54,6 +54,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that prevented casts from ``DOUBLE PRECISION`` to ``REAL`` for
+  the minimal supported ``REAL`` number ``-3.4028235e38``.
+
 - Fixed an issue that prevented an access to the properties of object type
   arguments in JavaScript user defined functions.
 
