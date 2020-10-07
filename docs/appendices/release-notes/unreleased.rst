@@ -54,6 +54,10 @@ None
 Fixes
 =====
 
+- Fixed a regression introduced in 4.2 which prevented ``DELETE FROM ...``
+  statements with the subquery expression in the where clause from complete
+  deletion of the matching partitions in partitioned tables.
+
 - Fixed an issue that prevented casts from ``DOUBLE PRECISION`` to ``REAL`` for
   the minimal supported ``REAL`` number ``-3.4028235e38``.
 
