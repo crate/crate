@@ -268,7 +268,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         flushShard(shard, false);
     }
 
-    protected void flushShard(IndexShard shard, boolean force) {
+    public static void flushShard(IndexShard shard, boolean force) {
         shard.flush(new FlushRequest(shard.shardId().getIndexName()).force(force));
     }
 

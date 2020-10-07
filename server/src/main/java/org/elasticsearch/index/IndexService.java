@@ -104,7 +104,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private volatile AsyncRetentionLeaseSyncTask retentionLeaseSyncTask;
 
     // don't convert to Setting<> and register... we only set this in tests and register via a plugin
-    private final String INDEX_TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING = "index.translog.retention.check_interval";
+    public static final String INDEX_TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING = "index.translog.retention.check_interval";
 
     private final AsyncTrimTranslogTask trimTranslogTask;
     private final ThreadPool threadPool;
