@@ -41,6 +41,7 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
@@ -136,7 +137,8 @@ public final class DeletePlanner {
                 subQueryResults,
                 plannerContext.transactionContext()
             );
-            if (!where.partitions().isEmpty() && !where.hasQuery()) {
+            if (!where.partitions().isEmpty()
+                && (!where.hasQuery() || Literal.BOOLEAN_TRUE.equals(where.query()))) {
                 DeleteIndexRequest request = new DeleteIndexRequest(where.partitions().toArray(new String[0]));
                 request.indicesOptions(IndicesOptions.lenientExpandOpen());
                 executor.transportActionProvider().transportDeleteIndexAction()

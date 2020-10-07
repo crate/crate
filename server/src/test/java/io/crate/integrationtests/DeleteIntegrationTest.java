@@ -272,4 +272,25 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id, x) values (1, 1), (2, 2), (3, 3)");
         execute("delete from t1 as foo where foo.id = 1");
     }
+
+    @Test
+    public void test_delete_partitions_from_subquery_does_not_leave_empty_orphan_partitions() {
+        execute("CREATE TABLE t (x int) PARTITIONED by (x)");
+        execute("INSERT INTO t (x) VALUES (1), (2)");
+        refresh();
+        execute(
+            "SELECT count(1) " +
+            "FROM information_schema.table_partitions " +
+            "WHERE table_name = 't'"
+        );
+        assertThat(response.rows()[0][0], is(2L));
+
+        execute("DELETE FROM t where x IN (SELECT DISTINCT(x) FROM t WHERE x > 1)");
+        execute(
+            "SELECT count(1) " +
+            "FROM information_schema.table_partitions " +
+            "WHERE table_name = 't'"
+        );
+        assertThat(response.rows()[0][0], is(1L));
+    }
 }
