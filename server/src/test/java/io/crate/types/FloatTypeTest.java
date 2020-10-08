@@ -47,6 +47,18 @@ public class FloatTypeTest extends ESTestCase {
     }
 
     @Test
+    public void test_infinite_float_can_be_casted_to_infinite_float() throws Exception {
+        assertThat(FloatType.INSTANCE.value(Float.POSITIVE_INFINITY), is(Float.POSITIVE_INFINITY));
+        assertThat(FloatType.INSTANCE.value(Float.NEGATIVE_INFINITY), is(Float.NEGATIVE_INFINITY));
+    }
+
+    @Test
+    public void test_infinite_double_can_be_casted_to_infinite_float() throws Exception {
+        assertThat(FloatType.INSTANCE.value(Double.POSITIVE_INFINITY), is(Float.POSITIVE_INFINITY));
+        assertThat(FloatType.INSTANCE.value(Double.NEGATIVE_INFINITY), is(Float.NEGATIVE_INFINITY));
+    }
+
+    @Test
     public void test_negative_max_float_value_can_be_casted_to_float() throws Exception {
         assertThat(FloatType.INSTANCE.value(-3.4028235e38d), is(- Float.MAX_VALUE));
         assertThat(FloatType.INSTANCE.value(-3.4028235e38f), is(- Float.MAX_VALUE));
