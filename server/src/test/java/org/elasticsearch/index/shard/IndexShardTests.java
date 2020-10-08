@@ -76,14 +76,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import io.crate.common.CheckedFunction;
-import io.crate.common.io.IOUtils;
 import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
@@ -165,7 +160,6 @@ import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.test.CorruptionUtils;
 import org.elasticsearch.test.DummyShardLock;
-import org.elasticsearch.test.FieldMaskingReader;
 import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.test.store.MockFSDirectoryFactory;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -174,6 +168,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 
 /**
@@ -1799,7 +1794,8 @@ public class IndexShardTests extends IndexShardTestCase {
         Result result = indexOnReplicaWithGaps(
             indexShard,
             operations,
-            Math.toIntExact(SequenceNumbers.NO_OPS_PERFORMED));
+            Math.toIntExact(SequenceNumbers.NO_OPS_PERFORMED),
+            true);
         int maxSeqNo = result.maxSeqNo;
 
         // promote the replica
@@ -2375,7 +2371,7 @@ public class IndexShardTests extends IndexShardTestCase {
     public void testRestoreLocalHistoryFromTranslogOnPromotion() throws IOException, InterruptedException {
         IndexShard indexShard = newStartedShard(false);
         int operations = 1024 - scaledRandomIntBetween(0, 1024);
-        indexOnReplicaWithGaps(indexShard, operations, Math.toIntExact(SequenceNumbers.NO_OPS_PERFORMED));
+        indexOnReplicaWithGaps(indexShard, operations, Math.toIntExact(SequenceNumbers.NO_OPS_PERFORMED), true);
 
         long maxSeqNo = indexShard.seqNoStats().getMaxSeqNo();
         long globalCheckpointOnReplica = randomLongBetween(UNASSIGNED_SEQ_NO, indexShard.getLocalCheckpoint());
@@ -2428,7 +2424,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
         // most of the time this is large enough that most of the time there will be at least one gap
         final int operations = 1024 - scaledRandomIntBetween(0, 1024);
-        indexOnReplicaWithGaps(indexShard, operations, Math.toIntExact(SequenceNumbers.NO_OPS_PERFORMED));
+        indexOnReplicaWithGaps(indexShard, operations, Math.toIntExact(SequenceNumbers.NO_OPS_PERFORMED), true);
 
         final long globalCheckpointOnReplica = randomLongBetween(UNASSIGNED_SEQ_NO, indexShard.getLocalCheckpoint());
         indexShard.updateGlobalCheckpointOnReplica(globalCheckpointOnReplica, "test");
@@ -2471,7 +2467,7 @@ public class IndexShardTests extends IndexShardTestCase {
         }
         assertThat(indexShard.getMaxSeqNoOfUpdatesOrDeletes(), equalTo(newMaxSeqNoOfUpdates));
         // ensure that after the local checkpoint throw back and indexing again, the local checkpoint advances
-        final Result result = indexOnReplicaWithGaps(indexShard, operations, Math.toIntExact(indexShard.getLocalCheckpoint()));
+        final Result result = indexOnReplicaWithGaps(indexShard, operations, Math.toIntExact(indexShard.getLocalCheckpoint()), true);
         assertThat(indexShard.getLocalCheckpoint(), equalTo((long) result.localCheckpoint));
         closeShard(indexShard, false);
     }
@@ -3777,7 +3773,7 @@ public class IndexShardTests extends IndexShardTestCase {
     @Test
     public void testResetEngine() throws Exception {
         IndexShard shard = newStartedShard(false);
-        indexOnReplicaWithGaps(shard, between(0, 1000), Math.toIntExact(shard.getLocalCheckpoint()));
+        indexOnReplicaWithGaps(shard, between(0, 1000), Math.toIntExact(shard.getLocalCheckpoint()), false);
         long maxSeqNoBeforeRollback = shard.seqNoStats().getMaxSeqNo();
         final long globalCheckpoint = randomLongBetween(shard.getLastKnownGlobalCheckpoint(), shard.getLocalCheckpoint());
         shard.updateGlobalCheckpointOnReplica(globalCheckpoint, "test");
@@ -3956,7 +3952,7 @@ public class IndexShardTests extends IndexShardTestCase {
             }
         });
 
-        indexOnReplicaWithGaps(shard, between(0, 1000), Math.toIntExact(shard.getLocalCheckpoint()));
+        indexOnReplicaWithGaps(shard, between(0, 1000), Math.toIntExact(shard.getLocalCheckpoint()), true);
         final long globalCheckpoint = randomLongBetween(shard.getLastKnownGlobalCheckpoint(), shard.getLocalCheckpoint());
         shard.updateGlobalCheckpointOnReplica(globalCheckpoint, "test");
 
@@ -4061,7 +4057,7 @@ public class IndexShardTests extends IndexShardTestCase {
     @Test
     public void testConcurrentAcquireAllReplicaOperationsPermitsWithPrimaryTermUpdate() throws Exception {
         final IndexShard replica = newStartedShard(false);
-        indexOnReplicaWithGaps(replica, between(0, 1000), Math.toIntExact(replica.getLocalCheckpoint()));
+        indexOnReplicaWithGaps(replica, between(0, 1000), Math.toIntExact(replica.getLocalCheckpoint()), true);
 
         final int nbTermUpdates = randomIntBetween(1, 5);
 
@@ -4142,7 +4138,8 @@ public class IndexShardTests extends IndexShardTestCase {
     private Result indexOnReplicaWithGaps(
             final IndexShard indexShard,
             final int operations,
-            final int offset) throws IOException {
+            final int offset,
+            boolean withFlush) throws IOException {
         int localCheckpoint = offset;
         int max = offset;
         boolean gap = false;
@@ -4169,7 +4166,7 @@ public class IndexShardTests extends IndexShardTestCase {
             } else {
                 gap = true;
             }
-            if (rarely()) {
+            if (withFlush && rarely()) {
                 indexShard.flush(new FlushRequest());
             }
         }
