@@ -53,28 +53,3 @@ None
 
 Fixes
 =====
-
-- Fixed a regression introduced in 4.2 which prevented ``DELETE FROM ...``
-  statements with the subquery expression in the where clause from complete
-  deletion of the matching partitions in partitioned tables.
-
-- Fixed an issue that prevented casts from ``DOUBLE PRECISION`` to ``REAL`` for
-  the minimal supported ``REAL`` number ``-3.4028235e38``.
-
-- Fixed an issue that prevented an access to the properties of object type
-  arguments in JavaScript user defined functions.
-
-- Fixed a regression introduced in 4.2 that could cause subscript expressions
-  to fail with a ``Base argument to subscript must be an object, not null``
-  or ``Can't handle Symbol`` error.
-
-- Fixed an issue causing a node crash due to OOM when running the ``analyze``
-  on large tables.
-
-- Fixed an issue that caused queries involving a JOIN operation on system
-  tables like ``sys.cluster`` to fail.
-
-- Changed the memory reservation and circuit breaker behavior for ``INSERT FROM
-  QUERY`` operations to allow for more concurrent operations. After the change
-  introduced in 4.2.5, individual operations could reserve too much memory,
-  causing other operations to fail with a circuit breaker exception.
