@@ -1,0 +1,61 @@
+.. _version_4.2.6:
+
+=============
+Version 4.2.6
+=============
+
+Released on 2020-10-08.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.2.6.
+
+    We recommend that you upgrade to the latest 4.1 release before moving to
+    4.2.6.
+
+    A rolling upgrade from 4.1.7+ to 4.2.6 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.2.0` release notes for a full list of changes in the
+4.2 series.
+
+
+Fixes
+=====
+
+- Fixed a regression introduced in 4.2 which prevented ``DELETE FROM ...``
+  statements with the subquery expression in the where clause from complete
+  deletion of the matching partitions in partitioned tables.
+
+- Fixed an issue that prevented casts from ``DOUBLE PRECISION`` to ``REAL`` for
+  the minimal supported ``REAL`` number ``-3.4028235e38``.
+
+- Fixed an issue that prevented an access to the properties of object type
+  arguments in JavaScript user defined functions.
+
+- Fixed a regression introduced in 4.2 that could cause subscript expressions
+  to fail with a ``Base argument to subscript must be an object, not null``
+  or ``Can't handle Symbol`` error.
+
+- Fixed an issue causing a node crash due to OOM when running the ``analyze``
+  on large tables.
+
+- Fixed an issue that caused queries involving a JOIN operation on system
+  tables like ``sys.cluster`` to fail.
+
+- Changed the memory reservation and circuit breaker behavior for ``INSERT FROM
+  QUERY`` operations to allow for more concurrent operations. After the change
+  introduced in 4.2.5, individual operations could reserve too much memory,
+  causing other operations to fail with a circuit breaker exception.
