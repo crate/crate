@@ -417,6 +417,30 @@ Allows to have a read only table that additionally can be deleted.
   Disables the table settings modifications if set to ``true``, if set
   to ``false`` — table settings modifications are enabled.
 
+.. _table_parameter.soft_deletes.enabled:
+
+``soft_deletes.enabled``
+------------------------
+
+Indicates whether soft deletes are enabled or disabled. 
+
+Soft deletes allow CrateDB to preserve recent deletions within the Lucene
+index. This information is used for shard recovery.
+
+Before the introduction of soft deletes, CrateDB had to retain the information
+in the :ref:`Translog <durability>`. Using soft deletes uses less storage than
+the Translog equivalent and is faster.
+
+Soft deletes can only be configured when a table is created. This setting
+cannot be changed using ``ALTER TABLE``.
+
+Soft deletes will become mandatory in CrateDB 5.0.
+
+
+:value:
+  Defaults to ``true``. Set to ``false`` to disable soft deletes.
+
+
 .. _table_parameter.codec:
 
 ``codec``
@@ -635,7 +659,7 @@ The column policy is defined like this::
   columns. One can retrieve them, sort by them and use them in where
   clauses.
 
-For futher details and examples see :ref:`column_policy` or :ref:`config`.
+For further details and examples see :ref:`column_policy` or :ref:`config`.
 
 ``max_ngram_diff``
 ------------------

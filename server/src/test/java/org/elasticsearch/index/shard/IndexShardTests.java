@@ -3523,12 +3523,13 @@ public class IndexShardTests extends IndexShardTestCase {
 
     @Test
     public void testSegmentMemoryTrackedWithRandomSearchers() throws Exception {
-        Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+        Settings settings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .build();
         IndexMetadata metaData = IndexMetadata.builder("test")
-            .putMapping("_doc", "{ \"properties\": { \"foo\":  { \"type\": \"text\"}}}")
+            .putMapping("default", "{ \"properties\": { \"foo\":  { \"type\": \"text\"}}}")
             .settings(settings)
             .primaryTerm(0, 1).build();
         IndexShard primary = newShard(new ShardId(metaData.getIndex(), 0), true, "n1", metaData, null);
@@ -3603,9 +3604,9 @@ public class IndexShardTests extends IndexShardTestCase {
         IOUtils.close(searchers);
         primary.refresh("test");
 
-        var ss = primary.segments(randomBoolean());
+        var segments = primary.segments(randomBoolean());
         CircuitBreaker breaker = primary.circuitBreakerService.getBreaker(CircuitBreaker.ACCOUNTING);
-        long segmentMem = ss.stream().mapToLong(s -> s.getSize().getBytes()).sum();
+        long segmentMem = segments.stream().mapToLong(s -> s.getMemoryInBytes()).sum();
         long breakerMem = breaker.getUsed();
         logger.info("--> comparing segmentMem: {} - breaker: {} => {}", segmentMem, breakerMem, segmentMem == breakerMem);
         assertThat(segmentMem, equalTo(breakerMem));

@@ -203,6 +203,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             routingTable(Collections.emptySet(), allocationId)
         );
         replicationTracker.activatePrimaryMode(SequenceNumbers.NO_OPS_PERFORMED);
+        retainingSequenceNumbers.put(ReplicationTracker.getPeerRecoveryRetentionLeaseId(nodeIdFromAllocationId(allocationId)), 0L);
 
         final int length = randomIntBetween(0, 8);
         for (int i = 0; i < length; i++) {

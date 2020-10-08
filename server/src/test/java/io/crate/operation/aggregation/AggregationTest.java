@@ -73,6 +73,7 @@ import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
@@ -428,7 +429,7 @@ public abstract class AggregationTest extends ESTestCase {
      */
     private IndexShard newPrimaryShard(Settings settings, XContentBuilder mapping) throws IOException {
         ShardRouting routing = TestShardRouting.newShardRouting(
-            new ShardId("index", "_na_", 0),
+            new ShardId("index", UUIDs.base64UUID(), 0),
             randomAlphaOfLength(10),
             true,
             ShardRoutingState.INITIALIZING,
@@ -442,6 +443,7 @@ public abstract class AggregationTest extends ESTestCase {
             .build();
         var indexMetadata = IndexMetadata.builder(routing.getIndexName())
             .settings(indexSettings)
+            .primaryTerm(0, 1)
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, Strings.toString(mapping))
             .build();
         var shardId = routing.shardId();

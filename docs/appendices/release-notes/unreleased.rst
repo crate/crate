@@ -69,6 +69,10 @@ Deprecations
 Changes
 =======
 
+- Changed the default for :ref:`soft deletes
+  <table_parameter.soft_deletes.enabled>`. Soft deletes are now enabled by
+  default for new tables.
+
 - Added support for :ref:`SET AND RESET SESSION AUTHORIZATION
   <ref-set-session-authorization>` SQL statements.
 

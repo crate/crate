@@ -73,6 +73,10 @@ public class Segment {
         return this.delDocCount;
     }
 
+    public long getMemoryInBytes() {
+        return this.memoryInBytes;
+    }
+
     public ByteSizeValue getSize() {
         return new ByteSizeValue(sizeInBytes);
     }

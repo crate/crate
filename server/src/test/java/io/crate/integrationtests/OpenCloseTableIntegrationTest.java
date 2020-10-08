@@ -102,7 +102,7 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
                 "where table_name = 'test' and primary = true " +
                 "group by table_name, primary");
             assertThat(response.rowCount(), greaterThan(0L));
-            assertThat(response.rows()[0][0], is(numberOfDocs));
+            assertThat(response.rows()[0][0], is(uncommittedTranslogOps));
             assertThat(response.rows()[0][1], is(uncommittedTranslogOps));
         });
 
@@ -116,7 +116,7 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
             "where table_name = 'test' and primary = true " +
             "group by table_name, primary");
         assertThat(response.rowCount(), greaterThan(0L));
-        assertThat(response.rows()[0][0], is(numberOfDocs));
+        assertThat(response.rows()[0][0], is(0L));
         assertThat(response.rows()[0][1], is(0L));
     }
 
