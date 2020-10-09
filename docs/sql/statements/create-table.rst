@@ -441,6 +441,45 @@ Soft deletes will become mandatory in CrateDB 5.0.
   Defaults to ``true``. Set to ``false`` to disable soft deletes.
 
 
+.. _table_parameter.soft_deletes.retention_lease.period:
+
+``soft_deletes.retention_lease.period``
+---------------------------------------
+
+The maximum period for which a retention lease is retained before it is
+considered expired.
+
+:value:
+  ``12h`` (default). Any positive time value is allowed.
+
+CrateDB sometimes needs to replay operations that were executed on one shard on
+other shards. For example if a shard copy is temporarily unavailable but write
+operations to the primary copy continues, the missed operations have to be
+replayed once the shard copy becomes available again.
+
+If soft deletes are enabled, CrateDB uses a Lucene feature to preserve recent
+deletions in the Lucene index so that they can be replayed. Because of that,
+deleted documents still occupy disk space, which is why CrateDB only preserves
+certain recently-deleted documents. CrateDB eventually fully discards deleted
+documents to prevent the index growing larger despite having deleted documents.
+
+CrateDB keeps track of operations it expects to need to replay using a
+mechanism called *shard history retention leases*. Retention leases are a
+mechanism that allows CrateDB to determine which soft-deleted operations can be
+safely discarded.
+
+If a shard copy fails, it stops updating its shard history retention lease,
+indicating that the soft-deleted operations should be preserved for later
+recovery.
+
+However, to prevent CrateDB from holding onto shard retention leases forever,
+they expire after ``soft_deletes.retention_lease.period``, which defaults to
+``12h``. Once a retention lease has expired CrateDB can again discard
+soft-deleted operations. In case a shard copy recovers after a retention lease
+has expired, CrateDB will fall back to copying the whole index since it can no
+longer replay the missing history.
+
+
 .. _table_parameter.codec:
 
 ``codec``
