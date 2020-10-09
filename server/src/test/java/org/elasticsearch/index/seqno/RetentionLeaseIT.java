@@ -53,7 +53,6 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
@@ -215,11 +214,12 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
     }
 
     @Test
-    @Ignore("Flaky, later ES patches should fix it")
     public void testRetentionLeasesSyncOnRecovery() throws Exception {
+        final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
+        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         /*
          * We effectively disable the background sync to ensure that the retention leases are not synced in the background so that the only
-         * source of retention leases on the replicas would be from the commit point and recovery.
+         * source of retention leases on the replicas would be from recovery.
          */
         execute(
             "create table doc.tbl (x int) clustered into 1 shards " +
@@ -231,11 +231,10 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
                 TimeValue.timeValueHours(24).getStringRep()
             }
         );
-        ensureYellow("tbl");
-        // exclude the replicas from being allocated
         allowNodes("tbl", 1);
-        final int numberOfReplicas = 1;
-        execute("alter table doc.tbl set (number_of_replicas = 1)");
+        ensureYellow("tbl");
+        execute("alter table doc.tbl set (number_of_replicas = ?)", new Object[] { numberOfReplicas });
+
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = internalCluster()
@@ -251,11 +250,6 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
             final ActionListener<ReplicationResponse> listener = ActionListener.wrap(r -> latch.countDown(), e -> fail(e.toString()));
             currentRetentionLeases.put(id, primary.addRetentionLease(id, retainingSequenceNumber, source, listener));
             latch.await();
-            /*
-             * Now renew the leases; since we do not flush immediately on renewal, this means that the latest retention leases will not be
-             * in the latest commit point and therefore not transferred during the file-copy phase of recovery.
-             */
-            currentRetentionLeases.put(id, primary.renewRetentionLease(id, retainingSequenceNumber, source));
         }
 
         // Cause some recoveries to fail to ensure that retention leases are handled properly when retrying a recovery
