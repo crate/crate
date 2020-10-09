@@ -1003,26 +1003,29 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void test_update_by_query_returning_multiple_results() throws Exception {
         execute("create table test (id int primary key, x int, message string) clustered into 2 shards");
-        execute("insert into test values(1, 1, 'msg');");
-        execute("insert into test values(2, 1, 'msg');");
+        execute("insert into test values(1, 1, 'msg') returning _seq_no;");
+        long fstSeqNo = (long) response.rows()[0][0];
+        execute("insert into test values(2, 1, 'msg') returning _seq_no;");
+        long sndSeqNo = (long) response.rows()[0][0];
         assertEquals(1, response.rowCount());
         refresh();
 
         execute("update test set message='updated' where message='msg' and x > 0 " +
-                "returning _docid, _seq_no as seq, message as message_renamed");
+                "returning id, _seq_no as seq, message as message_renamed");
 
         assertThat((response.rowCount()), is(2L));
-        assertThat((response.cols()[0]), is("_docid"));
+        assertThat((response.cols()[0]), is("id"));
         assertThat((response.cols()[1]), is("seq"));
         assertThat((response.cols()[2]), is("message_renamed"));
 
-        assertThat(response.rows()[0][0], is(0));
-        assertThat(response.rows()[0][1], is(2L));
-        assertThat(response.rows()[0][2], is("updated"));
+        int fstRowIndex = response.rows()[0][0].equals(1) ? 0 : 1;
+        assertThat((long) response.rows()[fstRowIndex][1], Matchers.greaterThan(fstSeqNo));
+        assertThat(response.rows()[fstRowIndex][2], is("updated"));
 
-        assertThat(response.rows()[1][0], is(1));
-        assertThat(response.rows()[1][1], is(3L));
-        assertThat(response.rows()[1][2], is("updated"));
+        int sndRowIndex = fstRowIndex == 0 ? 1 : 0;
+
+        assertThat((long) response.rows()[sndRowIndex][1], Matchers.greaterThan(sndSeqNo));
+        assertThat(response.rows()[sndRowIndex][2], is("updated"));
     }
 
     @Test
