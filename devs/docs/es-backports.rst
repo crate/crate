@@ -473,6 +473,7 @@ should be crossed out as well.
 - [x] 302d29c8705 Trim local translog in peer recovery (#44756)
 - [x] 6215f98fa68 Remove fileBasedRecovery flag (#45131)
 - [x] 01287eacb2f Use index for peer recovery instead of translog (#45136)
+- [x] 3c352a85963 Make setting index.translog.sync_interval be dynamic (#37382))
 - [x] c4b831645cb MINOR: Remove some deadcode in NodeEnv and Related (#34133)
 
 Below lists deferred patches. In-between patches that we applied or skipped

@@ -88,8 +88,8 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSetNonDynamicTableSetting() {
-        assertThrows(() -> execute("alter table settings_table set (\"translog.sync_interval\"='10s')"),
-                     isSQLError(containsString("Can't update non dynamic settings [[index.translog.sync_interval]] for open indices"),
+        assertThrows(() -> execute("alter table settings_table set (\"soft_deletes.enabled\"='true')"),
+                     isSQLError(containsString("Can't update non dynamic settings [[index.soft_deletes.enabled]] for open indices"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));

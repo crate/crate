@@ -66,7 +66,7 @@ public final class IndexSettings {
         Setting.boolSetting("index.query.parse.allow_unmapped_fields", true, Property.IndexScope);
     public static final Setting<TimeValue> INDEX_TRANSLOG_SYNC_INTERVAL_SETTING =
         Setting.timeSetting("index.translog.sync_interval", TimeValue.timeValueSeconds(5), TimeValue.timeValueMillis(100),
-            Property.IndexScope);
+            Property.Dynamic, Property.IndexScope);
     public static final Setting<TimeValue> INDEX_SEARCH_IDLE_AFTER =
         Setting.timeSetting("index.search.idle.after", TimeValue.timeValueSeconds(30),
             TimeValue.timeValueMinutes(0), Property.IndexScope, Property.Dynamic);
@@ -256,7 +256,7 @@ public final class IndexSettings {
     private volatile List<String> defaultFields;
     private final boolean defaultAllowUnmappedFields;
     private volatile Translog.Durability durability;
-    private final TimeValue syncInterval;
+    private volatile TimeValue syncInterval;
     private volatile TimeValue refreshInterval;
     private volatile ByteSizeValue flushThresholdSize;
     private volatile TimeValue translogRetentionAge;
@@ -388,6 +388,7 @@ public final class IndexSettings {
             mergeSchedulerConfig::setMaxThreadAndMergeCount);
         scopedSettings.addSettingsUpdateConsumer(MergeSchedulerConfig.AUTO_THROTTLE_SETTING, mergeSchedulerConfig::setAutoThrottle);
         scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_DURABILITY_SETTING, this::setTranslogDurability);
+        scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_SYNC_INTERVAL_SETTING, this::setTranslogSyncInterval);
         scopedSettings.addSettingsUpdateConsumer(MAX_NGRAM_DIFF_SETTING, this::setMaxNgramDiff);
         scopedSettings.addSettingsUpdateConsumer(MAX_SHINGLE_DIFF_SETTING, this::setMaxShingleDiff);
         scopedSettings.addSettingsUpdateConsumer(INDEX_WARMER_ENABLED_SETTING, this::setEnableWarmer);
@@ -596,6 +597,10 @@ public final class IndexSettings {
      */
     public TimeValue getTranslogSyncInterval() {
         return syncInterval;
+    }
+
+    public void setTranslogSyncInterval(TimeValue translogSyncInterval) {
+        this.syncInterval = translogSyncInterval;
     }
 
     /**
