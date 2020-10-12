@@ -618,7 +618,9 @@ public class IndexSettingsTests extends ESTestCase {
         Settings settings = Settings.builder()
             .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion)
             .build();
-        assertThat(IndexSettings.INDEX_SOFT_DELETES_SETTING.get(settings), is(false));
+
+        boolean isEnabled = createdVersion.onOrAfter(Version.V_4_3_0);
+        assertThat(IndexSettings.INDEX_SOFT_DELETES_SETTING.get(settings), is(isEnabled));
     }
 
     @Test
