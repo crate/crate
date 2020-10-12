@@ -22,11 +22,11 @@
 
 package io.crate.metadata.table;
 
-import com.google.common.collect.Sets;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.set.Sets;
 
 import java.util.EnumSet;
 import java.util.Locale;

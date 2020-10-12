@@ -21,14 +21,12 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.collect.Iterators;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Locale;
@@ -65,100 +63,77 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
     }
 
     private Iterator<RoutineInfo> builtInAnalyzers() {
-        return Iterators.transform(
-            ftResolver.getBuiltInAnalyzers().iterator(),
-            new Function<String, RoutineInfo>() {
-                @Nullable
-                @Override
-                public RoutineInfo apply(@Nullable String input) {
-                    return new RoutineInfo(input,
-                        RoutineType.ANALYZER.getName());
-                }
-            });
+        return ftResolver.getBuiltInAnalyzers().stream()
+            .map(x -> new RoutineInfo(x, RoutineType.ANALYZER.getName()))
+            .iterator();
     }
 
     private Iterator<RoutineInfo> builtInCharFilters() {
-        return Iterators.transform(
-            ftResolver.getBuiltInCharFilters().iterator(),
-            new Function<String, RoutineInfo>() {
-                @Nullable
-                @Override
-                public RoutineInfo apply(@Nullable String input) {
-                    return new RoutineInfo(input,
-                        RoutineType.CHAR_FILTER.getName());
-                }
-            });
+        return ftResolver.getBuiltInCharFilters().stream()
+            .map(x -> new RoutineInfo(x, RoutineType.CHAR_FILTER.getName()))
+            .iterator();
     }
 
     private Iterator<RoutineInfo> builtInTokenFilters() {
-        return Iterators.transform(
-            ftResolver.getBuiltInTokenFilters().iterator(),
-            new Function<String, RoutineInfo>() {
-                @Nullable
-                @Override
-                public RoutineInfo apply(@Nullable String input) {
-                    return new RoutineInfo(input,
-                        RoutineType.TOKEN_FILTER.getName());
-                }
-            });
+        return ftResolver.getBuiltInTokenFilters().stream()
+            .map(x -> new RoutineInfo(x, RoutineType.TOKEN_FILTER.getName()))
+            .iterator();
     }
 
     private Iterator<RoutineInfo> builtInTokenizers() {
-        return Iterators.transform(
-            ftResolver.getBuiltInTokenizers().iterator(),
-            new Function<String, RoutineInfo>() {
-                @Nullable
-                @Override
-                public RoutineInfo apply(@Nullable String input) {
-                    return new RoutineInfo(input,
-                        RoutineType.TOKENIZER.getName());
-                }
-            });
+        return ftResolver.getBuiltInTokenizers().stream()
+            .map(x -> new RoutineInfo(x, RoutineType.TOKENIZER.getName()))
+            .iterator();
     }
 
     private Iterator<RoutineInfo> userDefinedFunctions() {
         if (functionsMetadata == null) {
             return emptyIterator();
         }
-        return Iterators.transform(functionsMetadata.functionsMetadata().iterator(),
-            input -> new RoutineInfo(
-                input.name(),
-                RoutineType.FUNCTION.getName(),
-                input.schema(),
-                input.specificName(),
-                input.definition(),
-                input.language(),
-                input.returnType().getName(),
-                true)
-        );
+        return functionsMetadata.functionsMetadata().stream()
+            .map(x -> new RoutineInfo(
+                        x.name(),
+                        RoutineType.FUNCTION.getName(),
+                        x.schema(),
+                        x.specificName(),
+                        x.definition(),
+                        x.language(),
+                        x.returnType().getName(),
+                        true)
+            )
+            .iterator();
     }
 
     private Iterator<RoutineInfo> customIterators() {
         try {
-            Iterator<RoutineInfo> cAnalyzersIterator = Iterators.transform(
-                ftResolver.getCustomAnalyzers().entrySet().iterator(),
-                input -> new RoutineInfo(
-                    input.getKey(),
+            Iterator<RoutineInfo> cAnalyzersIterator = ftResolver.getCustomAnalyzers().entrySet().stream()
+                .map(x -> new RoutineInfo(
+                    x.getKey(),
                     RoutineType.ANALYZER.getName(),
-                    routineSettingsToDefinition(input.getKey(), input.getValue(), RoutineType.ANALYZER)));
-            Iterator<RoutineInfo> cCharFiltersIterator = Iterators.transform(
-                ftResolver.getCustomCharFilters().entrySet().iterator(),
-                input -> new RoutineInfo(
-                    input.getKey(),
+                    routineSettingsToDefinition(x.getKey(), x.getValue(), RoutineType.ANALYZER)
+                ))
+                .iterator();
+            Iterator<RoutineInfo> cCharFiltersIterator = ftResolver.getCustomCharFilters().entrySet().stream()
+                .map(x -> new RoutineInfo(
+                    x.getKey(),
                     RoutineType.CHAR_FILTER.getName(),
-                    routineSettingsToDefinition(input.getKey(), input.getValue(), RoutineType.CHAR_FILTER)));
-            Iterator<RoutineInfo> cTokenFiltersIterator = Iterators.transform(
-                ftResolver.getCustomTokenFilters().entrySet().iterator(),
-                input -> new RoutineInfo(
-                    input.getKey(),
+                    routineSettingsToDefinition(x.getKey(), x.getValue(), RoutineType.CHAR_FILTER)
+                ))
+                .iterator();
+            Iterator<RoutineInfo> cTokenFiltersIterator = ftResolver.getCustomTokenFilters().entrySet().stream()
+                .map(x -> new RoutineInfo(
+                    x.getKey(),
                     RoutineType.TOKEN_FILTER.getName(),
-                    routineSettingsToDefinition(input.getKey(), input.getValue(), RoutineType.TOKEN_FILTER)));
-            Iterator<RoutineInfo> cTokenizersIterator = Iterators.transform(
-                ftResolver.getCustomTokenizers().entrySet().iterator(),
-                input -> new RoutineInfo(
-                    input.getKey(),
+                    routineSettingsToDefinition(x.getKey(), x.getValue(), RoutineType.TOKEN_FILTER)
+                ))
+                .iterator();
+            Iterator<RoutineInfo> cTokenizersIterator = ftResolver.getCustomTokenizers().entrySet().stream()
+                .map(x -> new RoutineInfo(
+                    x.getKey(),
                     RoutineType.TOKENIZER.getName(),
-                    routineSettingsToDefinition(input.getKey(), input.getValue(), RoutineType.TOKENIZER)));
+                    routineSettingsToDefinition(x.getKey(), x.getValue(), RoutineType.TOKENIZER)
+                ))
+                .iterator();
             return Iterators.concat(cAnalyzersIterator, cCharFiltersIterator, cTokenFiltersIterator, cTokenizersIterator);
         } catch (IOException e) {
             LOGGER.error("Could not retrieve custom routines", e);
