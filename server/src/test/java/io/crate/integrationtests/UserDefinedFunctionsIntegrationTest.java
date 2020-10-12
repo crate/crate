@@ -264,4 +264,15 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         assertThat(response.rowCount(), is(1L));
         assertFunctionIsDeletedOnAll(sqlExecutor.getCurrentSchema(), name, arguments);
     }
+
+    @Test
+    public void test_udf_used_inside_generated_column_definition_cannot_be_dropped() {
+        execute("create function doc.foo(long) returns string language dummy_lang as" +
+            " 'function foo(a) { return a; }'");
+        execute("create table doc.t1 (id long, l as doc.foo(id))");
+
+        expectedException.expectMessage(
+            "Cannot drop function 'doc.foo(bigint)', it is still in use by 'doc.t1.l AS doc.foo(id)'");
+        execute("drop function doc.foo(long)");
+    }
 }
