@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 @SQLTransportIntegrationTest.Slow
 public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
 
@@ -63,8 +63,17 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         logger.info("wait for all nodes to join the cluster");
         ensureGreen();
 
-        execute("create table registers (id int primary key, value string) CLUSTERED INTO 1 shards " +
-                "with (number_of_replicas = 1, \"unassigned.node_left.delayed_timeout\" = '5s')");
+        execute("""
+            create table registers (
+                id int primary key,
+                value text
+            ) CLUSTERED INTO 1 shards
+            with (
+                number_of_replicas = 1,
+                "write.wait_for_active_shards" = 'ALL',
+                "unassigned.node_left.delayed_timeout" = '1s'
+            )
+        """);
         execute("insert into registers values (1, 'initial value')");
         refresh();
 
