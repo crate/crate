@@ -113,6 +113,8 @@ Administration
 - Changed the privileges for ``KILL``, all users are now allowed to kill their
   own statements.
 
+- Removed the Twitter tutorial from the Admin Console.
+
 
 Error handling improvements
 ---------------------------
