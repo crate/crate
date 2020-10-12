@@ -69,12 +69,53 @@ Deprecations
 Changes
 =======
 
+Performance improvements
+------------------------
+
+- Improved the performance of aggregations in various use cases. In some
+  scenarios we saw performance improvements by up to 70%.
+
 - Changed the default for :ref:`soft deletes
   <table_parameter.soft_deletes.enabled>`. Soft deletes are now enabled by
-  default for new tables.
+  default for new tables. This should improve the speed of recovery operations
+  when replica shard copies were unavailable for a short period.
+
+
+SQL Standard and PostgreSQL compatibility improvements
+------------------------------------------------------
 
 - Added support for :ref:`SET AND RESET SESSION AUTHORIZATION
   <ref-set-session-authorization>` SQL statements.
+
+- Added scalar function :ref:`pg_get_function_result <pg_get_function_result>`.
+
+- Added scalar function :ref:`pg_function_is_visible <pg_function_is_visible>`.
+
+- Added table function :ref:`generate_subscripts <table-functions-generate-subscripts>`
+
+- Added the `pg_catalog.pg_roles table <postgres_pg_catalog>`
+
+- Added full support for quoted subscript expressions like ``"myObj['x']"``.
+  This allows to use tools like PowerBI with tables that contain object
+  columns.
+
+
+Administration
+--------------
+
+- Added the ``read_only_allow_delete`` setting to the ``settings['blocks']``
+  column of the :ref:`information_schema.tables <information_schema_tables>`
+  and :ref:`information_schema.table_partitions <is_table_partitions>` tables.
+
+- Changed :ref:`OPTIMIZE <sql_ref_optimize>` to no longer implicitly refresh a
+  table.
+
+- Changed the privileges for ``KILL``, all users are now allowed to kill their
+  own statements.
+
+
+Error handling improvements
+---------------------------
 
 - Added detailed information on the error when a column with an undefined type
   is used to ``GROUP BY``.
@@ -82,12 +123,9 @@ Changes
 - Added detailed information to possible errors on ``repository`` creation to
   give better insights on the root cause of the error.
 
-- Added scalar function :ref:`pg_get_function_result <pg_get_function_result>`.
+- Changed the error code for the PostgreSQL wire protocol from ``XX000``
+  ``internal_error`` when:
 
-- Added full support for quoted subscript expressions like ``"myObj['x']"``.
-
-- Changed the error code for the psql protocol from ``XX000`` ``internal_error``
-  when:
   - a user defined function is missing to ``42883`` ``undefined_function``
   - a column alias is ambiguous to ``42P09`` ``ambiguous_alias``
   - a schema name is invalid to ``3F000`` ``invalid_schema_name``
@@ -97,12 +135,6 @@ Changes
   - a relation does not exist to ``42P01`` ``undefined_table``
   - a document exists already to ``23505`` ``unique_violation``
 
-- Added scalar function :ref:`pg_function_is_visible <pg_function_is_visible>`.
-
-- Added the ``read_only_allow_delete`` setting to the ``settings['blocks']``
-  column of the :ref:`information_schema.tables <information_schema_tables>`
-  and :ref:`information_schema.table_partitions <is_table_partitions>` tables.
-
 - Changed the error code for dropping a missing view from the undefined 4040
   to 4041.
 
@@ -110,15 +142,6 @@ Changes
   exception without being wrapped in a ``SqlActionException``. Error codes
   remain the same.
 
-- Changed :ref:`OPTIMIZE <sql_ref_optimize>` to no longer implicitly refresh a
-  table.
-
-- Added table function :ref:`generate_subscripts <table-functions-generate-subscripts>`
-
-- Changed the privileges for ``KILL``, all users are now allowed to kill their
-  own statements.
-
-- Added the `pg_catalog.pg_roles table <postgres_pg_catalog>`
 
 
 Fixes
