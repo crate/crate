@@ -28,17 +28,23 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.junit.Before;
 
 import javax.annotation.Nullable;
 import javax.script.ScriptException;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.mockito.Mockito.mock;
 
 public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
 
-    UserDefinedFunctionService udfService = new UserDefinedFunctionService(mock(ClusterService.class), createNodeContext());
+    UserDefinedFunctionService udfService;
+
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        udfService = new UserDefinedFunctionService(clusterService, createNodeContext());
+    }
 
     static final UDFLanguage DUMMY_LANG = new UDFLanguage() {
         @Override

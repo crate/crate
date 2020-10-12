@@ -21,17 +21,27 @@
 
 package io.crate.expression.udf;
 
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.metadata.FunctionProvider;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionType;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.doc.DocTableInfoBuilder;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,6 +49,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -52,7 +63,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static io.crate.metadata.doc.DocSchemaInfo.NO_BLOB_NOR_DANGLING;
 
 
 @Singleton
@@ -138,6 +152,12 @@ public class UserDefinedFunctionService {
                         ifExists
                     );
                     mdBuilder.putCustom(UserDefinedFunctionsMetadata.TYPE, functions);
+                    validateFunctionIsNotInUseByGeneratedColumn(
+                        schema,
+                        schema + "." + UserDefinedFunctionMetadata.specificName(name, argumentTypes),
+                        functions,
+                        currentState
+                    );
                     return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 }
 
@@ -201,6 +221,12 @@ public class UserDefinedFunctionService {
 
 
     public void updateImplementations(String schema, Stream<UserDefinedFunctionMetadata> userDefinedFunctions) {
+        updateImplementations(schema, userDefinedFunctions, nodeCtx);
+    }
+
+    public void updateImplementations(String schema,
+                                      Stream<UserDefinedFunctionMetadata> userDefinedFunctions,
+                                      NodeContext nodeCtx) {
         final Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
         Iterator<UserDefinedFunctionMetadata> it = userDefinedFunctions.iterator();
         while (it.hasNext()) {
@@ -239,5 +265,58 @@ public class UserDefinedFunctionService {
         }
 
         return new FunctionProvider(signature, (s, args) -> scalar);
+    }
+
+    void validateFunctionIsNotInUseByGeneratedColumn(String schema,
+                                                             String functionName,
+                                                             UserDefinedFunctionsMetadata functionsMetadata,
+                                                             ClusterState currentState) {
+        // The iteration of schemas/tables must happen on the node context WITHOUT the UDF already removed.
+        // Otherwise the lazy table factories will already fail while evaluating generated functionsMetadata.
+        // To avoid that, a copy of the node context with the removed UDF function is used on concrete expression evaluation.
+        var nodeCtxWithRemovedFunction = new NodeContext(nodeCtx.functions().copyOf());
+        updateImplementations(schema, functionsMetadata.functionsMetadata().stream(), nodeCtxWithRemovedFunction);
+
+        var metadata = currentState.metadata();
+        var indices = Stream.of(metadata.getConcreteAllIndices()).filter(NO_BLOB_NOR_DANGLING)
+            .map(IndexParts::new)
+            .filter(indexParts -> !indexParts.isPartitioned())
+            .collect(Collectors.toList());
+        var templates = metadata.getTemplates().keysIt();
+        while (templates.hasNext()) {
+            var indexParts = new IndexParts(templates.next());
+            if (indexParts.isPartitioned()) {
+                indices.add(indexParts);
+            }
+        }
+
+        var indexNameExpressionResolver = new IndexNameExpressionResolver();
+
+        for (var indexParts : indices) {
+            var tableInfo = new DocTableInfoBuilder(
+                nodeCtx,
+                indexParts.toRelationName(),
+                currentState,
+                indexNameExpressionResolver
+            ).build();
+
+            TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
+            ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
+                CoordinatorTxnCtx.systemTransactionContext(), nodeCtxWithRemovedFunction, ParamTypeHints.EMPTY, tableReferenceResolver, null);
+            for (var ref : tableInfo.columns()) {
+                if (ref instanceof GeneratedReference) {
+                    var genRef = (GeneratedReference) ref;
+                    Expression expression = SqlParser.createExpression(genRef.formattedGeneratedExpression());
+                    try {
+                        exprAnalyzer.convert(expression, new ExpressionAnalysisContext());
+                    } catch (UnsupportedOperationException e) {
+                        throw new IllegalArgumentException(
+                            "Cannot drop function '" + functionName + "', it is still in use by '" +
+                                tableInfo + "." + genRef + "'"
+                        );
+                    }
+                }
+            }
+        }
     }
 }

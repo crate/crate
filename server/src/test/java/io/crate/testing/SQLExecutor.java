@@ -52,6 +52,8 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.udf.UDFLanguage;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.license.CeLicenseService;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -143,6 +145,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.NESTED_PK_TABLE_DEFINITION;
@@ -185,6 +188,7 @@ public class SQLExecutor {
     private final Random random;
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final UserDefinedFunctionService udfService;
 
     /**
      * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
@@ -217,6 +221,7 @@ public class SQLExecutor {
         private final AllocationService allocationService;
         private final Random random;
         private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+        private final UserDefinedFunctionService udfService;
         private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
         private User user = User.CRATE_USER;
         private UserManager userManager = new StubUserManager();
@@ -239,7 +244,7 @@ public class SQLExecutor {
             this.clusterService = clusterService;
             addNodesToClusterState(numNodes);
             nodeCtx = createNodeContext(additionalModules);
-            UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+            udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
             CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, crateSettings, new CeLicenseService()));
@@ -420,7 +425,8 @@ public class SQLExecutor {
                 new SessionContext(user, searchPath),
                 schemas,
                 random,
-                fulltextAnalyzerResolver
+                fulltextAnalyzerResolver,
+                udfService
             );
         }
 
@@ -615,6 +621,16 @@ public class SQLExecutor {
             this.userManager = userManager;
             return this;
         }
+
+        public Builder addUDFLanguage(UDFLanguage language) {
+            udfService.registerLanguage(language);
+            return this;
+        }
+
+        public Builder addUDF(UserDefinedFunctionMetadata udf) {
+            udfService.updateImplementations(udf.schema(), Stream.of(udf));
+            return this;
+        }
     }
 
     public static Builder builder(ClusterService clusterService, AbstractModule... additionalModules) {
@@ -669,7 +685,8 @@ public class SQLExecutor {
                         SessionContext sessionContext,
                         Schemas schemas,
                         Random random,
-                        FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+                        FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                        UserDefinedFunctionService udfService) {
         this.analyzer = analyzer;
         this.planner = planner;
         this.relAnalyzer = relAnalyzer;
@@ -679,10 +696,15 @@ public class SQLExecutor {
         this.schemas = schemas;
         this.random = random;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+        this.udfService = udfService;
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
         return fulltextAnalyzerResolver;
+    }
+
+    public UserDefinedFunctionService udfService() {
+        return udfService;
     }
 
     public <T extends AnalyzedStatement> T analyze(String stmt, ParamTypeHints typeHints) {
