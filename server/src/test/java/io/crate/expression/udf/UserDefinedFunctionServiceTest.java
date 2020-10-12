@@ -26,12 +26,15 @@
 
 package io.crate.expression.udf;
 
-import com.google.common.collect.ImmutableList;
+import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.Schemas;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -39,20 +42,25 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 
     private final UserDefinedFunctionMetadata same1 = new UserDefinedFunctionMetadata(
-        Schemas.DOC_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
+        Schemas.DOC_SCHEMA_NAME, "same", List.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function same(){ return 3; }"
     );
     private final UserDefinedFunctionMetadata same2 = new UserDefinedFunctionMetadata(
-        Schemas.DOC_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
+        Schemas.DOC_SCHEMA_NAME, "same", List.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function same() { return 2; }"
     );
     private final UserDefinedFunctionMetadata different = new UserDefinedFunctionMetadata(
-        Schemas.DOC_SCHEMA_NAME, "different", ImmutableList.of(), DataTypes.INTEGER,
+        Schemas.DOC_SCHEMA_NAME, "different", List.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function different() { return 3; }"
+    );
+    private static final UserDefinedFunctionMetadata FOO = new UserDefinedFunctionMetadata(
+        Schemas.DOC_SCHEMA_NAME, "foo", List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)), DataTypes.INTEGER,
+        DUMMY_LANG.name(), "function foo(i) { return i; }"
     );
 
     @Test
@@ -110,5 +118,47 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         expectedException.expect(UserDefinedFunctionAlreadyExistsException.class);
         expectedException.expectMessage("User defined Function 'doc.same()' already exists.");
         udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), same2, false);
+    }
+
+    @Test
+    public void test_validate_table_while_dropping_udf() throws Exception {
+        UserDefinedFunctionsMetadata metadataWithoutFunction = UserDefinedFunctionsMetadata.of();
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addUDFLanguage(DUMMY_LANG)
+            .addUDF(FOO)
+            .addTable("create table doc.t1 (id int, gen as foo(id))")
+            .build();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
+                Schemas.DOC_SCHEMA_NAME,
+                "foo",
+                metadataWithoutFunction,
+                clusterService.state()
+            ),
+            "Cannot drop function 'foo', it is still in use by 'doc.t1.gen AS doc.foo(id)'"
+        );
+    }
+
+    @Test
+    public void test_validate_partitioned_table_while_dropping_udf() throws Exception {
+        UserDefinedFunctionsMetadata metadataWithoutFunction = UserDefinedFunctionsMetadata.of();
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addUDFLanguage(DUMMY_LANG)
+            .addUDF(FOO)
+            .addPartitionedTable("create table doc.p1 (id int, p int, gen as foo(id)) partitioned by (p)")
+            .build();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
+                Schemas.DOC_SCHEMA_NAME,
+                "foo",
+                metadataWithoutFunction,
+                clusterService.state()
+            ),
+            "Cannot drop function 'foo', it is still in use by 'doc.p1.gen AS doc.foo(id)'"
+        );
     }
 }

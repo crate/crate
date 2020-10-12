@@ -59,8 +59,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.containsString;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
@@ -343,5 +348,21 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute("select pg_function_is_visible(t.oid) from oid_test t");
         assertThat(response.rows()[0][0], is(true));
         execute("drop table oid_test");
+    }
+
+    @Test
+    public void test_udf_used_inside_generated_column_definition_cannot_be_dropped() {
+        execute("create function doc.foo(long) returns string language dummy_lang as" +
+            " 'function foo(a) { return a; }'");
+        execute("create table doc.t1 (id long, l as doc.foo(id))");
+
+        assertThrows(
+            () -> execute("drop function doc.foo(long)"),
+            isSQLError(containsString(
+                    "Cannot drop function 'doc.foo(bigint)', it is still in use by 'doc.t1.l AS doc.foo(id)'"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000)
+        );
     }
 }

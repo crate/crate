@@ -48,7 +48,7 @@ import java.util.Locale;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
-class DocTableInfoBuilder {
+public class DocTableInfoBuilder {
 
     private final RelationName ident;
     private final ClusterState state;
@@ -59,10 +59,10 @@ class DocTableInfoBuilder {
     private String[] concreteOpenIndices;
     private static final Logger LOGGER = LogManager.getLogger(DocTableInfoBuilder.class);
 
-    DocTableInfoBuilder(NodeContext nodeCtx,
-                        RelationName ident,
-                        ClusterState state,
-                        IndexNameExpressionResolver indexNameExpressionResolver) {
+    public DocTableInfoBuilder(NodeContext nodeCtx,
+                               RelationName ident,
+                               ClusterState state,
+                               IndexNameExpressionResolver indexNameExpressionResolver) {
         this.nodeCtx = nodeCtx;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.ident = ident;

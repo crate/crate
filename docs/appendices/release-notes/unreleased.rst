@@ -156,4 +156,7 @@ Error handling improvements
 Fixes
 =====
 
+- Prevent dropping of a UDF if it is still used inside inside any
+  ``generated column`` expressions, throw an error instead.
+
 None
