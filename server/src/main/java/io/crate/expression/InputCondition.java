@@ -22,7 +22,8 @@
 
 package io.crate.expression;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
+
 import io.crate.data.Input;
 
 public class InputCondition {

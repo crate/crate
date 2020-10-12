@@ -22,7 +22,14 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.StreamSupport;
+
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -40,12 +47,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class TableFunctionCollectSource implements CollectSource {
@@ -60,6 +61,7 @@ public class TableFunctionCollectSource implements CollectSource {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,
                                                              CollectPhase collectPhase,
                                                              CollectTask collectTask,
@@ -89,12 +91,13 @@ public class TableFunctionCollectSource implements CollectSource {
             topLevelInputs.add(ctx.add(symbol));
         }
 
-        Iterable<Row> result = functionImplementation.evaluate(txnCtx, nodeCtx, inputs.toArray(new Input[0]));
-        Iterable<Row> rows = Iterables.transform(
-            result,
-            new ValueAndInputRow<>(topLevelInputs, ctx.expressions()));
+        var inputRow = new ValueAndInputRow<>(topLevelInputs, ctx.expressions());
         Input<Boolean> condition = (Input<Boolean>) ctx.add(phase.where());
-        rows = Iterables.filter(rows, InputCondition.asPredicate(condition));
+        Iterable<Row> rows = () -> StreamSupport
+            .stream(functionImplementation.evaluate(txnCtx, nodeCtx, inputs.toArray(new Input[0])).spliterator(), false)
+            .map(inputRow)
+            .filter(InputCondition.asPredicate(condition))
+            .iterator();
         return CompletableFuture.completedFuture(
             InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, functionImplementation.hasLazyResultSet())
         );

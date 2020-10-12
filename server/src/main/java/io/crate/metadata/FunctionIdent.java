@@ -21,24 +21,23 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 /**
  * @deprecated Use {@link Signature} instead. Exists only for BWC and will be removed with the next major version
  */
-public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable {
+public final class FunctionIdent implements Writeable {
 
     private final FunctionName fqnName;
     private final List<DataType<?>> argumentTypes;
@@ -70,13 +69,13 @@ public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable
         }
 
         FunctionIdent o = (FunctionIdent) obj;
-        return Objects.equal(fqnName, o.fqnName) &&
-               Objects.equal(argumentTypes, o.argumentTypes);
+        return Objects.equals(fqnName, o.fqnName) &&
+               Objects.equals(argumentTypes, o.argumentTypes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(fqnName, argumentTypes);
+        return Objects.hash(fqnName, argumentTypes);
     }
 
     @Override
@@ -86,15 +85,6 @@ public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable
                ", argumentTypes=" + argumentTypes +
                '}';
     }
-
-    @Override
-    public int compareTo(FunctionIdent o) {
-        return ComparisonChain.start()
-            .compare(fqnName, o.fqnName)
-            .compare(argumentTypes, o.argumentTypes, Ordering.<DataType<?>>natural().lexicographical())
-            .result();
-    }
-
 
     public FunctionIdent(StreamInput in) throws IOException {
         fqnName = new FunctionName(in);

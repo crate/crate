@@ -22,8 +22,6 @@
 
 package io.crate.common.collections;
 
-import javax.annotation.Nullable;
-
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,6 +33,8 @@ import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 public final class Lists2 {
 

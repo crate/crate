@@ -22,7 +22,6 @@
 
 package io.crate.expression.tablefunctions;
 
-import com.google.common.collect.Iterators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -39,6 +38,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
+import org.elasticsearch.common.collect.Iterators;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
@@ -169,17 +170,17 @@ public class UnnestFunction {
             return iterators;
         }
 
+        @SuppressWarnings("unchecked")
         private static Iterator<Object> createIterator(List<Object> objects, ArrayType<?> type) {
             if (objects == null) {
                 return Collections.emptyIterator();
             }
             if (type.innerType() instanceof ArrayType) {
-                @SuppressWarnings("unchecked")
                 List<Iterator<Object>> iterators = Lists2.map(
                     objects,
                     x -> createIterator((List<Object>) x, (ArrayType<?>) type.innerType())
                 );
-                return Iterators.concat(iterators.iterator());
+                return Iterators.concat(iterators.toArray(new Iterator[0]));
             } else {
                 return objects.iterator();
             }

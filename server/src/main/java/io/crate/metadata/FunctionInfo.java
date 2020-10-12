@@ -21,27 +21,25 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
-import io.crate.common.collections.EnumSets;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.common.collections.EnumSets;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+
 /**
  * @deprecated Use {@link Signature} instead. Exists only for BWC and will be removed with the next major version
  */
-public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
+public final class FunctionInfo implements Writeable {
 
     private final FunctionIdent ident;
     private final DataType<?> returnType;
@@ -134,16 +132,6 @@ public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
                ", returnType=" + returnType +
                ", features=" + features +
                '}';
-    }
-
-    @Override
-    public int compareTo(@Nonnull FunctionInfo o) {
-        return ComparisonChain.start()
-            .compare(type, o.type)
-            .compare(ident, o.ident)
-            .compare(returnType, o.returnType)
-            .compare(features, o.features, Ordering.<Scalar.Feature>natural().lexicographical())
-            .result();
     }
 
     public FunctionInfo(StreamInput in) throws IOException {

@@ -22,14 +22,16 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import com.google.common.collect.Iterables;
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.LeafReaderContext;
@@ -49,14 +51,14 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.Lists2;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.exceptions.Exceptions;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 
 public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
@@ -207,7 +209,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         if (scoreDocs.length > 0) {
             lastDoc = (FieldDoc) scoreDocs[scoreDocs.length - 1];
         }
-        return new KeyIterable<>(shardId(), Iterables.transform(Arrays.asList(scoreDocs), rowFunction));
+        return new KeyIterable<>(shardId(), Lists2.mapLazy(Arrays.asList(scoreDocs), rowFunction));
     }
 
     private Query query(FieldDoc lastDoc) {

@@ -27,13 +27,11 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ComparisonChain;
-
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public final class FunctionName implements Comparable<FunctionName>, Writeable {
+public final class FunctionName implements Writeable {
 
     @Nullable
     private final String schema;
@@ -60,14 +58,6 @@ public final class FunctionName implements Comparable<FunctionName>, Writeable {
 
     public String name() {
         return name;
-    }
-
-    @Override
-    public int compareTo(FunctionName o) {
-        return ComparisonChain.start()
-            .compare(schema, o.schema)
-            .compare(name, o.name)
-            .result();
     }
 
     @Override

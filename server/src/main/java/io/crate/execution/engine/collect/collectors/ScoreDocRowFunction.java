@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import com.google.common.base.Function;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.expression.InputRow;
@@ -40,6 +39,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
 
