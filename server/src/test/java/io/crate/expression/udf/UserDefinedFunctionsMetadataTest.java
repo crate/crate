@@ -21,7 +21,6 @@
 
 package io.crate.expression.udf;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
@@ -47,7 +46,7 @@ import static org.hamcrest.core.Is.is;
 public class UserDefinedFunctionsMetadataTest extends CrateUnitTest {
 
     private static String definition = "function(a, b) {return a - b;}";
-    private static List<FunctionArgumentDefinition> args = ImmutableList.of(
+    private static List<FunctionArgumentDefinition> args = List.of(
         FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
         FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
     );
@@ -135,13 +134,13 @@ public class UserDefinedFunctionsMetadataTest extends CrateUnitTest {
         assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", argumentTypesFrom(args)), is(true));
         assertThat(FUNCTION_METADATA.sameSignature("different_schema", "my_add", argumentTypesFrom(args)), is(false));
         assertThat(FUNCTION_METADATA.sameSignature("my_schema", "different_name", argumentTypesFrom(args)), is(false));
-        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", ImmutableList.of()), is(false));
+        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", List.of()), is(false));
     }
 
     @Test
     public void testSpecificName() throws Exception {
-        assertThat(specificName("my_func", ImmutableList.of()), is("my_func()"));
-        assertThat(specificName("my_func", ImmutableList.of(DataTypes.BOOLEAN, new ArrayType(DataTypes.BOOLEAN))),
+        assertThat(specificName("my_func", List.of()), is("my_func()"));
+        assertThat(specificName("my_func", List.of(DataTypes.BOOLEAN, new ArrayType<>(DataTypes.BOOLEAN))),
             is("my_func(boolean, boolean_array)"));
     }
 }

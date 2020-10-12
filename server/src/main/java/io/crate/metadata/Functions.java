@@ -59,6 +59,12 @@ public class Functions {
     private final Map<FunctionName, List<FunctionProvider>> udfFunctionImplementations = new ConcurrentHashMap<>();
     private final Map<FunctionName, List<FunctionProvider>> functionImplementations;
 
+    public Functions copyOf() {
+        var functions = new Functions(Map.copyOf(functionImplementations));
+        functions.udfFunctionImplementations.putAll(udfFunctionImplementations);
+        return functions;
+    }
+
     @Inject
     public Functions(Map<FunctionName, List<FunctionProvider>> functionImplementationsBySignature) {
         this.functionImplementations = functionImplementationsBySignature;

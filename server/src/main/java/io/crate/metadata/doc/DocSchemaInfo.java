@@ -123,7 +123,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
     private final ConcurrentHashMap<String, DocTableInfo> docTableByName = new ConcurrentHashMap<>();
 
-    private static final Predicate<String> NO_BLOB_NOR_DANGLING =
+    public static final Predicate<String> NO_BLOB_NOR_DANGLING =
         index -> ! (BlobIndex.isBlobIndex(index) || IndexParts.isDangling(index));
 
     private final String schemaName;
