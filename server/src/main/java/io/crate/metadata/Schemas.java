@@ -23,7 +23,6 @@
 package io.crate.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.google.common.collect.Sets;
 import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.User;
 import io.crate.common.annotations.VisibleForTesting;
@@ -53,6 +52,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -320,9 +320,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
         Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metadata());
         synchronized (schemas) {
-            Sets.SetView<String> nonBuiltInSchemas = Sets.difference(schemas.keySet(), builtInSchemas.keySet());
-            Set<String> deleted = Sets.difference(nonBuiltInSchemas, newCurrentSchemas).immutableCopy();
-            Set<String> added = Sets.difference(newCurrentSchemas, schemas.keySet()).immutableCopy();
+            Set<String> nonBuiltInSchemas = Sets.difference(schemas.keySet(), builtInSchemas.keySet());
+            Set<String> deleted = Sets.difference(nonBuiltInSchemas, newCurrentSchemas);
+            Set<String> added = Sets.difference(newCurrentSchemas, schemas.keySet());
 
             for (String deletedSchema : deleted) {
                 try {

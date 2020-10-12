@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.AnalyzerInvalidException;
 import io.crate.exceptions.AnalyzerUnknownException;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -37,6 +36,7 @@ import org.elasticsearch.index.analysis.AnalysisRegistry;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -141,8 +141,7 @@ public class FulltextAnalyzerResolver {
      * @return an Iterable of Strings
      */
     public Set<String> getBuiltInAnalyzers() {
-        return new ImmutableSet.Builder<String>()
-            .addAll(analysisRegistry.getAnalyzers().keySet()).build();
+        return Set.copyOf(analysisRegistry.getAnalyzers().keySet());
     }
 
     /**
@@ -178,9 +177,7 @@ public class FulltextAnalyzerResolver {
     }
 
     public Set<String> getBuiltInTokenizers() {
-        return new ImmutableSet.Builder<String>()
-            .addAll(analysisRegistry.getTokenizers().keySet())
-            .build();
+        return Set.copyOf(analysisRegistry.getTokenizers().keySet());
     }
 
     public Map<String, Settings> getCustomTokenizers() throws IOException {
@@ -192,9 +189,10 @@ public class FulltextAnalyzerResolver {
     }
 
     public Set<String> getBuiltInCharFilters() {
-        return new ImmutableSet.Builder<String>().addAll(EXTENDED_BUILTIN_CHAR_FILTERS)
-            .addAll(analysisRegistry.getCharFilters().keySet())
-            .build();
+        var charFilters = new HashSet<String>();
+        charFilters.addAll(EXTENDED_BUILTIN_CHAR_FILTERS);
+        charFilters.addAll(analysisRegistry.getCharFilters().keySet());
+        return Collections.unmodifiableSet(charFilters);
     }
 
     public Map<String, Settings> getCustomCharFilters() throws IOException {
@@ -206,10 +204,10 @@ public class FulltextAnalyzerResolver {
     }
 
     public Set<String> getBuiltInTokenFilters() {
-        return new ImmutableSet.Builder<String>()
-            .addAll(EXTENDED_BUILTIN_TOKEN_FILTERS)
-            .addAll(analysisRegistry.getTokenFilters().keySet())
-            .build();
+        var tokenFilters = new HashSet<String>();
+        tokenFilters.addAll(EXTENDED_BUILTIN_TOKEN_FILTERS);
+        tokenFilters.addAll(analysisRegistry.getTokenFilters().keySet());
+        return Collections.unmodifiableSet(tokenFilters);
     }
 
     public Map<String, Settings> getCustomTokenFilters() throws IOException {

@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.MoreObjects;
 import io.crate.metadata.table.StoredTable;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
@@ -103,14 +102,14 @@ public class PartitionInfo implements StoredTable {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("numberOfShards", numberOfShards)
-            .add("numberOfReplicas", numberOfReplicas)
-            .add("versionCreated", versionCreated)
-            .add("versionUpgraded", versionUpgraded)
-            .add("closed", closed)
-            .toString();
+        return "PartitionInfo{"
+            + "name=" + name
+            + ", numberOfShards=" + numberOfShards
+            + ", numberOfReplicas=" + numberOfReplicas
+            + ", versionCreated=" + versionCreated
+            + ", versionUpgraded=" + versionUpgraded
+            + ", closed=" + closed
+            + "}";
     }
 
     public Settings tableParameters() {
