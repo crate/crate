@@ -116,7 +116,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         FsDirectoryFactory.INDEX_LOCK_FACTOR_SETTING,
         EngineConfig.INDEX_CODEC_SETTING,
         IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
-        IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
         IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
         Setting.groupSetting("index.analysis.", Property.IndexScope));
 

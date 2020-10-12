@@ -37,7 +37,9 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -48,6 +50,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -122,6 +125,13 @@ import static org.hamcrest.Matchers.greaterThan;
  */
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, minNumDataNodes = 4, maxNumDataNodes = 6)
 public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        var plugins = new ArrayList<>(super.nodePlugins());
+        plugins.add(InternalSettingsPlugin.class);
+        return plugins;
+    }
 
     // Test info: disrupt network for up to 8s in a number of rounds and check that we only get true positive CAS results when running
     // multiple threads doing CAS updates.
