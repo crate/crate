@@ -22,10 +22,18 @@
 
 package io.crate.execution.engine.collect;
 
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Spliterator;
+import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
+
 import com.google.common.collect.Lists;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -37,10 +45,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-
 public final class RowsTransformer {
 
     public static Iterable<Row> toRowsIterable(TransactionContext txnCtx,
@@ -51,6 +55,7 @@ public final class RowsTransformer {
         return toRowsIterable(txnCtx, inputFactory, referenceResolver, collectPhase, iterable, true);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static Iterable<Row> toRowsIterable(TransactionContext txnCtx,
                                                InputFactory inputFactory,
                                                ReferenceResolver<?> referenceResolver,
@@ -69,24 +74,33 @@ public final class RowsTransformer {
             }
         }
 
-        @SuppressWarnings("unchecked")
-        Iterable<Row> rows = Iterables.transform(iterable, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.expressions()));
+        ValueAndInputRow<Object> inputRow = new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.expressions());
         assert DataTypes.BOOLEAN.equals(collectPhase.where().valueType()) :
             "whereClause.query() must be of type " + DataTypes.BOOLEAN;
 
-        //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
-        rows = Iterables.filter(rows, InputCondition.asPredicate(ctx.add(collectPhase.where())));
+        Predicate<Row> predicate = InputCondition.asPredicate(ctx.add(collectPhase.where()));
 
         if (sort == false || orderBy == null) {
-            return rows;
+            return () -> StreamSupport.stream((Spliterator<Object>) iterable.spliterator(), false)
+                .map(inputRow)
+                .filter(predicate)
+                .iterator();
         }
-        return sortRows(Iterables.transform(rows, Row::materialize), collectPhase);
+        ArrayList<Object[]> items = new ArrayList<>();
+        for (var item : iterable) {
+            var row = inputRow.apply(item);
+            if (predicate.test(row)) {
+                items.add(row.materialize());
+            }
+        }
+        items.sort(OrderingByPosition.arrayOrdering(collectPhase));
+        return Lists2.mapLazy(items, Buckets.arrayToSharedRow());
     }
 
     public static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {
         ArrayList<Object[]> objects = Lists.newArrayList(rows);
         Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
         objects.sort(ordering);
-        return Iterables.transform(objects, Buckets.arrayToSharedRow()::apply);
+        return Lists2.mapLazy(objects, Buckets.arrayToSharedRow());
     }
 }

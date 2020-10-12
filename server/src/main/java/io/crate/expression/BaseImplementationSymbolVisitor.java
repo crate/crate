@@ -22,7 +22,10 @@
 
 package io.crate.expression;
 
-import com.google.common.base.Joiner;
+import java.util.List;
+import java.util.Locale;
+
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.symbol.AliasSymbol;
@@ -31,15 +34,11 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-
-import java.util.List;
-import java.util.Locale;
 
 public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?>> {
 
@@ -75,7 +74,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
                     Locale.ENGLISH,
                     "Function %s(%s) is not a scalar function.",
                     signature.getName(),
-                    Joiner.on(", ").join(Symbols.typeView(function.arguments()))
+                    Lists2.joinOn(", ", function.arguments(), x -> x.valueType().getName())
                 )
             );
         }
