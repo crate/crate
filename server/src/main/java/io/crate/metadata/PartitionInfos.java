@@ -21,25 +21,25 @@
 
 package io.crate.metadata;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.StreamSupport;
+
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.analyze.NumberOfReplicas;
-import io.crate.metadata.doc.DocIndexMetadata;
-import io.crate.metadata.doc.PartitionedByMappingExtractor;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.StreamSupport;
+import io.crate.analyze.NumberOfReplicas;
+import io.crate.metadata.doc.DocIndexMetadata;
+import io.crate.types.DataType;
 
 public class PartitionInfos implements Iterable<PartitionInfo> {
 
@@ -71,7 +71,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                 return null;
             }
             Map<String, Object> mappingMap = mappingMetadata.sourceAsMap();
-            Map<String, Object> valuesMap = buildValuesMap(partitionName, mappingMetadata);
+            Map<String, Object> valuesMap = buildValuesMap(partitionName, mappingMap);
             Settings settings = indexMetadata.getSettings();
             String numberOfReplicas = NumberOfReplicas.fromSettings(settings);
             return new PartitionInfo(
@@ -89,19 +89,31 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
         }
     }
 
-    private static Map<String, Object> buildValuesMap(PartitionName partitionName, MappingMetadata mappingMetadata) throws Exception {
-        int i = 0;
-        Map<String, Object> valuesMap = new HashMap<>();
-        Iterable<Tuple<ColumnIdent, DataType>> partitionColumnInfoIterable = PartitionedByMappingExtractor.extractPartitionedByColumns(mappingMetadata.sourceAsMap());
-        for (Tuple<ColumnIdent, DataType> columnInfo : partitionColumnInfoIterable) {
-            String columnName = columnInfo.v1().sqlFqn();
-            Object value = partitionName.values().get(i);
-            if (!columnInfo.v2().equals(DataTypes.STRING)) {
-                value = columnInfo.v2().implicitCast(value);
-            }
-            valuesMap.put(columnName, value);
-            i++;
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> buildValuesMap(PartitionName partitionName, Map<String, Object> mappingMetadata) throws Exception {
+        Map<String, Object> meta = (Map<String, Object>) mappingMetadata.get("_meta");
+        if (meta == null) {
+            return Map.of();
         }
-        return valuesMap;
+        Object partitionedBy = meta.get("partitioned_by");
+        if (!(partitionedBy instanceof List)) {
+            return Map.of();
+        }
+
+        List<List<String>> partitionedByColumns = (List<List<String>>) partitionedBy;
+        assert partitionedByColumns.size() == partitionName.values().size()
+            : "partitionedByColumns size must match partitionName values size";
+        Map<String, Object> valuesByColumn = new HashMap<>();
+        for (int i = 0; i < partitionedByColumns.size(); i++) {
+            var columnAndType = partitionedByColumns.get(i);
+            assert columnAndType.size() == 2 : "_meta['partitioned_by'] mapping must contain (columnName, datatype) pairs";
+            String dottedColumnName = columnAndType.get(0);
+            String sqlFqn = ColumnIdent.fromPath(dottedColumnName).sqlFqn();
+            String typeName = columnAndType.get(1);
+            DataType<?> type = DocIndexMetadata.getColumnDataType(Map.of("type", typeName));
+            Object value = type.implicitCast(partitionName.values().get(i));
+            valuesByColumn.put(sqlFqn, value);
+        }
+        return valuesByColumn;
     }
 }

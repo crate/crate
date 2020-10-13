@@ -286,7 +286,7 @@ public class DocIndexMetadata {
      * @param columnProperties map of String to Object containing column properties
      * @return dataType of the column with columnProperties
      */
-    static DataType<?> getColumnDataType(Map<String, Object> columnProperties) {
+    public static DataType<?> getColumnDataType(Map<String, Object> columnProperties) {
         DataType<?> type;
         String typeName = (String) columnProperties.get("type");
 
