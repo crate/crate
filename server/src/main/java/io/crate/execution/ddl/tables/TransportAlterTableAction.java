@@ -38,6 +38,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -57,7 +58,8 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
                                      IndicesService indicesService,
                                      AllocationService allocationService,
                                      IndexScopedSettings indexScopedSettings,
-                                     MetadataCreateIndexService metadataCreateIndexService) {
+                                     MetadataCreateIndexService metadataCreateIndexService,
+                                     ShardLimitValidator shardLimitValidator) {
         super(ACTION_NAME,
               transportService,
               clusterService,
@@ -67,12 +69,15 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,
               "alter-table");
-        executor = new AlterTableClusterStateExecutor(metadataMappingService,
-                                                      indicesService,
-                                                      allocationService,
-                                                      indexScopedSettings,
-                                                      indexNameExpressionResolver,
-                                                      metadataCreateIndexService);
+        executor = new AlterTableClusterStateExecutor(
+            metadataMappingService,
+            indicesService,
+            allocationService,
+            indexScopedSettings,
+            indexNameExpressionResolver,
+            metadataCreateIndexService,
+            shardLimitValidator
+        );
     }
 
     @Override

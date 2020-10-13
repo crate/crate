@@ -95,6 +95,7 @@ import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -388,12 +389,14 @@ public class Node implements Closeable {
                 indexStoreFactories);
 
             final AliasValidator aliasValidator = new AliasValidator();
+            final ShardLimitValidator shardLimitValidator = new ShardLimitValidator(settings, clusterService);
             final MetadataCreateIndexService metadataCreateIndexService = new MetadataCreateIndexService(
                 settings,
                 clusterService,
                 indicesService,
                 clusterModule.getAllocationService(),
                 aliasValidator,
+                shardLimitValidator,
                 environment,
                 settingsModule.getIndexScopedSettings(),
                 threadPool,
@@ -519,6 +522,7 @@ public class Node implements Closeable {
                                                                                                          clusterService));
                     }
                     b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
+                    b.bind(ShardLimitValidator.class).toInstance(shardLimitValidator);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );
