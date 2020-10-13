@@ -105,6 +105,11 @@ SQL Standard and PostgreSQL compatibility improvements
 Administration
 --------------
 
+- Added a new :ref:`cluster.max_shards_per_node <cluster.max_shards_per_node>`
+  cluster setting that limits the amount of shards that can be created per
+  node. Once the limit is reached, operations that would create new shards will
+  be rejected.
+
 - Added the ``read_only_allow_delete`` setting to the ``settings['blocks']``
   column of the :ref:`information_schema.tables <information_schema_tables>`
   and :ref:`information_schema.table_partitions <is_table_partitions>` tables.

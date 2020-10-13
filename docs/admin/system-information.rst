@@ -118,6 +118,7 @@ applied cluster settings.
     | settings['cluster']['info']                                                       | object           |
     | settings['cluster']['info']['update']                                             | object           |
     | settings['cluster']['info']['update']['interval']                                 | text             |
+    | settings['cluster']['max_shards_per_node']                                        | integer          |
     | settings['cluster']['routing']                                                    | object           |
     | settings['cluster']['routing']['allocation']                                      | object           |
     | settings['cluster']['routing']['allocation']['allow_rebalance']                   | text             |

@@ -53,6 +53,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
+import org.elasticsearch.indices.ShardLimitValidator;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -62,6 +63,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -81,19 +83,22 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final IndexScopedSettings indexScopedSettings;
     private final MetadataCreateIndexService metadataCreateIndexService;
+    private final ShardLimitValidator shardLimitValidator;
 
     public AlterTableClusterStateExecutor(MetadataMappingService metadataMappingService,
                                           IndicesService indicesService,
                                           AllocationService allocationService,
                                           IndexScopedSettings indexScopedSettings,
                                           IndexNameExpressionResolver indexNameExpressionResolver,
-                                          MetadataCreateIndexService metadataCreateIndexService) {
+                                          MetadataCreateIndexService metadataCreateIndexService,
+                                          ShardLimitValidator shardLimitValidator) {
         this.metadataMappingService = metadataMappingService;
         this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
         this.allocationService = allocationService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.metadataCreateIndexService = metadataCreateIndexService;
+        this.shardLimitValidator = shardLimitValidator;
     }
 
     @Override
@@ -223,12 +228,24 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                                                              openIndices));
         }
 
-        int updatedNumberOfReplicas = openSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, -1);
-
-        if (updatedNumberOfReplicas != -1) {
-            // we do *not* update the in sync allocation ids as they will be removed upon the first index
-            // operation which make these copies stale
-            // TODO: update the list once the data is deleted by the node?
+        if (IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.exists(openSettings)) {
+            final int updatedNumberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(openSettings);
+            // Verify that this won't take us over the cluster shard limit.
+            int totalNewShards = openIndices.stream()
+                .mapToInt(i -> MetadataUpdateSettingsService.getTotalNewShards(i, currentState, updatedNumberOfReplicas))
+                .sum();
+            Optional<String> error = shardLimitValidator.checkShardLimit(totalNewShards, currentState);
+            if (error.isPresent()) {
+                ValidationException ex = new ValidationException();
+                ex.addValidationError(error.get());
+                throw ex;
+            }
+            /*
+             * We do not update the in-sync allocation IDs as they will be removed upon the first index operation which makes
+             * these copies stale.
+             *
+             * TODO: should we update the in-sync allocation IDs once the data is deleted by the node?
+             */
             routingTableBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
             metadataBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
         }

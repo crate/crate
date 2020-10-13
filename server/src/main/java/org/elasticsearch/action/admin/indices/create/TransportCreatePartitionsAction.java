@@ -73,6 +73,7 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -110,6 +111,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     private final AllocationService allocationService;
     private final NamedXContentRegistry xContentRegistry;
     private final ActiveShardsObserver activeShardsObserver;
+    private final ShardLimitValidator shardLimitValidator;
     private final ClusterStateTaskExecutor<CreatePartitionsRequest> executor = (currentState, tasks) -> {
         ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
         for (CreatePartitionsRequest request : tasks) {
@@ -130,12 +132,14 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                            IndicesService indicesService,
                                            AllocationService allocationService,
                                            NamedXContentRegistry xContentRegistry,
-                                           IndexNameExpressionResolver indexNameExpressionResolver) {
+                                           IndexNameExpressionResolver indexNameExpressionResolver,
+                                           ShardLimitValidator shardLimitValidator) {
         super(NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new, indexNameExpressionResolver);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.xContentRegistry = xContentRegistry;
         this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
+        this.shardLimitValidator = shardLimitValidator;
     }
 
     @Override
@@ -207,6 +211,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             Metadata.Builder newMetadataBuilder = Metadata.builder(currentState.metadata());
             for (String index : indicesToCreate) {
                 Settings indexSettings = createIndexSettings(currentState, templates);
+                shardLimitValidator.validateShardLimit(indexSettings, currentState);
                 int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(indexSettings);
 
                 String testIndex = indicesToCreate.get(0);
@@ -261,6 +266,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                     removalReasons.add("failed to build index metadata");
                     throw e;
                 }
+
+
                 logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}], mappings {}",
                     index, templateNames, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas(), mappings.keySet());
 

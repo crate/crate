@@ -69,6 +69,7 @@ import org.elasticsearch.index.mapper.MapperService.MergeReason;
 import org.elasticsearch.indices.IndexCreationException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexNameException;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -114,6 +115,7 @@ public class MetadataCreateIndexService {
     private final NamedXContentRegistry xContentRegistry;
     private final boolean forbidPrivateIndexSettings;
     private final Settings settings;
+    private final ShardLimitValidator shardLimitValidator;
 
     public MetadataCreateIndexService(
             final Settings settings,
@@ -121,6 +123,7 @@ public class MetadataCreateIndexService {
             final IndicesService indicesService,
             final AllocationService allocationService,
             final AliasValidator aliasValidator,
+            final ShardLimitValidator shardLimitValidator,
             final Environment env,
             final IndexScopedSettings indexScopedSettings,
             final ThreadPool threadPool,
@@ -136,6 +139,7 @@ public class MetadataCreateIndexService {
         this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
         this.xContentRegistry = xContentRegistry;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
+        this.shardLimitValidator = shardLimitValidator;
     }
 
     /**
@@ -541,6 +545,7 @@ public class MetadataCreateIndexService {
     private void validate(CreateIndexClusterStateUpdateRequest request, ClusterState state) {
         validateIndexName(request.index(), state);
         validateIndexSettings(request.index(), request.settings(), state, forbidPrivateIndexSettings);
+        shardLimitValidator.validateShardLimit(request.settings(), state);
     }
 
     public void validateIndexSettings(String indexName, final Settings settings, final ClusterState clusterState,

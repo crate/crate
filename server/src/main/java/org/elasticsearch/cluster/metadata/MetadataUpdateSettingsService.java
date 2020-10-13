@@ -35,6 +35,8 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.ValidationException;
+
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.regex.Regex;
@@ -43,12 +45,14 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.indices.ShardLimitValidator;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.elasticsearch.index.IndexSettings.same;
@@ -66,16 +70,19 @@ public class MetadataUpdateSettingsService {
 
     private final IndexScopedSettings indexScopedSettings;
     private final IndicesService indicesService;
-    private final ThreadPool threadPool;
+    private final ShardLimitValidator shardLimitValidator;
 
     @Inject
-    public MetadataUpdateSettingsService(ClusterService clusterService, AllocationService allocationService,
-                                         IndexScopedSettings indexScopedSettings, IndicesService indicesService, ThreadPool threadPool) {
+    public MetadataUpdateSettingsService(ClusterService clusterService,
+                                         AllocationService allocationService,
+                                         IndexScopedSettings indexScopedSettings,
+                                         IndicesService indicesService,
+                                         ShardLimitValidator shardLimitValidator) {
         this.clusterService = clusterService;
-        this.threadPool = threadPool;
         this.allocationService = allocationService;
         this.indexScopedSettings = indexScopedSettings;
         this.indicesService = indicesService;
+        this.shardLimitValidator = shardLimitValidator;
     }
 
     public void updateSettings(final UpdateSettingsClusterStateUpdateRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
@@ -144,15 +151,30 @@ public class MetadataUpdateSettingsService {
                                     "Can't update non dynamic settings [%s] for open indices %s", skippedSettings, openIndices));
                         }
 
-                        int updatedNumberOfReplicas = openSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, -1);
-                        if (updatedNumberOfReplicas != -1 && preserveExisting == false) {
+                        if (IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.exists(openSettings)) {
+                            final int updatedNumberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(openSettings);
+                            if (preserveExisting == false) {
+                                // Verify that this won't take us over the cluster shard limit.
+                                int totalNewShards = Arrays.stream(request.indices())
+                                    .mapToInt(i -> getTotalNewShards(i, currentState, updatedNumberOfReplicas))
+                                    .sum();
+                                Optional<String> error = shardLimitValidator.checkShardLimit(totalNewShards, currentState);
+                                if (error.isPresent()) {
+                                    ValidationException ex = new ValidationException();
+                                    ex.addValidationError(error.get());
+                                    throw ex;
+                                }
 
-                            // we do *not* update the in sync allocation ids as they will be removed upon the first index
-                            // operation which make these copies stale
-                            // TODO: update the list once the data is deleted by the node?
-                            routingTableBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
-                            metadataBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
-                            LOGGER.info("updating number_of_replicas to [{}] for indices {}", updatedNumberOfReplicas, actualIndices);
+                                /*
+                                 * We do not update the in-sync allocation IDs as they will be removed upon the first index operation which makes
+                                 * these copies stale.
+                                 *
+                                 * TODO: should we update the in-sync allocation IDs once the data is deleted by the node?
+                                 */
+                                routingTableBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
+                                metadataBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
+                                LOGGER.info("updating number_of_replicas to [{}] for indices {}", updatedNumberOfReplicas, actualIndices);
+                            }
                         }
 
                         ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
@@ -231,7 +253,7 @@ public class MetadataUpdateSettingsService {
         );
     }
 
-    private int getTotalNewShards(Index index, ClusterState currentState, int updatedNumberOfReplicas) {
+    public static int getTotalNewShards(Index index, ClusterState currentState, int updatedNumberOfReplicas) {
         IndexMetadata indexMetadata = currentState.metadata().index(index);
         int shardsInIndex = indexMetadata.getNumberOfShards();
         int oldNumberOfReplicas = indexMetadata.getNumberOfReplicas();

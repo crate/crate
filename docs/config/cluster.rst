@@ -178,6 +178,32 @@ Collecting stats
 
     Using a very small value can cause a high load on the cluster.
 
+
+Shard limits
+------------
+
+.. _cluster.max_shards_per_node:
+
+**cluster.max_shards_per_node**
+  | *Default:* 1000
+  | *Runtime:* ``yes``
+
+  The maximum amount of shards per node.
+
+  Any operations that would result in the creation of additional shard copies
+  that would exceed this limit are rejected.
+
+  For example. If you have 999 shards in the current cluster and you try to
+  create a new table, the create table operation will fail.
+
+  Similarly, if a write operation would lead to the creation of a new
+  partition, the statement will fail.
+
+  Each shard on a node requires some memory and increases the size of the
+  cluster state. Having too many shards per node will impact the clusters
+  stability and it is therefore discouraged to raise the limit above 1000.
+
+
 .. _conf_usage_data_collector:
 
 Usage data collector
