@@ -19,20 +19,13 @@
 
 package org.elasticsearch.test;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
-import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-import io.crate.common.unit.TimeValue;
-import io.crate.testing.SQLTransportExecutor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.logging.log4j.util.Supplier;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.junit.Assert;
+import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.equalTo;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
@@ -45,15 +38,27 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.equalTo;
+import javax.annotation.Nullable;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
+import com.carrotsearch.randomizedtesting.generators.RandomStrings;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.logging.log4j.util.Supplier;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.junit.Assert;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.testing.SQLTransportExecutor;
 
 public class BackgroundIndexer implements AutoCloseable {
 
     private final Logger logger = LogManager.getLogger(getClass());
 
     final Thread[] writers;
-    final SQLTransportExecutor sqlExecutor;
     final CountDownLatch stopLatch;
     final Collection<Exception> failures = new ArrayList<>();
     final AtomicBoolean stop = new AtomicBoolean(false);
@@ -68,32 +73,6 @@ public class BackgroundIndexer implements AutoCloseable {
     volatile int minFieldSize = 10;
     volatile int maxFieldSize = 140;
 
-    /**
-     * Start indexing in the background using a random number of threads. Indexing will be paused after numOfDocs docs has
-     * been indexed.
-     *
-     * @param table     table name to write data
-     * @param column    column name to write data
-     * @param client    client to use
-     * @param numOfDocs number of document to index before pausing. Set to -1 to have no limit.
-     */
-    public BackgroundIndexer(String table, String column, SQLTransportExecutor client, int numOfDocs) {
-        this(table, column, client, numOfDocs, RandomizedTest.scaledRandomIntBetween(2, 5));
-    }
-
-    /**
-     * Start indexing in the background using a given number of threads. Indexing will be paused after numOfDocs docs has
-     * been indexed.
-     *
-     * @param table       table name to write data
-     * @param column      column name to write data
-     * @param client      client to use
-     * @param numOfDocs   number of document to index before pausing. Set to -1 to have no limit.
-     * @param writerCount number of indexing threads to use
-     */
-    public BackgroundIndexer(String table, String column, SQLTransportExecutor client, int numOfDocs, final int writerCount) {
-        this(table, column, client, numOfDocs, writerCount, true, null);
-    }
 
     /**
      * Start indexing in the background using a given number of threads. Indexing will be paused after numOfDocs docs has
@@ -106,13 +85,17 @@ public class BackgroundIndexer implements AutoCloseable {
      * @param autoStart   set to true to start indexing as soon as all threads have been created.
      * @param random      random instance to use
      */
-    public BackgroundIndexer(final String table, final String column, final SQLTransportExecutor sqlExecutor, final int numOfDocs, final int writerCount,
-                             boolean autoStart, Random random) {
+    public BackgroundIndexer(String table,
+                             String column,
+                             String pgUrl,
+                             int numOfDocs,
+                             int writerCount,
+                             boolean autoStart,
+                             @Nullable Random random) {
         if (random == null) {
             random = RandomizedTest.getRandom();
         }
         this.table = table;
-        this.sqlExecutor = sqlExecutor;
         writers = new Thread[writerCount];
         stopLatch = new CountDownLatch(writers.length);
         logger.info("--> creating {} indexing threads (auto start: [{}], numOfDocs: [{}])", writerCount, autoStart, numOfDocs);
@@ -124,7 +107,19 @@ public class BackgroundIndexer implements AutoCloseable {
                 @Override
                 public void run() {
                     long id = -1;
-                    try {
+                    try (Connection conn = DriverManager.getConnection(pgUrl)) {
+                        PreparedStatement insertValues = conn.prepareStatement(String.format(
+                            Locale.ENGLISH,
+                            "insert into %s (id, %s) values (?, ?) returning _id",
+                            table,
+                            column
+                        ));
+                        PreparedStatement insertUnnest = conn.prepareStatement(String.format(
+                            Locale.ENGLISH,
+                            "insert into %s (id, %s) (select * from unnest(?)) returning _id",
+                            table,
+                            column
+                        ));
                         startLatch.await();
                         logger.info("**** starting indexing thread {}", indexerId);
                         while (!stop.get()) {
@@ -143,10 +138,10 @@ public class BackgroundIndexer implements AutoCloseable {
                                     insertData[i] = generateValues(idGenerator.incrementAndGet(), threadRandom);
                                 }
                                 try {
-                                    var insert = String.format(Locale.ENGLISH, "insert into %s (id, %s) (select * from unnest(?)) returning _id", table, column);
-                                    var response = sqlExecutor.exec(insert, insertData);
-                                    for (var generatedId : response.rows()[0]) {
-                                        ids.add((String) generatedId);
+                                    insertUnnest.setObject(1, SQLTransportExecutor.toJdbcCompatObject(conn, insertData));
+                                    var result = insertUnnest.executeQuery();
+                                    while (result.next()) {
+                                        ids.add(result.getString(1));
                                     }
                                 } catch (Exception e) {
                                     if (ignoreIndexingFailures == false) {
@@ -159,9 +154,14 @@ public class BackgroundIndexer implements AutoCloseable {
                                     continue;
                                 }
                                 try {
-                                    var insert = String.format(Locale.ENGLISH, "insert into %s (id, %s) values(?, ?) returning _id", table, column);
-                                    var response = sqlExecutor.exec(insert, generateValues(idGenerator.incrementAndGet(), threadRandom));
-                                    ids.add((String) response.rows()[0][0]);
+                                    long nextId = idGenerator.incrementAndGet();
+                                    var values = generateValues(nextId, threadRandom);
+                                    insertValues.setLong(1, nextId);
+                                    insertValues.setObject(2, values[1]);
+                                    var result = insertValues.executeQuery();
+                                    while (result.next()) {
+                                        ids.add(result.getString(1));
+                                    }
                                 } catch (Exception e) {
                                     if (ignoreIndexingFailures == false) {
                                         throw e;

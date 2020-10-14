@@ -144,9 +144,9 @@ public class DiskDisruptionIT extends AbstractDisruptionTestCase {
         try (BackgroundIndexer indexer = new BackgroundIndexer(
                 "test",
                 "data",
-                sqlExecutor,
+                sqlExecutor.jdbcUrl(),
                 -1,
-                numDocsToIndex,
+                RandomizedTest.scaledRandomIntBetween(2, 5),
                 false,
                 random())) {
             indexer.setRequestTimeout(TimeValue.ZERO);
