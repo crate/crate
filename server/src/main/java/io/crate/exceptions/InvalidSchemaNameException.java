@@ -23,7 +23,7 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class InvalidSchemaNameException extends ValidationException implements SchemaScopeException {
+public class InvalidSchemaNameException extends RuntimeException implements SchemaScopeException {
 
     private final String schemaName;
 

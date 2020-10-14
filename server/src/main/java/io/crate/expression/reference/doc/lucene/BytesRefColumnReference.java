@@ -30,7 +30,6 @@ import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
-import io.crate.exceptions.ValidationException;
 
 public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
 
@@ -43,7 +42,7 @@ public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public String value() throws ValidationException {
+    public String value() throws GroupByOnArrayUnsupportedException {
         try {
             if (values.advanceExact(docId)) {
                 if (values.docValueCount() == 1) {

@@ -24,7 +24,7 @@ package io.crate.exceptions;
 
 import io.crate.metadata.RelationName;
 
-public class RelationValidationException extends ValidationException implements TableScopeException {
+public class RelationValidationException extends RuntimeException implements TableScopeException {
 
     private final Iterable<RelationName> tableIdents;
 

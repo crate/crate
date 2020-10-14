@@ -27,7 +27,7 @@ import io.crate.metadata.RelationName;
 import java.util.Collection;
 import java.util.Collections;
 
-public class OperationOnInaccessibleRelationException extends ValidationException implements TableScopeException {
+public class OperationOnInaccessibleRelationException extends RuntimeException implements TableScopeException {
 
     private RelationName relationName;
 
