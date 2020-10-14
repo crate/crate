@@ -336,7 +336,7 @@ public class SQLTransportExecutor {
         }
     }
 
-    private static Object toJdbcCompatObject(Connection connection, Object arg) {
+    public static Object toJdbcCompatObject(Connection connection, Object arg) {
         if (arg == null) {
             return arg;
         }
