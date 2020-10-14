@@ -36,6 +36,7 @@ import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption.Bridge;
@@ -140,6 +141,7 @@ public abstract class AbstractDisruptionTestCase extends SQLTransportIntegration
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         final HashSet<Class<? extends Plugin>> classes = new HashSet<>(super.nodePlugins());
         classes.add(MockTransportService.TestPlugin.class);
+        classes.add(InternalSettingsPlugin.class);
         return classes;
     }
 
