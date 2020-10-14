@@ -26,7 +26,7 @@ import io.crate.metadata.RelationName;
 import java.util.Collections;
 import java.util.Locale;
 
-public class InvalidRelationName extends ValidationException implements TableScopeException {
+public class InvalidRelationName extends RuntimeException implements TableScopeException {
 
     private final RelationName ident;
 

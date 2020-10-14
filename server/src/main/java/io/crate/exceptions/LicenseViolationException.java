@@ -24,7 +24,7 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class LicenseViolationException extends ValidationException implements ClusterScopeException {
+public class LicenseViolationException extends RuntimeException implements ClusterScopeException {
 
     private static final String MESSAGE_TEMPLATE = "License is violated - %s. " +
                                                    "If expired or more cluster nodes are in need, " +

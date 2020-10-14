@@ -22,7 +22,7 @@
 
 package io.crate.exceptions;
 
-public class InvalidArgumentException extends ValidationException {
+public class InvalidArgumentException extends RuntimeException implements CrateException {
 
     public InvalidArgumentException(String message) {
         super(message);
@@ -31,5 +31,4 @@ public class InvalidArgumentException extends ValidationException {
     public <C, R> R accept(CrateExceptionVisitor<C, R> exceptionVisitor, C context) {
         return exceptionVisitor.visitCrateException(this, context);
     }
-
 }

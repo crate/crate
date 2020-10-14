@@ -28,7 +28,7 @@ import io.crate.metadata.RelationName;
 
 import java.util.Locale;
 
-public class AmbiguousColumnException extends ValidationException implements TableScopeException {
+public class AmbiguousColumnException extends RuntimeException implements TableScopeException {
 
     private final Symbol columnSymbol;
 

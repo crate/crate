@@ -22,7 +22,7 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.exceptions.ValidationException;
+import io.crate.exceptions.RelationValidationException;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -46,7 +46,7 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testValidateUsedRelationsInJoinConditions() throws Exception {
-        expectedException.expect(ValidationException.class);
+        expectedException.expect(RelationValidationException.class);
         expectedException.expectMessage("missing FROM-clause entry for relation '[doc.t3]'");
         executor.analyze("select * from t1 join t2 on t1.a = t3.c join t3 on t2.b = t3.c");
     }
