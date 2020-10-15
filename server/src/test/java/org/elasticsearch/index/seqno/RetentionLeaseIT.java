@@ -38,12 +38,10 @@ import java.util.function.Consumer;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -151,14 +149,7 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
         final int length = randomIntBetween(1, 8);
         for (int i = 0; i < length; i++) {
             // update the index for retention leases to live a long time
-            final AcknowledgedResponse longTtlResponse = client().admin()
-                .indices()
-                .prepareUpdateSettings("tbl")
-                .setSettings(Settings.builder()
-                    .putNull(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey())
-                    .build())
-                .get();
-            assertTrue(longTtlResponse.isAcknowledged());
+            execute("alter table doc.tbl reset (\"soft_deletes.retention_lease.period\")");
 
             final String id = randomAlphaOfLength(8);
             final long retainingSequenceNumber = randomLongBetween(0, Long.MAX_VALUE);
@@ -181,15 +172,7 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
             }
 
             // update the index for retention leases to short a long time, to force expiration
-            final AcknowledgedResponse shortTtlResponse = client().admin()
-                .indices()
-                .prepareUpdateSettings("tbl")
-                .setSettings(
-                    Settings.builder()
-                        .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(), retentionLeaseTimeToLive)
-                        .build())
-                .get();
-            assertTrue(shortTtlResponse.isAcknowledged());
+            execute("alter table doc.tbl set (\"soft_deletes.retention_lease.period\" = ?)", new Object[] { retentionLeaseTimeToLive.getStringRep() });
 
             // sleep long enough that the current retention lease has expired
             final long later = System.nanoTime();
