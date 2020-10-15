@@ -156,8 +156,4 @@ Error handling improvements
 Fixes
 =====
 
-- Fixed an issue that allowed users to create a self-referencing view which
-  broke any further operations accessing table meta data.
-
-- Prevent dropping of a UDF if it is still used inside inside any
-  ``generated column`` expressions, throw an error instead.
+None
