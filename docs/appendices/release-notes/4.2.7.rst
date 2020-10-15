@@ -1,0 +1,42 @@
+.. _version_4.2.7:
+
+=============
+Version 4.2.7
+=============
+
+Released on 2020-10-15.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.2.7.
+
+    We recommend that you upgrade to the latest 4.1 release before moving to
+    4.2.7.
+
+    A rolling upgrade from 4.1.7+ to 4.2.7 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.2.0` release notes for a full list of changes in the
+4.2 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that allowed users to create a self-referencing view which
+  broke any further operations accessing table meta data.
+
+- Prevent dropping of a UDF if it is still used inside inside any
+  ``generated column`` expressions, throw an error instead.
