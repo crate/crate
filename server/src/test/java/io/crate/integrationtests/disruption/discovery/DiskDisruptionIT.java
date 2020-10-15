@@ -21,6 +21,8 @@ package io.crate.integrationtests.disruption.discovery;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.testing.UseRandomizedSchema;
+
 import org.apache.lucene.mockfile.FilterFileSystemProvider;
 import org.elasticsearch.common.io.PathUtilsForTesting;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -96,15 +98,21 @@ public class DiskDisruptionIT extends AbstractDisruptionTestCase {
      * It simulates a full power outage by preventing translog checkpoint files to be written and restart the cluster. This means that
      * all un-fsynced data will be lost.
      */
+    @UseRandomizedSchema(random = false)
     public void testGlobalCheckpointIsSafe() throws Exception {
         startCluster(rarely() ? 5 : 3);
 
         var numberOfShards = 1 + randomInt(2);
         var numberOfReplicas = randomInt(2);
 
-        execute("create table test (id int primary key, data string) clustered into " + numberOfShards + " shards " +
-                            "with (number_of_replicas = ?)", new Object[] {numberOfReplicas});
-
+        execute("create table test (id int primary key, data string) "
+            + "clustered into " + numberOfShards + " shards "
+            + "with ("
+            + " number_of_replicas = ?, "
+            + " \"global_checkpoint_sync.interval\" = '1s' "
+            + ")",
+            new Object[] {numberOfReplicas}
+        );
         ensureGreen();
 
         AtomicBoolean stopGlobalCheckpointFetcher = new AtomicBoolean();
@@ -132,14 +140,21 @@ public class DiskDisruptionIT extends AbstractDisruptionTestCase {
 
         globalCheckpointSampler.start();
 
-        try (BackgroundIndexer indexer = new BackgroundIndexer("test", "data", sqlExecutor, -1, RandomizedTest.scaledRandomIntBetween(2, 5),
-                                                               false, random())) {
+        int numDocsToIndex = RandomizedTest.randomIntBetween(2, 50);
+        try (BackgroundIndexer indexer = new BackgroundIndexer(
+                "test",
+                "data",
+                sqlExecutor.jdbcUrl(),
+                -1,
+                RandomizedTest.scaledRandomIntBetween(2, 5),
+                false,
+                random())) {
             indexer.setRequestTimeout(TimeValue.ZERO);
             indexer.setIgnoreIndexingFailures(true);
             indexer.setFailureAssertion(e -> {});
             indexer.start(-1);
 
-            waitForDocs(randomIntBetween(1, 100), indexer, sqlExecutor);
+            waitForDocs(randomIntBetween(1, numDocsToIndex), indexer, sqlExecutor);
 
             logger.info("injecting failures");
             injectTranslogFailures();
