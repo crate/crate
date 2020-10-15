@@ -35,14 +35,18 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Query;
+import io.crate.sql.tree.Table;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -71,7 +75,13 @@ public final class CreateViewPlan implements Plan {
         User owner = createViewStmt.owner();
         String formattedQuery = SqlFormatter.formatSql(createViewStmt.query(), makeExpressions(params));
         ensureFormattedQueryCanStillBeAnalyzed(
-            dependencies.nodeContext(), dependencies.schemas(), plannerContext.transactionContext(), formattedQuery);
+            createViewStmt.name(),
+            dependencies.nodeContext(),
+            dependencies.schemas(),
+            plannerContext.transactionContext(),
+            formattedQuery,
+            createViewStmt.replaceExisting()
+        );
         CreateViewRequest request = new CreateViewRequest(
             createViewStmt.name(),
             formattedQuery,
@@ -86,12 +96,18 @@ public final class CreateViewPlan implements Plan {
         }));
     }
 
-    private static void ensureFormattedQueryCanStillBeAnalyzed(NodeContext nodeCtx,
+    private static void ensureFormattedQueryCanStillBeAnalyzed(RelationName viewName,
+                                                               NodeContext nodeCtx,
                                                                Schemas schemas,
                                                                CoordinatorTxnCtx txnCtx,
-                                                               String formattedQuery) {
+                                                               String formattedQuery,
+                                                               boolean replaceExisting) {
         RelationAnalyzer analyzer = new RelationAnalyzer(nodeCtx, schemas);
         Query query = (Query) SqlParser.createStatement(formattedQuery);
+        if (replaceExisting) {
+            new EnsureNoSelfReference(viewName, txnCtx.sessionContext().searchPath())
+                .raiseOnSelfReference(query);
+        }
         analyzer.analyze(query, txnCtx, new ParamTypeHints(List.of()) {
 
                 @Override
@@ -109,5 +125,30 @@ public final class CreateViewPlan implements Plan {
             result.add(Literal.fromObject(params.get(i)));
         }
         return result;
+    }
+
+
+    static class EnsureNoSelfReference extends DefaultTraversalVisitor<Void, Void> {
+
+        private final RelationName viewName;
+        private final SearchPath searchPath;
+
+        public EnsureNoSelfReference(RelationName viewName, SearchPath searchPath) {
+            this.viewName = viewName;
+            this.searchPath = searchPath;
+        }
+
+        public void raiseOnSelfReference(Query query) {
+            query.accept(this, null);
+        }
+
+        @Override
+        protected Void visitTable(Table<?> node, Void context) {
+            RelationName tableName = RelationName.of(node.getName(), searchPath.currentSchema());
+            if (tableName.equals(viewName)) {
+                throw new IllegalArgumentException("Creating a view that references itself is not allowed. (`" + viewName + "`)");
+            }
+            return null;
+        }
     }
 }

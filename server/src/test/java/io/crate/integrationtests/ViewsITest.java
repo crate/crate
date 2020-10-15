@@ -25,6 +25,8 @@ package io.crate.integrationtests;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
+import io.netty.handler.codec.http.HttpResponseStatus;
+
 import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -195,5 +197,20 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         execute("create table test (x timestamp, y int)");
         execute("create view v_test as select * from test");
         execute("select * from v_test where x > current_timestamp - 1000 * 60 * 60 * 24");
+    }
+
+
+    @Test
+    public void test_creating_a_self_referencing_view_is_not_allowed() throws Exception {
+        execute("create view v as select * from sys.cluster");
+        assertThrows(
+            () -> execute("create or replace view v as select * from v"),
+            isSQLError(
+                containsString("Creating a view that references itself is not allowed"),
+                INTERNAL_ERROR,
+                HttpResponseStatus.BAD_REQUEST,
+                4000
+            )
+        );
     }
 }
