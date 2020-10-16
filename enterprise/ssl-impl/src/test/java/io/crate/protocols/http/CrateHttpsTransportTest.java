@@ -18,23 +18,10 @@
 
 package io.crate.protocols.http;
 
-import io.crate.plugin.PipelineRegistry;
-import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.protocols.ssl.SslContextProviderImpl;
-import org.elasticsearch.test.ESTestCase;
-import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.handler.ssl.SslHandler;
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,10 +30,25 @@ import java.security.KeyStore;
 import java.security.Security;
 import java.util.Collections;
 
-import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
+import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import io.crate.netty.EventLoopGroups;
+import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslContextProviderImpl;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.ssl.SslHandler;
 
 public class CrateHttpsTransportTest extends ESTestCase {
 
@@ -93,15 +95,15 @@ public class CrateHttpsTransportTest extends ESTestCase {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(settings);
         pipelineRegistry.setSslContextProvider(new SslContextProviderImpl(settings));
 
-        Netty4HttpServerTransport transport =
-            new Netty4HttpServerTransport(
-                settings,
-                networkService,
-                BigArrays.NON_RECYCLING_INSTANCE,
-                mock(ThreadPool.class),
-                NamedXContentRegistry.EMPTY,
-                pipelineRegistry,
-                mock(NodeClient.class));
+        Netty4HttpServerTransport transport = new Netty4HttpServerTransport(
+            settings,
+            networkService,
+            BigArrays.NON_RECYCLING_INSTANCE,
+            mock(ThreadPool.class),
+            NamedXContentRegistry.EMPTY,
+            pipelineRegistry,
+            new EventLoopGroups(),
+            mock(NodeClient.class));
 
         EmbeddedChannel channel = new EmbeddedChannel();
         try {

@@ -22,21 +22,21 @@
 
 package io.crate.protocols.postgres;
 
+import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
-import io.crate.action.sql.SQLOperations;
-import io.crate.auth.Authentication;
-import io.crate.auth.user.UserManager;
-import io.crate.netty.CrateChannelBootstrapFactory;
-import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.settings.CrateSetting;
-import io.crate.types.DataTypes;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.bootstrap.ServerBootstrapConfig;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -53,17 +53,21 @@ import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import io.crate.action.sql.SQLOperations;
+import io.crate.auth.Authentication;
+import io.crate.auth.user.UserManager;
+import io.crate.common.collections.BorrowedItem;
+import io.crate.netty.CrateChannelBootstrapFactory;
+import io.crate.netty.EventLoopGroups;
+import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.settings.CrateSetting;
+import io.crate.types.DataTypes;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
 
 @Singleton
 public class PostgresNetty extends AbstractLifecycleComponent {
@@ -87,6 +91,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final String[] publishHosts;
     private final String port;
     private final Authentication authentication;
+    private final EventLoopGroups eventLoopGroups;
     private final Logger namedLogger;
     private final Settings settings;
     private final UserManager userManager;
@@ -102,12 +107,16 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     @Nullable
     private Netty4OpenChannelsHandler openChannels;
 
+    private BorrowedItem<EventLoopGroup> eventLoopGroup;
+
+
     @Inject
     public PostgresNetty(Settings settings,
                          SQLOperations sqlOperations,
                          UserManager userManager,
                          NetworkService networkService,
                          Authentication authentication,
+                         EventLoopGroups eventLoopGroups,
                          SslContextProvider sslContextProvider) {
         this.settings = settings;
         this.userManager = userManager;
@@ -115,6 +124,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
         this.authentication = authentication;
+        this.eventLoopGroups = eventLoopGroups;
 
         if (SslConfigSettings.isPSQLSslEnabled(settings)) {
             namedLogger.info("PSQL SSL support is enabled.");
@@ -140,7 +150,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (!enabled) {
             return;
         }
-        bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap("postgres", settings);
+        eventLoopGroup = eventLoopGroups.getEventLoopGroup(settings);
+        bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap(settings, eventLoopGroup.item());
         this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
 
         bootstrap.childHandler(new ChannelInitializer<>() {
@@ -248,10 +259,11 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         }
         serverChannels.clear();
         if (bootstrap != null) {
-            ServerBootstrapConfig config = bootstrap.config();
-            config.group().shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly();
-            config.childGroup().shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly();
             bootstrap = null;
+        }
+        if (eventLoopGroup != null) {
+            eventLoopGroup.close();
+            eventLoopGroup = null;
         }
         if (openChannels != null) {
             openChannels.close();

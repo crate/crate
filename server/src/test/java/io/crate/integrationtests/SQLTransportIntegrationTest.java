@@ -173,7 +173,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Settings.Builder builder = Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(SETTING_HTTP_COMPRESSION.getKey(), false)
-            .put(Netty4HttpServerTransport.SETTING_HTTP_WORKER_COUNT.getKey(), 1)
             .put(PSQL_PORT_SETTING.getKey(), 0);
         if (randomBoolean()) {
             builder.put("memory.allocation.type", "off-heap");

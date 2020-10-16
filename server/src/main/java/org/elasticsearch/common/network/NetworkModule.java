@@ -27,6 +27,8 @@ import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import io.crate.common.CheckedFunction;
+import io.crate.netty.EventLoopGroups;
+
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -101,6 +103,7 @@ public final class NetworkModule {
                          NamedWriteableRegistry namedWriteableRegistry,
                          NamedXContentRegistry xContentRegistry,
                          NetworkService networkService,
+                         EventLoopGroups eventLoopGroups,
                          NodeClient nodeClient) {
         this.settings = settings;
         for (NetworkPlugin plugin : plugins) {
@@ -112,13 +115,22 @@ public final class NetworkModule {
                 namedWriteableRegistry,
                 xContentRegistry,
                 networkService,
+                eventLoopGroups,
                 nodeClient
             );
             for (Map.Entry<String, Supplier<HttpServerTransport>> entry : httpTransportFactory.entrySet()) {
                 registerHttpTransport(entry.getKey(), entry.getValue());
             }
-            Map<String, Supplier<Transport>> transportFactory = plugin.getTransports(settings, threadPool, bigArrays, pageCacheRecycler,
-                circuitBreakerService, namedWriteableRegistry, networkService);
+            Map<String, Supplier<Transport>> transportFactory = plugin.getTransports(
+                settings,
+                threadPool,
+                bigArrays,
+                pageCacheRecycler,
+                circuitBreakerService,
+                namedWriteableRegistry,
+                networkService,
+                eventLoopGroups
+            );
             for (Map.Entry<String, Supplier<Transport>> entry : transportFactory.entrySet()) {
                 registerTransport(entry.getKey(), entry.getValue());
             }

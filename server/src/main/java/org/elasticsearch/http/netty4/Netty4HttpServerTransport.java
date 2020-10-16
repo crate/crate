@@ -19,7 +19,7 @@
 
 package org.elasticsearch.http.netty4;
 
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_CREDENTIALS;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_HEADERS;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_METHODS;
@@ -46,8 +46,6 @@ import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_TCP_REUS
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_TCP_SEND_BUFFER_SIZE;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_PIPELINING_MAX_EVENTS;
 import static org.elasticsearch.http.netty4.cors.Netty4CorsHandler.ANY_ORIGIN;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 
 import java.io.IOException;
@@ -57,7 +55,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
@@ -102,6 +99,8 @@ import org.elasticsearch.transport.BindTransportException;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
+import io.crate.common.collections.BorrowedItem;
+import io.crate.netty.EventLoopGroups;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.netty.bootstrap.ServerBootstrap;
@@ -111,12 +110,11 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.http.HttpContentCompressor;
@@ -173,7 +171,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     public static final Setting<Integer> SETTING_HTTP_WORKER_COUNT = new Setting<>("http.netty.worker_count",
         (s) -> Integer.toString(EsExecutors.numberOfProcessors(s)),
-        (s) -> Setting.parseInt(s, 1, "http.netty.worker_count"), Property.NodeScope);
+        (s) -> Setting.parseInt(s, 1, "http.netty.worker_count"), Property.NodeScope, Property.Deprecated);
 
     public static final Setting<ByteSizeValue> SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE =
         Setting.byteSizeSetting("http.netty.receive_predictor_size", new ByteSizeValue(64, ByteSizeUnit.KB), Property.NodeScope);
@@ -187,8 +185,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     protected final ByteSizeValue maxInitialLineLength;
     protected final ByteSizeValue maxHeaderSize;
     protected final ByteSizeValue maxChunkSize;
-
-    protected final int workerCount;
 
     protected final int pipeliningMaxEvents;
 
@@ -233,12 +229,17 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     private final NodeClient nodeClient;
 
+    private final EventLoopGroups eventLoopGroups;
+
+    private BorrowedItem<EventLoopGroup> eventLoopGroup;
+
     public Netty4HttpServerTransport(Settings settings,
                                      NetworkService networkService,
                                      BigArrays bigArrays,
                                      ThreadPool threadPool,
                                      NamedXContentRegistry xContentRegistry,
                                      PipelineRegistry pipelineRegistry,
+                                     EventLoopGroups eventLoopGroups,
                                      NodeClient nodeClient) {
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
         this.settings = settings;
@@ -247,6 +248,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.threadPool = threadPool;
         this.xContentRegistry = xContentRegistry;
         this.pipelineRegistry = pipelineRegistry;
+        this.eventLoopGroups = eventLoopGroups;
         this.nodeClient = nodeClient;
 
         this.maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
@@ -255,7 +257,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.maxInitialLineLength = SETTING_HTTP_MAX_INITIAL_LINE_LENGTH.get(settings);
         this.resetCookies = SETTING_HTTP_RESET_COOKIES.get(settings);
         this.maxCompositeBufferComponents = SETTING_HTTP_NETTY_MAX_COMPOSITE_BUFFER_COMPONENTS.get(settings);
-        this.workerCount = SETTING_HTTP_WORKER_COUNT.get(settings);
         this.port = SETTING_HTTP_PORT.get(settings);
         // we can't make the network.bind_host a fallback since we already fall back to http.host hence the extra conditional here
         List<String> httpBindHost = SETTING_HTTP_BIND_HOST.get(settings);
@@ -291,15 +292,12 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         boolean success = false;
         try {
             this.serverOpenChannels = new Netty4OpenChannelsHandler(logger);
-
+            eventLoopGroup = eventLoopGroups.getEventLoopGroup(settings);
             serverBootstrap = new ServerBootstrap();
-
-            ThreadFactory threadFactory = daemonThreadFactory(settings, HTTP_SERVER_WORKER_THREAD_NAME_PREFIX);
+            serverBootstrap.group(eventLoopGroup.item());
             if (Epoll.isAvailable()) {
-                serverBootstrap.group(new EpollEventLoopGroup(workerCount, threadFactory));
                 serverBootstrap.channel(EpollServerSocketChannel.class);
             } else {
-                serverBootstrap.group(new NioEventLoopGroup(workerCount, threadFactory));
                 serverBootstrap.channel(NioServerSocketChannel.class);
             }
 
@@ -476,9 +474,12 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             serverOpenChannels.close();
             serverOpenChannels = null;
         }
+        if (eventLoopGroup != null) {
+            eventLoopGroup.close();
+            eventLoopGroup = null;
+        }
 
         if (serverBootstrap != null) {
-            serverBootstrap.config().group().shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly();
             serverBootstrap = null;
         }
     }

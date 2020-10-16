@@ -50,6 +50,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
+import io.crate.netty.EventLoopGroups;
 import io.crate.plugin.PipelineRegistry;
 
 public class Netty4Plugin extends Plugin implements NetworkPlugin {
@@ -111,7 +112,8 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                                                           PageCacheRecycler pageCacheRecycler,
                                                           CircuitBreakerService circuitBreakerService,
                                                           NamedWriteableRegistry namedWriteableRegistry,
-                                                          NetworkService networkService) {
+                                                          NetworkService networkService,
+                                                          EventLoopGroups eventLoopGroups) {
         return Collections.singletonMap(
             NETTY_TRANSPORT_NAME,
             () -> new Netty4Transport(
@@ -121,17 +123,21 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                 networkService,
                 bigArrays,
                 namedWriteableRegistry,
-                circuitBreakerService
+                circuitBreakerService,
+                eventLoopGroups
             )
         );
     }
 
     @Override
-    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings,
+                                                                        ThreadPool threadPool,
+                                                                        BigArrays bigArrays,
                                                                         CircuitBreakerService circuitBreakerService,
                                                                         NamedWriteableRegistry namedWriteableRegistry,
                                                                         NamedXContentRegistry xContentRegistry,
                                                                         NetworkService networkService,
+                                                                        EventLoopGroups eventLoopGroups,
                                                                         NodeClient nodeClient) {
         return Collections.singletonMap(
             NETTY_HTTP_TRANSPORT_NAME,
@@ -142,6 +148,7 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                 threadPool,
                 xContentRegistry,
                 pipelineRegistry,
+                eventLoopGroups,
                 nodeClient
             )
         );
