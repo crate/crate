@@ -49,7 +49,6 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         final TransportService transportService = new CapturingTransport().createTransportService(
             Settings.EMPTY,
             deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             x -> localNode,
             clusterSettings
         );

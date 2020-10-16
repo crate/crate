@@ -46,7 +46,6 @@ import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportService;
 
 /**
@@ -117,7 +116,6 @@ public class MockNode extends Node {
     protected TransportService newTransportService(Settings settings,
                                                    Transport transport,
                                                    ThreadPool threadPool,
-                                                   TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                                                    ClusterSettings clusterSettings) {
         // we use the MockTransportService.TestPlugin class as a marker to create a network
@@ -125,9 +123,9 @@ public class MockNode extends Node {
         // we don't allow to plug it in from plugins or anything. this is a test-only override and
         // can't be done in a production env.
         if (getPluginsService().filterPlugins(MockTransportService.TestPlugin.class).isEmpty()) {
-            return super.newTransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings);
+            return super.newTransportService(settings, transport, threadPool, localNodeFactory, clusterSettings);
         } else {
-            return new MockTransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings);
+            return new MockTransportService(settings, transport, threadPool, localNodeFactory, clusterSettings);
         }
     }
 

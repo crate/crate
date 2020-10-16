@@ -135,7 +135,6 @@ import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MAS
 import static org.elasticsearch.cluster.coordination.Reconfigurator.CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION;
 import static org.elasticsearch.discovery.PeerFinder.DISCOVERY_FIND_PEERS_INTERVAL_SETTING;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.elasticsearch.transport.TransportService.NOOP_TRANSPORT_INTERCEPTOR;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -1872,7 +1871,6 @@ public class CoordinatorTests extends ESTestCase {
                 transportService = mockTransport.createTransportService(
                     settings,
                     deterministicTaskQueue.getThreadPool(this::onNode),
-                    NOOP_TRANSPORT_INTERCEPTOR,
                     a -> localNode,
                     null
                 );

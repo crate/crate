@@ -103,7 +103,6 @@ public class FollowersCheckerTests extends ESTestCase {
         final TransportService transportService = mockTransport.createTransportService(
             settings,
             deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> localNode,
             null
         );
@@ -274,7 +273,6 @@ public class FollowersCheckerTests extends ESTestCase {
         final TransportService transportService = mockTransport.createTransportService(
             settings,
             deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> localNode,
             null
         );
@@ -340,7 +338,6 @@ public class FollowersCheckerTests extends ESTestCase {
         final TransportService transportService = mockTransport.createTransportService(
             settings,
             deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> localNode,
             null
         );
@@ -432,7 +429,6 @@ public class FollowersCheckerTests extends ESTestCase {
         final TransportService transportService = mockTransport.createTransportService(
             settings,
             deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> follower,
             null
         );
@@ -577,7 +573,6 @@ public class FollowersCheckerTests extends ESTestCase {
         TransportService transportService = capturingTransport.createTransportService(
             Settings.EMPTY,
             deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             x -> nodes.get(0),
             null
         );

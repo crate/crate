@@ -106,7 +106,6 @@ public class PreVoteCollectorTests extends ESTestCase {
         transportService = mockTransport.createTransportService(
             settings,
             deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> localNode,
             null
         );

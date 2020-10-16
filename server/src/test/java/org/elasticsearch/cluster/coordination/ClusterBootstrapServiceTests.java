@@ -86,7 +86,6 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         transportService = transport.createTransportService(
             Settings.EMPTY,
             deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> localNode,
             null
         );

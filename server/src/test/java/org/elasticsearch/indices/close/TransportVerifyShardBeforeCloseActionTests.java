@@ -139,7 +139,6 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         TransportService transportService = transport.createTransportService(
             Settings.EMPTY,
             threadPool,
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             x -> clusterService.localNode(),
             null
         );

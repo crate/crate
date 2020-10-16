@@ -36,7 +36,6 @@ import org.elasticsearch.transport.ConnectionProfile;
 import org.elasticsearch.transport.RequestHandlerRegistry;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportException;
-import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
@@ -72,10 +71,9 @@ public abstract class DisruptableMockTransport extends MockTransport {
     @Override
     public TransportService createTransportService(Settings settings,
                                                    ThreadPool threadPool,
-                                                   TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                                                    @Nullable ClusterSettings clusterSettings) {
-        return new TransportService(settings, this, threadPool, interceptor, localNodeFactory, clusterSettings);
+        return new TransportService(settings, this, threadPool, localNodeFactory, clusterSettings);
     }
 
     @Override
