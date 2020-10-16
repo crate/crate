@@ -99,6 +99,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static final int ES_V_7_2_5_ID = 7_02_05_99;
     public static final int ES_V_7_2_6_ID = 7_02_06_99;
     public static final int ES_V_7_2_7_ID = 7_02_07_99;
+    public static final int ES_V_7_2_8_ID = 7_02_08_99;
 
     public static final Version V_4_0_0 = new Version(ES_V_7_0_0_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
     public static final Version V_4_0_1 = new Version(ES_V_7_0_1_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
@@ -132,8 +133,9 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static final Version V_4_2_5 = new Version(ES_V_7_2_5_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
     public static final Version V_4_2_6 = new Version(ES_V_7_2_6_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
     public static final Version V_4_2_7 = new Version(ES_V_7_2_7_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
+    public static final Version V_4_2_8 = new Version(ES_V_7_2_8_ID, true, org.apache.lucene.util.Version.LUCENE_8_5_1);
 
-    public static final Version CURRENT = V_4_2_7;
+    public static final Version CURRENT = V_4_2_8;
 
     static {
         assert CURRENT.luceneVersion.equals(org.apache.lucene.util.Version.LATEST) : "Version must be upgraded to ["
@@ -212,6 +214,8 @@ public class Version implements Comparable<Version>, ToXContentFragment {
                 return V_4_2_6;
             case ES_V_7_2_7_ID:
                 return V_4_2_7;
+            case ES_V_7_2_8_ID:
+                return V_4_2_8;
 
             case V_EMPTY_ID:
                 return V_EMPTY;
