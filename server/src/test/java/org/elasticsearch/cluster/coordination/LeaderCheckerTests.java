@@ -50,7 +50,6 @@ import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_TIMEOUT_SETTING;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
-import static org.elasticsearch.transport.TransportService.NOOP_TRANSPORT_INTERCEPTOR;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -140,7 +139,6 @@ public class LeaderCheckerTests extends ESTestCase {
         final TransportService transportService = mockTransport.createTransportService(
             settings,
             deterministicTaskQueue.getThreadPool(),
-            NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> localNode,
             null
         );
@@ -247,7 +245,6 @@ public class LeaderCheckerTests extends ESTestCase {
         final TransportService transportService = mockTransport.createTransportService(
             settings,
             deterministicTaskQueue.getThreadPool(),
-            NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> localNode,
             null
         );
@@ -323,7 +320,6 @@ public class LeaderCheckerTests extends ESTestCase {
         final TransportService transportService = capturingTransport.createTransportService(
             settings,
             deterministicTaskQueue.getThreadPool(),
-            NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> localNode,
             null
         );

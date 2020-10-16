@@ -44,7 +44,6 @@ import org.elasticsearch.transport.RequestHandlerRegistry;
 import org.elasticsearch.transport.SendRequestTransportException;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportException;
-import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportMessageListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
@@ -78,7 +77,6 @@ public class MockTransport implements Transport, LifecycleComponent {
 
     public TransportService createTransportService(Settings settings,
                                                    ThreadPool threadPool,
-                                                   TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                                                    @Nullable ClusterSettings clusterSettings) {
         StubbableConnectionManager connectionManager = new StubbableConnectionManager(
@@ -93,7 +91,6 @@ public class MockTransport implements Transport, LifecycleComponent {
             settings,
             this,
             threadPool,
-            interceptor,
             localNodeFactory,
             clusterSettings,
             connectionManager

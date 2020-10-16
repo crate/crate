@@ -42,9 +42,6 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportInterceptor;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestHandler;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,7 +49,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -91,7 +87,6 @@ public final class NetworkModule {
 
     private final Map<String, Supplier<Transport>> transportFactories = new HashMap<>();
     private final Map<String, Supplier<HttpServerTransport>> transportHttpFactories = new HashMap<>();
-    private final List<TransportInterceptor> transportIntercetors = new ArrayList<>();
 
     /**
      * Creates a network module that custom networking classes can be plugged into.
@@ -126,10 +121,6 @@ public final class NetworkModule {
                 circuitBreakerService, namedWriteableRegistry, networkService);
             for (Map.Entry<String, Supplier<Transport>> entry : transportFactory.entrySet()) {
                 registerTransport(entry.getKey(), entry.getValue());
-            }
-            List<TransportInterceptor> transportInterceptors = plugin.getTransportInterceptors(namedWriteableRegistry);
-            for (TransportInterceptor interceptor : transportInterceptors) {
-                registerTransportInterceptor(interceptor);
             }
         }
     }
@@ -200,46 +191,4 @@ public final class NetworkModule {
         }
         return factory;
     }
-
-    /**
-     * Registers a new {@link TransportInterceptor}
-     */
-    private void registerTransportInterceptor(TransportInterceptor interceptor) {
-        this.transportIntercetors.add(Objects.requireNonNull(interceptor, "interceptor must not be null"));
-    }
-
-    /**
-     * Returns a composite {@link TransportInterceptor} containing all registered interceptors
-     * @see #registerTransportInterceptor(TransportInterceptor)
-     */
-    public TransportInterceptor getTransportInterceptor() {
-        return new CompositeTransportInterceptor(this.transportIntercetors);
-    }
-
-    static final class CompositeTransportInterceptor implements TransportInterceptor {
-        final List<TransportInterceptor> transportInterceptors;
-
-        private CompositeTransportInterceptor(List<TransportInterceptor> transportInterceptors) {
-            this.transportInterceptors = new ArrayList<>(transportInterceptors);
-        }
-
-        @Override
-        public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(String action, String executor,
-                                                                                        boolean forceExecution,
-                                                                                        TransportRequestHandler<T> actualHandler) {
-            for (TransportInterceptor interceptor : this.transportInterceptors) {
-                actualHandler = interceptor.interceptHandler(action, executor, forceExecution, actualHandler);
-            }
-            return actualHandler;
-        }
-
-        @Override
-        public AsyncSender interceptSender(AsyncSender sender) {
-            for (TransportInterceptor interceptor : this.transportInterceptors) {
-                sender = interceptor.interceptSender(sender);
-            }
-            return sender;
-        }
-    }
-
 }

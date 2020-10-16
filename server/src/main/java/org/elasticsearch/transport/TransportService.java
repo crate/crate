@@ -87,10 +87,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     protected final ThreadPool threadPool;
     protected final ClusterName clusterName;
     protected final TaskManager taskManager;
-    private final TransportInterceptor.AsyncSender asyncSender;
     private final Function<BoundTransportAddress, DiscoveryNode> localNodeFactory;
     private final Transport.ResponseHandlers responseHandlers;
-    private final TransportInterceptor interceptor;
 
     // An LRU (don't really care about concurrency here) that holds the latest timed out requests so if they
     // do show up, we can print more descriptive information about them
@@ -102,7 +100,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             }
         });
 
-    public static final TransportInterceptor NOOP_TRANSPORT_INTERCEPTOR = new TransportInterceptor() {};
 
     private final Logger tracerLog;
 
@@ -146,14 +143,12 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     public TransportService(Settings settings,
                             Transport transport,
                             ThreadPool threadPool,
-                            TransportInterceptor transportInterceptor,
                             Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                             @Nullable ClusterSettings clusterSettings) {
         this(
             settings,
             transport,
             threadPool,
-            transportInterceptor,
             localNodeFactory,
             clusterSettings,
             new ConnectionManager(settings, transport)
@@ -163,7 +158,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     public TransportService(Settings settings,
                             Transport transport,
                             ThreadPool threadPool,
-                            TransportInterceptor transportInterceptor,
                             Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                             @Nullable ClusterSettings clusterSettings,
                             ConnectionManager connectionManager) {
@@ -176,8 +170,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         setTracerLogExclude(TRACE_LOG_EXCLUDE_SETTING.get(settings));
         tracerLog = Loggers.getLogger(LOGGER, ".tracer");
         taskManager = createTaskManager(settings, threadPool);
-        this.interceptor = transportInterceptor;
-        this.asyncSender = interceptor.interceptSender(this::sendRequestInternal);
         responseHandlers = transport.getResponseHandlers();
         if (clusterSettings != null) {
             clusterSettings.addSettingsUpdateConsumer(TRACE_LOG_INCLUDE_SETTING, this::setTracerLogInclude);
@@ -563,7 +555,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
     }
 
-    public final <T extends TransportResponse> void sendRequest(final DiscoveryNode node, final String action,
+    public final <T extends TransportResponse> void sendRequest(final DiscoveryNode node,
+                                                                final String action,
                                                                 final TransportRequest request,
                                                                 final TransportRequestOptions options,
                                                                 TransportResponseHandler<T> handler) {
@@ -576,12 +569,13 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
     }
 
-    public final <T extends TransportResponse> void sendRequest(final Transport.Connection connection, final String action,
+    public final <T extends TransportResponse> void sendRequest(final Transport.Connection connection,
+                                                                final String action,
                                                                 final TransportRequest request,
                                                                 final TransportRequestOptions options,
                                                                 TransportResponseHandler<T> handler) {
         try {
-            asyncSender.sendRequest(connection, action, request, options, handler);
+            sendRequestInternal(connection, action, request, options, handler);
         } catch (NodeNotConnectedException ex) {
             // the caller might not handle this so we invoke the handler
             handler.handleException(ex);
@@ -636,7 +630,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
     }
 
-    private <T extends TransportResponse> void sendRequestInternal(final Transport.Connection connection, final String action,
+    private <T extends TransportResponse> void sendRequestInternal(final Transport.Connection connection,
+                                                                   final String action,
                                                                    final TransportRequest request,
                                                                    final TransportRequestOptions options,
                                                                    TransportResponseHandler<T> handler) {
@@ -802,12 +797,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             "internal:");
 
     private void validateActionName(String actionName) {
-        // TODO we should makes this a hard validation and throw an exception but we need a good way to add backwards layer
-        // for it. Maybe start with a deprecation layer
-        if (isValidActionName(actionName) == false) {
-            LOGGER.warn("invalid action name [" + actionName + "] must start with one of: " +
-                TransportService.VALID_ACTION_PREFIXES);
-        }
+        assert isValidActionName(actionName)
+            : "invalid action name [" + actionName + "] must start with one of: " + TransportService.VALID_ACTION_PREFIXES;
     }
 
     /**
@@ -837,7 +828,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                           Writeable.Reader<Request> requestReader,
                                                                           TransportRequestHandler<Request> handler) {
         validateActionName(action);
-        handler = interceptor.interceptHandler(action, executor, false, handler);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
             action, requestReader, taskManager, handler, executor, false, true);
         transport.registerRequestHandler(reg);
@@ -860,7 +850,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                           Writeable.Reader<Request> requestReader,
                                                                           TransportRequestHandler<Request> handler) {
         validateActionName(action);
-        handler = interceptor.interceptHandler(action, executor, forceExecution, handler);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
             action, requestReader, taskManager, handler, executor, forceExecution, canTripCircuitBreaker);
         transport.registerRequestHandler(reg);

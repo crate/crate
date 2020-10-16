@@ -170,7 +170,6 @@ public class NodeJoinTests extends ESTestCase {
         TransportService transportService = capturingTransport.createTransportService(
             Settings.EMPTY,
             threadPool,
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             x -> initialState.nodes().getLocalNode(),
             clusterSettings
         );

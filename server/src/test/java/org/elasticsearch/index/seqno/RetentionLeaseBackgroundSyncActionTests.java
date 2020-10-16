@@ -65,7 +65,6 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
         transportService = transport.createTransportService(
             clusterService.getSettings(),
             threadPool,
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             boundAddress -> clusterService.localNode(),
             null
         );

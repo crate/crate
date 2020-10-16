@@ -51,7 +51,6 @@ import org.elasticsearch.transport.ConnectionProfile;
 import org.elasticsearch.transport.MockTcpTransport;
 import org.elasticsearch.transport.RequestHandlerRegistry;
 import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportService;
@@ -127,7 +126,6 @@ public final class MockTransportService extends TransportService {
             settings,
             transport,
             threadPool,
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             boundAddress -> new DiscoveryNode(
                 Node.NODE_NAME_SETTING.get(settings),
                 UUIDs.randomBase64UUID(),
@@ -148,13 +146,14 @@ public final class MockTransportService extends TransportService {
      * @param clusterSettings if non null the {@linkplain TransportService} will register with the {@link ClusterSettings} for settings
      *                        updates for {@link TransportSettings#TRACE_LOG_EXCLUDE_SETTING} and {@link TransportSettings#TRACE_LOG_INCLUDE_SETTING}.
      */
-    public MockTransportService(Settings settings, Transport transport, ThreadPool threadPool, TransportInterceptor interceptor,
+    public MockTransportService(Settings settings,
+                                Transport transport,
+                                ThreadPool threadPool,
                                 @Nullable ClusterSettings clusterSettings) {
         this(
             settings,
             transport,
             threadPool,
-            interceptor,
             (boundAddress) -> DiscoveryNode.createLocal(
                 settings,
                 boundAddress.publishAddress(),
@@ -174,23 +173,20 @@ public final class MockTransportService extends TransportService {
     public MockTransportService(Settings settings,
                                 Transport transport,
                                 ThreadPool threadPool,
-                                TransportInterceptor interceptor,
                                 Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                                 @Nullable ClusterSettings clusterSettings) {
-        this(settings, new StubbableTransport(transport), threadPool, interceptor, localNodeFactory, clusterSettings);
+        this(settings, new StubbableTransport(transport), threadPool, localNodeFactory, clusterSettings);
     }
 
     private MockTransportService(Settings settings,
                                  StubbableTransport transport,
                                  ThreadPool threadPool,
-                                 TransportInterceptor interceptor,
                                  Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                                  @Nullable ClusterSettings clusterSettings) {
         super(
             settings,
             transport,
             threadPool,
-            interceptor,
             localNodeFactory,
             clusterSettings,
             new StubbableConnectionManager(

@@ -125,7 +125,6 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportService;
 
 import javax.net.ssl.SNIHostName;
@@ -445,20 +444,23 @@ public class Node implements Closeable {
                                                                                                             indexMetadataUpgraders);
             new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetadataUpgraders);
             final Transport transport = networkModule.getTransportSupplier().get();
-            final TransportService transportService = newTransportService(settings,
-                                                                          transport,
-                                                                          threadPool,
-                                                                          networkModule.getTransportInterceptor(),
-                                                                          localNodeFactory,
-                                                                          settingsModule.getClusterSettings());
-            final GatewayMetaState gatewayMetaState = new GatewayMetaState(settings,
-                                                                           nodeEnvironment,
-                                                                           metaStateService,
-                                                                           metadataIndexUpgradeService,
-                                                                           metadataUpgrader,
-                                                                           transportService,
-                                                                           clusterService,
-                                                                           indicesService);
+            final TransportService transportService = newTransportService(
+                settings,
+                transport,
+                threadPool,
+                localNodeFactory,
+                settingsModule.getClusterSettings()
+            );
+            final GatewayMetaState gatewayMetaState = new GatewayMetaState(
+                settings,
+                nodeEnvironment,
+                metaStateService,
+                metadataIndexUpgradeService,
+                metadataUpgrader,
+                transportService,
+                clusterService,
+                indicesService
+            );
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
 
@@ -582,10 +584,9 @@ public class Node implements Closeable {
     protected TransportService newTransportService(Settings settings,
                                                    Transport transport,
                                                    ThreadPool threadPool,
-                                                   TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                                                    ClusterSettings clusterSettings) {
-        return new TransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings);
+        return new TransportService(settings, transport, threadPool, localNodeFactory, clusterSettings);
     }
 
     protected void processRecoverySettings(ClusterSettings clusterSettings, RecoverySettings recoverySettings) {

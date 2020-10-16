@@ -220,7 +220,6 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         transportService = transport.createTransportService(
             transportSettings,
             threadPool,
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             bta -> node1,
             null
         );

@@ -48,7 +48,6 @@ public class JoinHelperTests extends ESTestCase {
         TransportService transportService = capturingTransport.createTransportService(
             Settings.EMPTY,
             deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             x -> localNode,
             null
         );
