@@ -76,6 +76,8 @@ import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import io.crate.common.unit.TimeValue;
+import io.crate.netty.EventLoopGroups;
+
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -414,6 +416,7 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
+            final EventLoopGroups eventLoopGroups = new EventLoopGroups();
             final NetworkModule networkModule = new NetworkModule(
                 settings,
                 pluginsService.filterPlugins(NetworkPlugin.class),
@@ -424,6 +427,7 @@ public class Node implements Closeable {
                 namedWriteableRegistry,
                 xContentRegistry,
                 networkService,
+                eventLoopGroups,
                 client);
             Collection<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
@@ -525,6 +529,7 @@ public class Node implements Closeable {
                     }
                     b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
                     b.bind(ShardLimitValidator.class).toInstance(shardLimitValidator);
+                    b.bind(EventLoopGroups.class).toInstance(eventLoopGroups);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );

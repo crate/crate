@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AlwaysOKNullAuthentication;
+import io.crate.netty.EventLoopGroups;
 import io.crate.protocols.ssl.SslContextProvider;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.user.StubUserManager;
@@ -83,6 +84,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             new StubUserManager(),
             networkService,
             new AlwaysOKNullAuthentication(),
+            new EventLoopGroups(),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -102,6 +104,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             new StubUserManager(),
             networkService,
             new AlwaysOKNullAuthentication(),
+            new EventLoopGroups(),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -111,6 +114,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             assertThat(e.getCause(), instanceOf(UnknownHostException.class));
         } finally {
             psql.doStop();
+            psql.close();
         }
     }
 
@@ -125,6 +129,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             new StubUserManager(),
             networkService,
             new AlwaysOKNullAuthentication(),
+            new EventLoopGroups(),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -134,6 +139,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             assertThat(e.getCause(), instanceOf(UnknownHostException.class));
         } finally {
             psql.doStop();
+            psql.close();
         }
     }
 
@@ -148,6 +154,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             new StubUserManager(),
             networkService,
             new AlwaysOKNullAuthentication(),
+            new EventLoopGroups(),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -157,6 +164,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             assertThat(e.getCause(), instanceOf(UnknownHostException.class));
         } finally {
             psql.doStop();
+            psql.close();
         }
     }
 

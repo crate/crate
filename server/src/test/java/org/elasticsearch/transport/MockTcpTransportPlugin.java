@@ -28,6 +28,8 @@ import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.netty.EventLoopGroups;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -37,11 +39,14 @@ public class MockTcpTransportPlugin extends Plugin implements NetworkPlugin {
     public static final String MOCK_TCP_TRANSPORT_NAME = "mock-socket-network";
 
     @Override
-    public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public Map<String, Supplier<Transport>> getTransports(Settings settings,
+                                                          ThreadPool threadPool,
+                                                          BigArrays bigArrays,
                                                           PageCacheRecycler pageCacheRecycler,
                                                           CircuitBreakerService circuitBreakerService,
                                                           NamedWriteableRegistry namedWriteableRegistry,
-                                                          NetworkService networkService) {
+                                                          NetworkService networkService,
+                                                          EventLoopGroups eventLoopGroups) {
         return Collections.singletonMap(MOCK_TCP_TRANSPORT_NAME,
             () -> new MockTcpTransport(settings, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService));
     }

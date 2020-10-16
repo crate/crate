@@ -22,13 +22,10 @@ package org.elasticsearch.transport.netty4;
 import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
 import static org.elasticsearch.common.settings.Setting.intSetting;
 import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ExceptionsHelper;
@@ -50,6 +47,8 @@ import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.TransportSettings;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.common.collections.BorrowedItem;
+import io.crate.netty.EventLoopGroups;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.AdaptiveRecvByteBufAllocator;
@@ -64,16 +63,13 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.AttributeKey;
-import io.netty.util.concurrent.Future;
 
 /**
  * There are 4 types of connections per node, low/med/high/ping. Low if for batch oriented APIs (like recovery or
@@ -103,12 +99,13 @@ public class Netty4Transport extends TcpTransport {
 
 
     private final RecvByteBufAllocator recvByteBufAllocator;
-    private final int workerCount;
     private final ByteSizeValue receivePredictorMin;
     private final ByteSizeValue receivePredictorMax;
     private volatile Bootstrap clientBootstrap;
-    private volatile EventLoopGroup eventLoopGroup;
     private final Map<String, ServerBootstrap> serverBootstraps = newConcurrentMap();
+    private final EventLoopGroups eventLoopGroups;
+
+    private BorrowedItem<EventLoopGroup> eventLoopGroup;
 
     public Netty4Transport(Settings settings,
                            Version version,
@@ -116,10 +113,11 @@ public class Netty4Transport extends TcpTransport {
                            NetworkService networkService,
                            BigArrays bigArrays,
                            NamedWriteableRegistry namedWriteableRegistry,
-                           CircuitBreakerService circuitBreakerService) {
+                           CircuitBreakerService circuitBreakerService,
+                           EventLoopGroups eventLoopGroups) {
         super(settings, version, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService);
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
-        this.workerCount = WORKER_COUNT.get(settings);
+        this.eventLoopGroups = eventLoopGroups;
 
         // See AdaptiveReceiveBufferSizePredictor#DEFAULT_XXX for default values in netty..., we can use higher ones for us, even fixed one
         this.receivePredictorMin = NETTY_RECEIVE_PREDICTOR_MIN.get(settings);
@@ -136,16 +134,11 @@ public class Netty4Transport extends TcpTransport {
     protected void doStart() {
         boolean success = false;
         try {
-            ThreadFactory threadFactory = daemonThreadFactory(settings, TRANSPORT_WORKER_THREAD_NAME_PREFIX);
-            if (Epoll.isAvailable()) {
-                eventLoopGroup = new EpollEventLoopGroup(workerCount, threadFactory);
-            } else {
-                eventLoopGroup = new NioEventLoopGroup(workerCount, threadFactory);
-            }
-            clientBootstrap = createClientBootstrap(eventLoopGroup);
+            eventLoopGroup = eventLoopGroups.getEventLoopGroup(settings);
+            clientBootstrap = createClientBootstrap(eventLoopGroup.item());
             if (NetworkService.NETWORK_SERVER.get(settings)) {
                 for (ProfileSettings profileSettings : profileSettings) {
-                    createServerBootstrap(profileSettings, eventLoopGroup);
+                    createServerBootstrap(profileSettings, eventLoopGroup.item());
                     bindServer(profileSettings);
                 }
             }
@@ -191,9 +184,9 @@ public class Netty4Transport extends TcpTransport {
     private void createServerBootstrap(ProfileSettings profileSettings, EventLoopGroup eventLoopGroup) {
         String name = profileSettings.profileName;
         if (logger.isDebugEnabled()) {
-            logger.debug("using profile[{}], worker_count[{}], port[{}], bind_host[{}], publish_host[{}], compress[{}], "
+            logger.debug("using profile[{}], port[{}], bind_host[{}], publish_host[{}], compress[{}], "
                     + "receive_predictor[{}->{}]",
-                name, workerCount, profileSettings.portOrRange, profileSettings.bindHosts, profileSettings.publishHosts, compress,
+                name, profileSettings.portOrRange, profileSettings.bindHosts, profileSettings.publishHosts, compress,
                 receivePredictorMin, receivePredictorMax);
         }
 
@@ -266,10 +259,9 @@ public class Netty4Transport extends TcpTransport {
     @SuppressForbidden(reason = "debug")
     protected void stopInternal() {
         Releasables.close(() -> {
-            Future<?> shutdownFuture = eventLoopGroup.shutdownGracefully(0, 5, TimeUnit.SECONDS);
-            shutdownFuture.awaitUninterruptibly();
-            if (shutdownFuture.isSuccess() == false) {
-                logger.warn("Error closing netty event loop group", shutdownFuture.cause());
+            if (eventLoopGroup != null) {
+                eventLoopGroup.close();
+                eventLoopGroup = null;
             }
             serverBootstraps.clear();
             clientBootstrap = null;

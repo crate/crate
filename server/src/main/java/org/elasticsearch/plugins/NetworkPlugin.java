@@ -35,6 +35,8 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 
+import io.crate.netty.EventLoopGroups;
+
 /**
  * Plugin for extending network and transport related classes
  */
@@ -45,11 +47,14 @@ public interface NetworkPlugin {
      * Returns a map of {@link Transport} suppliers.
      * See {@link org.elasticsearch.common.network.NetworkModule#TRANSPORT_TYPE_KEY} to configure a specific implementation.
      */
-    default Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    default Map<String, Supplier<Transport>> getTransports(Settings settings,
+                                                           ThreadPool threadPool,
+                                                           BigArrays bigArrays,
                                                            PageCacheRecycler pageCacheRecycler,
                                                            CircuitBreakerService circuitBreakerService,
                                                            NamedWriteableRegistry namedWriteableRegistry,
-                                                           NetworkService networkService) {
+                                                           NetworkService networkService,
+                                                           EventLoopGroups eventLoopGroups) {
         return Collections.emptyMap();
     }
 
@@ -64,6 +69,7 @@ public interface NetworkPlugin {
                                                                          NamedWriteableRegistry namedWriteableRegistry,
                                                                          NamedXContentRegistry xContentRegistry,
                                                                          NetworkService networkService,
+                                                                         EventLoopGroups eventLoopGroups,
                                                                          NodeClient nodeClient) {
         return Collections.emptyMap();
     }

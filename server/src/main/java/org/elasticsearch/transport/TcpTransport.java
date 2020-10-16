@@ -96,8 +96,6 @@ import io.crate.common.unit.TimeValue;
 
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {
 
-    public static final String TRANSPORT_WORKER_THREAD_NAME_PREFIX = "transport_worker";
-
     // This is the number of bytes necessary to read the message size
     public static final int BYTES_NEEDED_FOR_MESSAGE_SIZE = TcpHeader.MARKER_BYTES_SIZE + TcpHeader.MESSAGE_LENGTH_SIZE;
     private static final long THIRTY_PER_HEAP_SIZE = (long) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.3);
