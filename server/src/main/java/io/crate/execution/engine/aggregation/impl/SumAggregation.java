@@ -30,6 +30,7 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -50,6 +51,7 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 
 public class SumAggregation<T extends Number> extends AggregationFunction<T, T> {
@@ -64,17 +66,17 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
             Signature.aggregate(
                 NAME,
                 DataTypes.FLOAT.getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()),
-            (signature, boundSignature) ->
-                new SumAggregation<>(DataTypes.FLOAT, Float::sum, (n1, n2) -> n1 - n2, signature, boundSignature)
+                DataTypes.FLOAT.getTypeSignature()
+            ),
+            getSumAggregationForFloatFactory()
         );
         mod.register(
             Signature.aggregate(
                 NAME,
                 DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()),
-            (signature, boundSignature) ->
-                new SumAggregation<>(DataTypes.DOUBLE, Double::sum, (n1, n2) -> n1 - n2, signature, boundSignature)
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            getSumAggregationForDoubleFactory()
         );
 
         for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
@@ -129,7 +131,10 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     @Override
-    public T iterate(RamAccounting ramAccounting, MemoryManager memoryManager, T state, Input[] args) throws CircuitBreakingException {
+    public T iterate(RamAccounting ramAccounting,
+                     MemoryManager memoryManager,
+                     T state,
+                     Input[] args) throws CircuitBreakingException {
         return reduce(ramAccounting, state, returnType.sanitizeValue(args[0].value()));
     }
 
@@ -175,7 +180,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes, List<MappedFieldType> fieldTypes) {
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
+                                                       List<MappedFieldType> fieldTypes) {
         switch (argumentTypes.get(0).id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -191,6 +197,32 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
             default:
                 return null;
         }
+    }
+
+    private static BiFunction<Signature, Signature, FunctionImplementation> getSumAggregationForDoubleFactory() {
+        return (signature, boundSignature) -> {
+            var kahanSummation = new KahanSummationForDouble();
+            return new SumAggregation<>(
+                DataTypes.DOUBLE,
+                kahanSummation::sum,
+                (n1, n2) -> n1 - n2,
+                signature,
+                boundSignature
+            );
+        };
+    }
+
+    private static BiFunction<Signature, Signature, FunctionImplementation> getSumAggregationForFloatFactory() {
+        return (signature, boundSignature) -> {
+            var kahanSummation = new KahanSummationForFloat();
+            return new SumAggregation<>(
+                DataTypes.FLOAT,
+                kahanSummation::sum,
+                (n1, n2) -> n1 - n2,
+                signature,
+                boundSignature
+            );
+        };
     }
 
     static class SumLong implements DocValueAggregator<MutableLong> {
@@ -230,6 +262,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         private final String columnName;
         private SortedNumericDocValues values;
+        private final KahanSummationForDouble kahanSummation = new KahanSummationForDouble();
 
         SumDouble(String columnName) {
             this.columnName = columnName;
@@ -249,7 +282,10 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         @Override
         public void apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                var value = state.value() + NumericUtils.sortableLongToDouble(values.nextValue());
+                var value = kahanSummation.sum(
+                    state.value(),
+                    NumericUtils.sortableLongToDouble(values.nextValue())
+                );
                 state.setValue(value);
             }
         }
@@ -264,6 +300,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         private final String columnName;
         private SortedNumericDocValues values;
+        private final KahanSummationForFloat kahanSummation = new KahanSummationForFloat();
 
         SumFloat(String columnName) {
             this.columnName = columnName;
@@ -283,7 +320,11 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         @Override
         public void apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                state.setValue(state.value() + NumericUtils.sortableIntToFloat((int) values.nextValue()));
+                var value = kahanSummation.sum(
+                    state.value(),
+                    NumericUtils.sortableIntToFloat((int) values.nextValue())
+                );
+                state.setValue(value);
             }
         }
 
