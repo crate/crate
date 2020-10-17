@@ -88,10 +88,24 @@ public class SumAggregationTest extends AggregationTest {
     }
 
     @Test
+    public void testDoubleSummationWithoutLosingPrecision() throws Exception {
+        Object result = executeAggregation(DataTypes.DOUBLE, DataTypes.DOUBLE, new Object[][]{{0.1d}, {0.3d}, {0.2d}});
+
+        assertEquals(0.6d, result);
+    }
+
+    @Test
     public void testFloat() throws Exception {
         Object result = executeAggregation(DataTypes.FLOAT, DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
 
         assertEquals(1.0f, result);
+    }
+
+    @Test
+    public void testFloatSummationWithoutLosingPrecision() throws Exception {
+        Object result = executeAggregation(DataTypes.FLOAT, DataTypes.FLOAT, new Object[][]{{0.8f}, {0.4f}, {0.2f}});
+
+        assertEquals(1.4f, result);
     }
 
     @Test
