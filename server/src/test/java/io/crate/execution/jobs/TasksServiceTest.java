@@ -21,8 +21,6 @@
 
 package io.crate.execution.jobs;
 
-import com.google.common.collect.ImmutableList;
-
 import io.crate.auth.user.User;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -214,7 +212,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testKillSingleJob() throws Exception {
-        ImmutableList<UUID> jobsToKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+        List<UUID> jobsToKill = List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
         RootTask.Builder builder = tasksService.newBuilder(jobsToKill.get(0));
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);

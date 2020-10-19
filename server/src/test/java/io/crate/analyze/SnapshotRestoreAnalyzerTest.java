@@ -53,7 +53,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import static com.google.common.collect.Iterables.getOnlyElement;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
@@ -284,7 +283,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         BoundRestoreSnapshot statement =
             analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
         assertThat(statement.restoreTables().size(), is(1));
-        var table = getOnlyElement(statement.restoreTables());
+        var table = statement.restoreTables().iterator().next();
         assertThat(table.tableIdent(), is(new RelationName("custom", "restoreme")));
         assertThat(table.partitionName(), is(nullValue()));
     }
@@ -311,7 +310,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         PartitionName partition = new PartitionName(
             new RelationName("doc", "parted"), List.of("123"));
         assertThat(statement.restoreTables().size(), is(1));
-        var table = getOnlyElement(statement.restoreTables());
+        var table = statement.restoreTables().iterator().next();
         assertThat(table.partitionName(), is(partition));
         assertThat(table.tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted")));
     }
@@ -324,7 +323,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         PartitionName partitionName = new PartitionName(
             new RelationName("doc", "unknown_parted"), List.of("123"));
         assertThat(statement.restoreTables().size(), is(1));
-        var table = getOnlyElement(statement.restoreTables());
+        var table = statement.restoreTables().iterator().next();
         assertThat(table.partitionName(), is(partitionName));
         assertThat(table.tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "unknown_parted")));
     }

@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.Sets;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
@@ -127,7 +126,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
             clusterService.state(), routingProvider, null, null, SessionContext.systemSessionContext());
 
         Set<String> tables = new HashSet<>();
-        Set<String> expectedTables = Sets.newHashSet(getFqn("t2"), getFqn("t3"));
+        Set<String> expectedTables = Set.of(getFqn("t2"), getFqn("t3"));
         int numShards = 0;
         for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {

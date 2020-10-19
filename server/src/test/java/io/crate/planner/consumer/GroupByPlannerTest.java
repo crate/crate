@@ -23,7 +23,6 @@
 package io.crate.planner.consumer;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.google.common.collect.Iterables;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -51,7 +50,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
@@ -59,14 +57,12 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isAggregation;
-import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
@@ -136,7 +132,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(localMerge.numUpstreams(), is(2));
         assertThat(localMerge.nodeIds().size(), is(1));
-        assertThat(Iterables.getOnlyElement(localMerge.nodeIds()), is(NODE_ID));
+        assertThat(localMerge.nodeIds().iterator().next(), is(NODE_ID));
         assertEquals(mergePhase.outputTypes(), localMerge.inputTypes());
 
         assertThat(localMerge.projections(), empty());

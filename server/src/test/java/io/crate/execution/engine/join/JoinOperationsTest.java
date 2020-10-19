@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.join;
 
-import com.google.common.collect.Sets;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.expression.symbol.Symbol;
@@ -75,7 +74,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> joinPairs = new ArrayList<>();
         joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b")));
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
-        remainingQueries.put(Sets.newHashSet(T3.T1, T3.T2, T3.T3), asSymbol("t1.x = t2.y + t3.z"));
+        remainingQueries.put(Set.of(T3.T1, T3.T2, T3.T3), asSymbol("t1.x = t2.y + t3.z"));
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
@@ -91,7 +90,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> joinPairs = new ArrayList<>();
         joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b")));
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
-        remainingQueries.put(Sets.newHashSet(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
+        remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
@@ -107,7 +106,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> joinPairs = new ArrayList<>();
         joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.CROSS, null));
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
-        remainingQueries.put(Sets.newHashSet(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
+        remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
@@ -121,7 +120,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testImplicitToExplicit_JoinPairDoesNotExist() {
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
-        remainingQueries.put(Sets.newHashSet(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
+        remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(Collections.emptyList(), remainingQueries);
 
@@ -137,7 +136,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> joinPairs = new ArrayList<>();
         joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.LEFT, asSymbol("t1.a = t2.b")));
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
-        remainingQueries.put(Sets.newHashSet(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
+        remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
@@ -153,7 +152,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> joinPairs = new ArrayList<>();
         joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.SEMI, asSymbol("t1.a = t2.b")));
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
-        remainingQueries.put(Sets.newHashSet(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
+        remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
 
         List<JoinPair> newJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
@@ -170,7 +169,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b")));
         joinPairs.add(JoinPair.of(T3.T2, T3.T3, JoinType.INNER, asSymbol("t2.y = t3.z")));
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
-        remainingQueries.put(Sets.newHashSet(T3.T2, T3.T3), asSymbol("t2.b = t3.c"));
+        remainingQueries.put(Set.of(T3.T2, T3.T3), asSymbol("t2.b = t3.c"));
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 

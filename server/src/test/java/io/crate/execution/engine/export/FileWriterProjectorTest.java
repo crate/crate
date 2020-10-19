@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.export;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
@@ -39,6 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -64,7 +64,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         Path file = createTempFile("out", "json");
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri().toString(),
-            null, null, ImmutableSet.of(), new HashMap<>(),
+            null, null, Set.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
@@ -83,10 +83,10 @@ public class FileWriterProjectorTest extends ESTestCase {
 
         Path directory = createTempDir();
 
-        FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, directory.toUri().toString(),
-            null, null, ImmutableSet.of(), new HashMap<>(),
+        FileWriterProjector fileWriterProjector = new FileWriterProjector(
+            executorService, directory.toUri().toString(),
+            null, null, Set.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT);
-
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
     }
 
@@ -98,7 +98,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
-            null, null, ImmutableSet.of(), new HashMap<>(),
+            null, null, Set.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);

@@ -27,8 +27,6 @@ import static org.hamcrest.Matchers.is;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Splitter;
-
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;
@@ -195,7 +193,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     private void assertSettingsValue(String key, Object expectedValue) {
         Map<String, Object> settingMap = (Map<String, Object>) response.rows()[0][0];
-        List<String> settingPath = Splitter.on(".").splitToList(key);
+        List<String> settingPath = List.of(key.split("\\."));
         for (int i = 0; i < settingPath.size() - 1; i++) {
             settingMap = (Map<String, Object>) settingMap.get(settingPath.get(i));
         }

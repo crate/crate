@@ -22,8 +22,6 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
@@ -50,6 +48,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -76,7 +75,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             new Routing(Map.of()),
             RowGranularity.SHARD,
             Collections.singletonList(shardId),
-            ImmutableList.of(),
+            List.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
@@ -110,8 +109,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             "collect",
             new Routing(Map.of()),
             RowGranularity.SHARD,
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(),
+            List.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST);
 
@@ -124,10 +123,10 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(
             collectPhase, txnCtx, unassignedShardRefResolver(), false)
             .apply(noReadIsolationIterable);
-        assertThat(Iterables.size(rows), is(2));
+        assertThat(StreamSupport.stream(rows.spliterator(), false).count(), is(2L));
 
         noReadIsolationIterable.add("c");
-        assertThat(Iterables.size(rows), is(3));
+        assertThat(StreamSupport.stream(rows.spliterator(), false).count(), is(3L));
 
         // Read isolation
         List<String> readIsolationIterable = new ArrayList<>();
@@ -136,9 +135,9 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
 
         rows = systemCollectSource.toRowsIterableTransformation(collectPhase, txnCtx, unassignedShardRefResolver(), true)
             .apply(readIsolationIterable);
-        assertThat(Iterables.size(rows), is(2));
+        assertThat(StreamSupport.stream(rows.spliterator(), false).count(), is(2L));
 
         readIsolationIterable.add("c");
-        assertThat(Iterables.size(rows), is(2));
+        assertThat(StreamSupport.stream(rows.spliterator(), false).count(), is(2L));
     }
 }

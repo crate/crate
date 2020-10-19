@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -56,6 +55,6 @@ public class ResetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testResetLoggingSetting() {
         AnalyzedResetStatement analysis = executor.analyze("RESET GLOBAL \"logger.action\"");
-        assertThat(analysis.settingsToRemove(), Matchers.<Set<Symbol>>is(ImmutableSet.of(Literal.of("logger.action"))));
+        assertThat(analysis.settingsToRemove(), Matchers.<Set<Symbol>>is(Set.of(Literal.of("logger.action"))));
     }
 }

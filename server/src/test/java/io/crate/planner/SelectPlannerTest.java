@@ -24,7 +24,6 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -224,7 +223,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         MergePhase mergePhase = globalAggregate.mergePhase();
 
-        assertEquals(CountAggregation.LongStateType.INSTANCE, Iterables.get(mergePhase.inputTypes(), 0));
+        assertEquals(CountAggregation.LongStateType.INSTANCE, mergePhase.inputTypes().iterator().next());
         assertEquals(DataTypes.LONG, mergePhase.outputTypes().get(0));
     }
 

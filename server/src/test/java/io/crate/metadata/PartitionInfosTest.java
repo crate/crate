@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
@@ -32,6 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -72,7 +72,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPartitionWithoutMapping() throws Exception {
         PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "test1"), ImmutableList.of("foo"));
+            new RelationName("doc", "test1"), List.of("foo"));
         addIndexMetadataToClusterState(IndexMetadata.builder(partitionName.asIndexName())
             .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
@@ -82,7 +82,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPartitionWithMeta() throws Exception {
         PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "test1"), ImmutableList.of("foo"));
+            new RelationName("doc", "test1"), List.of("foo"));
         IndexMetadata.Builder indexMetadata = IndexMetadata
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())
@@ -103,7 +103,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPartitionWithMetaMultiCol() throws Exception {
         PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "test1"), ImmutableList.of("foo", "1"));
+            new RelationName("doc", "test1"), List.of("foo", "1"));
         IndexMetadata.Builder indexMetadata = IndexMetadata
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())

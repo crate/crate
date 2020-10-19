@@ -22,7 +22,6 @@
 
 package io.crate.expression.reference.sys.node;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
@@ -43,6 +42,7 @@ import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.util.Collections;
+import java.util.Set;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.hamcrest.CoreMatchers.is;
@@ -87,7 +87,7 @@ public class NodeStatsContextFieldResolverTest {
 
     @Test
     public void testEmptyColumnIdents() {
-        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of());
+        NodeStatsContext context = resolver.forTopColumnIdents(Set.of());
         assertDefaultDiscoveryContext(context);
     }
 
@@ -145,7 +145,7 @@ public class NodeStatsContextFieldResolverTest {
 
     @Test
     public void testColumnIdentsResolution() {
-        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of(
+        NodeStatsContext context = resolver.forTopColumnIdents(Set.of(
             SysNodesTableInfo.Columns.ID,
             SysNodesTableInfo.Columns.NAME
         ));
@@ -157,13 +157,13 @@ public class NodeStatsContextFieldResolverTest {
 
     @Test
     public void testNoteStatsContextTimestampResolvedCorrectly() {
-        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of(SysNodesTableInfo.Columns.OS));
+        NodeStatsContext context = resolver.forTopColumnIdents(Set.of(SysNodesTableInfo.Columns.OS));
         assertThat(context.timestamp(), greaterThan(0L));
     }
 
     @Test
     public void testPSQLPortResolution() throws IOException {
-        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of(
+        NodeStatsContext context = resolver.forTopColumnIdents(Set.of(
             new ColumnIdent(SysNodesTableInfo.Columns.PORT.name())
         ));
         assertThat(context.isComplete(), is(true));
@@ -172,7 +172,7 @@ public class NodeStatsContextFieldResolverTest {
 
     @Test
     public void testClusterStateVersion() throws IOException {
-        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of(
+        NodeStatsContext context = resolver.forTopColumnIdents(Set.of(
             new ColumnIdent(SysNodesTableInfo.Columns.CLUSTER_STATE_VERSION.name())
         ));
         assertThat(context.isComplete(), is(true));
@@ -182,7 +182,7 @@ public class NodeStatsContextFieldResolverTest {
     @Test
     public void testResolveForNonExistingColumnIdent() {
         assertThrows(IllegalArgumentException.class,
-                     () -> resolver.forTopColumnIdents(ImmutableSet.of(SysNodesTableInfo.Columns.ID, new ColumnIdent("dummy"))),
+                     () -> resolver.forTopColumnIdents(Set.of(SysNodesTableInfo.Columns.ID, new ColumnIdent("dummy"))),
                      "Cannot resolve NodeStatsContext field for \"dummy\" column ident.");
     }
 

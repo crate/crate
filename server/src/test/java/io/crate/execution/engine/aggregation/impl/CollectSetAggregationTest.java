@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
@@ -58,7 +57,7 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         FunctionImplementation collectSet = nodeCtx.functions().get(
-            null, "collect_set", ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
+            null, "collect_set", List.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
         assertEquals(new ArrayType<>(DataTypes.INTEGER), collectSet.info().returnType());
     }
 
@@ -72,7 +71,7 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void testLongSerialization() throws Exception {
         AggregationFunction impl = (AggregationFunction) nodeCtx.functions().get(
-                null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
+                null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
 
         Object state = impl.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
 
@@ -86,7 +85,7 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void test_value_adding_and_removal() {
         AggregationFunction impl = (AggregationFunction) nodeCtx.functions().get(
-            null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
+            null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
         AggregationFunction aggregationFunction = impl.optimizeForExecutionAsWindowFunction();
 
         Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);

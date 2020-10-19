@@ -27,7 +27,6 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import com.google.common.base.Joiner;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -147,7 +146,7 @@ public class DataTypeTesting {
         for (int i = 0; i < 8; i++) {
             parts[i] = Integer.toHexString(random.nextInt(2 ^ 16));
         }
-        return Joiner.on(":").join(parts);
+        return String.join(":", parts);
     }
 
     private static String randomIPv4Address(Random random) {

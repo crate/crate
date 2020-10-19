@@ -21,14 +21,12 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
@@ -153,10 +151,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
         ensureYellow();
 
-        for (String id : ImmutableList.of("1", "2", "3")) {
+        for (String id : List.of("1", "2", "3")) {
             String partitionName = new PartitionName(
                 new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
-                ImmutableList.of(id)).asIndexName();
+                List.of(id)).asIndexName();
             assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metadata().indices().get(partitionName));
             assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
@@ -746,9 +744,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                                        "order by partition_ident", new Object[]{defaultSchema});
         assertThat(response.rowCount(), is(2L));
         assertThat((String) response.rows()[0][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), ImmutableList.of("1388534400000")).ident()));
+            new RelationName(defaultSchema, "parted"), List.of("1388534400000")).ident()));
         assertThat((String) response.rows()[1][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), ImmutableList.of("1391212800000")).ident()));
+            new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident()));
 
         execute("delete from parted where date = '2014-03-01'");
         refresh();
@@ -768,9 +766,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                                        "order by partition_ident", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount(), is(2L));
         assertThat((String) response.rows()[0][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), ImmutableList.of("1388534400000")).ident()));
+            new RelationName(defaultSchema, "parted"), List.of("1388534400000")).ident()));
         assertThat((String) response.rows()[1][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), ImmutableList.of("1391212800000")).ident()));
+            new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident()));
 
         execute("delete from parted where o['dat'] = '2014-03-01'");
         refresh();
@@ -806,11 +804,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                                        "order by partition_ident", new Object[]{defaultSchema});
         assertThat(response.rowCount(), is(3L));
         assertThat((String) response.rows()[0][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), ImmutableList.of("1395874800000")).ident()));
+            new RelationName(defaultSchema, "parted"), List.of("1395874800000")).ident()));
         assertThat((String) response.rows()[1][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), ImmutableList.of("1395961200000")).ident()));
+            new RelationName(defaultSchema, "parted"), List.of("1395961200000")).ident()));
         assertThat((String) response.rows()[2][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), ImmutableList.of("1396303200000")).ident()));
+            new RelationName(defaultSchema, "parted"), List.of("1396303200000")).ident()));
 
         execute("delete from quotes where quote = 'Don''t panic'");
         refresh();
@@ -1318,7 +1316,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         assertTrue(clusterService().state().metadata().hasAlias(getFqn("quotes")));
 
-        List<String> partitions = ImmutableList.of(
+        List<String> partitions = List.of(
             new PartitionName(
                 new RelationName(defaultSchema, "quotes"),
                 Collections.singletonList("1395874800000")).asIndexName(),

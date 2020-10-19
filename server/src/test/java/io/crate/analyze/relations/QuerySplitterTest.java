@@ -22,7 +22,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.Sets;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -59,8 +58,8 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         Symbol symbol = asSymbol("t1.a = '10' and (t2.b = '30' or t2.b = '20') and t1.x = 1");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
         assertThat(split.size(), is(2));
-        assertThat(split.get(Sets.newHashSet(tr1)), isSQL("((doc.t1.a = '10') AND (doc.t1.x = 1))"));
-        assertThat(split.get(Sets.newHashSet(tr2)), isSQL("((doc.t2.b = '30') OR (doc.t2.b = '20'))"));
+        assertThat(split.get(Set.of(tr1)), isSQL("((doc.t1.a = '10') AND (doc.t1.x = 1))"));
+        assertThat(split.get(Set.of(tr2)), isSQL("((doc.t2.b = '30') OR (doc.t2.b = '20'))"));
     }
 
     @Test
@@ -78,8 +77,8 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         Symbol symbol = asSymbol("t1.a = '10' and (t2.b = '30' or t2.b = '20')");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
         assertThat(split.size(), is(2));
-        assertThat(split.get(Sets.newHashSet(tr1)), isSQL("(doc.t1.a = '10')"));
-        assertThat(split.get(Sets.newHashSet(tr2)), isSQL("((doc.t2.b = '30') OR (doc.t2.b = '20'))"));
+        assertThat(split.get(Set.of(tr1)), isSQL("(doc.t1.a = '10')"));
+        assertThat(split.get(Set.of(tr2)), isSQL("((doc.t2.b = '30') OR (doc.t2.b = '20'))"));
     }
 
     @Test
@@ -87,8 +86,8 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         Symbol symbol = asSymbol("t1.a = '10' and (t2.b = t3.c)");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
         assertThat(split.size(), is(2));
-        assertThat(split.get(Sets.newHashSet(tr1)), isSQL("(doc.t1.a = '10')"));
-        assertThat(split.get(Sets.newHashSet(tr2, tr3)), isSQL("(doc.t2.b = doc.t3.c)"));
+        assertThat(split.get(Set.of(tr1)), isSQL("(doc.t1.a = '10')"));
+        assertThat(split.get(Set.of(tr2, tr3)), isSQL("(doc.t2.b = doc.t3.c)"));
     }
 
     @Test
@@ -101,11 +100,11 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         Symbol t1t2 = asSymbol("t1.a = t2.b");
         Symbol t2t3 = asSymbol("t2.b = t3.c");
 
-        Set<RelationName> tr1AndTr2 = Sets.newHashSet(tr1, tr2);
+        Set<RelationName> tr1AndTr2 = Set.of(tr1, tr2);
         assertThat(split.containsKey(tr1AndTr2), is(true));
         assertThat(split.get(tr1AndTr2), is(t1t2));
 
-        Set<RelationName> tr2AndTr3 = Sets.newHashSet(tr2, tr3);
+        Set<RelationName> tr2AndTr3 = Set.of(tr2, tr3);
         assertThat(split.containsKey(tr2AndTr3), is(true));
         assertThat(split.get(tr2AndTr3), is(t2t3));
     }
@@ -119,11 +118,11 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         Symbol t1t2 = asSymbol("t1.a = t2.b");
         Symbol t1t2t3 = asSymbol("t2.b = t3.c || t1.a");
 
-        Set<RelationName> tr1AndTr2 = Sets.newHashSet(tr1, tr2);
+        Set<RelationName> tr1AndTr2 = Set.of(tr1, tr2);
         assertThat(split.containsKey(tr1AndTr2), is(true));
         assertThat(split.get(tr1AndTr2), is(t1t2));
 
-        Set<RelationName> tr1AndTr2AndTr3 = Sets.newHashSet(tr1, tr2, tr3);
+        Set<RelationName> tr1AndTr2AndTr3 = Set.of(tr1, tr2, tr3);
         assertThat(split.containsKey(tr1AndTr2AndTr3), is(true));
         assertThat(split.get(tr1AndTr2AndTr3), is(t1t2t3));
     }

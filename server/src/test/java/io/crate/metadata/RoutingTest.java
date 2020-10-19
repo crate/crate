@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -77,14 +76,14 @@ public class RoutingTest extends ESTestCase {
     @Test
     public void testRoutingForRandomMasterOrDataNode() throws IOException {
         Map<String, String> attr = Map.of();
-        Set<DiscoveryNode.Role> master_and_data = ImmutableSet.of(DiscoveryNode.Role.MASTER, DiscoveryNode.Role.DATA);
-        DiscoveryNode local = new DiscoveryNode("client_node_1", buildNewFakeTransportAddress(), attr, ImmutableSet.of(), null);
+        Set<DiscoveryNode.Role> master_and_data = Set.of(DiscoveryNode.Role.MASTER, DiscoveryNode.Role.DATA);
+        DiscoveryNode local = new DiscoveryNode("client_node_1", buildNewFakeTransportAddress(), attr, Set.of(), null);
         DiscoveryNodes nodes = new DiscoveryNodes.Builder()
             .add(new DiscoveryNode("data_master_node_1", buildNewFakeTransportAddress(), attr, master_and_data, null))
             .add(new DiscoveryNode("data_master_node_2", buildNewFakeTransportAddress(), attr, master_and_data, null))
             .add(local)
-            .add(new DiscoveryNode("client_node_2", buildNewFakeTransportAddress(), attr, ImmutableSet.of(), null))
-            .add(new DiscoveryNode("client_node_3", buildNewFakeTransportAddress(), attr, ImmutableSet.of(), null))
+            .add(new DiscoveryNode("client_node_2", buildNewFakeTransportAddress(), attr, Set.of(), null))
+            .add(new DiscoveryNode("client_node_3", buildNewFakeTransportAddress(), attr, Set.of(), null))
             .localNodeId(local.getId())
             .build();
 
@@ -99,7 +98,7 @@ public class RoutingTest extends ESTestCase {
 
     @Test
     public void testRoutingForRandomMasterOrDataNodePrefersLocal() throws Exception {
-        Set<DiscoveryNode.Role> data = ImmutableSet.of(DiscoveryNode.Role.DATA);
+        Set<DiscoveryNode.Role> data = Set.of(DiscoveryNode.Role.DATA);
         Map<String, String> attr = Map.of();
         DiscoveryNode local = new DiscoveryNode("local_data", buildNewFakeTransportAddress(), attr, data, null);
         DiscoveryNodes nodes = new DiscoveryNodes.Builder()

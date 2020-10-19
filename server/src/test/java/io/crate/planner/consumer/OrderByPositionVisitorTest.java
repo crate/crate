@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -31,13 +30,15 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import java.util.List;
+
 public class OrderByPositionVisitorTest extends ESTestCase {
 
     @Test
     public void testOrderByPositionInputs() throws Exception {
         int[] orderByPositions = OrderByPositionVisitor.orderByPositions(
-            ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1), new InputColumn(0)),
-            ImmutableList.<Symbol>of(Literal.BOOLEAN_TRUE, Literal.of(1))
+            List.<Symbol>of(new InputColumn(0), new InputColumn(1), new InputColumn(0)),
+            List.<Symbol>of(Literal.BOOLEAN_TRUE, Literal.of(1))
         );
         assertArrayEquals(new int[]{0, 1, 0}, orderByPositions);
     }
@@ -46,8 +47,8 @@ public class OrderByPositionVisitorTest extends ESTestCase {
     public void testSymbols() throws Exception {
         Reference ref = TestingHelpers.createReference("column", DataTypes.STRING);
         int[] orderByPositions = OrderByPositionVisitor.orderByPositions(
-            ImmutableList.of(ref, new InputColumn(1), new InputColumn(0)),
-            ImmutableList.of(ref, Literal.of(1))
+            List.of(ref, new InputColumn(1), new InputColumn(0)),
+            List.of(ref, Literal.of(1))
         );
         assertArrayEquals(new int[]{0, 1, 0}, orderByPositions);
     }

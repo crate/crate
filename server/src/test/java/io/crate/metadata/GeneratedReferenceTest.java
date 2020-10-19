@@ -22,7 +22,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
@@ -36,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 import static io.crate.testing.T3.T1_DEFINITION;
 import static io.crate.testing.T3.T1;
@@ -70,7 +70,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
             formattedGeneratedExpression, false);
 
         generatedReferenceInfo.generatedExpression(expressions.normalize(executor.asSymbol(formattedGeneratedExpression)));
-        generatedReferenceInfo.referencedReferences(ImmutableList.of(t1Info.getReference(new ColumnIdent("a"))));
+        generatedReferenceInfo.referencedReferences(List.of(t1Info.getReference(new ColumnIdent("a"))));
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(generatedReferenceInfo, out);

@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.InputColumn;
@@ -56,11 +55,10 @@ public class RowShardResolverTest extends ESTestCase {
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private NodeContext nodeCtx = createNodeContext();
 
-
     @Test
     public void testNoPrimaryKeyNoRouting() {
         RowShardResolver rowShardResolver =
-            new RowShardResolver(txnCtx, nodeCtx, ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), null, null);
+            new RowShardResolver(txnCtx, nodeCtx, List.of(), List.of(), null, null);
         rowShardResolver.setNextRow(row());
 
         // auto-generated id, no special routing
@@ -71,7 +69,7 @@ public class RowShardResolverTest extends ESTestCase {
     @Test
     public void testNoPrimaryKeyButRouting() {
         RowShardResolver rowShardResolver =
-            new RowShardResolver(txnCtx, nodeCtx, ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), ID_IDENT, new InputColumn(1));
+            new RowShardResolver(txnCtx, nodeCtx, List.of(), List.of(), ID_IDENT, new InputColumn(1));
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // auto-generated id, special routing
@@ -81,9 +79,9 @@ public class RowShardResolverTest extends ESTestCase {
 
     @Test
     public void testPrimaryKeyNoRouting() {
-        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(0), new InputColumn(1));
         RowShardResolver rowShardResolver =
-            new RowShardResolver(txnCtx, nodeCtx, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, null);
+            new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id"), ci("foo")), primaryKeySymbols, null, null);
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, no special routing
@@ -93,9 +91,9 @@ public class RowShardResolverTest extends ESTestCase {
 
     @Test
     public void testPrimaryKeyAndRouting() {
-        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(0), new InputColumn(1));
         RowShardResolver rowShardResolver =
-            new RowShardResolver(txnCtx, nodeCtx, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
+            new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, special routing
@@ -105,9 +103,9 @@ public class RowShardResolverTest extends ESTestCase {
 
     @Test
     public void testMultipleRows() {
-        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(0), new InputColumn(1));
         RowShardResolver rowShardResolver =
-            new RowShardResolver(txnCtx, nodeCtx, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
+            new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
 
         rowShardResolver.setNextRow(row(1, "hoschi"));
         assertThat(rowShardResolver.id(), is("AgZob3NjaGkBMQ=="));
@@ -120,9 +118,9 @@ public class RowShardResolverTest extends ESTestCase {
 
     @Test
     public void testIdPrimaryKeyNull() {
-        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(2));
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(2));
         RowShardResolver rowShardResolver =
-            new RowShardResolver(txnCtx, nodeCtx, ImmutableList.of(ID_IDENT), primaryKeySymbols, null, new InputColumn(1));
+            new RowShardResolver(txnCtx, nodeCtx, List.of(ID_IDENT), primaryKeySymbols, null, new InputColumn(1));
         rowShardResolver.setNextRow(row(1, "hoschi", null));
 
         // generated _id, special routing
@@ -135,9 +133,9 @@ public class RowShardResolverTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("A primary key value must not be NULL");
 
-        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0));
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(0));
         RowShardResolver rowShardResolver =
-            new RowShardResolver(txnCtx, nodeCtx, ImmutableList.of(ci("id")), primaryKeySymbols, null, null);
+            new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id")), primaryKeySymbols, null, null);
         rowShardResolver.setNextRow(row(new Object[]{null}));
     }
 
@@ -146,9 +144,9 @@ public class RowShardResolverTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("A primary key value must not be NULL");
 
-        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(1), new InputColumn(0));
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(1), new InputColumn(0));
         RowShardResolver rowShardResolver =
-            new RowShardResolver(txnCtx, nodeCtx, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, new InputColumn(1));
+            new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id"), ci("foo")), primaryKeySymbols, null, new InputColumn(1));
         rowShardResolver.setNextRow(row(1, null));
     }
 }

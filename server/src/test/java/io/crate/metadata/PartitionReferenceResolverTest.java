@@ -21,12 +21,12 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.expression.reference.partitioned.PartitionExpression;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
 
@@ -35,8 +35,7 @@ public class PartitionReferenceResolverTest extends ESTestCase {
     @Test
     public void testClusterExpressionsNotAllowed() throws Exception {
         Reference refInfo = TestingHelpers.refInfo("foo.bar", DataTypes.STRING, RowGranularity.CLUSTER);
-        PartitionReferenceResolver referenceResolver = new PartitionReferenceResolver(
-            ImmutableList.<PartitionExpression>of());
+        PartitionReferenceResolver referenceResolver = new PartitionReferenceResolver(List.of());
 
         if (assertionsEnabled()) {
             try {

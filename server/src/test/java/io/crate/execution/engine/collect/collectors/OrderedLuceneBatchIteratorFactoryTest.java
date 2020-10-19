@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect.collectors;
 
 
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccounting;
@@ -132,7 +131,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
                     Arrays.asList(collector1, collector2),
                     OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
                     ROW_ACCOUNTING,
-                    MoreExecutors.directExecutor(),
+                    Runnable::run,
                     () -> 1,
                     true
                 );
@@ -152,7 +151,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
             Arrays.asList(createOrderedCollector(searcher1, 1)),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
             rowAccounting,
-            MoreExecutors.directExecutor(),
+            Runnable::run,
             () -> 2,
             true
         );
@@ -172,7 +171,8 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
             Arrays.asList(collector1, collector2),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
-            rowAccounting, MoreExecutors.directExecutor(),
+            rowAccounting,
+            Runnable::run,
             () -> 1,
             true
         );

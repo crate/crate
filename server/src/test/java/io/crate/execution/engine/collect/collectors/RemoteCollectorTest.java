@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccounting;
 import io.crate.exceptions.JobKilledException;
@@ -114,7 +113,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             "remoteNode",
             transportJobAction,
             transportKillJobsNodeAction,
-            MoreExecutors.directExecutor(),
+            Runnable::run,
             tasksService,
             RamAccounting.NO_ACCOUNTING,
             consumer,

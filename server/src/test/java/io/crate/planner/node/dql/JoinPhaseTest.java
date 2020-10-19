@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.collect.Sets;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
@@ -43,6 +42,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -102,7 +102,7 @@ public class JoinPhaseTest extends ESTestCase {
             mp2,
             2,
             3,
-            Sets.newHashSet("node1", "node2"),
+            Set.of("node1", "node2"),
             JoinType.FULL,
             joinCondition,
             List.of(DataTypes.LONG, DataTypes.STRING, new ArrayType<>(DataTypes.INTEGER)),
@@ -142,7 +142,7 @@ public class JoinPhaseTest extends ESTestCase {
             mp2,
             2,
             3,
-            Sets.newHashSet("node1", "node2"),
+            Set.of("node1", "node2"),
             joinCondition,
             List.of(Literal.of("testLeft"), Literal.of(10)),
             List.of(Literal.of("testRight"), Literal.of(20)),

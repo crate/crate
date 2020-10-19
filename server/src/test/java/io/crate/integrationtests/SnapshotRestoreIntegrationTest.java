@@ -42,8 +42,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-import com.google.common.base.Joiner;
-
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -123,7 +121,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     private void createSnapshot(String snapshotName, String... tables) {
-        execute("CREATE SNAPSHOT " + REPOSITORY_NAME + "." + snapshotName + " TABLE " + Joiner.on(", ").join(tables) +
+        execute("CREATE SNAPSHOT " + REPOSITORY_NAME + "." + snapshotName + " TABLE " + String.join(", ", tables) +
                 " WITH (wait_for_completion=true)");
         assertThat(response.rowCount(), is(1L));
     }

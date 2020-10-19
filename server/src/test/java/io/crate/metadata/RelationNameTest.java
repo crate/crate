@@ -22,10 +22,11 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.blob.v2.BlobIndex;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
@@ -44,10 +45,10 @@ public class RelationNameTest extends ESTestCase {
         assertThat(RelationName.fromIndexName("t"), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
         assertThat(RelationName.fromIndexName("s.t"), is(new RelationName("s", "t")));
 
-        PartitionName pn = new PartitionName(new RelationName("s", "t"), ImmutableList.of("v1"));
+        PartitionName pn = new PartitionName(new RelationName("s", "t"), List.of("v1"));
         assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName("s", "t")));
 
-        pn = new PartitionName(new RelationName("doc", "t"), ImmutableList.of("v1"));
+        pn = new PartitionName(new RelationName("doc", "t"), List.of("v1"));
         assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
     }
 

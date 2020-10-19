@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -44,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T1_DEFINITION;
@@ -51,7 +51,6 @@ import static io.crate.testing.T3.T4;
 import static io.crate.testing.T3.T4_DEFINITION;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
 
@@ -67,7 +66,8 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testColumnsIteratorCanBeMaterializedToList() {
         InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(t1Info);
-        ImmutableList<ColumnContext> contexts = ImmutableList.copyOf(columns);
+        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false)
+            .collect(Collectors.toList());
 
         assertThat(
             contexts.stream().map(c -> c.info.column().name()).collect(Collectors.toList()),
@@ -90,7 +90,8 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testOrdinalIsNotNullOnSubColumns() throws Exception {
         InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(t4Info);
-        ImmutableList<ColumnContext> contexts = ImmutableList.copyOf(columns);
+        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false)
+            .collect(Collectors.toList());
 
         // sub columns must have NON-NULL ordinal value
         assertThat(contexts.get(1).ordinal, is(2));

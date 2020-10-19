@@ -22,7 +22,6 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.collect.Lists;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
@@ -59,7 +58,7 @@ public class DocRefResolverTest extends ESTestCase {
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
-        List<Reference> references = Lists.newArrayList(
+        List<Reference> references = List.of(
             refInfo("t1._id", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.ID), RowGranularity.DOC),
             refInfo("t1._version", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.VERSION), RowGranularity.DOC),
             refInfo("t1._doc", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.DOC), RowGranularity.DOC),

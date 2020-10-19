@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -44,7 +43,7 @@ import static org.hamcrest.Matchers.containsString;
 
 public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final List<String> EXPLAIN_TEST_STATEMENTS = ImmutableList.of(
+    private static final List<String> EXPLAIN_TEST_STATEMENTS = List.of(
         "select 1 as connected",
         "select id from sys.cluster",
         "select id from users order by id",

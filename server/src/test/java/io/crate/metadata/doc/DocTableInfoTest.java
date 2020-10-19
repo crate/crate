@@ -1,6 +1,5 @@
 package io.crate.metadata.doc;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -19,6 +18,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class DocTableInfoTest extends ESTestCase {
@@ -29,23 +29,23 @@ public class DocTableInfoTest extends ESTestCase {
 
         DocTableInfo info = new DocTableInfo(
             relationName,
-            ImmutableList.of(
+            List.of(
                 new Reference(
-                    new ReferenceIdent(relationName, new ColumnIdent("o", ImmutableList.of())),
+                    new ReferenceIdent(relationName, new ColumnIdent("o", List.of())),
                     RowGranularity.DOC,
                     DataTypes.UNTYPED_OBJECT,
                     null,
                     null
                 )
             ),
-            ImmutableList.of(),
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(),
+            List.of(),
+            List.of(),
             Map.of(),
             Map.of(),
             Map.of(),
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(),
+            List.of(),
             null,
             true,
             new String[0],
@@ -54,8 +54,8 @@ public class DocTableInfoTest extends ESTestCase {
             5,
             "0",
             Settings.EMPTY,
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(),
+            List.of(),
             ColumnPolicy.DYNAMIC,
             Version.CURRENT,
             null,
@@ -63,11 +63,11 @@ public class DocTableInfoTest extends ESTestCase {
             Operation.ALL
         );
 
-        Reference foobar = info.getReference(new ColumnIdent("o", ImmutableList.of("foobar")));
+        Reference foobar = info.getReference(new ColumnIdent("o", List.of("foobar")));
         assertNull(foobar);
-        DynamicReference reference = info.getDynamic(new ColumnIdent("o", ImmutableList.of("foobar")), false);
+        DynamicReference reference = info.getDynamic(new ColumnIdent("o", List.of("foobar")), false);
         assertNull(reference);
-        reference = info.getDynamic(new ColumnIdent("o", ImmutableList.of("foobar")), true);
+        reference = info.getDynamic(new ColumnIdent("o", List.of("foobar")), true);
         assertNotNull(reference);
         assertSame(reference.valueType(), DataTypes.UNDEFINED);
     }
@@ -91,15 +91,15 @@ public class DocTableInfoTest extends ESTestCase {
 
         DocTableInfo info = new DocTableInfo(
             dummy,
-            ImmutableList.of(strictParent),
-            ImmutableList.of(),
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(strictParent),
+            List.of(),
+            List.of(),
+            List.of(),
             Map.of(),
             references,
             Map.of(),
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(),
+            List.of(),
             null,
             true,
             new String[0],
@@ -108,8 +108,8 @@ public class DocTableInfoTest extends ESTestCase {
             5,
             "0",
             Settings.EMPTY,
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(),
+            List.of(),
             ColumnPolicy.DYNAMIC,
             Version.CURRENT,
             null,

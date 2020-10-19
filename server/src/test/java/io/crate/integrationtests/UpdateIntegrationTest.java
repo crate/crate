@@ -35,7 +35,6 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static com.google.common.collect.Maps.newHashMap;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -355,8 +354,8 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNestedObjectDeleteWithArgs() throws Exception {
         execute("create table test (a object as (x object as (y int, z int))) with (number_of_replicas=0)");
-        Map<String, Object> map = newHashMap();
-        Map<String, Object> nestedMap = newHashMap();
+        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> nestedMap = new HashMap<>();
         nestedMap.put("y", 2);
         nestedMap.put("z", 3);
         map.put("x", nestedMap);
@@ -380,8 +379,8 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNestedObjectDeleteWithoutArgs() throws Exception {
         execute("create table test (a object as (x object as (y int, z int))) with (number_of_replicas=0)");
-        Map<String, Object> map = newHashMap();
-        Map<String, Object> nestedMap = newHashMap();
+        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> nestedMap = new HashMap<>();
         nestedMap.put("y", 2);
         nestedMap.put("z", 3);
         map.put("x", nestedMap);

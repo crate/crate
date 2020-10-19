@@ -22,11 +22,13 @@
 
 package io.crate.expression.tablefunctions;
 
-import com.google.common.collect.Iterables;
 import io.crate.data.Row;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.is;
+import java.util.stream.StreamSupport;
+
+import static org.hamcrest.CoreMatchers.is;
+
 
 public class EmptyRowTableFunctionTest extends AbstractTableFunctionsTest {
 
@@ -38,6 +40,6 @@ public class EmptyRowTableFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void testEmptyRowReturnsOneRow() {
         Iterable<Row> result = execute("empty_row()");
-        assertThat(Iterables.size(result), is(1));
+        assertThat(StreamSupport.stream(result.spliterator(), false).count(), is(1L));
     }
 }

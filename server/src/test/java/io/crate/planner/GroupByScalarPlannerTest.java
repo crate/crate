@@ -2,7 +2,6 @@ package io.crate.planner;
 
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.google.common.collect.Iterables;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -59,7 +58,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         MergePhase mergePhase = merge.mergePhase();
 
-        assertEquals(DataTypes.LONG, Iterables.get(mergePhase.inputTypes(), 0));
+        assertEquals(DataTypes.LONG, mergePhase.inputTypes().iterator().next());
         assertEquals(DataTypes.LONG, mergePhase.outputTypes().get(0));
     }
 
@@ -83,7 +82,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         MergePhase mergePhase = merge.mergePhase();
 
-        assertEquals(DataTypes.LONG, Iterables.get(mergePhase.inputTypes(), 0));
+        assertEquals(DataTypes.LONG, mergePhase.inputTypes().iterator().next());
         assertEquals(DataTypes.LONG, mergePhase.outputTypes().get(0));
     }
 

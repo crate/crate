@@ -22,11 +22,11 @@
 
 package io.crate.exceptions;
 
-import com.google.common.collect.Lists;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
@@ -37,10 +37,14 @@ public class MultiExceptionTest extends ESTestCase {
 
     @Test
     public void testGetMessageReturnsCombinedMessages() throws Exception {
-        MultiException multiException = new MultiException(Lists.newArrayList(
-            new Exception("first one"), new Exception("second one")));
-        assertThat(multiException.getMessage(), is("first one\n" +
-                                                   "second one"));
+        MultiException multiException = new MultiException(
+            List.of(
+                new Exception("first one"),
+                new Exception("second one"))
+        );
+        assertThat(
+            multiException.getMessage(),
+            is("first one\nsecond one"));
     }
 
     @Test
@@ -56,7 +60,7 @@ public class MultiExceptionTest extends ESTestCase {
 
     @Test
     public void testMultiExceptionsAreFlattened() throws Exception {
-        MultiException e1 = new MultiException(Lists.newArrayList(new Exception("exception 1"), new Exception("exception 2")));
+        MultiException e1 = new MultiException(List.of(new Exception("exception 1"), new Exception("exception 2")));
         Exception e2 = new Exception("exception 3");
 
         MultiException multiException = MultiException.of(e1, e2);

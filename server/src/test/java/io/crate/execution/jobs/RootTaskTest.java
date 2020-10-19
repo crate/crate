@@ -36,8 +36,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.util.concurrent.MoreExecutors;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -142,7 +140,7 @@ public class RootTaskTest extends ESTestCase {
         PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
             "n1",
             2,
-            MoreExecutors.directExecutor(),
+            Runnable::run,
             new Streamer[]{IntegerType.INSTANCE.streamer()},
             batchConsumer,
             PassThroughPagingIterator.oneShot(),

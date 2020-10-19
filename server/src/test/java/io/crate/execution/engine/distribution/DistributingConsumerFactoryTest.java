@@ -23,7 +23,6 @@
 package io.crate.execution.engine.distribution;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Paging;
@@ -94,14 +93,14 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testCreateDownstreamOneNode() throws Exception {
-        RowConsumer downstream = createDownstream(ImmutableSet.of("downstream_node"));
+        RowConsumer downstream = createDownstream(Set.of("downstream_node"));
         assertThat(downstream, instanceOf(DistributingConsumer.class));
         assertThat(((DistributingConsumer) downstream).multiBucketBuilder, instanceOf(BroadcastingBucketBuilder.class));
     }
 
     @Test
     public void testCreateDownstreamMultipleNode() throws Exception {
-        RowConsumer downstream = createDownstream(ImmutableSet.of("downstream_node1", "downstream_node2"));
+        RowConsumer downstream = createDownstream(Set.of("downstream_node1", "downstream_node2"));
         assertThat(((DistributingConsumer) downstream).multiBucketBuilder, instanceOf(ModuloBucketBuilder.class));
     }
 }

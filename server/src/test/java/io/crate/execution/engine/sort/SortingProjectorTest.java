@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
@@ -57,8 +56,8 @@ public class SortingProjectorTest extends ESTestCase {
         InputCollectExpression input = new InputCollectExpression(0);
         return new SortingProjector(
             rowAccounting,
-            ImmutableList.of(input, Literal.of(true)),
-            ImmutableList.<CollectExpression<Row, ?>>of(input),
+            List.of(input, Literal.of(true)),
+            List.<CollectExpression<Row, ?>>of(input),
             numOutputs,
             OrderingByPosition.arrayOrdering(0, false, false),
             offset
