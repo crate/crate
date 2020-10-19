@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.fetch;
 
-import com.google.common.collect.Iterables;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -33,6 +32,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.core.Is.is;
 
@@ -52,7 +52,9 @@ public class NodeFetchOperationTest extends CrateDummyClusterServiceUnitTest {
 
             fetchOperation.fetch(UUID.randomUUID(), 1, null, true).get(5, TimeUnit.SECONDS);
 
-            assertThat(Iterables.size(jobsLogs.activeOperations()), is(0));
+            assertThat(
+                StreamSupport.stream(jobsLogs.activeOperations().spliterator(), false).count(),
+                is(0L));
         } finally {
             threadPoolExecutor.shutdown();
             threadPoolExecutor.awaitTermination(2, TimeUnit.SECONDS);

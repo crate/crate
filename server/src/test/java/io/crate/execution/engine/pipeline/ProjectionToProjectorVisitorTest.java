@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.pipeline;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -220,7 +219,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
             new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG));
         OrderedTopNProjection topNProjection = new OrderedTopNProjection(10, 0, outputs,
-            ImmutableList.of(new InputColumn(2, DataTypes.DOUBLE)),
+            List.of(new InputColumn(2, DataTypes.DOUBLE)),
             new boolean[]{false},
             new boolean[]{false});
         Projector topNProjector = visitor.create(

@@ -21,11 +21,11 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableList;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
@@ -35,10 +35,10 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSingleColumn() throws Exception {
-        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), ImmutableList.of("1"));
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), List.of("1"));
 
         assertThat(partitionName.values().size(), is(1));
-        assertEquals(ImmutableList.of("1"), partitionName.values());
+        assertEquals(List.of("1"), partitionName.values());
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
         assertEquals(partitionName.values(), partitionName1.values());
@@ -46,10 +46,10 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSingleColumnSchema() throws Exception {
-        PartitionName partitionName = new PartitionName(new RelationName("schema", "test"), ImmutableList.of("1"));
+        PartitionName partitionName = new PartitionName(new RelationName("schema", "test"), List.of("1"));
 
         assertThat(partitionName.values().size(), is(1));
-        assertEquals(ImmutableList.of("1"), partitionName.values());
+        assertEquals(List.of("1"), partitionName.values());
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
         assertEquals(partitionName.values(), partitionName1.values());
@@ -57,11 +57,13 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testMultipleColumns() throws Exception {
-        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"),
-            ImmutableList.of("1", "foo"));
+        PartitionName partitionName = new PartitionName(
+            new RelationName("doc", "test"),
+            List.of("1", "foo")
+        );
 
         assertThat(partitionName.values().size(), is(2));
-        assertEquals(ImmutableList.of("1", "foo"), partitionName.values());
+        assertEquals(List.of("1", "foo"), partitionName.values());
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
         assertEquals(partitionName.values(), partitionName1.values());
@@ -70,10 +72,10 @@ public class PartitionNameTest extends ESTestCase {
     @Test
     public void testMultipleColumnsSchema() throws Exception {
         PartitionName partitionName = new PartitionName(
-            new RelationName("schema", "test"), ImmutableList.of("1", "foo"));
+            new RelationName("schema", "test"), List.of("1", "foo"));
 
         assertThat(partitionName.values().size(), is(2));
-        assertEquals(ImmutableList.of("1", "foo"), partitionName.values());
+        assertEquals(List.of("1", "foo"), partitionName.values());
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
         assertEquals(partitionName.values(), partitionName1.values());
@@ -102,10 +104,10 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testEmptyStringValue() throws Exception {
-        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), ImmutableList.of(""));
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), List.of(""));
 
         assertThat(partitionName.values().size(), is(1));
-        assertEquals(ImmutableList.of(""), partitionName.values());
+        assertEquals(List.of(""), partitionName.values());
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
         assertEquals(partitionName.values(), partitionName1.values());

@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import static com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -165,12 +164,12 @@ public class Setup {
                                                              ")", numericType));
         transportExecutor.ensureYellowOrGreen();
 
-        Map<String, String> details = newHashMap();
+        Map<String, String> details = new HashMap<>();
         details.put("job", "Sandwitch Maker");
         transportExecutor.exec("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
             new Object[]{"Human", "male", 34, "1975-10-01", "Arthur Dent", details});
 
-        details = newHashMap();
+        details = new HashMap<>();
         details.put("job", "Mathematician");
         transportExecutor.exec("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
             new Object[]{"Human", "female", 32, "1978-10-11", "Trillian", details});

@@ -22,23 +22,17 @@
 
 package io.crate.execution.engine.pipeline;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.stream.StreamSupport;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static org.hamcrest.Matchers.emptyIterable;
@@ -46,11 +40,7 @@ import static org.hamcrest.Matchers.is;
 
 public class SimpleTopNProjectorTest extends ESTestCase {
 
-    private static final InputCollectExpression input = new InputCollectExpression(0);
-    private static final ImmutableList<Input<?>> INPUTS = ImmutableList.of(input);
-    private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = Collections.singletonList(input);
-
-    private TestingRowConsumer consumer = new TestingRowConsumer();
+    private final TestingRowConsumer consumer = new TestingRowConsumer();
 
     private SimpleTopNProjector prepareProjector(int limit, int offset) {
         return new SimpleTopNProjector(limit, offset);
@@ -66,8 +56,8 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         Bucket projected = consumer.getBucket();
         assertThat(projected.size(), is(10));
 
-        int iterateLength = Iterables.size(consumer.getBucket());
-        assertThat(iterateLength, is(10));
+        long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
+        assertThat(iterateLength, is(10L));
     }
 
     @Test
@@ -79,8 +69,8 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         Bucket projected = consumer.getBucket();
         assertThat(projected.size(), is(5));
 
-        int iterateLength = Iterables.size(consumer.getBucket());
-        assertThat(iterateLength, is(5));
+        long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
+        assertThat(iterateLength, is(5L));
     }
 
     @Test
@@ -91,8 +81,8 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         Bucket projected = consumer.getBucket();
         assertThat(projected.size(), is(10));
 
-        int iterateLength = Iterables.size(consumer.getBucket());
-        assertThat(iterateLength, is(10));
+        long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
+        assertThat(iterateLength, is(10L));
 
     }
 
@@ -104,8 +94,8 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         Bucket projected = consumer.getBucket();
         assertThat(projected, emptyIterable());
 
-        int iterateLength = Iterables.size(consumer.getBucket());
-        assertThat(iterateLength, is(0));
+        long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
+        assertThat(iterateLength, is(0L));
     }
 
     @Test
@@ -117,8 +107,8 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         Bucket projected = consumer.getBucket();
         assertThat(projected.size(), is(1));
 
-        int iterateLength = Iterables.size(consumer.getBucket());
-        assertThat(iterateLength, is(1));
+        long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
+        assertThat(iterateLength, is(1L));
     }
 
     @Test
@@ -130,8 +120,8 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         Bucket projected = consumer.getBucket();
         assertThat(projected.size(), is(90));
 
-        int iterateLength = Iterables.size(consumer.getBucket());
-        assertThat(iterateLength, is(90));
+        long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
+        assertThat(iterateLength, is(90L));
     }
 
     @Test
@@ -156,8 +146,8 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         Bucket projected = consumer.getBucket();
         assertThat(projected.size(), is(10));
 
-        int iterateLength = Iterables.size(consumer.getBucket());
-        assertThat(iterateLength, is(10));
+        long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
+        assertThat(iterateLength, is(10L));
     }
 
     @Test
@@ -168,8 +158,8 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         Bucket projected = consumer.getBucket();
         assertThat(projected.size(), is(5));
 
-        int iterateLength = Iterables.size(consumer.getBucket());
-        assertThat(iterateLength, is(5));
+        long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
+        assertThat(iterateLength, is(5L));
     }
 
 
@@ -189,8 +179,8 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         Bucket projected = consumer.getBucket();
         assertThat(projected.size(), is(90));
 
-        int iterateLength = Iterables.size(consumer.getBucket());
-        assertThat(iterateLength, is(90));
+        long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
+        assertThat(iterateLength, is(90L));
     }
 
     @Test

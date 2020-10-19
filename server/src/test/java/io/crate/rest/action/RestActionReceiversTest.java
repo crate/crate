@@ -22,7 +22,6 @@
 
 package io.crate.rest.action;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Row;
@@ -46,12 +45,12 @@ import java.util.List;
 
 public class RestActionReceiversTest extends ESTestCase {
 
-    private final ImmutableList<RowN> rows = ImmutableList.of(
+    private final List<RowN> rows = List.of(
         new RowN("foo", 1, true),
         new RowN("bar", 2, false),
         new RowN("foobar", 3, null)
     );
-    private final List<Symbol> fields = ImmutableList.of(
+    private final List<Symbol> fields = List.of(
         new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_a"), DataTypes.STRING),
         new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_b"), DataTypes.INTEGER),
         new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_c"), DataTypes.BOOLEAN)

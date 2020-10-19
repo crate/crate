@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
+import io.crate.common.collections.Lists2;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
@@ -32,9 +31,7 @@ import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -49,7 +46,7 @@ public class SortedPagingIteratorTest extends ESTestCase {
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {
         SortedPagingIterator<Void, Row> pagingIterator = new SortedPagingIterator<>(ORDERING, randomBoolean());
 
-        pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
+        pagingIterator.merge(numberedBuckets(List.of(
             new ArrayBucket(new Object[][]{
                 new Object[]{"a"},
                 new Object[]{"b"},
@@ -67,7 +64,7 @@ public class SortedPagingIteratorTest extends ESTestCase {
         assertThat(rows.size(), is(3));
         assertThat(TestingHelpers.printRows(rows), is("a\nb\nc\n"));
 
-        pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
+        pagingIterator.merge(numberedBuckets(List.of(
             new ArrayBucket(new Object[][]{
                 new Object[]{"d"},
                 new Object[]{"e"},
@@ -103,7 +100,7 @@ public class SortedPagingIteratorTest extends ESTestCase {
     @Test
     public void testReplayReplaysCorrectly() throws Exception {
         SortedPagingIterator<Void, Row> pagingIterator = new SortedPagingIterator<>(ORDERING, true);
-        pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
+        pagingIterator.merge(numberedBuckets(List.of(
             new ArrayBucket(new Object[][]{
                 new Object[]{"a"},
                 new Object[]{"b"},
@@ -121,7 +118,7 @@ public class SortedPagingIteratorTest extends ESTestCase {
         List<Object> rows = new ArrayList<>();
         consumeSingleColumnRows(pagingIterator, rows);
 
-        pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
+        pagingIterator.merge(numberedBuckets(List.of(
             new ArrayBucket(new Object[][]{
                 new Object[]{"d"},
                 new Object[]{"e"},
@@ -140,13 +137,6 @@ public class SortedPagingIteratorTest extends ESTestCase {
     }
 
     private Iterable<? extends KeyIterable<Void, Row>> numberedBuckets(List<Bucket> buckets) {
-        return Iterables.transform(buckets, new Function<Bucket, KeyIterable<Void, Row>>() {
-
-            @Nullable
-            @Override
-            public KeyIterable<Void, Row> apply(Bucket input) {
-                return new KeyIterable<>(null, input);
-            }
-        });
+        return Lists2.mapLazy(buckets, bucket -> new KeyIterable<>(null, bucket));
     }
 }

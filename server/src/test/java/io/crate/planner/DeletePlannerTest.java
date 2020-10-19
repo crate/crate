@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import com.google.common.collect.Lists;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.exceptions.VersioninigValidationException;
@@ -44,6 +43,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static io.crate.testing.TestingHelpers.isDocKey;
 import static java.util.Collections.singletonList;
@@ -86,8 +86,7 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testMultiDeletePlan() throws Exception {
         DeleteById plan = e.plan("delete from users where id in (1, 2)");
         assertThat(plan.docKeys().size(), is(2));
-        List<String> docKeys = Lists.newArrayList(plan.docKeys())
-            .stream()
+        List<String> docKeys = StreamSupport.stream(plan.docKeys().spliterator(), false)
             .map(x -> x.getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY))
             .collect(Collectors.toList());
 

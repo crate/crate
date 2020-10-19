@@ -21,7 +21,6 @@
 
 package io.crate.planner.node;
 
-import com.google.common.collect.Sets;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
@@ -43,6 +42,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
@@ -70,7 +70,7 @@ public class MergeNodeTest extends ESTestCase {
             "merge",
             2,
             1,
-            Sets.newHashSet("node1", "node2"),
+            Set.of("node1", "node2"),
             List.of(DataTypes.UNDEFINED, DataTypes.STRING),
             projections,
             DistributionInfo.DEFAULT_BROADCAST,

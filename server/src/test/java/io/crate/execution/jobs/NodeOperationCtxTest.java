@@ -30,7 +30,8 @@ import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.StubPhases;
 import org.junit.Test;
 
-import static com.google.common.collect.Lists.newArrayList;
+import java.util.List;
+
 import static io.crate.execution.jobs.JobSetup.NodeOperationCtx;
 import static io.crate.planner.distribution.DistributionInfo.DEFAULT_BROADCAST;
 import static io.crate.testing.StubPhases.newPhase;
@@ -46,8 +47,11 @@ public class NodeOperationCtxTest extends ESTestCase {
         ExecutionPhase p2 = newPhase(1, "n1", "n2");
         ExecutionPhase p3 = newPhase(2, "n2");
 
-        NodeOperationCtx opCtx = new NodeOperationCtx("n1",
-            newArrayList(NodeOperation.withDownstream(p1, p2, (byte) 0), NodeOperation.withDownstream(p2, p3, (byte) 0))
+        NodeOperationCtx opCtx = new NodeOperationCtx(
+            "n1",
+            List.of(
+                NodeOperation.withDownstream(p1, p2, (byte) 0),
+                NodeOperation.withDownstream(p2, p3, (byte) 0))
         );
 
         assertThat(opCtx.findLeafs(), is(IntArrayList.from(2)));
@@ -88,7 +92,7 @@ public class NodeOperationCtxTest extends ESTestCase {
         ExecutionPhase p3 = newPhase(3, "n2");
 
         NodeOperationCtx opCtx = new NodeOperationCtx("n1",
-            newArrayList(NodeOperation.withDownstream(p1, p3, (byte) 0), NodeOperation.withDownstream(p2, p3, (byte) 0)));
+            List.of(NodeOperation.withDownstream(p1, p3, (byte) 0), NodeOperation.withDownstream(p2, p3, (byte) 0)));
 
         assertThat(opCtx.upstreamsAreOnSameNode(3), is(true));
     }

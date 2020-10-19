@@ -21,8 +21,6 @@
 
 package io.crate.testing;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Ordering;
 import io.crate.analyze.where.DocKeys;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Sorted;
@@ -66,6 +64,7 @@ import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +72,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -164,10 +164,10 @@ public class TestingHelpers {
         return first;
     }
 
-    private final static Joiner.MapJoiner MAP_JOINER = Joiner.on(", ").useForNull("null").withKeyValueSeparator("=");
-
     public static String mapToSortedString(Map<String, Object> map) {
-        return MAP_JOINER.join(Sorted.sortRecursive(map));
+        return Sorted.sortRecursive(map).entrySet().stream()
+            .map(e -> e.getKey() + "=" + e.getValue())
+            .collect(Collectors.joining(", "));
     }
 
     public static NodeContext createNodeContext(AbstractModule... additionalModules) {
@@ -338,21 +338,21 @@ public class TestingHelpers {
         return isSortedBy(extractSortingKeyFunction, false, null);
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction,
-                                                                                      final boolean descending,
-                                                                                      @Nullable final Boolean nullsFirst) {
-        Ordering<K> ordering = Ordering.natural();
+    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(
+        final Function<T, K> extractSortingKeyFunction,
+        final boolean descending,
+        @Nullable final Boolean nullsFirst) {
+        Comparator<K> comparator = Comparator.naturalOrder();
         if (descending) {
-            ordering = ordering.reverse();
+            comparator = Comparator.reverseOrder();
         }
         if (nullsFirst != null && nullsFirst) {
-            ordering = ordering.nullsFirst();
+            comparator = Comparator.nullsFirst(comparator);
         } else {
-            ordering = ordering.nullsLast();
+            comparator = Comparator.nullsLast(comparator);
         }
-        final Ordering<K> ord = ordering;
-
-        return new TypeSafeDiagnosingMatcher<Iterable<? extends T>>() {
+        Comparator<K> finalComparator = comparator;
+        return new TypeSafeDiagnosingMatcher<>() {
             @Override
             protected boolean matchesSafely(Iterable<? extends T> item, Description mismatchDescription) {
                 K previous = null;
@@ -360,7 +360,7 @@ public class TestingHelpers {
                 for (T elem : item) {
                     K current = extractSortingKeyFunction.apply(elem);
                     if (previous != null) {
-                        if (ord.compare(previous, current) > 0) {
+                        if (finalComparator.compare(previous, current) > 0) {
                             mismatchDescription
                                 .appendText("element ").appendValue(current)
                                 .appendText(" at position ").appendValue(i)

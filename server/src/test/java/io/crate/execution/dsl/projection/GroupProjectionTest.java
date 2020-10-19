@@ -21,7 +21,6 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
@@ -43,11 +42,11 @@ public class GroupProjectionTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
-        ImmutableList<Symbol> keys = ImmutableList.of(
+        List<Symbol> keys = List.of(
             new InputColumn(0, DataTypes.STRING),
             new InputColumn(1, DataTypes.SHORT)
         );
-        ImmutableList<Aggregation> aggregations = ImmutableList.of();
+        List<Aggregation> aggregations = List.of();
         GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -85,11 +84,11 @@ public class GroupProjectionTest extends ESTestCase {
 
     @Test
     public void testStreamingGranularity() throws Exception {
-        ImmutableList<Symbol> keys = ImmutableList.of(
+        List<Symbol> keys = List.of(
             new InputColumn(0, DataTypes.STRING),
             new InputColumn(1, DataTypes.SHORT)
         );
-        ImmutableList<Aggregation> aggregations = ImmutableList.of();
+        List<Aggregation> aggregations = List.of();
         GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.SHARD);
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);

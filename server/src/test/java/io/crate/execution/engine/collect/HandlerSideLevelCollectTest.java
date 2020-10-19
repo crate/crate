@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
@@ -30,7 +29,6 @@ import io.crate.data.Buckets;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -99,7 +97,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             routing,
             rowGranularity,
             toCollect,
-            ImmutableList.<Projection>of(),
+            List.of(),
             whereClause.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
@@ -124,7 +122,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             null,
             null
         );
-        RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
+        RoutedCollectPhase collectNode = collectNode(routing, List.of(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
         assertThat(result.size(), is(1));
         assertThat(((String) result.iterator().next().get(0)), Matchers.startsWith("SUITE-"));

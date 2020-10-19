@@ -23,8 +23,6 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
@@ -78,6 +76,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -140,7 +139,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     }
 
     private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, boolean nullFirst) throws IOException {
-        OrderBy orderBy = new OrderBy(ImmutableList.of(REFERENCE),
+        OrderBy orderBy = new OrderBy(
+            List.of(REFERENCE),
             new boolean[]{reverseFlag},
             new boolean[]{nullFirst});
 
@@ -263,7 +263,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
                     DocSysColumns.SCORE), RowGranularity.DOC, DataTypes.FLOAT, null, null
             );
 
-        OrderBy orderBy = new OrderBy(ImmutableList.of(sysColReference, REFERENCE),
+        OrderBy orderBy = new OrderBy(List.of(sysColReference, REFERENCE),
             new boolean[]{false, false},
             new boolean[]{false, false});
 
@@ -298,8 +298,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         // without minScore filter we get 2 and 2 docs - this is not necessary for the test but is here
         // to make sure the "FuzzyQuery" matches the right documents
         collector = collector(searcher, columnReferences, query, null, true);
-        assertThat(Iterables.size(collector.collect()), is(2));
-        assertThat(Iterables.size(collector.collect()), is(2));
+        assertThat(StreamSupport.stream(collector.collect().spliterator(), false).count(), is(2L));
+        assertThat(StreamSupport.stream(collector.collect().spliterator(), false).count(), is(2L));
 
         collector = collector(searcher, columnReferences, query, 0.15f, true);
         int count = 0;
@@ -338,7 +338,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, false);
         KeyIterable<ShardId, Row> result = collector.collect();
 
-        assertThat(Iterables.size(result), is(2));
+        assertThat(StreamSupport.stream(result.spliterator(), false).count(), is(2L));
 
         Iterator<Row> values = result.iterator();
 
@@ -365,7 +365,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, true);
         KeyIterable<ShardId, Row> result = collector.collect();
 
-        assertThat(Iterables.size(result), is(2));
+        assertThat(StreamSupport.stream(result.spliterator(), false).count(), is(2L));
 
         Iterator<Row> values = result.iterator();
 

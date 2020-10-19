@@ -26,11 +26,9 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.google.common.collect.Iterables;
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RamAccounting;
-import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.distribution.StreamBucket;
 import org.elasticsearch.test.ESTestCase;
@@ -46,6 +44,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.CoreMatchers.is;
 
 public class NodeFetchResponseTest extends ESTestCase {
 
@@ -78,7 +77,8 @@ public class NodeFetchResponseTest extends ESTestCase {
         // receiving side is required to set the streamers
         NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, RamAccounting.NO_ACCOUNTING);
 
-        assertThat((Row) Iterables.getOnlyElement(streamed.fetched().get(1)), isRow(true));
+        assertThat(streamed.fetched().get(1).size(), is(1));
+        assertThat(streamed.fetched().get(1).iterator().next(), isRow(true));
     }
 
     @Test

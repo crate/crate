@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.window;
 
-import com.google.common.collect.Lists;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -49,12 +48,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.common.collections.Tuple.tuple;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
+import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -64,7 +64,7 @@ public class WindowBatchIteratorTest {
     private Input[][] args = {new Input[0]};
 
     private List<Object[]> expectedRowNumberResult = IntStream.range(0, 10)
-        .mapToObj(l -> new Object[]{l, l + 1}).collect(Collectors.toList());
+        .mapToObj(l -> new Object[]{l, l + 1}).collect(toList());
 
     @Test
     public void testWindowBatchIterator() throws Exception {
@@ -114,8 +114,8 @@ public class WindowBatchIteratorTest {
 
     @Test
     public void testFrameBoundsEmptyWindow() throws Exception {
-        var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(Collectors.toList());
-        var result = Lists.newArrayList(sortAndComputeWindowFunctions(
+        var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(toList());
+        var result = StreamSupport.stream(sortAndComputeWindowFunctions(
             new ArrayList<>(rows),
             getComputeFrameStart(null, FrameBound.Type.UNBOUNDED_PRECEDING),
             getComputeFrameEnd(null, FrameBound.Type.CURRENT_ROW),
@@ -126,8 +126,8 @@ public class WindowBatchIteratorTest {
             Runnable::run,
             List.of(frameBoundsWindowFunction()),
             List.of(),
-            args
-        ).get(5, TimeUnit.SECONDS));
+            args).get(5, TimeUnit.SECONDS).spliterator(), false)
+            .collect(toList());
         var expectedBounds = tuple(0, 10);
         IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(new Object[] { i, expectedBounds})));
     }

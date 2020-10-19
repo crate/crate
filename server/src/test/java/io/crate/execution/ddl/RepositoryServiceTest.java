@@ -22,7 +22,6 @@
 
 package io.crate.execution.ddl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -48,6 +47,7 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -62,10 +62,13 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(RepositoryException.class);
         expectedException.expectMessage("[foo] failed: [foo] missing location");
 
-        throw RepositoryService.convertRepositoryException(new RepositoryException("foo", "failed", new CreationException(ImmutableList.of(
-            new Message(Collections.singletonList(10),
-                "creation error", new RepositoryException("foo", "missing location"))
-        ))));
+        throw RepositoryService.convertRepositoryException(
+            new RepositoryException("foo", "failed", new CreationException(
+                List.of(new Message(
+                    Collections.singletonList(10),
+                    "creation error",
+                    new RepositoryException("foo", "missing location"))
+                ))));
     }
 
     @Test

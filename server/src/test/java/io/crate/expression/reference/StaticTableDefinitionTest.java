@@ -22,7 +22,6 @@
 
 package io.crate.expression.reference;
 
-import com.google.common.collect.Iterables;
 import io.crate.auth.user.User;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.metadata.SearchPath;
@@ -34,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.StreamSupport;
 
 import static io.crate.auth.user.User.CRATE_USER;
 import static java.util.Collections.emptyList;
@@ -61,10 +61,10 @@ public class StaticTableDefinitionTest {
             (user, ctx) -> user.isSuperUser() || ctx.username().equals(user.name()), true);
 
         Iterable<JobContext> expected = tableDef.retrieveRecords(dummyTxnCtx, CRATE_USER).get();
-        assertThat(Iterables.size(expected), is(3));
+        assertThat(StreamSupport.stream(expected.spliterator(), false).count(), is(3L));
 
         expected = tableDef.retrieveRecords(dummyTxnCtx, dummyUser).get();
-        assertThat(Iterables.size(expected), is(1));
+        assertThat(StreamSupport.stream(expected.spliterator(), false).count(), is(1L));
     }
 
     @Test
@@ -76,6 +76,6 @@ public class StaticTableDefinitionTest {
             (user, ctx) -> user.isSuperUser() || ctx.username().equals(user.name()), true);
 
         Iterable<JobContext> expected = tableDef.retrieveRecords(dummyTxnCtx, CRATE_USER).get();
-        assertThat(Iterables.size(expected), is(0));
+        assertThat(StreamSupport.stream(expected.spliterator(), false).count(), is(0L));
     }
 }

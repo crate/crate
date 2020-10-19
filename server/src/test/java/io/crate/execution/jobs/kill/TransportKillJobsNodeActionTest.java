@@ -21,7 +21,6 @@
 
 package io.crate.execution.jobs.kill;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.execution.jobs.TasksService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
@@ -50,7 +49,7 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
                 Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings())
         );
 
-        List<UUID> toKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID());
+        List<UUID> toKill = List.of(UUID.randomUUID(), UUID.randomUUID());
 
         transportKillJobsNodeAction.nodeOperation(new KillJobsRequest(toKill, "dummy-user", null)).get(5, TimeUnit.SECONDS);
         verify(tasksService, times(1)).killJobs(toKill, "dummy-user", null);

@@ -22,7 +22,6 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
-import com.google.common.collect.ImmutableList;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.UUIDs;
@@ -40,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.ArgumentMatchers.eq;
@@ -65,7 +65,8 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getSnapshotInfo(eq(s2))).thenReturn(new SnapshotInfo(s2, Collections.emptyList(), SnapshotState.SUCCESS));
 
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1));
-        List<SysSnapshot> currentSnapshots = ImmutableList.copyOf(sysSnapshots.currentSnapshots());
+        List<SysSnapshot> currentSnapshots = StreamSupport.stream(sysSnapshots.currentSnapshots().spliterator(), false)
+            .collect(Collectors.toList());
         assertThat(
             currentSnapshots.stream().map(SysSnapshot::name).collect(Collectors.toList()),
             containsInAnyOrder("s1", "s2")

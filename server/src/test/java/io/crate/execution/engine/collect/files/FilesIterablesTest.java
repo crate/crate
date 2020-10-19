@@ -22,14 +22,12 @@
 
 package io.crate.execution.engine.collect.files;
 
-import com.google.common.collect.Iterators;
 import org.junit.Test;
 
-import java.util.Iterator;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -38,7 +36,9 @@ public class FilesIterablesTest {
 
     @Test
     public void testSqlFeatureIterable() throws Exception {
-        Iterator<SqlFeatureContext> iterator = SqlFeatures.loadFeatures().iterator();
+        Iterable<SqlFeatureContext> sqlFeatureContextIterable = SqlFeatures.loadFeatures();
+
+        var iterator = sqlFeatureContextIterable.iterator();
         assertTrue(iterator.hasNext());
         SqlFeatureContext context = iterator.next();
         assertEquals("B011", context.featureId);
@@ -48,16 +48,19 @@ public class FilesIterablesTest {
         assertEquals(false, context.isSupported);
         assertNull(context.isVerifiedBy);
         assertNull(context.comments);
-        assertEquals(671L, Iterators.size(iterator));
-        assertFalse(iterator.hasNext());
+
+        assertThat(
+            StreamSupport.stream(sqlFeatureContextIterable.spliterator(), false).count(),
+            is(672L)
+        );
     }
 
     @Test
     public void testSummitsIterable() throws Exception {
         SummitsIterable summitsIterable = new SummitsIterable();
-        var iterator = summitsIterable.iterator();
-        assertTrue(iterator.hasNext());
-        assertThat(Iterators.size(iterator), is(1605));
-        assertFalse(iterator.hasNext());
+        assertThat(
+            StreamSupport.stream(summitsIterable.spliterator(), false).count(),
+            is(1605L)
+        );
     }
 }

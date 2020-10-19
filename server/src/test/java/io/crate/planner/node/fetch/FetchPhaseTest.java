@@ -23,8 +23,6 @@
 package io.crate.planner.node.fetch;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.metadata.Reference;
@@ -38,6 +36,8 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 
 import static org.hamcrest.Matchers.is;
@@ -50,7 +50,7 @@ public class FetchPhaseTest {
 
         RelationName t1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
 
-        TreeMap<String, Integer> bases = new TreeMap<String, Integer>();
+        TreeMap<String, Integer> bases = new TreeMap<>();
         bases.put(t1.name(), 0);
         bases.put("i2", 1);
 
@@ -64,10 +64,10 @@ public class FetchPhaseTest {
 
         FetchPhase orig = new FetchPhase(
             1,
-            ImmutableSet.<String>of("node1", "node2"),
+            Set.of("node1", "node2"),
             bases,
             tableIndices,
-            ImmutableList.of(name)
+            List.of(name)
         );
 
         BytesStreamOutput out = new BytesStreamOutput();

@@ -22,14 +22,13 @@
 
 package io.crate.protocols.postgres.types;
 
-import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeParseException;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.is;
 
 public class TimestampTypeTest extends BasePGTypeTest<Long> {
@@ -55,15 +54,15 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(1467072000000L), StandardCharsets.UTF_8),
+        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8),
             is("2016-06-28 00:00:00.000+00"));
-        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(-93661920000000L), StandardCharsets.UTF_8),
+        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8),
             is("1000-12-22 00:00:00.000+00 BC"));
     }
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
         expectedException.expect(DateTimeParseException.class);
-        TimestampType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(Charsets.UTF_8));
+        TimestampType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8));
     }
 }

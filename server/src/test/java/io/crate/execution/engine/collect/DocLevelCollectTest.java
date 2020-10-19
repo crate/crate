@@ -23,7 +23,6 @@ package io.crate.execution.engine.collect;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
@@ -194,7 +193,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             routing,
             RowGranularity.DOC,
             toCollect,
-            ImmutableList.of(),
+            List.of(),
             whereClause.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
@@ -241,7 +240,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
         List<CompletableFuture<StreamBucket>> results = jobSetup.prepareOnRemote(
             DUMMY_SESSION_INFO,
-            ImmutableList.of(nodeOperation),
+            List.of(nodeOperation),
             builder,
             sharedShardContexts
         );

@@ -22,12 +22,12 @@
 package io.crate.execution.jobs.kill;
 
 
-import com.google.common.collect.ImmutableList;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -37,7 +37,7 @@ public class KillJobsRequestTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
-        ImmutableList<UUID> toKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID());
+        List<UUID> toKill = List.of(UUID.randomUUID(), UUID.randomUUID());
         KillJobsRequest r = new KillJobsRequest(toKill, "dummy-user", "just because");
 
         BytesStreamOutput out = new BytesStreamOutput();

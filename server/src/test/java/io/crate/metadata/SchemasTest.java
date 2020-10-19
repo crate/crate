@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -46,6 +45,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
@@ -83,8 +83,8 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
             .putCustom(
                 UserDefinedFunctionsMetadata.TYPE,
                 UserDefinedFunctionsMetadata.of(
-                    new UserDefinedFunctionMetadata("new_schema", "my_function", ImmutableList.of(), DataTypes.STRING,
-                        "burlesque", "Hello, World!Q")
+                    new UserDefinedFunctionMetadata("new_schema", "my_function", List.of(), DataTypes.STRING,
+                                                    "burlesque", "Hello, World!Q")
                 )
             ).build();
         assertThat(Schemas.getNewCurrentSchemas(metadata), containsInAnyOrder("doc", "new_schema"));

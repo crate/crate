@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
@@ -64,7 +63,7 @@ public class AverageAggregationTest extends AggregationTest {
 
     private FunctionImplementation getFunction(String name) {
         return nodeCtx.functions().get(
-            null, name, ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
+            null, name, List.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test

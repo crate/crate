@@ -21,20 +21,20 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import com.google.common.collect.Iterators;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 
 public class PassThroughPagingIteratorTest extends ESTestCase {
 
     private static <T> PassThroughPagingIterator<Integer, T> iter() {
-        return randomBoolean() ? PassThroughPagingIterator.<Integer, T>repeatable() : PassThroughPagingIterator.<Integer, T>oneShot();
+        return randomBoolean() ? PassThroughPagingIterator.repeatable() : PassThroughPagingIterator.oneShot();
     }
 
     @Test
@@ -51,8 +51,9 @@ public class PassThroughPagingIteratorTest extends ESTestCase {
             new KeyIterable<>(1, Arrays.asList("d", "e"))));
 
         iterator.finish();
-        String[] objects = Iterators.toArray(iterator, String.class);
-        assertThat(objects, Matchers.arrayContaining("a", "b", "c", "d", "e"));
+        ArrayList<String> objects = new ArrayList<>();
+        iterator.forEachRemaining(objects::add);
+        assertThat(objects, contains("a", "b", "c", "d", "e"));
     }
 
     @Test
@@ -64,7 +65,8 @@ public class PassThroughPagingIteratorTest extends ESTestCase {
         iterator.merge(Collections.singletonList(
             new KeyIterable<>(1, Arrays.asList("f", "g"))));
         iterator.finish();
-        String[] objects = Iterators.toArray(iterator, String.class);
-        assertThat(objects, Matchers.arrayContaining("a", "b", "c", "d", "e", "f", "g"));
+        ArrayList<String> objects = new ArrayList<>();
+        iterator.forEachRemaining(objects::add);
+        assertThat(objects, contains("a", "b", "c", "d", "e", "f", "g"));
     }
 }

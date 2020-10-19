@@ -22,13 +22,11 @@
 
 package io.crate.protocols.postgres.types;
 
-import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
-
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.is;
 
 public class TimestampZTypeTest extends BasePGTypeTest<Long> {
@@ -54,9 +52,9 @@ public class TimestampZTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(1467072000000L), StandardCharsets.UTF_8),
+        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8),
             is("2016-06-28 00:00:00.000+00"));
-        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(-93661920000000L), StandardCharsets.UTF_8),
+        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8),
             is("1000-12-22 00:00:00.000+00 BC"));
     }
 
@@ -64,6 +62,6 @@ public class TimestampZTypeTest extends BasePGTypeTest<Long> {
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot parse more than 9 digits for fraction of a second");
-        TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(Charsets.UTF_8));
+        TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8));
     }
 }

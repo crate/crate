@@ -23,7 +23,6 @@ package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.ColumnIdent;
@@ -42,6 +41,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -65,7 +65,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 null,
                 new TreeMap<>(),
                 HashMultimap.create(),
-                ImmutableList.of()),
+                List.of()),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class), UnaryOperator.identity()),
             clusterService.state().getMetadata(),
@@ -101,12 +101,12 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 null,
                 ibb.build(),
                 tableIndices,
-                ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
+                List.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS), UnaryOperator.identity()),
             metadata,
             relationName -> null,
-            ImmutableList.of(routing));
+            List.of(routing));
 
         context.start();
 

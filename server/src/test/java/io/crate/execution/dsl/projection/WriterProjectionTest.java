@@ -21,7 +21,6 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -32,17 +31,19 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import java.util.List;
+
 public class WriterProjectionTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
         WriterProjection p = new WriterProjection(
-            ImmutableList.<Symbol>of(new InputColumn(1)),
+            List.of(new InputColumn(1)),
             Literal.of("/foo.json"),
             WriterProjection.CompressionType.GZIP,
             MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
                 new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
-            ImmutableList.of("foo"),
+            List.of("foo"),
             WriterProjection.OutputFormat.JSON_OBJECT
         );
 

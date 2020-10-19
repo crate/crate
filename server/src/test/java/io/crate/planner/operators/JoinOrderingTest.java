@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import com.carrotsearch.hppc.ObjectIntHashMap;
-import com.google.common.collect.Sets;
 import io.crate.metadata.RelationName;
 import io.crate.testing.T3;
 import org.junit.Test;
@@ -31,6 +30,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -63,7 +63,7 @@ public class JoinOrderingTest {
         occurrences.put(T3.T2, 1);
         occurrences.put(T3.T3, 1);
         occurrences.put(T3.T4, 1);
-        Set<Set<RelationName>> sets = Sets.newLinkedHashSet();
+        Set<Set<RelationName>> sets = new LinkedHashSet<>();
         sets.add(Set.of(T3.T1, T3.T2));
         sets.add(Set.of(T3.T2, T3.T3));
         sets.add(Set.of(T3.T3, T3.T4));
@@ -74,8 +74,8 @@ public class JoinOrderingTest {
     public void testOptimizeJoinNoPresort() throws Exception {
         Collection<RelationName> qualifiedNames = JoinOrdering.orderByJoinConditions(
             Arrays.asList(T3.T1, T3.T2, T3.T3),
-            Set.of(Sets.newLinkedHashSet(List.of(T3.T1, T3.T2))),
-            Set.of(Sets.newLinkedHashSet(List.of(T3.T2, T3.T3)))
+            Set.of(new LinkedHashSet<>(List.of(T3.T1, T3.T2))),
+            Set.of(new LinkedHashSet<>(List.of(T3.T2, T3.T3)))
         );
         assertThat(qualifiedNames, contains(T3.T1, T3.T2, T3.T3));
     }

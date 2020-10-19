@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect;
 
-import com.google.common.collect.Lists;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.index.shard.ShardId;
@@ -31,6 +30,8 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.is;
 
@@ -39,7 +40,9 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
     public void assertNoShardEntriesLeftInShardCollectSource() throws Exception {
         final Field shards = ShardCollectSource.class.getDeclaredField("shards");
         shards.setAccessible(true);
-        final List<ShardCollectSource> shardCollectSources = Lists.newArrayList((internalCluster().getInstances(ShardCollectSource.class)));
+        final List<ShardCollectSource> shardCollectSources = StreamSupport.stream(
+            internalCluster().getInstances(ShardCollectSource.class).spliterator(), false)
+            .collect(Collectors.toList());
         for (ShardCollectSource shardCollectSource : shardCollectSources) {
             try {
                 //noinspection unchecked

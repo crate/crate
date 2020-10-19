@@ -42,9 +42,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import io.crate.metadata.NodeContext;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -122,8 +121,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             new JobContext(UUID.randomUUID(), "insert into", 10L, User.CRATE_USER, null), null, 20L));
         jobsLogSink.add(new JobContextLog(
             new JobContext(UUID.randomUUID(), "select * from t1", 10L, User.CRATE_USER, null), null, 20L));
-
-        assertThat(Iterables.size(jobsLogSink), is(1));
+        assertThat(StreamSupport.stream(jobsLogSink.spliterator(), false).count(), is(1L));
     }
 
     @Test
@@ -270,7 +268,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 200).build());
 
-        assertThat(ImmutableList.copyOf(stats.get().jobsLog().iterator()).size(), is(1));
+        assertThat(StreamSupport.stream(stats.get().jobsLog().spliterator(), false).count(), is(1L));
 
         operationsLogSink.add(new OperationContextLog(
             new OperationContext(1, UUID.randomUUID(), "foo", 2L, () -> -1), null));
@@ -281,7 +279,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 1).build());
 
-        assertThat(ImmutableList.copyOf(stats.get().operationsLog()).size(), is(1));
+        assertThat(StreamSupport.stream(stats.get().operationsLog().spliterator(), false).count(), is(1L));
     }
 
     @Test
@@ -323,7 +321,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             });
 
             latch.await(10, TimeUnit.SECONDS);
-            assertThat(ImmutableList.copyOf(jobsLogs.jobsLog().iterator()).size(), is(numJobs.get()));
+            assertThat(
+                StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false).count(),
+                is((long) numJobs.get()));
         } finally {
             executor.shutdown();
             executor.awaitTermination(2, TimeUnit.SECONDS);
@@ -362,7 +362,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             });
 
             latch.await(10, TimeUnit.SECONDS);
-            assertThat(ImmutableList.copyOf(jobsLogs.operationsLog().iterator()).size(), is(numJobs.get()));
+            assertThat(
+                StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false).count(),
+                is((long) numJobs.get()));
         } finally {
             executor.shutdown();
             executor.awaitTermination(2, TimeUnit.SECONDS);
@@ -379,7 +381,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
         JobContext jobContext = new JobContext(UUID.randomUUID(), "select 1", 1L, user, classification);
         jobsLogs.logExecutionStart(jobContext.id(), jobContext.stmt(), user, classification);
-        List<JobContext> jobsEntries = ImmutableList.copyOf(jobsLogs.activeJobs().iterator());
+        List<JobContext> jobsEntries = StreamSupport.stream(jobsLogs.activeJobs().spliterator(), false)
+            .collect(Collectors.toList());
 
         assertThat(jobsEntries.size(), is(1));
         assertThat(jobsEntries.get(0).username(), is(user.name()));
@@ -396,7 +399,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
         jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
 
-        List<JobContextLog> jobsLogEntries = ImmutableList.copyOf(jobsLogs.jobsLog().iterator());
+        List<JobContextLog> jobsLogEntries = StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false)
+            .collect(Collectors.toList());
         assertThat(jobsLogEntries.size(), is(1));
         assertThat(jobsLogEntries.get(0).username(), is(user.name()));
         assertThat(jobsLogEntries.get(0).statement(), is("select foo"));
@@ -413,7 +417,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
         jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
 
-        List<MetricsView> metrics = ImmutableList.copyOf(jobsLogs.metrics().iterator());
+        List<MetricsView> metrics = StreamSupport.stream(jobsLogs.metrics().spliterator(), false)
+            .collect(Collectors.toList());
         assertThat(metrics.size(), is(1));
         assertThat(metrics.get(0).failedCount(), is(1L));
         assertThat(metrics.get(0).totalCount(), is(1L));
@@ -433,13 +438,15 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         jobsLogs.operationStarted(ctxB.id, ctxB.jobId, ctxB.name, () -> 1);
 
         jobsLogs.operationFinished(ctxB.id, ctxB.jobId, null);
-        List<OperationContextLog> entries = ImmutableList.copyOf(jobsLogs.operationsLog().iterator());
+        List<OperationContextLog> entries = StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false)
+            .collect(Collectors.toList());
 
         assertThat(entries, contains(new OperationContextLog(ctxB, null)));
         assertFalse(entries.contains(new OperationContextLog(ctxA, null)));
 
         jobsLogs.operationFinished(ctxA.id, ctxA.jobId, null);
-        entries = ImmutableList.copyOf(jobsLogs.operationsLog());
+        entries = StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false)
+            .collect(Collectors.toList());
         assertTrue(entries.contains(new OperationContextLog(ctxA, null)));
     }
 

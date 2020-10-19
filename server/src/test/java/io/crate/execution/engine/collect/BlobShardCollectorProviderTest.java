@@ -22,8 +22,6 @@
 
 package io.crate.execution.engine.collect;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
@@ -47,8 +45,10 @@ import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.is;
 
@@ -78,23 +78,24 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
             "collect",
             new Routing(Map.of()),
             RowGranularity.SHARD,
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(),
+            List.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
 
         // No read Isolation
         Iterable<Row> iterable = getBlobRows(collectPhase, false);
-        assertThat(Iterables.size(iterable), is(2));
+        assertThat(StreamSupport.stream(iterable.spliterator(), false).count(), is(2L));
         upload("b1", "newEntry1");
-        assertThat(Iterables.size(iterable), is(3));
+
+        assertThat(StreamSupport.stream(iterable.spliterator(), false).count(), is(3L));
 
         // Read isolation
         iterable = getBlobRows(collectPhase, true);
-        assertThat(Iterables.size(iterable), is(3));
+        assertThat(StreamSupport.stream(iterable.spliterator(), false).count(), is(3L));
         upload("b1", "newEntry2");
-        assertThat(Iterables.size(iterable), is(3));
+        assertThat(StreamSupport.stream(iterable.spliterator(), false).count(), is(3L));
     }
 
     private final class Initializer implements CheckedRunnable<Exception> {

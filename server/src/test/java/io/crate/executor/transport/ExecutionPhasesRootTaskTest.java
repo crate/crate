@@ -23,8 +23,6 @@ package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -38,7 +36,9 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -62,8 +62,8 @@ public class ExecutionPhasesRootTaskTest {
             "c1",
             twoNodeRouting,
             RowGranularity.DOC,
-            ImmutableList.of(),
-            ImmutableList.of(),
+            List.of(),
+            List.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
@@ -74,9 +74,9 @@ public class ExecutionPhasesRootTaskTest {
             "merge1",
             2,
             1,
-            Sets.newHashSet("node3", "node4"),
-            ImmutableList.of(),
-            ImmutableList.of(),
+            Set.of("node3", "node4"),
+            List.of(),
+            List.of(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );
@@ -87,9 +87,9 @@ public class ExecutionPhasesRootTaskTest {
             "merge2",
             2,
             1,
-            Sets.newHashSet("node1", "node3"),
-            ImmutableList.of(),
-            ImmutableList.of(),
+            Set.of("node1", "node3"),
+            List.of(),
+            List.of(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );
@@ -98,7 +98,7 @@ public class ExecutionPhasesRootTaskTest {
         NodeOperation n2 = NodeOperation.withDownstream(m1, m2, (byte) 0);
         NodeOperation n3 = NodeOperation.withDownstream(m2, mock(ExecutionPhase.class), (byte) 0);
 
-        Map<String, Collection<NodeOperation>> groupByServer = NodeOperationGrouper.groupByServer(ImmutableList.of(n1, n2, n3));
+        Map<String, Collection<NodeOperation>> groupByServer = NodeOperationGrouper.groupByServer(List.of(n1, n2, n3));
 
         assertThat(groupByServer.containsKey("node1"), is(true));
         assertThat(groupByServer.get("node1"), Matchers.containsInAnyOrder(n1, n3));
