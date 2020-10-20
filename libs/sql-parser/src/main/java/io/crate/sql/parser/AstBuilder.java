@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -343,6 +344,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             clusteredBy,
             extractGenericProperties(context.withProperties()),
             notExists);
+    }
+
+    @Override
+    public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
+        return new CreateTableAs(
+            (Table) visit(context.table()),
+            (Query) visit(context.insertSource().query())
+        );
     }
 
     @Override
