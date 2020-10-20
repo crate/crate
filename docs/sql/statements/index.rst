@@ -21,6 +21,7 @@ SQL Statements
     create-repository
     create-snapshot
     create-table
+    create-table-as
     create-user
     create-view
     deallocate

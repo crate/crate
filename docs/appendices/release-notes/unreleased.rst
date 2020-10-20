@@ -53,7 +53,7 @@ None
 Changes
 =======
 
-None
+- Added support for the :ref:`CREATE TABLE AS <ref-create-table-as>` statement.
 
 Fixes
 =====

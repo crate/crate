@@ -40,6 +40,7 @@ import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
+import io.crate.analyze.AnalyzedCreateTableAs;
 import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDecommissionNode;
@@ -83,6 +84,7 @@ import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.planner.consumer.CreateTableAsPlanner;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.AlterBlobTablePlan;
@@ -318,6 +320,13 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitCreateTable(AnalyzedCreateTable createTable, PlannerContext context) {
         return new CreateTablePlan(createTable, numberOfShards, tableCreator, schemas);
+    }
+
+    @Override
+    public Plan visitCreateTableAs(AnalyzedCreateTableAs createTableAs, PlannerContext context) {
+        return CreateTableAsPlanner.plan(
+            createTableAs, numberOfShards, tableCreator, schemas, context, logicalPlanner
+        );
     }
 
     @Override
