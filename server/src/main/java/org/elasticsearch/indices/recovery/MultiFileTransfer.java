@@ -57,7 +57,7 @@ import io.crate.common.io.IOUtils;
  * one of the networking threads which receive/handle the responses of the current pending file chunk requests. This process will continue
  * until all chunk requests are sent/responded.
  */
-abstract class MultiFileTransfer<Request extends MultiFileTransfer.ChunkRequest> implements Closeable {
+public abstract class MultiFileTransfer<Request extends MultiFileTransfer.ChunkRequest> implements Closeable {
 
     private Status status = Status.PROCESSING;
     private final Logger logger;
@@ -129,7 +129,7 @@ abstract class MultiFileTransfer<Request extends MultiFileTransfer.ChunkRequest>
                     return;
                 }
                 final long requestSeqId = requestSeqIdTracker.generateSeqNo();
-                sendChunkRequest(request.v2(), ActionListener.wrap(
+                executeChunkRequest(request.v2(), ActionListener.wrap(
                     r -> addItem(requestSeqId, request.v1(), null),
                     e -> addItem(requestSeqId, request.v1(), e)));
             }
@@ -187,7 +187,7 @@ abstract class MultiFileTransfer<Request extends MultiFileTransfer.ChunkRequest>
 
     protected abstract Request nextChunkRequest(StoreFileMetadata md) throws IOException;
 
-    protected abstract void sendChunkRequest(Request request, ActionListener<Void> listener);
+    protected abstract void executeChunkRequest(Request request, ActionListener<Void> listener);
 
     protected abstract void handleError(StoreFileMetadata md, Exception e) throws Exception;
 
@@ -203,7 +203,7 @@ abstract class MultiFileTransfer<Request extends MultiFileTransfer.ChunkRequest>
         }
     }
 
-    protected interface ChunkRequest {
+    public interface ChunkRequest {
         /**
          * @return {@code true} if this chunk request is the last chunk of the current file
          */
