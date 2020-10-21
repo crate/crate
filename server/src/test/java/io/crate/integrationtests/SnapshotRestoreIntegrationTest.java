@@ -335,7 +335,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         ImmutableOpenMap<String, IndexMetadata> state = clusterService().state().metadata().indices();
         IndexMetadata indexMetadata = state.values().iterator().next().value;
-        int sizeOfProperties = ((Map<?, ?>) indexMetadata.getMappings().values().iterator().next().value.sourceAsMap().get("properties")).size();
+        int sizeOfProperties = ((Map<?, ?>) indexMetadata.mapping().sourceAsMap().get("properties")).size();
 
         execute("select count(*) from test");
 

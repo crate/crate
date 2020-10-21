@@ -20,7 +20,6 @@
 package org.elasticsearch.index.mapper;
 
 import com.carrotsearch.hppc.ObjectHashSet;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.DelegatingAnalyzerWrapper;
@@ -205,11 +204,12 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             if (currentIndexMetadata.getMappingVersion() == newIndexMetadata.getMappingVersion()) {
                 // if the mapping version is unchanged, then there should not be any updates and all mappings should be the same
                 assert updatedEntries.isEmpty() : updatedEntries;
-                for (final ObjectCursor<MappingMetadata> mapping : newIndexMetadata.getMappings().values()) {
+                MappingMetadata mapping = newIndexMetadata.mapping();
+                if (mapping != null) {
                     final CompressedXContent currentSource = currentIndexMetadata.mapping().source();
-                    final CompressedXContent newSource = mapping.value.source();
+                    final CompressedXContent newSource = mapping.source();
                     assert currentSource.equals(newSource) :
-                            "expected current mapping [" + currentSource + "] for type [" + mapping.value.type() + "] "
+                            "expected current mapping [" + currentSource + "] for type [" + mapping.type() + "] "
                                     + "to be the same as new mapping [" + newSource + "]";
                 }
             } else {
@@ -258,8 +258,8 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     private synchronized Map<String, DocumentMapper> internalMerge(IndexMetadata indexMetadata, MergeReason reason, boolean onlyUpdateIfNeeded) {
         Map<String, CompressedXContent> map = new LinkedHashMap<>();
-        for (ObjectCursor<MappingMetadata> cursor : indexMetadata.getMappings().values()) {
-            MappingMetadata mappingMetadata = cursor.value;
+        MappingMetadata mappingMetadata = indexMetadata.mapping();
+        if (mappingMetadata != null) {
             if (onlyUpdateIfNeeded) {
                 DocumentMapper existingMapper = documentMapper();
                 if (existingMapper == null || mappingMetadata.source().equals(existingMapper.mappingSource()) == false) {

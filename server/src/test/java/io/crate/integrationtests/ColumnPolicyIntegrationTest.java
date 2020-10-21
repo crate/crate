@@ -68,7 +68,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
     private MappingMetadata getMappingMetadata(String index) {
         return clusterService().state().metadata().indices()
             .get(index)
-            .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+            .mapping();
     }
 
     private Map<String, Object> getSourceMap(String index) throws IOException {

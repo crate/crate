@@ -27,6 +27,8 @@ import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.TestGroup;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.collect.Multimap;
+
+import io.crate.Constants;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
@@ -581,10 +583,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         IndexMetadata indexMetadata = metadata.iterator().next();
-        for (ObjectCursor<MappingMetadata> cursor : indexMetadata.getMappings().values()) {
-            builder.field(cursor.value.type());
-            builder.map(cursor.value.sourceAsMap());
-        }
+        builder.field(Constants.DEFAULT_MAPPING_TYPE);
+        builder.map(indexMetadata.mapping().sourceAsMap());
         builder.endObject();
 
         return Strings.toString(builder);
