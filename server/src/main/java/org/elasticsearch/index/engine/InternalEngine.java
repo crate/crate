@@ -57,6 +57,7 @@ import org.apache.lucene.index.LiveIndexWriterConfig;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.index.ShuffleForcedMergePolicy;
 import org.apache.lucene.index.SoftDeletesRetentionMergePolicy;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -109,6 +110,7 @@ import org.elasticsearch.index.translog.TranslogDeletionPolicy;
 import org.elasticsearch.index.translog.TranslogStats;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.Booleans;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.io.IOUtils;
 
@@ -2288,6 +2290,13 @@ public class InternalEngine extends Engine {
                     new PrunePostingsMergePolicy(mergePolicy, IdFieldMapper.NAME)
                 )
             );
+        }
+        boolean shuffleForcedMerge = Booleans.parseBoolean(System.getProperty("es.shuffle_forced_merge", Boolean.TRUE.toString()));
+        if (shuffleForcedMerge) {
+            // We wrap the merge policy for all indices even though it is mostly useful for time-based indices
+            // but there should be no overhead for other type of indices so it's simpler than adding a setting
+            // to enable it.
+            mergePolicy = new ShuffleForcedMergePolicy(mergePolicy);
         }
         iwc.setMergePolicy(new ElasticsearchMergePolicy(mergePolicy));
         iwc.setRAMBufferSizeMB(engineConfig.getIndexingBufferSize().getMbFrac());

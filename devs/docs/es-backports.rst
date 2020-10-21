@@ -385,7 +385,7 @@ should be crossed out as well.
 - [ ] 4b89171e6f1 Fix ref count handling in Engine.failEngine (#48639)
 - [ ] 4e81ae74b2e Remove deprecated IndexMetaData.getMappings() method (#47344)
 - [ ] 71a6873e892 Greedily advance safe commit on new global checkpoint (#48559)
-- [ ] 5297e5afa0b Add a new merge policy that interleaves old and new segments on force merge (#48533)
+- [x] 5297e5afa0b Add a new merge policy that interleaves old and new segments on force merge (#48533)
 - [x] 379e8470488 Refresh should not acquire readLock (#48414)
 - [s] 0600e658781 Make remote setting updates support diff strategies (#47891)
 - [d] 2e7d62c27c9 Geo: improve handling of out of bounds points in linestrings (#47939)
