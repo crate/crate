@@ -189,7 +189,8 @@ public class PGArray extends PGType<List<Object>> {
                     if (isJson) {
                         for (byte aByte : bytes) {
                             // Escape double quotes with backslash for json
-                            if ((char) aByte == '"') {
+                            var ch = (char) aByte;
+                            if (ch == '"' || ch == '\\') {
                                 encodedValues.add((byte) '\\');
                             }
                             encodedValues.add(aByte);
