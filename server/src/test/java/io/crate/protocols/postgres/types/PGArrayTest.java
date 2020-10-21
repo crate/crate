@@ -25,7 +25,6 @@ package io.crate.protocols.postgres.types;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -37,7 +36,7 @@ import static org.hamcrest.core.Is.is;
 
 public class PGArrayTest extends BasePGTypeTest<PGArray> {
 
-    private PGArray pgArray = PGArray.INT4_ARRAY;
+    private final PGArray pgArray = PGArray.INT4_ARRAY;
 
     public PGArrayTest() {
         super(PGArray.INT4_ARRAY);
@@ -83,11 +82,21 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
     }
 
     @Test
+    public void test_json_array_encode_decode_round_trip_with_escaped_quotes() {
+        List<Object> actual = List.of(Map.of("values", List.of("foo \"")));
+        byte[] bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(actual);
+        assertThat(
+            new String(bytes, StandardCharsets.UTF_8),
+            is("{\"{\\\"values\\\":[\\\"foo \\\\\\\"\\\"]}\"}"));
+        assertThat(PGArray.JSON_ARRAY.decodeUTF8Text(bytes), is(actual));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testDecodeEncodeEscapedJson() {
         // Decode
         String s = "{\"{\\\"names\\\":[\\\"Arthur\\\",\\\"Trillian\\\"]}\",\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"}";
-        List<Object> values = (List<Object>) PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        List<Object> values = PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
 
         List<String> names = (List<String>) ((Map) values.get(0)).get("names");
         assertThat(names, Matchers.contains("Arthur", "Trillian"));
