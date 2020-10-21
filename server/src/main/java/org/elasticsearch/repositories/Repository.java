@@ -115,19 +115,6 @@ public interface Repository extends LifecycleComponent {
     RepositoryData getRepositoryData();
 
     /**
-     * Starts snapshotting process
-     *
-     * @param snapshotId snapshot id
-     * @param indices    list of indices to be snapshotted
-     * @param metadata   cluster metadata
-     *
-     * @deprecated this method is only used when taking snapshots in a mixed version cluster where a master node older than
-     *             {@link org.elasticsearch.snapshots.SnapshotsService#NO_REPO_INITIALIZE_VERSION} is present.
-     */
-    @Deprecated
-    void initializeSnapshot(SnapshotId snapshotId, List<IndexId> indices, Metadata metadata);
-
-    /**
      * Finalizes snapshotting process
      * <p>
      * This method is called on master after all shards are snapshotted.
