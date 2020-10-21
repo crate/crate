@@ -442,10 +442,9 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         return this.aliases;
     }
 
-    public ImmutableOpenMap<String, MappingMetadata> getMappings() {
-        return mappings;
-    }
-
+    /**
+     * Return the concrete mapping for this index or {@code null} if this index has no mappings at all.
+     */
     @Nullable
     public MappingMetadata mapping() {
         for (var cursor : mappings) {
@@ -877,13 +876,17 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             return mappings.get(type);
         }
 
+        // TODO remove type here
         public Builder putMapping(String type, String source) throws IOException {
             putMapping(new MappingMetadata(type, XContentHelper.convertToMap(XContentFactory.xContent(source), source, true)));
             return this;
         }
 
         public Builder putMapping(MappingMetadata mappingMd) {
-            mappings.put(mappingMd.type(), mappingMd);
+            mappings.clear();
+            if (mappingMd != null) {
+                mappings.put(mappingMd.type(), mappingMd);
+            }
             return this;
         }
 
@@ -1118,11 +1121,12 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             builder.endObject();
 
             builder.startArray(KEY_MAPPINGS);
-            for (ObjectObjectCursor<String, MappingMetadata> cursor : indexMetadata.getMappings()) {
+            MappingMetadata mmd = indexMetadata.mapping();
+            if (mmd != null) {
                 if (binary) {
-                    builder.value(cursor.value.source().compressed());
+                    builder.value(mmd.source().compressed());
                 } else {
-                    builder.map(XContentHelper.convertToMap(new BytesArray(cursor.value.source().uncompressed()), true).v2());
+                    builder.map(XContentHelper.convertToMap(new BytesArray(mmd.source().uncompressed()), true).v2());
                 }
             }
             builder.endArray();

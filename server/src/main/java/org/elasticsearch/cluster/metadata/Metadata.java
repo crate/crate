@@ -377,35 +377,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
      * @see MapperPlugin#getFieldFilter()
      *
      */
-    public ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetadata>> findMappings(String[] concreteIndices,
-                                                                                            final String[] types,
-                                                                                            Function<String, Predicate<String>> fieldFilter)
-            throws IOException {
-        assert types != null;
+    public ImmutableOpenMap<String, MappingMetadata> findMappings(String[] concreteIndices,
+                                                                  Function<String, Predicate<String>> fieldFilter) throws IOException {
         assert concreteIndices != null;
         if (concreteIndices.length == 0) {
             return ImmutableOpenMap.of();
         }
 
-        boolean isAllTypes = isAllTypes(types);
-        ImmutableOpenMap.Builder<String, ImmutableOpenMap<String, MappingMetadata>> indexMapBuilder = ImmutableOpenMap.builder();
         Iterable<String> intersection = HppcMaps.intersection(ObjectHashSet.from(concreteIndices), indices.keys());
+        ImmutableOpenMap.Builder<String, MappingMetadata> indexMapBuilder = ImmutableOpenMap.builder();
         for (String index : intersection) {
             IndexMetadata indexMetadata = indices.get(index);
             Predicate<String> fieldPredicate = fieldFilter.apply(index);
-            if (isAllTypes) {
-                indexMapBuilder.put(index, filterFields(indexMetadata.getMappings(), fieldPredicate));
-            } else {
-                ImmutableOpenMap.Builder<String, MappingMetadata> filteredMappings = ImmutableOpenMap.builder();
-                for (ObjectObjectCursor<String, MappingMetadata> cursor : indexMetadata.getMappings()) {
-                    if (Regex.simpleMatch(types, cursor.key)) {
-                        filteredMappings.put(cursor.key, filterFields(cursor.value, fieldPredicate));
-                    }
-                }
-                if (!filteredMappings.isEmpty()) {
-                    indexMapBuilder.put(index, filteredMappings.build());
-                }
-            }
+            indexMapBuilder.put(index, filterFields(indexMetadata.mapping(), fieldPredicate));
         }
         return indexMapBuilder.build();
     }
@@ -637,10 +621,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
      * @param type          The type to check if routing is required
      * @return Whether routing is required according to the mapping for the specified index and type
      */
-    public boolean routingRequired(String concreteIndex, String type) {
+    public boolean routingRequired(String concreteIndex) {
         IndexMetadata indexMetadata = indices.get(concreteIndex);
         if (indexMetadata != null) {
-            MappingMetadata mappingMetadata = indexMetadata.getMappings().get(type);
+            MappingMetadata mappingMetadata = indexMetadata.mapping();
             if (mappingMetadata != null) {
                 return mappingMetadata.routing().required();
             }
