@@ -121,8 +121,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
     public static final Version SHARD_GEN_IN_REPO_DATA_VERSION = Version.V_4_2_0;
 
-    public static final Version NO_REPO_INITIALIZE_VERSION = Version.V_4_1_0;
-
     private final ClusterService clusterService;
 
     private final IndexNameExpressionResolver indexNameExpressionResolver;

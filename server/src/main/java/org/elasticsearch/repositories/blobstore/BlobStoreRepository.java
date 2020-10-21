@@ -85,8 +85,6 @@ import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.RepositoryVerificationException;
 import org.elasticsearch.repositories.ShardGenerations;
-import org.elasticsearch.snapshots.InvalidSnapshotNameException;
-import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotException;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
@@ -413,31 +411,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             } catch (Exception ex) {
                 listener.onFailure(new RepositoryException(metadata.name(), "failed to delete snapshot [" + snapshotId + "]", ex));
             }
-        }
-    }
-
-    @Override
-    public void initializeSnapshot(SnapshotId snapshotId, List<IndexId> indices, Metadata clusterMetadata) {
-        if (isReadOnly()) {
-            throw new RepositoryException(metadata.name(), "cannot create snapshot in a readonly repository");
-        }
-        try {
-            final String snapshotName = snapshotId.getName();
-            // check if the snapshot name already exists in the repository
-            final RepositoryData repositoryData = getRepositoryData();
-            if (repositoryData.getAllSnapshotIds().stream().anyMatch(s -> s.getName().equals(snapshotName))) {
-                throw new InvalidSnapshotNameException(metadata.name(), snapshotId.getName(), "snapshot with the same name already exists");
-            }
-
-            // Write Global Metadata
-            globalMetadataFormat.write(clusterMetadata, blobContainer(), snapshotId.getUUID(), true);
-
-            // write the index metadata for each index in the snapshot
-            for (IndexId index : indices) {
-                indexMetadataFormat.write(clusterMetadata.index(index.getName()), indexContainer(index), snapshotId.getUUID(), false);
-            }
-        } catch (IOException ex) {
-            throw new SnapshotCreationException(metadata.name(), snapshotId, ex);
         }
     }
 

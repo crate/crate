@@ -86,13 +86,6 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public void initializeSnapshot(SnapshotId snapshotId,
-                                   List<IndexId> indices,
-                                   Metadata metadata) {
-
-    }
-
-    @Override
     public void finalizeSnapshot(SnapshotId snapshotId,
                                  ShardGenerations shardGenerations,
                                  long startTime,
