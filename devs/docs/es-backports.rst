@@ -390,7 +390,7 @@ should be crossed out as well.
 - [ ] 0600e658781 Make remote setting updates support diff strategies (#47891)
 - [ ] 2e7d62c27c9 Geo: improve handling of out of bounds points in linestrings (#47939)
 - [ ] 54d6da54320 [Java.time] Calculate week of a year with ISO rules (#48209)
-- [ ] 8066e23eea3 Use MultiFileTransfer in CCR remote recovery (#44514)
+- [x] 8066e23eea3 Use MultiFileTransfer in CCR remote recovery (#44514)
 - [x] 458de912561 Make BytesReference an interface (#48171)
 - [x] 6563c0fb7b2 Remove Redundant Version Param from Repository APIs (#48231)
 - [s] 602081f19cf [DOCS] Fix typos in InternalEngine.java comments (#46861)
