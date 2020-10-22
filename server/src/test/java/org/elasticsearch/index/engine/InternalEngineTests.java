@@ -197,6 +197,7 @@ public class InternalEngineTests extends EngineTestCase {
 
     @Test
     public void testVersionMapAfterAutoIDDocument() throws IOException {
+        engine.refresh("warm_up");
         ParsedDocument doc = testParsedDocument("1", null, testDocumentWithTextField("test"),
                                                 new BytesArray("{}".getBytes(Charset.defaultCharset())), null);
         Engine.Index operation = randomBoolean() ?
@@ -886,6 +887,7 @@ public class InternalEngineTests extends EngineTestCase {
 
     @Test
     public void testSimpleOperations() throws Exception {
+        engine.refresh("warm_up");
         Engine.Searcher searchResult = engine.acquireSearcher("test");
         MatcherAssert.assertThat(searchResult, EngineSearcherTotalHitsMatcher.engineSearcherTotalHits(0));
         searchResult.close();
@@ -1059,6 +1061,7 @@ public class InternalEngineTests extends EngineTestCase {
     }
 
     public void testSearchResultRelease() throws Exception {
+        engine.refresh("warm_up");
         Engine.Searcher searchResult = engine.acquireSearcher("test");
         MatcherAssert.assertThat(searchResult, EngineSearcherTotalHitsMatcher.engineSearcherTotalHits(0));
         searchResult.close();
@@ -1948,7 +1951,7 @@ public class InternalEngineTests extends EngineTestCase {
         final long currentSeqNo = getSequenceID(
             replicaEngine,
             new Engine.Get(lastReplicaOp.uid().text(), lastReplicaOp.uid())).v1();
-        try (Searcher searcher = engine.acquireSearcher("test")) {
+        try (Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
             final TotalHitCountCollector collector = new TotalHitCountCollector();
             searcher.search(new MatchAllDocsQuery(), collector);
             if (collector.getTotalHits() > 0) {
@@ -2556,7 +2559,7 @@ public class InternalEngineTests extends EngineTestCase {
 
     @Test
     public void testExtractShardId() {
-        try (Engine.Searcher test = this.engine.acquireSearcher("test")) {
+        try (Engine.Searcher test = this.engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
             ShardId shardId = ShardUtils.extractShardId(test.getDirectoryReader());
             assertNotNull(shardId);
             assertEquals(shardId, engine.config().getShardId());
@@ -2837,7 +2840,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.close();
         try (InternalEngine engine = new InternalEngine(config)) {
             engine.skipTranslogRecovery();
-            try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
+            try (Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
                 TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), randomIntBetween(numDocs, numDocs + 10));
                 assertThat(topDocs.totalHits.value, equalTo(0L));
             }
@@ -2862,12 +2865,14 @@ public class InternalEngineTests extends EngineTestCase {
         // we need to reuse the engine config unless the parser.mappingModified won't work
         engine = new InternalEngine(copy(engine.config(), inSyncGlobalCheckpointSupplier));
         engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
+        engine.refresh("warm_up");
 
         assertVisibleCount(engine, numDocs, false);
 
         engine.close();
         translogHandler = createTranslogHandler(engine.engineConfig.getIndexSettings());
         engine = createEngine(store, primaryTranslogDir, inSyncGlobalCheckpointSupplier);
+        engine.refresh("warm_up");
         assertVisibleCount(engine, numDocs, false);
 
         final boolean flush = randomBoolean();
@@ -2896,6 +2901,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.close();
         translogHandler = createTranslogHandler(engine.engineConfig.getIndexSettings());
         engine = createEngine(store, primaryTranslogDir, inSyncGlobalCheckpointSupplier);
+        engine.refresh("warm_up");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), numDocs + 1);
             assertThat(topDocs.totalHits.value, equalTo(numDocs + 1L));
@@ -4305,7 +4311,7 @@ public class InternalEngineTests extends EngineTestCase {
      * second is the primary term.
      */
     private Tuple<Long, Long> getSequenceID(Engine engine, Engine.Get get) throws EngineException {
-        try (Searcher searcher = engine.acquireSearcher("get")) {
+        try (Searcher searcher = engine.acquireSearcher("get", Engine.SearcherScope.INTERNAL)) {
             final long primaryTerm;
             final long seqNo;
             DocIdAndSeqNo docIdAndSeqNo = VersionsAndSeqNoResolver.loadDocIdAndSeqNo(searcher.getIndexReader(), get.uid());
@@ -4487,6 +4493,7 @@ public class InternalEngineTests extends EngineTestCase {
                  // disable merges to make sure that the reader doesn't change unexpectedly during the test
                  createEngine(defaultSettings, store, createTempDir(), NoMergePolicy.INSTANCE)) {
 
+            engine.refresh("warm_up");
             try (Searcher getSearcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
                  Searcher searchSearcher = engine.acquireSearcher("test", Engine.SearcherScope.EXTERNAL)) {
                 assertSameReader(getSearcher, searchSearcher);
@@ -5304,7 +5311,7 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testAcquireSearcherOnClosingEngine() throws Exception {
         engine.close();
-        expectThrows(AlreadyClosedException.class, () -> engine.acquireSearcher("test"));
+        expectThrows(AlreadyClosedException.class, () -> engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL));
     }
 
     @Test

@@ -3292,6 +3292,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 // TODO: add a dedicate recovery stats for the reset translog
             });
         newEngineReference.get().recoverFromTranslog(translogRunner, globalCheckpoint);
+        newEngineReference.get().refresh("reset_engine");
         synchronized (mutex) {
             verifyNotClosed();
             IOUtils.close(currentEngineReference.getAndSet(newEngineReference.get()));
