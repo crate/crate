@@ -23,6 +23,7 @@ import org.elasticsearch.common.Priority;
 import io.crate.common.unit.TimeValue;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
@@ -60,11 +61,11 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
         this.timer = timer;
     }
 
-    public Pending[] getPending() {
-        List<Pending> pending = new ArrayList<>();
-        addPending(new ArrayList<>(current), pending, true);
-        addPending(new ArrayList<>(getQueue()), pending, false);
-        return pending.toArray(new Pending[pending.size()]);
+    public List<Pending> getPending() {
+        ArrayList<Pending> pending = new ArrayList<>();
+        addPending(current, pending, true);
+        addPending(getQueue(), pending, false);
+        return pending;
     }
 
     public int getNumberOfPendingTasks() {
@@ -93,7 +94,7 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
         return TimeValue.timeValueNanos(now - oldestCreationDateInNanos);
     }
 
-    private void addPending(List<Runnable> runnables, List<Pending> pending, boolean executing) {
+    private void addPending(Collection<Runnable> runnables, List<Pending> pending, boolean executing) {
         for (Runnable runnable : runnables) {
             if (runnable instanceof TieBreakingPrioritizedRunnable) {
                 TieBreakingPrioritizedRunnable t = (TieBreakingPrioritizedRunnable) runnable;

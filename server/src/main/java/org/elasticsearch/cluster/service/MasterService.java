@@ -22,7 +22,6 @@ package org.elasticsearch.cluster.service;
 import static org.elasticsearch.cluster.service.ClusterService.CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -65,6 +64,7 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
 
 public class MasterService extends AbstractLifecycleComponent {
@@ -447,18 +447,21 @@ public class MasterService extends AbstractLifecycleComponent {
      * Returns the tasks that are pending.
      */
     public List<PendingClusterTask> pendingTasks() {
-        return Arrays.stream(threadPoolExecutor.getPending()).map(pending -> {
-            assert pending.task instanceof SourcePrioritizedRunnable :
-                "thread pool executor should only use SourcePrioritizedRunnable instances but found: " + pending.task.getClass().getName();
-            SourcePrioritizedRunnable task = (SourcePrioritizedRunnable) pending.task;
-            return new PendingClusterTask(
-                pending.insertionOrder,
-                pending.priority,
-                task.source(),
-                task.getAgeInMillis(),
-                pending.executing
-            );
-        }).collect(Collectors.toList());
+        return Lists2.map(
+            threadPoolExecutor.getPending(),
+            pending -> {
+                assert pending.task instanceof SourcePrioritizedRunnable :
+                    "thread pool executor should only use SourcePrioritizedRunnable instances but found: " + pending.task.getClass().getName();
+                SourcePrioritizedRunnable task = (SourcePrioritizedRunnable) pending.task;
+                return new PendingClusterTask(
+                    pending.insertionOrder,
+                    pending.priority,
+                    task.source(),
+                    task.getAgeInMillis(),
+                    pending.executing
+                );
+            }
+        );
     }
 
     /**
