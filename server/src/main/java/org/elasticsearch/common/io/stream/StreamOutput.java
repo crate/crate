@@ -57,7 +57,6 @@ import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BitUtil;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefBuilder;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -65,7 +64,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.io.stream.Writeable.Writer;
-import org.elasticsearch.common.text.Text;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.joda.time.DateTimeZone;
 import org.joda.time.ReadableInstant;
@@ -350,29 +348,6 @@ public abstract class StreamOutput extends OutputStream {
         } else {
             writeBoolean(true);
             writeFloat(floatValue);
-        }
-    }
-
-    public void writeOptionalText(@Nullable Text text) throws IOException {
-        if (text == null) {
-            writeInt(-1);
-        } else {
-            writeText(text);
-        }
-    }
-
-    private final BytesRefBuilder spare = new BytesRefBuilder();
-
-    public void writeText(Text text) throws IOException {
-        if (!text.hasBytes()) {
-            final String string = text.string();
-            spare.copyChars(string);
-            writeInt(spare.length());
-            write(spare.bytes(), 0, spare.length());
-        } else {
-            BytesReference bytes = text.bytes();
-            writeInt(bytes.length());
-            bytes.writeTo(this);
         }
     }
 
@@ -672,10 +647,7 @@ public abstract class StreamOutput extends OutputStream {
             o.writeByte((byte) 14);
             o.writeBytesReference((BytesReference) v);
         }),
-        Map.entry(Text.class, (o, v) -> {
-            o.writeByte((byte) 15);
-            o.writeText((Text) v);
-        }),
+        // 15 used to be Text
         Map.entry(Short.class, (o, v) -> {
             o.writeByte((byte) 16);
             o.writeShort((Short) v);

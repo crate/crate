@@ -19,24 +19,24 @@
 
 package org.elasticsearch.cluster.service;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.text.Text;
-import io.crate.common.unit.TimeValue;
 
-import java.io.IOException;
+import io.crate.common.unit.TimeValue;
 
 public class PendingClusterTask implements Writeable {
 
     private final long insertOrder;
     private final Priority priority;
-    private final Text source;
+    private final String source;
     private final long timeInQueue;
     private final boolean executing;
 
-    public PendingClusterTask(long insertOrder, Priority priority, Text source, long timeInQueue, boolean executing) {
+    public PendingClusterTask(long insertOrder, Priority priority, String source, long timeInQueue, boolean executing) {
         assert timeInQueue >= 0 : "got a negative timeInQueue [" + timeInQueue + "]";
         assert insertOrder >= 0 : "got a negative insertOrder [" + insertOrder + "]";
         this.insertOrder = insertOrder;
@@ -54,7 +54,7 @@ public class PendingClusterTask implements Writeable {
         return priority;
     }
 
-    public Text getSource() {
+    public String getSource() {
         return source;
     }
 
@@ -73,7 +73,7 @@ public class PendingClusterTask implements Writeable {
     public PendingClusterTask(StreamInput in) throws IOException {
         insertOrder = in.readVLong();
         priority = Priority.readFrom(in);
-        source = in.readText();
+        source = in.readString();
         timeInQueue = in.readLong();
         executing = in.readBoolean();
     }
@@ -82,7 +82,7 @@ public class PendingClusterTask implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVLong(insertOrder);
         Priority.writeTo(priority, out);
-        out.writeText(source);
+        out.writeString(source);
         out.writeLong(timeInQueue);
         out.writeBoolean(executing);
     }
