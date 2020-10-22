@@ -111,6 +111,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1101,8 +1102,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             }
             final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
             // Start as many workers as fit into the snapshot pool at once at the most
-            //TODO find a better solution heres
-            final int workers = indexIncrementalFileCount;
+            final int maxPoolSize = executor instanceof ThreadPoolExecutor
+                ? ((ThreadPoolExecutor) executor).getMaximumPoolSize()
+                : 1;
+            final int workers = Math.min(maxPoolSize, indexIncrementalFileCount);
             final ActionListener<Void> filesListener = ActionListener.delegateResponse(
                 new GroupedActionListener<>(allFilesUploadedListener, workers), (l, e) -> {
                     filesToSnapshot.clear(); // Stop uploading the remaining files if we run into any exception
