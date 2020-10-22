@@ -144,7 +144,8 @@ public abstract class RestoreOnlyRepository implements Repository {
                              SnapshotId snapshotId,
                              IndexId indexId,
                              ShardId snapshotShardId,
-                             RecoveryState recoveryState) {
+                             RecoveryState recoveryState,
+                             ActionListener<Void> listener) {
 
     }
 

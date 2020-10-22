@@ -19,14 +19,40 @@
 
 package org.elasticsearch.repositories.blobstore;
 
-import io.crate.common.collections.Tuple;
-import io.crate.exceptions.InvalidArgumentException;
+import static org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.FileInfo.canonicalName;
+
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexCommit;
+import org.apache.lucene.index.IndexFormatTooNewException;
+import org.apache.lucene.index.IndexFormatTooOldException;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
+import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RateLimiter;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
@@ -92,28 +118,8 @@ import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.NoSuchFileException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.FileInfo.canonicalName;
+import io.crate.common.collections.Tuple;
+import io.crate.exceptions.InvalidArgumentException;
 
 /**
  * BlobStore - based implementation of Snapshot Repository
@@ -1198,16 +1204,12 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 return;
             }
             final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
-            // Start as many workers as fit into the snapshot pool at once at the most
-            final int maxPoolSize = executor instanceof ThreadPoolExecutor
+            int maximumPoolSize = executor instanceof ThreadPoolExecutor
                 ? ((ThreadPoolExecutor) executor).getMaximumPoolSize()
                 : 1;
-            final int workers = Math.min(maxPoolSize, indexIncrementalFileCount);
-            final ActionListener<Void> filesListener = ActionListener.delegateResponse(
-                new GroupedActionListener<>(allFilesUploadedListener, workers), (l, e) -> {
-                    filesToSnapshot.clear(); // Stop uploading the remaining files if we run into any exception
-                    l.onFailure(e);
-                });
+            // Start as many workers as fit into the snapshot pool at once at the most
+            final int workers = Math.min(maximumPoolSize, indexIncrementalFileCount);
+            final ActionListener<Void> filesListener = fileQueueListener(filesToSnapshot, workers, allFilesUploadedListener);
             for (int i = 0; i < workers; ++i) {
                 executor.execute(ActionRunnable.run(filesListener, () -> {
                     BlobStoreIndexShardSnapshot.FileInfo snapshotFileInfo = filesToSnapshot.poll(0L, TimeUnit.MILLISECONDS);
@@ -1231,28 +1233,100 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     @Override
     public void restoreShard(Store store, SnapshotId snapshotId, IndexId indexId, ShardId snapshotShardId,
-                             RecoveryState recoveryState) {
-        ShardId shardId = store.shardId();
-        try {
-            final BlobContainer container = shardContainer(indexId, snapshotShardId);
-            BlobStoreIndexShardSnapshot snapshot = loadShardSnapshot(container, snapshotId);
-            SnapshotFiles snapshotFiles = new SnapshotFiles(snapshot.snapshot(), snapshot.indexFiles());
-            new FileRestoreContext(metadata.name(), shardId, snapshotId, recoveryState, BUFFER_SIZE) {
+                             RecoveryState recoveryState, ActionListener<Void> listener) {
+        final ShardId shardId = store.shardId();
+        final ActionListener<Void> restoreListener = ActionListener.delegateResponse(listener,
+            (l, e) -> l.onFailure(new IndexShardRestoreFailedException(shardId, "failed to restore snapshot [" + snapshotId + "]", e)));
+        final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
+        final BlobContainer container = shardContainer(indexId, snapshotShardId);
+        executor.execute(ActionRunnable.wrap(restoreListener, l -> {
+            final BlobStoreIndexShardSnapshot snapshot = loadShardSnapshot(container, snapshotId);
+            final SnapshotFiles snapshotFiles = new SnapshotFiles(snapshot.snapshot(), snapshot.indexFiles());
+            new FileRestoreContext(metadata.name(), shardId, snapshotId, recoveryState) {
                 @Override
-                protected InputStream fileInputStream(BlobStoreIndexShardSnapshot.FileInfo fileInfo) {
-                    final InputStream dataBlobCompositeStream = new SlicedInputStream(fileInfo.numberOfParts()) {
-                        @Override
-                        protected InputStream openSlice(long slice) throws IOException {
-                            return container.readBlob(fileInfo.partName(slice));
+                protected void restoreFiles(List<BlobStoreIndexShardSnapshot.FileInfo> filesToRecover, Store store,
+                                            ActionListener<Void> listener) {
+                    if (filesToRecover.isEmpty()) {
+                        listener.onResponse(null);
+                    } else {
+                        // Start as many workers as fit into the snapshot pool at once at the most
+                        int maxPoolSize = executor instanceof ThreadPoolExecutor
+                            ? ((ThreadPoolExecutor) executor).getMaximumPoolSize()
+                            : 1;
+                        final int workers = Math.min(maxPoolSize, snapshotFiles.indexFiles().size());
+                        final BlockingQueue<BlobStoreIndexShardSnapshot.FileInfo> files = new LinkedBlockingQueue<>(filesToRecover);
+                        final ActionListener<Void> allFilesListener =
+                            fileQueueListener(files, workers, ActionListener.map(listener, v -> null));
+                        // restore the files from the snapshot to the Lucene store
+                        for (int i = 0; i < workers; ++i) {
+                            executor.execute(ActionRunnable.run(allFilesListener, () -> {
+                                store.incRef();
+                                try {
+                                    BlobStoreIndexShardSnapshot.FileInfo fileToRecover;
+                                    while ((fileToRecover = files.poll(0L, TimeUnit.MILLISECONDS)) != null) {
+                                        restoreFile(fileToRecover, store);
+                                    }
+                                } finally {
+                                    store.decRef();
+                                }
+                            }));
                         }
-                    };
-                    return restoreRateLimiter == null ? dataBlobCompositeStream
-                        : new RateLimitingInputStream(dataBlobCompositeStream, restoreRateLimiter, restoreRateLimitingTimeInNanos::inc);
+                    }
                 }
-            }.restore(snapshotFiles, store);
-        } catch (Exception e) {
-            throw new IndexShardRestoreFailedException(shardId, "failed to restore snapshot [" + snapshotId + "]", e);
-        }
+
+                private void restoreFile(BlobStoreIndexShardSnapshot.FileInfo fileInfo, Store store) throws IOException {
+                    boolean success = false;
+
+                    try (InputStream stream = maybeRateLimit(
+                            new SlicedInputStream(fileInfo.numberOfParts()) {
+
+                                @Override
+                                protected InputStream openSlice(long slice) throws IOException {
+                                    return container.readBlob(fileInfo.partName(slice));
+                                }
+                            },
+                            restoreRateLimiter,
+                            restoreRateLimitingTimeInNanos)) {
+                        try (IndexOutput indexOutput =
+                                 store.createVerifyingOutput(fileInfo.physicalName(), fileInfo.metadata(), IOContext.DEFAULT)) {
+                            final byte[] buffer = new byte[BUFFER_SIZE];
+                            int length;
+                            while ((length = stream.read(buffer)) > 0) {
+                                indexOutput.writeBytes(buffer, 0, length);
+                                recoveryState.getIndex().addRecoveredBytesToFile(fileInfo.physicalName(), length);
+                            }
+                            Store.verify(indexOutput);
+                            indexOutput.close();
+                            store.directory().sync(Collections.singleton(fileInfo.physicalName()));
+                            success = true;
+                        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
+                            try {
+                                store.markStoreCorrupted(ex);
+                            } catch (IOException e) {
+                                LOGGER.warn("store cannot be marked as corrupted", e);
+                            }
+                            throw ex;
+                        } finally {
+                            if (success == false) {
+                                store.deleteQuiet(fileInfo.physicalName());
+                            }
+                        }
+                    }
+                }
+            }.restore(snapshotFiles, store, l);
+        }));
+    }
+
+    private static ActionListener<Void> fileQueueListener(BlockingQueue<BlobStoreIndexShardSnapshot.FileInfo> files, int workers,
+                                                          ActionListener<Collection<Void>> listener) {
+        return ActionListener.delegateResponse(new GroupedActionListener<>(listener, workers), (l, e) -> {
+            files.clear(); // Stop uploading the remaining files if we run into any exception
+            l.onFailure(e);
+        });
+    }
+
+    private static InputStream maybeRateLimit(InputStream stream, @Nullable RateLimiter rateLimiter, CounterMetric metric) {
+        return rateLimiter == null ? stream : new RateLimitingInputStream(stream, rateLimiter, metric::inc);
     }
 
     @Override
