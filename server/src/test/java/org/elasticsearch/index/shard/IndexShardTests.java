@@ -51,6 +51,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -664,7 +665,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 primary.routingEntry(),
                 getFakeDiscoNode(primary.routingEntry().currentNodeId()),
                 null));
-        primary.recoverFromStore();
+        recoverFromStore(primary);
 
         primary.recoveryState().getTranslog().totalOperations(snapshot.totalOperations());
         primary.recoveryState().getTranslog().totalOperationsOnStart(snapshot.totalOperations());
@@ -894,10 +895,17 @@ public class IndexShardTests extends IndexShardTestCase {
         recoverShardFromStore(differentIndex);
         expectThrows(
             IllegalArgumentException.class,
-            () -> targetShard.recoverFromLocalShards(mappingConsumer, List.of(sourceShard, differentIndex)));
+            () -> {
+                final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+                targetShard.recoverFromLocalShards(mappingConsumer, Arrays.asList(sourceShard, differentIndex), future);
+                future.actionGet();
+            }
+        );
         closeShards(differentIndex);
 
-        assertTrue(targetShard.recoverFromLocalShards(mappingConsumer, List.of(sourceShard)));
+        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        targetShard.recoverFromLocalShards(mappingConsumer, Arrays.asList(sourceShard), future);
+        assertTrue(future.actionGet());
         RecoveryState recoveryState = targetShard.recoveryState();
         assertEquals(RecoveryState.Stage.DONE, recoveryState.getStage());
         assertTrue(recoveryState.getIndex().fileDetails().size() > 0);
@@ -2606,7 +2614,7 @@ public class IndexShardTests extends IndexShardTestCase {
         snapshot = newShard.snapshotStoreMetadata();
         assertThat(snapshot.getSegmentsFile().name(), is("segments_3"));
 
-        assertThat(newShard.recoverFromStore(), is(true));
+        assertThat(recoverFromStore(newShard), is(true));
 
         snapshot = newShard.snapshotStoreMetadata();
         assertThat(snapshot.getSegmentsFile().name(), is("segments_3"));
@@ -3208,7 +3216,7 @@ public class IndexShardTests extends IndexShardTestCase {
         DiscoveryNode localNode = new DiscoveryNode(
             "foo", buildNewFakeTransportAddress(), Map.of(), Set.of(), Version.CURRENT);
         newShard.markAsRecovering("store", new RecoveryState(newShard.routingEntry(), localNode, null));
-        assertThat(newShard.recoverFromStore(), is(true));
+        assertThat(recoverFromStore(newShard), is(true));
         assertThat(newShard.recoveryState().getTranslog().recoveredOperations(), is(translogOps));
         assertThat(newShard.recoveryState().getTranslog().totalOperations(), is(translogOps));
         assertThat(newShard.recoveryState().getTranslog().totalOperationsOnStart(), is(translogOps));
@@ -3244,7 +3252,7 @@ public class IndexShardTests extends IndexShardTestCase {
         DiscoveryNode localNode = new DiscoveryNode(
             "foo", buildNewFakeTransportAddress(), Map.of(), Set.of(), Version.CURRENT);
         newShard.markAsRecovering("store", new RecoveryState(newShard.routingEntry(), localNode, null));
-        assertThat(newShard.recoverFromStore(), is(true));
+        assertThat(recoverFromStore(newShard), is(true));
         assertThat(newShard.recoveryState().getTranslog().recoveredOperations(), is(1));
         assertThat(newShard.recoveryState().getTranslog().totalOperations(), is(1));
         assertThat(newShard.recoveryState().getTranslog().totalOperationsOnStart(), is(1));
@@ -3271,7 +3279,7 @@ public class IndexShardTests extends IndexShardTestCase {
             newShard.markAsRecovering(
                 "store",
                 new RecoveryState(newShard.routingEntry(), localNode, null));
-            assertThat(newShard.recoverFromStore(), is(true));
+            assertThat(recoverFromStore(newShard), is(true));
             try (Translog.Snapshot snapshot = getTranslog(newShard).newSnapshot()) {
                 assertThat(snapshot.totalOperations(), equalTo(newShard.indexSettings.isSoftDeleteEnabled() ? 0 : 2));
             }
@@ -3295,7 +3303,7 @@ public class IndexShardTests extends IndexShardTestCase {
         DiscoveryNode localNode = new DiscoveryNode(
             "foo", buildNewFakeTransportAddress(), Map.of(), Set.of(), Version.CURRENT);
         newShard.markAsRecovering("store", new RecoveryState(newShard.routingEntry(), localNode, null));
-        assertThat(newShard.recoverFromStore(), is(true));
+        assertThat(recoverFromStore(newShard), is(true));
         assertThat(newShard.recoveryState().getTranslog().recoveredOperations(), is(0));
         assertThat(newShard.recoveryState().getTranslog().totalOperations(), is(0));
         assertThat(newShard.recoveryState().getTranslog().totalOperationsOnStart(), is(0));
@@ -3324,7 +3332,7 @@ public class IndexShardTests extends IndexShardTestCase {
         ShardRouting routing = newShard.routingEntry();
         newShard.markAsRecovering("store", new RecoveryState(routing, localNode, null));
         try {
-            newShard.recoverFromStore();
+            recoverFromStore(newShard);
             fail("index not there!");
         } catch (IndexShardRecoveryException ex) {
             assertTrue(ex.getMessage().contains("failed to fetch index version after copying it over"));
@@ -3351,7 +3359,7 @@ public class IndexShardTests extends IndexShardTestCase {
         newShard.markAsRecovering("store", new RecoveryState(newShard.routingEntry(), localNode, null));
         assertThat(
             "recover even if there is nothing to recover",
-            newShard.recoverFromStore(),
+            recoverFromStore(newShard),
             is(true)
         );
 
@@ -3427,7 +3435,7 @@ public class IndexShardTests extends IndexShardTestCase {
         DiscoveryNode localNode = new DiscoveryNode(
             "foo", buildNewFakeTransportAddress(), Map.of(), Set.of(), Version.CURRENT);
         newShard.markAsRecovering("store", new RecoveryState(newShard.routingEntry(), localNode, null));
-        assertTrue(newShard.recoverFromStore());
+        assertTrue(recoverFromStore(newShard));
         assertThat(getShardDocUIDs(newShard), containsInAnyOrder("doc-0", "doc-2"));
         closeShards(newShard);
     }
@@ -4251,7 +4259,7 @@ public class IndexShardTests extends IndexShardTestCase {
             Set.of(),
             Version.CURRENT);
         readonlyShard.markAsRecovering("store", new RecoveryState(readonlyShard.routingEntry(), localNode, null));
-        assertTrue(readonlyShard.recoverFromStore());
+        recoverFromStore(readonlyShard);
         assertThat(readonlyShard.docStats().getCount(), equalTo(numDocs));
         closeShards(readonlyShard);
     }

@@ -64,6 +64,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -405,7 +406,10 @@ public abstract class AggregationTest extends ESTestCase {
                     Version.CURRENT),
                 null)
         );
-        shard.recoverFromStore();
+
+        PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        shard.recoverFromStore(future);
+        future.actionGet(5, TimeUnit.SECONDS);
 
         var newRouting = ShardRoutingHelper.moveToStarted(shard.routingEntry());
         var newRoutingTable = new IndexShardRoutingTable.Builder(newRouting.shardId())
