@@ -129,6 +129,7 @@ public final class TransportAnalyzeAction {
         );
     }
 
+    @SuppressWarnings("unchecked")
     public CompletableFuture<AcknowledgedResponse> fetchSamplesThenGenerateAndPublishStats() {
         ArrayList<CompletableFuture<Map.Entry<RelationName, Stats>>> futures = new ArrayList<>();
         for (SchemaInfo schema : schemas) {
@@ -149,8 +150,7 @@ public final class TransportAnalyzeAction {
             }
         }
         return CompletableFutures.allAsList(futures)
-            .thenApply(entries -> Map.ofEntries(entries.toArray(new Map.Entry[0])))
-            .thenCompose(entries -> publishTableStats((Map<RelationName, Stats>)(Map) entries));
+            .thenCompose(entries -> publishTableStats(Map.ofEntries(entries.toArray(new Map.Entry[0]))));
     }
 
     private CompletableFuture<AcknowledgedResponse> publishTableStats(Map<RelationName, Stats> newTableStats) {
