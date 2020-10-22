@@ -379,7 +379,7 @@ should be crossed out as well.
 - [ ] be6697f05a9 Remove Blocking Connect Methods from TransportService (#48841)
 - [ ] 6742d9c9d90 Cleanup Redundant Futures in Recovery Code (#48805)
 - [ ] 4c75564bd13 Return consistent source in updates (#48707)
-- [ ] 927cc34eca9 Do not warm up searcher in engine constructor (#48605)
+- [x] 927cc34eca9 Do not warm up searcher in engine constructor (#48605)
 - [x] e58fc03d42f Restore from Individual Shard Snapshot Files in Parallel (#48110)
 - [x] dbd33f77643 Remove type parameter from MapperService.documentMapper() (#48593)
 - [x] 4b89171e6f1 Fix ref count handling in Engine.failEngine (#48639)
