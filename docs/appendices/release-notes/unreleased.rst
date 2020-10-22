@@ -58,6 +58,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that led to a spike in the snapshot threadpool queue when
+  taking snapshots.
+
 - Fixed an issue that caused an error when a client using the PostgreSQL
   wire protocol is used to retrieve array values containing a escaped
   double quotes. For example, the JDBC client failed with ``Can't extract
