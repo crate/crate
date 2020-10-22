@@ -73,7 +73,7 @@ public final class SQLRequestParser {
         try {
             SQLRequestParseContext parseContext = new SQLRequestParseContext();
             parser = XContentFactory.xContent(XContentType.JSON).createParser(
-                NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source));
+                NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, source.streamInput());
             parse(parseContext, parser);
             validate(parseContext);
             return parseContext;
