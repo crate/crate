@@ -19,6 +19,20 @@
 
 package org.elasticsearch.cluster.service;
 
+import static org.elasticsearch.cluster.service.ClusterService.CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING;
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -39,12 +53,9 @@ import org.elasticsearch.cluster.metadata.ProcessClusterEventTimeoutException;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.text.Text;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -54,17 +65,7 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static org.elasticsearch.cluster.service.ClusterService.CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING;
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+import io.crate.common.unit.TimeValue;
 
 public class MasterService extends AbstractLifecycleComponent {
 
@@ -450,8 +451,13 @@ public class MasterService extends AbstractLifecycleComponent {
             assert pending.task instanceof SourcePrioritizedRunnable :
                 "thread pool executor should only use SourcePrioritizedRunnable instances but found: " + pending.task.getClass().getName();
             SourcePrioritizedRunnable task = (SourcePrioritizedRunnable) pending.task;
-            return new PendingClusterTask(pending.insertionOrder, pending.priority, new Text(task.source()),
-                task.getAgeInMillis(), pending.executing);
+            return new PendingClusterTask(
+                pending.insertionOrder,
+                pending.priority,
+                task.source(),
+                task.getAgeInMillis(),
+                pending.executing
+            );
         }).collect(Collectors.toList());
     }
 

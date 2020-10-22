@@ -35,7 +35,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.geo.GeoPoint;
-import org.elasticsearch.common.text.Text;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.joda.time.DateTime;
@@ -322,21 +321,6 @@ public abstract class StreamInput extends InputStream {
             return readLong();
         }
         return null;
-    }
-
-    @Nullable
-    public Text readOptionalText() throws IOException {
-        int length = readInt();
-        if (length == -1) {
-            return null;
-        }
-        return new Text(readBytesReference(length));
-    }
-
-    public Text readText() throws IOException {
-        // use StringAndBytes so we can cache the string if its ever converted to it
-        int length = readInt();
-        return new Text(readBytesReference(length));
     }
 
     @Nullable
@@ -663,7 +647,7 @@ public abstract class StreamInput extends InputStream {
             case 14:
                 return readBytesReference();
             case 15:
-                return readText();
+                throw new IllegalArgumentException("Streaming values as Text type is no longer supported");
             case 16:
                 return readShort();
             case 17:
