@@ -41,6 +41,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.gateway.GatewayAllocator;
 
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 @Singleton
 public class SysAllocations implements Iterable<SysAllocation> {
@@ -84,18 +85,20 @@ public class SysAllocations implements Iterable<SysAllocation> {
                                                              ShardsAllocator shardAllocator) {
         allocation.setDebugMode(RoutingAllocation.DebugMode.EXCLUDE_YES_DECISIONS);
 
-        ShardAllocationDecision shardDecision;
-        if (shardRouting.initializing() || shardRouting.relocating()) {
-            shardDecision = ShardAllocationDecision.NOT_TAKEN;
-        } else {
-            AllocateUnassignedDecision allocateDecision = shardRouting.unassigned() ?
-                gatewayAllocator.decideUnassignedShardAllocation(shardRouting, allocation) : AllocateUnassignedDecision.NOT_TAKEN;
-            if (allocateDecision.isDecisionTaken() == false) {
-                shardDecision = shardAllocator.decideShardAllocation(shardRouting, allocation);
+        Supplier<ShardAllocationDecision> shardDecision = () -> {
+            if (shardRouting.initializing() || shardRouting.relocating()) {
+                return ShardAllocationDecision.NOT_TAKEN;
             } else {
-                shardDecision = new ShardAllocationDecision(allocateDecision, MoveDecision.NOT_TAKEN);
+                AllocateUnassignedDecision allocateDecision = shardRouting.unassigned()
+                    ? gatewayAllocator.decideUnassignedShardAllocation(shardRouting, allocation)
+                    : AllocateUnassignedDecision.NOT_TAKEN;
+                if (allocateDecision.isDecisionTaken() == false) {
+                    return shardAllocator.decideShardAllocation(shardRouting, allocation);
+                } else {
+                    return new ShardAllocationDecision(allocateDecision, MoveDecision.NOT_TAKEN);
+                }
             }
-        }
+        };
         return new ClusterAllocationExplanation(
             shardRouting,
             shardRouting.currentNodeId() != null ? allocation.nodes().get(shardRouting.currentNodeId()) : null,

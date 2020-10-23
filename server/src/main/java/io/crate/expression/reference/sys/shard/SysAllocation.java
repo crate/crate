@@ -32,23 +32,25 @@ import org.elasticsearch.index.shard.ShardId;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class SysAllocation {
 
     private final ShardId shardId;
     private final ShardRoutingState currentState;
     private final IndexParts indexParts;
-    private final ShardAllocationDecision decision;
-    private final List<SysAllocationNodeDecision> decisions;
+    private final Supplier<ShardAllocationDecision> computeDecision;
     private final String nodeId;
     private final boolean primary;
+
+    private ShardAllocationDecision decision;
+    private List<SysAllocationNodeDecision> decisions;
 
     public SysAllocation(ClusterAllocationExplanation explanation) {
         this.shardId = explanation.getShard();
         this.currentState = explanation.getShardState();
         this.indexParts = new IndexParts(explanation.getShard().getIndexName());
-        this.decision = explanation.getShardAllocationDecision();
-        this.decisions = nodeDecisions();
+        this.computeDecision = explanation.getShardAllocationDecision();
         this.nodeId = explanation.getCurrentNode() == null ? null : explanation.getCurrentNode().getId();
         this.primary = explanation.isPrimary();
     }
@@ -84,6 +86,9 @@ public class SysAllocation {
     }
 
     public String explanation() {
+        if (decision == null) {
+            decision = computeDecision.get();
+        }
         if (decision.getMoveDecision().isDecisionTaken()) {
             return decision.getMoveDecision().getExplanation();
         } else if (decision.getAllocateDecision().isDecisionTaken()) {
@@ -94,10 +99,15 @@ public class SysAllocation {
 
     @Nullable
     public List<SysAllocationNodeDecision> decisions() {
+        if (decision == null) {
+            decision = computeDecision.get();
+            decisions = nodeDecisions();
+        }
         return decisions.isEmpty() ? null : decisions;
     }
 
     private List<SysAllocationNodeDecision> nodeDecisions() {
+        assert decision != null : "decision must be initialized to generate nodeDecisions";
         List<SysAllocationNodeDecision> decisions = new ArrayList<>();
         if (decision.getMoveDecision().isDecisionTaken()) {
             decision.getMoveDecision()
@@ -128,7 +138,8 @@ public class SysAllocation {
         }
 
         static SysAllocationNodeDecision fromNodeAllocationResult(NodeAllocationResult allocationResult) {
-            return new SysAllocationNodeDecision(allocationResult.getNode().getId(),
+            return new SysAllocationNodeDecision(
+                allocationResult.getNode().getId(),
                 allocationResult.getNode().getName(),
                 getExplanations(allocationResult));
         }

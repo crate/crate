@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.allocation;
 
+import java.util.function.Supplier;
+
 import javax.annotation.Nullable;
 
 import org.elasticsearch.cluster.ClusterInfo;
@@ -40,13 +42,13 @@ public final class ClusterAllocationExplanation {
     private final DiscoveryNode currentNode;
     private final DiscoveryNode relocationTargetNode;
     private final ClusterInfo clusterInfo;
-    private final ShardAllocationDecision shardAllocationDecision;
+    private final Supplier<ShardAllocationDecision> shardAllocationDecision;
 
     public ClusterAllocationExplanation(ShardRouting shardRouting,
                                         @Nullable DiscoveryNode currentNode,
                                         @Nullable DiscoveryNode relocationTargetNode,
                                         @Nullable ClusterInfo clusterInfo,
-                                        ShardAllocationDecision shardAllocationDecision) {
+                                        Supplier<ShardAllocationDecision> shardAllocationDecision) {
         this.shardRouting = shardRouting;
         this.currentNode = currentNode;
         this.relocationTargetNode = relocationTargetNode;
@@ -110,7 +112,7 @@ public final class ClusterAllocationExplanation {
     /** \
      * Returns the shard allocation decision for attempting to assign or move the shard.
      */
-    public ShardAllocationDecision getShardAllocationDecision() {
+    public Supplier<ShardAllocationDecision> getShardAllocationDecision() {
         return shardAllocationDecision;
     }
 }

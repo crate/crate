@@ -53,7 +53,9 @@ None
 Changes
 =======
 
-None
+- Improved the performance of queries on the ``sys.allocations`` table in cases
+  where there are filters restricting the result set or if only a sub-set of
+  the columns is selected.
 
 Fixes
 =====
