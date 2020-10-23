@@ -237,7 +237,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), innerTypes);
+        final int prime = 31;
+        int result = super.hashCode();
+        return prime * result + innerTypes.hashCode();
     }
 
     @Override
