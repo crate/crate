@@ -22,8 +22,8 @@
 
 package io.crate.expression.reference.sys.shard;
 
+import io.crate.common.collections.Lists2;
 import io.crate.metadata.IndexParts;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplanation;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.allocation.NodeAllocationResult;
 import org.elasticsearch.cluster.routing.allocation.ShardAllocationDecision;
@@ -46,13 +46,17 @@ public class SysAllocation {
     private ShardAllocationDecision decision;
     private List<SysAllocationNodeDecision> decisions;
 
-    public SysAllocation(ClusterAllocationExplanation explanation) {
-        this.shardId = explanation.getShard();
-        this.currentState = explanation.getShardState();
-        this.indexParts = new IndexParts(explanation.getShard().getIndexName());
-        this.computeDecision = explanation.getShardAllocationDecision();
-        this.nodeId = explanation.getCurrentNode() == null ? null : explanation.getCurrentNode().getId();
-        this.primary = explanation.isPrimary();
+    public SysAllocation(ShardId shardId,
+                         ShardRoutingState routingState,
+                         Supplier<ShardAllocationDecision> computeDecision,
+                         @Nullable String nodeId,
+                         boolean isPrimary) {
+        this.shardId = shardId;
+        this.currentState = routingState;
+        this.indexParts = new IndexParts(shardId.getIndexName());
+        this.computeDecision = computeDecision;
+        this.nodeId = nodeId;
+        this.primary = isPrimary;
     }
 
     public String tableSchema() {
@@ -108,17 +112,15 @@ public class SysAllocation {
 
     private List<SysAllocationNodeDecision> nodeDecisions() {
         assert decision != null : "decision must be initialized to generate nodeDecisions";
-        List<SysAllocationNodeDecision> decisions = new ArrayList<>();
         if (decision.getMoveDecision().isDecisionTaken()) {
-            decision.getMoveDecision()
-                .getNodeDecisions()
-                .forEach(i -> decisions.add(SysAllocationNodeDecision.fromNodeAllocationResult(i)));
+            return Lists2.map(
+                decision.getMoveDecision().getNodeDecisions(), SysAllocationNodeDecision::fromNodeAllocationResult);
         } else if (decision.getAllocateDecision().isDecisionTaken()) {
-            decision.getAllocateDecision()
-                .getNodeDecisions()
-                .forEach(i -> decisions.add(SysAllocationNodeDecision.fromNodeAllocationResult(i)));
+            return Lists2.map(
+                decision.getAllocateDecision().getNodeDecisions(), SysAllocationNodeDecision::fromNodeAllocationResult);
+        } else {
+            return List.of();
         }
-        return decisions;
     }
 
     public String fqn() {

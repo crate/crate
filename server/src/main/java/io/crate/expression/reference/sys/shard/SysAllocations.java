@@ -23,7 +23,6 @@
 package io.crate.expression.reference.sys.shard;
 
 import io.crate.metadata.IndexParts;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplanation;
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterState;
@@ -70,21 +69,17 @@ public class SysAllocations implements Iterable<SysAllocation> {
         final ClusterState state = clusterService.state();
         final RoutingNodes routingNodes = state.getRoutingNodes();
         final ClusterInfo clusterInfo = clusterInfoService.getClusterInfo();
-
         final RoutingAllocation allocation = new RoutingAllocation(
             allocationDeciders, routingNodes, state, clusterInfo, System.nanoTime());
-        return allocation.routingTable().allShards().stream()
+        return allocation.routingTable().allShards()
+            .stream()
             .filter(shardRouting -> !IndexParts.isDangling(shardRouting.getIndexName()))
-            .map(shardRouting -> new SysAllocation(
-                explainShard(shardRouting, allocation, gatewayAllocator, shardAllocator))).iterator();
+            .map(shardRouting -> createSysAllocations(allocation, shardRouting))
+            .iterator();
     }
 
-    private static ClusterAllocationExplanation explainShard(ShardRouting shardRouting,
-                                                             RoutingAllocation allocation,
-                                                             GatewayAllocator gatewayAllocator,
-                                                             ShardsAllocator shardAllocator) {
+    private SysAllocation createSysAllocations(RoutingAllocation allocation, ShardRouting shardRouting) {
         allocation.setDebugMode(RoutingAllocation.DebugMode.EXCLUDE_YES_DECISIONS);
-
         Supplier<ShardAllocationDecision> shardDecision = () -> {
             if (shardRouting.initializing() || shardRouting.relocating()) {
                 return ShardAllocationDecision.NOT_TAKEN;
@@ -99,12 +94,12 @@ public class SysAllocations implements Iterable<SysAllocation> {
                 }
             }
         };
-        return new ClusterAllocationExplanation(
-            shardRouting,
-            shardRouting.currentNodeId() != null ? allocation.nodes().get(shardRouting.currentNodeId()) : null,
-            shardRouting.relocatingNodeId() != null ? allocation.nodes().get(shardRouting.relocatingNodeId()) : null,
-            null,
-            shardDecision
+        return new SysAllocation(
+            shardRouting.shardId(),
+            shardRouting.state(),
+            shardDecision,
+            shardRouting.currentNodeId(),
+            shardRouting.primary()
         );
     }
 }
