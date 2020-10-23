@@ -53,6 +53,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardPath;
@@ -347,5 +348,17 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
         NestableInput<Long> shardSizeExpression = (NestableInput<Long>) resolver.getImplementation(refInfo);
         assertThat(shardSizeExpression.value(), is(0L));
+    }
+
+    @Test
+    public void test_retention_lease_is_null_on_index_shard_closed_exception() throws Exception {
+        IndexShard mock = mockIndexShard();
+        var shardId = mock.shardId();
+        doThrow(new IndexShardClosedException(shardId)).when(mock).getRetentionLeaseStats();
+
+        ShardReferenceResolver resolver = new ShardReferenceResolver(schemas, new ShardRowContext(mock, clusterService));
+        Reference refInfo = refInfo("sys.shards.retention_leases", DataTypes.LONG, RowGranularity.SHARD, "version");
+        NestableInput<Long> input = (NestableInput<Long>) resolver.getImplementation(refInfo);
+        assertThat(input.value(), Matchers.nullValue());
     }
 }
