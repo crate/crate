@@ -45,6 +45,8 @@ public class Reference extends Symbol {
     }
 
     protected DataType<?> type;
+
+    @Nullable
     private final Integer position;
     private final ReferenceIdent ident;
     private final ColumnPolicy columnPolicy;
@@ -205,33 +207,53 @@ public class Reference extends Symbol {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Reference reference = (Reference) o;
-        return Objects.equals(position, reference.position) &&
-               nullable == reference.nullable &&
-               columnStoreDisabled == reference.columnStoreDisabled &&
-               Objects.equals(type, reference.type) &&
-               Objects.equals(ident, reference.ident) &&
-               Objects.equals(defaultExpression, reference.defaultExpression) &&
-               columnPolicy == reference.columnPolicy &&
-               granularity == reference.granularity &&
-               indexType == reference.indexType;
+        if (nullable != reference.nullable) {
+            return false;
+        }
+        if (columnStoreDisabled != reference.columnStoreDisabled) {
+            return false;
+        }
+        if (!type.equals(reference.type)) {
+            return false;
+        }
+        if (!Objects.equals(position, reference.position)) {
+            return false;
+        }
+        if (!ident.equals(reference.ident)) {
+            return false;
+        }
+        if (columnPolicy != reference.columnPolicy) {
+            return false;
+        }
+        if (granularity != reference.granularity) {
+            return false;
+        }
+        if (indexType != reference.indexType) {
+            return false;
+        }
+        return Objects.equals(defaultExpression, reference.defaultExpression);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(position,
-                            type,
-                            ident,
-                            columnPolicy,
-                            granularity,
-                            indexType,
-                            nullable,
-                            columnStoreDisabled,
-                            defaultExpression);
+        int result = type.hashCode();
+        result = 31 * result + (position != null ? position.hashCode() : 0);
+        result = 31 * result + ident.hashCode();
+        result = 31 * result + columnPolicy.hashCode();
+        result = 31 * result + granularity.hashCode();
+        result = 31 * result + indexType.hashCode();
+        result = 31 * result + (nullable ? 1 : 0);
+        result = 31 * result + (columnStoreDisabled ? 1 : 0);
+        result = 31 * result + (defaultExpression != null ? defaultExpression.hashCode() : 0);
+        return result;
     }
-
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
