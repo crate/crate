@@ -58,6 +58,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that could lead to a ``IndexShardClosedException`` when
+  querying the ``sys.shards`` table.
+
 - Fixed an issue that led to a spike in the snapshot threadpool queue when
   taking snapshots.
 

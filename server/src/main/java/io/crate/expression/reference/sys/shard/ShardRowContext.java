@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
 
@@ -357,7 +358,7 @@ public class ShardRowContext {
     public Long retentionLeasesPrimaryTerm() {
         try {
             return indexShard.getRetentionLeaseStats().leases().primaryTerm();
-        } catch (AlreadyClosedException e) {
+        } catch (AlreadyClosedException | IndexShardClosedException e) {
             return null;
         }
     }
@@ -365,7 +366,7 @@ public class ShardRowContext {
     public Long retentionLeasesVersion() {
         try {
             return indexShard.getRetentionLeaseStats().leases().version();
-        } catch (AlreadyClosedException e) {
+        } catch (AlreadyClosedException | IndexShardClosedException e) {
             return null;
         }
     }
@@ -373,7 +374,7 @@ public class ShardRowContext {
     public Collection<RetentionLease> retentionLeases() {
         try {
             return indexShard.getRetentionLeaseStats().leases().leases();
-        } catch (AlreadyClosedException e) {
+        } catch (AlreadyClosedException | IndexShardClosedException e) {
             return List.of();
         }
     }
