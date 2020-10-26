@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.ddl;
 
+import io.crate.analyze.AnalyzedDropTable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -47,17 +48,20 @@ public class DropTablePlan implements Plan {
     private static final Row ROW_ZERO = new Row1(0L);
     private static final Row ROW_ONE = new Row1(1L);
 
-    private final TableInfo table;
-    private final boolean ifExists;
+    private final AnalyzedDropTable<?> dropTable;
 
-    public DropTablePlan(TableInfo table, boolean ifExists) {
-        this.table = table;
-        this.ifExists = ifExists;
+    public DropTablePlan(AnalyzedDropTable<?> dropTable) {
+        this.dropTable = dropTable;
     }
 
     @VisibleForTesting
     public TableInfo tableInfo() {
-        return table;
+        return dropTable.table();
+    }
+
+    @VisibleForTesting
+    public AnalyzedDropTable<?> dropTable() {
+        return dropTable;
     }
 
     @Override
@@ -65,37 +69,49 @@ public class DropTablePlan implements Plan {
         return StatementType.DDL;
     }
 
+
     @Override
     public void executeOrFail(DependencyCarrier dependencies,
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        boolean isPartitioned = table instanceof DocTableInfo && ((DocTableInfo) table).isPartitioned();
-        DropTableRequest request = new DropTableRequest(table.ident(), isPartitioned);
+        TableInfo table = dropTable.table();
+        DropTableRequest request;
+        if (table == null) {
+            if (dropTable.maybeCorrupt()) {
+                // setting isPartitioned=true should be safe.
+                // It will delete a template if it exists, and if there is no template it shouldn't do any harm
+                request = new DropTableRequest(dropTable.tableName(), true);
+            } else {
+                // no-op, table is already gone
+                assert dropTable.dropIfExists() : "If table is null, IF EXISTS flag must have been present";
+                consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
+                return;
+            }
+        } else {
+            boolean isPartitioned = table instanceof DocTableInfo && ((DocTableInfo) table).isPartitioned();
+            request = new DropTableRequest(table.ident(), isPartitioned);
+        }
         dependencies.transportDropTableAction().execute(request, new ActionListener<>() {
             @Override
             public void onResponse(AcknowledgedResponse response) {
-                if (!response.isAcknowledged()) {
-                    warnNotAcknowledged();
+                if (!response.isAcknowledged() && LOGGER.isWarnEnabled()) {
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", dropTable.tableName());
+                    }
                 }
                 consumer.accept(InMemoryBatchIterator.of(ROW_ONE, SENTINEL), null);
             }
 
             @Override
             public void onFailure(Exception e) {
-                if (ifExists && e instanceof IndexNotFoundException) {
+                if (dropTable.dropIfExists() && e instanceof IndexNotFoundException) {
                     consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
                 } else {
                     consumer.accept(null, e);
                 }
             }
         });
-    }
-
-    private void warnNotAcknowledged() {
-        if (LOGGER.isWarnEnabled()) {
-            LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", table.ident());
-        }
     }
 }
