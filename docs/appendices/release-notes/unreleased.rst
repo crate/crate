@@ -60,6 +60,9 @@ Changes
 Fixes
 =====
 
+- Changed the ``DROP TABLE`` logic to allow super users to drop tables with a
+  corrupted schema.
+
 - Fixed an issue that could lead to a ``IndexShardClosedException`` when
   querying the ``sys.shards`` table.
 

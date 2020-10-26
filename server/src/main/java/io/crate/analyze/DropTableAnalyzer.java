@@ -21,9 +21,16 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.crate.action.sql.SessionContext;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -34,9 +41,9 @@ import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.List;
-
 class DropTableAnalyzer {
+
+    private static final Logger LOGGER = LogManager.getLogger(DropTableAnalyzer.class);
 
     private final Schemas schemas;
 
@@ -63,16 +70,35 @@ class DropTableAnalyzer {
                                                                boolean dropIfExists,
                                                                SessionContext sessionContext) {
         T tableInfo;
+        RelationName tableName;
+        boolean maybeCorrupt = false;
         try {
             //noinspection unchecked
             tableInfo = (T) schemas.resolveTableInfo(name, Operation.DROP, sessionContext.sessionUser(), sessionContext.searchPath());
+            tableName = tableInfo.ident();
         } catch (SchemaUnknownException | RelationUnknown e) {
             if (dropIfExists) {
                 tableInfo = null;
+                tableName = RelationName.of(name, sessionContext.searchPath().currentSchema());
             } else {
                 throw e;
             }
+        } catch (OperationOnInaccessibleRelationException e) {
+            throw e;
+        } catch (Throwable t) {
+            if (!sessionContext.sessionUser().isSuperUser()) {
+                throw t;
+            }
+            tableInfo = null;
+            maybeCorrupt = true;
+            tableName = RelationName.of(name, sessionContext.searchPath().currentSchema());
+            LOGGER.info(
+                "Unexpected error resolving table during DROP TABLE operation on {}. " +
+                "Proceeding with operation as table schema may be corrupt (error={})",
+                tableName,
+                t
+            );
         }
-        return new AnalyzedDropTable<>(tableInfo, dropIfExists);
+        return new AnalyzedDropTable<>(tableInfo, dropIfExists, tableName, maybeCorrupt);
     }
 }

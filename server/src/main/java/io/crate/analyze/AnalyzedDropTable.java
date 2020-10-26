@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
@@ -32,9 +33,15 @@ public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatemen
     @Nullable
     private final T tableInfo;
 
-    AnalyzedDropTable(@Nullable T tableInfo, boolean dropIfExists) {
+    private final RelationName tableName;
+
+    private final boolean maybeCorrupt;
+
+    AnalyzedDropTable(@Nullable T tableInfo, boolean dropIfExists, RelationName tableName, boolean maybeCorrupt) {
         this.tableInfo = tableInfo;
         this.dropIfExists = dropIfExists;
+        this.tableName = tableName;
+        this.maybeCorrupt = maybeCorrupt;
     }
 
     @Nullable
@@ -44,6 +51,14 @@ public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatemen
 
     public boolean dropIfExists() {
         return dropIfExists;
+    }
+
+    public RelationName tableName() {
+        return tableName;
+    }
+
+    public boolean maybeCorrupt() {
+        return maybeCorrupt;
     }
 
     @Override
