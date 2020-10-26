@@ -86,7 +86,6 @@ import io.crate.license.LicenseService;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.AlterBlobTablePlan;
@@ -351,11 +350,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitDropTable(AnalyzedDropTable<?> dropTable, PlannerContext context) {
-        TableInfo table = dropTable.table();
-        if (table == null) {
-            return NoopPlan.INSTANCE;
-        }
-        return new DropTablePlan(table, dropTable.dropIfExists());
+        return new DropTablePlan(dropTable);
     }
 
     @Override

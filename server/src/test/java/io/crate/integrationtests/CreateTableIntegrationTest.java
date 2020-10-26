@@ -44,6 +44,14 @@ public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
                                    "with (number_of_replicas = 0)");
     }
 
+    @Test
+    public void test_allow_drop_of_corrupted_table() throws Exception {
+        execute("create table tbl (\"created\" timestamp without time zone generated always as 'timestamp without time zone')");
+        execute("drop table tbl");
+        execute("select count(*) from information_schema.tables where table_name = 'tbl'");
+        assertThat(response.rows()[0][0], is(0L));
+    }
+
     private void executeCreateTableThreaded(final String statement) throws Throwable {
         ExecutorService executorService = Executors.newFixedThreadPool(20);
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();

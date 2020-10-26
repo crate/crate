@@ -25,6 +25,8 @@ package io.crate.planner;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -53,8 +55,9 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropTableIfExistsWithUnknownSchema() throws Exception {
-        Plan plan = e.plan("drop table if exists unknown_schema.unknwon_table");
-        assertThat(plan, instanceOf(NoopPlan.class));
+        DropTablePlan plan = e.plan("drop table if exists unknown_schema.unknwon_table");
+        assertThat(plan.tableInfo(), Matchers.nullValue());
+        assertThat(plan.dropTable().maybeCorrupt(), is(false));
     }
 
     @Test
@@ -64,9 +67,10 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testDropTableIfExistsNonExistentTableCreatesNoop() throws Exception {
-        Plan plan = e.plan("drop table if exists groups");
-        assertThat(plan, instanceOf(NoopPlan.class));
+    public void testDropTableIfExistsNonExistentTableCreatesPlanWithoutTableInfo() throws Exception {
+        DropTablePlan plan = e.plan("drop table if exists groups");
+        assertThat(plan.tableInfo(), Matchers.nullValue());
+        assertThat(plan.dropTable().maybeCorrupt(), is(false));
     }
 
 
@@ -83,8 +87,9 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testDropNonExistentBlobTableCreatesNoop() throws Exception {
-        Plan plan = e.plan("drop blob table if exists unknown");
-        assertThat(plan, instanceOf(NoopPlan.class));
+    public void testDropNonExistentBlobTableCreatesPlanWithoutTableInfo() throws Exception {
+        DropTablePlan plan = e.plan("drop blob table if exists unknown");
+        assertThat(plan.tableInfo(), Matchers.nullValue());
+        assertThat(plan.dropTable().maybeCorrupt(), is(false));
     }
 }
