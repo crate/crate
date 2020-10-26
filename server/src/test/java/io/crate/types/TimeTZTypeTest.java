@@ -1,6 +1,7 @@
 package io.crate.types;
 
 import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -36,7 +37,10 @@ public class TimeTZTypeTest extends ESTestCase {
 
     @Test
     public void test_implicit_cast_ISO_formats_with_time_zone() {
-        assertThat(TimeTZType.INSTANCE.implicitCast("01:00:00     CET"), isTZ(3600000000L, 7200));
+        assertThat(
+            TimeTZType.INSTANCE.implicitCast("01:00:00     CET"),
+            Matchers.anyOf(isTZ(3600000000L, 3600), isTZ(3600000000L, 7200))
+        );
         assertThat(TimeTZType.INSTANCE.implicitCast("01:00:00     UTC"), isTZ(3600000000L));
         assertThat(TimeTZType.INSTANCE.implicitCast("01:00:00     GMT"), isTZ(3600000000L));
         assertThat(TimeTZType.INSTANCE.implicitCast("01:00:00  Z"), isTZ(3600000000L));
