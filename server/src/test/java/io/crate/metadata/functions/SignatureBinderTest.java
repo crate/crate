@@ -22,6 +22,7 @@
 
 package io.crate.metadata.functions;
 
+import io.crate.types.StringType;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -278,7 +279,20 @@ public class SignatureBinderTest extends ESTestCase {
             .boundTo("bigint")
             .withCoercion()
             .fails();
+    }
 
+    @Test
+    public void test_bind_type_text_types_with_limit_length_binds_type_with_highest_length() {
+        var signature = functionSignature()
+            .argumentTypes(parseTypeSignature("E"), parseTypeSignature("E"))
+            .returnType(DataTypes.BOOLEAN.getTypeSignature())
+            .typeVariableConstraints(List.of(typeVariable("E")))
+            .build();
+
+        assertThat(signature)
+            .boundTo(StringType.of(1), StringType.of(2))
+            .produces(new BoundVariables(
+                Map.of("E", type(StringType.of(2).getTypeSignature().toString()))));
     }
 
     @Test
