@@ -21,14 +21,21 @@
 
 package io.crate.integrationtests;
 
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
+import io.crate.exceptions.RelationUnknown;
+
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -46,10 +53,34 @@ public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void test_allow_drop_of_corrupted_table() throws Exception {
-        execute("create table tbl (\"created\" timestamp without time zone generated always as 'timestamp without time zone')");
-        execute("drop table tbl");
+        execute("create table doc.tbl (ts timestamp without time zone as '2020-01-01')");
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject("default")
+                .startObject("_meta")
+                    .startObject("generated_columns")
+                        .field("ts", "foobar")
+                    .endObject()
+                .endObject()
+            .endObject()
+            .endObject();
+        client().admin().indices().preparePutMapping("tbl")
+            .setSource(builder)
+            .execute()
+            .actionGet(5, TimeUnit.SECONDS);
+
+        assertThat(
+            internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"),
+            is(true)
+        );
+        assertThrows(Exception.class, () -> execute("select * from doc.tbl"));
+        execute("drop table doc.tbl");
         execute("select count(*) from information_schema.tables where table_name = 'tbl'");
         assertThat(response.rows()[0][0], is(0L));
+        assertThat(
+            internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"),
+            is(false)
+        );
     }
 
     private void executeCreateTableThreaded(final String statement) throws Throwable {

@@ -1087,13 +1087,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testOrphanedPartition() throws Exception {
-        prepareCreate(".partitioned.foo.04138").execute().get();
-        execute("select table_name from information_schema.tables where table_schema='doc'");
-        assertThat(response.rowCount(), is(0L));
-    }
-
-    @Test
     public void testSelectGeneratedColumnFromInformationSchemaColumns() {
         execute("create table t (lastname string, firstname string, name as (lastname || '_' || firstname)) " +
                 "with (number_of_replicas = 0)");

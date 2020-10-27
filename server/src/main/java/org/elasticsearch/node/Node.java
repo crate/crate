@@ -19,6 +19,38 @@
 
 package org.elasticsearch.node;
 
+import static java.util.stream.Collectors.toList;
+import static org.elasticsearch.cluster.node.DiscoveryNode.getRolesFromSettings;
+import static org.elasticsearch.discovery.DiscoverySettings.INITIAL_STATE_TIMEOUT_SETTING;
+
+import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+import javax.net.ssl.SNIHostName;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanQuery;
@@ -28,8 +60,8 @@ import org.elasticsearch.Build;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.ActionModule;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
@@ -52,7 +84,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingService;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdMonitor;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.component.Lifecycle;
@@ -75,11 +106,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import io.crate.common.io.IOUtils;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.env.Environment;
@@ -128,35 +157,13 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportService;
 
-import javax.net.ssl.SNIHostName;
-import java.io.BufferedWriter;
-import java.io.Closeable;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.toList;
-import static org.elasticsearch.cluster.node.DiscoveryNode.getRolesFromSettings;
-import static org.elasticsearch.discovery.DiscoverySettings.INITIAL_STATE_TIMEOUT_SETTING;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.window.WindowFunctionModule;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.tablefunctions.TableFunctionModule;
+import io.crate.metadata.settings.session.SessionSettingModule;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -315,6 +322,11 @@ public class Node implements Closeable {
             for (Module pluginModule : pluginsService.createGuiceModules()) {
                 modules.add(pluginModule);
             }
+            modules.add(new SessionSettingModule());
+            modules.add(new AggregationImplModule());
+            modules.add(new ScalarFunctionModule());
+            modules.add(new TableFunctionModule());
+            modules.add(new WindowFunctionModule());
             final MonitorService monitorService = new MonitorService(settings,
                                                                      nodeEnvironment,
                                                                      threadPool,
@@ -401,7 +413,8 @@ public class Node implements Closeable {
                 settingsModule.getIndexScopedSettings(),
                 threadPool,
                 xContentRegistry,
-                forbidPrivateIndexSettings);
+                forbidPrivateIndexSettings
+            );
 
             final Collection<Object> pluginComponents = pluginsService.filterPlugins(Plugin.class).stream()
                 .flatMap(p -> p.createComponents(client, clusterService, threadPool,

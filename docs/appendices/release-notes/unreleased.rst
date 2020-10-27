@@ -58,6 +58,10 @@ None
 Fixes
 =====
 
+- Improved the validation logic for ``CREATE TABLE`` statements to prevent
+  users from creating tables that cannot be used due to an invalid schema
+  definition.
+
 - Changed the ``DROP TABLE`` logic to allow super users to drop tables with a
   corrupted schema.
 

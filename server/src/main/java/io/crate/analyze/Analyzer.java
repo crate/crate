@@ -152,7 +152,7 @@ public class Analyzer {
                     SessionSettingRegistry sessionSettingRegistry
     ) {
         this.relationAnalyzer = relationAnalyzer;
-        this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
+        this.dropTableAnalyzer = new DropTableAnalyzer(clusterService, schemas);
         this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);
         this.userManager = userManager;
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
