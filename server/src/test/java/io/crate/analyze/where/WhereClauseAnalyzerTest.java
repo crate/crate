@@ -414,13 +414,13 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testSeqNoAndPrimaryTermAreRequired() {
         expectedException.expect(VersioninigValidationException.class);
         expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
-        analyzeSelectWhere("select * from users where id = 2 and _primary_term = 1");
+        analyzeSelectWhere("select * from users where name = 'Douglas' and _primary_term = 1");
     }
 
     @Test
     public void testVersioningMechanismsCannotBeMixed() {
         expectedException.expect(VersioninigValidationException.class);
         expectedException.expectMessage(VersioninigValidationException.MIXED_VERSIONING_COLUMNS_USAGE_MSG);
-        analyzeSelectWhere("select * from users where id = 2 and _primary_term = 1 and _seq_no = 22 and _version = 1");
+        analyzeSelectWhere("select * from users where name = 'Douglas' and _primary_term = 1 and _seq_no = 22 and _version = 1");
     }
 }

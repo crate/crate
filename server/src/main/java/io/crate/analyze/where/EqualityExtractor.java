@@ -23,6 +23,7 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.Sets;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
@@ -86,6 +87,8 @@ public class EqualityExtractor {
      * columns: [x]
      *      x = ?                                           ->  [[?]]
      *      x = 1 or x = 2                                  ->  [[1], [2]]
+     *      x = 1 and some_scalar(z, ...) = 2               -> [[1]]
+     *      x = 1 or (x = 2 and z = 20)                     -> [[1], [2]]
      *
      * columns: [x, y]
      *      x = $1 and y = $2                               -> [[$1, $2]]
@@ -95,6 +98,7 @@ public class EqualityExtractor {
      *
      * columns: [x]
      *      x = 10 or y = 20                                -> null (y not inside columns)
+     *      x = 10 and match(z, ...) = 'foo'                -> null (MATCH predicate can only be applied on lucene)
      * </pre>
      */
     @Nullable
@@ -359,6 +363,7 @@ public class EqualityExtractor {
             private LinkedHashMap<ColumnIdent, Comparison> comparisons;
             private boolean proxyBelow;
             private boolean seenUnknown = false;
+            private boolean ignoreUnknown = false;
             private final boolean exact;
 
             private Context(Collection<ColumnIdent> references, boolean exact) {
@@ -428,6 +433,7 @@ public class EqualityExtractor {
             } else if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
                 boolean proxyBelowPre = context.proxyBelow;
                 boolean proxyBelowPost = proxyBelowPre;
+                context.ignoreUnknown = context.ignoreUnknown || functionName.equals(AndOperator.NAME);
                 ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
                 for (Symbol arg : arguments) {
                     context.proxyBelow = proxyBelowPre;
@@ -440,7 +446,10 @@ public class EqualityExtractor {
                 }
                 return new Function(function.signature(), newArgs, function.valueType());
             }
-            context.seenUnknown = true;
+            if (context.ignoreUnknown == false
+                || functionName.equals(io.crate.expression.predicate.MatchPredicate.NAME)) {
+                context.seenUnknown = true;
+            }
             return Literal.BOOLEAN_TRUE;
         }
     }

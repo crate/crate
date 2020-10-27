@@ -81,7 +81,13 @@ public final class RewriteCollectToGet implements Rule<Collect> {
         Optional<DocKeys> docKeys = detailedQuery.docKeys();
         //noinspection OptionalIsPresent no capturing lambda allocation
         if (docKeys.isPresent()) {
-            return new Get(relation, docKeys.get(), collect.outputs(), tableStats.estimatedSizePerRow(relation.relationName()));
+            return new Get(
+                relation,
+                docKeys.get(),
+                detailedQuery.query(),
+                collect.outputs(),
+                tableStats.estimatedSizePerRow(relation.relationName())
+            );
         } else {
             return null;
         }

@@ -36,9 +36,9 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Reference;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
@@ -59,6 +59,7 @@ import java.util.Map;
 
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
+import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -159,6 +160,15 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         UpdatePlanner.Update plan = e.plan("update users set name = 'should not update' where _seq_no = 11 and _primary_term = 1");
         plan.createExecutionPlan.create(
             e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
+    }
+
+    @Test
+    public void test_update_where_id_and_seq_missing_primary_term() throws Exception {
+        assertThrows(
+            () -> e.plan("update users set name = 'should not update' where id = 1 and _seq_no = 11"),
+            VersioninigValidationException.class,
+            VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
+        );
     }
 
     @Test

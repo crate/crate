@@ -29,13 +29,19 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.PKLookupPhase;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -52,21 +58,30 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class Get implements LogicalPlan {
 
     final DocTableRelation tableRelation;
     final DocKeys docKeys;
+    final Symbol query;
     final long estimatedSizePerRow;
     private final List<Symbol> outputs;
 
-    public Get(DocTableRelation table, DocKeys docKeys, List<Symbol> outputs, long estimatedSizePerRow) {
-        this.outputs = outputs;
+    public Get(DocTableRelation table,
+               DocKeys docKeys,
+               Symbol query,
+               List<Symbol> outputs,
+               long estimatedSizePerRow) {
         this.tableRelation = table;
         this.docKeys = docKeys;
+        this.query = query;
         this.estimatedSizePerRow = estimatedSizePerRow;
+        this.outputs = outputs;
     }
 
     @Override
@@ -85,8 +100,6 @@ public class Get implements LogicalPlan {
                                SubQueryResults subQueryResults) {
         HashMap<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode = new HashMap<>();
         DocTableInfo docTableInfo = tableRelation.tableInfo();
-        List<Symbol> boundOutputs = Lists2.map(
-            outputs, s -> SubQueryAndParamBinder.convert(s, params, subQueryResults));
         for (DocKeys.DocKey docKey : docKeys) {
             String id = docKey.getId(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
             if (id == null) {
@@ -135,20 +148,61 @@ public class Get implements LogicalPlan {
                 .orElse(SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
             pkAndVersions.add(new PKAndVersion(id, version, sequenceNumber, primaryTerm));
         }
-        return new Collect(
+
+        var docKeyColumns = new ArrayList<>(docTableInfo.primaryKey());
+        docKeyColumns.addAll(docTableInfo.partitionedBy());
+        docKeyColumns.add(docTableInfo.clusteredBy());
+        docKeyColumns.add(DocSysColumns.VERSION);
+        docKeyColumns.add(DocSysColumns.SEQ_NO);
+        docKeyColumns.add(DocSysColumns.PRIMARY_TERM);
+
+        var binder = new SubQueryAndParamBinder(params, subQueryResults);
+        List<Symbol> boundOutputs = Lists2.map(outputs, binder);
+        var boundQuery = binder.apply(query);
+
+        // Collect all columns which are used inside the query
+        // If the query contains only DocKeys, no filter is needed as all DocKeys are handled by the PKLookupOperation
+        AtomicBoolean requiresAdditionalFilteringOnNonDocKeyColumns = new AtomicBoolean(false);
+        var toCollectSet = new LinkedHashSet<>(boundOutputs);
+        Consumer<Reference> addRefIfMatch = ref -> {
+            toCollectSet.add(ref);
+            if (docKeyColumns.contains(ref.column()) == false) {
+                requiresAdditionalFilteringOnNonDocKeyColumns.set(true);
+            }
+        };
+        RefVisitor.visitRefs(boundQuery, addRefIfMatch);
+
+        var toCollect = boundOutputs;
+        ArrayList<Projection> projections = new ArrayList<>();
+        if (requiresAdditionalFilteringOnNonDocKeyColumns.get()) {
+            toCollect = List.copyOf(toCollectSet);
+            var filterProjection = ProjectionBuilder.filterProjection(toCollect, boundQuery);
+            projections.add(filterProjection);
+
+            // reduce outputs which have been added for the filter projection
+            var evalProjection = new EvalProjection(InputColumn.mapToInputColumns(boundOutputs));
+            projections.add(evalProjection);
+        }
+
+        var collect = new Collect(
             new PKLookupPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 docTableInfo.partitionedBy(),
-                boundOutputs,
+                toCollect,
                 idsByShardByNode
             ),
             TopN.NO_LIMIT,
             0,
-            boundOutputs.size(),
+            toCollect.size(),
             docKeys.size(),
             null
         );
+        for (var projection : projections) {
+            collect.addProjection(projection);
+        }
+
+        return collect;
     }
 
     @Override
@@ -184,7 +238,7 @@ public class Get implements LogicalPlan {
             }
         }
         if (excludedAny) {
-            return new Get(tableRelation, docKeys, newOutputs, estimatedSizePerRow);
+            return new Get(tableRelation, docKeys, query, newOutputs, estimatedSizePerRow);
         }
         return this;
     }
