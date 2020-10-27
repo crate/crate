@@ -58,6 +58,13 @@ None
 Fixes
 =====
 
+- Fixed an issue that would prevent function resolution for arguments that
+  contain both text types with and without length limit. For example,
+  statements as following would fail with the unknown function exception::
+
+    CREATE TABLE tbl (str VARCHAR(3))
+    SELECT * FROM tbl WHERE str = 'x'
+
 - Improved the validation logic for ``CREATE TABLE`` and ``ALTER TABLE``
   statements to prevent users from creating tables that cannot be used due to
   an invalid schema definition.
