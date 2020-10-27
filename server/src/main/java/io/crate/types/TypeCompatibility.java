@@ -94,8 +94,20 @@ public final class TypeCompatibility {
         if (fromTypeParameters.size() != toTypeParameters.size()) {
             if (fromType.id() == ObjectType.ID && toType.id() == ObjectType.ID) {
                 return fromTypeParameters.size() > toTypeParameters.size() ? fromType : toType;
+            } else if (fromType.id() == StringType.ID && toType.id() == StringType.ID) {
+                if (((StringType) fromType).unbound() || ((StringType) toType).unbound()) {
+                    return StringType.INSTANCE;
+                }
             }
             return null;
+        } else {
+            if (fromType.id() == StringType.ID && toType.id() == StringType.ID) {
+                if (((StringType) fromType).lengthLimit() > ((StringType) toType).lengthLimit()) {
+                    return fromType;
+                } else {
+                    return toType;
+                }
+            }
         }
 
         for (int i = 0; i < fromTypeParameters.size(); i++) {

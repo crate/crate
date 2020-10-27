@@ -29,6 +29,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
@@ -49,10 +50,12 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +65,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -359,5 +363,16 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         symbol = executor.asSymbol("nested_obj.\"myObj['x']\"['AbC']");
         assertThat(symbol, isReference("myObj['x']['AbC']"));
+    }
+
+    @Test
+    public void test_resolve_eq_function_for_text_types_with_length_limit_and_unbound() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (str varchar(3))")
+            .build();
+        var eq = (Function) e.asSymbol("tbl.str = 'abc'");
+        assertThat(
+            Lists2.map(eq.arguments(), Symbol::valueType),
+            contains(DataTypes.STRING, DataTypes.STRING));
     }
 }
