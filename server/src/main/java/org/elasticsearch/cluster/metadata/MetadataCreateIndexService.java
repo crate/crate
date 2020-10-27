@@ -73,6 +73,11 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfoBuilder;
+
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -116,6 +121,7 @@ public class MetadataCreateIndexService {
     private final boolean forbidPrivateIndexSettings;
     private final Settings settings;
     private final ShardLimitValidator shardLimitValidator;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     public MetadataCreateIndexService(
             final Settings settings,
@@ -140,6 +146,7 @@ public class MetadataCreateIndexService {
         this.xContentRegistry = xContentRegistry;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.shardLimitValidator = shardLimitValidator;
+        this.indexNameExpressionResolver = new IndexNameExpressionResolver();
     }
 
     /**
@@ -208,9 +215,10 @@ public class MetadataCreateIndexService {
      * @param request the index creation cluster state update request
      * @param listener the listener on which to send the index creation cluster state update response
      */
-    public void createIndex(final CreateIndexClusterStateUpdateRequest request,
+    public void createIndex(final NodeContext nodeContext,
+                            final CreateIndexClusterStateUpdateRequest request,
                             final ActionListener<CreateIndexClusterStateUpdateResponse> listener) {
-        onlyCreateIndex(request, ActionListener.wrap(response -> {
+        onlyCreateIndex(nodeContext, request, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
                 activeShardsObserver.waitForActiveShards(new String[]{request.index()}, request.waitForActiveShards(), request.ackTimeout(),
                     shardsAcknowledged -> {
@@ -226,25 +234,28 @@ public class MetadataCreateIndexService {
         }, listener::onFailure));
     }
 
-    private void onlyCreateIndex(final CreateIndexClusterStateUpdateRequest request,
+    private void onlyCreateIndex(final NodeContext nodeContext,
+                                 final CreateIndexClusterStateUpdateRequest request,
                                  final ActionListener<ClusterStateUpdateResponse> listener) {
         Settings.Builder updatedSettingsBuilder = Settings.builder();
         Settings build = updatedSettingsBuilder.put(request.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX).build();
         indexScopedSettings.validate(build, true); // we do validate here - index setting must be consistent
         request.settings(build);
         clusterService.submitStateUpdateTask(
-                "create-index [" + request.index() + "], cause [" + request.cause() + "]",
-                new IndexCreationTask(
-                        LOGGER,
-                        allocationService,
-                        request,
-                        listener,
-                        indicesService,
-                        aliasValidator,
-                        xContentRegistry,
-                        settings,
-                        this::validate,
-                        indexScopedSettings));
+            "create-index [" + request.index() + "], cause [" + request.cause() + "]",
+            new IndexCreationTask(
+                    LOGGER,
+                    allocationService,
+                    request,
+                    listener,
+                    indicesService,
+                    aliasValidator,
+                    xContentRegistry,
+                    settings,
+                    this::validate,
+                    indexScopedSettings,
+                    nodeContext,
+                    indexNameExpressionResolver));
     }
 
     interface IndexValidator {
@@ -262,11 +273,21 @@ public class MetadataCreateIndexService {
         private final Settings settings;
         private final IndexValidator validator;
         private final IndexScopedSettings indexScopedSettings;
+        private final NodeContext nodeContext;
+        private final IndexNameExpressionResolver indexNameExpressionResolver;
 
-        IndexCreationTask(Logger logger, AllocationService allocationService, CreateIndexClusterStateUpdateRequest request,
-                          ActionListener<ClusterStateUpdateResponse> listener, IndicesService indicesService,
-                          AliasValidator aliasValidator, NamedXContentRegistry xContentRegistry,
-                          Settings settings, IndexValidator validator, IndexScopedSettings indexScopedSettings) {
+        IndexCreationTask(Logger logger,
+                          AllocationService allocationService,
+                          CreateIndexClusterStateUpdateRequest request,
+                          ActionListener<ClusterStateUpdateResponse> listener,
+                          IndicesService indicesService,
+                          AliasValidator aliasValidator,
+                          NamedXContentRegistry xContentRegistry,
+                          Settings settings,
+                          IndexValidator validator,
+                          IndexScopedSettings indexScopedSettings,
+                          NodeContext nodeContext,
+                          IndexNameExpressionResolver indexNameExpressionResolver) {
             super(Priority.URGENT, request, listener);
             this.request = request;
             this.logger = logger;
@@ -277,6 +298,8 @@ public class MetadataCreateIndexService {
             this.settings = settings;
             this.validator = validator;
             this.indexScopedSettings = indexScopedSettings;
+            this.nodeContext = nodeContext;
+            this.indexNameExpressionResolver = indexNameExpressionResolver;
         }
 
         @Override
@@ -522,6 +545,9 @@ public class MetadataCreateIndexService {
                 }
                 removalExtraInfo = "cleaning up after validating index on master";
                 removalReason = IndexRemovalReason.NO_LONGER_ASSIGNED;
+
+                ensureTableInfoCanBeCreated(request.index(), updatedState);
+
                 return updatedState;
             } finally {
                 if (createdIndex != null) {
@@ -529,6 +555,16 @@ public class MetadataCreateIndexService {
                     indicesService.removeIndex(createdIndex, removalReason, removalExtraInfo);
                 }
             }
+        }
+
+        private void ensureTableInfoCanBeCreated(String index, ClusterState updatedState) {
+            if (IndexParts.isDangling(index)) {
+                // temporary index for resize or shrink operation is always allowed
+                return;
+            }
+            var relationName = RelationName.fromIndexName(request.index());
+            var builder = new DocTableInfoBuilder(nodeContext, relationName, updatedState, indexNameExpressionResolver);
+            builder.build();
         }
 
         @Override

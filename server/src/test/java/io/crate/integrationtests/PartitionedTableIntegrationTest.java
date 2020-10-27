@@ -1762,13 +1762,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertEquals("t| 04132\n", printedTable(response.rows()));
     }
 
-    @Test
-    public void testStartPartitionWithMissingTable() throws Exception {
-        // ensureYellow must succeed
-        String partition = ".partitioned.parted.04130";
-        client().admin().indices().prepareCreate(partition).execute().actionGet();
-        ensureYellow();
-    }
 
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() {
