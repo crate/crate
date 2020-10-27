@@ -304,7 +304,18 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from explicit_routing");
         assertThat(response.rowCount(), is(2L));
+    }
 
+    @Test
+    public void test_select_where_pk_and_additional_filter() {
+        execute("create table t1 (id int primary key, x int) with (refresh_interval=0)");
+        execute("insert into t1 (id, x) values (1, 1)");
+
+        execute("select id from t1 where id = 1 and x = 2");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select id from t1 where id = 1 and x = 1");
+        assertThat(response.rowCount(), is(1L));
     }
 }
 

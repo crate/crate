@@ -106,7 +106,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from parted_pk where id = 1 and date = 1395874800000");
         assertThat(query.docKeys().toString(), is("Optional[DocKeys{1, 1395874800000::bigint}]"));
-        assertThat(query.partitions(), empty());
+        assertThat(query.partitions(), contains(contains(isLiteral(1395874800000L))));
     }
 
     @Test
@@ -154,5 +154,12 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from bystring where name = 'foo' and _version = 2");
         assertThat(query.docKeys().toString(), is("Optional[DocKeys{'foo', 2::bigint}]"));
+    }
+
+    @Test
+    public void test_filter_on_pk_combined_with_AND_results_in_dockeys() {
+        WhereClauseOptimizer.DetailedQuery query = optimize(
+            "select * from bystring where name = 'foo' and score = 2.0 or (name = 'bar' and score = 1.0)");
+        assertThat(query.docKeys().toString(), is("Optional[DocKeys{'bar'; 'foo'}]"));
     }
 }

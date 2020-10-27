@@ -63,6 +63,7 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -70,6 +71,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -85,12 +87,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -1079,6 +1084,24 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             contains(
                 ".partitioned.parted_by_generated.04732d9o60qj2d9i60o30c1g"
             )
+        );
+    }
+
+    @Test
+    public void test_select_where_id_and_seq_missing_primary_term() throws Exception {
+        assertThrows(
+            () -> e.plan("select id from users where id = 1 and _seq_no = 11"),
+            VersioninigValidationException.class,
+            VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
+        );
+    }
+
+    @Test
+    public void test_select_where_seq_and_primary_term_missing_id() throws Exception {
+        assertThrows(
+            () -> e.plan("select id from users where _seq_no = 11 and _primary_term = 1"),
+            VersioninigValidationException.class,
+            VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
     }
 }

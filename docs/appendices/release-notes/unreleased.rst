@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Added support for using the optimized primary key lookup plan if additional
+  filters are combined via ``AND`` operators.
+
 - Improved the performance of queries on the ``sys.allocations`` table in cases
   where there are filters restricting the result set or if only a sub-set of
   the columns is selected.

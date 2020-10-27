@@ -76,7 +76,7 @@ public class WhereClause {
         this.partitions = Objects.requireNonNullElse(partitions, List.of());
         this.query = normalizedQuery;
         if (normalizedQuery != null) {
-            validateVersioningColumnsUsage();
+            validateVersioningColumnsUsage(normalizedQuery);
         }
     }
 
@@ -93,7 +93,7 @@ public class WhereClause {
         return query == null ? Literal.BOOLEAN_TRUE : query;
     }
 
-    private void validateVersioningColumnsUsage() {
+    public static void validateVersioningColumnsUsage(Symbol query) {
         if (Symbols.containsColumn(query, DocSysColumns.SEQ_NO)) {
             if (!Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM)) {
                 throw VersioninigValidationException.seqNoAndPrimaryTermUsage();

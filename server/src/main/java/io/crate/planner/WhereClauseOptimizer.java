@@ -153,6 +153,7 @@ public final class WhereClauseOptimizer {
         if (!query.equals(queryGenColsProcessed)) {
             query = normalizer.normalize(queryGenColsProcessed, txnCtx);
         }
+        WhereClause.validateVersioningColumnsUsage(query);
 
         boolean versionInQuery = Symbols.containsColumn(query, DocSysColumns.VERSION);
         boolean sequenceVersioningInQuery = Symbols.containsColumn(query, DocSysColumns.SEQ_NO) &&
@@ -192,9 +193,7 @@ public final class WhereClauseOptimizer {
                 }
             }
         }
-        if (docKeys == null) {
-            WhereClauseValidator.validate(query);
-        }
+        WhereClauseValidator.validate(query);
         return new DetailedQuery(query, docKeys, partitionValues, clusteredBy);
     }
 

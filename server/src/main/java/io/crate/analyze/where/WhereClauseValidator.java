@@ -32,6 +32,7 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
@@ -164,7 +165,7 @@ public final class WhereClauseValidator {
             }
             assert function.arguments().size() == 2 : "function's number of arguments must be 2";
             Symbol right = function.arguments().get(1);
-            if (!right.symbolType().isValueSymbol()) {
+            if (!right.symbolType().isValueSymbol() && right.symbolType() != SymbolType.PARAMETER) {
                 throw error.get();
             }
         }

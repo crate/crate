@@ -194,14 +194,6 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testNoExtractSinglePKFromAndWithForeignColumn() throws Exception {
-        Symbol query = query("x = 1 or (x = 2 and i = 2)");
-        List<List<Symbol>> matches = analyzeExactX(query);
-        assertNull(matches);
-    }
-
-
-    @Test
     public void testExtract2ColPKFromNestedOrWithDuplicates() throws Exception {
         Symbol query = query("x = 1 and (i = 2 or i = 2 or i = 4)");
         List<List<Symbol>> matches = analyzeExactXI(query);
@@ -351,13 +343,6 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testNoPKExtractionIfFunctionUsingPKIsPresent() throws Exception {
-        Symbol query = query("x in (1, 2, 3) and substr(cast(x as string), 0) = 4");
-        List<List<Symbol>> matches = analyzeExactX(query);
-        assertThat(matches, nullValue());
-    }
-
-    @Test
     public void testNoPKExtractionOnNotIn() {
         List<List<Symbol>> matches = analyzeExactX(query("x not in (1, 2, 3)"));
         assertThat(matches, nullValue());
@@ -390,6 +375,29 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
         List<List<Symbol>> matches = analyzeExact(query, List.of(pkCol));
         assertThat(matches, contains(
             contains(isLiteral(Map.of("i", 1)))
+        ));
+    }
+
+    @Test
+    public void test_primary_key_extraction_if_combined_with_and_operator() throws Exception {
+        Symbol query = query("x = 1 and a = 'foo' or (x = 3 and a = 'bar')");
+        List<List<Symbol>> matches = analyzeExactX(query);
+        assertThat(matches.size(), is(2));
+
+        assertThat(matches, containsInAnyOrder(
+            contains(isLiteral(1)),
+            contains(isLiteral(3))
+        ));
+    }
+
+    @Test
+    public void test_primary_key_extraction_if_combined_with_and_scalar() throws Exception {
+        Symbol query = query("x in (1, 2, 3) and substr(cast(x as string), 0) = 4");
+        List<List<Symbol>> matches = analyzeExactX(query);
+        assertThat(matches, containsInAnyOrder(
+            contains(isLiteral(1)),
+            contains(isLiteral(2)),
+            contains(isLiteral(3))
         ));
     }
 }
