@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -32,7 +34,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
+import io.crate.metadata.NodeContext;
 
 /**
  * Create index action.
@@ -40,15 +42,18 @@ import java.io.IOException;
 public class TransportCreateIndexAction extends TransportMasterNodeAction<CreateIndexRequest, CreateIndexResponse> {
 
     private final MetadataCreateIndexService createIndexService;
+    private final NodeContext nodeContext;
 
     @Inject
     public TransportCreateIndexAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
                                       MetadataCreateIndexService createIndexService,
+                                      NodeContext nodeContext,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         super(CreateIndexAction.NAME, transportService, clusterService, threadPool, CreateIndexRequest::new, indexNameExpressionResolver);
         this.createIndexService = createIndexService;
+        this.nodeContext = nodeContext;
     }
 
     @Override
@@ -82,8 +87,12 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
                 .aliases(request.aliases())
                 .waitForActiveShards(request.waitForActiveShards());
 
-        createIndexService.createIndex(updateRequest, ActionListener.map(listener, response ->
-            new CreateIndexResponse(response.isAcknowledged(), response.isShardsAcknowledged(), indexName)));
+        createIndexService.createIndex(
+            nodeContext,
+            updateRequest,
+            ActionListener.map(listener, response ->
+                new CreateIndexResponse(response.isAcknowledged(), response.isShardsAcknowledged(), indexName))
+        );
     }
 
 }

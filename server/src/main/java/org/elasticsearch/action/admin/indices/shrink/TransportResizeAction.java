@@ -48,12 +48,15 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.metadata.NodeContext;
+
 /**
  * Main class to initiate resizing (shrink / split) an index into a new index
  */
 public class TransportResizeAction extends TransportMasterNodeAction<ResizeRequest, ResizeResponse> {
     private final MetadataCreateIndexService createIndexService;
     private final Client client;
+    private final NodeContext nodeContext;
 
     @Inject
     public TransportResizeAction(TransportService transportService,
@@ -61,17 +64,32 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                                  ThreadPool threadPool,
                                  MetadataCreateIndexService createIndexService,
                                  IndexNameExpressionResolver indexNameExpressionResolver,
+                                 NodeContext nodeContext,
                                  Client client) {
-        this(ResizeAction.NAME, transportService, clusterService, threadPool, createIndexService,
-            indexNameExpressionResolver, client);
+        this(
+            ResizeAction.NAME,
+            transportService,
+            clusterService,
+            threadPool,
+            createIndexService,
+            indexNameExpressionResolver,
+            nodeContext,
+            client
+        );
     }
 
-    protected TransportResizeAction(String actionName, TransportService transportService, ClusterService clusterService,
-                                 ThreadPool threadPool, MetadataCreateIndexService createIndexService,
-                                 IndexNameExpressionResolver indexNameExpressionResolver, Client client) {
+    protected TransportResizeAction(String actionName,
+                                    TransportService transportService,
+                                    ClusterService clusterService,
+                                    ThreadPool threadPool,
+                                    MetadataCreateIndexService createIndexService,
+                                    IndexNameExpressionResolver indexNameExpressionResolver,
+                                    NodeContext nodeContext,
+                                    Client client) {
         super(actionName, transportService, clusterService, threadPool, ResizeRequest::new, indexNameExpressionResolver);
         this.createIndexService = createIndexService;
         this.client = client;
+        this.nodeContext = nodeContext;
     }
 
 
@@ -116,8 +134,15 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                         targetIndex
                     );
                     createIndexService.createIndex(
-                        updateRequest, ActionListener.map(delegate,
-                            response -> new ResizeResponse(response.isAcknowledged(), response.isShardsAcknowledged(), updateRequest.index()))
+                        nodeContext,
+                        updateRequest,
+                        ActionListener.map(delegate,
+                            response -> new ResizeResponse(
+                                response.isAcknowledged(),
+                                response.isShardsAcknowledged(),
+                                updateRequest.index()
+                            )
+                        )
                     );
                 }
             ));

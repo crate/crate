@@ -21,54 +21,17 @@
 
 package io.crate.plugin;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableList;
-import io.crate.action.sql.SQLOperations;
-import io.crate.auth.AuthSettings;
-import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
-import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.TransportExecutorModule;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
-import io.crate.execution.engine.collect.CollectOperationModule;
-import io.crate.execution.engine.collect.files.FileCollectModule;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.engine.window.WindowFunctionModule;
-import io.crate.execution.jobs.JobModule;
-import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
-import io.crate.expression.operator.OperatorModule;
-import io.crate.expression.predicate.PredicateModule;
-import io.crate.expression.reference.sys.check.SysChecksModule;
-import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.tablefunctions.TableFunctionModule;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
-import io.crate.license.CeLicenseModule;
-import io.crate.license.LicenseExtension;
-import io.crate.lucene.ArrayMapperService;
-import io.crate.metadata.CustomMetadataUpgraderLoader;
-import io.crate.metadata.DanglingArtifactsService;
-import io.crate.metadata.DefaultTemplateService;
-import io.crate.metadata.MetadataModule;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.blob.MetadataBlobModule;
-import io.crate.metadata.information.MetadataInformationModule;
-import io.crate.metadata.pgcatalog.PgCatalogModule;
-import io.crate.metadata.settings.AnalyzerSettings;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.session.SessionSettingModule;
-import io.crate.metadata.sys.MetadataSysModule;
-import io.crate.metadata.upgrade.IndexTemplateUpgrader;
-import io.crate.metadata.upgrade.MetadataIndexUpgrader;
-import io.crate.metadata.view.ViewsMetadata;
-import io.crate.module.CrateCommonModule;
-import io.crate.monitor.MonitorModule;
-import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.protocols.ssl.SslContextProviderFallbackModule;
-import io.crate.protocols.ssl.SslExtension;
-import io.crate.settings.CrateSetting;
-import io.crate.user.UserExtension;
-import io.crate.user.UserFallbackModule;
+
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -93,15 +56,48 @@ import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.UnaryOperator;
-
-import static com.google.common.collect.Lists.newArrayList;
+import io.crate.action.sql.SQLOperations;
+import io.crate.auth.AuthSettings;
+import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
+import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.TransportExecutorModule;
+import io.crate.execution.engine.collect.CollectOperationModule;
+import io.crate.execution.engine.collect.files.FileCollectModule;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.jobs.JobModule;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
+import io.crate.expression.operator.OperatorModule;
+import io.crate.expression.predicate.PredicateModule;
+import io.crate.expression.reference.sys.check.SysChecksModule;
+import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.license.CeLicenseModule;
+import io.crate.license.LicenseExtension;
+import io.crate.lucene.ArrayMapperService;
+import io.crate.metadata.CustomMetadataUpgraderLoader;
+import io.crate.metadata.DanglingArtifactsService;
+import io.crate.metadata.DefaultTemplateService;
+import io.crate.metadata.MetadataModule;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.blob.MetadataBlobModule;
+import io.crate.metadata.information.MetadataInformationModule;
+import io.crate.metadata.pgcatalog.PgCatalogModule;
+import io.crate.metadata.settings.AnalyzerSettings;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.sys.MetadataSysModule;
+import io.crate.metadata.upgrade.IndexTemplateUpgrader;
+import io.crate.metadata.upgrade.MetadataIndexUpgrader;
+import io.crate.metadata.view.ViewsMetadata;
+import io.crate.module.CrateCommonModule;
+import io.crate.monitor.MonitorModule;
+import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslContextProviderFallbackModule;
+import io.crate.protocols.ssl.SslExtension;
+import io.crate.settings.CrateSetting;
+import io.crate.user.UserExtension;
+import io.crate.user.UserFallbackModule;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
@@ -179,7 +175,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Collection<Module> createGuiceModules() {
-        Collection<Module> modules = newArrayList();
+        ArrayList<Module> modules = new ArrayList<>();
         modules.add(new SQLModule());
 
         modules.add(new CrateCommonModule(indexEventListenerProxy));
@@ -195,14 +191,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new OperatorModule());
         modules.add(new PredicateModule());
         modules.add(new MonitorModule());
-        modules.add(new AggregationImplModule());
-        modules.add(new ScalarFunctionModule());
-        modules.add(new TableFunctionModule());
-        modules.add(new WindowFunctionModule());
         modules.add(new BulkModule());
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
-        modules.add(new SessionSettingModule());
         if (userExtension != null) {
             modules.addAll(userExtension.getModules(settings));
         } else {
