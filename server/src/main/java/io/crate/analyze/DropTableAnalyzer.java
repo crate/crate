@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -46,8 +47,10 @@ class DropTableAnalyzer {
     private static final Logger LOGGER = LogManager.getLogger(DropTableAnalyzer.class);
 
     private final Schemas schemas;
+    private final ClusterService clusterService;
 
-    DropTableAnalyzer(Schemas schemas) {
+    DropTableAnalyzer(ClusterService clusterService, Schemas schemas) {
+        this.clusterService = clusterService;
         this.schemas = schemas;
     }
 
@@ -77,9 +80,15 @@ class DropTableAnalyzer {
             tableInfo = (T) schemas.resolveTableInfo(name, Operation.DROP, sessionContext.sessionUser(), sessionContext.searchPath());
             tableName = tableInfo.ident();
         } catch (SchemaUnknownException | RelationUnknown e) {
-            if (dropIfExists) {
+            tableName = RelationName.of(name, sessionContext.searchPath().currentSchema());
+            var metadata = clusterService.state().metadata();
+            var indexNameOrAlias = tableName.indexNameOrAlias();
+
+            if (metadata.hasIndex(indexNameOrAlias) || metadata.templates().containsKey(indexNameOrAlias)) {
                 tableInfo = null;
-                tableName = RelationName.of(name, sessionContext.searchPath().currentSchema());
+                maybeCorrupt = true;
+            } else if (dropIfExists) {
+                tableInfo = null;
             } else {
                 throw e;
             }
