@@ -23,6 +23,7 @@
 package io.crate.execution.ddl.tables;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.cluster.AlterTableClusterStateExecutor;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -59,7 +60,8 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
                                      AllocationService allocationService,
                                      IndexScopedSettings indexScopedSettings,
                                      MetadataCreateIndexService metadataCreateIndexService,
-                                     ShardLimitValidator shardLimitValidator) {
+                                     ShardLimitValidator shardLimitValidator,
+                                     NodeContext nodeContext) {
         super(ACTION_NAME,
               transportService,
               clusterService,
@@ -76,7 +78,8 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
             indexScopedSettings,
             indexNameExpressionResolver,
             metadataCreateIndexService,
-            shardLimitValidator
+            shardLimitValidator,
+            nodeContext
         );
     }
 
