@@ -26,8 +26,11 @@ import io.crate.Constants;
 import io.crate.analyze.TableParameters;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableRequest;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfoBuilder;
+
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingClusterStateUpdateRequest;
@@ -84,6 +87,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     private final IndexScopedSettings indexScopedSettings;
     private final MetadataCreateIndexService metadataCreateIndexService;
     private final ShardLimitValidator shardLimitValidator;
+    private final NodeContext nodeContext;
 
     public AlterTableClusterStateExecutor(MetadataMappingService metadataMappingService,
                                           IndicesService indicesService,
@@ -91,7 +95,8 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                                           IndexScopedSettings indexScopedSettings,
                                           IndexNameExpressionResolver indexNameExpressionResolver,
                                           MetadataCreateIndexService metadataCreateIndexService,
-                                          ShardLimitValidator shardLimitValidator) {
+                                          ShardLimitValidator shardLimitValidator,
+                                          NodeContext nodeContext) {
         this.metadataMappingService = metadataMappingService;
         this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
@@ -99,6 +104,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.metadataCreateIndexService = metadataCreateIndexService;
         this.shardLimitValidator = shardLimitValidator;
+        this.nodeContext = nodeContext;
     }
 
     @Override
@@ -144,6 +150,11 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             currentState = updateMapping(currentState, request, concreteIndices);
             currentState = updateSettings(currentState, request.settings(), concreteIndices);
         }
+
+        // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
+        var builder = new DocTableInfoBuilder(
+            nodeContext, request.tableIdent(), currentState, indexNameExpressionResolver);
+        builder.build();
 
         return currentState;
     }
