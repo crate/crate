@@ -58,6 +58,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that could cause ``COPY`` or ``INSERT FROM QUERY`` operations
+  to fail with a circuit breaking exception, even if more memory would've been
+  available.
+
 - Fixed an issue that would prevent function resolution for arguments that
   contain both text types with and without length limit. For example,
   statements as following would fail with the unknown function exception::

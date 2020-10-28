@@ -155,14 +155,14 @@ public class ShardingUpsertExecutor
         collectFailingItems(requests, upsertResults);
 
         if (requests.itemsByMissingIndex.isEmpty()) {
-            return execRequests(requests.itemsByShard, requests.rowSourceInfos, upsertResults);
+            return execRequests(requests, upsertResults);
         }
         createPartitionsRequestOngoing = true;
         return createPartitions(requests.itemsByMissingIndex)
             .thenCompose(resp -> {
                 grouper.reResolveShardLocations(requests);
                 createPartitionsRequestOngoing = false;
-                return execRequests(requests.itemsByShard, requests.rowSourceInfos, upsertResults);
+                return execRequests(requests, upsertResults);
             });
     }
 
@@ -183,17 +183,17 @@ public class ShardingUpsertExecutor
         }
     }
 
-    private CompletableFuture<UpsertResults> execRequests(Map<ShardLocation, ShardUpsertRequest> itemsByShard,
-                                                          List<RowSourceInfo> rowSourceInfos,
+    private CompletableFuture<UpsertResults> execRequests(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests,
                                                           final UpsertResults upsertResults) {
-        if (itemsByShard.isEmpty()) {
+        if (requests.itemsByShard.isEmpty()) {
+            requests.close();
             // could be that processing the source uri only results in errors, so no items per shard exists
             return CompletableFuture.completedFuture(upsertResults);
         }
-        final AtomicInteger numRequests = new AtomicInteger(itemsByShard.size());
+        final AtomicInteger numRequests = new AtomicInteger(requests.itemsByShard.size());
         final AtomicReference<Exception> interrupt = new AtomicReference<>(null);
         final CompletableFuture<UpsertResults> resultFuture = new CompletableFuture<>();
-        Iterator<Map.Entry<ShardLocation, ShardUpsertRequest>> it = itemsByShard.entrySet().iterator();
+        Iterator<Map.Entry<ShardLocation, ShardUpsertRequest>> it = requests.itemsByShard.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<ShardLocation, ShardUpsertRequest> entry = it.next();
             ShardUpsertRequest request = entry.getValue();
@@ -208,7 +208,7 @@ public class ShardingUpsertExecutor
                     interrupt,
                     upsertResults,
                     resultCollector.accumulator(),
-                    rowSourceInfos,
+                    requests.rowSourceInfos,
                     resultFuture);
 
             listener = new RetryListener<>(
@@ -224,7 +224,7 @@ public class ShardingUpsertExecutor
             );
             requestExecutor.execute(request, listener);
         }
-        return resultFuture;
+        return resultFuture.whenComplete((r, err) -> requests.close());
     }
 
 
