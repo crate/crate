@@ -491,6 +491,8 @@ public class ShardCollectSource implements CollectSource {
                     shardRowContexts.add(shardCollectorProvider.shardRowContext());
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(index.getName(), shard.value));
+                } catch (Throwable t) {
+                    LOGGER.error("Error retrieving shard information for index={} error={}", index.getName(), t);
                 }
             }
         }

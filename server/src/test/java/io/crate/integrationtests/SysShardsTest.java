@@ -28,6 +28,8 @@ import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +61,6 @@ import static org.hamcrest.Matchers.nullValue;
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 public class SysShardsTest extends SQLTransportIntegrationTest {
 
-    @Before
     public void initTestData() throws Exception {
         Setup setup = new Setup(sqlExecutor);
         setup.groupBySetup();
@@ -102,6 +103,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByWhereTable() throws Exception {
+        initTestData();
         SQLResponse response = execute("" +
                                        "select count(*), num_docs from sys.shards where table_name = 'characters' " +
                                        "group by num_docs order by count(*)");
@@ -110,6 +112,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByAllTables() throws Exception {
+        initTestData();
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
                                        "group by table_name order by table_name");
         assertEquals(3L, response.rowCount());
@@ -121,6 +124,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGroupByWithLimitUnassignedShards() throws Exception {
+        initTestData();
         try {
             execute("create table t (id int, name string) with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
             ensureYellow();
@@ -139,6 +143,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByWhereNotLike() throws Exception {
+        initTestData();
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
                                        "where table_name not like 'my_table%' group by table_name order by table_name");
         assertEquals(3L, response.rowCount());
@@ -152,6 +157,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWhereTable() throws Exception {
+        initTestData();
         SQLResponse response = execute(
             "select id, size from sys.shards " +
             "where table_name = 'characters'");
@@ -160,6 +166,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarWhereTable() throws Exception {
+        initTestData();
         SQLResponse response = execute(
             "select * from sys.shards where table_name = 'characters'");
         assertEquals(8L, response.rowCount());
@@ -167,6 +174,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarAllTables() throws Exception {
+        initTestData();
         SQLResponse response = execute("select * from sys.shards");
         assertEquals(26L, response.rowCount());
         assertEquals(19, response.cols().length);
@@ -194,6 +202,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarLike() throws Exception {
+        initTestData();
         SQLResponse response = execute(
             "select * from sys.shards where table_name like 'charact%'");
         assertEquals(8L, response.rowCount());
@@ -201,6 +210,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarNotLike() throws Exception {
+        initTestData();
         SQLResponse response = execute(
             "select * from sys.shards where table_name not like 'quotes%'");
         assertEquals(18L, response.rowCount());
@@ -208,13 +218,15 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarIn() throws Exception {
+        initTestData();
         SQLResponse response = execute(
             "select * from sys.shards where table_name in ('characters')");
         assertEquals(8L, response.rowCount());
     }
 
     @Test
-    public void test_translog_stats_can_be_retrieved() {
+    public void test_translog_stats_can_be_retrieved() throws Exception {
+        initTestData();
         execute("SELECT translog_stats, translog_stats['size'] FROM sys.shards " +
                 "WHERE id = 0 AND \"primary\" = true AND table_name = 'characters'");
         Object[] resultRow = response.rows()[0];
@@ -227,12 +239,14 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarMatch() throws Exception {
+        initTestData();
         assertThrows(() -> execute("select * from sys.shards where match(table_name, 'characters')"),
                      isSQLError(is("Cannot use MATCH on system tables"), INTERNAL_ERROR, BAD_REQUEST, 4004));
     }
 
     @Test
     public void testSelectOrderBy() throws Exception {
+        initTestData();
         SQLResponse response = execute("select table_name, min_lucene_version, * " +
                                        "from sys.shards order by table_name");
         assertEquals(26L, response.rowCount());
@@ -245,18 +259,21 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGreaterThan() throws Exception {
+        initTestData();
         SQLResponse response = execute("select * from sys.shards where num_docs > 0");
         assertThat(response.rowCount(), greaterThan(0L));
     }
 
     @Test
     public void testSelectWhereBoolean() throws Exception {
+        initTestData();
         SQLResponse response = execute("select * from sys.shards where \"primary\" = false");
         assertEquals(13L, response.rowCount());
     }
 
     @Test
     public void testSelectGlobalAggregates() throws Exception {
+        initTestData();
         SQLResponse response = execute(
             "select sum(size), min(size), max(size), avg(size) from sys.shards");
         assertEquals(1L, response.rowCount());
@@ -269,6 +286,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGlobalCount() throws Exception {
+        initTestData();
         SQLResponse response = execute("select count(*) from sys.shards");
         assertEquals(1L, response.rowCount());
         assertEquals(26L, response.rows()[0][0]);
@@ -276,6 +294,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGlobalCountAndOthers() throws Exception {
+        initTestData();
         SQLResponse response = execute("select count(*), max(table_name) from sys.shards");
         assertEquals(1L, response.rowCount());
         assertEquals(26L, response.rows()[0][0]);
@@ -325,6 +344,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWithOrderByColumnNotInOutputs() throws Exception {
+        initTestData();
         // regression test... query failed with ArrayOutOfBoundsException due to inputColumn mangling in planner
         SQLResponse response = execute("select id from sys.shards order by table_name limit 1");
         assertThat(response.rowCount(), is(1L));
@@ -333,6 +353,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByHaving() throws Exception {
+        initTestData();
         SQLResponse response = execute("select count(*) " +
                                        "from sys.shards " +
                                        "group by table_name " +
@@ -342,6 +363,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectNodeSysExpression() throws Exception {
+        initTestData();
         SQLResponse response = execute(
             "select node, node['name'], id from sys.shards order by node['name'], id  limit 1");
         assertEquals(1L, response.rowCount());
@@ -397,6 +419,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectRecoveryExpression() throws Exception {
+        initTestData();
         SQLResponse response = execute("select recovery, " +
                                        "recovery['files'], recovery['files']['used'], recovery['files']['reused'], recovery['files']['recovered'], " +
                                        "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
@@ -418,5 +441,32 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute(
             "select 1/0 from sys.shards"),
                      isSQLError(is("/ by zero"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+    }
+
+
+    @Test
+    public void test_sys_shards_can_still_be_queried_with_corrupted_table() throws Exception {
+        execute("create table doc.tbl1 (x int) clustered into 1 shards");
+        execute("create table doc.tbl_corrupt (ts timestamp with time zone) clustered into 1 shards");
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject("default")
+                .startObject("_meta")
+                    .startObject("generated_columns")
+                        .field("ts", "'foobar'::timestamp")
+                    .endObject()
+                .endObject()
+            .endObject()
+            .endObject();
+        client().admin().indices().preparePutMapping("tbl_corrupt")
+            .setSource(builder)
+            .execute()
+            .actionGet(5, TimeUnit.SECONDS);
+
+        execute("select id, table_name, state from sys.shards order by 1, 2, 3");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "0| tbl1| STARTED\n" +
+            "0| tbl1| STARTED\n"
+        ));
     }
 }
