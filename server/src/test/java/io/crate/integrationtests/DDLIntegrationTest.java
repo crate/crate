@@ -21,11 +21,25 @@
 
 package io.crate.integrationtests;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseRandomizedSchema;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.core.Is.is;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -36,24 +50,16 @@ import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrows;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.core.Is.is;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.testing.Asserts;
+import io.crate.testing.SQLErrorMatcher;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSchema;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ESIntegTestCase.ClusterScope()
 @UseRandomizedSchema(random = false)
@@ -857,5 +863,21 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
+    }
+
+
+    @Test
+    public void test_alter_table_cannot_add_broken_generated_column() throws Exception {
+        execute("create table tbl (x int)");
+
+        Asserts.assertThrows(
+            () -> execute("alter table tbl add column ts timestamp without time zone generated always as 'foobar'"),
+            SQLErrorMatcher.isSQLError(
+                is("Cannot cast `'foobar'` of type `text` to type `timestamp without time zone`"),
+                PGErrorStatus.INTERNAL_ERROR,
+                HttpResponseStatus.BAD_REQUEST,
+                4000
+            )
+        );
     }
 }
