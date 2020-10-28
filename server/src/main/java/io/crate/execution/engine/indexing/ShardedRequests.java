@@ -26,6 +26,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.execution.dml.ShardRequest;
 
 import org.apache.lucene.util.Accountable;
+import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
@@ -34,9 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
-    extends ShardRequest.Item>
-    implements Accountable {
+public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
+    implements Accountable, Releasable {
 
     final Map<String, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingIndex = new HashMap<>();
     final Map<String, List<ReadFailureAndLineNumber>> itemsWithFailureBySourceUri = new HashMap<>();
@@ -133,5 +133,11 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
             this.readFailure = readFailure;
             this.lineNumber = lineNumber;
         }
+    }
+
+    @Override
+    public void close() {
+        ramAccounting.addBytes(-usedMemoryEstimate);
+        usedMemoryEstimate = 0L;
     }
 }
