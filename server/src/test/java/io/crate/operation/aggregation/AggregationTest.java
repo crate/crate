@@ -177,7 +177,8 @@ public abstract class AggregationTest extends ESTestCase {
             boundSignature,
             boundSignature.getArgumentDataTypes(),
             boundSignature.getReturnType().createType(),
-            data
+            data,
+            true
         );
     }
 
@@ -185,7 +186,8 @@ public abstract class AggregationTest extends ESTestCase {
     public Object executeAggregation(Signature maybeUnboundSignature,
                                      List<DataType<?>> actualArgumentTypes,
                                      DataType<?> actualReturnType,
-                                     Object[][] data) throws Exception {
+                                     Object[][] data,
+                                     boolean randomExtraStates) throws Exception {
         var aggregationFunction = (AggregationFunction) nodeCtx.functions().get(
             null,
             maybeUnboundSignature.getName().name(),
@@ -194,7 +196,8 @@ public abstract class AggregationTest extends ESTestCase {
         );
         Object partialResultWithoutDocValues = execPartialAggregationWithoutDocValues(
             aggregationFunction,
-            data
+            data,
+            randomExtraStates
         );
 
         var shard = newStartedPrimaryShard(Settings.EMPTY, buildMapping(actualArgumentTypes));
@@ -232,7 +235,8 @@ public abstract class AggregationTest extends ESTestCase {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Object execPartialAggregationWithoutDocValues(AggregationFunction function,
-                                                          Object[][] data) {
+                                                          Object[][] data,
+                                                          boolean randomExtraStates) {
         var argumentsSize = function.signature().getArgumentTypes().size();
         InputCollectExpression[] inputs = new InputCollectExpression[argumentsSize];
         for (int i = 0; i < argumentsSize; i++) {
@@ -248,7 +252,7 @@ public abstract class AggregationTest extends ESTestCase {
             for (InputCollectExpression input : inputs) {
                 input.setNextRow(row);
             }
-            if (randomIntBetween(1, 4) == 1) {
+            if (randomExtraStates && randomIntBetween(1, 4) == 1) {
                 states.add(function.newState(RAM_ACCOUNTING, Version.CURRENT, minNodeVersion, memoryManager));
             }
             int idx = states.size() - 1;

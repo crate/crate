@@ -28,6 +28,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
 import org.junit.Test;
 
 import java.util.List;
@@ -103,9 +104,20 @@ public class SumAggregationTest extends AggregationTest {
 
     @Test
     public void testFloatSummationWithoutLosingPrecision() throws Exception {
-        Object result = executeAggregation(DataTypes.FLOAT, DataTypes.FLOAT, new Object[][]{{0.8f}, {0.4f}, {0.2f}});
-
-        assertEquals(1.4f, result);
+        Object[][] rows = new Object[][] { { 0.8f }, { 0.4f }, { 0.2f } };
+        Signature signature = Signature.aggregate(
+            SumAggregation.NAME,
+            DataTypes.FLOAT.getTypeSignature(),
+            DataTypes.FLOAT.getTypeSignature()
+        );
+        Object result = executeAggregation(
+            signature,
+            signature.getArgumentDataTypes(),
+            signature.getReturnType().createType(),
+            rows,
+            false
+        );
+        assertThat(result, is(1.4f));
     }
 
     @Test
