@@ -95,5 +95,5 @@ fi
 
 echo "Creating tag $VERSION..."
 git tag -a "$VERSION" -m "Tag release for revision $VERSION"
-git push --tags
+git push --follow-tags
 echo "Done."
