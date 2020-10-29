@@ -45,7 +45,8 @@ public class ArrayAggTest extends AggregationTest {
                 new Object[]{null},
                 new Object[]{42},
                 new Object[]{24}
-            }
+            },
+            true
         );
         assertThat((List<Object>) result, Matchers.contains(20, null, 42, 24));
     }

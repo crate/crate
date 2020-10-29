@@ -44,7 +44,8 @@ public class CountAggregationTest extends AggregationTest {
             CountAggregation.SIGNATURE,
             List.of(argumentType),
             DataTypes.LONG,
-            data
+            data,
+            true
         );
     }
 
