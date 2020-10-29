@@ -60,31 +60,4 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that could cause ``COPY`` or ``INSERT FROM QUERY`` operations
-  to fail with a circuit breaking exception, even if more memory would've been
-  available.
-
-- Fixed an issue that would prevent function resolution for arguments that
-  contain both text types with and without length limit. For example,
-  statements as following would fail with the unknown function exception::
-
-    CREATE TABLE tbl (str VARCHAR(3))
-    SELECT * FROM tbl WHERE str = 'x'
-
-- Improved the validation logic for ``CREATE TABLE`` and ``ALTER TABLE``
-  statements to prevent users from creating tables that cannot be used due to
-  an invalid schema definition.
-
-- Changed the ``DROP TABLE`` logic to allow super users to drop tables with a
-  corrupted schema.
-
-- Fixed an issue that could lead to a ``IndexShardClosedException`` when
-  querying the ``sys.shards`` table.
-
-- Fixed an issue that led to a spike in the snapshot threadpool queue when
-  taking snapshots.
-
-- Fixed an issue that caused an error when a client using the PostgreSQL
-  wire protocol is used to retrieve array values containing a escaped
-  double quotes. For example, the JDBC client failed with ``Can't extract
-  array data from JDBC array``.
+None
