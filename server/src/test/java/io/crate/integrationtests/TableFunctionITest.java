@@ -178,4 +178,26 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
                "3\n")
         );
     }
+
+    @Test
+    public void test_unnest_on_top_of_regexp_matches() throws Exception {
+        String stmt = """
+            SELECT
+                unnest(regexp_matches(col1, 'crate_(\\d+.\\d+.\\d+)')) as version
+            FROM
+                (VALUES ('crate_4.3.1')) as tbl
+        """;
+        execute("EXPLAIN " + stmt);
+        assertThat(printedTable(response.rows()), is(
+            "Eval[unnest(regexp_matches(col1, 'crate_(\\d+.\\d+.\\d+)')) AS version]\n" +
+            "  └ ProjectSet[unnest(regexp_matches(col1, 'crate_(\\d+.\\d+.\\d+)')), col1]\n" +
+            "    └ ProjectSet[regexp_matches(col1, 'crate_(\\d+.\\d+.\\d+)'), col1]\n" +
+            "      └ Rename[col1] AS tbl\n" +
+            "        └ TableFunction[_values | [col1] | true]\n"
+        ));
+        execute(stmt);
+        assertThat(printedTable(response.rows()), is(
+            "4.3.1\n"
+        ));
+    }
 }

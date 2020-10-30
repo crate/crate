@@ -31,15 +31,19 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.metadata.FunctionType;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ProjectSet extends ForwardingLogicalPlan {
 
@@ -51,7 +55,8 @@ public class ProjectSet extends ForwardingLogicalPlan {
         if (tableFunctions.isEmpty()) {
             return source;
         }
-        // Use sourcePlan.outputs() as standalone to simply pass along all source outputs as well;
+        //
+        // source.outputs() is used as standalone to pass along all source outputs as well;
         // Parent operators will discard them if not required
         // The reason to do this is that we've no good way to detect what is required. E.g.
         // select tableFunction(agg), agg, x
@@ -59,7 +64,37 @@ public class ProjectSet extends ForwardingLogicalPlan {
         //     so we can't simply discard any source outputs that are used as arguments for the table functions.
         //  -> x might be converted to _fetch by the Collect operator,
         //       so we don't necessarily "get" the outputs we would expect based on the select list.
-        return new ProjectSet(source, tableFunctions, source.outputs());
+        //
+        // ----
+        //
+        // Need to create 1 projectSet operator per level of nesting, because table functions cannot receive non-arrays as arguments
+        //
+        //  unnest(regexp_matches(...)) -> 2 operators
+        //  unnest(arr)                 -> 1 operator
+        //
+        List<List<Function>> nestedFunctions = new ArrayList<>();
+        nestedFunctions.add(tableFunctions);
+        while (true) {
+            List<Function> childTableFunctions = tableFunctions.stream()
+                .flatMap(func -> func.arguments().stream())
+                .filter(arg -> arg instanceof Function && ((Function) arg).type() == FunctionType.TABLE)
+                .map(x -> (Function) x)
+                .collect(Collectors.toList());
+
+            if (childTableFunctions.isEmpty()) {
+                break;
+            }
+            nestedFunctions.add(childTableFunctions);
+            tableFunctions = childTableFunctions;
+        }
+        LogicalPlan result = source;
+        for (int i = nestedFunctions.size() - 1; i >= 0; i--) {
+            List<Symbol> standalone = result.outputs().stream()
+                .filter(x -> !(x instanceof Function && ((Function) x).type() == FunctionType.TABLE))
+                .collect(Collectors.toList());
+            result = new ProjectSet(result, nestedFunctions.get(i), standalone);
+        }
+        return result;
     }
 
     private ProjectSet(LogicalPlan source, List<Function> tableFunctions, List<Symbol> standalone) {

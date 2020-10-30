@@ -47,6 +47,8 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         private final ArrayList<WindowFunction> windowFunctions = new ArrayList<>();
         private boolean insideAggregate = false;
 
+        private int tableFunctionLevel = 0;
+
         boolean foundAggregateOrTableFunction = false;
 
         Context() {
@@ -141,9 +143,13 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
                     throw new UnsupportedOperationException("Cannot use table functions inside aggregates");
                 }
                 context.foundAggregateOrTableFunction = true;
-                context.allocateTableFunction(function);
-                return super.visitFunction(function, context);
-
+                if (context.tableFunctionLevel == 0) {
+                    context.allocateTableFunction(function);
+                }
+                context.tableFunctionLevel++;
+                super.visitFunction(function, context);
+                context.tableFunctionLevel--;
+                return null;
             default:
                 throw new UnsupportedOperationException("Invalid function type: " + type);
         }
