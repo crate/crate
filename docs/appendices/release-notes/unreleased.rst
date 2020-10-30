@@ -58,4 +58,5 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that led to an error if a user nested multiple table
+  functions.
