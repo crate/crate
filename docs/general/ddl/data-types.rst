@@ -40,7 +40,7 @@ or collections.
 * `bigint <numeric types_>`_
 * `real <numeric types_>`_
 * `double precision <numeric types_>`_
-* `text`_
+* `text <data-type-text>`_
 * `ip`_
 * `timestamp with time zone <timestamp with time zone_>`_
 * `timestamp without time zone <timestamp without time zone_>`_
