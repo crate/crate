@@ -115,4 +115,4 @@ The ``ALTER CLUSTER GC DANGLING ARTIFACTS`` command can be used to remove all
 artifacts created by such operations.
 
 
-.. _Graceful stop: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html#step-2-graceful-stop
+.. _Graceful stop: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html#step-2-graceful-stop
