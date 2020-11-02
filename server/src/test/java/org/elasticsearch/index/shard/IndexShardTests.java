@@ -2122,11 +2122,9 @@ public class IndexShardTests extends IndexShardTestCase {
                 // advance local checkpoint
                 for (int i = 0; i <= localCheckPoint; i++) {
                     indexShard.markSeqNoAsNoop(
-                        indexShard.getEngine(),
                         i,
                         indexShard.getOperationPrimaryTerm(),
-                        "dummy doc",
-                        Engine.Operation.Origin.REPLICA
+                        "dummy doc"
                     );
                 }
                 indexShard.sync(); // advance local checkpoint
@@ -3171,21 +3169,21 @@ public class IndexShardTests extends IndexShardTestCase {
          */
         IndexShard shard = newStartedShard(false);
         shard.advanceMaxSeqNoOfUpdatesOrDeletes(1); // manually advance msu for this delete
-        shard.applyDeleteOperationOnReplica(1, 2, "id");
+        shard.applyDeleteOperationOnReplica(1, primaryTerm, 2, "id");
         shard.getEngine().rollTranslogGeneration(); // isolate the delete in it's own generation
         shard.applyIndexOperationOnReplica(
-            0, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false,
+            0, primaryTerm, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false,
             new SourceToParse(shard.shardId().getIndexName(), "id", new BytesArray("{}"), XContentType.JSON));
         shard.applyIndexOperationOnReplica(
-            3, 3, UNSET_AUTO_GENERATED_TIMESTAMP, false,
+            3, primaryTerm, 3, UNSET_AUTO_GENERATED_TIMESTAMP, false,
             new SourceToParse(shard.shardId().getIndexName(), "id-3", new BytesArray("{}"), XContentType.JSON));
         // Flushing a new commit with local checkpoint=1 allows to skip the translog gen #1 in recovery.
         shard.flush(new FlushRequest().force(true).waitIfOngoing(true));
         shard.applyIndexOperationOnReplica(
-            2, 3, UNSET_AUTO_GENERATED_TIMESTAMP, false,
+            2, primaryTerm, 3, UNSET_AUTO_GENERATED_TIMESTAMP, false,
             new SourceToParse(shard.shardId().getIndexName(), "id-2", new BytesArray("{}"), XContentType.JSON));
         shard.applyIndexOperationOnReplica(
-            5, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false,
+            5, primaryTerm, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false,
             new SourceToParse(shard.shardId().getIndexName(), "id-5", new BytesArray("{}"), XContentType.JSON));
         shard.sync(); // advance local checkpoint
 
@@ -3241,7 +3239,7 @@ public class IndexShardTests extends IndexShardTestCase {
         SourceToParse sourceToParse = new SourceToParse(
             shard.shardId().getIndexName(), "1", new BytesArray("{}"), XContentType.JSON);
         otherShard.applyIndexOperationOnReplica(
-            1, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false, sourceToParse);
+            1, primaryTerm, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false, sourceToParse);
         ShardRouting primaryShardRouting = shard.routingEntry();
         IndexShard newShard = reinitShard(
             otherShard,
@@ -3381,6 +3379,7 @@ public class IndexShardTests extends IndexShardTestCase {
         // Index #0, index #1
         shard.applyIndexOperationOnReplica(
             0,
+            primaryTerm,
             1,
             UNSET_AUTO_GENERATED_TIMESTAMP,
             false,
@@ -3389,6 +3388,7 @@ public class IndexShardTests extends IndexShardTestCase {
         shard.updateGlobalCheckpointOnReplica(0, "test"); // stick the global checkpoint here.
         shard.applyIndexOperationOnReplica(
             1,
+            primaryTerm,
             1,
             UNSET_AUTO_GENERATED_TIMESTAMP,
             false,
@@ -3397,14 +3397,13 @@ public class IndexShardTests extends IndexShardTestCase {
         assertThat(getShardDocUIDs(shard), containsInAnyOrder("doc-0", "doc-1"));
         shard.getEngine().rollTranslogGeneration();
         shard.markSeqNoAsNoop(
-            shard.getEngine(),
             1,
             shard.getOperationPrimaryTerm(),
-            "test",
-            Engine.Operation.Origin.REPLICA
+            "test"
         );
         shard.applyIndexOperationOnReplica(
             2,
+            primaryTerm,
             1,
             UNSET_AUTO_GENERATED_TIMESTAMP,
             false,
@@ -4162,6 +4161,7 @@ public class IndexShardTests extends IndexShardTestCase {
                         new BytesArray("{}"), XContentType.JSON);
                 indexShard.applyIndexOperationOnReplica(
                     i,
+                    primaryTerm,
                     1,
                     -1,
                     false,
@@ -4218,7 +4218,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 seqNo++; // create gaps in sequence numbers
             }
             shard.applyIndexOperationOnReplica(
-                seqNo, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false,
+                seqNo, primaryTerm, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false,
                 new SourceToParse(
                     shard.shardId.getIndexName(),
                     Long.toString(i),

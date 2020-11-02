@@ -153,6 +153,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
             shard.applyIndexOperationOnReplica(
                 seqNo,
                 1,
+                shard.getOperationPrimaryTerm(),
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 false, new SourceToParse(shard.shardId().getIndexName(), UUIDs.randomBase64UUID(), new BytesArray("{}"), XContentType.JSON)
             );

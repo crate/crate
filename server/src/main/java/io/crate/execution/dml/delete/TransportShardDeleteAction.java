@@ -158,6 +158,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             if (item.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO) {
                 Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnReplica(
                     item.seqNo(),
+                    item.primaryTerm(),
                     item.version(),
                     item.id()
                 );
@@ -178,6 +179,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
         // set version and sequence number for replica
         item.version(deleteResult.getVersion());
         item.seqNo(deleteResult.getSeqNo());
+        item.primaryTerm(deleteResult.getTerm());
 
         return deleteResult;
     }
