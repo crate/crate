@@ -232,8 +232,10 @@ public class AllocationService {
      * Returns an updated cluster state if changes were necessary, or the identical cluster if no changes were required.
      */
     public ClusterState adaptAutoExpandReplicas(ClusterState clusterState) {
+        RoutingAllocation allocation = new RoutingAllocation(allocationDeciders, clusterState.getRoutingNodes(), clusterState,
+            clusterInfoService.getClusterInfo(), currentNanoTime());
         final Map<Integer, List<String>> autoExpandReplicaChanges =
-            AutoExpandReplicas.getAutoExpandReplicaChanges(clusterState.metadata(), clusterState.nodes());
+            AutoExpandReplicas.getAutoExpandReplicaChanges(clusterState.metadata(), allocation);
         if (autoExpandReplicaChanges.isEmpty()) {
             return clusterState;
         } else {
@@ -257,7 +259,7 @@ public class AllocationService {
             }
             final ClusterState fixedState = ClusterState.builder(clusterState).routingTable(routingTableBuilder.build())
                 .metadata(metadataBuilder).build();
-            assert AutoExpandReplicas.getAutoExpandReplicaChanges(fixedState.metadata(), fixedState.nodes()).isEmpty();
+            assert AutoExpandReplicas.getAutoExpandReplicaChanges(fixedState.metadata(), allocation).isEmpty();
             return fixedState;
         }
     }
@@ -392,7 +394,7 @@ public class AllocationService {
 
     private void reroute(RoutingAllocation allocation) {
         assert hasDeadNodes(allocation) == false : "dead nodes should be explicitly cleaned up. See deassociateDeadNodes";
-        assert AutoExpandReplicas.getAutoExpandReplicaChanges(allocation.metadata(), allocation.nodes()).isEmpty() :
+        assert AutoExpandReplicas.getAutoExpandReplicaChanges(allocation.metadata(), allocation).isEmpty() :
             "auto-expand replicas out of sync with number of nodes in the cluster";
 
         // now allocate all the unassigned to available nodes
