@@ -232,11 +232,15 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
 
                 // now add the mappings
                 MapperService mapperService = indexService.mapperService();
-                try {
-                    mapperService.merge(mappings, MapperService.MergeReason.MAPPING_UPDATE);
-                } catch (MapperParsingException mpe) {
-                    removalReasons.add("failed on parsing mappings on index creation");
-                    throw mpe;
+                if (!mappings.isEmpty()) {
+                    assert mappings.size() == 1 : "Must have at most 1 mapping type";
+                    var entry = mappings.entrySet().iterator().next();
+                    try {
+                        mapperService.merge(entry.getKey(), entry.getValue(), MapperService.MergeReason.MAPPING_UPDATE);
+                    } catch (MapperParsingException mpe) {
+                        removalReasons.add("failed on parsing mappings on index creation");
+                        throw mpe;
+                    }
                 }
 
                 // now, update the mappings with the actual source

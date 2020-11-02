@@ -468,12 +468,17 @@ public class MetadataCreateIndexService {
                 final IndexService indexService = indicesService.createIndex(tmpImd, Collections.emptyList());
                 createdIndex = indexService.index();
                 // now add the mappings
+
                 MapperService mapperService = indexService.mapperService();
-                try {
-                    mapperService.merge(mappings, MergeReason.MAPPING_UPDATE);
-                } catch (Exception e) {
-                    removalExtraInfo = "failed on parsing default mapping/mappings on index creation";
-                    throw e;
+                if (mappings.isEmpty() == false) {
+                    assert mappings.size() == 1;
+                    var entry = mappings.entrySet().iterator().next();
+                    try {
+                        mapperService.merge(entry.getKey(), entry.getValue(), MergeReason.MAPPING_UPDATE);
+                    } catch (Exception e) {
+                        removalExtraInfo = "failed on parsing default mapping/mappings on index creation";
+                        throw e;
+                    }
                 }
 
                 // now, update the mappings with the actual source

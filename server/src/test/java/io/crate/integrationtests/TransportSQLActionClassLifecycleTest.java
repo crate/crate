@@ -536,7 +536,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testCreateTableWithInvalidAnalyzer() throws Exception {
         assertThrows(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"),
-                     isSQLError(is("Failed to parse mapping [default]: analyzer [foobar] not found for field [content]"),
+                     isSQLError(is("Failed to parse mapping: analyzer [foobar] not found for field [content]"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));
