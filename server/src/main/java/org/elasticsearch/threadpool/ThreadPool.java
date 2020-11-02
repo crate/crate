@@ -131,10 +131,12 @@ public class ThreadPool implements Scheduler, Closeable {
 
     private final CachedTimeThread cachedTimeThread;
 
+    @SuppressWarnings("rawtypes")
     private final Map<String, ExecutorBuilder> builders;
 
     private final ScheduledThreadPoolExecutor scheduler;
 
+    @SuppressWarnings("rawtypes")
     public Collection<ExecutorBuilder> builders() {
         return builders.values();
     }

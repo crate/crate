@@ -147,6 +147,7 @@ public class TypeParsers {
     /**
      * Parse common field attributes such as {@code doc_values} or {@code store}.
      */
+    @SuppressWarnings("rawtypes")
     public static void parseField(FieldMapper.Builder builder, String name, Map<String, Object> fieldNode,
                                   Mapper.TypeParser.ParserContext parserContext) {
         for (Iterator<Map.Entry<String, Object>> iterator = fieldNode.entrySet().iterator(); iterator.hasNext();) {
@@ -214,6 +215,7 @@ public class TypeParsers {
         throw new IllegalArgumentException("Invalid format: [" + node.toString() + "]: expected string value");
     }
 
+    @SuppressWarnings("rawtypes")
     public static void parseTermVector(String fieldName, String termVector, FieldMapper.Builder builder) throws MapperParsingException {
         if ("no".equals(termVector)) {
             builder.storeTermVectors(false);
@@ -238,7 +240,7 @@ public class TypeParsers {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static void parseCopyFields(Object propNode, FieldMapper.Builder builder) {
         FieldMapper.CopyTo.Builder copyToBuilder = new FieldMapper.CopyTo.Builder();
         if (isArray(propNode)) {
