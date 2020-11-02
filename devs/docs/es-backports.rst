@@ -364,7 +364,7 @@ should be crossed out as well.
 - [ ] 0f6ffc20a53 Refactor percolator's QueryAnalyzer to use QueryVisitors (#49238)
 - [ ] c1c7fa5d9c8 Remove type field from internal PutMappingRequest (#48793)
 - [ ] 66f49d8ea5d Always use primary term from primary to index docs on replica (#47583)
-- [ ] fbaf8c428d7 Fix Transport Stopped Exception (#48930)
+- [x] fbaf8c428d7 Fix Transport Stopped Exception (#48930)
 - [x] 7559bab501f MapperService.merge() should take a single mapper rather than a map (#48954)
 - [x] 293648b4ee7 [#40366] Silence some lint warnings in server project (#48927)
 - [s] 77a8bc3cd1e Update handshake response version constants to 7.6 (#48917)
