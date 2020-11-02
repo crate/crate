@@ -225,7 +225,7 @@ public class Lucene {
     }
 
     public static void checkSegmentInfoIntegrity(final Directory directory) throws IOException {
-        new SegmentInfos.FindSegmentsFile(directory) {
+        new SegmentInfos.FindSegmentsFile<>(directory) {
 
             @Override
             protected Object doBody(String segmentFileName) throws IOException {

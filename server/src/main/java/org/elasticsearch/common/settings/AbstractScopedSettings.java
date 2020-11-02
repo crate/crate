@@ -102,7 +102,7 @@ public abstract class AbstractScopedSettings {
         this.keySettings = Collections.unmodifiableMap(keySettings);
     }
 
-    protected void validateSettingKey(Setting setting) {
+    protected void validateSettingKey(Setting<?> setting) {
         if (isValidKey(setting.getKey()) == false && (setting.isGroupSetting() && isValidGroupKey(setting.getKey())
             || isValidAffixKey(setting.getKey())) == false || setting.getKey().endsWith(".0")) {
             throw new IllegalArgumentException("illegal settings key: [" + setting.getKey() + "]");

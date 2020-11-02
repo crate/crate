@@ -672,7 +672,10 @@ public abstract class StreamInput extends InputStream {
     @SuppressWarnings("unchecked")
     private List readArrayList() throws IOException {
         int size = readArraySize();
-        List list = new ArrayList(size);
+        if (size == 0) {
+            return Collections.emptyList();
+        }
+        List<Object> list = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             list.add(readGenericValue());
         }
@@ -700,7 +703,10 @@ public abstract class StreamInput extends InputStream {
 
     private Map readLinkedHashMap() throws IOException {
         int size9 = readArraySize();
-        Map map9 = new LinkedHashMap(size9);
+        if (size9 == 0) {
+            return Collections.emptyMap();
+        }
+        Map<String, Object> map9 = new LinkedHashMap<>(size9);
         for (int i = 0; i < size9; i++) {
             map9.put(readString(), readGenericValue());
         }
@@ -709,7 +715,10 @@ public abstract class StreamInput extends InputStream {
 
     private Map readHashMap() throws IOException {
         int size10 = readArraySize();
-        Map map10 = new HashMap(size10);
+        if (size10 == 0) {
+            return Collections.emptyMap();
+        }
+        Map<String, Object> map10 = new HashMap<>(size10);
         for (int i = 0; i < size10; i++) {
             map10.put(readString(), readGenericValue());
         }
@@ -844,6 +853,7 @@ public abstract class StreamInput extends InputStream {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends Exception> T readException() throws IOException {
         if (readBoolean()) {
             int key = readVInt();
