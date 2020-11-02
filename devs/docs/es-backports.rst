@@ -323,6 +323,7 @@ should be crossed out as well.
 - [ ] f4989c54c45 Revert "serialize initial_connect_timeout as xcontent correctly"
 - [ ] ae64eaabdae serialize initial_connect_timeout as xcontent correctly
 - [ ] fa1a7c57b8e Add remote info to the HLRC (#49657)
+- [x] 6f81d6de161 Only auto-expand replicas with allocation filtering when all nodes upgraded (#50361)
 - [ ] cec6678587e Use peer recovery retention leases for indices without soft-deletes (#50351)
 - [ ] 3b8f5d9ea18 Modify proxy mode to support a single address (#50391)
 - [ ] 342a2920a96 Rename the remote connection mode simple to proxy (#50291)

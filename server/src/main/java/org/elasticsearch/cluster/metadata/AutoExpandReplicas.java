@@ -20,6 +20,7 @@
 package org.elasticsearch.cluster.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import io.crate.common.Booleans;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
@@ -100,11 +101,16 @@ public final class AutoExpandReplicas {
     private OptionalInt getDesiredNumberOfReplicas(IndexMetadata indexMetaData, RoutingAllocation allocation) {
         if (enabled) {
             int numMatchingDataNodes = 0;
-            for (ObjectCursor<DiscoveryNode> cursor : allocation.nodes().getDataNodes().values()) {
-                Decision decision = allocation.deciders().shouldAutoExpandToNode(indexMetaData, cursor.value, allocation);
-                if (decision.type() != Decision.Type.NO) {
-                    numMatchingDataNodes ++;
+            // Only start using new logic once all nodes are migrated to 4.4.0, avoiding disruption during an upgrade
+            if (allocation.nodes().getMinNodeVersion().onOrAfter(Version.V_4_4_0)) {
+                for (ObjectCursor<DiscoveryNode> cursor : allocation.nodes().getDataNodes().values()) {
+                    Decision decision = allocation.deciders().shouldAutoExpandToNode(indexMetaData, cursor.value, allocation);
+                    if (decision.type() != Decision.Type.NO) {
+                        numMatchingDataNodes ++;
+                    }
                 }
+            } else {
+                numMatchingDataNodes = allocation.nodes().getDataNodes().size();
             }
 
             final int min = getMinReplicas();
