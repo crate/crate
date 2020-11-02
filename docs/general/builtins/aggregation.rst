@@ -663,7 +663,7 @@ Limitations
    <sql_ddl_datatypes_primitives>` columns. For more information, please refer
    to :ref:`sql_ddl_index_plain`.
 
-.. _Geometric Mean: https://en.wikipedia.org/wiki/Mean#Geometric_mean_.28GM.29
+.. _Geometric Mean: https://en.wikipedia.org/wiki/Geometric_mean
 .. _Variance: https://en.wikipedia.org/wiki/Variance
 .. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
 .. _Percentile: https://en.wikipedia.org/wiki/Percentile

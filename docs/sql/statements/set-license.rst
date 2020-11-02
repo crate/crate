@@ -50,5 +50,5 @@ a CrateDB license that CrateIO will provide.
     You can view the current license by querying the ``sys.cluster`` table.
     See :ref:`sys-cluster-license`.
 
-.. _enterprise edition: https://crate.io/enterprise-edition/
-.. _community edition: https://crate.io/enterprise-edition/
+.. _enterprise edition: https://crate.io/products/cratedb-editions/
+.. _community edition: https://crate.io/products/cratedb-editions/

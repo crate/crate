@@ -17,7 +17,7 @@ Unreleased Changes
     experimenting with unreleased changes.
 
 .. _the master branch: https://github.com/crate/crate
-.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-cratedb/
 
 .. DEVELOPER README
 .. ================

@@ -337,8 +337,8 @@ CrateDB's SQL query engine enables real-time search & aggregations for online
 analytic processing (OLAP) and business intelligence (BI) with the benefit of
 the ability to scale horizontally. The use-cases of CrateDB are different than
 those of PostgreSQL, as CrateDB's specialized storage schema and query
-execution engine address different requirements (see `High Level
-Architecture`_).
+execution engine address different requirements (see :doc:`Clustering
+<../concepts/shared-nothing>`).
 
 The listed features below cover the main differences in implementation and
 dialect between CrateDB and PostgreSQL. A detailed comparison between CrateDB's
@@ -410,10 +410,9 @@ Unlike PostgreSQL, expressions are not evaluated if the query results in 0 rows
 either because of the table is empty or by a not matching where clause.
 
 .. _Arrays: https://www.postgresql.org/docs/current/static/arrays.html
-.. _Enterprise Edition: https://crate.io/enterprise-edition/
+.. _Enterprise Edition: https://crate.io/products/cratedb-editions/
 .. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
 .. _Github: https://github.com/crate/crate
-.. _High Level Architecture: https://crate.io/overview/high-level-architecture
 .. _pg_description: https://www.postgresql.org/docs/10/catalog-pg-description.html
 .. _pg_enum: https://www.postgresql.org/docs/10/catalog-pg-enum.html
 .. _pgjdbc: https://github.com/pgjdbc/pgjdbc

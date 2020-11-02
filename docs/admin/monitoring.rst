@@ -355,5 +355,5 @@ the `README`_ in the `Crate JMX HTTP Exporter`_ repository for more information.
 .. _JMX: http://docs.oracle.com/javase/8/docs/technotes/guides/jmx/
 .. _JMX documentation: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
 .. _JConsole: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
-.. _VisualVM: https://visualvm.java.net/
+.. _VisualVM: https://visualvm.github.io/
 .. _CompositeData: http://www.oracle.com/technetwork/java/javase/tech/best-practices-jsp-136021.html#mozTocId99420

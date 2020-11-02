@@ -73,6 +73,7 @@ For example:
 Fixed issues
 ============
 
+.. _resiliency_cluster_partitions_cause_lost_cluster_updates:
 
 Repeated cluster partitions can cause lost cluster updates
 ----------------------------------------------------------
@@ -141,6 +142,7 @@ reaching a majority of nodes, it may be that the in flight update is lost. If
 the now-isolated master can still acknowledge the cluster state update to the
 client this will result to the loss of an acknowledged change.
 
+.. _resiliency_ambiguous_row_versions:
 
 Version number representing ambiguous row versions
 --------------------------------------------------
@@ -191,6 +193,7 @@ update that was made on the replicated shard is lost but the new version number
 matches the lost update. This will break `Optimistic Concurrency Control
 <https://crate.io/docs/reference/sql/occ.html>`_.
 
+.. _resiliency_replicas_fall_out_of_sync:
 
 Replicas can fall out of sync when a primary shard fails
 --------------------------------------------------------

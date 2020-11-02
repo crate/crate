@@ -2197,4 +2197,4 @@ been analyzed.
     show up in the table.
 
 .. _configuration: ../configuration.html
-.. _Enterprise Edition: https://crate.io/enterprise/
+.. _Enterprise Edition: https://crate.io/products/cratedb-editions/

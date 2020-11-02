@@ -168,4 +168,4 @@ You can refer to our guide on running `CrateDB tarball installations`_.
 .. _privileges browser: https://crate.io/docs/clients/admin-ui/en/latest/privileges.html
 .. _product comparison: https://crate.io/products/cratedb-editions/
 .. _release: https://github.com/crate/crate/tags
-.. _shards browser: https://crate.io/docs/clients/admin-ui/en/latest/shards.html#shards
+.. _shards browser: https://crate.io/docs/clients/admin-ui/en/latest/shards.html

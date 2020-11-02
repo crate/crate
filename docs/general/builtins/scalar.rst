@@ -2369,10 +2369,9 @@ return the default schema, which is ``doc``.
 
 Returns: ``text``
 
-The default schema can be set when using the `JDBC
-<https://crate.io/docs/reference/jdbc/#jdbc-url-format>`_ and `HTTP clients
-<https://crate.io/docs/reference/protocols/http.html#default-schema>`_ such as
-`CrateDB PDO`_.
+The default schema can be set when using the `JDBC client
+<https://crate.io/docs/jdbc/en/latest/connect.html>`_ and `HTTP clients
+<http_default_schema>`_ such as `CrateDB PDO`_.
 
 .. NOTE::
 
@@ -2920,5 +2919,5 @@ Example::
 .. _Java Regular Expressions: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
 .. _`MySQL date_format`: http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 .. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
-.. _`CrateDB PDO`: https://crate.io/docs/reference/pdo/usage.html#dsn
+.. _`CrateDB PDO`: https://crate.io/docs/pdo/en/latest/connect.html
 .. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)

@@ -144,6 +144,8 @@ The same query using question marks as placeholders looks like this::
     With some queries the row count is not ascertainable. In this cases
     rowcount is ``-1``.
 
+.. _http_default_schema:
+
 Default schema
 ==============
 

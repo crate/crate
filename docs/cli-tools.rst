@@ -218,6 +218,6 @@ Options
 .. _PATH: https://kb.iu.edu/d/acar
 .. _Perform an unsafe cluster bootstrap: https://crate.io/docs/crate/guide/en/latest/best-practices/crate-node.html#perform-an-unsafe-cluster-bootstrap
 .. _Repurpose a node: https://crate.io/docs/crate/guide/en/latest/best-practices/crate-node.html#repurpose-a-node
-.. _Rolling Upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _Rolling Upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
 .. _troubleshooting guide: https://crate.io/docs/crate/guide/en/latest/best-practices/crate-node.html
 .. _Troubleshooting with crate-node CLI: https://crate.io/docs/crate/guide/en/latest/best-practices/crate-node.html

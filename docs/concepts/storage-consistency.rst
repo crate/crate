@@ -17,6 +17,9 @@ across the cluster and what consistency and durability guarantees are provided.
 .. contents::
    :local:
 
+
+.. _concepts_data_storage:
+
 Data storage
 ============
 
@@ -59,6 +62,8 @@ synchronous over all active replicas with the following flow:
 
 Should any replica shard fail to write the data or times out in step 5, it's
 immediately considered as unavailable.
+
+.. _concepts_atomic_document_level:
 
 Atomic on document level
 ========================

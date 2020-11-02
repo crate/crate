@@ -23,9 +23,9 @@ Released on 2017/10/12.
 
     Before upgrading, you should `back up your data`_.
 
-.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
-.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
-.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _rolling upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
+.. _full restart upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-cratedb/
 
 .. rubric:: Table of contents
 

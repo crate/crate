@@ -131,7 +131,7 @@ Authentication
 
 The discovery plugin requires authentication as service principle. To do so,
 you have to create an ``Active Directory`` application with a password. We
-recommened to follow the `AD Application Guide`_ .
+recommend to follow the `AD Application Guide`_ .
 
 The configuration settings for authentication are as follows:
 
@@ -147,4 +147,4 @@ The configuration settings for authentication are as follows:
 For a complete list of settings please refer to :ref:`conf_azure_discovery`.
 
 .. _`Microsoft Azure`: https://azure.microsoft.com
-.. _`AD Application Guide`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/#_create-ad-application-with-password
+.. _`AD Application Guide`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
