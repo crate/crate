@@ -222,6 +222,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
             Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
                 item.seqNo(),
+                item.primaryTerm(),
                 item.version(),
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 false,
@@ -435,6 +436,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 item.seqNo(indexResult.getSeqNo());
                 item.version(indexResult.getVersion());
+                item.primaryTerm(indexResult.getTerm());
                 return indexResult;
 
             case FAILURE:

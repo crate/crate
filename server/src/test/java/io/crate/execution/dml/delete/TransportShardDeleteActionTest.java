@@ -109,6 +109,6 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         // replica operation must skip all not by primary processed items
         transportShardDeleteAction.processRequestItemsOnReplica(indexShard, request);
         verify(indexShard, times(0))
-            .applyDeleteOperationOnReplica(anyLong(), anyLong(), anyString());
+            .applyDeleteOperationOnReplica(anyLong(), anyLong(), anyLong(), anyString());
     }
 }
