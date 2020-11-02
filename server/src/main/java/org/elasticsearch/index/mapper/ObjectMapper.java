@@ -66,6 +66,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         protected final List<Mapper.Builder> mappersBuilders = new ArrayList<>();
         private Integer position;
 
+        @SuppressWarnings("unchecked")
         public Builder(String name) {
             super(name);
             this.builder = (T) this;
@@ -87,6 +88,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public Y build(BuilderContext context) {
             context.path().add(name);
 
@@ -125,6 +127,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
+        @SuppressWarnings("rawtypes")
         public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             ObjectMapper.Builder builder = new Builder(name);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
@@ -138,6 +141,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             return builder;
         }
 
+        @SuppressWarnings({"unchecked", "rawtypes"})
         protected static boolean parseObjectOrDocumentTypeProperties(String fieldName, Object fieldNode, ParserContext parserContext, ObjectMapper.Builder builder) {
             if (fieldName.equals("position")) {
                 builder.position(nodeIntegerValue(fieldNode));
@@ -167,6 +171,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             return false;
         }
 
+        @SuppressWarnings("rawtypes")
         protected static void parseProperties(ObjectMapper.Builder objBuilder, Map<String, Object> propsNode, ParserContext parserContext) {
             Iterator<Map.Entry<String, Object>> iterator = propsNode.entrySet().iterator();
             while (iterator.hasNext()) {
