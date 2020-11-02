@@ -415,5 +415,5 @@ passed as array-like objects.
 .. _ECMAScript 2019: https://www.ecma-international.org/ecma-262/10.0/
 .. _GraalVM JavaScript: https://www.graalvm.org/docs/reference-manual/languages/js/
 .. _GraalVM Polyglot API: https://www.graalvm.org/docs/reference-manual/polyglot/
-.. _stock host Java VM JIT compilers: https://www.graalvm.org/docs/reference-manual/languages/JavaScript/user/RunOnJDK
+.. _stock host Java VM JIT compilers: https://www.graalvm.org/reference-manual/js/RunOnJDK/
 .. _GraalVM Security Guide: https://www.graalvm.org/docs/security-guide/

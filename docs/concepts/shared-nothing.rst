@@ -146,7 +146,7 @@ across the cluster.
 
    The following only applies to CrateDB versions 3.x and below. CrateDB
    versions 4.x and above `determine quorum size automatically
-   <https://crate.io/docs/crate/howtos/en/latest/scaling/multi-node-setup.html#cratedb-versions-4-x-and-above>`_.
+   <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-node-setup.html#master-node-election>`_.
 
 A minimum number of nodes (referred as a *quorum*) needs to configured (using the
 `discovery.zen.minimum_master_nodes`_ setting) to ensure that in case of a

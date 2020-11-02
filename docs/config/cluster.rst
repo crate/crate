@@ -609,8 +609,6 @@ To enable Azure discovery set the ``discovery.seed_providers`` setting to
   same virtual network (default), ``subnet`` will discover all VMs within the
   same subnet of the CrateDB instance.
 
-.. _`Azure Portal`: https://portal.azure.com
-.. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/#_create-ad-application-with-password
 
 .. _conf_routing:
 
@@ -1255,3 +1253,5 @@ Metadata gateway
 
 
 .. _bootstrap checks: https://crate.io/docs/crate/guide/en/latest/admin/bootstrap-checks.html
+.. _`Azure Portal`: https://portal.azure.com
+.. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/

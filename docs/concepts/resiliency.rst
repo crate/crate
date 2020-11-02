@@ -5,12 +5,8 @@ Resiliency
 Distributed systems are tricky. All sorts of things can go wrong that are
 beyond your control. The network can go away, disks can fail, hosts can be
 terminated unexpectedly. CrateDB tries very hard to cope with these sorts of
-issues while maintaining `availability
-<https://crate.io/docs/reference/architecture/shared_nothing.html>`_,
-`consistency
-<https://crate.io/docs/reference/architecture/storage_consistency.html#consistency>`_,
-and `durability
-<https://crate.io/docs/reference/architecture/storage_consistency.html# durability>`_.
+issues while maintaining :doc:`availability <shared-nothing>`,
+`consistency <consistency>`_, and `durability <durability>`_.
 
 However, as with any distributed system, sometimes, *rarely*, things can go
 wrong.
@@ -56,18 +52,16 @@ Code that expects the behavior of an `ACID
 always work as expected with CrateDB.
 
 CrateDB does not support ACID transactions, but instead has `atomic operations
-<https://crate.io/docs/reference/architecture/storage_consistency.html#atomic-on-document-level>`_
-and `eventual consistency
-<https://crate.io/docs/reference/architecture/shared_nothing.html>`_ at the row
-level. Eventual consistency is the trade-off that CrateDB makes in exchange for
-high-availability that can tolerate most hardware and network failures. So you
-may observe data from different cluster nodes temporarily falling very briefly
-out-of-sync with each other, although over time they will become consistent.
+<concepts_atomic_document_level>`_ and :doc:`eventual consistency
+<shared-nothing>` at the row level. Eventual consistency is the trade-off that
+CrateDB makes in exchange for high-availability that can tolerate most hardware
+and network failures. So you may observe data from different cluster nodes
+temporarily falling very briefly out-of-sync with each other, although over
+time they will become consistent.
 
 For example, you know a row has been written as soon as you get the ``INSERT
 OK`` message. But that row might not be read back by a subsequent ``SELECT`` on
-a different node until after a `table refresh
-<https://crate.io/docs/reference/sql/refresh.html#refresh-data>`_ (which
+a different node until after a `table refresh <sql_ref_refresh>`_ (which
 typically occurs within one second).
 
 Your applications should be designed to work this storage and consistency model.
@@ -87,25 +81,24 @@ Here are some considerations:
    fit for purpose, i.e. use SSDs, increase RAM up to 64 GB, and use multiple
    CPU cores when you can. But if you want to dynamically increase (or
    decrease) the capacity of your cluster, `add (or remove) nodes
-   <https://crate.io/docs/crate/howtos/en/latest/scaling/multi-node-setup.html/>`_.
+   <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-node-setup.html>`_.
 
 -  If availability is a concern, you can add `nodes across multiple zones
-   <https://crate.io/docs/crate/howtos/en/latest/scaling/multi-node-setup.html>`_
+   <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html>`_
    (e.g. different data centers or geographical regions). The more available
    your CrateDB cluster is, the more likely it is to withstand external
    failures like a zone going down.
 
 -  If data durability or read performance is a concern, you can increase the
-   number of `table replicas
-   <https://crate.io/docs/reference/architecture/storage_consistency.html#data-storage>`_.
+   number of `table replicas <concepts_data_storage>`_.
    More table replicas means a smaller chance of permanent data loss due to
    hardware failures, in exchange for the use of more disk space and more
    intra-cluster network traffic.
 
 -  If disaster recovery is important, you can `take regular snapshots
-   <https://crate.io/docs/reference/en/latest/sql/snapshot_restore.html>`_ and
-   store those snapshots in cold storage. This safeguards data that has already
-   been successfully written and replicated across the cluster.
+   <snapshot-restore>`_ and store those snapshots in cold storage. This
+   safeguards data that has already been successfully written and replicated
+   across the cluster.
 
 -  CrateDB works well as part of a `data pipeline
    <https://crate.io/docs/tools/streamsets/>`_, especially if you’re working

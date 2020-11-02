@@ -31,8 +31,8 @@ Released on 2019/06/25.
 
     Before upgrading, you should `back up your data`_.
 
-.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
-.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _full restart upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-cratedb/
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 
@@ -60,7 +60,7 @@ This eliminates the need of the easily miss configured ``minimum_master_nodes``
 setting.
 Additionally a rare resiliency failure, recorded as `Repeated cluster
 partitions can cause cluster state updates to be lost
-<https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#repeated-cluster-partitions-can-cause-lost-cluster-updates>`_
+<resiliency_cluster_partitions_cause_lost_cluster_updates>`_
 can no longer occur.
 
 Due to this some discovery settings are added, renamed and removed.
@@ -379,10 +379,10 @@ Performance and resiliency improvements
   following resiliency issues were fixed:
 
    - `Version Number Representing Ambiguous Row Versions
-     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#version-number-representing-ambiguous-row-versions>`_
+     <resiliency_ambiguous_row_versions>`_
 
    - `Replicas can fall out of sync when a primary shard fails
-     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#replicas-can-fall-out-of-sync-when-a-primary-shard-fails>`_
+     <resiliency_replicas_fall_out_of_sync>`_
 
 - Predicates like ``abs(x) = 1`` which require a scalar function evaluation and
   cannot operate on table indices directly are now candidates for the query
