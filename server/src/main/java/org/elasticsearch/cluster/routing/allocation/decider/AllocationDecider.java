@@ -20,6 +20,7 @@
 package org.elasticsearch.cluster.routing.allocation.decider;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
@@ -84,6 +85,14 @@ public abstract class AllocationDecider {
      * {@link RoutingAllocation}. The default is {@link Decision#ALWAYS}.
      */
     public Decision canAllocate(RoutingNode node, RoutingAllocation allocation) {
+        return Decision.ALWAYS;
+    }
+
+    /**
+     * Returns a {@link Decision} whether shards of the given index should be auto-expanded to this node at this state of the
+     * {@link RoutingAllocation}. The default is {@link Decision#ALWAYS}.
+     */
+    public Decision shouldAutoExpandToNode(IndexMetadata indexMetadata, DiscoveryNode node, RoutingAllocation allocation) {
         return Decision.ALWAYS;
     }
 

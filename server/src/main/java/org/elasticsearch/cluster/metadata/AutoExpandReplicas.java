@@ -19,8 +19,11 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.elasticsearch.cluster.node.DiscoveryNodes;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import io.crate.common.Booleans;
+import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
+import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 
@@ -28,7 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.OptionalInt;
 
 /**
  * This class acts as a functional wrapper around the {@code index.auto_expand_replicas} setting.
@@ -94,11 +97,19 @@ public final class AutoExpandReplicas {
         return Math.min(maxReplicas, numDataNodes - 1);
     }
 
-    Optional<Integer> getDesiredNumberOfReplicas(int numDataNodes) {
+    private OptionalInt getDesiredNumberOfReplicas(IndexMetadata indexMetaData, RoutingAllocation allocation) {
         if (enabled) {
+            int numMatchingDataNodes = 0;
+            for (ObjectCursor<DiscoveryNode> cursor : allocation.nodes().getDataNodes().values()) {
+                Decision decision = allocation.deciders().shouldAutoExpandToNode(indexMetaData, cursor.value, allocation);
+                if (decision.type() != Decision.Type.NO) {
+                    numMatchingDataNodes ++;
+                }
+            }
+
             final int min = getMinReplicas();
-            final int max = getMaxReplicas(numDataNodes);
-            int numberOfReplicas = numDataNodes - 1;
+            final int max = getMaxReplicas(numMatchingDataNodes);
+            int numberOfReplicas = numMatchingDataNodes - 1;
             if (numberOfReplicas < min) {
                 numberOfReplicas = min;
             } else if (numberOfReplicas > max) {
@@ -106,10 +117,10 @@ public final class AutoExpandReplicas {
             }
 
             if (numberOfReplicas >= min && numberOfReplicas <= max) {
-                return Optional.of(numberOfReplicas);
+                return OptionalInt.of(numberOfReplicas);
             }
         }
-        return Optional.empty();
+        return OptionalInt.empty();
     }
 
     @Override
@@ -127,16 +138,13 @@ public final class AutoExpandReplicas {
      * The map has the desired number of replicas as key and the indices to update as value, as this allows the result
      * of this method to be directly applied to RoutingTable.Builder#updateNumberOfReplicas.
      */
-    public static Map<Integer, List<String>> getAutoExpandReplicaChanges(Metadata metadata, DiscoveryNodes discoveryNodes) {
-        // used for translating "all" to a number
-        final int dataNodeCount = discoveryNodes.getDataNodes().size();
-
+    public static Map<Integer, List<String>> getAutoExpandReplicaChanges(Metadata metadata, RoutingAllocation allocation) {
         Map<Integer, List<String>> nrReplicasChanged = new HashMap<>();
 
         for (final IndexMetadata indexMetadata : metadata) {
             if (indexMetadata.getState() != IndexMetadata.State.CLOSE) {
                 AutoExpandReplicas autoExpandReplicas = SETTING.get(indexMetadata.getSettings());
-                autoExpandReplicas.getDesiredNumberOfReplicas(dataNodeCount).ifPresent(numberOfReplicas -> {
+                autoExpandReplicas.getDesiredNumberOfReplicas(indexMetadata, allocation).ifPresent(numberOfReplicas -> {
                     if (numberOfReplicas != indexMetadata.getNumberOfReplicas()) {
                         nrReplicasChanged.computeIfAbsent(numberOfReplicas, ArrayList::new).add(indexMetadata.getIndex().getName());
                     }
