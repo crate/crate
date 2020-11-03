@@ -135,7 +135,6 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         PutMappingRequest putMappingRequest = new PutMappingRequest()
             .indices(new String[0])
             .setConcreteIndex(index)
-            .type(Constants.DEFAULT_MAPPING_TYPE)
             .source(mappingSource, XContentType.JSON)
             .timeout(timeout)
             .masterNodeTimeout(timeout);

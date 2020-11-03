@@ -362,7 +362,7 @@ should be crossed out as well.
 - [ ] 0260c6f55c4 ThreadPool and ThreadContext are not closeable (#43249)
 - [ ] 5aa5d7b54b9 Ignore Lucene index in peer recovery if translog corrupted (#49114)
 - [ ] 0f6ffc20a53 Refactor percolator's QueryAnalyzer to use QueryVisitors (#49238)
-- [ ] c1c7fa5d9c8 Remove type field from internal PutMappingRequest (#48793)
+- [x] c1c7fa5d9c8 Remove type field from internal PutMappingRequest (#48793)
 - [x] 66f49d8ea5d Always use primary term from primary to index docs on replica (#47583)
 - [x] fbaf8c428d7 Fix Transport Stopped Exception (#48930)
 - [x] 7559bab501f MapperService.merge() should take a single mapper rather than a map (#48954)

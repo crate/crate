@@ -1692,7 +1692,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return path;
     }
 
-    public void recoverFromLocalShards(BiConsumer<String, MappingMetadata> mappingUpdateConsumer,
+    public void recoverFromLocalShards(Consumer<MappingMetadata> mappingUpdateConsumer,
                                        List<IndexShard> localShards,
                                        ActionListener<Boolean> listener) throws IOException {
         assert shardRouting.primary() : "recover from local shards only makes sense if the shard is a primary shard";
@@ -2368,7 +2368,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                               PeerRecoveryTargetService recoveryTargetService,
                               PeerRecoveryTargetService.RecoveryListener recoveryListener,
                               RepositoriesService repositoriesService,
-                              BiConsumer<String, MappingMetadata> mappingUpdateConsumer,
+                              Consumer<MappingMetadata> mappingUpdateConsumer,
                               IndicesService indicesService) {
         // TODO: Create a proper object to encapsulate the recovery context
         // all of the current methods here follow a pattern of:

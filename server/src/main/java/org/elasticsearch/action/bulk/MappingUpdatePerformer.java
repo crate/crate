@@ -27,6 +27,6 @@ public interface MappingUpdatePerformer {
     /**
      * Update the mappings on the master.
      */
-    void updateMappings(Mapping update, ShardId shardId, String type);
+    void updateMappings(Mapping update, ShardId shardId);
 
 }

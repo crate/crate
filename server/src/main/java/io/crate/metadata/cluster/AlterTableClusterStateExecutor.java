@@ -22,7 +22,6 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.Constants;
 import io.crate.analyze.TableParameters;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableRequest;
@@ -175,10 +174,10 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             }
         }
 
-        PutMappingClusterStateUpdateRequest updateRequest = new PutMappingClusterStateUpdateRequest()
-            .ackTimeout(request.timeout()).masterNodeTimeout(request.masterNodeTimeout())
-            .indices(concreteIndices).type(Constants.DEFAULT_MAPPING_TYPE)
-            .source(request.mappingDelta());
+        PutMappingClusterStateUpdateRequest updateRequest = new PutMappingClusterStateUpdateRequest(request.mappingDelta())
+            .ackTimeout(request.timeout())
+            .masterNodeTimeout(request.masterNodeTimeout())
+            .indices(concreteIndices);
 
         return metadataMappingService.putMappingExecutor.applyRequest(currentState, updateRequest, indexMapperServices);
     }

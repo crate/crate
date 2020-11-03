@@ -43,6 +43,8 @@ import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.indices.InvalidTypeNameException;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
+import io.crate.Constants;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -74,7 +76,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         MAPPING_RECOVERY;
     }
 
-    public static final String SINGLE_MAPPING_NAME = "_doc";
+    public static final String SINGLE_MAPPING_NAME = Constants.DEFAULT_MAPPING_TYPE;
     public static final Setting<Long> INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING =
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
     public static final Setting<Long> INDEX_MAPPING_DEPTH_LIMIT_SETTING =

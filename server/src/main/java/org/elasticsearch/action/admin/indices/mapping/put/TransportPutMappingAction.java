@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.indices.mapping.put;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -36,8 +38,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 /**
  * Put mapping action.
@@ -82,10 +82,10 @@ public class TransportPutMappingAction extends TransportMasterNodeAction<PutMapp
     protected void masterOperation(final PutMappingRequest request, final ClusterState state, final ActionListener<AcknowledgedResponse> listener) {
         try {
             final Index[] concreteIndices = request.getConcreteIndex() == null ? indexNameExpressionResolver.concreteIndices(state, request) : new Index[] {request.getConcreteIndex()};
-            PutMappingClusterStateUpdateRequest updateRequest = new PutMappingClusterStateUpdateRequest()
-                    .ackTimeout(request.timeout()).masterNodeTimeout(request.masterNodeTimeout())
-                    .indices(concreteIndices).type(request.type())
-                    .source(request.source());
+            PutMappingClusterStateUpdateRequest updateRequest = new PutMappingClusterStateUpdateRequest(request.source())
+                .ackTimeout(request.timeout())
+                .masterNodeTimeout(request.masterNodeTimeout())
+                .indices(concreteIndices);
 
             metadataMappingService.putMapping(updateRequest, new ActionListener<ClusterStateUpdateResponse>() {
 
@@ -96,12 +96,12 @@ public class TransportPutMappingAction extends TransportMasterNodeAction<PutMapp
 
                 @Override
                 public void onFailure(Exception t) {
-                    logger.debug(() -> new ParameterizedMessage("failed to put mappings on indices [{}], type [{}]", concreteIndices, request.type()), t);
+                    logger.debug(() -> new ParameterizedMessage("failed to put mappings on indices [{}]", concreteIndices), t);
                     listener.onFailure(t);
                 }
             });
         } catch (IndexNotFoundException ex) {
-            logger.debug(() -> new ParameterizedMessage("failed to put mappings on indices [{}], type [{}]", request.indices(), request.type()), ex);
+            logger.debug(() -> new ParameterizedMessage("failed to put mappings on indices [{}]", request.indices()), ex);
             throw ex;
         }
     }
