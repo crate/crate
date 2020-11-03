@@ -56,7 +56,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static io.crate.common.unit.TimeValue.timeValueMillis;
@@ -101,7 +101,7 @@ final class StoreRecovery {
         }
     }
 
-    void recoverFromLocalShards(BiConsumer<String, MappingMetadata> mappingUpdateConsumer,
+    void recoverFromLocalShards(Consumer<MappingMetadata> mappingUpdateConsumer,
                                 IndexShard indexShard,
                                 List<LocalShardSnapshot> shards,
                                 ActionListener<Boolean> listener) {
@@ -119,7 +119,7 @@ final class StoreRecovery {
             }
             IndexMetadata sourceMetadata = shards.get(0).getIndexMetadata();
             if (sourceMetadata.mapping() != null) {
-                mappingUpdateConsumer.accept(sourceMetadata.mapping().type(), sourceMetadata.mapping());
+                mappingUpdateConsumer.accept(sourceMetadata.mapping());
             }
             indexShard.mapperService().merge(sourceMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
             // now that the mapping is merged we can validate the index sort configuration.

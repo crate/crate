@@ -26,7 +26,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import io.crate.Constants;
 import io.crate.common.CheckedSupplier;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.JobKilledException;
@@ -93,7 +92,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             ThreadPool.Names.WRITE,
             false
         );
-        this.mappingUpdate = (update, shardId, type) -> {
+        this.mappingUpdate = (update, shardId) -> {
             validateMapping(update.root().iterator(), false);
             schemaUpdateClient.blockingUpdateOnMaster(shardId.getIndex(), update);
         };
@@ -196,7 +195,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         T result = execute.get();
         if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
             try {
-                mappingUpdate.updateMappings(result.getRequiredMappingUpdate(), shardId, Constants.DEFAULT_MAPPING_TYPE);
+                mappingUpdate.updateMappings(result.getRequiredMappingUpdate(), shardId);
             } catch (Exception e) {
                 return onMappingUpdateError.apply(e);
             }

@@ -69,8 +69,8 @@ public class MappingUpdatedAction {
      * {@code timeout}. When this method returns successfully mappings have
      * been applied to the master node and propagated to data nodes.
      */
-    public void updateMappingOnMaster(Index index, String type, Mapping mappingUpdate, ActionListener<Void> listener) {
-        client.preparePutMapping().setConcreteIndex(index).setType(type).setSource(mappingUpdate.toString(), XContentType.JSON)
+    public void updateMappingOnMaster(Index index, Mapping mappingUpdate, ActionListener<Void> listener) {
+        client.preparePutMapping().setConcreteIndex(index).setSource(mappingUpdate.toString(), XContentType.JSON)
             .setMasterNodeTimeout(dynamicMappingUpdateTimeout).setTimeout(TimeValue.ZERO)
             .execute(new ActionListener<AcknowledgedResponse>() {
                 @Override

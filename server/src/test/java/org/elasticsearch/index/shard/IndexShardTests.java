@@ -77,6 +77,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
@@ -168,6 +169,7 @@ import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.crate.Constants;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -888,8 +890,8 @@ public class IndexShardTests extends IndexShardTestCase {
         targetShard = newShard(targetRouting);
         targetShard.markAsRecovering("store", new RecoveryState(targetShard.routingEntry(), localNode, null));
 
-        BiConsumer<String, MappingMetadata> mappingConsumer = (type, mapping) ->
-            assertNull(requestedMappingUpdates.put(type, mapping));
+        Consumer<MappingMetadata> mappingConsumer =  mapping ->
+            assertNull(requestedMappingUpdates.put(Constants.DEFAULT_MAPPING_TYPE, mapping));
 
         final IndexShard differentIndex = newShard(new ShardId("index_2", "index_2", 0), true);
         recoverShardFromStore(differentIndex);

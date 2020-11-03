@@ -37,6 +37,9 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.mapper.MapperService;
+
+import io.crate.Constants;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,7 +49,7 @@ import java.util.Objects;
 
 
 /**
- * Puts mapping definition registered under a specific type into one or more indices. Best created with
+ * Puts mapping definition into one or more indices. Best created with
  * {@link org.elasticsearch.client.Requests#putMappingRequest(String...)}.
  * <p>
  * If the mappings already exists, the new mappings will be merged with the new one. If there are elements
@@ -77,8 +80,6 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
     private String[] indices;
 
     private IndicesOptions indicesOptions = IndicesOptions.fromOptions(false, false, true, true);
-
-    private String type;
 
     private String source;
 
@@ -139,21 +140,6 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
     }
 
     /**
-     * The mapping type.
-     */
-    public String type() {
-        return type;
-    }
-
-    /**
-     * The type of the mappings.
-     */
-    public PutMappingRequest type(String type) {
-        this.type = type;
-        return this;
-    }
-
-    /**
      * The mapping source definition.
      */
     public String source() {
@@ -168,7 +154,7 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
      * mapping fields will automatically be put on the top level mapping object.
      */
     public PutMappingRequest source(Object... source) {
-        return source(buildFromSimplifiedDef(type, source));
+        return source(buildFromSimplifiedDef(MapperService.SINGLE_MAPPING_NAME, source));
     }
 
     /**
@@ -282,7 +268,12 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
         super(in);
         indices = in.readStringArray();
         indicesOptions = IndicesOptions.readIndicesOptions(in);
-        type = in.readOptionalString();
+        if (in.getVersion().before(Version.V_4_4_0)) {
+            String type = in.readOptionalString();
+            if (Constants.DEFAULT_MAPPING_TYPE.equals(type) == false) {
+                throw new IllegalArgumentException("Expected type [default] but received [" + type + "]");
+            }
+        }
         source = in.readString();
         if (in.getVersion().before(Version.V_4_3_0)) {
             in.readBoolean(); // updateAllTypes
@@ -295,7 +286,9 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
         super.writeTo(out);
         out.writeStringArrayNullable(indices);
         indicesOptions.writeIndicesOptions(out);
-        out.writeOptionalString(type);
+        if (out.getVersion().before(Version.V_4_4_0)) {
+            out.writeOptionalString(Constants.DEFAULT_MAPPING_TYPE);
+        }
         out.writeString(source);
         if (out.getVersion().before(Version.V_4_3_0)) {
             out.writeBoolean(true); // updateAllTypes
