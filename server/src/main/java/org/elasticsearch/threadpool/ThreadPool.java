@@ -37,7 +37,6 @@ import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
 import org.elasticsearch.node.Node;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.unmodifiableMap;
 
-public class ThreadPool implements Scheduler, Closeable {
+public class ThreadPool implements Scheduler {
 
     private static final Logger LOGGER = LogManager.getLogger(ThreadPool.class);
 
@@ -622,15 +621,13 @@ public class ThreadPool implements Scheduler, Closeable {
     public static boolean terminate(ThreadPool pool, long timeout, TimeUnit timeUnit) {
         if (pool != null) {
             // Leverage try-with-resources to close the threadpool
-            try (ThreadPool c = pool) {
-                pool.shutdown();
-                if (awaitTermination(pool, timeout, timeUnit)) {
-                    return true;
-                }
-                // last resort
-                pool.shutdownNow();
-                return awaitTermination(pool, timeout, timeUnit);
+            pool.shutdown();
+            if (awaitTermination(pool, timeout, timeUnit)) {
+                return true;
             }
+            // last resort
+            pool.shutdownNow();
+            return awaitTermination(pool, timeout, timeUnit);
         }
         return false;
     }
@@ -649,9 +646,6 @@ public class ThreadPool implements Scheduler, Closeable {
         return false;
     }
 
-    @Override
-    public void close() {
-    }
 
     public static boolean assertNotScheduleThread(String reason) {
         assert Thread.currentThread().getName().contains("scheduler") == false :

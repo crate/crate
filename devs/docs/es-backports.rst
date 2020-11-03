@@ -359,7 +359,7 @@ should be crossed out as well.
 - [ ] 8e2a23aa0aa make dim files mmapped (#49272)
 - [ ] 4f4140431b8 Allow simple connection strategy to be configured (#49066)
 - [ ] 4d659c4bdbf Make Repository.getRepositoryData an Async API (#49299)
-- [ ] 0260c6f55c4 ThreadPool and ThreadContext are not closeable (#43249)
+- [x] 0260c6f55c4 ThreadPool and ThreadContext are not closeable (#43249)
 - [x] 5aa5d7b54b9 Ignore Lucene index in peer recovery if translog corrupted (#49114)
 - [s] 0f6ffc20a53 Refactor percolator's QueryAnalyzer to use QueryVisitors (#49238)
 - [x] c1c7fa5d9c8 Remove type field from internal PutMappingRequest (#48793)
