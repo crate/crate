@@ -49,6 +49,7 @@ import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexCommit;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
@@ -2698,6 +2699,12 @@ public class InternalEngine extends Engine {
         public long softUpdateDocuments(Term term, Iterable<? extends Iterable<? extends IndexableField>> docs, Field... softDeletes) throws IOException {
             assert softDeleteEnabled : "Call #softUpdateDocuments but soft-deletes is disabled";
             return super.softUpdateDocuments(term, docs, softDeletes);
+        }
+
+        @Override
+        public long tryDeleteDocument(IndexReader readerIn, int docID) {
+            assert false : "#tryDeleteDocument is not supported. See Lucene#DirectoryReaderWithAllLiveDocs";
+            throw new UnsupportedOperationException();
         }
     }
 
