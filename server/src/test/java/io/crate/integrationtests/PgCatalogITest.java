@@ -84,7 +84,7 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
     @Test
     public void testPgIndexTable() {
         execute("select count(*) from pg_catalog.pg_index");
-        assertThat(printedTable(response.rows()), is("20\n"));
+        assertThat(printedTable(response.rows()), is("21\n"));
     }
 
     @Test

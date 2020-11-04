@@ -111,11 +111,12 @@ number of replicas.
     | sys                | repositories            | BASE TABLE |             NULL | NULL               |
     | sys                | segments                | BASE TABLE |             NULL | NULL               |
     | sys                | shards                  | BASE TABLE |             NULL | NULL               |
+    | sys                | snapshot_restore        | BASE TABLE |             NULL | NULL               |
     | sys                | snapshots               | BASE TABLE |             NULL | NULL               |
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 48 rows in set (... sec)
+    SELECT 49 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
