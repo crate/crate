@@ -37,19 +37,10 @@ import org.apache.lucene.index.IndexFormatTooOldException;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SegmentReader;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.ScorerSupplier;
-import org.apache.lucene.search.TwoPhaseIterator;
-import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
@@ -226,29 +217,6 @@ public class Lucene {
         }.run();
     }
 
-    /**
-     * Check whether there is one or more documents matching the provided query.
-     */
-    public static boolean exists(IndexSearcher searcher, Query query) throws IOException {
-        final Weight weight = searcher.createWeight(searcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
-        // the scorer API should be more efficient at stopping after the first
-        // match than the bulk scorer API
-        for (LeafReaderContext context : searcher.getIndexReader().leaves()) {
-            final Scorer scorer = weight.scorer(context);
-            if (scorer == null) {
-                continue;
-            }
-            final Bits liveDocs = context.reader().getLiveDocs();
-            final DocIdSetIterator iterator = scorer.iterator();
-            for (int doc = iterator.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = iterator.nextDoc()) {
-                if (liveDocs == null || liveDocs.get(doc)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     private Lucene() {
 
     }
@@ -366,71 +334,6 @@ public class Lucene {
         public void delete() {
             throw new UnsupportedOperationException("This IndexCommit does not support deletions");
         }
-    }
-
-    /**
-     * Given a {@link ScorerSupplier}, return a {@link Bits} instance that will match
-     * all documents contained in the set. Note that the returned {@link Bits}
-     * instance MUST be consumed in order.
-     */
-    public static Bits asSequentialAccessBits(final int maxDoc, @Nullable ScorerSupplier scorerSupplier) throws IOException {
-        if (scorerSupplier == null) {
-            return new Bits.MatchNoBits(maxDoc);
-        }
-        // Since we want bits, we need random-access
-        final Scorer scorer = scorerSupplier.get(Long.MAX_VALUE); // this never returns null
-        final TwoPhaseIterator twoPhase = scorer.twoPhaseIterator();
-        final DocIdSetIterator iterator;
-        if (twoPhase == null) {
-            iterator = scorer.iterator();
-        } else {
-            iterator = twoPhase.approximation();
-        }
-
-        return new Bits() {
-
-            int previous = -1;
-            boolean previousMatched = false;
-
-            @Override
-            public boolean get(int index) {
-                if (index < 0 || index >= maxDoc) {
-                    throw new IndexOutOfBoundsException(index + " is out of bounds: [" + 0 + "-" + maxDoc + "[");
-                }
-                if (index < previous) {
-                    throw new IllegalArgumentException("This Bits instance can only be consumed in order. "
-                            + "Got called on [" + index + "] while previously called on [" + previous + "]");
-                }
-                if (index == previous) {
-                    // we cache whether it matched because it is illegal to call
-                    // twoPhase.matches() twice
-                    return previousMatched;
-                }
-                previous = index;
-
-                int doc = iterator.docID();
-                if (doc < index) {
-                    try {
-                        doc = iterator.advance(index);
-                    } catch (IOException e) {
-                        throw new IllegalStateException("Cannot advance iterator", e);
-                    }
-                }
-                if (index == doc) {
-                    try {
-                        return previousMatched = twoPhase == null || twoPhase.matches();
-                    } catch (IOException e) {
-                        throw new IllegalStateException("Cannot validate match", e);
-                    }
-                }
-                return previousMatched = false;
-            }
-
-            @Override
-            public int length() {
-                return maxDoc;
-            }
-        };
     }
 
     /**
