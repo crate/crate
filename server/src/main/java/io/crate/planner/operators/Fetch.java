@@ -142,7 +142,7 @@ public final class Fetch extends ForwardingLogicalPlan {
             Symbol key = entry.getKey();
             Symbol value = entry.getValue();
             if (source.outputs().contains(key)) {
-                boundOutputs.add(key);
+                boundOutputs.add(paramBinder.apply(key));
             } else {
                 boundOutputs.add(paramBinder.apply(value));
             }
