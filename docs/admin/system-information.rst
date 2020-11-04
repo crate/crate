@@ -1980,6 +1980,55 @@ partition. The mapping follows the following pattern:
     cr> DROP REPOSITORY "my_repo";
     DROP OK, 1 row affected (... sec)
 
+
+.. _sys-snapshot-restore:
+
+Snapshot Restore
+================
+
+The ``sys.snapshot_restore`` table contains information about the current
+state of snapshot restore operations.
+
+.. list-table:: pg_stats schema
+    :header-rows: 1
+
+    * - Name
+      - Description
+      - Type
+    * - ``id``
+      - The ``UUID`` of the restore snapshot operation.
+      - ``TEXT``
+    * - ``repository``
+      - The name of the repository that contains the snapshot.
+      - ``TEXT``
+    * - ``snapshot``
+      - The name of the snapshot.
+      - ``TEXT``
+    * - ``state``
+      - The current state of the snapshot restore operations. Possible states
+        are: ``INIT``, ``STARTED``, ``SUCCESS``, and ``FAILURE``.
+      - ``TEXT``
+    * - ``shards['table_schema']``
+      - The schema name of the table of the shard.
+      - ``TEXT``
+    * - ``shards['table_name']``
+      - The table name of the shard.
+      - ``TEXT``
+    * - ``shards['partition_ident']``
+      - The identifier of the partition of the shard. ``NULL`` if the is not
+        partitioned.
+      - ``TEXT``
+    * - ``shards['shard_id']``
+      - The ID of the shard.
+      - ``INTEGER``
+    * - ``shards['state']``
+      - The restore state of the shard. Possible states are: ``INIT``,
+        ``STARTED``, ``SUCCESS``, and ``FAILURE``.
+      - ``TEXT``
+
+To get more information about the restoring snapshots and shards one can join
+the ``sys.snapshot_restore`` with ``sys.shards`` or ``sys.snapshots`` table.
+
 .. _sys-summits:
 
 Summits

@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Added the :ref:`sys.snapshot_restore <sys-snapshot-restore>` table to track the
+  progress of the :ref:`snapshot restore <snapshot-restore>` operations.
+
 - Added support for using the optimized primary key lookup plan if additional
   filters are combined via ``AND`` operators.
 

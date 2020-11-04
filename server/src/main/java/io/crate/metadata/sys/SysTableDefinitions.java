@@ -34,6 +34,7 @@ import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
+import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -108,6 +109,12 @@ public class SysTableDefinitions {
         tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(sysSnapshots.currentSnapshots()),
             SysSnapshotsTableInfo.create().expressions(),
+            true));
+        tableDefinitions.put(SysSnapshotRestoreTableInfo.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(
+                    clusterService.state().custom(RestoreInProgress.TYPE))
+            ),
+            SysSnapshotRestoreTableInfo.create().expressions(),
             true));
 
         tableDefinitions.put(SysAllocationsTableInfo.IDENT, new StaticTableDefinition<>(
