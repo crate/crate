@@ -26,6 +26,7 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.store.Directory;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.function.Consumer;
@@ -34,10 +35,12 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 
 public class ShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
+
+    @Test
     public void testDiagnostics() throws IOException {
         try (Directory dir = newDirectory()) {
             IndexWriterConfig iwc = newIndexWriterConfig();
-            MergePolicy mp = new ShuffleForcedMergePolicy(newLogMergePolicy());
+            MergePolicy mp = new ShuffleForcedMergePolicy(newTieredMergePolicy());
             iwc.setMergePolicy(mp);
             boolean sorted = random().nextBoolean();
             if (sorted) {
