@@ -1602,4 +1602,15 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                "bcd\n" +
                "bcd\n"));
     }
+
+    @Test
+    public void test_insert_from_query_with_limit_and_parameter_placeholders() throws Exception {
+        execute("create table target (catalog_id string, user_id string, user_order int)");
+        execute("create table source (id string)");
+        execute(
+            "INSERT INTO target (catalog_id, user_id, user_order) " +
+            "SELECT id, ?, 0 from source LIMIT ?",
+            new Object[] { 7, 12 }
+        );
+    }
 }
