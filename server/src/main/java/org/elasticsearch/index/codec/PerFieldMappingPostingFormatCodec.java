@@ -22,8 +22,8 @@ package org.elasticsearch.index.codec;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.PostingsFormat;
-import org.apache.lucene.codecs.lucene50.Lucene50StoredFieldsFormat;
-import org.apache.lucene.codecs.lucene86.Lucene86Codec;
+import org.apache.lucene.codecs.lucene87.Lucene87StoredFieldsFormat;
+import org.apache.lucene.codecs.lucene87.Lucene87Codec;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
@@ -37,7 +37,7 @@ import org.elasticsearch.index.mapper.MapperService;
  * configured for a specific field the default postings format is used.
  */
 // LUCENE UPGRADE: make sure to move to a new codec depending on the lucene version
-public class PerFieldMappingPostingFormatCodec extends Lucene86Codec {
+public class PerFieldMappingPostingFormatCodec extends Lucene87Codec {
     private final Logger logger;
     private final MapperService mapperService;
 
@@ -45,7 +45,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene86Codec {
         assert Codec.forName(Lucene.LATEST_CODEC).getClass().isAssignableFrom(PerFieldMappingPostingFormatCodec.class) : "PerFieldMappingPostingFormatCodec must subclass the latest lucene codec: " + Lucene.LATEST_CODEC;
     }
 
-    public PerFieldMappingPostingFormatCodec(Lucene50StoredFieldsFormat.Mode compressionMode, MapperService mapperService, Logger logger) {
+    public PerFieldMappingPostingFormatCodec(Lucene87StoredFieldsFormat.Mode compressionMode, MapperService mapperService, Logger logger) {
         super(compressionMode);
         this.mapperService = mapperService;
         this.logger = logger;
