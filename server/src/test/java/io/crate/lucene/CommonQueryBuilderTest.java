@@ -515,4 +515,16 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("{xs=[1, 1]} = ANY(o_array)");
         assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
+
+    @Test
+    public void test_is_null_on_ignored_results_in_function_query() throws Exception {
+        Query query = convert("obj_ignored is null");
+        assertThat(query.toString(), is("(_doc['obj_ignored'] IS NULL)"));
+    }
+
+    @Test
+    public void test_is_not_null_on_ignored_results_in_function_query() throws Exception {
+        Query query = convert("obj_ignored is not null");
+        assertThat(query.toString(), is("(NOT (_doc['obj_ignored'] IS NULL))"));
+    }
 }

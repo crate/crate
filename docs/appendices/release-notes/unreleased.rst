@@ -58,6 +58,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused ``IS NULL`` and ``IS NOT NULL`` operators on
+  columns of type ``OBJECT`` with the column policy ``IGNORED`` to match
+  incorrect records.
+
 - Fixed an issue that led to an error like ``UnsupportedOperationException:
   Can't handle Symbol [ParameterSymbol: $1]`` if using ``INSERT INTO`` with a
   query that contains parameter place holders and a ``LIMIT`` clause.

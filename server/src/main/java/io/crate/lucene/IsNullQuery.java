@@ -26,6 +26,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.Reference;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -61,6 +62,10 @@ class IsNullQuery implements FunctionToQuery {
                 return Queries.not(new ConstantScoreQuery(
                     new TermQuery(new Term(FieldNamesFieldMapper.NAME, columnName))));
             }
+        }
+        if (reference.columnPolicy() == ColumnPolicy.IGNORED) {
+            // There won't be any indexed field names for the children, need to use expensive query fallback
+            return null;
         }
         return Queries.not(ExistsQueryBuilder.newFilter(context.queryShardContext, columnName));
     }
