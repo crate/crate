@@ -105,14 +105,12 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
     public void testShrinkShardsOfPartition() {
         execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
                 "partitioned by(date) clustered into 3 shards");
-        ensureYellow();
-
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{
                 1, "Don't panic", 1395874800000L,
                 2, "Now panic", 1395961200000L}
         );
-
+        ensureYellow();
         execute("refresh table quotes");
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
