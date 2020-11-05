@@ -24,3 +24,22 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: :server:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}
+
+  linkcheck:
+    name: Sphinx linkcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -r blackbox/requirements.txt
+
+      - name: Run linkcheck
+        run: |
+          sphinx-build -n -W -c docs/ -b linkcheck -E docs/ docs/out/html
