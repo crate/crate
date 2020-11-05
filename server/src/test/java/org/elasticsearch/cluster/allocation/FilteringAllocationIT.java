@@ -218,8 +218,10 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         ensureGreen(tableName);
 
         logger.info("--> verify that there are shards allocated on both nodes now");
-        clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
-        assertThat(clusterState.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn(), equalTo(2));
+        assertBusy(() -> {
+            final var state = client().admin().cluster().prepareState().execute().actionGet().getState();
+            assertThat(state.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn(), equalTo(2));
+        }, 20, TimeUnit.SECONDS);
     }
 
     public void testInvalidIPFilterClusterSettings() {
