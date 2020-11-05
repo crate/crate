@@ -31,6 +31,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -127,10 +128,12 @@ final class NotQuery implements FunctionToQuery {
         if (arg instanceof Function && ((Function) arg).name().equals(IsNullPredicate.NAME)) {
             Function innerFunction = (Function) arg;
             if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference) {
-                return ExistsQueryBuilder.newFilter(
-                    context.queryShardContext,
-                    ((Reference) innerFunction.arguments().get(0)).column().fqn()
-                );
+                Reference ref = (Reference) innerFunction.arguments().get(0);
+                // Ignored objects have no field names in the index, need function filter fallback
+                if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                    return null;
+                }
+                return ExistsQueryBuilder.newFilter(context.queryShardContext, ref.column().fqn());
             }
         }
 

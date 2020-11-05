@@ -58,6 +58,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
             "     x integer," +
             "     y integer" +
             " )," +
+            " obj_ignored object (ignored), " +
             " d_array array(double)," +
             " y_array array(long)," +
             " o_array array(object as (xs array(integer)))," +
