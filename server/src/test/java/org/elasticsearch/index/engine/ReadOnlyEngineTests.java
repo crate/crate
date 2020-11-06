@@ -220,7 +220,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 null,
                 null,
                 globalCheckpoint::get);
-            store.createEmpty();
+            store.createEmpty(Version.CURRENT.luceneVersion);
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(
                 config, null, new TranslogStats(0, 0, 0, 0), true, Function.identity())
             ) {
@@ -252,7 +252,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 null,
                 globalCheckpoint::get
             );
-            store.createEmpty();
+            store.createEmpty(Version.CURRENT.luceneVersion);
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(
                 config,
                 null,
