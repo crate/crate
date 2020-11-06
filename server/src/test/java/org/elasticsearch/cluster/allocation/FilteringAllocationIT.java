@@ -49,6 +49,8 @@ import static org.hamcrest.Matchers.is;
 @ClusterScope(scope= Scope.TEST, numDataNodes=0)
 public class FilteringAllocationIT extends SQLTransportIntegrationTest {
 
+    private final static int MAX_WAITING_TIME_IN_SECS = 60;
+
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         var plugins = new ArrayList<>(super.nodePlugins());
@@ -98,7 +100,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
                     }
                 }
             }
-        }, 20, TimeUnit.SECONDS);
+        }, MAX_WAITING_TIME_IN_SECS, TimeUnit.SECONDS);
 
         if (closed) {
             execute("alter table test open");
@@ -145,7 +147,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
                     }
                 }
             }
-        }, 20, TimeUnit.SECONDS);
+        }, MAX_WAITING_TIME_IN_SECS, TimeUnit.SECONDS);
     }
 
     public void testDisablingAllocationFiltering() throws Exception {
@@ -210,7 +212,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
                     assertThat(state.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_1));
                 }
             }
-        }, 20, TimeUnit.SECONDS);
+        }, MAX_WAITING_TIME_IN_SECS, TimeUnit.SECONDS);
 
         logger.info("--> disable allocation filtering ");
         execute(" alter table test reset( \"routing.allocation.exclude._name\")");
@@ -221,7 +223,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         assertBusy(() -> {
             final var state = client().admin().cluster().prepareState().execute().actionGet().getState();
             assertThat(state.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn(), equalTo(2));
-        }, 20, TimeUnit.SECONDS);
+        }, MAX_WAITING_TIME_IN_SECS, TimeUnit.SECONDS);
     }
 
     public void testInvalidIPFilterClusterSettings() {
