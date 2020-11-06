@@ -35,6 +35,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
 import org.elasticsearch.test.ESIntegTestCase.Scope;
 import org.elasticsearch.test.InternalSettingsPlugin;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -109,6 +111,8 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         assertThat(100L, is(response.rows()[0][0]));
     }
 
+    @Test
+    @Ignore("https://github.com/crate/crate/issues/10755")
     public void testAutoExpandReplicasToFilteredNodes() throws Exception {
         logger.info("--> starting 2 nodes");
         List<String> nodesIds = internalCluster().startNodes(2);
