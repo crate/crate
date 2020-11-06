@@ -130,6 +130,7 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -184,6 +185,7 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.IndexSettingsModule;
+import org.elasticsearch.test.VersionUtils;
 import org.hamcrest.Matcher;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.MatcherAssert;
@@ -2630,7 +2632,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             // create
             {
-                store.createEmpty();
+                store.createEmpty(Version.CURRENT.luceneVersion);
                 final String translogUUID =
                     Translog.createEmptyTranslog(config.getTranslogConfig().getTranslogPath(),
                                                  SequenceNumbers.NO_OPS_PERFORMED, shardId, primaryTerm.get());
@@ -2785,7 +2787,7 @@ public class InternalEngineTests extends EngineTestCase {
             final Path translogPath = createTempDir();
             final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
             final LongSupplier globalCheckpointSupplier = globalCheckpoint::get;
-            store.createEmpty();
+            store.createEmpty(Version.CURRENT.luceneVersion);
             final String translogUUID = Translog.createEmptyTranslog(translogPath, globalCheckpoint.get(), shardId, primaryTerm.get());
             store.associateIndexWithNewTranslog(translogUUID);
             try (InternalEngine engine =
@@ -4634,7 +4636,7 @@ public class InternalEngineTests extends EngineTestCase {
         final Path translogPath = createTempDir();
         store = createStore();
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
-        store.createEmpty();
+        store.createEmpty(Version.CURRENT.luceneVersion);
         final String translogUUID = Translog.createEmptyTranslog(translogPath, globalCheckpoint.get(), shardId, primaryTerm.get());
         store.associateIndexWithNewTranslog(translogUUID);
 
@@ -6008,6 +6010,28 @@ public class InternalEngineTests extends EngineTestCase {
                 refreshStarted.await();
                 engine.close();
                 engineClosed.countDown();
+            }
+        }
+    }
+
+    @Test
+    public void testStoreHonorsLuceneVersion() throws IOException {
+        for (Version createdVersion : Arrays.asList(
+                Version.CURRENT, VersionUtils.getPreviousMinorVersion(), VersionUtils.getFirstVersion())) {
+            Settings settings = Settings.builder()
+                    .put(indexSettings())
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, createdVersion).build();
+            IndexSettings indexSettings = IndexSettingsModule.newIndexSettings("test", settings);
+            try (Store store = createStore();
+                    InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
+                ParsedDocument doc = testParsedDocument("1", null, new Document(),
+                        new BytesArray("{}".getBytes("UTF-8")), null);
+                engine.index(appendOnlyPrimary(doc, false, 1));
+                engine.refresh("test");
+                try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
+                    LeafReader leafReader = getOnlyLeafReader(searcher.getIndexReader());
+                    assertEquals(createdVersion.luceneVersion.major, leafReader.getMetaData().getCreatedVersionMajor());
+                }
             }
         }
     }
