@@ -21,6 +21,7 @@
 
 package io.crate.analyze.validator;
 
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
@@ -72,6 +73,11 @@ public class GroupBySymbolValidator {
         @Override
         protected Void visitSymbol(Symbol symbol, String errorMsgTemplate) {
             return null;
+        }
+
+        @Override
+        public Void visitAlias(AliasSymbol aliasSymbol, String errorMsgTemplate) {
+            return aliasSymbol.symbol().accept(this, errorMsgTemplate);
         }
     }
 }

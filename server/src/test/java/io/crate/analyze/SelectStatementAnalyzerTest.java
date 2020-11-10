@@ -21,38 +21,6 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.RelationMatchers.isDocTable;
-import static io.crate.testing.SymbolMatchers.isAlias;
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.hamcrest.Matchers;
-import org.hamcrest.core.IsInstanceOf;
-import org.junit.Test;
-
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
@@ -102,6 +70,38 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimeTZ;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.hamcrest.Matchers;
+import org.hamcrest.core.IsInstanceOf;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.RelationMatchers.isDocTable;
+import static io.crate.testing.SymbolMatchers.isAlias;
+import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 @SuppressWarnings("ConstantConditions")
 public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -2360,6 +2360,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         expectedException.expectMessage("Table functions are not allowed in GROUP BY");
         executor.analyze("select count(*) from t1 group by unnest([1])");
+    }
+
+    @Test
+    public void test_aliased_table_function_in_group_by_is_prohibited() throws Exception {
+        var executor = SQLExecutor.builder(clusterService).build();
+        assertThrows(
+            () -> executor.analyze("select unnest([1]) as a from sys.cluster group by 1"),
+            IllegalArgumentException.class,
+            "Table functions are not allowed in GROUP BY"
+        );
     }
 
     @Test
