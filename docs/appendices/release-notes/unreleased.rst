@@ -66,6 +66,10 @@ Changes
 Fixes
 =====
 
+- Fixed validation of ``GROUP BY`` expressions if an alias is used. The
+  validation was by passed and resulted in an execution exception instead of
+  an user friendly validation exception.
+
 - Fixed an issue that caused ``IS NULL`` and ``IS NOT NULL`` operators on
   columns of type ``OBJECT`` with the column policy ``IGNORED`` to match
   incorrect records.
