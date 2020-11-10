@@ -50,6 +50,11 @@ public final class CopyStatementSettings {
         Validators.stringValidator("format", "json", "csv"),
         Setting.Property.Dynamic);
 
+    public static final Setting<Boolean> EMPTY_STRING_AS_NULL = Setting.boolSetting(
+        "empty_string_as_null",
+        false,
+        Setting.Property.Dynamic);
+
     public static final Map<String, Setting<?>> OUTPUT_SETTINGS = Map.of(
         COMPRESSION_SETTING.getKey(), COMPRESSION_SETTING,
         OUTPUT_FORMAT_SETTING.getKey(), OUTPUT_FORMAT_SETTING

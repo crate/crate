@@ -53,6 +53,10 @@ None
 Changes
 =======
 
+- Added the ``empty_string_as_null`` option for :ref:`copy_from` CSV files.
+  If the option is enabled, all column's values represented by an empty string,
+  including a quoted empty string, are set to ``NULL``.
+
 - Added the :ref:`sys.snapshot_restore <sys-snapshot-restore>` table to track the
   progress of the :ref:`snapshot restore <snapshot-restore>` operations.
 

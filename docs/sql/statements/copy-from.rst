@@ -323,6 +323,17 @@ Default: false
 ``COPY FROM`` by default won't overwrite rows if a document with the same
 primary key already exists. Set to true to overwrite duplicate rows.
 
+``empty_string_as_null``
+''''''''''''''''''''''''
+
+If set to ``true`` the ``empty_string_as_null`` option enables conversion
+of un-/quoted empty strings into ``NULL``. The default value is ``false``
+meaning that no action will be taken on empty strings during the COPY FROM
+execution.
+
+The option is only supported when using the ``CSV`` format,
+otherwise, it will be ignored.
+
 ``format``
 ''''''''''
 

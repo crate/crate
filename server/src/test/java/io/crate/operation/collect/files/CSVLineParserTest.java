@@ -1,11 +1,10 @@
 package io.crate.operation.collect.files;
 
+import io.crate.analyze.CopyFromParserProperties;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -17,8 +16,8 @@ public class CSVLineParserTest {
     private byte[] result;
 
     @Before
-    public void setup(){
-        csvParser = new CSVLineParser();
+    public void setup() {
+        csvParser = new CSVLineParser(CopyFromParserProperties.DEFAULT);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -92,6 +91,19 @@ public class CSVLineParserTest {
         result = csvParser.parse("GER,Germany\n");
 
         assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Coun, try\":\"Germany\"}"));
+    }
+
+    @Test
+    public void test_quoted_and_unquoted_empty_string_converted_to_null_empty_string_as_null_is_set() throws IOException {
+        String header = "Code,Country,City\n";
+        csvParser = new CSVLineParser(new CopyFromParserProperties(true));
+        csvParser.parseHeader(header);
+        result = csvParser.parse("GER,,\"\"\n");
+
+        assertThat(
+            new String(result, StandardCharsets.UTF_8),
+            is("{\"Code\":\"GER\",\"Country\":null,\"City\":null}")
+        );
     }
 
     @Test

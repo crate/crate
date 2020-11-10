@@ -1,6 +1,6 @@
 package io.crate.execution.engine.reader;
 
-import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
@@ -103,11 +103,12 @@ public class CsvReaderBenchmark {
             inputs,
             ctx.expressions(),
             null,
-            ImmutableMap.of(
+            Map.of(
                 LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
             false,
             1,
             0,
+            CopyFromParserProperties.DEFAULT,
             CSV);
 
         while (batchIterator.moveNext()) {

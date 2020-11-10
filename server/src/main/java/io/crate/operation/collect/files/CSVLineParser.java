@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
+import io.crate.analyze.CopyFromParserProperties;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
@@ -37,10 +38,16 @@ import java.util.HashSet;
 public class CSVLineParser {
 
     private final ArrayList<String> keyList = new ArrayList<>();
-    private final ObjectReader csvReader = new CsvMapper()
-        .enable(CsvParser.Feature.TRIM_SPACES)
-        .readerWithTypedSchemaFor(String.class);
     private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    private final ObjectReader csvReader;
+
+    public CSVLineParser(CopyFromParserProperties properties) {
+        var mapper = new CsvMapper().enable(CsvParser.Feature.TRIM_SPACES);
+        if (properties.emptyStringAsNull()) {
+            mapper.enable(CsvParser.Feature.EMPTY_STRING_AS_NULL);
+        }
+        csvReader = mapper.readerWithTypedSchemaFor(String.class);
+    }
 
     public void parseHeader(String header) throws IOException {
         MappingIterator<String> iterator = csvReader.readValues(header.getBytes(StandardCharsets.UTF_8));
@@ -67,5 +74,4 @@ public class CSVLineParser {
         jsonBuilder.endObject().close();
         return out.toByteArray();
     }
-
 }

@@ -1,5 +1,6 @@
 package io.crate.execution.engine.collect.files;
 
+import io.crate.analyze.CopyFromParserProperties;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -12,9 +13,9 @@ import java.net.URISyntaxException;
 
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
 
 public class LineProcessorTest {
 
@@ -24,7 +25,7 @@ public class LineProcessorTest {
 
     @Before
     public void setup() {
-        subjectUnderTest  = new LineProcessor();
+        subjectUnderTest  = new LineProcessor(CopyFromParserProperties.DEFAULT);
     }
 
     @Test
@@ -35,7 +36,7 @@ public class LineProcessorTest {
 
         subjectUnderTest.readFirstLine(uri, JSON, bufferedReader);
 
-        assertThat(bufferedReader.readLine(), is(nullValue()));;
+        assertThat(bufferedReader.readLine(), is(nullValue()));
     }
 
     @Test
@@ -46,7 +47,7 @@ public class LineProcessorTest {
 
         subjectUnderTest.readFirstLine(uri, CSV, bufferedReader);
 
-        assertThat(bufferedReader.readLine(), is(nullValue()));;
+        assertThat(bufferedReader.readLine(), is(nullValue()));
     }
 
     @Test

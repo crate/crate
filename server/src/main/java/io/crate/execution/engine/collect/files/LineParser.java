@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.operation.collect.files.CSVLineParser;
 
@@ -31,18 +32,25 @@ import java.nio.charset.StandardCharsets;
 
 public class LineParser {
 
+    private final CopyFromParserProperties parserProperties;
     private CSVLineParser csvLineParser;
 
     private InputType inputType;
+
+    public LineParser(CopyFromParserProperties parserProperties) {
+        this.parserProperties = parserProperties;
+    }
 
     private enum InputType {
         CSV,
         JSON
     }
 
-    public void readFirstLine(URI currentUri, FileUriCollectPhase.InputFormat inputFormat, BufferedReader currentReader) throws IOException {
+    public void readFirstLine(URI currentUri,
+                              FileUriCollectPhase.InputFormat inputFormat,
+                              BufferedReader currentReader) throws IOException {
         if (isInputCsv(inputFormat, currentUri)) {
-            csvLineParser = new CSVLineParser();
+            csvLineParser = new CSVLineParser(parserProperties);
             csvLineParser.parseHeader(currentReader.readLine());
             inputType = InputType.CSV;
         } else {
