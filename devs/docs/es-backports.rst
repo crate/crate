@@ -353,8 +353,8 @@ should be crossed out as well.
 - [ ] c2deb287f13 Add a cluster setting to disallow loading fielddata on _id field (#49166)
 - [ ] 563b2736a9f Annotated text type should extend TextFieldType (#49555)
 - [ ] 7069045cd42 Add the simple strategy to cluster settings (#49414)
-- [ ] 725dda37ea5 Flush instead of synced-flush inactive shards (#49126)
-- [ ] b8ce07b4cc5 Pre-sort shards based on the max/min value of the primary sort field (#49092)
+- [d] 725dda37ea5 Flush instead of synced-flush inactive shards (#49126) -- CrateDB 5.0
+- [d] b8ce07b4cc5 Pre-sort shards based on the max/min value of the primary sort field (#49092)
 - [x] 7754e626ce7 Use retention lease in peer recovery of closed indices (#48430)
 - [x] 4ac79f900dd Verify translog checksum before UUID check (#49394)
 - [x] 8e2a23aa0aa make dim files mmapped (#49272)
