@@ -355,7 +355,7 @@ should be crossed out as well.
 - [ ] 7069045cd42 Add the simple strategy to cluster settings (#49414)
 - [ ] 725dda37ea5 Flush instead of synced-flush inactive shards (#49126)
 - [ ] b8ce07b4cc5 Pre-sort shards based on the max/min value of the primary sort field (#49092)
-- [ ] 7754e626ce7 Use retention lease in peer recovery of closed indices (#48430)
+- [x] 7754e626ce7 Use retention lease in peer recovery of closed indices (#48430)
 - [x] 4ac79f900dd Verify translog checksum before UUID check (#49394)
 - [x] 8e2a23aa0aa make dim files mmapped (#49272)
 - [s] 4f4140431b8 Allow simple connection strategy to be configured (#49066)

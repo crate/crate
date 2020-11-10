@@ -368,7 +368,7 @@ public class DeterministicTaskQueue {
 
             @Override
             public Runnable preserveContext(Runnable command) {
-                throw new UnsupportedOperationException();
+                return command;
             }
 
             @Override
