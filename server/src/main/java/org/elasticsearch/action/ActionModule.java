@@ -90,8 +90,6 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.seqno.GlobalCheckpointSyncAction;
-import org.elasticsearch.index.seqno.RetentionLeaseBackgroundSyncAction;
-import org.elasticsearch.index.seqno.RetentionLeaseSyncAction;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.transport.TransportRequest;
@@ -167,8 +165,6 @@ public class ActionModule extends AbstractModule {
 
         // internal actions
         actions.register(GlobalCheckpointSyncAction.TYPE, GlobalCheckpointSyncAction.class);
-        actions.register(RetentionLeaseBackgroundSyncAction.TYPE, RetentionLeaseBackgroundSyncAction.class);
-        actions.register(RetentionLeaseSyncAction.TYPE, RetentionLeaseSyncAction.class);
 
         return unmodifiableMap(actions.getRegistry());
     }
