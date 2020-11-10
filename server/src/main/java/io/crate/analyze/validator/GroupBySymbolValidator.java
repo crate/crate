@@ -35,23 +35,26 @@ public class GroupBySymbolValidator {
     private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol) throws IllegalArgumentException, UnsupportedOperationException {
-        symbol.accept(INNER_VALIDATOR, "Cannot GROUP BY '%s': invalid data type '%s'");
+        symbol.accept(INNER_VALIDATOR, false);
     }
 
-    private static class InnerValidator extends SymbolVisitor<String, Void> {
+    private static class InnerValidator extends SymbolVisitor<Boolean, Void> {
 
         @Override
-        public Void visitFunction(Function function, String errorMsgTemplate) {
+        public Void visitFunction(Function function, Boolean insideScalar) {
             switch (function.type()) {
                 case SCALAR:
                     for (Symbol argument : function.arguments()) {
-                        argument.accept(this, errorMsgTemplate);
+                        argument.accept(this, true);
                     }
                     break;
                 case AGGREGATE:
                     throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
                 case TABLE:
-                    throw new IllegalArgumentException("Table functions are not allowed in GROUP BY");
+                    if (insideScalar == false) {
+                        throw new IllegalArgumentException("Table functions are not allowed in GROUP BY");
+                    }
+                    break;
                 default:
                     throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.type()));
@@ -60,24 +63,24 @@ public class GroupBySymbolValidator {
         }
 
         @Override
-        public Void visitWindowFunction(WindowFunction symbol, String context) {
+        public Void visitWindowFunction(WindowFunction symbol, Boolean insideScalar) {
             throw new IllegalArgumentException("Window functions are not allowed in GROUP BY");
         }
 
         @Override
-        public Void visitMatchPredicate(MatchPredicate matchPredicate, String errorMsgTemplate) {
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Boolean insideScalar) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "%s predicate cannot be used in a GROUP BY clause", io.crate.expression.predicate.MatchPredicate.NAME));
         }
 
         @Override
-        protected Void visitSymbol(Symbol symbol, String errorMsgTemplate) {
+        protected Void visitSymbol(Symbol symbol, Boolean insideScalar) {
             return null;
         }
 
         @Override
-        public Void visitAlias(AliasSymbol aliasSymbol, String errorMsgTemplate) {
-            return aliasSymbol.symbol().accept(this, errorMsgTemplate);
+        public Void visitAlias(AliasSymbol aliasSymbol, Boolean insideScalar) {
+            return aliasSymbol.symbol().accept(this, insideScalar);
         }
     }
 }
