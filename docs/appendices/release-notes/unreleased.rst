@@ -58,6 +58,11 @@ None
 Fixes
 =====
 
+- Fixed a regression introduced in CrateDB >= ``4.3`` which prevents using
+  ``regexp_matches()`` wrapped inside a subscript expression from being used
+  as a ``GROUP BY`` expression.
+  This fixed the broken AdminUI->Montoring tab as it uses such an statement.
+
 - Fixed validation of ``GROUP BY`` expressions if an alias is used. The
   validation was by passed and resulted in an execution exception instead of
   an user friendly validation exception.

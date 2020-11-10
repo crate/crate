@@ -2614,4 +2614,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Function serializedTo41 = new Function(in);
         assertThat(serializedTo41.info().ident().argumentTypes().get(1), is(DataTypes.STRING));
     }
+
+    @Test
+    public void test_table_function_wrapped_inside_scalar_can_be_used_inside_group_by() {
+        var executor = SQLExecutor.builder(clusterService)
+            .build();
+        AnalyzedRelation rel = executor.analyze("select regexp_matches('foo', '.*')[1] from sys.cluster group by 1");
+        assertThat(rel.outputs().get(0).valueType().getName(), is("text"));
+    }
 }

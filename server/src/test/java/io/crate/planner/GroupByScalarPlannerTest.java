@@ -19,6 +19,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
@@ -109,5 +110,15 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mergePhase.projections().get(1), instanceOf(EvalProjection.class));
 
         assertThat(mergePhase.projections().get(1).outputs(), contains(isFunction("abs")));
+    }
+
+    @Test
+    public void test_group_by_scalar_containing_a_table_function_results_in_project_set() {
+        var logicalPlan = e.logicalPlan("SELECT regexp_matches(name, '.*')[1] FROM users GROUP BY 1");
+        var expectedPlan =
+            "GroupHashAggregate[regexp_matches(name, '.*')[1]]\n" +
+            "  └ ProjectSet[regexp_matches(name, '.*'), name]\n" +
+            "    └ Collect[doc.users | [name] | true]";
+        assertThat(logicalPlan, isPlan(expectedPlan));
     }
 }
