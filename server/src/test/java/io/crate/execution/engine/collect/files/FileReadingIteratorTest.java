@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.collect.files;
 
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -175,6 +176,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             false,
             1,
             0,
+            CopyFromParserProperties.DEFAULT,
             format);
     }
 }

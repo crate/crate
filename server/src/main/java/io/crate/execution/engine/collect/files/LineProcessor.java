@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat;
 import io.crate.expression.reference.file.LineContext;
 
@@ -31,7 +32,11 @@ import java.net.URI;
 public final class LineProcessor {
 
     private final LineContext lineContext = new LineContext();
-    private final LineParser lineParser = new LineParser();
+    private final LineParser lineParser;
+
+    public LineProcessor(CopyFromParserProperties parserProperties) {
+        lineParser = new LineParser(parserProperties);
+    }
 
     public void startCollect(Iterable<LineCollectorExpression<?>> collectorExpressions) {
         for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {

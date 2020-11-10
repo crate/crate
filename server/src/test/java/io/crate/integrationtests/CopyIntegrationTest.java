@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
@@ -791,5 +792,32 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             assertThat(row[3], nullValue());
             assertThat(((Map<String, Object>) row[4]).keySet(), contains(containsString("Cannot find any URI matching:")));
         }
+    }
+
+    @Test
+    public void test_copy_from_csv_file_with_empty_string_as_null_property() throws Exception {
+        execute(
+            "CREATE TABLE t (id int primary key, name text) " +
+            "CLUSTERED INTO 1 SHARDS ");
+        File file = folder.newFile(UUID.randomUUID().toString());
+
+        List<String> lines = List.of(
+            "id,name",
+            "1, \"foo\"",
+            "2,\"\"",
+            "3,"
+        );
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute(
+            "COPY t FROM ? WITH (format='csv', empty_string_as_null=true)",
+            new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(response.rowCount(), is(3L));
+        refresh();
+
+        execute("SELECT * FROM t ORDER BY id");
+        assertThat(
+            printedTable(response.rows()),
+            is("1| foo\n2| NULL\n3| NULL\n"));
     }
 }

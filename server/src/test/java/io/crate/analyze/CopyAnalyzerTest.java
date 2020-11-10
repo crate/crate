@@ -39,6 +39,7 @@ import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -161,6 +162,19 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         BoundCopyFrom analysis = analyze(
             "COPY users FROM '/some/distant/file.ext' WITH (format='csv')");
         assertThat(analysis.inputFormat(), is(FileUriCollectPhase.InputFormat.CSV));
+    }
+
+    @Test
+    public void test_copy_from_supports_empty_string_as_null_setting_option() {
+        BoundCopyFrom analysis = analyze(
+            "COPY users FROM '/some/distant/file.ext' WITH (format='csv', empty_string_as_null=true)");
+        assertThat(
+            analysis.settings(),
+            is(Settings.builder()
+                   .put("empty_string_as_null", true)
+                   .put("format", "csv")
+                   .build())
+        );
     }
 
     @Test

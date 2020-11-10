@@ -27,6 +27,7 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
@@ -313,6 +314,7 @@ public class FileReadingCollectorTest extends ESTestCase {
             false,
             1,
             0,
+            CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON);
     }
 

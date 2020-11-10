@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
@@ -74,7 +75,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private final Iterable<LineCollectorExpression<?>> collectorExpressions;
 
     private volatile Throwable killed;
-    private FileUriCollectPhase.InputFormat inputFormat;
+    private final CopyFromParserProperties parserProperties;
+    private final FileUriCollectPhase.InputFormat inputFormat;
     private Iterator<Tuple<FileInput, UriWithGlob>> fileInputsIterator = null;
     private Tuple<FileInput, UriWithGlob> currentInput = null;
     private Iterator<URI> currentInputIterator = null;
@@ -92,6 +94,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                 Boolean shared,
                                 int numReaders,
                                 int readerNumber,
+                                CopyFromParserProperties parserProperties,
                                 FileUriCollectPhase.InputFormat inputFormat) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
@@ -101,6 +104,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.readerNumber = readerNumber;
         this.urisWithGlob = getUrisWithGlob(fileUris);
         this.collectorExpressions = collectorExpressions;
+        this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         initCollectorState();
     }
@@ -123,13 +127,23 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  Boolean shared,
                                                  int numReaders,
                                                  int readerNumber,
+                                                 CopyFromParserProperties parserProperties,
                                                  FileUriCollectPhase.InputFormat inputFormat) {
-        return new FileReadingIterator(fileUris, inputs, collectorExpressions,
-            compression, fileInputFactories, shared, numReaders, readerNumber, inputFormat);
+        return new FileReadingIterator(
+            fileUris,
+            inputs,
+            collectorExpressions,
+            compression,
+            fileInputFactories,
+            shared,
+            numReaders,
+            readerNumber,
+            parserProperties,
+            inputFormat);
     }
 
     private void initCollectorState() {
-        lineProcessor = new LineProcessor();
+        lineProcessor = new LineProcessor(parserProperties);
         lineProcessor.startCollect(collectorExpressions);
 
         List<Tuple<FileInput, UriWithGlob>> fileInputs = new ArrayList<>(urisWithGlob.size());

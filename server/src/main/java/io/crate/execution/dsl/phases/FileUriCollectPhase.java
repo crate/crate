@@ -22,10 +22,12 @@
 
 package io.crate.execution.dsl.phases;
 
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.projection.Projection;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -34,6 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class FileUriCollectPhase extends AbstractProjectionsPhase implements CollectPhase {
@@ -41,10 +44,11 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
     private final Collection<String> executionNodes;
     private final Symbol targetUri;
     private final List<Symbol> toCollect;
+    private final CopyFromParserProperties parserProperties;
     private final String compression;
     private final Boolean sharedStorage;
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
-    private InputFormat inputFormat;
+    private final InputFormat inputFormat;
 
     public FileUriCollectPhase(UUID jobId,
                                int phaseId,
@@ -55,6 +59,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                                List<Projection> projections,
                                String compression,
                                Boolean sharedStorage,
+                               CopyFromParserProperties parserProperties,
                                InputFormat inputFormat) {
         super(jobId, phaseId, name, projections);
         this.executionNodes = executionNodes;
@@ -62,6 +67,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         this.toCollect = toCollect;
         this.compression = compression;
         this.sharedStorage = sharedStorage;
+        this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         outputTypes = extractOutputTypes(toCollect, projections);
     }
@@ -103,6 +109,10 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         return inputFormat;
     }
 
+    public CopyFromParserProperties parserProperties() {
+        return parserProperties;
+    }
+
     public FileUriCollectPhase(StreamInput in) throws IOException {
         super(in);
         compression = in.readOptionalString();
@@ -117,6 +127,11 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         this.executionNodes = nodes;
         toCollect = Symbols.listFromStream(in);
         inputFormat = InputFormat.values()[in.readVInt()];
+        if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
+            parserProperties = new CopyFromParserProperties(in);
+        } else {
+            parserProperties = CopyFromParserProperties.DEFAULT;
+        }
     }
 
     @Override
@@ -131,19 +146,9 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         }
         Symbols.toStream(toCollect, out);
         out.writeVInt(inputFormat.ordinal());
-    }
-
-    @Override
-    public String toString() {
-        return "FileUriCollectPhase{" +
-               "name=" + name() +
-               ", targetUri=" + targetUri +
-               ", projections=" + projections +
-               ", outputTypes=" + outputTypes +
-               ", compression=" + compression +
-               ", sharedStorageDefault=" + sharedStorage +
-               ", inputFormat=" + inputFormat +
-               '}';
+        if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
+            parserProperties.writeTo(out);
+        }
     }
 
     @Nullable
@@ -160,5 +165,54 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
     public void distributionInfo(DistributionInfo distributionInfo) {
         this.distributionInfo = distributionInfo;
     }
-}
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        FileUriCollectPhase that = (FileUriCollectPhase) o;
+        return Objects.equals(executionNodes, that.executionNodes) &&
+               Objects.equals(targetUri, that.targetUri) &&
+               Objects.equals(toCollect, that.toCollect) &&
+               Objects.equals(parserProperties, that.parserProperties) &&
+               Objects.equals(compression, that.compression) &&
+               Objects.equals(sharedStorage, that.sharedStorage) &&
+               Objects.equals(distributionInfo, that.distributionInfo) &&
+               inputFormat == that.inputFormat;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+            super.hashCode(),
+            executionNodes,
+            targetUri,
+            toCollect,
+            parserProperties,
+            compression,
+            sharedStorage,
+            distributionInfo,
+            inputFormat);
+    }
+
+    @Override
+    public String toString() {
+        return "FileUriCollectPhase{" +
+               "executionNodes=" + executionNodes +
+               ", targetUri=" + targetUri +
+               ", toCollect=" + toCollect +
+               ", parserProperties=" + parserProperties +
+               ", compression='" + compression + '\'' +
+               ", sharedStorage=" + sharedStorage +
+               ", distributionInfo=" + distributionInfo +
+               ", inputFormat=" + inputFormat +
+               '}';
+    }
+}

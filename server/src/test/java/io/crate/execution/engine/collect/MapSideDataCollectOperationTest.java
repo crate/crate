@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect;
 
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
@@ -32,6 +33,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -81,6 +83,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             Collections.emptyList(),
             null,
             false,
+            CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON
         );
         TestingRowConsumer consumer = new TestingRowConsumer();

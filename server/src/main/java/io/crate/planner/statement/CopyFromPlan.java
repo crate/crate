@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
 import io.crate.analyze.BoundCopyFrom;
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
@@ -292,14 +293,16 @@ public final class CopyFromPlan implements Plan {
             context.jobId(),
             context.nextExecutionPhaseId(),
             "copyFrom",
-            getExecutionNodes(allNodes, boundedCopyFrom
-                .settings()
-                .getAsInt("num_readers", allNodes.getSize()), boundedCopyFrom.nodePredicate()),
+            getExecutionNodes(
+                allNodes,
+                boundedCopyFrom.settings().getAsInt("num_readers", allNodes.getSize()),
+                boundedCopyFrom.nodePredicate()),
             boundedCopyFrom.uri(),
             toCollect,
             Collections.emptyList(),
             boundedCopyFrom.settings().get("compression", null),
             boundedCopyFrom.settings().getAsBoolean("shared", null),
+            CopyFromParserProperties.of(boundedCopyFrom.settings()),
             boundedCopyFrom.inputFormat()
         );
 
