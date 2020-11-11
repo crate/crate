@@ -607,6 +607,57 @@ Example::
    +---------+------+--------+-------------+
    SELECT 5 rows in set (... sec)
 
+
+.. _window-function-rank:
+
+``rank()``
+----------
+
+.. NOTE::
+
+    The ``rank`` window function is an :ref:`enterprise feature
+    <enterprise-features>`.
+
+Synopsis
+........
+
+::
+
+    rank()
+
+Returns the rank of every row within a partition of a result set.
+
+Within each partition, the rank of the first row is ``1``. Subsequent tied
+rows are given the same rank, and the potential rank of the next row
+is incremented. Because of this, ranks may not be sequential.
+
+Example::
+
+    cr> SELECT
+    ...   name,
+    ...   department_id,
+    ...   salary,
+    ...   RANK() OVER (ORDER BY salary desc) as salary_rank
+    ... FROM (VALUES
+    ...      ('Bobson Dugnutt', 1, 2000),
+    ...      ('Todd Bonzalez', 2, 2500),
+    ...      ('Jess Brewer', 1, 2500),
+    ...      ('Safwan Buchanan', 1, 1900),
+    ...      ('Hal Dodd', 1, 2500),
+    ...      ('Gillian Hawes', 2, 2000))
+    ... as t (name, department_id, salary);
+    +-----------------+---------------+--------+-------------+
+    | name            | department_id | salary | salary_rank |
+    +-----------------+---------------+--------+-------------+
+    | Todd Bonzalez   |             2 |   2500 |           1 |
+    | Jess Brewer     |             1 |   2500 |           1 |
+    | Hal Dodd        |             1 |   2500 |           1 |
+    | Bobson Dugnutt  |             1 |   2000 |           4 |
+    | Gillian Hawes   |             2 |   2000 |           4 |
+    | Safwan Buchanan |             1 |   1900 |           6 |
+    +-----------------+---------------+--------+-------------+
+    SELECT 6 rows in set (... sec)
+
 Aggregate Window Functions
 ==========================
 
