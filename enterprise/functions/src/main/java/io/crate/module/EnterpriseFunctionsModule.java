@@ -23,6 +23,7 @@ import io.crate.expression.AbstractFunctionModule;
 import io.crate.operation.aggregation.HyperLogLogDistinctAggregation;
 import io.crate.window.NthValueFunctions;
 import io.crate.window.OffsetValueFunctions;
+import io.crate.window.RankFunctions;
 
 public class EnterpriseFunctionsModule extends AbstractFunctionModule<AggregationFunction> {
 
@@ -31,5 +32,6 @@ public class EnterpriseFunctionsModule extends AbstractFunctionModule<Aggregatio
         HyperLogLogDistinctAggregation.register(this);
         NthValueFunctions.register(this);
         OffsetValueFunctions.register(this);
+        RankFunctions.register(this);
     }
 }

@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Added support for the ``rank`` window function, which is available as an
+  enterprise feature.
+
 - Added the ``delimiter`` option for :ref:`copy_from` CSV files. The option is
   used to specify the character that separates columns within a row.
 
