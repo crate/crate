@@ -58,6 +58,8 @@ None
 Fixes
 =====
 
+- Fixed an issue that could lead to stuck ``INSERT INTO .. RETURNING`` queries.
+
 - Fixed a regression introduced in CrateDB >= ``4.3`` which prevents using
   ``regexp_matches()`` wrapped inside a subscript expression from being used
   as a ``GROUP BY`` expression.

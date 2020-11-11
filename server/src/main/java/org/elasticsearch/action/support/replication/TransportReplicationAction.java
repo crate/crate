@@ -85,6 +85,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Base class for requests that should be executed on a primary copy followed by replica copies.
@@ -953,7 +954,7 @@ public abstract class TransportReplicationAction<
                 logger.trace(() -> new ParameterizedMessage("operation failed. action [{}], request [{}]", actionName, request), failure);
                 listener.onFailure(failure);
             } else {
-                assert false : "finishAsFailed called but operation is already finished";
+                assert false : "finishAsFailed called but operation is already finished. Error=" + SQLExceptions.unwrap(failure);
             }
         }
 
