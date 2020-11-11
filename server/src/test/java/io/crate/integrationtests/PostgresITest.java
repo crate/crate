@@ -26,11 +26,13 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.Asserts;
+import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -901,6 +903,38 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                     result.getString(3),
                     Matchers.notNullValue(String.class)
                 );
+            }
+        }
+    }
+
+    @Test
+    public void test_insert_from_unnest_returning_which_inserts_duplicate_keys() throws Exception {
+        try (var conn = DriverManager.getConnection(url(RW))) {
+            var statement = conn.createStatement();
+            statement.execute("create table tbl (id bigint primary key, val text)");
+            var textGenerator = DataTypeTesting.getDataGenerator(DataTypes.STRING);
+            var insertUnnest = conn.prepareStatement(
+                "insert into tbl (id, val) (select id, val from unnest(?, ?) as t (id, val)) returning _id");
+
+            for (int iteration = 0; iteration < 2; iteration++) {
+                var ids = new Object[10];
+                var values = new Object[10];
+                for (int i = 0; i < 10; i++) {
+                    ids[i] = i;
+                    values[i] = textGenerator.get();
+                }
+                insertUnnest.setObject(1, conn.createArrayOf("bigint", ids));
+                insertUnnest.setObject(2, conn.createArrayOf("text", values));
+                var result = insertUnnest.executeQuery();
+                int numResults = 0;
+                while (result.next()) {
+                    numResults++;
+                }
+                if (iteration == 0) {
+                    assertThat(numResults, is(10));
+                } else {
+                    assertThat(numResults, is(0));
+                }
             }
         }
     }

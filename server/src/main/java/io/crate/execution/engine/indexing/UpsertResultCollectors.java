@@ -86,8 +86,11 @@ final class UpsertResultCollectors {
         void processShardResponse(UpsertResults upsertResults,
                                   ShardResponse shardResponse,
                                   List<RowSourceInfo> rowSourceInfosIgnored) {
-            synchronized (lock) {
-                upsertResults.addResultRows(shardResponse.getResultRows());
+            List<Object[]> resultRows = shardResponse.getResultRows();
+            if (resultRows != null) {
+                synchronized (lock) {
+                    upsertResults.addResultRows(resultRows);
+                }
             }
         }
     }
