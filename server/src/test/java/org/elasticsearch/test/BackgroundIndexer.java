@@ -22,7 +22,6 @@ package org.elasticsearch.test;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -41,8 +40,6 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
-import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,7 +49,9 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.junit.Assert;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.testing.SQLTransportExecutor;
+import io.crate.exceptions.Exceptions;
+import io.crate.testing.DataTypeTesting;
+import io.crate.types.DataTypes;
 
 public class BackgroundIndexer implements AutoCloseable {
 
@@ -107,6 +106,7 @@ public class BackgroundIndexer implements AutoCloseable {
                 @Override
                 public void run() {
                     long id = -1;
+                    var textGenerator = DataTypeTesting.getDataGenerator(DataTypes.STRING);
                     try (Connection conn = DriverManager.getConnection(pgUrl)) {
                         PreparedStatement insertValues = conn.prepareStatement(String.format(
                             Locale.ENGLISH,
@@ -116,7 +116,7 @@ public class BackgroundIndexer implements AutoCloseable {
                         ));
                         PreparedStatement insertUnnest = conn.prepareStatement(String.format(
                             Locale.ENGLISH,
-                            "insert into %s (id, %s) (select * from unnest(?)) returning _id",
+                            "insert into %s (id, %s) (select * from unnest(?, ?)) returning _id",
                             table,
                             column
                         ));
@@ -133,12 +133,15 @@ public class BackgroundIndexer implements AutoCloseable {
                                         continue;
                                     }
                                 }
-                                var insertData = new Object[batchSize];
+                                Object[] insertIds = new Object[batchSize];
+                                Object[] strings = new Object[batchSize];
                                 for (int i = 0; i < batchSize; i++) {
-                                    insertData[i] = generateValues(idGenerator.incrementAndGet(), threadRandom);
+                                    insertIds[i] = idGenerator.incrementAndGet();
+                                    strings[i] = textGenerator.get();
                                 }
                                 try {
-                                    insertUnnest.setObject(1, SQLTransportExecutor.toJdbcCompatObject(conn, insertData));
+                                    insertUnnest.setObject(1, conn.createArrayOf("bigint", insertIds));
+                                    insertUnnest.setObject(2, conn.createArrayOf("text", strings));
                                     var result = insertUnnest.executeQuery();
                                     while (result.next()) {
                                         ids.add(result.getString(1));
@@ -154,10 +157,8 @@ public class BackgroundIndexer implements AutoCloseable {
                                     continue;
                                 }
                                 try {
-                                    long nextId = idGenerator.incrementAndGet();
-                                    var values = generateValues(nextId, threadRandom);
-                                    insertValues.setLong(1, nextId);
-                                    insertValues.setObject(2, values[1]);
+                                    insertValues.setLong(1, idGenerator.incrementAndGet());
+                                    insertValues.setObject(2, textGenerator.get());
                                     var result = insertValues.executeQuery();
                                     while (result.next()) {
                                         ids.add(result.getString(1));
@@ -197,16 +198,6 @@ public class BackgroundIndexer implements AutoCloseable {
                 failures.add(e);
             }
         }
-    }
-
-    private Object[] generateValues(@Nullable Long id, Random random) throws IOException {
-        int contentLength = RandomNumbers.randomIntBetween(random, minFieldSize, maxFieldSize);
-        StringBuilder text = new StringBuilder(contentLength);
-        while (text.length() < contentLength) {
-            int tokenLength = RandomNumbers.randomIntBetween(random, 1, Math.min(contentLength - text.length(), 10));
-            text.append(" ").append(RandomStrings.randomRealisticUnicodeOfCodepointLength(random, tokenLength));
-        }
-        return new Object[]{id, text.toString()};
     }
 
     private volatile TimeValue timeout = new TimeValue(1, TimeUnit.MINUTES);

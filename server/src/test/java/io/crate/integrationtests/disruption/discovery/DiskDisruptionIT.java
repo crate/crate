@@ -32,6 +32,7 @@ import org.elasticsearch.test.InternalTestCluster;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -99,6 +100,7 @@ public class DiskDisruptionIT extends AbstractDisruptionTestCase {
      * all un-fsynced data will be lost.
      */
     @UseRandomizedSchema(random = false)
+    @Test
     public void testGlobalCheckpointIsSafe() throws Exception {
         startCluster(rarely() ? 5 : 3);
 
