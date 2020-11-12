@@ -66,11 +66,7 @@ public class OperationRouting {
                                                         DiscoveryNodes nodes,
                                                         @Nullable String preference) {
         if (preference == null || preference.isEmpty()) {
-            if (awarenessAttributes.isEmpty()) {
-                return indexShard.activeInitializingShardsRandomIt();
-            } else {
-                return indexShard.preferAttributesActiveInitializingShardsIt(awarenessAttributes, nodes);
-            }
+            return shardRoutings(indexShard, nodes);
         }
         if (preference.charAt(0) == '_') {
             Preference preferenceType = Preference.parse(preference);
@@ -97,11 +93,7 @@ public class OperationRouting {
                 }
                 // no more preference
                 if (index == -1 || index == preference.length() - 1) {
-                    if (awarenessAttributes.isEmpty()) {
-                        return indexShard.activeInitializingShardsRandomIt();
-                    } else {
-                        return indexShard.preferAttributesActiveInitializingShardsIt(awarenessAttributes, nodes);
-                    }
+                    return shardRoutings(indexShard, nodes);
                 } else {
                     // update the preference and continue
                     preference = preference.substring(index + 1);
@@ -138,6 +130,14 @@ public class OperationRouting {
             return indexShard.activeInitializingShardsIt(routingHash);
         } else {
             return indexShard.preferAttributesActiveInitializingShardsIt(awarenessAttributes, nodes, routingHash);
+        }
+    }
+
+    private ShardIterator shardRoutings(IndexShardRoutingTable indexShard, DiscoveryNodes nodes) {
+        if (awarenessAttributes.isEmpty()) {
+            return indexShard.activeInitializingShardsRandomIt();
+        } else {
+            return indexShard.preferAttributesActiveInitializingShardsIt(awarenessAttributes, nodes);
         }
     }
 
