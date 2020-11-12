@@ -47,13 +47,19 @@ public class SplitPoints {
     private final List<Symbol> toCollect;
     private final List<Function> aggregates;
     private final List<Function> tableFunctions;
+    private final List<Function> tableFunctionsBelowGroupBy;
     private final List<WindowFunction> windowFunctions;
 
 
-    SplitPoints(List<Symbol> toCollect, List<Function> aggregates, List<Function> tableFunctions, List<WindowFunction> windowFunctions) {
+    SplitPoints(List<Symbol> toCollect,
+                List<Function> aggregates,
+                List<Function> tableFunctions,
+                List<Function> tableFunctionsBelowGroupBy,
+                List<WindowFunction> windowFunctions) {
         this.toCollect = toCollect;
         this.aggregates = aggregates;
         this.tableFunctions = tableFunctions;
+        this.tableFunctionsBelowGroupBy = tableFunctionsBelowGroupBy;
         this.windowFunctions = windowFunctions;
     }
 
@@ -67,6 +73,10 @@ public class SplitPoints {
 
     public List<Function> tableFunctions() {
         return tableFunctions;
+    }
+
+    public List<Function> tableFunctionsBelowGroupBy() {
+        return tableFunctionsBelowGroupBy;
     }
 
     public List<WindowFunction> windowFunctions() {

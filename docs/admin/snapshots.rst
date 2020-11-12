@@ -137,7 +137,9 @@ To restore a table from a snapshot we have to drop it beforehand::
 
 Restoring a snapshot using the :ref:`ref-restore-snapshot` statement.::
 
-    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes WITH (wait_for_completion=true);
+    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2
+    ... TABLE quotes
+    ... WITH (wait_for_completion=true);
     RESTORE OK, 1 row affected (... sec)
 
 In this case only the ``quotes`` table from snapshot
@@ -151,6 +153,9 @@ It's not possible to restore tables that exist in the current cluster::
 
 Single partitions can be either imported into an existing partitioned table the
 partition belongs to.
+
+To monitor the progress of ``RESTORE SNAPSHOT`` operations please query
+the :ref:`sys.snapshot_restore <sys-snapshot-restore>` table.
 
 .. Hidden: drop partition::
 

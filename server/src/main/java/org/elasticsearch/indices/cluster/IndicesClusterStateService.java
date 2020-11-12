@@ -26,7 +26,6 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -57,10 +56,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.seqno.GlobalCheckpointSyncAction;
 import org.elasticsearch.index.seqno.ReplicationTracker;
-import org.elasticsearch.index.seqno.RetentionLeaseBackgroundSyncAction;
-import org.elasticsearch.index.seqno.RetentionLeaseSyncAction;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
-import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
@@ -76,7 +72,6 @@ import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoveryFailedException;
 import org.elasticsearch.indices.recovery.RecoveryState;
-import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -89,7 +84,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -102,7 +96,7 @@ import static org.elasticsearch.indices.cluster.IndicesClusterStateService.Alloc
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.REOPENED;
 
-public class IndicesClusterStateService extends AbstractLifecycleComponent implements ClusterStateApplier, RetentionLeaseSyncer {
+public class IndicesClusterStateService extends AbstractLifecycleComponent implements ClusterStateApplier {
 
     private static final Logger LOGGER = LogManager.getLogger(IndicesClusterStateService.class);
 
@@ -125,6 +119,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
     private final boolean sendRefreshMapping;
     private final List<IndexEventListener> buildInIndexListener;
     private final PrimaryReplicaSyncer primaryReplicaSyncer;
+    private final RetentionLeaseSyncer retentionLeaseSyncer;
     private final NodeClient client;
     private final Settings settings;
 
@@ -141,6 +136,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                       PeerRecoverySourceService peerRecoverySourceService,
                                       SnapshotShardsService snapshotShardsService,
                                       PrimaryReplicaSyncer primaryReplicaSyncer,
+                                      RetentionLeaseSyncer retentionLeaseSyncer,
                                       NodeClient client) {
         this(settings,
             (AllocatedIndices<? extends Shard, ? extends AllocatedIndex<? extends Shard>>) indicesService,
@@ -154,6 +150,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             peerRecoverySourceService,
             snapshotShardsService,
             primaryReplicaSyncer,
+            retentionLeaseSyncer,
             client
         );
     }
@@ -171,6 +168,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                PeerRecoverySourceService peerRecoverySourceService,
                                SnapshotShardsService snapshotShardsService,
                                PrimaryReplicaSyncer primaryReplicaSyncer,
+                               RetentionLeaseSyncer retentionLeaseSyncer,
                                NodeClient client) {
         this.buildInIndexListener =
                 Arrays.asList(
@@ -187,6 +185,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         this.nodeMappingRefreshAction = nodeMappingRefreshAction;
         this.repositoriesService = repositoriesService;
         this.primaryReplicaSyncer = primaryReplicaSyncer;
+        this.retentionLeaseSyncer = retentionLeaseSyncer;
         this.sendRefreshMapping = settings.getAsBoolean("indices.cluster.send_refresh_mapping", true);
         this.client = client;
     }
@@ -292,44 +291,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                 }
             )
         );
-    }
-
-    @Override
-    public void sync(ShardId shardId, RetentionLeases retentionLeases, ActionListener<ReplicationResponse> listener) {
-        Objects.requireNonNull(shardId);
-        Objects.requireNonNull(retentionLeases);
-        Objects.requireNonNull(listener);
-        client.executeLocally(RetentionLeaseSyncAction.TYPE,
-            new RetentionLeaseSyncAction.Request(shardId, retentionLeases),
-            ActionListener.wrap(
-                listener::onResponse,
-                e -> {
-                    if (ExceptionsHelper.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
-                        getLogger().warn(new ParameterizedMessage("{} retention lease sync failed", shardId), e);
-                    }
-                    listener.onFailure(e);
-                }));
-    }
-
-    @Override
-    public void backgroundSync(ShardId shardId, RetentionLeases retentionLeases) {
-        Objects.requireNonNull(shardId);
-        Objects.requireNonNull(retentionLeases);
-        client.executeLocally(RetentionLeaseBackgroundSyncAction.TYPE,
-            new RetentionLeaseBackgroundSyncAction.Request(shardId, retentionLeases),
-            ActionListener.wrap(
-                r -> {},
-                e -> {
-                    if (ExceptionsHelper.unwrap(e, NodeClosedException.class) != null) {
-                        // node shutting down
-                        return;
-                    }
-                    if (ExceptionsHelper.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) != null) {
-                        // the shard is closed
-                        return;
-                    }
-                    getLogger().warn(new ParameterizedMessage("{} retention lease background sync failed", shardId), e);
-                }));
     }
 
     // overrideable by tests
@@ -645,7 +606,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                 repositoriesService,
                 failedShardHandler,
                 this::updateGlobalCheckpointForShard,
-                this
+                retentionLeaseSyncer
             );
         } catch (Exception e) {
             failAndRemoveShard(shardRouting, true, "failed to create shard", e, state);

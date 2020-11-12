@@ -22,20 +22,6 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import org.elasticsearch.Version;
-
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -102,6 +88,19 @@ import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
 /**
  * Planner which can create a {@link ExecutionPlan} using intermediate {@link LogicalPlan} nodes.
@@ -383,7 +382,10 @@ public class LogicalPlanner {
                                     WindowAgg.create(
                                         Filter.create(
                                             groupByOrAggregate(
-                                                source,
+                                                ProjectSet.create(
+                                                    source,
+                                                    splitPoints.tableFunctionsBelowGroupBy()
+                                                ),
                                                 relation.groupBy(),
                                                 splitPoints.aggregates(),
                                                 tableStats

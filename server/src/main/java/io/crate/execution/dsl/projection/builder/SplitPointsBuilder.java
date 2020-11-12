@@ -116,11 +116,25 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
             }
         }
 
-        toCollect.addAll(relation.groupBy());
-        if (context.aggregates.isEmpty() && relation.groupBy().isEmpty()) {
+        // group-by symbols must be processed on a dedicated context to be able extract table functions which must
+        // be processed *below* a grouping operator
+        var groupByContext = new Context();
+        if (relation.groupBy().isEmpty() == false) {
+            INSTANCE.process(relation.groupBy(), groupByContext);
+            for (Function tableFunction : groupByContext.tableFunctions) {
+                toCollect.addAll(extractColumns(tableFunction.arguments()));
+            }
+            toCollect.addAll(groupByContext.standalone);
+            context.tableFunctions.removeAll(groupByContext.tableFunctions);
+        } else if (context.aggregates.isEmpty() && relation.groupBy().isEmpty()) {
             toCollect.addAll(context.standalone);
         }
-        return new SplitPoints(new ArrayList<>(toCollect), context.aggregates, context.tableFunctions, context.windowFunctions);
+
+        return new SplitPoints(new ArrayList<>(toCollect),
+                               context.aggregates,
+                               context.tableFunctions,
+                               groupByContext.tableFunctions,
+                               context.windowFunctions);
     }
 
     @Override
@@ -128,7 +142,8 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         FunctionType type = function.type();
         switch (type) {
             case SCALAR:
-                return super.visitFunction(function, context);
+                super.visitFunction(function, context);
+                return null;
 
             case AGGREGATE:
                 context.foundAggregateOrTableFunction = true;
