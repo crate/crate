@@ -577,13 +577,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
             if (failedShard.relocatingNodeId() == null) {
                 if (failedShard.primary()) {
                     // promote active replica to primary if active replica exists (only the case for shadow replicas)
-                    ShardRouting activeReplica = activeReplicaWithHighestVersion(failedShard.shardId());
-                    if (activeReplica == null) {
-                        moveToUnassigned(failedShard, unassignedInfo);
-                    } else {
-                        movePrimaryToUnassignedAndDemoteToReplica(failedShard, unassignedInfo);
-                        promoteReplicaToPrimary(activeReplica, indexMetadata, routingChangesObserver);
-                    }
+                    unassignPrimaryAndPromoteActiveReplicaIfExists(failedShard, unassignedInfo, routingChangesObserver);
                 } else {
                     // initializing shard that is not relocation target, just move to unassigned
                     moveToUnassigned(failedShard, unassignedInfo);
@@ -601,34 +595,37 @@ public class RoutingNodes implements Iterable<RoutingNode> {
                 cancelRelocation(sourceShard);
                 remove(failedShard);
             }
-            routingChangesObserver.shardFailed(failedShard, unassignedInfo);
         } else {
             assert failedShard.active();
             if (failedShard.primary()) {
                 // promote active replica to primary if active replica exists
-                ShardRouting activeReplica = activeReplicaWithHighestVersion(failedShard.shardId());
-                if (activeReplica == null) {
-                    moveToUnassigned(failedShard, unassignedInfo);
-                } else {
-                    movePrimaryToUnassignedAndDemoteToReplica(failedShard, unassignedInfo);
-                    promoteReplicaToPrimary(activeReplica, indexMetadata, routingChangesObserver);
-                }
+                unassignPrimaryAndPromoteActiveReplicaIfExists(failedShard, unassignedInfo, routingChangesObserver);
             } else {
-                assert failedShard.primary() == false;
                 if (failedShard.relocating()) {
                     remove(failedShard);
                 } else {
                     moveToUnassigned(failedShard, unassignedInfo);
                 }
             }
-            routingChangesObserver.shardFailed(failedShard, unassignedInfo);
         }
+        routingChangesObserver.shardFailed(failedShard, unassignedInfo);
         assert node(failedShard.currentNodeId()).getByShardId(failedShard.shardId()) == null : "failedShard " + failedShard +
             " was matched but wasn't removed";
     }
 
-    private void promoteReplicaToPrimary(ShardRouting activeReplica, IndexMetadata indexMetadata,
-                                         RoutingChangesObserver routingChangesObserver) {
+    private void unassignPrimaryAndPromoteActiveReplicaIfExists(ShardRouting failedShard, UnassignedInfo unassignedInfo,
+                                                                RoutingChangesObserver routingChangesObserver) {
+        assert failedShard.primary();
+        ShardRouting activeReplica = activeReplicaWithHighestVersion(failedShard.shardId());
+        if (activeReplica == null) {
+            moveToUnassigned(failedShard, unassignedInfo);
+        } else {
+            movePrimaryToUnassignedAndDemoteToReplica(failedShard, unassignedInfo);
+            promoteReplicaToPrimary(activeReplica, routingChangesObserver);
+        }
+    }
+
+    private void promoteReplicaToPrimary(ShardRouting activeReplica, RoutingChangesObserver routingChangesObserver) {
         // if the activeReplica was relocating before this call to failShard, its relocation was cancelled earlier when we
         // failed initializing replica shards (and moved replica relocation source back to started)
         assert activeReplica.started() : "replica relocation should have been cancelled: " + activeReplica;
@@ -1172,10 +1169,6 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         private static final Recoveries EMPTY = new Recoveries();
         private int incoming = 0;
         private int outgoing = 0;
-
-        int getTotal() {
-            return incoming + outgoing;
-        }
 
         void addOutgoing(int howMany) {
             assert outgoing + howMany >= 0 : outgoing + howMany + " must be >= 0";
