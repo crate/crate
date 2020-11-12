@@ -61,6 +61,14 @@ public class AllocationCommands {
     }
 
     /**
+     * Get the commands wrapped by this instance
+     * @return {@link List} of commands
+     */
+    public List<AllocationCommand> commands() {
+        return this.commands;
+    }
+
+    /**
      * Executes all wrapped commands on a given {@link RoutingAllocation}
      * @param allocation {@link RoutingAllocation} to apply this command to
      * @throws org.elasticsearch.ElasticsearchException if something happens during execution
