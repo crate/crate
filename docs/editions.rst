@@ -25,12 +25,14 @@ limitations.
 .. contents::
    :local:
 
+
 .. _standard-edition:
 
 CrateDB
 =======
 
-Take note of the following items when using this edition of CrateDB. 
+Take note of the following items when using this edition of CrateDB.
+
 
 .. _enterprise-features:
 
@@ -45,7 +47,7 @@ Enterprise features
 
   - `shards browser`_
 
-  - `monitoring overview`_ 
+  - `monitoring overview`_
 
   - `privileges browser`_
 
@@ -58,7 +60,7 @@ Enterprise features
   - :ref:`SESSION_USER <session_user>`
 
 - :ref:`Monitor <jmx_monitoring>` your query stats with JMX
-- Access to the :ref:`aggregation-hll-distinct` :ref:`aggregate function 
+- Access to the :ref:`aggregation-hll-distinct` :ref:`aggregate function
   <aggregate-functions>`
 - Access to the following :ref:`window functions <window-functions>`:
 
@@ -89,7 +91,7 @@ and until you do that, CrateDB is limited to running on no more than three nodes
 .. CAUTION::
 
     If you exceed the three-node limitation, your cluster will stop accepting
-    queries and CrateDB functionality will be limited to the following SQL 
+    queries and CrateDB functionality will be limited to the following SQL
     statements:
 
      - :ref:`SET LICENSE <ref-set-license>`
@@ -104,6 +106,7 @@ and until you do that, CrateDB is limited to running on no more than three nodes
 
 If you wish to use CrateDB without an Enterprise License and without the
 three-node limitation, you can switch to the :ref:`community-edition`.
+
 
 .. _community-edition:
 
@@ -143,12 +146,13 @@ The steps above:
 
 - execute the `Gradle Wrapper`_ script included in the repository to clean up
   any old build files and to invoke a `distribution plugin`_ that will build
-  the Community Edition tar archive 
+  the Community Edition tar archive
 
 When the ``gradlew`` command completes successfully, the relevant CrateDB CE
 release tarball will be located in the ``app/build/distributions`` directory.
 
-You can refer to our guide on running `CrateDB tarball installations`_. 
+You can refer to our guide on running `CrateDB tarball installations`_.
+
 
 .. _acquire an enterprise license: https://crate.io/pricing/#contactsales
 .. _contact us: https://crate.io/pricing/#contactsales
@@ -158,8 +162,8 @@ You can refer to our guide on running `CrateDB tarball installations`_.
 .. _enterprise license: https://crate.io/products/cratedb-editions/
 .. _Gradle Wrapper: https://docs.gradle.org/current/userguide/gradle_wrapper.html
 .. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
-.. _Java virtual machine: https://en.wikipedia.org/wiki/Java_virtual_machine
 .. _Java 11: https://www.oracle.com/technetwork/java/javase/downloads/index.html
+.. _Java virtual machine: https://en.wikipedia.org/wiki/Java_virtual_machine
 .. _LICENSE: https://github.com/crate/crate/blob/master/LICENSE
 .. _monitoring overview: https://crate.io/docs/clients/admin-ui/en/latest/monitoring.html
 .. _NOTICE: https://github.com/crate/crate/blob/master/NOTICE
