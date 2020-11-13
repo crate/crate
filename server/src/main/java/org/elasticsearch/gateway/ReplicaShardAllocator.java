@@ -43,10 +43,12 @@ import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata.NodeStoreFilesMetadata;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.elasticsearch.cluster.routing.UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
 
@@ -96,7 +98,7 @@ public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
                     continue;
                 }
 
-                MatchingNodes matchingNodes = findMatchingNodes(shard, allocation, primaryNode, primaryStore, shardStores, false);
+                MatchingNodes matchingNodes = findMatchingNodes(shard, allocation, true, primaryNode, primaryStore, shardStores, false);
                 if (matchingNodes.getNodeWithHighestMatch() != null) {
                     DiscoveryNode currentNode = allocation.nodes().get(shard.currentNodeId());
                     DiscoveryNode nodeWithHighestMatch = matchingNodes.getNodeWithHighestMatch();
@@ -107,20 +109,13 @@ public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
                         // we found a better match that can perform noop recovery, cancel the existing allocation.
                         logger.debug("cancelling allocation of replica on [{}], can perform a noop recovery on node [{}]",
                                 currentNode, nodeWithHighestMatch);
-                        UnassignedInfo unassignedInfo = new UnassignedInfo(
-                            UnassignedInfo.Reason.REALLOCATED_REPLICA,
-                            "existing allocation of replica to ["
-                                + currentNode
-                                + "] cancelled, can perform a noop recovery on ["
-                                + nodeWithHighestMatch
-                                + "]",
-                            null,
-                            0,
-                            allocation.getCurrentNanoTime(),
-                            System.currentTimeMillis(),
-                            false,
-                            UnassignedInfo.AllocationStatus.NO_ATTEMPT
-                        );
+                        final Set<String> failedNodeIds =
+                            shard.unassignedInfo() == null ? Collections.emptySet() : shard.unassignedInfo().getFailedNodeIds();
+                        UnassignedInfo unassignedInfo = new UnassignedInfo(UnassignedInfo.Reason.REALLOCATED_REPLICA,
+                            "existing allocation of replica to [" + currentNode + "] cancelled, can perform a noop recovery on [" +
+                                nodeWithHighestMatch + "]",
+                            null, 0, allocation.getCurrentNanoTime(), System.currentTimeMillis(), false,
+                            UnassignedInfo.AllocationStatus.NO_ATTEMPT, failedNodeIds);
                         // don't cancel shard in the loop as it will cause a ConcurrentModificationException
                         shardCancellationActions.add(() -> routingNodes.failShard(logger, shard, unassignedInfo,
                             metadata.getIndexSafe(shard.index()), allocation.changes()));
@@ -196,7 +191,8 @@ public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
             return AllocateUnassignedDecision.NOT_TAKEN;
         }
 
-        MatchingNodes matchingNodes = findMatchingNodes(unassignedShard, allocation, primaryNode, primaryStore, shardStores, explain);
+        MatchingNodes matchingNodes = findMatchingNodes(
+            unassignedShard, allocation, false, primaryNode, primaryStore, shardStores, explain);
         assert explain == false || matchingNodes.nodeDecisions != null : "in explain mode, we must have individual node decisions";
 
         List<NodeAllocationResult> nodeDecisions = augmentExplanationsWithStoreInfo(result.v2(), matchingNodes.nodeDecisions);
@@ -307,15 +303,18 @@ public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
         return nodeFilesStore.storeFilesMetadata();
     }
 
-    private MatchingNodes findMatchingNodes(ShardRouting shard, RoutingAllocation allocation,
-                                            DiscoveryNode primaryNode,
-                                            TransportNodesListShardStoreMetadata.StoreFilesMetadata primaryStore,
+    private MatchingNodes findMatchingNodes(ShardRouting shard, RoutingAllocation allocation, boolean noMatchFailedNodes,
+                                            DiscoveryNode primaryNode, TransportNodesListShardStoreMetadata.StoreFilesMetadata primaryStore,
                                             AsyncShardFetch.FetchResult<NodeStoreFilesMetadata> data,
                                             boolean explain) {
         Map<DiscoveryNode, MatchingNode> matchingNodes = new HashMap<>();
         Map<String, NodeAllocationResult> nodeDecisions = explain ? new HashMap<>() : null;
         for (Map.Entry<DiscoveryNode, NodeStoreFilesMetadata> nodeStoreEntry : data.getData().entrySet()) {
             DiscoveryNode discoNode = nodeStoreEntry.getKey();
+            if (noMatchFailedNodes && shard.unassignedInfo() != null &&
+                shard.unassignedInfo().getFailedNodeIds().contains(discoNode.getId())) {
+                continue;
+            }
             TransportNodesListShardStoreMetadata.StoreFilesMetadata storeFilesMetadata = nodeStoreEntry.getValue().storeFilesMetadata();
             // we don't have any files at all, it is an empty index
             if (storeFilesMetadata.isEmpty()) {
