@@ -123,6 +123,11 @@ public class PgCatalogTableDefinitions {
             PgRolesTable.create().expressions(),
             false
         ));
+        tableDefinitions.put(PgAmTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgAmTable.create().expressions(),
+            false
+        ));
         Iterable<NamedSessionSetting> sessionSettings =
             () -> sessionSettingRegistry.settings().entrySet().stream()
                 .map(s -> new NamedSessionSetting(s.getKey(), s.getValue()))

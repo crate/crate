@@ -146,6 +146,7 @@ following tables:
  - `pg_range`_
  - `pg_enum`_
  - `pg_roles`_
+ - `pg_am`_
 
 
 .. _postgres_pg_type:
@@ -416,6 +417,7 @@ either because of the table is empty or by a not matching where clause.
 .. _pg_description: https://www.postgresql.org/docs/10/catalog-pg-description.html
 .. _pg_enum: https://www.postgresql.org/docs/10/catalog-pg-enum.html
 .. _pgjdbc: https://github.com/pgjdbc/pgjdbc
+.. _pg_am: https://www.postgresql.org/docs/10/catalog-pg-am.html
 .. _pg_range: https://www.postgresql.org/docs/10/catalog-pg-range.html
 .. _pg_roles: https://www.postgresql.org/docs/10/view-pg-roles.html
 .. _pgsql_pg_attrdef: https://www.postgresql.org/docs/10/static/catalog-pg-attrdef.html
