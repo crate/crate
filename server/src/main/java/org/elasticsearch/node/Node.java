@@ -473,14 +473,7 @@ public class Node implements Closeable {
                 localNodeFactory,
                 settingsModule.getClusterSettings()
             );
-            final GatewayMetaState gatewayMetaState = new GatewayMetaState(
-                settings,
-                metaStateService,
-                metadataIndexUpgradeService,
-                metadataUpgrader,
-                transportService,
-                clusterService
-            );
+            final GatewayMetaState gatewayMetaState = new GatewayMetaState(settings, metaStateService);
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
 
@@ -693,14 +686,14 @@ public class Node implements Closeable {
         assert transportService.getLocalNode().equals(localNodeFactory.getNode())
             : "transportService has a different local node than the factory provided";
         injector.getInstance(PeerRecoverySourceService.class).start();
-        final Metadata onDiskMetadata;
+
+        // Load (and maybe upgrade) the metadata stored on disk
+        final GatewayMetaState gatewayMetaState = injector.getInstance(GatewayMetaState.class);
+        gatewayMetaState.start(transportService, clusterService,
+            injector.getInstance(MetadataIndexUpgradeService.class), injector.getInstance(MetadataUpgrader.class));
         // we load the global state here (the persistent part of the cluster state stored on disk) to
         // pass it to the bootstrap checks to allow plugins to enforce certain preconditions based on the recovered state.
-        if (DiscoveryNode.isMasterNode(settings) || DiscoveryNode.isDataNode(settings)) {
-            onDiskMetadata = injector.getInstance(GatewayMetaState.class).getMetadata();
-        } else {
-            onDiskMetadata = Metadata.EMPTY_METADATA;
-        }
+        final Metadata onDiskMetadata = gatewayMetaState.getPersistedState().getLastAcceptedState().metadata();
         assert onDiskMetadata != null : "metadata is null but shouldn't"; // this is never null
         validateNodeBeforeAcceptingRequests(transportService.boundAddress(),
             pluginsService.filterPlugins(Plugin.class).stream()

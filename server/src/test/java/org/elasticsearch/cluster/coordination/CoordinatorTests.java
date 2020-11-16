@@ -1780,8 +1780,10 @@ public class CoordinatorTests extends ESTestCase {
                     if (rarely()) {
                         nodeEnvironment = newNodeEnvironment();
                         nodeEnvironments.add(nodeEnvironment);
-                        delegate = new MockGatewayMetaState(Settings.EMPTY, nodeEnvironment, xContentRegistry(), localNode)
-                                .getPersistedState(Settings.EMPTY, null);
+                        MockGatewayMetaState gatewayMetaState = new MockGatewayMetaState(
+                            Settings.EMPTY, nodeEnvironment, xContentRegistry(), localNode);
+                        gatewayMetaState.start();
+                        delegate = gatewayMetaState.getPersistedState();
                     } else {
                         nodeEnvironment = null;
                         delegate = new InMemoryPersistedState(0L,
@@ -1810,8 +1812,10 @@ public class CoordinatorTests extends ESTestCase {
                                 new Manifest(updatedTerm, manifest.getClusterStateVersion(), manifest.getGlobalGeneration(),
                                     manifest.getIndexGenerations()));
                         }
-                        delegate = new MockGatewayMetaState(Settings.EMPTY, nodeEnvironment, xContentRegistry(), newLocalNode)
-                                .getPersistedState(Settings.EMPTY, null);
+                        MockGatewayMetaState mockGatewayMetaState = new MockGatewayMetaState(
+                            Settings.EMPTY, nodeEnvironment, xContentRegistry(), newLocalNode);
+                        mockGatewayMetaState.start();
+                        delegate = mockGatewayMetaState.getPersistedState();
                     } else {
                         nodeEnvironment = null;
                         BytesStreamOutput outStream = new BytesStreamOutput();
