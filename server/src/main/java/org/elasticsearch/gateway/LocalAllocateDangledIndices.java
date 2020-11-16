@@ -80,7 +80,7 @@ public class LocalAllocateDangledIndices {
         );
     }
 
-    public void allocateDangled(Collection<IndexMetadata> indices, final ActionListener<AllocateDangledResponse> listener) {
+    public void allocateDangled(Collection<IndexMetadata> indices, ActionListener<AllocateDangledResponse> listener) {
         ClusterState clusterState = clusterService.state();
         DiscoveryNode masterNode = clusterState.nodes().getMasterNode();
         if (masterNode == null) {

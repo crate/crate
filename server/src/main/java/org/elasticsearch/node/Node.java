@@ -475,13 +475,11 @@ public class Node implements Closeable {
             );
             final GatewayMetaState gatewayMetaState = new GatewayMetaState(
                 settings,
-                nodeEnvironment,
                 metaStateService,
                 metadataIndexUpgradeService,
                 metadataUpgrader,
                 transportService,
-                clusterService,
-                indicesService
+                clusterService
             );
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
