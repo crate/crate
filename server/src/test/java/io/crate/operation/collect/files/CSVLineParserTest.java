@@ -1,5 +1,6 @@
 package io.crate.operation.collect.files;
 
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import io.crate.analyze.CopyFromParserProperties;
 import org.junit.Before;
 import org.junit.Test;
@@ -96,13 +97,28 @@ public class CSVLineParserTest {
     @Test
     public void test_quoted_and_unquoted_empty_string_converted_to_null_empty_string_as_null_is_set() throws IOException {
         String header = "Code,Country,City\n";
-        csvParser = new CSVLineParser(new CopyFromParserProperties(true));
+        csvParser = new CSVLineParser(
+            new CopyFromParserProperties(true, CsvSchema.DEFAULT_COLUMN_SEPARATOR)
+        );
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,,\"\"\n");
 
         assertThat(
             new String(result, StandardCharsets.UTF_8),
             is("{\"Code\":\"GER\",\"Country\":null,\"City\":null}")
+        );
+    }
+
+    @Test
+    public void test_parse_csv_with_configured_delimiter_parses_lines_correctly() throws IOException {
+        String header = "Code|Country|City\n";
+        csvParser = new CSVLineParser(new CopyFromParserProperties(true, '|'));
+        csvParser.parseHeader(header);
+        result = csvParser.parse("GER|Germany|Berlin\n");
+
+        assertThat(
+            new String(result, StandardCharsets.UTF_8),
+            is("{\"Code\":\"GER\",\"Country\":\"Germany\",\"City\":\"Berlin\"}")
         );
     }
 

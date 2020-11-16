@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import io.crate.metadata.settings.Validators;
 import org.elasticsearch.common.settings.Setting;
 
@@ -54,6 +55,19 @@ public final class CopyStatementSettings {
         "empty_string_as_null",
         false,
         Setting.Property.Dynamic);
+
+    public static final Setting<Character> CSV_COLUMN_SEPARATOR = new Setting<>(
+        "delimiter",
+        String.valueOf(CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+        value -> {
+            if (value.length() != 1) {
+                throw new IllegalArgumentException(
+                    "Invalid CSV fields delimiter: " + value + ". The delimiter must be a single character.");
+            }
+            return value.charAt(0);
+        },
+        Setting.Property.Dynamic
+    );
 
     public static final Map<String, Setting<?>> OUTPUT_SETTINGS = Map.of(
         COMPRESSION_SETTING.getKey(), COMPRESSION_SETTING,

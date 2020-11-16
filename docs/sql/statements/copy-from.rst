@@ -334,6 +334,15 @@ execution.
 The option is only supported when using the ``CSV`` format,
 otherwise, it will be ignored.
 
+``delimiter``
+'''''''''''''
+
+Specifies a single one-byte character that separates columns within each line
+of the file. The default delimiter is ``,``.
+
+The option is only supported when using the ``CSV`` format, otherwise, it will
+be ignored.
+
 ``format``
 ''''''''''
 
