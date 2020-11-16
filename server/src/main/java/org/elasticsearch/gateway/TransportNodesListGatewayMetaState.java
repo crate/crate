@@ -19,9 +19,8 @@
 
 package org.elasticsearch.gateway;
 
-import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.FailedNodeException;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
 import org.elasticsearch.action.support.nodes.BaseNodesRequest;
@@ -36,7 +35,6 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -49,6 +47,7 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
                                                                              TransportNodesListGatewayMetaState.NodeGatewayMetaState> {
 
     public static final String ACTION_NAME = "internal:gateway/local/meta_state";
+    public static final ActionType<NodesGatewayMetaState> TYPE = new ActionType<>(ACTION_NAME);
 
     private final GatewayMetaState metaState;
 
@@ -61,12 +60,6 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
         super(ACTION_NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
             Request::new, NodeRequest::new, ThreadPool.Names.GENERIC, NodeGatewayMetaState.class);
         this.metaState = metaState;
-    }
-
-    public ActionFuture<NodesGatewayMetaState> list(DiscoveryNode[] discoveryNodes, @Nullable TimeValue timeout) {
-        PlainActionFuture<NodesGatewayMetaState> future = PlainActionFuture.newFuture();
-        execute(new Request(discoveryNodes).timeout(timeout), future);
-        return future;
     }
 
     @Override

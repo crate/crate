@@ -22,7 +22,6 @@
 
 package io.crate.execution;
 
-import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
 import org.elasticsearch.common.inject.AbstractModule;
 
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
@@ -75,7 +74,6 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportSwapAndDropIndexNameAction.class).asEagerSingleton();
         bind(TransportOpenCloseTableOrPartitionAction.class).asEagerSingleton();
         bind(TransportCloseTable.class).asEagerSingleton();
-        bind(TransportVerifyShardBeforeCloseAction.class).asEagerSingleton();
         bind(TransportDropTableAction.class).asEagerSingleton();
         bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
         bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();

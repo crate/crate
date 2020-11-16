@@ -24,6 +24,8 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.FailedNodeException;
+import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -33,6 +35,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.IndicesService;
 
+import java.util.Arrays;
 import java.util.function.Function;
 
 public class Gateway {
@@ -41,22 +44,27 @@ public class Gateway {
 
     private final ClusterService clusterService;
 
-    private final TransportNodesListGatewayMetaState listGatewayMetaState;
+    private final NodeClient client;
 
     private final IndicesService indicesService;
 
     public Gateway(final Settings settings, final ClusterService clusterService,
-                   final TransportNodesListGatewayMetaState listGatewayMetaState,
+                   final NodeClient client,
                    final IndicesService indicesService) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
-        this.listGatewayMetaState = listGatewayMetaState;
+        this.client = client;
     }
 
     public void performStateRecovery(final GatewayStateRecoveredListener listener) throws GatewayException {
-        DiscoveryNode[] discoveryNodes = clusterService.state().nodes().getMasterNodes().values().toArray(DiscoveryNode.class);
-        LOGGER.trace("performing state recovery from {}", discoveryNodes);
-        final TransportNodesListGatewayMetaState.NodesGatewayMetaState nodesState = listGatewayMetaState.list(discoveryNodes, null).actionGet();
+        final DiscoveryNode[] nodes = clusterService.state().nodes().getMasterNodes().values().toArray(DiscoveryNode.class);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("performing state recovery from {}", Arrays.toString(nodes));
+        }
+        var request = new TransportNodesListGatewayMetaState.Request(nodes);
+        PlainActionFuture<TransportNodesListGatewayMetaState.NodesGatewayMetaState> future = PlainActionFuture.newFuture();
+        client.executeLocally(TransportNodesListGatewayMetaState.TYPE, request, future);
+        final TransportNodesListGatewayMetaState.NodesGatewayMetaState nodesState = future.actionGet();
 
         final int requiredAllocation = 1;
 
