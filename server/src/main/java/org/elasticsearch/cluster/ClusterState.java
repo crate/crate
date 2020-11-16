@@ -249,7 +249,8 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
     public String toString() {
         StringBuilder sb = new StringBuilder();
         final String TAB = "   ";
-        sb.append("cluster uuid: ").append(metadata.clusterUUID()).append("\n");
+        sb.append("cluster uuid: ").append(metadata.clusterUUID())
+            .append(" [committed: ").append(metadata.clusterUUIDCommitted()).append("]").append("\n");
         sb.append("version: ").append(version).append("\n");
         sb.append("state uuid: ").append(stateUUID).append("\n");
         sb.append("from_diff: ").append(wasReadFromDiff).append("\n");
