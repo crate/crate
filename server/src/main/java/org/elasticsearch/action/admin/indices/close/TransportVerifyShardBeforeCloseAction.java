@@ -21,9 +21,8 @@ package org.elasticsearch.action.admin.indices.close;
 
 import java.io.IOException;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.replication.ReplicationOperation.Replicas;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
@@ -49,7 +48,7 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
     TransportVerifyShardBeforeCloseAction.ShardRequest, TransportVerifyShardBeforeCloseAction.ShardRequest, ReplicationResponse> {
 
     public static final String NAME = "indices:admin/close" + "[s]";
-    private static final Logger LOGGER = LogManager.getLogger(TransportVerifyShardBeforeCloseAction.class);
+    public static final ActionType<ReplicationResponse> TYPE = new ActionType<ReplicationResponse>(NAME);
 
     @Inject
     public TransportVerifyShardBeforeCloseAction(final Settings settings,

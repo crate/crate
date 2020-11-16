@@ -22,6 +22,7 @@ package org.elasticsearch.action.admin.indices.flush;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportBroadcastReplicationAction;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -42,9 +43,9 @@ public class TransportFlushAction extends TransportBroadcastReplicationAction<Fl
     public TransportFlushAction(ThreadPool threadPool,
                                 ClusterService clusterService,
                                 TransportService transportService,
-                                IndexNameExpressionResolver indexNameExpressionResolver,
-                                TransportShardFlushAction replicatedFlushAction) {
-        super(NAME, FlushRequest::new, threadPool, clusterService, transportService, indexNameExpressionResolver, replicatedFlushAction);
+                                NodeClient client,
+                                IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(NAME, FlushRequest::new, threadPool, clusterService, transportService, client, indexNameExpressionResolver, TransportShardFlushAction.TYPE);
     }
 
     @Override

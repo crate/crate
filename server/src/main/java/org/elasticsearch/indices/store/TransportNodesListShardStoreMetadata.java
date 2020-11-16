@@ -19,10 +19,16 @@
 
 package org.elasticsearch.indices.store;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
@@ -39,10 +45,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.gateway.AsyncShardFetch;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.seqno.ReplicationTracker;
@@ -56,20 +60,15 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import io.crate.common.unit.TimeValue;
 
 public class TransportNodesListShardStoreMetadata extends TransportNodesAction<TransportNodesListShardStoreMetadata.Request,
     TransportNodesListShardStoreMetadata.NodesStoreFilesMetadata,
     TransportNodesListShardStoreMetadata.NodeRequest,
-    TransportNodesListShardStoreMetadata.NodeStoreFilesMetadata>
-    implements AsyncShardFetch.Lister<TransportNodesListShardStoreMetadata.NodesStoreFilesMetadata,
     TransportNodesListShardStoreMetadata.NodeStoreFilesMetadata> {
 
     public static final String ACTION_NAME = "internal:cluster/nodes/indices/shard/store";
+    public static final ActionType<NodesStoreFilesMetadata> TYPE = new ActionType<>(ACTION_NAME);
 
     private final IndicesService indicesService;
     private final NodeEnvironment nodeEnv;
@@ -91,11 +90,6 @@ public class TransportNodesListShardStoreMetadata extends TransportNodesAction<T
         this.indicesService = indicesService;
         this.nodeEnv = nodeEnv;
         this.namedXContentRegistry = namedXContentRegistry;
-    }
-
-    @Override
-    public void list(ShardId shardId, DiscoveryNode[] nodes, ActionListener<NodesStoreFilesMetadata> listener) {
-        execute(new Request(shardId, nodes), listener);
     }
 
     @Override
@@ -274,14 +268,14 @@ public class TransportNodesListShardStoreMetadata extends TransportNodesAction<T
 
         private final ShardId shardId;
 
-        public Request(ShardId shardId, DiscoveryNode[] nodes) {
-            super(nodes);
-            this.shardId = shardId;
-        }
-
         public Request(StreamInput in) throws IOException {
             super(in);
             shardId = new ShardId(in);
+        }
+
+        public Request(ShardId shardId, DiscoveryNode[] nodes) {
+            super(nodes);
+            this.shardId = shardId;
         }
 
         @Override
@@ -308,14 +302,14 @@ public class TransportNodesListShardStoreMetadata extends TransportNodesAction<T
 
         private final ShardId shardId;
 
-        NodeRequest(String nodeId, TransportNodesListShardStoreMetadata.Request request) {
-            super(nodeId);
-            this.shardId = request.shardId;
-        }
-
         public NodeRequest(StreamInput in) throws IOException {
             super(in);
             shardId = new ShardId(in);
+        }
+
+        NodeRequest(String nodeId, TransportNodesListShardStoreMetadata.Request request) {
+            super(nodeId);
+            this.shardId = request.shardId;
         }
 
         @Override
