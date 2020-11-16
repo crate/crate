@@ -19,8 +19,12 @@
 
 package org.elasticsearch.gateway;
 
+import java.util.Arrays;
+import java.util.function.Function;
+
 import com.carrotsearch.hppc.ObjectFloatHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.FailedNodeException;
@@ -31,12 +35,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.indices.IndicesService;
-
-import java.util.Arrays;
-import java.util.function.Function;
 
 public class Gateway {
 
@@ -46,12 +45,8 @@ public class Gateway {
 
     private final NodeClient client;
 
-    private final IndicesService indicesService;
 
-    public Gateway(final Settings settings, final ClusterService clusterService,
-                   final NodeClient client,
-                   final IndicesService indicesService) {
-        this.indicesService = indicesService;
+    public Gateway(final ClusterService clusterService, final NodeClient client) {
         this.clusterService = clusterService;
         this.client = client;
     }
