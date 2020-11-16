@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterApplier;
-import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -136,7 +135,7 @@ public class DiscoveryModule {
                 namedWriteableRegistry,
                 allocationService,
                 masterService,
-                () -> gatewayMetaState.getPersistedState(settings, (ClusterApplierService) clusterApplier),
+                gatewayMetaState::getPersistedState,
                 seedHostsProvider,
                 clusterApplier,
                 joinValidators,
