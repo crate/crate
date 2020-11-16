@@ -41,7 +41,6 @@ import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -100,7 +99,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
 
     private final Runnable recoveryRunnable;
 
-    private final AtomicBoolean recovered = new AtomicBoolean();
+    private final AtomicBoolean recoveryInProgress = new AtomicBoolean();
     private final AtomicBoolean scheduledRecovery = new AtomicBoolean();
 
     @Inject
@@ -108,7 +107,6 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
                           final AllocationService allocationService,
                           final ClusterService clusterService,
                           final ThreadPool threadPool,
-                          final IndicesService indicesService,
                           final Discovery discovery,
                           final NodeClient client) {
         this.allocationService = allocationService;
@@ -229,7 +227,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
 
                     @Override
                     protected void doRun() {
-                        if (recovered.compareAndSet(false, true)) {
+                        if (recoveryInProgress.compareAndSet(false, true)) {
                             LOGGER.info("recover_after_time [{}] elapsed. performing state recovery...", recoverAfterTime);
                             recoveryRunnable.run();
                         }
@@ -237,7 +235,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
                 }, recoverAfterTime, ThreadPool.Names.GENERIC);
             }
         } else {
-            if (recovered.compareAndSet(false, true)) {
+            if (recoveryInProgress.compareAndSet(false, true)) {
                 threadPool.generic().execute(new AbstractRunnable() {
                     @Override
                     public void onFailure(final Exception e) {
@@ -255,7 +253,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
     }
 
     private void resetRecoveredFlags() {
-        recovered.set(false);
+        recoveryInProgress.set(false);
         scheduledRecovery.set(false);
     }
 
@@ -274,6 +272,9 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
         @Override
         public void clusterStateProcessed(final String source, final ClusterState oldState, final ClusterState newState) {
             LOGGER.info("recovered [{}] indices into cluster_state", newState.metadata().indices().size());
+            // reset flag even though state recovery completed, to ensure that if we subsequently become leader again based on a
+            // not-recovered state, that we again do another state recovery.
+            resetRecoveredFlags();
         }
 
         @Override
