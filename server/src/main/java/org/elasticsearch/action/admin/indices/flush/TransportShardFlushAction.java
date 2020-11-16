@@ -22,6 +22,7 @@ package org.elasticsearch.action.admin.indices.flush;
 import java.io.IOException;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -37,6 +38,7 @@ import org.elasticsearch.transport.TransportService;
 public class TransportShardFlushAction extends TransportReplicationAction<ShardFlushRequest, ShardFlushRequest, ReplicationResponse> {
 
     public static final String NAME = TransportFlushAction.NAME + "[s]";
+    public static final ActionType<ReplicationResponse> TYPE = new ActionType<ReplicationResponse>(NAME);
 
     @Inject
     public TransportShardFlushAction(TransportService transportService,
