@@ -109,7 +109,10 @@ public class TableParameters {
             // this setting is needed for tests and is not documented. see ClusterDisruptionIT for usages.
             IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
             // this setting is needed for tests and is not documented. see RetentionLeaseBackgroundSyncIT for usages.
-            IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING
+            IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
+
+            // this setting is needed for tests and is not documented. see ReplicaShardAllocatorIT for usages.
+            IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING
         );
 
     /**
@@ -125,7 +128,9 @@ public class TableParameters {
         IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
 
         // We want IndexSettings#isExplicitRefresh and it's usages to work
-        IndexSettings.INDEX_REFRESH_INTERVAL_SETTING
+        IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
+
+        IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING
     );
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
