@@ -19,6 +19,11 @@
 
 package org.elasticsearch.gateway;
 
+import java.io.IOException;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
@@ -31,15 +36,11 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.List;
 
 public class TransportNodesListGatewayMetaState extends TransportNodesAction<TransportNodesListGatewayMetaState.Request,
                                                                              TransportNodesListGatewayMetaState.NodesGatewayMetaState,
@@ -91,11 +92,6 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
         public Request(StreamInput in) throws IOException {
             super(in);
         }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
-        }
     }
 
     public static class NodesGatewayMetaState extends BaseNodesResponse<NodeGatewayMetaState> {
@@ -118,11 +114,6 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
 
         public NodeRequest(StreamInput in) throws IOException {
             super(in);
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
         }
     }
 

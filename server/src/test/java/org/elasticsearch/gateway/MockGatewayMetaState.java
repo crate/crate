@@ -46,10 +46,9 @@ public class MockGatewayMetaState extends GatewayMetaState {
 
     public MockGatewayMetaState(Settings settings, NodeEnvironment nodeEnvironment,
                                 NamedXContentRegistry xContentRegistry, DiscoveryNode localNode) throws IOException {
-        super(settings, nodeEnvironment, new MetaStateService(nodeEnvironment, xContentRegistry),
+        super(settings, new MetaStateService(nodeEnvironment, xContentRegistry),
               mock(MetadataIndexUpgradeService.class), mock(MetadataUpgrader.class),
-              mock(TransportService.class), mock(ClusterService.class),
-              mock(IndicesService.class));
+              mock(TransportService.class), mock(ClusterService.class));
         this.localNode = localNode;
     }
 

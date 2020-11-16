@@ -44,9 +44,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.transport.TransportService;
 
@@ -77,11 +75,9 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
 
     protected static final Logger LOGGER = LogManager.getLogger(GatewayMetaState.class);
 
-    private final NodeEnvironment nodeEnv;
     private final MetaStateService metaStateService;
     private final Settings settings;
     private final ClusterService clusterService;
-    private final IndicesService indicesService;
     private final TransportService transportService;
 
     //there is a single thread executing updateClusterState calls, hence no volatile modifier
@@ -89,16 +85,13 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
     protected ClusterState previousClusterState;
     protected boolean incrementalWrite;
 
-    public GatewayMetaState(Settings settings, NodeEnvironment nodeEnv, MetaStateService metaStateService,
+    public GatewayMetaState(Settings settings, MetaStateService metaStateService,
                             MetadataIndexUpgradeService metadataIndexUpgradeService, MetadataUpgrader metadataUpgrader,
-                            TransportService transportService, ClusterService clusterService,
-                            IndicesService indicesService) throws IOException {
+                            TransportService transportService, ClusterService clusterService) throws IOException {
         this.settings = settings;
-        this.nodeEnv = nodeEnv;
         this.metaStateService = metaStateService;
         this.transportService = transportService;
         this.clusterService = clusterService;
-        this.indicesService = indicesService;
 
         upgradeMetadata(metadataIndexUpgradeService, metadataUpgrader);
         initializeClusterState(ClusterName.CLUSTER_NAME_SETTING.get(settings));
@@ -185,7 +178,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
         }
     }
 
-    protected boolean isMasterOrDataNode() {
+    private boolean isMasterOrDataNode() {
         return DiscoveryNode.isMasterNode(settings) || DiscoveryNode.isDataNode(settings);
     }
 
@@ -313,13 +306,12 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
             }
         }
 
-        long writeManifestAndCleanup(String reason, Manifest manifest) throws WriteStateException {
+        void writeManifestAndCleanup(String reason, Manifest manifest) throws WriteStateException {
             assert finished == false : FINISHED_MSG;
             try {
-                long generation = metaStateService.writeManifestAndCleanup(reason, manifest);
+                metaStateService.writeManifestAndCleanup(reason, manifest);
                 commitCleanupActions.forEach(Runnable::run);
                 finished = true;
-                return generation;
             } catch (WriteStateException e) {
                 // if Manifest write results in dirty WriteStateException it's not safe to remove
                 // new metadata files, because if Manifest was actually written to disk and its deletion
@@ -347,7 +339,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
      *
      * @throws WriteStateException if exception occurs. See also {@link WriteStateException#isDirty()}.
      */
-    protected void updateClusterState(ClusterState newState, ClusterState previousState)
+    private void updateClusterState(ClusterState newState, ClusterState previousState)
             throws WriteStateException {
         Metadata newMetadata = newState.metadata();
 
@@ -407,7 +399,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
     }
 
     private static boolean isDataOnlyNode(ClusterState state) {
-        return ((state.nodes().getLocalNode().isMasterNode() == false) && state.nodes().getLocalNode().isDataNode());
+        return state.nodes().getLocalNode().isMasterNode() == false && state.nodes().getLocalNode().isDataNode();
     }
 
     /**
@@ -536,8 +528,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
     }
 
     private static Set<Index> getRelevantIndicesForMasterEligibleNode(ClusterState state) {
-        Set<Index> relevantIndices;
-        relevantIndices = new HashSet<>();
+        Set<Index> relevantIndices = new HashSet<>();
         // we have to iterate over the metadata to make sure we also capture closed indices
         for (IndexMetadata indexMetadata : state.metadata()) {
             relevantIndices.add(indexMetadata.getIndex());
