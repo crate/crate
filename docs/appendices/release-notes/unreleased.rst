@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Added the ``delimiter`` option for :ref:`copy_from` CSV files. The option is
+  used to specify the character that separates columns within a row.
+
 - Added the ``empty_string_as_null`` option for :ref:`copy_from` CSV files.
   If the option is enabled, all column's values represented by an empty string,
   including a quoted empty string, are set to ``NULL``.

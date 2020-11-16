@@ -46,7 +46,12 @@ public class CSVLineParser {
         if (properties.emptyStringAsNull()) {
             mapper.enable(CsvParser.Feature.EMPTY_STRING_AS_NULL);
         }
-        csvReader = mapper.readerWithTypedSchemaFor(String.class);
+        var csvSchema = mapper
+            .typedSchemaFor(String.class)
+            .withColumnSeparator(properties.columnSeparator());
+        csvReader = mapper
+            .readerWithTypedSchemaFor(String.class)
+            .with(csvSchema);
     }
 
     public void parseHeader(String header) throws IOException {
