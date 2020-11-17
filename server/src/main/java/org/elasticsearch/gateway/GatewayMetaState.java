@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.coordination.CoordinationState.PersistedState;
 import org.elasticsearch.cluster.coordination.InMemoryPersistedState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
@@ -206,7 +207,6 @@ public class GatewayMetaState {
      * Elasticsearch 2.0 removed several deprecated features and as well as support for Lucene 3.x. This method calls
      * {@link MetadataIndexUpgradeService} to makes sure that indices are compatible with the current version. The
      * MetadataIndexUpgradeService might also update obsolete settings if needed.
-     * Allows upgrading global custom meta data via {@link MetadataUpgrader#customMetadataUpgraders}
      *
      * @return input <code>metadata</code> if no upgrade is needed or an upgraded metadata
      */
@@ -222,11 +222,6 @@ public class GatewayMetaState {
             changed |= indexMetadata != newMetadata;
             upgradedMetadata.put(newMetadata, false);
         }
-        // upgrade global custom meta data
-        if (applyPluginUpgraders(metadata.getCustoms(), metadataUpgrader.customMetadataUpgraders,
-                upgradedMetadata::removeCustom, upgradedMetadata::putCustom)) {
-            changed = true;
-        }
         // upgrade current templates
         if (applyPluginUpgraders(metadata.getTemplates(), metadataUpgrader.indexTemplateMetadataUpgraders,
                 upgradedMetadata::removeTemplate, (s, indexTemplateMetadata) -> upgradedMetadata.put(indexTemplateMetadata))) {
@@ -235,21 +230,21 @@ public class GatewayMetaState {
         return changed ? upgradedMetadata.build() : metadata;
     }
 
-    private static <Data> boolean applyPluginUpgraders(ImmutableOpenMap<String, Data> existingData,
-                                                       UnaryOperator<Map<String, Data>> upgrader,
-                                                       Consumer<String> removeData,
-                                                       BiConsumer<String, Data> putData) {
+    private static boolean applyPluginUpgraders(ImmutableOpenMap<String, IndexTemplateMetadata> existingData,
+                                                UnaryOperator<Map<String, IndexTemplateMetadata>> upgrader,
+                                                Consumer<String> removeData,
+                                                BiConsumer<String, IndexTemplateMetadata> putData) {
         // collect current data
-        Map<String, Data> existingMap = new HashMap<>();
-        for (ObjectObjectCursor<String, Data> customCursor : existingData) {
+        Map<String, IndexTemplateMetadata> existingMap = new HashMap<>();
+        for (ObjectObjectCursor<String, IndexTemplateMetadata> customCursor : existingData) {
             existingMap.put(customCursor.key, customCursor.value);
         }
         // upgrade global custom meta data
-        Map<String, Data> upgradedCustoms = upgrader.apply(existingMap);
+        Map<String, IndexTemplateMetadata> upgradedCustoms = upgrader.apply(existingMap);
         if (upgradedCustoms.equals(existingMap) == false) {
             // remove all data first so a plugin can remove custom metadata or templates if needed
             existingMap.keySet().forEach(removeData);
-            for (Map.Entry<String, Data> upgradedCustomEntry : upgradedCustoms.entrySet()) {
+            for (Map.Entry<String, IndexTemplateMetadata> upgradedCustomEntry : upgradedCustoms.entrySet()) {
                 putData.accept(upgradedCustomEntry.getKey(), upgradedCustomEntry.getValue());
             }
             return true;

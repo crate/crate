@@ -34,10 +34,8 @@ import com.google.common.collect.ImmutableList;
 
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.Metadata.Custom;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -75,7 +73,6 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.license.CeLicenseModule;
 import io.crate.license.LicenseExtension;
 import io.crate.lucene.ArrayMapperService;
-import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.MetadataModule;
@@ -87,7 +84,6 @@ import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetadataSysModule;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
-import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
@@ -275,16 +271,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             entries.addAll(licenseExtension.getNamedXContent());
         }
         return entries;
-    }
-
-    @Override
-    public UnaryOperator<IndexMetadata> getIndexMetadataUpgrader() {
-        return new MetadataIndexUpgrader();
-    }
-
-    @Override
-    public UnaryOperator<Map<String, Custom>> getCustomMetadataUpgrader() {
-        return new CustomMetadataUpgraderLoader(settings);
     }
 
     @Override

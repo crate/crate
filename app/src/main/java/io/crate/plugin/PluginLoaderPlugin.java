@@ -24,9 +24,6 @@ package io.crate.plugin;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -50,8 +47,6 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
-
-    private static final Logger LOGGER = LogManager.getLogger(PluginLoaderPlugin.class);
 
     @VisibleForTesting
     final PluginLoader pluginLoader;
@@ -125,11 +120,6 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
     @Override
     public List<NamedXContentRegistry.Entry> getNamedXContent() {
         return sqlPlugin.getNamedXContent();
-    }
-
-    @Override
-    public UnaryOperator<IndexMetadata> getIndexMetadataUpgrader() {
-        return sqlPlugin.getIndexMetadataUpgrader();
     }
 
     @Override

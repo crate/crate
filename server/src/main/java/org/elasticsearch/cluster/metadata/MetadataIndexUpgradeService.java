@@ -35,11 +35,9 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import java.util.AbstractMap;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.UnaryOperator;
 
 /**
  * This service is responsible for upgrading legacy index metadata to the current version
@@ -57,24 +55,15 @@ public class MetadataIndexUpgradeService {
     private final NamedXContentRegistry xContentRegistry;
     private final MapperRegistry mapperRegistry;
     private final IndexScopedSettings indexScopedSettings;
-    private final UnaryOperator<IndexMetadata> upgraders;
 
     public MetadataIndexUpgradeService(Settings settings,
                                        NamedXContentRegistry xContentRegistry,
                                        MapperRegistry mapperRegistry,
-                                       IndexScopedSettings indexScopedSettings,
-                                       Collection<UnaryOperator<IndexMetadata>> indexMetadataUpgraders) {
+                                       IndexScopedSettings indexScopedSettings) {
         this.settings = settings;
         this.xContentRegistry = xContentRegistry;
         this.mapperRegistry = mapperRegistry;
         this.indexScopedSettings = indexScopedSettings;
-        this.upgraders = indexMetadata -> {
-            IndexMetadata newIndexMetadata = indexMetadata;
-            for (UnaryOperator<IndexMetadata> upgrader : indexMetadataUpgraders) {
-                newIndexMetadata = upgrader.apply(newIndexMetadata);
-            }
-            return newIndexMetadata;
-        };
     }
 
     /**
@@ -90,11 +79,10 @@ public class MetadataIndexUpgradeService {
             return indexMetadata;
         }
         checkSupportedVersion(indexMetadata, minimumIndexCompatibilityVersion);
-        IndexMetadata newMetadata = indexMetadata;
         // we have to run this first otherwise in we try to create IndexSettings
         // with broken settings and fail in checkMappingsCompatibility
-        newMetadata = archiveBrokenIndexSettings(newMetadata);
-        newMetadata = upgraders.apply(newMetadata);
+        final IndexMetadata newMetadata = archiveBrokenIndexSettings(indexMetadata);
+        // only run the check with the upgraded settings!!
         checkMappingsCompatibility(newMetadata);
         return markAsUpgraded(newMetadata);
     }

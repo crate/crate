@@ -29,9 +29,7 @@ import java.util.function.UnaryOperator;
 
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -148,22 +146,6 @@ public abstract class Plugin implements Closeable {
     }
 
     /**
-     * Provides a function to modify global custom meta data on startup.
-     * <p>
-     * Plugins should return the input custom map via {@link UnaryOperator#identity()} if no upgrade is required.
-     * <p>
-     * The order of custom meta data upgraders calls is undefined and can change between runs so, it is expected that
-     * plugins will modify only data owned by them to avoid conflicts.
-     * <p>
-     * @return Never {@code null}. The same or upgraded {@code Metadata.Custom} map.
-     * @throws IllegalStateException if the node should not start because at least one {@code Metadata.Custom}
-     *                               is unsupported
-     */
-    public UnaryOperator<Map<String, Metadata.Custom>> getCustomMetadataUpgrader() {
-        return UnaryOperator.identity();
-    }
-
-    /**
      * Provides a function to modify index template meta data on startup.
      * <p>
      * Plugins should return the input template map via {@link UnaryOperator#identity()} if no upgrade is required.
@@ -176,21 +158,6 @@ public abstract class Plugin implements Closeable {
      *                               cannot be upgraded
      */
     public UnaryOperator<Map<String, IndexTemplateMetadata>> getIndexTemplateMetadataUpgrader() {
-        return UnaryOperator.identity();
-    }
-
-    /**
-     * Provides a function to modify index meta data when an index is introduced into the cluster state for the first time.
-     * <p>
-     * Plugins should return the input index metadata via {@link UnaryOperator#identity()} if no upgrade is required.
-     * <p>
-     * The order of the index upgrader calls for the same index is undefined and can change between runs so, it is expected that
-     * plugins will modify only indices owned by them to avoid conflicts.
-     * <p>
-     * @return Never {@code null}. The same or upgraded {@code IndexMetadata}.
-     * @throws IllegalStateException if the node should not start because the index is unsupported
-     */
-    public UnaryOperator<IndexMetadata> getIndexMetadataUpgrader() {
         return UnaryOperator.identity();
     }
 

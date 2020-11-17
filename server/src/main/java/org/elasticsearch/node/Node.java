@@ -74,7 +74,6 @@ import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.metadata.AliasValidator;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
@@ -447,23 +446,17 @@ public class Node implements Closeable {
                 networkService,
                 eventLoopGroups,
                 client);
-            Collection<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
-                pluginsService.filterPlugins(Plugin.class).stream()
-                    .map(Plugin::getCustomMetadataUpgrader)
-                    .collect(Collectors.toList());
             Collection<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .map(Plugin::getIndexTemplateMetadataUpgrader)
                     .collect(Collectors.toList());
-            Collection<UnaryOperator<IndexMetadata>> indexMetadataUpgraders = pluginsService.filterPlugins(Plugin.class).stream()
-                .map(Plugin::getIndexMetadataUpgrader).collect(Collectors.toList());
-            final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(customMetadataUpgraders,
-                                                                           indexTemplateMetadataUpgraders);
-            final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(settings,
-                                                                                                            xContentRegistry,
-                                                                                                            indicesModule.getMapperRegistry(),
-                                                                                                            settingsModule.getIndexScopedSettings(),
-                                                                                                            indexMetadataUpgraders);
+            final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(indexTemplateMetadataUpgraders);
+            final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
+                settings,
+                xContentRegistry,
+                indicesModule.getMapperRegistry(),
+                settingsModule.getIndexScopedSettings()
+            );
             new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetadataUpgraders);
             final Transport transport = networkModule.getTransportSupplier().get();
             final TransportService transportService = newTransportService(
