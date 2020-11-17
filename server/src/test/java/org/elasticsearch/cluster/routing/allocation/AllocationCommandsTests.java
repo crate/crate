@@ -61,6 +61,7 @@ import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationComm
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -650,7 +651,6 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
     }
 
     @Test
-    @Ignore("Likely a backport missing. Will follow up on this")
     public void testConflictingCommandsInSingleRequest() {
         AllocationService allocation = createAllocationService(Settings.builder()
             .put(EnableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING.getKey(), "none")
@@ -666,6 +666,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
+                    .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                     .build()
                 ).numberOfShards(1).numberOfReplicas(1)
                 .putInSyncAllocationIds(0, Collections.singleton("randomAllocID"))
@@ -674,6 +675,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
+                    .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                     .build()
                 ).numberOfShards(1).numberOfReplicas(1)
                 .putInSyncAllocationIds(0, Collections.singleton("randomAllocID"))
@@ -682,6 +684,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
+                    .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                     .build()
                 ).numberOfShards(1).numberOfReplicas(1)
                 .putInSyncAllocationIds(0, Collections.singleton("randomAllocID"))
