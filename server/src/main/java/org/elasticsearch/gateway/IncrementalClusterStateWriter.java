@@ -19,13 +19,20 @@
 
 package org.elasticsearch.gateway;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
+
+import io.crate.common.unit.TimeValue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,11 +41,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.LongSupplier;
 
 /**
  * Tracks the metadata written to disk, allowing updated metadata to be written incrementally (i.e. only writing out the changed metadata).
  */
-class IncrementalClusterStateWriter {
+public class IncrementalClusterStateWriter {
+
+    private static final Logger LOGGER = LogManager.getLogger(IncrementalClusterStateWriter.class);
+
+    public static final Setting<TimeValue> SLOW_WRITE_LOGGING_THRESHOLD = Setting.timeSetting("gateway.slow_write_logging_threshold",
+        TimeValue.timeValueSeconds(10), TimeValue.ZERO, Setting.Property.NodeScope, Setting.Property.Dynamic);
 
     private final MetaStateService metaStateService;
 
@@ -47,13 +60,24 @@ class IncrementalClusterStateWriter {
     // no need to synchronize access to these fields.
     private Manifest previousManifest;
     private ClusterState previousClusterState;
+    private final LongSupplier relativeTimeMillisSupplier;
     private boolean incrementalWrite;
 
-    IncrementalClusterStateWriter(MetaStateService metaStateService, Manifest manifest, ClusterState clusterState) {
+    private volatile TimeValue slowWriteLoggingThreshold;
+
+    IncrementalClusterStateWriter(Settings settings, ClusterSettings clusterSettings, MetaStateService metaStateService, Manifest manifest,
+                                  ClusterState clusterState, LongSupplier relativeTimeMillisSupplier) {
         this.metaStateService = metaStateService;
         this.previousManifest = manifest;
         this.previousClusterState = clusterState;
+        this.relativeTimeMillisSupplier = relativeTimeMillisSupplier;
         this.incrementalWrite = false;
+        this.slowWriteLoggingThreshold = SLOW_WRITE_LOGGING_THRESHOLD.get(settings);
+        clusterSettings.addSettingsUpdateConsumer(SLOW_WRITE_LOGGING_THRESHOLD, this::setSlowWriteLoggingThreshold);
+    }
+
+    private void setSlowWriteLoggingThreshold(TimeValue slowWriteLoggingThreshold) {
+        this.slowWriteLoggingThreshold = slowWriteLoggingThreshold;
     }
 
     void setCurrentTerm(long currentTerm) throws WriteStateException {
@@ -86,14 +110,26 @@ class IncrementalClusterStateWriter {
     void updateClusterState(ClusterState newState, ClusterState previousState) throws WriteStateException {
         Metadata newMetadata = newState.metadata();
 
+        final long startTimeMillis = relativeTimeMillisSupplier.getAsLong();
+
         final AtomicClusterStateWriter writer = new AtomicClusterStateWriter(metaStateService, previousManifest);
         long globalStateGeneration = writeGlobalState(writer, newMetadata);
         Map<Index, Long> indexGenerations = writeIndicesMetadata(writer, newState, previousState);
         Manifest manifest = new Manifest(previousManifest.getCurrentTerm(), newState.version(), globalStateGeneration, indexGenerations);
         writeManifest(writer, manifest);
-
         previousManifest = manifest;
         previousClusterState = newState;
+
+        final long durationMillis = relativeTimeMillisSupplier.getAsLong() - startTimeMillis;
+        final TimeValue finalSlowWriteLoggingThreshold = this.slowWriteLoggingThreshold;
+        if (durationMillis >= finalSlowWriteLoggingThreshold.getMillis()) {
+            LOGGER.warn("writing cluster state took [{}ms] which is above the warn threshold of [{}]; " +
+                    "wrote metadata for [{}] indices and skipped [{}] unchanged indices",
+                durationMillis, finalSlowWriteLoggingThreshold, writer.getIndicesWritten(), writer.getIndicesSkipped());
+        } else {
+            LOGGER.debug("writing cluster state took [{}ms]; wrote metadata for [{}] indices and skipped [{}] unchanged indices",
+                durationMillis, writer.getIndicesWritten(), writer.getIndicesSkipped());
+        }
     }
 
     private void writeManifest(AtomicClusterStateWriter writer, Manifest manifest) throws WriteStateException {
@@ -257,6 +293,9 @@ class IncrementalClusterStateWriter {
         private final MetaStateService metaStateService;
         private boolean finished;
 
+        private int indicesWritten;
+        private int indicesSkipped;
+
         AtomicClusterStateWriter(MetaStateService metaStateService, Manifest previousManifest) {
             this.metaStateService = metaStateService;
             assert previousManifest != null;
@@ -321,6 +360,22 @@ class IncrementalClusterStateWriter {
             rollbackCleanupActions.forEach(Runnable::run);
             finished = true;
         }
+
+        void incrementIndicesWritten() {
+            indicesWritten++;
+        }
+
+        void incrementIndicesSkipped() {
+            indicesSkipped++;
+        }
+
+        int getIndicesWritten() {
+            return indicesWritten;
+        }
+
+        int getIndicesSkipped() {
+            return indicesSkipped;
+        }
     }
 
     static class KeepPreviousGeneration implements IndexMetadataAction {
@@ -339,6 +394,7 @@ class IncrementalClusterStateWriter {
 
         @Override
         public long execute(AtomicClusterStateWriter writer) {
+            writer.incrementIndicesSkipped();
             return generation;
         }
     }
@@ -357,6 +413,7 @@ class IncrementalClusterStateWriter {
 
         @Override
         public long execute(AtomicClusterStateWriter writer) throws WriteStateException {
+            writer.incrementIndicesWritten();
             return writer.writeIndex("freshly created", indexMetadata);
         }
     }
@@ -377,6 +434,7 @@ class IncrementalClusterStateWriter {
 
         @Override
         public long execute(AtomicClusterStateWriter writer) throws WriteStateException {
+            writer.incrementIndicesWritten();
             return writer.writeIndex(
                     "version changed from [" + oldIndexMetadata.getVersion() + "] to [" + newIndexMetadata.getVersion() + "]",
                     newIndexMetadata);
