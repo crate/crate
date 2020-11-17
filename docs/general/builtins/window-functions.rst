@@ -658,6 +658,59 @@ Example::
     +-----------------+---------------+--------+-------------+
     SELECT 6 rows in set (... sec)
 
+
+.. _window-function-dense_rank:
+
+``dense_rank()``
+----------------
+
+.. NOTE::
+
+    The ``dense_rank`` window function is an :ref:`enterprise feature
+    <enterprise-features>`.
+
+Synopsis
+........
+
+::
+
+    dense_rank()
+
+Returns the rank of every row within a partition of a result set, similar to
+``rank``. However, unlike ``rank``, ``dense_rank`` always returns sequential
+rank values.
+
+Within each partition, the rank of the first row is ``1``. Subsequent tied
+rows are given the same rank.
+
+Example::
+
+    cr> SELECT
+    ...   name,
+    ...   department_id,
+    ...   salary,
+    ...   DENSE_RANK() OVER (ORDER BY salary desc) as salary_rank
+    ... FROM (VALUES
+    ...      ('Bobson Dugnutt', 1, 2000),
+    ...      ('Todd Bonzalez', 2, 2500),
+    ...      ('Jess Brewer', 1, 2500),
+    ...      ('Safwan Buchanan', 1, 1900),
+    ...      ('Hal Dodd', 1, 2500),
+    ...      ('Gillian Hawes', 2, 2000))
+    ... as t (name, department_id, salary);
+    +-----------------+---------------+--------+-------------+
+    | name            | department_id | salary | salary_rank |
+    +-----------------+---------------+--------+-------------+
+    | Todd Bonzalez   |             2 |   2500 |           1 |
+    | Jess Brewer     |             1 |   2500 |           1 |
+    | Hal Dodd        |             1 |   2500 |           1 |
+    | Bobson Dugnutt  |             1 |   2000 |           2 |
+    | Gillian Hawes   |             2 |   2000 |           2 |
+    | Safwan Buchanan |             1 |   1900 |           3 |
+    +-----------------+---------------+--------+-------------+
+    SELECT 6 rows in set (... sec)
+
+
 Aggregate Window Functions
 ==========================
 

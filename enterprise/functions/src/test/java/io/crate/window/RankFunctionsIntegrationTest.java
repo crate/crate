@@ -32,7 +32,7 @@ import java.util.Collection;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
-public class RankFunctionIntegrationTest extends SQLTransportIntegrationTest {
+public class RankFunctionsIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -44,16 +44,17 @@ public class RankFunctionIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testGeneralPurposeWindowFunctionsWithStandaloneValues() {
         execute("select col1, col2, " +
-                "rank() OVER(partition by col2 order by col1) " +
+                "rank() OVER (partition by col2 order by col1), " +
+                "dense_rank() OVER (partition by col2 order by col1)" +
                 "from unnest(['A', 'B', 'C', 'A', 'B', 'C', 'A'], [True, True, False, True, False, True, False]) " +
                 "order by col2, col1");
-        assertThat(printedTable(response.rows()), is("A| false| 1\n" +
-                                                     "B| false| 2\n" +
-                                                     "C| false| 3\n" +
-                                                     "A| true| 1\n" +
-                                                     "A| true| 1\n" +
-                                                     "B| true| 3\n" +
-                                                     "C| true| 4\n"));
+        assertThat(printedTable(response.rows()), is("A| false| 1| 1\n" +
+                                                     "B| false| 2| 2\n" +
+                                                     "C| false| 3| 3\n" +
+                                                     "A| true| 1| 1\n" +
+                                                     "A| true| 1| 1\n" +
+                                                     "B| true| 3| 2\n" +
+                                                     "C| true| 4| 3\n"));
     }
 
 }

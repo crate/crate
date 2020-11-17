@@ -32,9 +32,9 @@ import java.util.List;
 import static org.hamcrest.Matchers.contains;
 
 
-public class RankFunctionTest extends AbstractWindowFunctionTest {
+public class RankFunctionsTest extends AbstractWindowFunctionTest {
 
-    public RankFunctionTest() {
+    public RankFunctionsTest() {
         super(new EnterpriseFunctionsModule());
     }
 
@@ -101,6 +101,79 @@ public class RankFunctionTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3};
         assertEvaluate(
             "rank() over(partition by y > 0 order by x)",
+            contains(expected),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {3, 1},
+            new Object[] {1, 0},
+            new Object[] {2, 0},
+            new Object[] {3, 0});
+    }
+
+    @Test
+    public void testDenseRankWithEmptyOver() throws Throwable {
+        assertEvaluate(
+            "dense_rank() over()",
+            contains(new Object[] {1, 1, 1, 1, 1}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {1, 1},
+            new Object[] {1, 0},
+            new Object[] {2, 1}
+        );
+    }
+
+
+    @Test
+    public void testDenseRankWithOrderByClause() throws Throwable {
+        assertEvaluate(
+            "dense_rank() over(order by x)",
+            contains(new Object[] {1, 1, 1, 2, 2}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {1, 1},
+            new Object[] {1, 0},
+            new Object[] {2, 1}
+        );
+    }
+
+    @Test
+    public void testDenseRankUseSymbolMultipleTimes() throws Throwable {
+        assertEvaluate(
+            "dense_rank() over(order by y, x)",
+            contains(new Object[] {1, 2, 2, 3, 3}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {1, 1},
+            new Object[] {1, 0},
+            new Object[] {2, 1}
+        );
+    }
+
+    @Test
+    public void testDenseRankOverPartitionedWindow() throws Throwable {
+        Object[] expected = new Object[]{1, 1, 1, 1, 1, 1};
+        assertEvaluate(
+            "dense_rank() over(partition by y > 0)",
+            contains(expected),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {3, 1},
+            new Object[] {1, 0},
+            new Object[] {2, 0},
+            new Object[] {3, 0});
+    }
+
+    @Test
+    public void testDenseRankOverPartitionedOrderedWindow() throws Throwable {
+        Object[] expected = new Object[]{1, 2, 3, 1, 2, 3};
+        assertEvaluate(
+            "dense_rank() over(partition by y > 0 order by x)",
             contains(expected),
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
