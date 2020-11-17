@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Added support for the ``dense_rank`` window function, which is available as an
+  enterprise feature.
+
 - Added support for the ``rank`` window function, which is available as an
   enterprise feature.
 

@@ -28,20 +28,24 @@ import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+import java.util.function.IntBinaryOperator;
 
 
 public class RankFunctions implements WindowFunction {
 
     private static final String RANK_NAME = "rank";
+    private static final String DENSE_RANK_NAME = "dense_rank";
 
     private final Signature signature;
     private final Signature boundSignature;
-    private int seenLastUpperBound;
+    private int seenLastUpperBound = -1;
     private int rank;
+    private final IntBinaryOperator rankIncrementor;
 
-    private RankFunctions(Signature signature, Signature boundSignature) {
+    private RankFunctions(Signature signature, Signature boundSignature, IntBinaryOperator rankIncrementor) {
         this.signature = signature;
         this.boundSignature = boundSignature;
+        this.rankIncrementor = rankIncrementor;
     }
 
     @Override
@@ -65,7 +69,7 @@ public class RankFunctions implements WindowFunction {
         }
 
         if (currentFrame.upperBoundExclusive() != seenLastUpperBound) {
-            rank = seenLastUpperBound + 1;
+            rank = rankIncrementor.applyAsInt(rank, seenLastUpperBound);
             seenLastUpperBound = currentFrame.upperBoundExclusive();
         }
 
@@ -79,7 +83,25 @@ public class RankFunctions implements WindowFunction {
                 RANK_NAME,
                 DataTypes.INTEGER.getTypeSignature()
                 ),
-            RankFunctions::new
+            (signature, boundSignature) ->
+                new RankFunctions(
+                    signature,
+                    boundSignature,
+                    (rank, upperBound) -> upperBound + 1
+                )
+        );
+
+        module.register(
+            Signature.window(
+                DENSE_RANK_NAME,
+                DataTypes.INTEGER.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new RankFunctions(
+                    signature,
+                    boundSignature,
+                    (rank, upperBound) -> rank + 1
+                )
         );
     }
 }
