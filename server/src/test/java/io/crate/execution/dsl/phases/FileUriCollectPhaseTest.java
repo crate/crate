@@ -23,6 +23,7 @@
 package io.crate.execution.dsl.phases;
 
 
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
@@ -54,7 +55,7 @@ public class FileUriCollectPhaseTest {
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true),
+            new CopyFromParserProperties(true, '|'),
             FileUriCollectPhase.InputFormat.CSV
         );
 
@@ -74,6 +75,9 @@ public class FileUriCollectPhaseTest {
         // parser properties option serialization implemented in crate >= 4.4.0
         assertThat(expected.parserProperties().emptyStringAsNull(), is(true));
         assertThat(actual.parserProperties().emptyStringAsNull(), is(false));
+
+        assertThat(actual.parserProperties().columnSeparator(), is(CsvSchema.DEFAULT_COLUMN_SEPARATOR));
+
         assertThat(expected.inputFormat(), is(actual.inputFormat()));
         assertThat(expected.compression(), is(actual.compression()));
         assertThat(expected.sharedStorage(), is(actual.sharedStorage()));
@@ -91,7 +95,7 @@ public class FileUriCollectPhaseTest {
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true),
+            new CopyFromParserProperties(true, '|'),
             FileUriCollectPhase.InputFormat.CSV
         );
 
@@ -104,6 +108,7 @@ public class FileUriCollectPhaseTest {
         var actual = new FileUriCollectPhase(input);
 
         assertThat(expected.parserProperties().emptyStringAsNull(), is(true));
+        assertThat(actual.parserProperties().columnSeparator(), is('|'));
         assertThat(expected, is(actual));
     }
 }
