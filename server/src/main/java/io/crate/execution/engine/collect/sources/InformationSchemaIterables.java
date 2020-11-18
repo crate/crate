@@ -21,6 +21,29 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import static java.util.Collections.emptyList;
+import static java.util.stream.Stream.concat;
+import static java.util.stream.StreamSupport.stream;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.PrimitiveIterator;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
@@ -39,7 +62,6 @@ import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.functions.Signature;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -51,32 +73,9 @@ import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
-import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.PrimitiveIterator;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
-import static java.util.Collections.emptyList;
-import static java.util.stream.Stream.concat;
-import static java.util.stream.StreamSupport.stream;
+import io.crate.types.Regproc;
 
 public class InformationSchemaIterables implements ClusterStateListener {
 
@@ -167,32 +166,14 @@ public class InformationSchemaIterables implements ClusterStateListener {
             Stream.concat(
                 sequentialStream(PGTypes.pgTypes())
                     .filter(t -> t.typArray() != 0)
-                    .map(InformationSchemaIterables::typeToSignature)
+                    .map(x -> x.typReceive().asDummySignature())
                     .map(PgProcTable.Entry::of),
 
                 // Don't generate array_recv entry from pgTypes to avoid duplicate entries
                 // (We want 1 array_recv entry, not one per array type)
-                Stream.of(
-                    PgProcTable.Entry.of(
-                        Signature.scalar(
-                            "array_recv",
-                            DataTypes.INTEGER.getTypeSignature(),
-                            new ArrayType<>(DataTypes.UNDEFINED).getTypeSignature()
-                        )
-                    )
-                )
+                Stream.of(PgProcTable.Entry.of(Regproc.of("array_recv").asDummySignature()))
             )
             .iterator();
-    }
-
-    private static Signature typeToSignature(PGType<?> type) {
-        return Signature.scalar(
-            type.typReceive().name(),
-            Objects.requireNonNullElse(
-                PGTypes.fromOID(type.oid()),
-                DataTypes.UNDEFINED
-            ).getTypeSignature()
-        );
     }
 
 
