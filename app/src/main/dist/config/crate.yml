@@ -13,8 +13,8 @@
 ################################ Quick Settings ##############################
 
 # Recommended memory settings:
-# - set the environment variable CRATE_HEAP_SIZE to half of your memory
-#   (e.g. 26G, but not more than ~30G to benefit from CompressedOops).
+# - set the environment variable CRATE_HEAP_SIZE to 25% of your memory
+#   (e.g. 16G, but not more than ~30G to benefit from CompressedOops).
 #   Depending on the OS update '/etc/default/crate' or '/etc/sysconfig/crate'
 #
 #   See https://crate.io/docs/crate/howtos/en/latest/performance/memory.html
