@@ -69,14 +69,6 @@ public final class OidHash {
         return oid(Type.CONSTRAINT.toString() + relationName + constraintName + constraintType);
     }
 
-    public static int regprocOid(FunctionName name) {
-        return oid(Type.PROC.toString() + name.schema() + name.name());
-    }
-
-    public static int regprocOid(String name) {
-        return oid(Type.PROC.toString() + "null" + name);
-    }
-
     public static int functionOid(Signature sig) {
         FunctionName name = sig.getName();
         return oid(Type.PROC.toString() + name.schema() + name.name() + argTypesToStr(sig.getArgumentTypes()));
