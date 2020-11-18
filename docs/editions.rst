@@ -74,6 +74,10 @@ Enterprise features
 
   - :ref:`window-function-nthvalue`
 
+  - :ref:`window-function-rank`
+
+  - :ref:`window-function-dense_rank`
+
 
 .. _node-limitations:
 

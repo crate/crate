@@ -473,7 +473,7 @@ public class Node implements Closeable {
                 localNodeFactory,
                 settingsModule.getClusterSettings()
             );
-            final GatewayMetaState gatewayMetaState = new GatewayMetaState(settings, metaStateService);
+            final GatewayMetaState gatewayMetaState = new GatewayMetaState();
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
 
@@ -689,8 +689,14 @@ public class Node implements Closeable {
 
         // Load (and maybe upgrade) the metadata stored on disk
         final GatewayMetaState gatewayMetaState = injector.getInstance(GatewayMetaState.class);
-        gatewayMetaState.start(transportService, clusterService,
-            injector.getInstance(MetadataIndexUpgradeService.class), injector.getInstance(MetadataUpgrader.class));
+        gatewayMetaState.start(
+            settings(),
+            transportService,
+            clusterService,
+            injector.getInstance(MetaStateService.class),
+            injector.getInstance(MetadataIndexUpgradeService.class),
+            injector.getInstance(MetadataUpgrader.class)
+        );
         // we load the global state here (the persistent part of the cluster state stored on disk) to
         // pass it to the bootstrap checks to allow plugins to enforce certain preconditions based on the recovered state.
         final Metadata onDiskMetadata = gatewayMetaState.getPersistedState().getLastAcceptedState().metadata();

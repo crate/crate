@@ -31,6 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 import java.io.IOException;
 import java.util.Objects;
 
+import static io.crate.analyze.CopyStatementSettings.CSV_COLUMN_SEPARATOR;
 import static io.crate.analyze.CopyStatementSettings.EMPTY_STRING_AS_NULL;
 
 
@@ -39,29 +40,39 @@ public class CopyFromParserProperties implements Writeable {
     public static final CopyFromParserProperties DEFAULT = CopyFromParserProperties.of(Settings.EMPTY);
 
     private final boolean emptyStringAsNull;
+    private final char columnSeparator;
 
     public static CopyFromParserProperties of(Settings settings) {
         return new CopyFromParserProperties(
-            settings.getAsBoolean(EMPTY_STRING_AS_NULL.getKey(), false)
+            EMPTY_STRING_AS_NULL.get(settings),
+            CSV_COLUMN_SEPARATOR.get(settings)
         );
     }
 
     @VisibleForTesting
-    public CopyFromParserProperties(boolean emptyStringAsNull) {
+    public CopyFromParserProperties(boolean emptyStringAsNull,
+                                    char columnSeparator) {
         this.emptyStringAsNull = emptyStringAsNull;
+        this.columnSeparator = columnSeparator;
     }
 
     public CopyFromParserProperties(StreamInput in) throws IOException {
         emptyStringAsNull = in.readBoolean();
+        columnSeparator = (char) in.readByte();
     }
 
     public boolean emptyStringAsNull() {
         return emptyStringAsNull;
     }
 
+    public char columnSeparator() {
+        return columnSeparator;
+    }
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeBoolean(emptyStringAsNull);
+        out.writeByte((byte) columnSeparator);
     }
 
     @Override
@@ -73,18 +84,20 @@ public class CopyFromParserProperties implements Writeable {
             return false;
         }
         CopyFromParserProperties that = (CopyFromParserProperties) o;
-        return emptyStringAsNull == that.emptyStringAsNull;
+        return emptyStringAsNull == that.emptyStringAsNull &&
+               columnSeparator == that.columnSeparator;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(emptyStringAsNull);
+        return Objects.hash(emptyStringAsNull, columnSeparator);
     }
 
     @Override
     public String toString() {
         return "CopyFromParserProperties{" +
                "emptyStringAsNull=" + emptyStringAsNull +
+               ", columnSeparator=" + columnSeparator +
                '}';
     }
 }
