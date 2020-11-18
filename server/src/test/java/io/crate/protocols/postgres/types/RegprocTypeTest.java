@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
@@ -42,19 +43,16 @@ public class RegprocTypeTest extends BasePGTypeTest<Regproc> {
 
     @Test
     public void test_write_binary_value_writes_only_oid() {
-        var regproc = Regproc.of(
-            OidHash.regprocOid("test"),
-            String.valueOf(OidHash.regprocOid("test"))
-        );
+        var regproc = Regproc.of(1234, "1234");
         assertBytesWritten(
             regproc,
-            new byte[]{0, 0, 0, 4, -110, -89, 1, 103},
+            new byte[]{0, 0, 0, 4,0, 0, 4, -46},
             RegprocType.INSTANCE.typeLen() + INT32_BYTE_SIZE);
     }
 
     @Test
     public void test_read_binary_value_reads_only_oid() {
-        var oid = OidHash.regprocOid("func");
+        var oid = 1234;
         var regproc = Regproc.of(oid, String.valueOf(oid));
         assertBytesReadBinary(
             ByteBuffer.allocate(4).putInt(regproc.oid()).array(),
