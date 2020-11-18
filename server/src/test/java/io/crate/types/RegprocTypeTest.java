@@ -22,25 +22,27 @@
 
 package io.crate.types;
 
-import io.crate.metadata.pgcatalog.OidHash;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import static io.crate.types.DataTypes.REGPROC;
+import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Set;
 
-import static io.crate.types.DataTypes.REGPROC;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.metadata.pgcatalog.OidHash;
 
 public class RegprocTypeTest extends ESTestCase {
 
     @Test
     public void test_implicit_cast_regproc_to_integer() {
+        Regproc proc = Regproc.of("func");
         assertThat(
-            DataTypes.INTEGER.implicitCast(Regproc.of("func")),
-            is(OidHash.regprocOid("func")));
+            DataTypes.INTEGER.implicitCast(proc),
+            is(OidHash.functionOid(proc.asDummySignature())));
     }
 
     @Test

@@ -58,6 +58,12 @@ None
 Fixes
 =====
 
+- Fixed an issue that resulted in records in ``pg_catalog.pg_proc`` which
+  wouldn't be joined with ``pg_catalog.pg_type``. Clients like ``npgsql`` use
+  this information and without it the users received an error like ``The CLR
+  array type System.Int32[] isn't supported by Npgsql or your PostgreSQL`` if
+  using array types.
+
 - Fixed an issue that could lead to stuck ``INSERT INTO .. RETURNING`` queries.
 
 - Fixed a regression introduced in CrateDB >= ``4.3`` which prevents using

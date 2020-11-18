@@ -22,6 +22,7 @@
 
 package io.crate.types;
 
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
 
 import javax.annotation.Nonnull;
@@ -33,7 +34,10 @@ public class Regproc {
     private final String name;
 
     public static Regproc of(@Nonnull String name) {
-        return new Regproc(OidHash.regprocOid(name), name);
+        return new Regproc(
+            OidHash.functionOid(Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature())),
+            name
+        );
     }
 
     public static Regproc of(int functionOid, @Nonnull String name) {
@@ -48,6 +52,10 @@ public class Regproc {
     private Regproc(int functionOid, String name) {
         this.oid = functionOid;
         this.name = name;
+    }
+
+    public Signature asDummySignature() {
+        return Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature());
     }
 
     public int oid() {
