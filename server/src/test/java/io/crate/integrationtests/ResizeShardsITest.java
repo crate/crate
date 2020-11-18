@@ -44,7 +44,7 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
             "   id integer," +
             "   quote string," +
             "   date timestamp with time zone" +
-            ") clustered into 3 shards");
+            ") clustered into 3 shards with (number_of_replicas = 1)");
         ensureYellow();
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
@@ -78,7 +78,7 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
             "   id integer," +
             "   quote string," +
             "   date timestamp with time zone" +
-            ") clustered into 3 shards");
+            ") clustered into 3 shards with (number_of_replicas = 1)");
         ensureYellow();
 
         final String resizeIndex = ".resized." + getFqn("quotes");
@@ -104,7 +104,7 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
     @Test
     public void testShrinkShardsOfPartition() {
         execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
-                "partitioned by(date) clustered into 3 shards");
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas = 1)");
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{
                 1, "Don't panic", 1395874800000L,
@@ -135,7 +135,8 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testNumberOfShardsOfATableCanBeIncreased() {
-        execute("create table t1 (x int, p int) clustered into 1 shards with (number_of_routing_shards = 10)");
+        execute("create table t1 (x int, p int) clustered into 1 shards " +
+                "with (number_of_replicas = 1, number_of_routing_shards = 10)");
         execute("insert into t1 (x, p) values (1, 1), (2, 1)");
 
         execute("alter table t1 set (\"blocks.write\" = true)");
@@ -152,7 +153,7 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
     @Test
     public void testNumberOfShardsOfAPartitionCanBeIncreased() {
         execute("create table t1 (x int, p int) partitioned by (p) clustered into 1 shards " +
-                "with (number_of_routing_shards = 10)");
+                "with (number_of_replicas = 1, number_of_routing_shards = 10)");
         execute("insert into t1 (x, p) values (1, 1), (2, 1)");
         execute("alter table t1 partition (p = 1) set (\"blocks.write\" = true)");
 
