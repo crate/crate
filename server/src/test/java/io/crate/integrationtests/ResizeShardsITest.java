@@ -38,14 +38,13 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testShrinkShardsOfTable() {
+    public void testShrinkShardsOfTable() throws Exception {
         execute(
             "create table quotes (" +
             "   id integer," +
             "   quote string," +
             "   date timestamp with time zone" +
             ") clustered into 3 shards with (number_of_replicas = 1)");
-        ensureYellow();
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{
@@ -60,7 +59,16 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
 
         execute("alter table quotes set (\"routing.allocation.require._name\"=?, \"blocks.write\"=?)",
             $(resizeNodeName, true));
-        ensureYellowAndNoInitializingShards();
+        assertBusy(() -> {
+            execute(
+                "select count(*) from sys.shards where " +
+                "table_name = 'quotes' " +
+                "and state = 'STARTED' " +
+                "and node['name'] = ?",
+                new Object[] { resizeNodeName }
+            );
+            assertThat(response.rows()[0][0], is(3L));
+        });
 
         execute("alter table quotes set (number_of_shards=?)", $(1));
         ensureYellow();
@@ -72,14 +80,13 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testShrinkShardsEnsureLeftOverIndicesAreRemoved() {
+    public void testShrinkShardsEnsureLeftOverIndicesAreRemoved() throws Exception {
         execute(
             "create table quotes (" +
             "   id integer," +
             "   quote string," +
             "   date timestamp with time zone" +
             ") clustered into 3 shards with (number_of_replicas = 1)");
-        ensureYellow();
 
         final String resizeIndex = ".resized." + getFqn("quotes");
         createIndex(resizeIndex);
@@ -91,7 +98,16 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
 
         execute("alter table quotes set (\"routing.allocation.require._name\"=?, \"blocks.write\"=?)",
             $(resizeNodeName, true));
-        ensureYellowAndNoInitializingShards();
+        assertBusy(() -> {
+            execute(
+                "select count(*) from sys.shards where " +
+                "table_name = 'quotes' " +
+                "and state = 'STARTED' " +
+                "and node['name'] = ?",
+                new Object[] { resizeNodeName }
+            );
+            assertThat(response.rows()[0][0], is(3L));
+        });
 
         execute("alter table quotes set (number_of_shards=?)", $(1));
 
@@ -102,7 +118,7 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testShrinkShardsOfPartition() {
+    public void testShrinkShardsOfPartition() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas = 1)");
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
@@ -110,7 +126,6 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
                 1, "Don't panic", 1395874800000L,
                 2, "Now panic", 1395961200000L}
         );
-        ensureYellow();
         execute("refresh table quotes");
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
@@ -119,8 +134,17 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
         execute("alter table quotes partition (date=1395874800000) " +
                 "set (\"routing.allocation.require._name\"=?, \"blocks.write\"=?)",
             $(resizeNodeName, true));
-        ensureYellowAndNoInitializingShards();
-
+        assertBusy(() -> {
+            execute(
+                "select count(*) from sys.shards where " +
+                "table_name = 'quotes' " +
+                "and partition_ident = '04732cpp6ks3ed1o60o30c1g' " +
+                "and state = 'STARTED' " +
+                "and node['name'] = ?",
+                new Object[] { resizeNodeName }
+            );
+            assertThat(response.rows()[0][0], is(3L));
+        });
         execute("alter table quotes partition (date=1395874800000) set (number_of_shards=?)",
             $(1));
         ensureYellow();
