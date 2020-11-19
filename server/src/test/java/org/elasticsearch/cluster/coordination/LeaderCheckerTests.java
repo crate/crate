@@ -51,9 +51,12 @@ import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_TIMEOUT_SETTING;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.matchesRegex;
 import static org.hamcrest.Matchers.nullValue;
 
 public class LeaderCheckerTests extends ESTestCase {
@@ -149,7 +152,10 @@ public class LeaderCheckerTests extends ESTestCase {
         final AtomicBoolean leaderFailed = new AtomicBoolean();
 
         final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService,
-            () -> assertTrue(leaderFailed.compareAndSet(false, true)));
+            e -> {
+                assertThat(e.getMessage(), matchesRegex("node \\[.*\\] failed \\[[1-9][0-9]*\\] consecutive checks"));
+                assertTrue(leaderFailed.compareAndSet(false, true));
+            });
 
         logger.info("--> creating first checker");
         leaderChecker.updateLeader(leader1);
@@ -254,7 +260,10 @@ public class LeaderCheckerTests extends ESTestCase {
 
         final AtomicBoolean leaderFailed = new AtomicBoolean();
         final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService,
-            () -> assertTrue(leaderFailed.compareAndSet(false, true)));
+            e -> {
+                assertThat(e.getMessage(), anyOf(endsWith("disconnected"), endsWith("disconnected during check")));
+                assertTrue(leaderFailed.compareAndSet(false, true));
+            });
 
         leaderChecker.updateLeader(leader);
         {
@@ -328,7 +337,7 @@ public class LeaderCheckerTests extends ESTestCase {
         transportService.start();
         transportService.acceptIncomingRequests();
 
-        final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService, () -> fail("shouldn't be checking anything"));
+        final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService, e -> fail("shouldn't be checking anything"));
 
         final DiscoveryNodes discoveryNodes
             = DiscoveryNodes.builder().add(localNode).localNodeId(localNode.getId()).masterNodeId(localNode.getId()).build();
