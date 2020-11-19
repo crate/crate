@@ -68,6 +68,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterModule;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.InternalClusterInfoService;
@@ -250,8 +251,9 @@ public class Node implements Closeable {
 
             nodeEnvironment = new NodeEnvironment(tmpSettings, environment);
             resourcesToClose.add(nodeEnvironment);
-            logger.info("node name [{}], node ID [{}]",
-                        NODE_NAME_SETTING.get(tmpSettings), nodeEnvironment.nodeId());
+            logger.info("node name [{}], node ID [{}], cluster name [{}]",
+                    NODE_NAME_SETTING.get(tmpSettings), nodeEnvironment.nodeId(),
+                    ClusterName.CLUSTER_NAME_SETTING.get(tmpSettings).value());
 
             final JvmInfo jvmInfo = JvmInfo.jvmInfo();
             logVersion(logger, jvmInfo);
