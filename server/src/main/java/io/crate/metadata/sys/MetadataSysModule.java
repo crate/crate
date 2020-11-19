@@ -33,7 +33,6 @@ public class MetadataSysModule extends AbstractModule {
     protected void configure() {
         schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
         schemaBinder.addBinding(SysSchemaInfo.NAME).to(SysSchemaInfo.class).asEagerSingleton();
-        bind(TableHealthService.class).asEagerSingleton();
         bind(SysTableDefinitions.class).asEagerSingleton();
     }
 }

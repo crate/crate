@@ -23,8 +23,15 @@
 package io.crate.metadata.sys;
 
 import io.crate.metadata.IndexParts;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.health.ClusterIndexHealth;
+import org.elasticsearch.cluster.health.ClusterStateHealth;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.StreamSupport;
+
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 class TableHealth {
 
@@ -37,6 +44,42 @@ class TableHealth {
             return (short) (ordinal() + 1);
         }
     }
+
+    public static CompletableFuture<Iterable<TableHealth>> compute(ClusterState clusterState) {
+        var clusterHealth = new ClusterStateHealth(clusterState);
+        return completedFuture(
+            StreamSupport.stream(clusterHealth.spliterator(), false)
+                .filter(i -> IndexParts.isDangling(i.getIndex()) == false)
+                .map(TableHealth::map)::iterator
+        );
+    }
+
+    private static TableHealth map(ClusterIndexHealth indexHealth) {
+        var indexParts = new IndexParts(indexHealth.getIndex());
+        String partitionIdent = null;
+        if (indexParts.isPartitioned()) {
+            partitionIdent = indexParts.getPartitionIdent();
+        }
+
+        int missingPrimaryShards = Math.max(
+            0,
+            indexHealth.getNumberOfShards() - indexHealth.getActivePrimaryShards()
+        );
+        int underreplicatedShards = Math.max(
+            0,
+            indexHealth.getUnassignedShards() + indexHealth.getInitializingShards() - missingPrimaryShards
+        );
+
+        return new TableHealth(
+            indexParts.getTable(),
+            indexParts.getSchema(),
+            partitionIdent,
+            TableHealth.Health.valueOf(indexHealth.getStatus().name()),
+            missingPrimaryShards,
+            underreplicatedShards
+        );
+    }
+
 
     private final String tableName;
     private final String tableSchema;

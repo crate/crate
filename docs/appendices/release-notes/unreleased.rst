@@ -53,6 +53,8 @@ None
 Changes
 =======
 
+- Improved the performance of queries on the ``sys.health`` table.
+
 - Added support for the ``dense_rank`` window function, which is available as an
   enterprise feature.
 
