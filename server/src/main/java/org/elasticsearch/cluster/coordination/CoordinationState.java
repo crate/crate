@@ -427,6 +427,10 @@ public class CoordinationState {
         assert publishVotes.isEmpty() || electionWon();
     }
 
+    public void close() {
+        persistedState.close();
+    }
+
     /**
      * Pluggable persistence layer for {@link CoordinationState}.
      *
@@ -485,6 +489,9 @@ public class CoordinationState {
             if (metadataBuilder != null) {
                 setLastAcceptedState(ClusterState.builder(lastAcceptedState).metadata(metadataBuilder).build());
             }
+        }
+
+        default void close() {
         }
     }
 
