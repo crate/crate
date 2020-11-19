@@ -61,8 +61,7 @@ public class SysTableDefinitions {
                                RepositoriesService repositoriesService,
                                SysSnapshots sysSnapshots,
                                SysAllocations sysAllocations,
-                               ShardSegments shardSegmentInfos,
-                               TableHealthService tableHealthService) {
+                               ShardSegments shardSegmentInfos) {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         var sysClusterTableInfo = (SystemTable<Void>) sysSchemaInfo.getTableInfo(SysClusterTableInfo.IDENT.name());
         assert sysClusterTableInfo != null : "sys.cluster table must exist in sys schema";
@@ -131,7 +130,7 @@ public class SysTableDefinitions {
 
         SystemTable<TableHealth> sysHealth = SysHealth.create();
         tableDefinitions.put(SysHealth.IDENT, new StaticTableDefinition<>(
-            tableHealthService::computeResults,
+            () -> TableHealth.compute(clusterService.state()),
             sysHealth.expressions(),
             (user, tableHealth) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableHealth.fqn()),
             true)
