@@ -46,7 +46,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static java.util.stream.Collectors.toSet;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -737,6 +738,11 @@ public class CoordinationStateTests extends ESTestCase {
     public void testVoteCollection() {
         final CoordinationState.VoteCollection voteCollection = new CoordinationState.VoteCollection();
         assertTrue(voteCollection.isEmpty());
+
+        assertFalse(voteCollection.addVote(
+            new DiscoveryNode("master-ineligible", buildNewFakeTransportAddress(), emptyMap(), emptySet(), Version.CURRENT)));
+        assertTrue(voteCollection.isEmpty());
+
         voteCollection.addVote(node1);
         assertFalse(voteCollection.isEmpty());
         assertTrue(voteCollection.containsVoteFor(node1));
@@ -886,7 +892,7 @@ public class CoordinationStateTests extends ESTestCase {
         VotingConfiguration randomVotingConfig() {
             return new VotingConfiguration(
                 randomSubsetOf(randomIntBetween(1, clusterNodes.size()), clusterNodes).stream()
-                    .map(cn -> cn.localNode.getId()).collect(toSet()));
+                    .map(cn -> cn.localNode.getId()).collect(Collectors.toSet()));
         }
 
         void applyMessage(Message message) {
