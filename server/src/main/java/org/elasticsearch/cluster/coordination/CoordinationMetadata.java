@@ -347,7 +347,7 @@ public class CoordinationMetadata implements Writeable, ToXContentFragment {
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeStringArray(nodeIds.toArray(new String[nodeIds.size()]));
+            out.writeStringArray(nodeIds.toArray(new String[0]));
         }
 
         public boolean hasQuorum(Collection<String> votes) {

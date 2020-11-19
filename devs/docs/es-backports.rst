@@ -37,6 +37,7 @@ repository. For example::
     git log --oneline 4b16d50cd4b.. -- \
       server/src/main/java/org/elasticsearch/index/{engine,snapshots,store,translog,shard,seqno,mapper,codec}/ \
       server/src/main/java/org/elasticsearch/indices/recovery/ \
+      server/src/main/java/org/elasticsearch/cluster/coordination \
       server/src/main/java/org/elasticsearch/transport \
       server/src/main/java/org/elasticsearch/gateway
 
