@@ -47,7 +47,6 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import static org.elasticsearch.test.ESTestCase.copyWriteable;
-import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
 
 public abstract class DisruptableMockTransport extends MockTransport {
     private final DiscoveryNode localNode;
