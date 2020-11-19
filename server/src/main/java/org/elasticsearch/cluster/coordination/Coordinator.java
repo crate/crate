@@ -373,9 +373,8 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             // The preVoteCollector is only active while we are candidate, but it does not call this method with synchronisation, so we have
             // to check our mode again here.
             if (mode == Mode.CANDIDATE) {
-                if (electionQuorumContainsLocalNode(getLastAcceptedState()) == false) {
-                    LOGGER.trace("skip election as local node is not part of election quorum: {}",
-                        getLastAcceptedState().coordinationMetadata());
+                if (localNodeMayWinElection(getLastAcceptedState()) == false) {
+                    LOGGER.trace("skip election as local node may not win it: {}", getLastAcceptedState().coordinationMetadata());
                     return;
                 }
 
@@ -400,16 +399,17 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         becomeCandidate("after abdicating to " + newMaster);
     }
 
-    private static boolean electionQuorumContainsLocalNode(ClusterState lastAcceptedState) {
+    private static boolean localNodeMayWinElection(ClusterState lastAcceptedState) {
         final DiscoveryNode localNode = lastAcceptedState.nodes().getLocalNode();
         assert localNode != null;
-        return electionQuorumContains(lastAcceptedState, localNode);
+        return nodeMayWinElection(lastAcceptedState, localNode);
     }
 
-    private static boolean electionQuorumContains(ClusterState lastAcceptedState, DiscoveryNode node) {
+    private static boolean nodeMayWinElection(ClusterState lastAcceptedState, DiscoveryNode node) {
         final String nodeId = node.getId();
         return lastAcceptedState.getLastCommittedConfiguration().getNodeIds().contains(nodeId)
-            || lastAcceptedState.getLastAcceptedConfiguration().getNodeIds().contains(nodeId);
+            || lastAcceptedState.getLastAcceptedConfiguration().getNodeIds().contains(nodeId)
+            || lastAcceptedState.getVotingConfigExclusions().stream().noneMatch(vce -> vce.getNodeId().equals(nodeId));
     }
 
     private Optional<Join> ensureTermAtLeast(DiscoveryNode sourceNode, long targetTerm) {
@@ -850,8 +850,8 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             metadataBuilder.coordinationMetadata(coordinationMetadata);
 
             coordinationState.get().setInitialState(ClusterState.builder(currentState).metadata(metadataBuilder).build());
-            assert electionQuorumContainsLocalNode(getLastAcceptedState()) :
-                "initial state does not have local node in its election quorum: " + getLastAcceptedState().coordinationMetadata();
+            assert localNodeMayWinElection(getLastAcceptedState()) :
+                "initial state does not allow local node to win election: " + getLastAcceptedState().coordinationMetadata();
             preVoteCollector.update(getPreVoteResponse(), null); // pick up the change to last-accepted version
             startElectionScheduler();
             return true;
@@ -1159,8 +1159,8 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                     if (mode == Mode.CANDIDATE) {
                         final ClusterState lastAcceptedState = coordinationState.get().getLastAcceptedState();
 
-                        if (electionQuorumContainsLocalNode(lastAcceptedState) == false) {
-                            LOGGER.trace("skip prevoting as local node is not part of election quorum: {}",
+                        if (localNodeMayWinElection(lastAcceptedState) == false) {
+                            LOGGER.trace("skip prevoting as local node may not win election: {}",
                                 lastAcceptedState.coordinationMetadata());
                             return;
                         }
@@ -1334,16 +1334,20 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                                     updateMaxTermSeen(getCurrentTerm());
 
                                     if (mode == Mode.LEADER) {
+                                        // if necessary, abdicate to another node or improve the voting configuration
+                                        boolean attemptReconfiguration = true;
                                         final ClusterState state = getLastAcceptedState(); // committed state
-                                        if (electionQuorumContainsLocalNode(state) == false) {
+                                        if (localNodeMayWinElection(state) == false) {
                                             final List<DiscoveryNode> masterCandidates = completedNodes().stream()
                                                 .filter(DiscoveryNode::isMasterNode)
-                                                .filter(node -> electionQuorumContains(state, node))
+                                                .filter(node -> nodeMayWinElection(state, node))
                                                 .collect(Collectors.toList());
                                             if (masterCandidates.isEmpty() == false) {
                                                 abdicateTo(masterCandidates.get(random.nextInt(masterCandidates.size())));
+                                                attemptReconfiguration = false;
                                             }
-                                        } else {
+                                        }
+                                        if (attemptReconfiguration) {
                                             scheduleReconfigurationIfNeeded();
                                         }
                                     }
