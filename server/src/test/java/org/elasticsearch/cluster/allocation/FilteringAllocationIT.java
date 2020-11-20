@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
@@ -152,6 +153,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         }, 20, TimeUnit.SECONDS);
     }
 
+    @Test
     public void testDisablingAllocationFiltering() throws Exception {
         logger.info("--> starting 2 nodes");
         List<String> nodesIds = internalCluster().startNodes(2);
@@ -161,8 +163,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
 
         logger.info("--> creating an index with no replicas");
 
-        execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0')",
-                new Object[]{numberOfShards()});
+        execute("create table test(x int, value text) clustered into 2 shards with (number_of_replicas='0')");
 
         String tableName = getFqn("test");
         ensureGreen(tableName);
@@ -194,7 +195,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         }
 
         if (numShardsOnNode1 > ThrottlingAllocationDecider.DEFAULT_CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES) {
-            execute(" set global \"cluster.routing.allocation.node_concurrent_recoveries\" = ?", new Object[]{node_1});
+            execute("set global \"cluster.routing.allocation.node_concurrent_recoveries\" = ?", new Object[]{node_1});
             // make sure we can recover all the nodes at once otherwise we might run into a state where
             // one of the shards has not yet started relocating but we already fired up the request to wait for 0 relocating shards.
         }
@@ -203,18 +204,16 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         if (closed) {
             execute("alter table test open");
         }
-        execute(" alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_0});
+        execute("alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_0});
         ensureGreen(tableName);
 
         logger.info("--> verify all shards are allocated on node_1 now");
-        assertBusy(() -> {
-            final var state = client().admin().cluster().prepareState().execute().actionGet().getState();
-            for (IndexShardRoutingTable indexShardRoutingTable : state.routingTable().index(tableName)) {
-                for (ShardRouting shardRouting : indexShardRoutingTable) {
-                    assertThat(state.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_1));
-                }
+        var state = client().admin().cluster().prepareState().execute().actionGet().getState();
+        for (IndexShardRoutingTable indexShardRoutingTable : state.routingTable().index(tableName)) {
+            for (ShardRouting shardRouting : indexShardRoutingTable) {
+                assertThat(state.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_1));
             }
-        }, 20, TimeUnit.SECONDS);
+        }
 
         logger.info("--> disable allocation filtering ");
         execute(" alter table test reset( \"routing.allocation.exclude._name\")");
@@ -222,10 +221,8 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         ensureGreen(tableName);
 
         logger.info("--> verify that there are shards allocated on both nodes now");
-        assertBusy(() -> {
-            final var state = client().admin().cluster().prepareState().execute().actionGet().getState();
-            assertThat(state.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn(), equalTo(2));
-        }, 20, TimeUnit.SECONDS);
+        state = client().admin().cluster().prepareState().execute().actionGet().getState();
+        assertThat(state.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn(), equalTo(2));
     }
 
     public void testInvalidIPFilterClusterSettings() {
