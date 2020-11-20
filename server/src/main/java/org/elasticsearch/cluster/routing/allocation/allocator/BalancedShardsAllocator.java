@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster.routing.allocation.allocator;
 
+import io.crate.common.collections.Tuple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.ArrayUtil;
@@ -41,7 +42,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision.Type;
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
@@ -116,7 +116,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
     @Override
     public void allocate(RoutingAllocation allocation) {
         if (allocation.routingNodes().size() == 0) {
-            /* with no nodes this is pointless */
+            failAllocationOfNewPrimaries(allocation);
             return;
         }
         final Balancer balancer = new Balancer(LOGGER, allocation, weightFunction, threshold);
