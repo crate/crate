@@ -21,6 +21,8 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.DataTypeTesting;
@@ -28,7 +30,6 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -51,9 +52,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import com.carrotsearch.randomizedtesting.RandomizedContext;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
@@ -1818,7 +1816,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("refresh table doc.test");
         execute("explain select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
         assertThat(printedTable(response.rows()), is(
-            "Get[doc.test | id | DocKeys{'1', '2', '3', false}]\n"
+            "Get[doc.test | id | DocKeys{'1', '2', '3', false} | ((((id = '1') AND (region_level_1 = '2')) AND (marker_type = '3')) AND (is_auto = false))]\n"
         ));
         execute("select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
         assertThat(printedTable(response.rows()), is(
