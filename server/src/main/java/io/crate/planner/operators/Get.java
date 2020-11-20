@@ -282,6 +282,8 @@ public class Get implements LogicalPlan {
             .text(Lists2.joinOn(", ", outputs, Symbol::toString))
             .text(" | ")
             .text(docKeys.toString())
+            .text(" | ")
+            .text(query.toString())
             .text("]");
     }
 }

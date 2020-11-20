@@ -180,21 +180,21 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGetPlan() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name from users where id = 1");
         assertThat(plan, isPlan(
-            "Get[doc.users | name | DocKeys{1::bigint}]"));
+            "Get[doc.users | name | DocKeys{1::bigint} | (id = 1::bigint)]"));
     }
 
     @Test
     public void testGetWithVersion() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name from users where id = 1 and _version = 1");
         assertThat(plan, isPlan(
-            "Get[doc.users | name | DocKeys{1::bigint, 1::bigint}]"));
+            "Get[doc.users | name | DocKeys{1::bigint, 1::bigint} | ((id = 1::bigint) AND (_version = 1::bigint))]"));
     }
 
     @Test
     public void testGetPlanStringLiteral() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name from bystring where name = 'one'");
         assertThat(plan, isPlan(
-            "Get[doc.bystring | name | DocKeys{'one'}]"
+            "Get[doc.bystring | name | DocKeys{'one'} | (name = 'one')]"
         ));
     }
 
@@ -202,7 +202,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGetPlanPartitioned() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name, date from parted_pks where id = 1 and date = 0");
         assertThat(plan, isPlan(
-            "Get[doc.parted_pks | name, date | DocKeys{1, 0::bigint}]"
+            "Get[doc.parted_pks | name, date | DocKeys{1, 0::bigint} | ((id = 1) AND (date = 0::bigint))]"
         ));
     }
 
@@ -210,7 +210,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testMultiGetPlan() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name from users where id in (1, 2)");
         assertThat(plan, isPlan(
-            "Get[doc.users | name | DocKeys{1::bigint; 2::bigint}]"
+            "Get[doc.users | name | DocKeys{1::bigint; 2::bigint} | (id = ANY([1::bigint, 2::bigint]))]"
         ));
     }
 
@@ -716,7 +716,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testFilterOnPKSubsetResultsInPKLookupPlanIfTheOtherPKPartIsGenerated() {
         LogicalPlan plan = e.logicalPlan("select 1 from t_pk_part_generated where ts = 0");
         assertThat(plan, isPlan(
-            "Get[doc.t_pk_part_generated | 1 | DocKeys{0::bigint, 0::bigint}]"
+            "Get[doc.t_pk_part_generated | 1 | DocKeys{0::bigint, 0::bigint} | ((ts = 0::bigint) AND (p AS date_trunc('day', ts) = 0::bigint))]"
         ));
     }
 
@@ -962,7 +962,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan logicalPlan = e.logicalPlan(stmt);
         String expectedPlan =
             "GroupHashAggregate[name | count(*)]\n" +
-            "  └ Get[doc.users | name | DocKeys{1::bigint; 2::bigint; 3::bigint; 4::bigint; 5::bigint}]";
+            "  └ Get[doc.users | name | DocKeys{1::bigint; 2::bigint; 3::bigint; 4::bigint; 5::bigint} | (id = ANY([1::bigint, 2::bigint, 3::bigint, 4::bigint, 5::bigint]))]";
         assertThat(logicalPlan, isPlan(expectedPlan));
         Merge coordinatorMerge = e.plan(stmt);
         Merge distributedMerge = (Merge) coordinatorMerge.subPlan();
