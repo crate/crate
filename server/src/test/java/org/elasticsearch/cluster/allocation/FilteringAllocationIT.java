@@ -19,7 +19,16 @@
 
 package org.elasticsearch.cluster.allocation;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -38,16 +47,7 @@ import org.elasticsearch.test.InternalSettingsPlugin;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 
 @ClusterScope(scope= Scope.TEST, numDataNodes=0)
 public class FilteringAllocationIT extends SQLTransportIntegrationTest {
@@ -195,7 +195,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         }
 
         if (numShardsOnNode1 > ThrottlingAllocationDecider.DEFAULT_CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES) {
-            execute("set global \"cluster.routing.allocation.node_concurrent_recoveries\" = ?", new Object[]{node_1});
+            execute("set global \"cluster.routing.allocation.node_concurrent_recoveries\" = ?", new Object[]{numShardsOnNode1});
             // make sure we can recover all the nodes at once otherwise we might run into a state where
             // one of the shards has not yet started relocating but we already fired up the request to wait for 0 relocating shards.
         }
