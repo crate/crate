@@ -66,11 +66,11 @@ These kind of filters will result in a primary key lookup. You can use the
     CREATE OK, 1 row affected  (... sec)
 
     cr> EXPLAIN SELECT * FROM pk_demo WHERE id = 1;
-    +------------------------------------+
-    | EXPLAIN                            |
-    +------------------------------------+
-    | Get[doc.pk_demo | id | DocKeys{1}] |
-    +------------------------------------+
+    +-----------------------------------------------+
+    | EXPLAIN                                       |
+    +-----------------------------------------------+
+    | Get[doc.pk_demo | id | DocKeys{1} | (id = 1)] |
+    +-----------------------------------------------+
     EXPLAIN 1 row in set (... sec)
 
 
