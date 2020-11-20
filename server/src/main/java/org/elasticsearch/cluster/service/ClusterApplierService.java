@@ -379,7 +379,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         return true;
     }
 
-    protected void runTask(UpdateTask task) {
+    private void runTask(UpdateTask task) {
         if (!lifecycle.started()) {
             LOGGER.debug("processing [{}]: ignoring, cluster applier service not started", task.source);
             return;
@@ -436,6 +436,9 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
                             "failed to apply updated cluster state in [{}]:\nversion [{}], uuid [{}], source [{}]",
                             executionTime, newClusterState.version(), newClusterState.stateUUID(), task.source), e);
                 }
+                // failing to apply a cluster state with an exception indicates a bug in validation or in one of the appliers; if we
+                // continue we will retry with the same cluster state but that might not help.
+                assert applicationMayFail();
                 task.listener.onFailure(task.source, e);
             }
         }
@@ -650,4 +653,8 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         return threadPool.relativeTimeInMillis();
     }
 
+    // overridden by tests that need to check behaviour in the event of an application failure
+    protected boolean applicationMayFail() {
+        return false;
+    }
 }
