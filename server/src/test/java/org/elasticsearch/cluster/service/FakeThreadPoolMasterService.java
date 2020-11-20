@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.elasticsearch.indices.cluster;
+
+package org.elasticsearch.cluster.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,14 +25,15 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ClusterStatePublisher.AckListener;
-import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.unit.TimeValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +43,6 @@ import java.util.function.Consumer;
 import static org.apache.lucene.util.LuceneTestCase.random;
 import static org.elasticsearch.test.ESTestCase.randomInt;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class FakeThreadPoolMasterService extends MasterService {
     private static final Logger logger = LogManager.getLogger(FakeThreadPoolMasterService.class);
@@ -54,13 +55,16 @@ public class FakeThreadPoolMasterService extends MasterService {
     private boolean waitForPublish = false;
 
     public FakeThreadPoolMasterService(String nodeName, String serviceName, Consumer<Runnable> onTaskAvailableToRun) {
-        super(nodeName, Settings.EMPTY, createMockThreadPool());
+        super(Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), nodeName).build(),
+            new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS),
+            createMockThreadPool());
         this.name = serviceName;
         this.onTaskAvailableToRun = onTaskAvailableToRun;
     }
 
     private static ThreadPool createMockThreadPool() {
-        return mock(ThreadPool.class);
+        final ThreadPool mockThreadPool = mock(ThreadPool.class);
+        return mockThreadPool;
     }
 
     @Override
@@ -78,6 +82,10 @@ public class FakeThreadPoolMasterService extends MasterService {
                 scheduleNextTaskIfNecessary();
             }
         };
+    }
+
+    public int getFakeMasterServicePendingTaskCount() {
+        return pendingTasks.size();
     }
 
     private void scheduleNextTaskIfNecessary() {
@@ -116,7 +124,7 @@ public class FakeThreadPoolMasterService extends MasterService {
     }
 
     @Override
-    protected void publish(ClusterChangedEvent clusterChangedEvent, TaskOutputs taskOutputs, long startTimeNS) {
+    protected void publish(ClusterChangedEvent clusterChangedEvent, TaskOutputs taskOutputs, long startTimeMillis) {
         assert waitForPublish == false;
         waitForPublish = true;
         final AckListener ackListener = taskOutputs.createAckListener(threadPool, clusterChangedEvent.state());
@@ -131,7 +139,7 @@ public class FakeThreadPoolMasterService extends MasterService {
                 assert waitForPublish;
                 waitForPublish = false;
                 try {
-                    onPublicationSuccess(clusterChangedEvent, taskOutputs, startTimeNS);
+                    onPublicationSuccess(clusterChangedEvent, taskOutputs);
                 } finally {
                     taskInProgress = false;
                     scheduleNextTaskIfNecessary();
@@ -145,7 +153,7 @@ public class FakeThreadPoolMasterService extends MasterService {
                 assert waitForPublish;
                 waitForPublish = false;
                 try {
-                    onPublicationFailed(clusterChangedEvent, taskOutputs, startTimeNS, e);
+                    onPublicationFailed(clusterChangedEvent, taskOutputs, startTimeMillis, e);
                 } finally {
                     taskInProgress = false;
                     scheduleNextTaskIfNecessary();
