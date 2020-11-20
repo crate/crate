@@ -350,7 +350,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("select name from users u where id = 1");
         assertThat(plan, isPlan(
             "Rename[name] AS u\n" +
-            "  └ Get[doc.users | name | DocKeys{1::bigint}]"));
+            "  └ Get[doc.users | name | DocKeys{1::bigint} | (id = 1::bigint)]"));
     }
 
     @Test
