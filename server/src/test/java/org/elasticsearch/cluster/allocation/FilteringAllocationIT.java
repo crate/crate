@@ -113,7 +113,6 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @Ignore("https://github.com/crate/crate/issues/10755")
     public void testAutoExpandReplicasToFilteredNodes() throws Exception {
         logger.info("--> starting 2 nodes");
         List<String> nodesIds = internalCluster().startNodes(2);
