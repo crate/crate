@@ -19,15 +19,7 @@
 
 package org.elasticsearch.indices.recovery;
 
-import static io.crate.common.unit.TimeValue.timeValueMillis;
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-
-import javax.annotation.Nullable;
-
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -70,7 +62,13 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.unit.TimeValue;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+
+import static io.crate.common.unit.TimeValue.timeValueMillis;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 /**
  * The recovery target handles recoveries of peer shards of the shard+node to recover to.
@@ -637,7 +635,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                     ActionListener.map(listener, nullVal -> TransportResponse.Empty.INSTANCE)
                 );
             }
-            channel.sendResponse(TransportResponse.Empty.INSTANCE);
         }
     }
 

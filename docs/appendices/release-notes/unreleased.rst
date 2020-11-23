@@ -81,6 +81,10 @@ Changes
 Fixes
 =====
 
+- Fixed a regression introduced Crate ``4.1`` resulting in duplicated recovery
+  file chunk responses sent.
+  This causes log entries of `Transport handler not found ...`.
+
 - Fixed an issue that resulted in records in ``pg_catalog.pg_proc`` which
   wouldn't be joined with ``pg_catalog.pg_type``. Clients like ``npgsql`` use
   this information and without it the users received an error like ``The CLR
