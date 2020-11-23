@@ -663,6 +663,36 @@ Returns: ``text``
    +--------+
    SELECT 1 row in set (... sec)
 
+
+``split_part(text, text, integer)``
+-----------------------------------
+
+Splits a string into parts using a delimiter and returns the part at the given index.
+The first part is addressed by index ``1``.
+
+Special Cases:
+
+* Returns the empty string if the index is greater than the number of parts.
+* If any of the arguments is ``NULL``, the result is ``NULL``.
+* If the delimiter is the empty string, the input string is considered as consisting of exactly one part.
+
+Returns: ``text``
+
+Synopsis::
+
+    split_part(string, delimiter, index)
+
+Example::
+
+   cr> select split_part('ab--cdef--gh', '--', 2) AS part;
+   +------+
+   | part |
+   +------+
+   | cdef |
+   +------+
+   SELECT 1 row in set (... sec)
+
+
 Date and time functions
 =======================
 
