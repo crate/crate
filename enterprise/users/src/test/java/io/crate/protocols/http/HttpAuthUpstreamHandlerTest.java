@@ -45,6 +45,7 @@ import java.security.cert.Certificate;
 import java.util.EnumSet;
 
 import static io.crate.protocols.http.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -157,9 +158,11 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         when(session.getPeerCertificates()).thenReturn(new Certificate[] { ssc.cert() });
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY).v1();
+        var credentials = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY);
 
-        assertThat(userName, is("localhost"));
+        assertThat(credentials, contains(
+            new UserWithPassword("localhost", null)
+        ));
     }
 
     @Test

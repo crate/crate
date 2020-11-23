@@ -28,7 +28,6 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpVersion;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.SecureString;
 
 import javax.annotation.Nullable;
@@ -39,8 +38,6 @@ import java.util.regex.Pattern;
 public final class Headers {
 
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
-    private static final SecureString EMPTY_PASSWORD = new SecureString(new char[] {});
-    private static final Tuple<String, SecureString> EMPTY_CREDENTIALS_TUPLE = new Tuple<>("", EMPTY_PASSWORD);
 
     static boolean isBrowser(@Nullable String headerValue) {
         if (headerValue == null) {
@@ -67,12 +64,13 @@ public final class Headers {
         }
     }
 
-    public static Tuple<String, SecureString> extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
+    @Nullable
+    public static UserWithPassword extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
         if (authHeaderValue == null || authHeaderValue.isEmpty()) {
-            return EMPTY_CREDENTIALS_TUPLE;
+            return null;
         }
         String username;
-        SecureString password = EMPTY_PASSWORD;
+        SecureString password = null;
         String valueWithoutBasePrefix = authHeaderValue.substring(6);
         String decodedCreds = new String(Base64.getDecoder().decode(valueWithoutBasePrefix), StandardCharsets.UTF_8);
 
@@ -86,6 +84,6 @@ public final class Headers {
                 password = new SecureString(passwdStr.toCharArray());
             }
         }
-        return new Tuple<>(username, password);
+        return new UserWithPassword(username, password);
     }
 }

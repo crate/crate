@@ -301,11 +301,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     User userFromAuthHeader(@Nullable String authHeaderValue) {
-        String username = Headers.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue).v1();
+        var userWithPassword = Headers.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue);
         // Fallback to trusted user from configuration
-        if (username == null || username.isEmpty()) {
-            username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
-        }
+        String username = userWithPassword == null || userWithPassword.userName().isEmpty()
+            ? AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings)
+            : userWithPassword.userName();
         return userLookup.findUser(username);
     }
 

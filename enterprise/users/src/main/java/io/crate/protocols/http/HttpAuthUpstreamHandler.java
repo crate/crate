@@ -40,9 +40,9 @@ import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import io.crate.common.collections.Tuple;
+
+import io.crate.common.collections.Lists2;
 import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 
@@ -52,6 +52,8 @@ import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import static io.crate.protocols.SSL.getSession;
@@ -91,38 +93,58 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         SSLSession session = getSession(ctx.channel());
-        Tuple<String, SecureString> credentials = credentialsFromRequest(request, session, settings);
-        String username = credentials.v1();
-        SecureString password = credentials.v2();
-        if (username.equals(authorizedUser)) {
-            ctx.fireChannelRead(request);
-            return;
+        List<UserWithPassword> credentials = credentialsFromRequest(request, session, settings);
+        for (var userWithPassword : credentials) {
+            if (userWithPassword.userName().equals(authorizedUser)) {
+                ctx.fireChannelRead(request);
+                return;
+            }
         }
 
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
         ConnectionProperties connectionProperties = new ConnectionProperties(address, Protocol.HTTP, session);
-        AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
-        if (authMethod == null) {
+
+        boolean foundAuthMethod = false;
+        for (var userWithPassword : credentials) {
+            String username = userWithPassword.userName();
+            AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
+            if (authMethod == null) {
+                continue;
+            } else {
+                foundAuthMethod = true;
+                try {
+                    User user = authMethod.authenticate(username, userWithPassword.password(), connectionProperties);
+                    if (user != null && LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
+                    }
+                    authorizedUser = username;
+                    ctx.fireChannelRead(request);
+                    return;
+                } catch (Exception e) {
+                    continue;
+                }
+            }
+        }
+        if (foundAuthMethod) {
+            String message = String.format(
+                Locale.ENGLISH,
+                "Authentication failed from connection=%s, attempted users=%s",
+                connectionProperties.address(),
+                Lists2.joinOn(", ", credentials, UserWithPassword::userName)
+            );
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(message);
+            }
+            sendUnauthorized(ctx.channel(), message);
+        } else {
             String errorMessage = String.format(
                 Locale.ENGLISH,
-                "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\"",
-                address.getHostAddress(), username, Protocol.HTTP.toString());
+                "No valid auth.host_based.config entry found for host \"%s\", protocol \"%s\". Tried users: %s",
+                address.getHostAddress(),
+                Protocol.HTTP.toString(),
+                Lists2.joinOn(", ", credentials, UserWithPassword::userName)
+            );
             sendUnauthorized(ctx.channel(), errorMessage);
-        } else {
-            try {
-                User user = authMethod.authenticate(username, password, connectionProperties);
-                if (user != null && LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
-                }
-                authorizedUser = username;
-                ctx.fireChannelRead(request);
-            } catch (Exception e) {
-                if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info("Password authentication failed for user={} from connection={}",
-                                username, connectionProperties.address());
-                }
-                sendUnauthorized(ctx.channel(), e.getMessage());
-            }
         }
     }
 
@@ -161,27 +183,27 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     }
 
     @VisibleForTesting
-    static Tuple<String, SecureString> credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
-        String username = null;
-        if (request.headers().contains(HttpHeaderNames.AUTHORIZATION.toString())) {
-            // Prefer Http Basic Auth
-            return Headers.extractCredentialsFromHttpBasicAuthHeader(
-                request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()));
-        } else {
-            // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user
-            if (session != null) {
-                try {
-                    Certificate certificate = session.getPeerCertificates()[0];
-                    username = SSL.extractCN(certificate);
-                } catch (ArrayIndexOutOfBoundsException | SSLPeerUnverifiedException ignored) {
-                    // client cert is optional
-                }
-            }
-            if (username == null) {
-                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+    static List<UserWithPassword> credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
+        ArrayList<UserWithPassword> result = new ArrayList<>();
+        String authorizationHeader = HttpHeaderNames.AUTHORIZATION.toString();
+        if (request.headers().contains(authorizationHeader)) {
+            var userWithPassword = Headers.extractCredentialsFromHttpBasicAuthHeader(request.headers().get(authorizationHeader));
+            if (userWithPassword != null) {
+                result.add(userWithPassword);
             }
         }
-        return new Tuple<>(username, null);
+        if (session != null) {
+            try {
+                Certificate certificate = session.getPeerCertificates()[0];
+                result.add(new UserWithPassword(SSL.extractCN(certificate), null));
+            } catch (ArrayIndexOutOfBoundsException | SSLPeerUnverifiedException ignored) {
+                // client cert is optional
+            }
+        }
+        if (result.isEmpty()) {
+            result.add(new UserWithPassword(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings), null));
+        }
+        return result;
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {

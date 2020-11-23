@@ -50,28 +50,28 @@ public class HeadersTest {
 
     @Test
     public void testExtractUsernamePasswordFromHttpBasicAuthHeader() {
-        Tuple<String, SecureString> creds = extractCredentialsFromHttpBasicAuthHeader("");
-        assertThat(creds.v1(), is(""));
-        assertThat(creds.v2().toString(), is(""));
+        UserWithPassword creds = extractCredentialsFromHttpBasicAuthHeader("");
+        assertThat(creds.userName(), is(""));
+        assertThat(creds.password().toString(), is(""));
 
         creds = extractCredentialsFromHttpBasicAuthHeader(null);
-        assertThat(creds.v1(), is(""));
-        assertThat(creds.v2().toString(), is(""));
+        assertThat(creds.userName(), is(""));
+        assertThat(creds.password().toString(), is(""));
 
         creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
-        assertThat(creds.v1(), is("Arthur"));
-        assertThat(creds.v2().toString(), is("Excalibur"));
+        assertThat(creds.userName(), is("Arthur"));
+        assertThat(creds.password().toString(), is("Excalibur"));
 
         creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
-        assertThat(creds.v1(), is("Arthur"));
-        assertThat(creds.v2().toString(), is(":test:password:"));
+        assertThat(creds.userName(), is("Arthur"));
+        assertThat(creds.password().toString(), is(":test:password:"));
 
         creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOg==");
-        assertThat(creds.v1(), is("Arthur"));
-        assertThat(creds.v2().toString(), is(""));
+        assertThat(creds.userName(), is("Arthur"));
+        assertThat(creds.password().toString(), is(""));
 
         creds = extractCredentialsFromHttpBasicAuthHeader("Basic OnBhc3N3b3Jk");
-        assertThat(creds.v1(), is(""));
-        assertThat(creds.v2().toString(), is("password"));
+        assertThat(creds.userName(), is(""));
+        assertThat(creds.password().toString(), is("password"));
     }
 }
