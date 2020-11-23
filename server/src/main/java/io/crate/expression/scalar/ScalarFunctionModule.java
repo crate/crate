@@ -68,6 +68,7 @@ import io.crate.expression.scalar.string.StringCaseFunction;
 import io.crate.expression.scalar.string.StringLeftRightFunction;
 import io.crate.expression.scalar.string.StringPaddingFunction;
 import io.crate.expression.scalar.string.StringRepeatFunction;
+import io.crate.expression.scalar.string.StringSplitPartFunction;
 import io.crate.expression.scalar.string.TranslateFunction;
 import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
@@ -144,6 +145,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         AsciiFunction.register(this);
         EncodeDecodeFunction.register(this);
         StringRepeatFunction.register(this);
+        StringSplitPartFunction.register(this);
         ChrFunction.register(this);
 
         TranslateFunction.register(this);
