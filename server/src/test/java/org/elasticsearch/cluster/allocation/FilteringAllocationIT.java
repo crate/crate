@@ -204,7 +204,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         execute("alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_0});
         // Force re-allocation, ensure shards are moved. CrateDB does not support `reroute` without concrete commands
         // while ES (hidden, official documentation does not) supports this.
-        client().admin().cluster().prepareReroute().get();
+        client().admin().cluster().prepareReroute().execute().actionGet(20, TimeUnit.SECONDS);
         ensureGreen(tableName);
 
         logger.info("--> verify all shards are allocated on node_1 now");
