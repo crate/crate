@@ -210,22 +210,10 @@ information about the shards located on the node with the following attributes:
 | ``NumberOfRecovering``   | The number of recovering shards located on the   |
 |                          | node.                                            |
 +--------------------------+--------------------------------------------------+
-| ``Shards``               |Detailed Information about each shards located    |
-|                          |on the node.                                      |
+| ``ShardSize``            | The size in bytes of each shard represented as a |
+|                          | Map containing the shard id as key and the size  |
+|                          | as value.                                        |
 +--------------------------+--------------------------------------------------+
-
-``Shards`` returns an Array of `CompositeData`_ objects containing detailed
-information about each shards located on the node with the following
-attributes:
-
-+-------------------------+---------------------------------------------------+
-| Name                    | Description                                       |
-+=========================+===================================================+
-| ``Id``                  | The id of the shard.                              |
-+-------------------------+---------------------------------------------------+
-| ``Size``                | The size in bytes of the shard.                   |
-+-------------------------+---------------------------------------------------+
-
 
 Connections MBean
 -----------------
