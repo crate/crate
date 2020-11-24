@@ -173,45 +173,57 @@ The ``NodeInfo`` JMX MBean exposes information about the current node;
 NodeInfo can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=NodeInfo`` and the following attributes:
 
-+-------------------------+----------------------------------------------------+
-| Name                    | Description                                        |
-+=========================+====================================================+
-| ``NodeId``              | Provides the unique identifier of the node in the  |
-|                         | cluster.                                           |
-+-------------------------+----------------------------------------------------+
-| ``NodeName``            | Provides the human friendly name of the node.      |
-+-------------------------+----------------------------------------------------+
-| ``ClusterStateVersion`` | Provides the version of the current applied        |
-|                         | cluster state.                                     |
-+-------------------------+----------------------------------------------------+
-| ``Role``                | The role of the node, possible roles are: MASTER   |
-|                         | DATA.                                              |
-+-------------------------+----------------------------------------------------+
-| ``Primaries``           | The number of primary shards located on the node.  |
-+-------------------------+----------------------------------------------------+
-| ``Replicas``            | The number of replica shards located on the node.  |
-+-------------------------+----------------------------------------------------+
-| ``Unassigned``          | The number of unassigned shards. If the role of    |
-|                         | the node is MASTER this will show the total        |
-|                         | number of unassigned shards in the cluster,        |
-|                         | otherwise 0.                                       |
-+-------------------------+----------------------------------------------------+
-| ``Shards``              | Information about the shards located on the node.  |
-+-------------------------+----------------------------------------------------+
++-------------------------+---------------------------------------------------+
+| Name                    | Description                                       |
++=========================+===================================================+
+| ``NodeId``              | Provides the unique identifier of the node in the |
+|                         | cluster.                                          |
++-------------------------+---------------------------------------------------+
+| ``NodeName``            | Provides the human friendly name of the node.     |
++-------------------------+---------------------------------------------------+
+| ``ClusterStateVersion`` | Provides the version of the current applied       |
+|                         | cluster state.                                    |
++-------------------------+---------------------------------------------------+
+| ``Role``                | The role of the node, possible roles are:         |
+|                         |``MASTER``,``DATA``.                               |
++-------------------------+---------------------------------------------------+
+| ``ShardsInfo``          | Information about the shards located on the node. |
++-------------------------+---------------------------------------------------+
 
-``Shards`` returns a set of `CompositeData`_ objects containing detailed
-information of each shard located on the node with the following attributes:
+``ShardsInfo`` returns a `CompositeData`_ objects containing detailed
+information about the shards located on the node with the following attributes:
 
-+------------------+------------------------------------------------------+
-| Name             | Description                                          |
-+==================+======================================================+
-| ``id``           | The id of the shard.                                 |
-+------------------+------------------------------------------------------+
-| ``size``         | The size in bytes of the shard.                      |
-+------------------+------------------------------------------------------+
-| ``state``        | The state of the shard, possible states are:         |
-|                  | CREATED, RECOVERING, POST_RECOVERY, STARTED, CLOSED. |
-+------------------+------------------------------------------------------+
++-------------------------+---------------------------------------------------+
+| Name                    | Description                                       |
++==================+==========================================================+
+| ``Primaries``           | The number of primary shards located on the node. |
++-------------------------+---------------------------------------------------+
+| ``Replicas``            | The number of replica shards located on the node. |
++-------------------------+---------------------------------------------------+
+| ``Unassigned``          | The number of unassigned shards. If the role of   |
+|                         | the node is MASTER this will show the total       |
+|                         | number of unassigned shards in the cluster,       |
+|                         | otherwise 0.                                      |
++-------------------------+---------------------------------------------------+
+| ``Shards``              | The size in bytes of the shard.                   |
++-------------------------+---------------------------------------------------+
+
+``Shards`` returns an Array of `CompositeData`_ objects containing detailed
+information about each shards located on the node with the following
+attributes:
+
++-------------------------+---------------------------------------------------+
+| Name                    | Description                                       |
++=========================+===================================================+
+| ``id``                  | The id of the shard.                              |
++-------------------------+---------------------------------------------------+
+| ``size``                | The size in bytes of the shard.                   |
++-------------------------+---------------------------------------------------+
+| ``state``               | The state of the shard, possible states are:      |
+|                         | ``CREATED``, ``RECOVERING``, ``POST_RECOVERY``,   |
+|                         | ``STARTED``, ``CLOSED``.                          |
++-------------------------+---------------------------------------------------+
+
 
 Connections MBean
 -----------------
