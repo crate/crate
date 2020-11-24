@@ -41,9 +41,9 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.elasticsearch.common.settings.Settings;
 
+import io.crate.auth.AuthSettings;
 import io.crate.common.Optionals;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
@@ -190,7 +190,7 @@ public final class SslConfiguration {
                 .forServer(privateKey, keyStoreCertChain)
                 .ciphers(List.of(sslContext.createSSLEngine().getEnabledCipherSuites()))
                 .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-                .clientAuth(ClientAuth.OPTIONAL)
+                .clientAuth(AuthSettings.resolveClientAuth(settings))
                 .trustManager(concat(keyStoreRootCerts, trustStoreRootCerts))
                 .sessionCacheSize(0)
                 .sessionTimeout(0)
