@@ -58,6 +58,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that could cause browsers to prompt for a client certificate
+  if ``SSL`` is enabled on the server side, even if no cert authentication
+  method is configured.
+
 - Fixed a regression introduced Crate ``4.1`` resulting in duplicated recovery
   file chunk responses sent.
   This causes log entries of `Transport handler not found ...`.
