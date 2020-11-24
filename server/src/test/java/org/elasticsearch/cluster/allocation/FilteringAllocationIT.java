@@ -19,16 +19,7 @@
 
 package org.elasticsearch.cluster.allocation;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -44,10 +35,17 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
 import org.elasticsearch.test.ESIntegTestCase.Scope;
 import org.elasticsearch.test.InternalSettingsPlugin;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 @ClusterScope(scope= Scope.TEST, numDataNodes=0)
 public class FilteringAllocationIT extends SQLTransportIntegrationTest {
@@ -187,7 +185,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         int numShardsOnNode1 = 0;
         for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
             for (ShardRouting shardRouting : indexShardRoutingTable) {
-                if ("node1".equals(clusterState.nodes().get(shardRouting.currentNodeId()).getName())) {
+                if (node_1.equals(clusterState.nodes().get(shardRouting.currentNodeId()).getName())) {
                     numShardsOnNode1++;
                 }
             }
@@ -204,6 +202,9 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
             execute("alter table test open");
         }
         execute("alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_0});
+        // Force re-allocation, ensure shards are moved. CrateDB does not support `reroute` without concrete commands
+        // while ES (hidden, official documentation does not) supports this.
+        client().admin().cluster().prepareReroute().get();
         ensureGreen(tableName);
 
         logger.info("--> verify all shards are allocated on node_1 now");
