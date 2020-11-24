@@ -198,7 +198,7 @@ information about the shards located on the node with the following attributes:
 +==========================+==================================================+
 | ``NumberOfShards``       | The number of shards located on the node.        |
 +--------------------------+--------------------------------------------------+
-| ``NumberOfPrimaries``    |The number of primary shards located on the node. |
+| ``NumberOfPrimaries``    | The number of primary shards located on the node.|
 +--------------------------+--------------------------------------------------+
 | ``NumberOfReplicas``     | The number of replica shards located on the node.|
 +--------------------------+--------------------------------------------------+
@@ -206,6 +206,9 @@ information about the shards located on the node with the following attributes:
 |                          | the node is MASTER this will show the total      |
 |                          | number of unassigned shards in the cluster,      |
 |                          | otherwise 0.                                     |
++--------------------------+--------------------------------------------------+
+| ``NumberOfRecovering``   | The number of recovering shards located on the   |
+|                          | node.                                            |
 +--------------------------+--------------------------------------------------+
 | ``Shards``               |Detailed Information about each shards located    |
 |                          |on the node.                                      |
@@ -221,10 +224,6 @@ attributes:
 | ``Id``                  | The id of the shard.                              |
 +-------------------------+---------------------------------------------------+
 | ``Size``                | The size in bytes of the shard.                   |
-+-------------------------+---------------------------------------------------+
-| ``State``               | The state of the shard, possible states are:      |
-|                         | ``CREATED``, ``RECOVERING``, ``POST_RECOVERY``,   |
-|                         | ``STARTED``, ``CLOSED``.                          |
 +-------------------------+---------------------------------------------------+
 
 
