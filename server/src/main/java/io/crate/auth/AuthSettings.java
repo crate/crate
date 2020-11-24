@@ -24,6 +24,8 @@ package io.crate.auth;
 
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
+import io.netty.handler.ssl.ClientAuth;
+
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
@@ -55,4 +57,24 @@ public final class AuthSettings {
     );
 
     public static final String HTTP_HEADER_REAL_IP = "X-Real-Ip";
+
+    public static ClientAuth resolveClientAuth(Settings settings) {
+        Settings hbaSettings = AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings);
+        int numMethods = 0;
+        int numCertMethods = 0;
+        for (var entry : hbaSettings.getAsGroups().entrySet()) {
+            Settings entrySettings = entry.getValue();
+            String method = entrySettings.get("method", "trust");
+            numMethods++;
+            if (method.equals("cert")) {
+                numCertMethods++;
+            }
+        }
+        if (numCertMethods == 0) {
+            return ClientAuth.NONE;
+        }
+        return numCertMethods == numMethods
+            ? ClientAuth.REQUIRE
+            : ClientAuth.OPTIONAL;
+    }
 }
