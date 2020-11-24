@@ -87,19 +87,21 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         logger.info("--> decommission the second node");
         execute(" set global \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
 
+        // Force re-allocation, ensure shards are moved. CrateDB does not support `reroute` without concrete commands
+        // while ES (hidden, official documentation does not) supports this.
+        client().admin().cluster().prepareReroute().execute().actionGet(30, TimeUnit.SECONDS);
+
         ensureGreen(tableName);
 
         logger.info("--> verify all are allocated on node1 now");
-        assertBusy(()-> {
-            ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
-            for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
-                for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
-                    for (ShardRouting shardRouting : indexShardRoutingTable) {
-                        assertThat(clusterState.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
-                    }
+        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
+            for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
+                for (ShardRouting shardRouting : indexShardRoutingTable) {
+                    assertThat(clusterState.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
                 }
             }
-        }, 20, TimeUnit.SECONDS);
+        }
 
         if (closed) {
             execute("alter table test open");
@@ -134,20 +136,21 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         } else {
             execute(" alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_1});
         }
+        // Force re-allocation, ensure shards are moved. CrateDB does not support `reroute` without concrete commands
+        // while ES (hidden, official documentation does not) supports this.
+        client().admin().cluster().prepareReroute().execute().actionGet(30, TimeUnit.SECONDS);
         ensureGreen(tableName);
 
         logger.info("--> verify all are allocated on node1 now");
-        assertBusy(() -> {
-            final var cs = client().admin().cluster().prepareState().execute().actionGet().getState();
-            assertThat(cs.metadata().index(tableName).getNumberOfReplicas(), equalTo(0));
-            for (IndexRoutingTable indexRoutingTable : cs.routingTable()) {
-                for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
-                    for (ShardRouting shardRouting : indexShardRoutingTable) {
-                        assertThat(cs.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
-                    }
+        final var cs = client().admin().cluster().prepareState().execute().actionGet().getState();
+        assertThat(cs.metadata().index(tableName).getNumberOfReplicas(), equalTo(0));
+        for (IndexRoutingTable indexRoutingTable : cs.routingTable()) {
+            for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
+                for (ShardRouting shardRouting : indexShardRoutingTable) {
+                    assertThat(cs.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
                 }
             }
-        }, 20, TimeUnit.SECONDS);
+        }
     }
 
     @Test
