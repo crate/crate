@@ -193,20 +193,23 @@ NodeInfo can be accessed using the JMX MBean object name
 ``ShardsInfo`` returns a `CompositeData`_ objects containing detailed
 information about the shards located on the node with the following attributes:
 
-+-------------------------+---------------------------------------------------+
-| Name                    | Description                                       |
-+==================+==========================================================+
-| ``Primaries``           | The number of primary shards located on the node. |
-+-------------------------+---------------------------------------------------+
-| ``Replicas``            | The number of replica shards located on the node. |
-+-------------------------+---------------------------------------------------+
-| ``Unassigned``          | The number of unassigned shards. If the role of   |
-|                         | the node is MASTER this will show the total       |
-|                         | number of unassigned shards in the cluster,       |
-|                         | otherwise 0.                                      |
-+-------------------------+---------------------------------------------------+
-| ``Shards``              | The size in bytes of the shard.                   |
-+-------------------------+---------------------------------------------------+
++--------------------------+---------------------------------------------------+
+| Name                     | Description                                       |
++==========================+===================================================+
+| ``NumberOfShards``       | The number of shards located on the node.         |
++--------------------------+---------------------------------------------------+
+| ``NumberOfPrimaries``    |The number of primary shards located on the node.  |
++--------------------------+---------------------------------------------------+
+| ``NumberOfReplicas``     | The number of replica shards located on the node. |
++--------------------------+---------------------------------------------------+
+| ``NumberOfUnassigned``   | The number of unassigned shards. If the role of   |
+|                          | the node is MASTER this will show the total       |
+|                          | number of unassigned shards in the cluster,       |
+|                          | otherwise 0.                                      |
++--------------------------+---------------------------------------------------+
+| ``Shards``               |Detailed Information about each shards located     |
+|                          |on the node.                                       |
++--------------------------+---------------------------------------------------+
 
 ``Shards`` returns an Array of `CompositeData`_ objects containing detailed
 information about each shards located on the node with the following
@@ -215,11 +218,11 @@ attributes:
 +-------------------------+---------------------------------------------------+
 | Name                    | Description                                       |
 +=========================+===================================================+
-| ``id``                  | The id of the shard.                              |
+| ``Id``                  | The id of the shard.                              |
 +-------------------------+---------------------------------------------------+
-| ``size``                | The size in bytes of the shard.                   |
+| ``Size``                | The size in bytes of the shard.                   |
 +-------------------------+---------------------------------------------------+
-| ``state``               | The state of the shard, possible states are:      |
+| ``State``               | The state of the shard, possible states are:      |
 |                         | ``CREATED``, ``RECOVERING``, ``POST_RECOVERY``,   |
 |                         | ``STARTED``, ``CLOSED``.                          |
 +-------------------------+---------------------------------------------------+
