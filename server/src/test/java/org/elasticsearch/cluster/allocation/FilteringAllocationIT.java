@@ -203,6 +203,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
 
         if (closed) {
             execute("alter table test open");
+            ensureGreen(tableName);
         }
         execute("alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_0});
         // Force re-allocation, ensure shards are moved. CrateDB does not support `reroute` without concrete commands
