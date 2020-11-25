@@ -65,10 +65,10 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         assertThat(cluster().size(), equalTo(2));
 
         logger.info("--> creating an index with no replicas");
-        execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0')",
-                new Object[]{numberOfShards()});
+        execute("create table test(x int, value text) with (number_of_replicas='0')");
 
         String tableName = getFqn("test");
+        ensureGreen(tableName);
 
         for (int i = 0; i < 100; i++) {
             execute("insert into test(x, value) values(?,?)", new Object[]{i, Integer.toString(i)});
@@ -85,16 +85,13 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         }
 
         logger.info("--> decommission the second node");
-        execute(" set global \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
-
-        // Force re-allocation, ensure shards are moved. CrateDB does not support `reroute` without concrete commands
-        // while ES (hidden, official documentation does not) supports this.
-        client().admin().cluster().prepareReroute().execute().actionGet(30, TimeUnit.SECONDS);
+        execute("set global transient \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
 
         ensureGreen(tableName);
 
-        logger.info("--> verify all are allocated on node1 now");
-        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        logger.info("--> verify all are allocated on node_0 now");
+        ClusterState clusterState = client().admin().cluster().prepareState().execute()
+            .actionGet(5, TimeUnit.SECONDS).getState();
         for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
                 for (ShardRouting shardRouting : indexShardRoutingTable) {
@@ -121,28 +118,26 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         assertThat(cluster().size(), equalTo(2));
 
         logger.info("--> creating an index with auto-expand replicas");
-        execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0-all')",
-                new Object[]{numberOfShards()});
+        execute("create table test(x int, value text) with (number_of_replicas='0-all')");
 
         String tableName = getFqn("test");
 
-        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        ClusterState clusterState = client().admin().cluster().prepareState().execute()
+            .actionGet(5, TimeUnit.SECONDS).getState();
         assertThat(clusterState.metadata().index(tableName).getNumberOfReplicas(), equalTo(1));
         ensureGreen(tableName);
 
         logger.info("--> filter out the second node");
         if (randomBoolean()) {
-            execute(" set global \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
+            execute(" set global transient \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
         } else {
             execute(" alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_1});
         }
-        // Force re-allocation, ensure shards are moved. CrateDB does not support `reroute` without concrete commands
-        // while ES (hidden, official documentation does not) supports this.
-        client().admin().cluster().prepareReroute().execute().actionGet(30, TimeUnit.SECONDS);
         ensureGreen(tableName);
 
         logger.info("--> verify all are allocated on node1 now");
-        final var cs = client().admin().cluster().prepareState().execute().actionGet().getState();
+        final var cs = client().admin().cluster().prepareState().execute()
+            .actionGet(5, TimeUnit.SECONDS).getState();
         assertThat(cs.metadata().index(tableName).getNumberOfReplicas(), equalTo(0));
         for (IndexRoutingTable indexRoutingTable : cs.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
@@ -183,7 +178,8 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
             ensureGreen(tableName);
         }
 
-        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        ClusterState clusterState = client().admin().cluster().prepareState().execute()
+            .actionGet(5, TimeUnit.SECONDS).getState();
         IndexRoutingTable indexRoutingTable = clusterState.routingTable().index(tableName);
         int numShardsOnNode1 = 0;
         for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
@@ -195,7 +191,8 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         }
 
         if (numShardsOnNode1 > ThrottlingAllocationDecider.DEFAULT_CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES) {
-            execute("set global \"cluster.routing.allocation.node_concurrent_recoveries\" = ?", new Object[]{numShardsOnNode1});
+            execute("set global transient \"cluster.routing.allocation.node_concurrent_recoveries\" = ?",
+                    new Object[]{numShardsOnNode1});
             // make sure we can recover all the nodes at once otherwise we might run into a state where
             // one of the shards has not yet started relocating but we already fired up the request to wait for 0 relocating shards.
         }
@@ -206,9 +203,6 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
             ensureGreen(tableName);
         }
         execute("alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_0});
-        // Force re-allocation, ensure shards are moved. CrateDB does not support `reroute` without concrete commands
-        // while ES (hidden, official documentation does not) supports this.
-        client().admin().cluster().prepareReroute().execute().actionGet(20, TimeUnit.SECONDS);
         ensureGreen(tableName);
 
         logger.info("--> verify all shards are allocated on node_1 now");
@@ -249,8 +243,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
                     Strings.collectionToCommaDelimitedString(includeNodes));
         ensureStableCluster(6);
 
-        execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0')",
-                new Object[]{numberOfShards()});
+        execute("create table test(x int, value text) with (number_of_replicas='0')");
 
         String tableName = getFqn("test");
         ensureGreen(tableName);
@@ -267,7 +260,8 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         logger.info("--> waiting for relocation");
         waitForRelocation(ClusterHealthStatus.GREEN);
 
-        ClusterState state = client().admin().cluster().prepareState().get().getState();
+        ClusterState state = client().admin().cluster().prepareState().execute()
+            .actionGet(5, TimeUnit.SECONDS).getState();
 
         for (ShardRouting shard : state.getRoutingTable().shardsWithState(ShardRoutingState.STARTED)) {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();
@@ -278,14 +272,14 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         }
 
         logger.info("--> updating settings with random persistent setting");
-        execute(" set global persistent \"memory.allocation.type\" = 'off-heap'");
-        execute(" set global transient \"cluster.routing.allocation.exclude._name\" = ?",
+        execute("set global persistent \"memory.allocation.type\" = 'off-heap'");
+        execute("set global transient \"cluster.routing.allocation.exclude._name\" = ?",
                 new Object[]{excludeNodeIdsAsString});
 
         logger.info("--> waiting for relocation");
         waitForRelocation(ClusterHealthStatus.GREEN);
 
-        state = client().admin().cluster().prepareState().get().getState();
+        state = client().admin().cluster().prepareState().execute().actionGet(5, TimeUnit.SECONDS).getState();
 
         // The transient settings still exist in the state
         assertThat(state.metadata().transientSettings(),
