@@ -53,7 +53,7 @@ Fixes
   This fixed the broken AdminUI->Montoring tab as it uses such an statement.
 
 - Fixed validation of ``GROUP BY`` expressions if an alias is used. The
-  validation was by passed and resulted in an execution exception instead of
+  validation was bypassed and resulted in an execution exception instead of
   an user friendly validation exception.
 
 - Fixed an issue that caused ``IS NULL`` and ``IS NOT NULL`` operators on
