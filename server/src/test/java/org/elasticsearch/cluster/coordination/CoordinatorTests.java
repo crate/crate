@@ -58,6 +58,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LogEvent;
+import org.apache.lucene.util.LuceneTestCase.AwaitsFix;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractDiffable;
@@ -82,6 +83,7 @@ import org.elasticsearch.test.MockLogAppender;
 
 
 
+@AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/10811")
 public class CoordinatorTests extends AbstractCoordinatorTestCase {
 
     /**
