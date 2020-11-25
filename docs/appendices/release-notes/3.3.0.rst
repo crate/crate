@@ -60,7 +60,7 @@ This setting was already being ignored, and setting the value to ``false``
 had no effect.
 
 The node decommission using the ``USR2`` :ref:`signals <cli-crate-signals>` has
-now been deprecated in favour of the :ref:`ALTER CLUSTER DECOMISSION
+now been deprecated in favour of the :ref:`ALTER CLUSTER DECOMMISSION
 <alter_cluster_decommission>` statement.
 
 The ``CREATE INGEST`` and ``DROP INGEST`` rules have been marked
@@ -146,7 +146,7 @@ Deprecations
   This setting was already being ignored, setting the value to ``false`` has no effect.
 
 - The node decommission using the ``USR2`` :ref:`signal <cli-crate-signals>`
-  has been deprecated in favour of the :ref:`ALTER CLUSTER DECOMISSION
+  has been deprecated in favour of the :ref:`ALTER CLUSTER DECOMMISSION
   <alter_cluster_decommission>` statement.
 
 - Marked ``CREATE INGEST`` and ``DROP INGEST`` as deprecated.
