@@ -22,6 +22,8 @@ jobs:
 
       - name: Run tests on ${{ matrix.os }}
         uses: eskatos/gradle-command-action@v1
+        env:
+          CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         with:
           arguments: :server:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}
 
