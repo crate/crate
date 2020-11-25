@@ -20,4 +20,4 @@ if [ ! -f $DIR/.venv/bin/pip ]; then
 fi
 
 $DIR/.venv/bin/pip install -U pip setuptools wheel
-$DIR/.venv/bin/pip install -r $DIR/requirements.txt
+$DIR/.venv/bin/pip install --use-feature=2020-resolver -r $DIR/requirements.txt
