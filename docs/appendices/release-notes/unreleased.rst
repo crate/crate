@@ -53,6 +53,8 @@ None
 Changes
 =======
 
+- Added support for the ``split_part`` scalar function
+
 - Improved the performance of queries on the ``sys.health`` table.
 
 - Added support for the ``dense_rank`` window function, which is available as an
@@ -81,38 +83,4 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that could cause browsers to prompt for a client certificate
-  if ``SSL`` is enabled on the server side, even if no cert authentication
-  method is configured.
-
-- Fixed a regression introduced Crate ``4.1`` resulting in duplicated recovery
-  file chunk responses sent.
-  This causes log entries of `Transport handler not found ...`.
-
-- Fixed an issue that resulted in records in ``pg_catalog.pg_proc`` which
-  wouldn't be joined with ``pg_catalog.pg_type``. Clients like ``npgsql`` use
-  this information and without it the users received an error like ``The CLR
-  array type System.Int32[] isn't supported by Npgsql or your PostgreSQL`` if
-  using array types.
-
-- Fixed an issue that could lead to stuck ``INSERT INTO .. RETURNING`` queries.
-
-- Fixed a regression introduced in CrateDB >= ``4.3`` which prevents using
-  ``regexp_matches()`` wrapped inside a subscript expression from being used
-  as a ``GROUP BY`` expression.
-  This fixed the broken AdminUI->Montoring tab as it uses such an statement.
-
-- Fixed validation of ``GROUP BY`` expressions if an alias is used. The
-  validation was by passed and resulted in an execution exception instead of
-  an user friendly validation exception.
-
-- Fixed an issue that caused ``IS NULL`` and ``IS NOT NULL`` operators on
-  columns of type ``OBJECT`` with the column policy ``IGNORED`` to match
-  incorrect records.
-
-- Fixed an issue that led to an error like ``UnsupportedOperationException:
-  Can't handle Symbol [ParameterSymbol: $1]`` if using ``INSERT INTO`` with a
-  query that contains parameter place holders and a ``LIMIT`` clause.
-
-- Fixed an issue that led to an error if a user nested multiple table
-  functions.
+None
