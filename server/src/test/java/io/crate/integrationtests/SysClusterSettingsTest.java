@@ -21,14 +21,13 @@
 
 package io.crate.integrationtests;
 
-import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
-import static org.hamcrest.Matchers.is;
-
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.base.Splitter;
-
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.settings.CrateSetting;
+import io.crate.udc.service.UDCService;
+import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;
@@ -38,10 +37,12 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.settings.CrateSetting;
-import io.crate.udc.service.UDCService;
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Map;
+
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
+import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope
 public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
@@ -55,7 +56,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @After
     public void resetSettings() throws Exception {
-        execute("reset global stats, bulk, indices");
+        execute("reset global stats, bulk, indices, cluster");
     }
 
     @Test
@@ -183,6 +184,20 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertSettingsValue(
             INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey(),
             "100kb");
+    }
+
+    /**
+     * There was a regression introduced with v4.0.0 which prevents to set this setting as it was not included
+     * at {@link org.elasticsearch.common.settings.ClusterSettings#BUILT_IN_CLUSTER_SETTINGS}.
+     * Additionally the new setting was not applied internally to the cluster service due to missing update consumer.
+     */
+    @Test
+    public void test_set_cluster_info_update_interval() throws Exception {
+        execute("set global transient \"cluster.info.update.interval\" = '45s'");
+        var clusterService = internalCluster().getInstance(ClusterInfoService.class);
+        Field f1 = clusterService.getClass().getDeclaredField("updateFrequency");
+        f1.setAccessible(true);
+        assertThat(f1.get(clusterService), is(TimeValue.timeValueSeconds(45)));
     }
 
     private void assertSettingsDefault(CrateSetting<?> crateSetting) {

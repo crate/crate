@@ -58,4 +58,5 @@ None
 Fixes
 =====
 
-None
+- Fixed a regression introduced in CrateDB ``4.0`` preventing the global setting
+  ``cluster.info.update.interval`` to be changed.
