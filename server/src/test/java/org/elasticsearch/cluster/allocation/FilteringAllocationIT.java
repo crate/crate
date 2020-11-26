@@ -87,21 +87,19 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         }
 
         logger.info("--> decommission the second node");
-        execute(" set global \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
+        execute("set global \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
 
         ensureGreen(tableName);
 
         logger.info("--> verify all are allocated on node1 now");
-        assertBusy(()-> {
-            ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
-            for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
-                for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
-                    for (ShardRouting shardRouting : indexShardRoutingTable) {
-                        assertThat(clusterState.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
-                    }
+        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
+            for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
+                for (ShardRouting shardRouting : indexShardRoutingTable) {
+                    assertThat(clusterState.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
                 }
             }
-        }, 20, TimeUnit.SECONDS);
+        }
 
         if (closed) {
             execute("alter table test open");
@@ -132,24 +130,22 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
 
         logger.info("--> filter out the second node");
         if (randomBoolean()) {
-            execute(" set global \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
+            execute("set global \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
         } else {
-            execute(" alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_1});
+            execute("alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_1});
         }
         ensureGreen(tableName);
 
         logger.info("--> verify all are allocated on node1 now");
-        assertBusy(() -> {
-            final var cs = client().admin().cluster().prepareState().execute().actionGet().getState();
-            assertThat(cs.metadata().index(tableName).getNumberOfReplicas(), equalTo(0));
-            for (IndexRoutingTable indexRoutingTable : cs.routingTable()) {
-                for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
-                    for (ShardRouting shardRouting : indexShardRoutingTable) {
-                        assertThat(cs.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
-                    }
+        final var cs = client().admin().cluster().prepareState().execute().actionGet().getState();
+        assertThat(cs.metadata().index(tableName).getNumberOfReplicas(), equalTo(0));
+        for (IndexRoutingTable indexRoutingTable : cs.routingTable()) {
+            for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
+                for (ShardRouting shardRouting : indexShardRoutingTable) {
+                    assertThat(cs.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
                 }
             }
-        }, 20, TimeUnit.SECONDS);
+        }
     }
 
     @Test
@@ -187,7 +183,7 @@ public class FilteringAllocationIT extends SQLTransportIntegrationTest {
         int numShardsOnNode1 = 0;
         for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
             for (ShardRouting shardRouting : indexShardRoutingTable) {
-                if ("node1".equals(clusterState.nodes().get(shardRouting.currentNodeId()).getName())) {
+                if (node_1.equals(clusterState.nodes().get(shardRouting.currentNodeId()).getName())) {
                     numShardsOnNode1++;
                 }
             }
