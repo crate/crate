@@ -53,6 +53,8 @@ None
 Changes
 =======
 
+- Added the ``to_char`` scalar function for timestamp, interval and numeric types.
+
 - Added support for the ``split_part`` scalar function
 
 - Improved the performance of queries on the ``sys.health`` table.
