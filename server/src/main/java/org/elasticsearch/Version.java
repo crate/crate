@@ -22,6 +22,7 @@ package org.elasticsearch;
 import io.crate.common.SuppressForbidden;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -42,13 +43,12 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      * The logic for ID is: XXYYZZAA, where XX is major version, YY is minor version, ZZ is revision, and AA is alpha/beta/rc indicator AA
      * values below 25 are for alpha builder (since 5.0), and above 25 and below 50 are beta builds, and below 99 are RC builds, with 99
      * indicating a release the (internal) format of the id is there so we can easily do after/before checks on the id
+     *
      */
     private static final int V_EMPTY_ID = 0;
     public static final Version V_EMPTY = new Version(V_EMPTY_ID, 0, false, org.apache.lucene.util.Version.LATEST);
-    private static final int ES_V_6_1_4_ID = 6010499;
-    public static final Version ES_V_6_1_4 = new Version(ES_V_6_1_4_ID, 3_00_01_99, false, org.apache.lucene.util.Version.LUCENE_7_1_0);
-    private static final int ES_V_6_5_1_ID = 6050199;
-    public static final Version ES_V_6_5_1 = new Version(ES_V_6_5_1_ID, 3_02_00_99, false, org.apache.lucene.util.Version.LUCENE_7_5_0);
+    public static final Version V_3_0_1 = new Version(6_01_04_99, 3_00_01_99, false, org.apache.lucene.util.Version.LUCENE_7_1_0);
+    public static final Version V_3_2_0 = new Version(6_05_01_99, 3_02_00_99, false, org.apache.lucene.util.Version.LUCENE_7_5_0);
 
     /**
      * Before CrateDB 4.0 we've had ES versions (internalId) and CrateDB (externalId) versions.
@@ -67,198 +67,133 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      */
     private static final int INTERNAL_OFFSET = 3_00_00_00;
 
-    public static final int ES_V_7_0_0_ID = 7_00_00_99;
-    public static final int ES_V_7_0_1_ID = 7_00_01_99;
-    public static final int ES_V_7_0_2_ID = 7_00_02_99;
-    public static final int ES_V_7_0_3_ID = 7_00_03_99;
-    public static final int ES_V_7_0_4_ID = 7_00_04_99;
-    public static final int ES_V_7_0_5_ID = 7_00_05_99;
-    public static final int ES_V_7_0_6_ID = 7_00_06_99;
-    public static final int ES_V_7_0_7_ID = 7_00_07_99;
-    public static final int ES_V_7_0_8_ID = 7_00_08_99;
-    public static final int ES_V_7_0_9_ID = 7_00_09_99;
-    public static final int ES_V_7_0_10_ID = 7_00_10_99;
-    public static final int ES_V_7_0_11_ID = 7_00_11_99;
-    public static final int ES_V_7_0_12_ID = 7_00_12_99;
+    public static final Version V_4_0_0 = new Version(7_00_00_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_1 = new Version(7_00_01_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_2 = new Version(7_00_02_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_3 = new Version(7_00_03_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_4 = new Version(7_00_04_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_5 = new Version(7_00_05_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_6 = new Version(7_00_06_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_7 = new Version(7_00_07_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_8 = new Version(7_00_08_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_9 = new Version(7_00_09_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_10 = new Version(7_00_10_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_11 = new Version(7_00_11_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_12 = new Version(7_00_12_99, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
 
-    public static final int ES_V_7_1_0_ID = 7_01_00_99;
-    public static final int ES_V_7_1_1_ID = 7_01_01_99;
-    public static final int ES_V_7_1_2_ID = 7_01_02_99;
-    public static final int ES_V_7_1_3_ID = 7_01_03_99;
-    public static final int ES_V_7_1_4_ID = 7_01_04_99;
-    public static final int ES_V_7_1_5_ID = 7_01_05_99;
-    public static final int ES_V_7_1_6_ID = 7_01_06_99;
-    public static final int ES_V_7_1_7_ID = 7_01_07_99;
-    public static final int ES_V_7_1_8_ID = 7_01_08_99;
+    public static final Version V_4_1_0 = new Version(7_01_00_99, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
+    public static final Version V_4_1_1 = new Version(7_01_01_99, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
+    public static final Version V_4_1_2 = new Version(7_01_02_99, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
+    public static final Version V_4_1_3 = new Version(7_01_03_99, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
+    public static final Version V_4_1_4 = new Version(7_01_04_99, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
+    public static final Version V_4_1_5 = new Version(7_01_05_99, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
+    public static final Version V_4_1_6 = new Version(7_01_06_99, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
+    public static final Version V_4_1_7 = new Version(7_01_07_99, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
+    public static final Version V_4_1_8 = new Version(7_01_08_99, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
 
-    public static final int ES_V_7_2_0_ID = 7_02_00_99;
-    public static final int ES_V_7_2_1_ID = 7_02_01_99;
-    public static final int ES_V_7_2_2_ID = 7_02_02_99;
-    public static final int ES_V_7_2_3_ID = 7_02_03_99;
-    public static final int ES_V_7_2_4_ID = 7_02_04_99;
-    public static final int ES_V_7_2_5_ID = 7_02_05_99;
-    public static final int ES_V_7_2_6_ID = 7_02_06_99;
-    public static final int ES_V_7_2_7_ID = 7_02_07_99;
+    public static final Version V_4_2_0 = new Version(7_02_00_99, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
+    public static final Version V_4_2_1 = new Version(7_02_01_99, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
+    public static final Version V_4_2_2 = new Version(7_02_02_99, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
+    public static final Version V_4_2_3 = new Version(7_02_03_99, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
+    public static final Version V_4_2_4 = new Version(7_02_04_99, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
+    public static final Version V_4_2_5 = new Version(7_02_05_99, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
+    public static final Version V_4_2_6 = new Version(7_02_06_99, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
+    public static final Version V_4_2_7 = new Version(7_02_07_99, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
 
-    public static final int ES_V_7_3_0_ID = 7_03_00_99;
-    public static final int ES_V_7_3_1_ID = 7_03_01_99;
-    public static final int ES_V_7_3_2_ID = 7_03_02_99;
+    public static final Version V_4_3_0 = new Version(7_03_00_99, false, org.apache.lucene.util.Version.LUCENE_8_6_2);
+    public static final Version V_4_3_1 = new Version(7_03_01_99, false, org.apache.lucene.util.Version.LUCENE_8_6_2);
+    public static final Version V_4_3_2 = new Version(7_03_02_99, false, org.apache.lucene.util.Version.LUCENE_8_6_2);
 
-    public static final int ES_V_7_4_0_ID = 7_04_00_99;
-
-    public static final Version V_4_0_0 = new Version(ES_V_7_0_0_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_1 = new Version(ES_V_7_0_1_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_2 = new Version(ES_V_7_0_2_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_3 = new Version(ES_V_7_0_3_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_4 = new Version(ES_V_7_0_4_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_5 = new Version(ES_V_7_0_5_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_6 = new Version(ES_V_7_0_6_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_7 = new Version(ES_V_7_0_7_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_8 = new Version(ES_V_7_0_8_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_9 = new Version(ES_V_7_0_9_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_10 = new Version(ES_V_7_0_10_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_11 = new Version(ES_V_7_0_11_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_12 = new Version(ES_V_7_0_12_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
-
-    public static final Version V_4_1_0 = new Version(ES_V_7_1_0_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
-    public static final Version V_4_1_1 = new Version(ES_V_7_1_1_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
-    public static final Version V_4_1_2 = new Version(ES_V_7_1_2_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
-    public static final Version V_4_1_3 = new Version(ES_V_7_1_3_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
-    public static final Version V_4_1_4 = new Version(ES_V_7_1_4_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
-    public static final Version V_4_1_5 = new Version(ES_V_7_1_5_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
-    public static final Version V_4_1_6 = new Version(ES_V_7_1_6_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
-    public static final Version V_4_1_7 = new Version(ES_V_7_1_7_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
-    public static final Version V_4_1_8 = new Version(ES_V_7_1_8_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
-
-    public static final Version V_4_2_0 = new Version(ES_V_7_2_0_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
-    public static final Version V_4_2_1 = new Version(ES_V_7_2_1_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
-    public static final Version V_4_2_2 = new Version(ES_V_7_2_2_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
-    public static final Version V_4_2_3 = new Version(ES_V_7_2_3_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
-    public static final Version V_4_2_4 = new Version(ES_V_7_2_4_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
-    public static final Version V_4_2_5 = new Version(ES_V_7_2_5_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
-    public static final Version V_4_2_6 = new Version(ES_V_7_2_6_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
-    public static final Version V_4_2_7 = new Version(ES_V_7_2_7_ID, false, org.apache.lucene.util.Version.LUCENE_8_5_1);
-
-    public static final Version V_4_3_0 = new Version(ES_V_7_3_0_ID, false, org.apache.lucene.util.Version.LUCENE_8_6_2);
-    public static final Version V_4_3_1 = new Version(ES_V_7_3_1_ID, false, org.apache.lucene.util.Version.LUCENE_8_6_2);
-    public static final Version V_4_3_2 = new Version(ES_V_7_3_2_ID, false, org.apache.lucene.util.Version.LUCENE_8_6_2);
-
-    public static final Version V_4_4_0 = new Version(ES_V_7_4_0_ID, true, org.apache.lucene.util.Version.LUCENE_8_7_0);
+    public static final Version V_4_4_0 = new Version(7_04_00_99, true, org.apache.lucene.util.Version.LUCENE_8_7_0);
 
     public static final Version CURRENT = V_4_4_0;
 
+    private static final ImmutableOpenIntMap<Version> ID_TO_VERSION;
+
     static {
+        final ImmutableOpenIntMap.Builder<Version> builder = ImmutableOpenIntMap.builder();
+
+        for (final Field declaredField : Version.class.getFields()) {
+            if (declaredField.getType().equals(Version.class)) {
+                final String fieldName = declaredField.getName();
+                if (fieldName.equals("CURRENT") || fieldName.equals("V_EMPTY")) {
+                    continue;
+                }
+                assert fieldName.matches("V_\\d+_\\d+_\\d+")
+                        : "expected Version field [" + fieldName + "] to match V_\\d+_\\d+_\\d+";
+                try {
+                    final Version version = (Version) declaredField.get(null);
+                    if (Assertions.ENABLED && version.major > 6) {
+                        final String[] fields = fieldName.split("_");
+                        final int major = Integer.valueOf(fields[1]) * 1000000;
+                        final int minor = Integer.valueOf(fields[2]) * 10000;
+                        final int revision = Integer.valueOf(fields[3]) * 100;
+                        final int expectedId = (major + minor + revision + 99) + INTERNAL_OFFSET;
+                        assert version.internalId == expectedId :
+                                "expected version [" + fieldName + "] to have id [" + expectedId + "] but was [" + version.internalId + "]";
+                    }
+                    final Version maybePrevious = builder.put(version.internalId, version);
+                    assert maybePrevious == null :
+                            "expected [" + version.internalId + "] to be uniquely mapped but saw [" + maybePrevious + "] and [" + version + "]";
+                } catch (final IllegalAccessException e) {
+                    assert false : "Version field [" + fieldName + "] should be public";
+                }
+            }
+        }
         assert CURRENT.luceneVersion.equals(org.apache.lucene.util.Version.LATEST) : "Version must be upgraded to ["
                 + org.apache.lucene.util.Version.LATEST + "] is still set to [" + CURRENT.luceneVersion + "]";
+
+        ID_TO_VERSION = builder.build();
     }
 
     public static Version readVersion(StreamInput in) throws IOException {
         return fromId(in.readVInt());
     }
 
-    public static Version fromId(int internalId) {
-        switch (internalId) {
-            case ES_V_6_5_1_ID:
-                return ES_V_6_5_1;
-            case ES_V_6_1_4_ID:
-                return ES_V_6_1_4;
-            case ES_V_7_0_0_ID:
-                return V_4_0_0;
-            case ES_V_7_0_1_ID:
-                return V_4_0_1;
-            case ES_V_7_0_2_ID:
-                return V_4_0_2;
-            case ES_V_7_0_3_ID:
-                return V_4_0_3;
-            case ES_V_7_0_4_ID:
-                return V_4_0_4;
-            case ES_V_7_0_5_ID:
-                return V_4_0_5;
-            case ES_V_7_0_6_ID:
-                return V_4_0_6;
-            case ES_V_7_0_7_ID:
-                return V_4_0_7;
-            case ES_V_7_0_8_ID:
-                return V_4_0_8;
-            case ES_V_7_0_9_ID:
-                return V_4_0_9;
-            case ES_V_7_0_10_ID:
-                return V_4_0_10;
-            case ES_V_7_0_11_ID:
-                return V_4_0_11;
-            case ES_V_7_0_12_ID:
-                return V_4_0_12;
 
-            case ES_V_7_1_0_ID:
-                return V_4_1_0;
-            case ES_V_7_1_1_ID:
-                return V_4_1_1;
-            case ES_V_7_1_2_ID:
-                return V_4_1_2;
-            case ES_V_7_1_3_ID:
-                return V_4_1_3;
-            case ES_V_7_1_4_ID:
-                return V_4_1_4;
-            case ES_V_7_1_5_ID:
-                return V_4_1_5;
-            case ES_V_7_1_6_ID:
-                return V_4_1_6;
-            case ES_V_7_1_7_ID:
-                return V_4_1_7;
-            case ES_V_7_1_8_ID:
-                return V_4_1_8;
-
-            case ES_V_7_2_0_ID:
-                return V_4_2_0;
-            case ES_V_7_2_1_ID:
-                return V_4_2_1;
-            case ES_V_7_2_2_ID:
-                return V_4_2_2;
-            case ES_V_7_2_3_ID:
-                return V_4_2_3;
-            case ES_V_7_2_4_ID:
-                return V_4_2_4;
-            case ES_V_7_2_5_ID:
-                return V_4_2_5;
-            case ES_V_7_2_6_ID:
-                return V_4_2_6;
-            case ES_V_7_2_7_ID:
-                return V_4_2_7;
-
-            case ES_V_7_3_0_ID:
-                return V_4_3_0;
-            case ES_V_7_3_1_ID:
-                return V_4_3_1;
-            case ES_V_7_3_2_ID:
-                return V_4_3_2;
-
-            case ES_V_7_4_0_ID:
-                return V_4_4_0;
-
-            case V_EMPTY_ID:
-                return V_EMPTY;
-            default:
-                // We need to be able to connect to future CrateDB versions for upgrades.
-                if (internalId >= V_4_0_0.internalId) {
-                    byte otherMajor = (byte) ((internalId / 1000000) % 100);
-
-                    // The lucene Version needs to be accurate enough for index compatibility checks.
-                    // We don't know what version future CrateDB versions will ship with, but we can make assumptions:
-                    // CrateDB versions 4.x will ship with Lucene 8.x
-                    // CrateDB versions 5.x will likely ship with Lucene 9.x
-
-                    org.apache.lucene.util.Version luceneVersion;
-                    org.apache.lucene.util.Version latestLucene = org.apache.lucene.util.Version.LATEST;
-                    if (otherMajor == Version.CURRENT.major + 1) {
-                        luceneVersion = org.apache.lucene.util.Version.fromBits(latestLucene.major + 1, 0, 0);
-                    } else {
-                        luceneVersion = latestLucene;
-                    }
-                    return new Version(internalId, internalId - INTERNAL_OFFSET, false, luceneVersion);
-                }
-                throw new IllegalStateException("Illegal internal version id: " + internalId);
+    public static Version fromId(int id) {
+        final Version known = ID_TO_VERSION.get(id);
+        if (known != null) {
+            return known;
         }
+        return fromIdSlow(id);
     }
+
+    private static Version fromIdSlow(int id) {
+        // We need at least the major of the Lucene version to be correct.
+        // Our best guess is to use the same Lucene version as the previous
+        // version in the list, assuming that it didn't change.
+        List<Version> versions = DeclaredVersionsHolder.DECLARED_VERSIONS;
+        Version tmp = new Version(id, false, org.apache.lucene.util.Version.LATEST);
+        int index = Collections.binarySearch(versions, tmp);
+        if (index < 0) {
+            index = -2 - index;
+        } else {
+            assert false : "Version [" + tmp + "] is declared but absent from the switch statement in Version#fromId";
+        }
+        final org.apache.lucene.util.Version luceneVersion;
+        if (index == -1) {
+            // this version is older than any supported version, so we
+            // assume it is the previous major to the oldest Lucene version
+            // that we know about
+            luceneVersion = org.apache.lucene.util.Version.fromBits(
+                versions.get(0).luceneVersion.major - 1, 0, 0);
+        } else {
+            // The lucene Version needs to be accurate enough for index compatibility checks.
+            // We don't know what version future CrateDB versions will ship with, but we can make assumptions:
+            // CrateDB versions 4.x will ship with Lucene 8.x
+            // CrateDB versions 5.x will likely ship with Lucene 9.x
+            Version closestVersion = versions.get(index);
+            if (closestVersion.major >= tmp.major) {
+                luceneVersion = closestVersion.luceneVersion;
+            } else {
+                luceneVersion = org.apache.lucene.util.Version.fromBits(
+                    closestVersion.luceneVersion.major + 1, 0, 0);
+            }
+        }
+        return new Version(id, false, luceneVersion);
+    }
+
 
     /**
      * Return the {@link Version} of Elasticsearch that has been used to create an index given its settings.
@@ -404,6 +339,16 @@ public class Version implements Comparable<Version>, ToXContentFragment {
         return builder.value(toString());
     }
 
+    /*
+     * We need the declared versions when computing the minimum compatibility version. As computing the declared versions uses reflection it
+     * is not cheap. Since computing the minimum compatibility version can occur often, we use this holder to compute the declared versions
+     * lazily once.
+     */
+    private static class DeclaredVersionsHolder {
+        static final List<Version> DECLARED_VERSIONS = Collections.unmodifiableList(getDeclaredVersions(Version.class));
+    }
+
+
     /**
      * Returns the minimum compatible version based on the current
      * version. Ie a node needs to have at least the return version in order
@@ -421,7 +366,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      * code that is used to read / write file formats like transaction logs, cluster state, and index metadata.
      */
     public Version minimumIndexCompatibilityVersion() {
-        return ES_V_6_1_4;
+        return V_3_0_1;
     }
 
     /**

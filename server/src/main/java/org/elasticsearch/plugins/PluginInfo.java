@@ -163,7 +163,7 @@ public class PluginInfo implements ToXContentObject {
             }
         }
 
-        if (esVersion.before(Version.ES_V_6_5_1)) {
+        if (esVersion.before(Version.V_3_2_0)) {
             propsMap.remove("requires.keystore");
         }
 

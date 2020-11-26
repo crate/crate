@@ -157,7 +157,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             mock(ThreadPool.class),
             clusterService,
-            MockTransportService.createNewService(Settings.EMPTY, Version.ES_V_6_5_1, THREAD_POOL, clusterService.getClusterSettings()),
+            MockTransportService.createNewService(Settings.EMPTY, Version.V_3_2_0, THREAD_POOL, clusterService.getClusterSettings()),
             mock(SchemaUpdateClient.class),
             mock(TasksService.class),
             indicesService,
