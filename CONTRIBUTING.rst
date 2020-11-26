@@ -153,13 +153,13 @@ If you're happy with the result, do a **force** push (since you're rewriting his
 See also: http://www.ericbmerritt.com/2011/09/21/commit-hygiene-and-git.html
 
 
-.. _CLA: https://crate.io/community/contribute/agreements/
+.. _CLA: https://crate.io/community/contribute/cla/
 .. _Crate.io: http://crate.io/
 .. _developer guide: devs/docs/index.rst
 .. _get in touch: https://crate.io/contact/
-.. _giving feedback: https://github.com/crate/crate/blob/master/CONTRIBUTING.rst#upvoting-issues
+.. _giving feedback: https://github.com/crate/crate/blob/master/CONTRIBUTING.rst#tell-us-about-your-experience
 .. _reporting new issues: https://github.com/crate/crate/blob/master/CONTRIBUTING.rst#reporting-issues
-.. _search the existing issues: https://github.com/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+user%3Acrate+
+.. _search the existing issues: https://github.com/search?q=org%3Acrate+is%3Aissue+is%3Aopen
 .. _sort issues by reaction: https://github.com/crate/crate/issues?q=is%3Aissue+is%3Aopen+sort%3Areactions-%2B1-desc
 .. _support channels: https://crate.io/support/
 .. _Upvoting existing issues: https://github.com/crate/crate/blob/master/CONTRIBUTING.rst#upvoting-issues
