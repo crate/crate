@@ -39,7 +39,9 @@ repository. For example::
       server/src/main/java/org/elasticsearch/indices/recovery/ \
       server/src/main/java/org/elasticsearch/cluster/coordination \
       server/src/main/java/org/elasticsearch/transport \
-      server/src/main/java/org/elasticsearch/gateway
+      server/src/main/java/org/elasticsearch/gateway \
+      server/src/main/java/org/elasticsearch/action/admin/cluster/health
+
 
 Here ``4b16d50cd4b`` is the starting point, it shows any changes since then
 thatvaffected files in the given folder.
@@ -65,6 +67,7 @@ should be crossed out as well.
 - [ ] a5168572d5b Collapse ParametrizedFieldMapper into FieldMapper (#64365)
 - [ ] 0ed5174cb87 Make some Allocation Decider Code a Little More JIT Aware (#62275)
 - [ ] df3c1d93283 Fix Store class comment typo. (#64325)
+- [ ] ef4ea4ae103 Simplify ClusterStateUpdateTask Timeout Handling (#64117)
 - [ ] 2186b75af9f Reduce usages of SearchContext#mapperService (#64250)
 - [ ] eaac6496fc4 Fix #invariant Assertion in CacheFile (#64180)
 - [ ] 3d19ce9b1dd Remove uid from Engine#Get constructor (#64119)
@@ -92,6 +95,7 @@ should be crossed out as well.
 - [ ] 2b5e337e894 Check docs limit before indexing on primary (#63273)
 - [ ] f491422e1ed Ensure field types consistency on supporting text queries (#63487)
 - [ ] 62857b49d1d Add support for missing value fetchers. (#63515)
+- [ ] 2d1bf0c79ef Dry up TransportMasterNodeAction Usage (#63524)
 - [ ] dc5dbbbfe29 Flush translog writer before adding new operation (#63505)
 - [ ] 8c56bbc3e6e Add factory methods for common value fetchers. (#63438)
 - [ ] 80268f9bff6 TextSearchInfo should never get null analyzers (#63472)
@@ -128,6 +132,7 @@ should be crossed out as well.
 - [ ] e02555ce822 Cleanup Blobstore Repository Metadata Serialization (#62727)
 - [ ] 27ca0a8979d Convert ConstantKeywordFieldMapper to parametrized form (#62688)
 - [ ] ea2dbd93b49 Add field type for version strings (#59773)
+- [ ] db1a137927a Fix cluster health when closing (#61709)
 - [ ] fe9145fa5e7 Search - add case insensitive flag for "term" family of queries (#61596)
 - [ ] 2b0418df5f9 Emit deprecation warnings when boosts are defined in mappings (#62623)
 - [ ] fe2ce8a3fd3 Also abort ongoing file restores when snapshot restore is aborted (#62441)
@@ -245,6 +250,7 @@ should be crossed out as well.
 - [ ] 31a569a60a2 Remove uid from translog delete operation (#59101)
 - [ ] 2e3f3c0fce8 Extract recovery files details to its own class (#59039)
 - [ ] 90e72a4194e Avoid flipping translog header version (#58866)
+- [ ] e592a9a5e72 Add include_data_streams flag for authorization (#58154)
 - [ ] 52ff121fcfc Re-enable support for array-valued geo_shape fields. (#58786)
 - [ ] 673444000e3 Percolator keyword fields should not store norms (#58899)
 - [ ] 001b3fb4406 Add data stream timestamp validation via metadata field mapper (#58582)
@@ -285,6 +291,7 @@ should be crossed out as well.
 - [ ] 807e0759ab3 Update version peer recovery constants to 7_9 (#57829)
 - [ ] b68bd78a53a Refactor how to determine if a field is metafield (#57378)
 - [ ] 3f072aabcb9 Restore ThreadContext after Serializing OutboundMessage (#57659)
+- [ ] d81ea8e7c73 Timeout health API on busy master (#57587)
 - [ ] 88a2aeb8cf6 Remove the 'array value parser' marker interface. (#57571)
 - [ ] 0a23487e73e IndexFieldData should hold the ValuesSourceType (#57373)
 - [ ] 6477924c262 Store parsed mapping settings in IndexSettings (#57492)
@@ -309,6 +316,7 @@ should be crossed out as well.
 - [ ] 4de4c14b5b9 Save Bounds Checks in BytesReference (#56577)
 - [ ] a01d2bd24b0 [Geo] Refactor Point Field Mappers (#56060)
 - [ ] fa535d08b50 Use CollectionUtils.isEmpty where appropriate (#55910)
+- [ ] 0ae0e700397 Allow cluster health api to resolve data streams (#56413)
 - [ ] e1dbe2606ce Use snapshot information to build searchable snapshot store MetadataSnapshot (#56289)
 - [ ] a95586773fd Improve logging around SniffConnectionStrategy (#56292)
 - [ ] 601617a3fc0 Avoid copying file chunks in peer covery (#56072)
@@ -362,6 +370,7 @@ should be crossed out as well.
 - [ ] 8264bdd36a2 Revert "Introduce system index APIs for Kibana (#52385)" (#53912)
 - [ ] 87c910b36f8 Better Incrementality for Snapshots of Unchanged Shards (#52182)
 - [ ] 856721c574d Handle properly indexing rectangles that crosses the dateline (#53810)
+- [ ] 290d58b1b05 Remove unnecessary fromValue method for ClusterHealthStatus (#53893)
 - [ ] f3243949d73 Describe STALE_STATE_CONFIG in ClusterFormationFH (#53878)
 - [ ] 2794ab79753 Execute retention lease syncs under system context (#53838)
 - [ ] 6eb698bc6d3 Add support for distance queries on geo_shape queries (#53466)
@@ -436,6 +445,7 @@ should be crossed out as well.
 - [ ] 6e2f7b4b084 Use Lucene index in peer recovery and resync (#51189)
 - [ ] c8e9f57348f Account soft-deletes in FrozenEngine (#51192)
 - [ ] 3d796248437 Revert "Don't use user-supplied type when building DocumentMapper (#50960)" (#51214)
+- [ ] 173c3bdac41 Introduce hidden indices (#50452)
 - [ ] 9bb7d21c0b0 Remove the AllFieldMapper from master (#51106)
 - [ ] 09b46c86463 Goodbye and thank you synced flush! (#50882)
 - [ ] b332c8b0f5d Revert "Update handshake response version constants to 7.6 (#48917)" (#50945)
