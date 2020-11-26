@@ -79,7 +79,7 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
     @Override
     public Version getMinimalSupportedVersion() {
-        return Version.ES_V_6_1_4;
+        return Version.V_3_0_1;
     }
 
 

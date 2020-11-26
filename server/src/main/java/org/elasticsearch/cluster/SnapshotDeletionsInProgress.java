@@ -41,7 +41,7 @@ public class SnapshotDeletionsInProgress extends AbstractNamedDiffable<Custom> i
 
     public static final String TYPE = "snapshot_deletions";
     // the version where SnapshotDeletionsInProgress was introduced
-    public static final Version VERSION_INTRODUCED = Version.ES_V_6_1_4;
+    public static final Version VERSION_INTRODUCED = Version.V_3_0_1;
 
     // the list of snapshot deletion request entries
     private final List<Entry> entries;
