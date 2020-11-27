@@ -40,7 +40,7 @@ or collections.
 * `bigint <numeric types_>`_
 * `real <numeric types_>`_
 * `double precision <numeric types_>`_
-* `text <data-type-text>`_
+* `text <data-type-text_>`_
 * `ip`_
 * `timestamp with time zone <timestamp with time zone_>`_
 * `timestamp without time zone <timestamp without time zone_>`_
@@ -159,8 +159,8 @@ will be truncated to ``n`` characters without raising an error.
     SELECT 1 row in set (... sec)
 
 ``character varying`` and ``varchar`` without the length specifier are
-aliases for the `text <data-type-text>`_ data type. See ` type aliases
-<data-type-aliases>`_.
+aliases for the :ref:`text <data-type-text>` data type,
+see also :ref:`type aliases <data-type-aliases>`.
 
 .. hide:
 

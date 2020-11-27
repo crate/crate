@@ -2400,8 +2400,8 @@ return the default schema, which is ``doc``.
 Returns: ``text``
 
 The default schema can be set when using the `JDBC client
-<https://crate.io/docs/jdbc/en/latest/connect.html>`_ and `HTTP clients
-<http_default_schema>`_ such as `CrateDB PDO`_.
+<https://crate.io/docs/jdbc/en/latest/connect.html>`_ and :ref:`HTTP clients
+<http_default_schema>` such as `CrateDB PDO`_.
 
 .. NOTE::
 

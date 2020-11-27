@@ -58,9 +58,9 @@ system capable of automatically maintaining an optimal level of fault
 tolerance even in situations of network partitions.
 This eliminates the need of the easily miss configured ``minimum_master_nodes``
 setting.
-Additionally a rare resiliency failure, recorded as `Repeated cluster
+Additionally a rare resiliency failure, recorded as :ref:`Repeated cluster
 partitions can cause cluster state updates to be lost
-<resiliency_cluster_partitions_cause_lost_cluster_updates>`_
+<resiliency_cluster_partitions_cause_lost_cluster_updates>`
 can no longer occur.
 
 Due to this some discovery settings are added, renamed and removed.
@@ -315,7 +315,7 @@ SQL Standard and PostgreSQL compatibility improvements
   :ref:`pg_catalog.pg_type <postgres_pg_type>` for improved PostgreSQL
   compatibility.
 
-- Added the `pg_catalog.pg_settings <pgsql_pg_settings>`_ table.
+- Added the :ref:`pg_catalog.pg_settings <postgres_pg_catalog>` table.
 
 - Added support for :ref:`sql_escape_string_literals`.
 
@@ -378,11 +378,11 @@ Performance and resiliency improvements
   :ref:`_primary_term <sql_administration_system_columns_primary_term>`, the
   following resiliency issues were fixed:
 
-   - `Version Number Representing Ambiguous Row Versions
-     <resiliency_ambiguous_row_versions>`_
+   - :ref:`Version Number Representing Ambiguous Row Versions
+     <resiliency_ambiguous_row_versions>`
 
-   - `Replicas can fall out of sync when a primary shard fails
-     <resiliency_replicas_fall_out_of_sync>`_
+   - :ref:`Replicas can fall out of sync when a primary shard fails
+     <resiliency_replicas_fall_out_of_sync>`
 
 - Predicates like ``abs(x) = 1`` which require a scalar function evaluation and
   cannot operate on table indices directly are now candidates for the query

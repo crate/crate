@@ -244,8 +244,8 @@ The table schema is as follows:
 | Column Name | Description                                     | Return Type |
 +=============+=================================================+=============+
 | ``name``    | The node name within a cluster. The system will | ``TEXT``    |
-|             | choose a random name. You can specify the node  |             |
-|             | name via your own custom `configuration`_.      |             |
+|             | choose a random name. You can also customize    |             |
+|             | the node name, see :ref:`conf-node-settings`.   |             |
 +-------------+-------------------------------------------------+-------------+
 
 ``hostname``
@@ -276,8 +276,8 @@ The table schema is as follows:
 | Column Name           | Description                                     | Return Type |
 +=======================+=================================================+=============+
 | ``port``              | The specified ports for both HTTP and binary    | ``OBJECT``  |
-|                       | transport interfaces. You can specify the ports |             |
-|                       | via your own custom `configuration`_.           |             |
+|                       | transport interfaces. You can also customize    |             |
+|                       | the ports setting, see :ref:`conf_ports`.       |             |
 +-----------------------+-------------------------------------------------+-------------+
 | ``port['http']``      | CrateDB's HTTP port.                            | ``INTEGER`` |
 +-----------------------+-------------------------------------------------+-------------+
@@ -337,7 +337,7 @@ The table schema is as follows:
 +-----------------------------+------------------------------------------------+-------------+
 | ``heap['max']``             | Maximum available heap memory. You can specify | ``BIGINT``  |
 |                             | the max heap memory CrateDB should use in the  |             |
-|                             | `configuration`_.                              |             |
+|                             | :ref:`config`.                                 |             |
 +-----------------------------+------------------------------------------------+-------------+
 | ``heap['free']``            | Currently available heap memory in bytes.      | ``BIGINT``  |
 +-----------------------------+------------------------------------------------+-------------+
@@ -2245,5 +2245,4 @@ been analyzed.
     Not all data types support creating statistics. So some columns may not
     show up in the table.
 
-.. _configuration: ../configuration.html
 .. _Enterprise Edition: https://crate.io/products/cratedb-editions/

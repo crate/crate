@@ -1,3 +1,5 @@
+.. _concepts_resiliency:
+
 ==========
 Resiliency
 ==========
@@ -6,7 +8,7 @@ Distributed systems are tricky. All sorts of things can go wrong that are
 beyond your control. The network can go away, disks can fail, hosts can be
 terminated unexpectedly. CrateDB tries very hard to cope with these sorts of
 issues while maintaining :doc:`availability <shared-nothing>`,
-`consistency <consistency>`_, and `durability <durability>`_.
+:ref:`consistency <consistency>`, and :ref:`durability <durability>`.
 
 However, as with any distributed system, sometimes, *rarely*, things can go
 wrong.
@@ -51,8 +53,8 @@ Code that expects the behavior of an `ACID
 <https://en.wikipedia.org/wiki/ACID>`_ compliant database like MySQL may not
 always work as expected with CrateDB.
 
-CrateDB does not support ACID transactions, but instead has `atomic operations
-<concepts_atomic_document_level>`_ and :doc:`eventual consistency
+CrateDB does not support ACID transactions, but instead has :ref:`atomic operations
+<concepts_atomic_document_level>` and :doc:`eventual consistency
 <shared-nothing>` at the row level. Eventual consistency is the trade-off that
 CrateDB makes in exchange for high-availability that can tolerate most hardware
 and network failures. So you may observe data from different cluster nodes
@@ -61,7 +63,7 @@ time they will become consistent.
 
 For example, you know a row has been written as soon as you get the ``INSERT
 OK`` message. But that row might not be read back by a subsequent ``SELECT`` on
-a different node until after a `table refresh <sql_ref_refresh>`_ (which
+a different node until after a :ref:`table refresh <sql_ref_refresh>` (which
 typically occurs within one second).
 
 Your applications should be designed to work this storage and consistency model.
@@ -90,13 +92,13 @@ Here are some considerations:
    failures like a zone going down.
 
 -  If data durability or read performance is a concern, you can increase the
-   number of `table replicas <concepts_data_storage>`_.
+   number of :ref:`table replicas <concepts_data_storage>`.
    More table replicas means a smaller chance of permanent data loss due to
    hardware failures, in exchange for the use of more disk space and more
    intra-cluster network traffic.
 
--  If disaster recovery is important, you can `take regular snapshots
-   <snapshot-restore>`_ and store those snapshots in cold storage. This
+-  If disaster recovery is important, you can :ref:`take regular snapshots
+   <snapshot-restore>` and store those snapshots in cold storage. This
    safeguards data that has already been successfully written and replicated
    across the cluster.
 
