@@ -37,27 +37,4 @@ import static org.junit.Assert.assertThat;
 
 public class SourceLookupTest {
 
-    @Test
-    public void testExtractValueFromNestedObject() {
-        Map<String, Map<String, Integer>> map = singletonMap("x", singletonMap("y", 10));
-        Object o = SourceLookup.extractValue(map, Arrays.asList("x", "y"), 0);
-        assertThat(o, is(10));
-    }
-
-    @Test
-    public void testExtractValueFromNestedObjectWithinList() {
-        Map<String, List<Map<String, Map<String, Integer>>>> m = singletonMap("x", Arrays.asList(
-            singletonMap("y", singletonMap("z", 10)),
-            singletonMap("y", singletonMap("z", 20))
-        ));
-        Object o = SourceLookup.extractValue(m, Arrays.asList("x", "y", "z"), 0);
-        assertThat((Collection<Integer>) o, contains(is(10), is(20)));
-    }
-
-    @Test
-    public void testExtractValueFromNestedObjectWithListAsLeaf() {
-        Map<String, List<Integer>> m = singletonMap("x", Arrays.asList(10, 20));
-        Object o = SourceLookup.extractValue(m, singletonList("x"), 0);
-        assertThat((Collection<Integer>) o, contains(is(10), is(20)));
-    }
 }

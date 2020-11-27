@@ -21,6 +21,8 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import io.crate.metadata.Reference;
+
 public class CollectorContext {
 
     private final int readerId;
@@ -44,5 +46,12 @@ public class CollectorContext {
             sourceLookup = new SourceLookup();
         }
         return sourceLookup;
+    }
+
+    public SourceLookup sourceLookup(Reference ref) {
+        if (sourceLookup == null) {
+            sourceLookup = new SourceLookup();
+        }
+        return sourceLookup.registerRef(ref);
     }
 }

@@ -23,24 +23,27 @@
 package io.crate.expression.reference.doc.lucene;
 
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.RandomAccess;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.types.DataType;
 
 public final class SourceLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
+    private final HashMap<ColumnIdent, DataType<?>> typesByColumn = new HashMap<>();
     private LeafReader reader;
     private int doc;
-    private Map<String, Object> source;
+    private Map<ColumnIdent, Object> source;
     private boolean docVisited = false;
 
     SourceLookup() {
@@ -58,14 +61,16 @@ public final class SourceLookup {
         this.doc = doc;
     }
 
-    public Object get(List<String> path) {
+    public Object get(ColumnIdent column) {
         ensureSourceParsed();
-        return extractValue(source, path, 0);
+        return source.get(column.shiftRight());
     }
 
     public Map<String, Object> sourceAsMap() {
-        ensureSourceParsed();
-        return source;
+        ensureDocVisited();
+        // TODO: If there are multiple `_doc` occurances or `_doc` + column we parse the source multiple times.
+        // This could be avoided by registering the `_doc` and then depending on the registration use different code paths
+        return XContentHelper.toMap(fieldsVisitor.source(), XContentType.JSON);
     }
 
     public BytesReference rawSource() {
@@ -76,7 +81,7 @@ public final class SourceLookup {
     private void ensureSourceParsed() {
         if (source == null) {
             ensureDocVisited();
-            source = XContentHelper.toMap(fieldsVisitor.source(), XContentType.JSON);
+            source = SourceParser.parse(fieldsVisitor.source(), typesByColumn);
         }
     }
 
@@ -92,32 +97,8 @@ public final class SourceLookup {
         }
     }
 
-    static Object extractValue(final Map<?, ?> map, List<String> path, int pathStartIndex) {
-        assert path instanceof RandomAccess : "path should support RandomAccess for fast index optimized loop";
-        Map<?, ?> m = map;
-        Object tmp = null;
-        for (int i = pathStartIndex; i < path.size(); i++) {
-            tmp = m.get(path.get(i));
-            if (tmp instanceof Map) {
-                m = (Map<?, ?>) tmp;
-            } else if (tmp instanceof List) {
-                List<?> list = (List<?>) tmp;
-                if (i + 1 == path.size()) {
-                    return list;
-                }
-                ArrayList<Object> newList = new ArrayList<>(list.size());
-                for (Object o : list) {
-                    if (o instanceof Map) {
-                        newList.add(extractValue((Map<?, ?>) o, path, i + 1));
-                    } else {
-                        newList.add(o);
-                    }
-                }
-                return newList;
-            } else {
-                break;
-            }
-        }
-        return tmp;
+    public SourceLookup registerRef(Reference ref) {
+        typesByColumn.put(ref.column().shiftRight(), ref.valueType());
+        return this;
     }
 }

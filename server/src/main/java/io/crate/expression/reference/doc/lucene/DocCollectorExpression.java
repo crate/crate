@@ -21,13 +21,12 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.types.DataType;
+import java.util.Map;
+
 import org.apache.lucene.index.LeafReaderContext;
 
-import java.util.List;
-import java.util.Map;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
@@ -64,19 +63,17 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         if (reference.column().isTopLevel()) {
             return new DocCollectorExpression();
         }
-        return new ChildDocCollectorExpression(reference.valueType(), reference.column().path());
+        return new ChildDocCollectorExpression(reference);
     }
 
     static final class ChildDocCollectorExpression extends LuceneCollectorExpression<Object> {
 
-        private final DataType<?> returnType;
-        private final List<String> path;
+        private final Reference ref;
         private SourceLookup sourceLookup;
         private LeafReaderContext context;
 
-        ChildDocCollectorExpression(DataType<?> returnType, List<String> path) {
-            this.returnType = returnType;
-            this.path = path;
+        ChildDocCollectorExpression(Reference ref) {
+            this.ref = ref;
         }
 
         @Override
@@ -91,16 +88,12 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public void startCollect(CollectorContext context) {
-            sourceLookup = context.sourceLookup();
+            sourceLookup = context.sourceLookup(ref);
         }
 
         @Override
         public Object value() {
-            // need to make sure it has the correct type;
-            // for example:
-            //      sourceExtractor might read byte as int and
-            //      then eq(byte, byte) would get eq(byte, int) and fail
-            return returnType.implicitCast(sourceLookup.get(path));
+            return sourceLookup.get(ref.column());
         }
     }
 }

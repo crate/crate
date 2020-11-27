@@ -104,7 +104,7 @@ public class XContentHelper {
         }
     }
 
-    private static InputStream getUncompressedInputStream(BytesReference bytes) throws IOException {
+    public static InputStream getUncompressedInputStream(BytesReference bytes) throws IOException {
         Compressor compressor = CompressorFactory.compressor(bytes);
         if (compressor == null) {
             return bytes.streamInput();
