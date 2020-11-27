@@ -166,9 +166,8 @@ translog.
 .. CAUTION::
 
    Some outage conditions can affect these consistency claims. See the
-   `resiliency documentation`_ for details.
+   :ref:`resiliency documentation <concepts_resiliency>` for details.
 
-.. _resiliency documentation: /docs/scale/resilience/
 
 .. _storage_consistency_cluster_meta_data:
 

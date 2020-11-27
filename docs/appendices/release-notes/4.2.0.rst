@@ -150,13 +150,13 @@ SQL Standard and PostgreSQL compatibility improvements
   :ref:`server_version <conf-session-server_version>` read-only session
   settings.
 
-- Added the `pg_catalog.pg_proc <postgres_pg_catalog>`_ table.
+- Added the :ref:`pg_catalog.pg_proc <postgres_pg_catalog>` table.
 
-- Added the `pg_catalog.pg_range <postgres_pg_catalog>`_ table.
+- Added the :ref:`pg_catalog.pg_range <postgres_pg_catalog>` table.
 
-- Added the `pg_catalog.pg_enum <postgres_pg_catalog>`_ table.
+- Added the :ref:`pg_catalog.pg_enum <postgres_pg_catalog>` table.
 
-- Added the `information_schema.character_sets <character_sets>`_ table.
+- Added the :ref:`information_schema.character_sets <character_sets>` table.
 
 - Added :ref:`postgres_pg_type` columns: ``typbyval``, ``typcategory``,
   ``typowner``, ``typisdefined``, ``typrelid``, ``typndims``,

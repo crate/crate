@@ -42,6 +42,10 @@ jobs:
           python -m pip install --upgrade pip setuptools
           python -m pip install -r blackbox/requirements.txt
 
+          # We default to Sphinx 1.8 in blackbox/requirements.txt because that's what the crate-docs-theme needs. 
+          # However, we want Sphinx 3.x here because its link checker is much more capable.
+          python -m pip install sphinx==3.3.1
+
       - name: Run linkcheck
         run: |
-          sphinx-build -n -W -c docs/ -b linkcheck -E docs/ docs/out/html
+          sphinx-build -n -W --keep-going -q -c docs/ -b linkcheck -E docs/ docs/out/html
