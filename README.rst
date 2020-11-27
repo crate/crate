@@ -36,7 +36,6 @@ CrateDB provides an admin UI:
 
 .. image:: crate-admin.gif
     :alt: Screenshots of the CrateDB admin UI
-    :target: http://play.crate.io/
 
 Try CrateDB
 ===========
@@ -56,7 +55,7 @@ Once you're up and running, head on over to `the introductory docs`_.
 Contributing
 ============
 
-This project is primarily maintained by Crate.io_, but we welcome community
+This project is primarily maintained by `Crate.io`_, but we welcome community
 contributions!
 
 See the `developer docs`_ and the `contribution docs`_ for more information.
@@ -70,10 +69,10 @@ Looking for more help?
 - Check out our `support channels`_
 
 .. _contribution docs: CONTRIBUTING.rst
-.. _Crate.io: http://crate.io/
+.. _Crate.io: https://crate.io/
 .. _developer docs: devs/docs/index.rst
 .. _Docker image: https://hub.docker.com/_/crate/
-.. _getting started: https://crate.io/docs/getting-started/
+.. _getting started: https://crate.io/docs/crate/tutorials/en/latest/install-run/
 .. _support channels: https://crate.io/support/
-.. _the introductory docs: https://crate.io/docs/crate/getting-started/en/latest/first-use/index.html
+.. _the introductory docs: https://crate.io/docs/crate/tutorials/
 .. _the project documentation: https://crate.io/docs/
