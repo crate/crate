@@ -69,6 +69,7 @@ public final class DataTypes {
     public static final ShortType SHORT = ShortType.INSTANCE;
     public static final IntegerType INTEGER = IntegerType.INSTANCE;
     public static final LongType LONG = LongType.INSTANCE;
+    public static final NumericType NUMERIC = NumericType.INSTANCE;
 
     public static final TimeTZType TIMETZ = TimeTZType.INSTANCE;
 
@@ -125,7 +126,8 @@ public final class DataTypes {
     public static final Set<DataType<?>> STORAGE_UNSUPPORTED = Set.of(
         INTERVAL,
         TIMETZ,
-        OIDVECTOR
+        OIDVECTOR,
+        NUMERIC
     );
 
     public static final List<DataType<?>> NUMERIC_PRIMITIVE_TYPES = List.of(
@@ -158,6 +160,7 @@ public final class DataTypes {
             entry(ShortType.ID, in -> SHORT),
             entry(IntegerType.ID, in -> INTEGER),
             entry(LongType.ID, in -> LONG),
+            entry(NumericType.ID, in -> NUMERIC),
             entry(TimeTZType.ID, in -> TIMETZ),
             entry(TimestampType.ID_WITH_TZ, in -> TIMESTAMPZ),
             entry(TimestampType.ID_WITHOUT_TZ, in -> TIMESTAMP),
@@ -174,7 +177,7 @@ public final class DataTypes {
     );
 
     private static final Set<Integer> NUMBER_CONVERSIONS = Stream.concat(
-        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, IP),
+        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, IP, NUMERIC),
         NUMERIC_PRIMITIVE_TYPES.stream()
     ).map(DataType::id).collect(toSet());
 
@@ -189,6 +192,7 @@ public final class DataTypes {
             .collect(Collectors.toUnmodifiableSet())),
         entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id())),
         entry(LONG.id(), NUMBER_CONVERSIONS),
+        entry(NUMERIC.id(), NUMBER_CONVERSIONS),
         entry(FLOAT.id(), NUMBER_CONVERSIONS),
         entry(DOUBLE.id(), NUMBER_CONVERSIONS),
         entry(BOOLEAN.id(), Set.of(STRING.id())),
@@ -344,6 +348,7 @@ public final class DataTypes {
         entry(SHORT.getName(), SHORT),
         entry(INTEGER.getName(), INTEGER),
         entry(LONG.getName(), LONG),
+        entry(NUMERIC.getName(), NUMERIC),
         entry(RowType.EMPTY.getName(), RowType.EMPTY),
         entry(TIMETZ.getName(), TIMETZ),
         entry(TIMESTAMPZ.getName(), TIMESTAMPZ),

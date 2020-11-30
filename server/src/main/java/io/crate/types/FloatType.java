@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
 
@@ -65,6 +66,16 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
             return (Float) value;
         } else if (value instanceof String) {
             return Float.parseFloat((String) value);
+        } else if (value instanceof BigDecimal) {
+            var bigDecimalValue = (BigDecimal) value;
+
+            var MAX = BigDecimal.valueOf(Float.MAX_VALUE).toBigInteger();
+            var MIN = BigDecimal.valueOf(-Float.MAX_VALUE).toBigInteger();
+            if (MAX.compareTo(bigDecimalValue.toBigInteger()) <= 0
+                || MIN.compareTo(bigDecimalValue.toBigInteger()) >= 0) {
+                throw new IllegalArgumentException("float value out of range: " + value);
+            }
+            return bigDecimalValue.floatValue();
         } else if (value instanceof Number) {
             Number number = (Number) value;
             float val = number.floatValue();

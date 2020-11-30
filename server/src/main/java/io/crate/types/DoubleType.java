@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
 
@@ -65,6 +66,16 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
             return (Double) value;
         } else if (value instanceof String) {
             return Double.valueOf((String) value);
+        } else if (value instanceof BigDecimal) {
+            var bigDecimalValue = (BigDecimal) value;
+
+            var DOUBLE_MAX = BigDecimal.valueOf(Double.MAX_VALUE).toBigInteger();
+            var DOUBLE_MIN = BigDecimal.valueOf(-Double.MAX_VALUE).toBigInteger();
+            if (DOUBLE_MAX.compareTo(bigDecimalValue.toBigInteger()) <= 0
+                || DOUBLE_MIN.compareTo(bigDecimalValue.toBigInteger()) >= 0) {
+                throw new IllegalArgumentException(getName() + " value out of range: " + value);
+            }
+            return bigDecimalValue.doubleValue();
         } else if (value instanceof Number) {
             return ((Number) value).doubleValue();
         } else {

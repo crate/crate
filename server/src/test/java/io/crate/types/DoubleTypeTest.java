@@ -25,9 +25,13 @@ package io.crate.types;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 public class DoubleTypeTest extends ESTestCase {
 
@@ -39,6 +43,21 @@ public class DoubleTypeTest extends ESTestCase {
     @Test
     public void test_cast_long_to_double() {
         assertThat(DoubleType.INSTANCE.implicitCast(123L), is(123d));
+    }
+
+    @Test
+    public void test_cast_numeric_to_double() {
+        assertThat(DoubleType.INSTANCE.implicitCast(BigDecimal.valueOf(123.1)), is(123.1d));
+    }
+
+    @Test
+    public void test_cast_numeric_value_with_precision_and_scale_to_double() {
+        assertThat(
+            DoubleType.INSTANCE.implicitCast(
+                new BigDecimal("123.1", MathContext.DECIMAL32)
+                    .setScale(2, MathContext.DECIMAL32.getRoundingMode())
+            ), is(123.1d)
+        );
     }
 
     @Test
@@ -58,5 +77,12 @@ public class DoubleTypeTest extends ESTestCase {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast 'true' to double precision");
         DoubleType.INSTANCE.implicitCast(true);
+    }
+
+    @Test
+    public void test_cast_out_of_range_numeric_to_double_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(startsWith("double precision value out of range: "));
+        DoubleType.INSTANCE.implicitCast(new BigDecimal(Double.MAX_VALUE).add(BigDecimal.TEN));
     }
 }

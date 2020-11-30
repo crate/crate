@@ -24,6 +24,7 @@ package io.crate.types;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
@@ -37,6 +38,11 @@ public class LongTypeTest extends ESTestCase {
         assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MAX_VALUE)), is(Long.MAX_VALUE));
         assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MIN_VALUE)), is(Long.MIN_VALUE));
         assertThat(LongType.INSTANCE.implicitCast("+2147483647111"), is(2147483647111L));
+    }
+
+    @Test
+    public void test_cast_numeric_to_long() {
+        assertThat(LongType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is(123L));
     }
 
     @Test
@@ -79,6 +85,13 @@ public class LongTypeTest extends ESTestCase {
     public void testNumberThatIsGreaterThanMaxValue() {
         expectedException.expect(NumberFormatException.class);
         LongType.INSTANCE.implicitCast(Long.MAX_VALUE + "111");
+    }
+
+    @Test
+    public void test_cast_out_of_range_numeric_to_integer_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("bigint value out of range: 9223372036854775817");
+        LongType.INSTANCE.implicitCast(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN));
     }
 
     @Test
