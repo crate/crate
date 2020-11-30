@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 public class IntegerType extends DataType<Integer> implements Streamer<Integer>, FixedWidthType {
 
@@ -67,6 +68,12 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
             return Integer.parseInt((String) value);
         } else if (value instanceof Regproc) {
             return ((Regproc) value).oid();
+        } else if (value instanceof BigDecimal) {
+            try {
+                return ((BigDecimal) value).intValueExact();
+            } catch (ArithmeticException e) {
+                throw new IllegalArgumentException(getName() + " value out of range: " + value);
+            }
         } else if (value instanceof Number) {
             long longVal = ((Number) value).longValue();
             if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {

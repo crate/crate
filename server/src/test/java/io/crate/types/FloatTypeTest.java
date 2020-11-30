@@ -25,9 +25,12 @@ package io.crate.types;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 public class FloatTypeTest extends ESTestCase {
 
@@ -42,8 +45,23 @@ public class FloatTypeTest extends ESTestCase {
     }
 
     @Test
+    public void test_cast_numeric_to_float() {
+        assertThat(FloatType.INSTANCE.implicitCast(BigDecimal.valueOf(123.12)), is(123.12F));
+    }
+
+    @Test
     public void test_sanitize_numeric_value() {
         assertThat(FloatType.INSTANCE.sanitizeValue(1d), is(1f));
+    }
+
+    @Test
+    public void test_cast_numeric_value_with_precision_and_scale_to_double() {
+        assertThat(
+            FloatType.INSTANCE.implicitCast(
+                new BigDecimal("123.1", MathContext.DECIMAL32)
+                    .setScale(2, MathContext.DECIMAL32.getRoundingMode())
+            ), is(123.1f)
+        );
     }
 
     @Test
@@ -76,6 +94,13 @@ public class FloatTypeTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("float value out of range: -1.7976931348623157E308");
         FloatType.INSTANCE.implicitCast(-Double.MAX_VALUE);
+    }
+
+    @Test
+    public void test_cast_out_of_range_numeric_to_float_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(startsWith("float value out of range: "));
+        FloatType.INSTANCE.implicitCast(new BigDecimal(Double.MAX_VALUE));
     }
 
     @Test
