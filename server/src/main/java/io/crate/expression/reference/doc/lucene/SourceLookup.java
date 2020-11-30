@@ -35,15 +35,13 @@ import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.types.DataType;
 
 public final class SourceLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
-    private final HashMap<ColumnIdent, DataType<?>> typesByColumn = new HashMap<>();
+    private final SourceParser sourceParser = new SourceParser();
     private LeafReader reader;
     private int doc;
-    private Map<ColumnIdent, Object> source;
     private boolean docVisited = false;
 
     SourceLookup() {
@@ -55,15 +53,15 @@ public final class SourceLookup {
             return;
         }
         fieldsVisitor.reset();
+        sourceParser.reset();
         this.docVisited = false;
-        this.source = null;
         this.reader = context.reader();
         this.doc = doc;
     }
 
     public Object get(ColumnIdent column) {
         ensureSourceParsed();
-        return source.get(column.shiftRight());
+        return sourceParser.get(column);
     }
 
     public Map<String, Object> sourceAsMap() {
@@ -79,9 +77,9 @@ public final class SourceLookup {
     }
 
     private void ensureSourceParsed() {
-        if (source == null) {
+        if (!sourceParser.parsed()) {
             ensureDocVisited();
-            source = SourceParser.parse(fieldsVisitor.source(), typesByColumn);
+            sourceParser.parse(fieldsVisitor.source());
         }
     }
 
@@ -98,7 +96,7 @@ public final class SourceLookup {
     }
 
     public SourceLookup registerRef(Reference ref) {
-        typesByColumn.put(ref.column().shiftRight(), ref.valueType());
+        sourceParser.register(ref);
         return this;
     }
 }
