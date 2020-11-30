@@ -165,25 +165,89 @@ NodeStatus can be accessed using the JMX MBean object name
 
    Defines if the node is able to process SQL statements.
 
-NodeInfo MBean
---------------
+.. _node_info_mxbean:
 
-The ``NodeInfo`` JMX MBean exposes information about the current node;
+NodeInfo MXBean
+---------------
 
-NodeInfo can be accessed using the JMX MBean object name
+The ``NodeInfo`` JMX MXBean exposes information about the current node.
+
+NodeInfo can be accessed using the JMX MXBean object name
 ``io.crate.monitoring:type=NodeInfo`` and the following attributes:
 
- - ``ClusterStateVersion``
++-------------------------+---------------------------------------------------+
+| Name                    | Description                                       |
++=========================+===================================================+
+| ``NodeId``              | Provides the unique identifier of the node in the |
+|                         | cluster.                                          |
++-------------------------+---------------------------------------------------+
+| ``NodeName``            | Provides the human friendly name of the node.     |
++-------------------------+---------------------------------------------------+
+| ``ClusterStateVersion`` | Provides the version of the current applied       |
+|                         | cluster state.                                    |
++-------------------------+---------------------------------------------------+
+| ``ShardStats``          | Statistics about the number of shards located on  |
+|                         | the node.                                         |
++-------------------------+---------------------------------------------------+
+| ``ShardInfo``           | Detailed information about the shards located on  |
+|                         | the node.                                         |
++-------------------------+---------------------------------------------------+
 
-   Provides the version of the current applied cluster state
+``ShardStats`` returns a `CompositeData`_ object containing statistics about
+the number of shards located on the node with the following attributes:
 
- - ``NodeId``
++-------------------+---------------------------------------------------------+
+| Name              | Description                                             |
++===================+=========================================================+
+| ``Total``         | The number of shards located on the node.               |
++-------------------+---------------------------------------------------------+
+| ``Primaries``     | The number of primary shards located on the node.       |
++-------------------+---------------------------------------------------------+
+| ``Replicas``      | The number of replica shards located on the node.       |
++-------------------+---------------------------------------------------------+
+| ``Unassigned``    | The number of unassigned shards in the cluster. If the  |
+|                   | node is the elected master node in the cluster, this    |
+|                   | will show the total number of unassigned shards in the  |
+|                   | cluster, otherwise 0.                                   |
++-------------------+---------------------------------------------------------+
 
-   Provides the unique identifier of the node in the cluster
+``ShardInfo`` returns an Array of `CompositeData`_ objects containing detailed
+information about the shards located on the node with the following attributes:
 
- - ``NodeName``
-
-   Provides the human friendly name of the node
++--------------------+--------------------------------------------------------+
+| Name               | Description                                            |
++====================+========================================================+
+| ``Id``             | The shard id. This shard id is managed by the system,  |
+|                    | ranging from 0 up to the number of configured shards   |
+|                    | of the table.                                          |
++--------------------+--------------------------------------------------------+
+| ``Table``          | The name of the table this shard belongs to.           |
++--------------------+--------------------------------------------------------+
+| ``PartitionIdent`` | The partition ident of a partitioned table. Empty for  |
+|                    | non-partitioned tables.                                |
++--------------------+--------------------------------------------------------+
+| ``RoutingState``   | The current state of the shard in the routing table.   |
+|                    | Possible states are:                                   |
+|                    |                                                        |
+|                    | * UNASSIGNED                                           |
+|                    | * INITIALIZING                                         |
+|                    | * STARTED                                              |
+|                    | * RELOCATING                                           |
++--------------------+--------------------------------------------------------+
+| ``State``          | The current state of the shard. Possible states are:   |
+|                    |                                                        |
+|                    | * CREATED                                              |
+|                    | * RECOVERING                                           |
+|                    | * POST_RECOVERY                                        |
+|                    | * STARTED                                              |
+|                    | * RELOCATED                                            |
+|                    | * CLOSED                                               |
+|                    | * INITIALIZING                                         |
+|                    | * UNASSIGNED                                           |
++--------------------+--------------------------------------------------------+
+| ``Size``           | The estimated cumulated size in bytes of all files of  |
+|                    | this shard.                                            |
++--------------------+--------------------------------------------------------+
 
 Connections MBean
 -----------------

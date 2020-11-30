@@ -33,6 +33,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -61,11 +62,12 @@ public class CrateMonitor {
                         SQLOperations sqlOperations,
                         ClusterService clusterService,
                         ThreadPool threadPool,
-                        CircuitBreakerService breakerService) {
+                        CircuitBreakerService breakerService,
+                        IndicesService indicesService) {
         logger = LogManager.getLogger(CrateMonitor.class);
         registerMBean(QueryStats.NAME, new QueryStats(jobsLogs));
         registerMBean(NodeStatus.NAME, new NodeStatus(sqlOperations::isEnabled));
-        registerMBean(NodeInfo.NAME, new NodeInfo(clusterService::localNode, () -> clusterService.state().version()));
+        registerMBean(NodeInfo.NAME, new NodeInfo(clusterService::state, new NodeInfo.ShardStateAndSizeProvider(indicesService)));
         registerMBean(Connections.NAME, new Connections(
             () -> httpServerTransport == null ? null : httpServerTransport.stats(),
             () -> new ConnectionStats(postgresNetty.openConnections(), postgresNetty.totalConnections()),

@@ -53,6 +53,10 @@ None
 Changes
 =======
 
+- Added information about the shards located on the node to the
+  :ref:`NodeInfo MXBean <node_info_mxbean>` which is available as an
+  enterprise feature.
+
 - Added the ``to_char`` scalar function for timestamp, interval and numeric types.
 
 - Added support for the ``split_part`` scalar function
