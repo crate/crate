@@ -156,6 +156,31 @@ class JmxIntegrationTest(unittest.TestCase):
         self.assertEqual(stderr, '')
         self.assertNotEqual(stdout.rstrip(), '', 'node id must not be empty')
 
+    def test_mbean_shards(self):
+        jmx_client = JmxClient(JMX_PORT)
+        with connect(enterprise_crate.http_url) as conn:
+            c = conn.cursor()
+            c.execute('''create table test(id integer) clustered into 1 shards with (number_of_replicas=0)''')
+            stdout, stderr = jmx_client.query_jmx(
+                'io.crate.monitoring:type=NodeInfo',
+                'ShardStats'
+            )
+            result = [line.strip() for line in stdout.split('\n') if line.strip()]
+            result.sort()
+            self.assertEqual(result[0], 'primaries:  1')
+            self.assertEqual(result[1], 'replicas:   0')
+            self.assertEqual(result[2], 'total:      1')
+            self.assertEqual(result[3], 'unassigned: 0')
+            self.assertEqual(stderr, '')
+
+            stdout, stderr = jmx_client.query_jmx(
+                'io.crate.monitoring:type=NodeInfo',
+                'ShardInfo'
+            )
+            self.assertNotEqual(stdout.rstrip(), '', 'ShardInfo must not be empty')
+            self.assertEqual(stderr, '')
+            c.execute('''drop table test''')
+
     def test_mbean_cluster_state_version(self):
         jmx_client = JmxClient(JMX_PORT)
         stdout, stderr = jmx_client.query_jmx(
@@ -209,4 +234,3 @@ rejected:        0
         self.assertRegex(output, r'overhead:\s+(\d+\.?\d+)')
         self.assertRegex(output, r'trippedCount:\s+(\d+)')
         self.assertRegex(output, r'used:\s+(\d+)')
-

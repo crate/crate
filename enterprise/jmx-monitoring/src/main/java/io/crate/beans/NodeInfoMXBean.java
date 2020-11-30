@@ -18,20 +18,27 @@
 
 package io.crate.beans;
 
+import java.util.List;
+
 /**
- * The {@link NodeInfoMBean| interface is required to define a standard MBean,
- * such as a standard MBean is composed of an MBean interface and a class.
+ * The {@link NodeInfoMXBean | interface is required to define a standard MXBean,
+ * such as a standard MXBean is composed of an MXBean interface and a class.
  *
  * This interface lists the methods for all exposed attributes.
  *
- * @see <a href="https://docs.oracle.com/javase/tutorial/jmx/mbeans/standard.html">
- *     https://docs.oracle.com/javase/tutorial/jmx/mbeans/standard.html</a>
+ * @see <a href="https://docs.oracle.com/javase/tutorial/jmx/mbeans/mxbeans.html">
+ *     https://docs.oracle.com/javase/tutorial/jmx/mbeans/mxbeans.html</a>
  */
-public interface NodeInfoMBean {
+public interface NodeInfoMXBean {
 
     String getNodeId();
 
     String getNodeName();
 
     long getClusterStateVersion();
+
+    ShardStats getShardStats();
+
+    List<ShardInfo> getShardInfo();
+
 }
