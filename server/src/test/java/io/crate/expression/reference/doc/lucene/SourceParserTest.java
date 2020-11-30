@@ -32,7 +32,6 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
 public class SourceParserTest {
@@ -40,16 +39,53 @@ public class SourceParserTest {
     @Test
     public void test_extract_single_value_from_json_with_multiple_columns() throws Exception {
         SourceParser sourceParser = new SourceParser();
-        var ref = TestingHelpers.createReference(
-            new ColumnIdent("_doc", List.of("x")),
-            DataTypes.INTEGER
-        );
-        sourceParser.register(ref);
+        var column = new ColumnIdent("_doc", List.of("x"));
+        sourceParser.register(column, DataTypes.INTEGER);
         sourceParser.parse(new BytesArray("""
             {"x": 10, "y": 20}
         """));
 
-        assertThat(sourceParser.get(ref.column()), is(10));
+        assertThat(sourceParser.get(column), is(10));
+        assertThat(sourceParser.get(new ColumnIdent("_doc", List.of("y"))), Matchers.nullValue());
+    }
+
+    @Test
+    public void test_extract_object_value_from_json() throws Exception {
+    }
+
+    @Test
+    public void test_extract_object_children_from_json() throws Exception {
+        SourceParser sourceParser = new SourceParser();
+        var column = new ColumnIdent("_doc", List.of("obj", "x"));
+        sourceParser.register(column, DataTypes.INTEGER);
+        sourceParser.parse(new BytesArray("""
+            {"obj": {"x": 10}, "y": 20}
+        """));
+        assertThat(sourceParser.get(column), is(10));
+        assertThat(sourceParser.get(new ColumnIdent("_doc", List.of("y"))), Matchers.nullValue());
+    }
+
+    @Test
+    public void test_extract_array_value_from_json() throws Exception {
+        SourceParser sourceParser = new SourceParser();
+        var column = new ColumnIdent("_doc", List.of("x"));
+        sourceParser.register(column, DataTypes.INTEGER_ARRAY);
+        sourceParser.parse(new BytesArray("""
+            {"x": [10, 11, 12], "y": 20}
+        """));
+        assertThat(sourceParser.get(column), is(List.of(10, 11, 12)));
+        assertThat(sourceParser.get(new ColumnIdent("_doc", List.of("y"))), Matchers.nullValue());
+    }
+
+    @Test
+    public void test_extract_value_from_object_array_json() throws Exception {
+        SourceParser sourceParser = new SourceParser();
+        var column = new ColumnIdent("_doc", List.of("obj_arr", "x"));
+        sourceParser.register(column, DataTypes.INTEGER);
+        sourceParser.parse(new BytesArray("""
+            {"obj_arr": [{"x": 10}, {"x": 11}, {"x": 12}], "y": 20}
+        """));
+        assertThat(sourceParser.get(column), is(List.of(10, 11, 12)));
         assertThat(sourceParser.get(new ColumnIdent("_doc", List.of("y"))), Matchers.nullValue());
     }
 }

@@ -24,143 +24,97 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentParseException;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
-import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 
 public final class SourceParser {
 
-    private final Map<ColumnIdent, ParseInfo> parseInfoByColumn = new HashMap<>();
+    private final Map<String, ParsePath> roots = new HashMap<>();
+    private int numColumns = 0;
     private Object[] result;
 
     public SourceParser() {
     }
 
-    static class ParseInfo {
+    static class ParsePath {
 
-        final DataType<?> type;
-        final int index;
+        DataType<?> type;
+        int index;
 
-        public ParseInfo(DataType<?> type, int index) {
-            this.type = type;
-            this.index = index;
-        }
+		public ParsePath forChild(String fieldName) {
+			return null;
+		}
+
+		public void add(int numColumns, List<String> list, DataType<?> type) {
+		}
+
+		public void add(int numColumns, DataType<?> type) {
+		}
     }
 
-    Object parseValue(XContentParser parser, ParseInfo parseInfo, ColumnIdent column) throws IOException {
-        return switch (parseInfo.type.id()) {
-            case ArrayType.ID -> parseArray(parser, parseInfo, column);
-            case ObjectType.ID -> parseObject(parser, parseInfo, column);
-            case ShortType.ID -> parser.shortValue(true);
-            case IntegerType.ID -> parser.intValue();
-            case LongType.ID -> parser.longValue();
-            case FloatType.ID -> parser.floatValue();
-            case DoubleType.ID -> parser.doubleValue();
-            case StringType.ID -> parser.text();
-            default -> {
-                throw new UnsupportedOperationException("parseValue not implemented for " + parseInfo.type);
-            }
-        };
-    }
+    public void register(ColumnIdent docColumn, DataType<?> type) {
+        assert docColumn.name().equals(DocSysColumns.DOC.name()) && docColumn.path().size() > 0
+            : "All columns registered for sourceParser must start with _doc";
 
-    Object parseObject(XContentParser parser, ParseInfo parseInfo, ColumnIdent column) throws IOException {
-        Token token = parser.currentToken();
-        if (token == XContentParser.Token.START_OBJECT) {
-            token = parser.nextToken();
+        /**
+         * We cannot distinguish between `obj_array['x']` and `obj['xs']` without access to the parent type.
+         *  - `x` being an integer within an array of objects
+         *  - `xs` being an array of integer within an object
+         *
+         * In both cases, the result should be an array of integers
+         *
+         * Given that we don't have access to the parent type here, we trust the shape of the JSON.
+         * The only thing we control is:
+         *
+         * - Which paths to follow
+         * - The types of the primitive types / leafs
+         *
+         * Further constraints:
+         *
+         * - A user selecting a parent object plus one or more child columns explicitly (`SELECT obj, obj['x']`)
+         * - Parsing should be cheap (happens per row)
+         * - `get` should be cheap (happens per column per row)
+         * - `register` can be a bit more expensive (happens per column per query)
+         **/
+        List<String> path = docColumn.path();
+        String start = path.get(0);
+        ParsePath parsePath = roots.get(start);
+        if (parsePath == null) {
+            parsePath = new ParsePath();
+            roots.put(start, parsePath);
         }
-        assert parseInfo.type instanceof ObjectType
-            : "type passed to parseObject must be an ObjectType. Got=" + parseInfo.type;
-        ObjectType objectType = (ObjectType) parseInfo.type;
-        HashMap<String, Object> result = new HashMap<>();
-        for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
-            String fieldName = parser.currentName();
-            parser.nextToken();
-
-            var childColumn = column.append(fieldName);
-            if (token == XContentParser.Token.VALUE_NULL) {
-                result.put(fieldName, null);
-            } else {
-                var childType = objectType.innerType(fieldName);
-                // Object value = parseValue(typesByColumn, parser, childType, childColumn);
-                // result.put(fieldName, value);
-            }
-        }
-        return result;
-    }
-
-    Object parseArray(XContentParser parser, ParseInfo parseInfo, ColumnIdent column) throws IOException {
-        XContentParser.Token token = parser.currentToken();
-        if (token == XContentParser.Token.FIELD_NAME) {
-            token = parser.nextToken();
-        }
-        if (token == XContentParser.Token.START_ARRAY) {
-            token = parser.nextToken();
+        if (path.size() == 1) {
+            parsePath.add(numColumns, type);
         } else {
-            throw new XContentParseException(
-                parser.getTokenLocation(),
-                "Failed to parse list:  expecting "
-                + XContentParser.Token.START_ARRAY + " but got " + token);
+            parsePath.add(numColumns, path.subList(1, path.size()), type);
         }
-        assert parseInfo.type instanceof ArrayType
-            : "type passed to parseArray must be an ArrayType. Got=" + parseInfo.type;
-        DataType<?> innerType = ((ArrayType<?>) parseInfo.type).innerType();
-        ArrayList<Object> list = new ArrayList<>();
-        for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-            if (token == XContentParser.Token.VALUE_NULL) {
-                list.add(null);
-            } else {
-                //list.add(parseValue(parser, innerType, column));
-            }
-        }
-        return list;
-    }
-
-    public void register(Reference ref) {
-        ColumnIdent docColumn = ref.column();
-        assert docColumn.name().equals(DocSysColumns.DOC.name()) : "All columns registered for sourceParser must start with _doc";
-        ColumnIdent column = docColumn.shiftRight();
-
-        if (column.isTopLevel()) {
-            ParseInfo parseInfo = parseInfoByColumn.get(column);
-            if (parseInfo != null) {
-                return;
-            }
-            parseInfo = new ParseInfo(ref.valueType(), parseInfoByColumn.size());
-            parseInfoByColumn.put(column, parseInfo);
-        } else {
-        }
+        numColumns++;
     }
 
     public Object get(ColumnIdent column) {
-        ParseInfo parseInfo = parseInfoByColumn.get(column.shiftRight());
-        return parseInfo == null
-            ? null
-            : result[parseInfo.index];
+        assert column.name().equals(DocSysColumns.DOC.name())
+            : "All columns retrieved with sourceParser must start with _doc";
+
+        return null;
     }
 
     public void reset() {
@@ -185,27 +139,59 @@ public final class SourceParser {
             if (token == XContentParser.Token.START_OBJECT) {
                 token = parser.nextToken();
             }
-            result = new Object[parseInfoByColumn.size()];
+            result = new Object[numColumns];
             for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
                 String fieldName = parser.currentName();
-                ColumnIdent column = new ColumnIdent(fieldName);
                 parser.nextToken();
                 if (token == XContentParser.Token.VALUE_NULL) {
                     // result[index] value defaults to null, nothing to do
                 } else {
-                    ParseInfo parseInfo = parseInfoByColumn.get(column);
-                    if (parseInfo == null) {
+                    ParsePath parsePath = roots.get(fieldName);
+                    if (parsePath == null) {
                         parser.skipChildren();
-                        continue;
-                    }
-                    Object value = parseValue(parser, parseInfo, column);
-                    if (parseInfo.index >= 0) {
-                        result[parseInfo.index] = value;
+                    } else {
+                        parseValue(parser, parsePath, 0);
                     }
                 }
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    void parseValue(XContentParser parser, ParsePath parsePath, int level) throws IOException {
+        Token token = parser.currentToken();
+        if (token == XContentParser.Token.VALUE_NULL) {
+        } else if (token == XContentParser.Token.START_OBJECT) {
+            token = parser.nextToken();
+            for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
+                String fieldName = parser.currentName();
+                parser.nextToken();
+                ParsePath child = parsePath.forChild(fieldName);
+                if (child == null) {
+                    parser.skipChildren();
+                } else {
+                    parseValue(parser, child, level++);
+                }
+            }
+        } else if (token == XContentParser.Token.START_ARRAY) {
+            token = parser.nextToken();
+            // create list here and work with consumer to add value to result?
+            for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
+                parseValue(parser, parsePath, level); // level++ ?
+            }
+        } else {
+            result[parsePath.index] = switch (parsePath.type.id()) {
+                case ShortType.ID -> parser.shortValue(true);
+                case IntegerType.ID -> parser.intValue();
+                case LongType.ID -> parser.longValue();
+                case FloatType.ID -> parser.floatValue();
+                case DoubleType.ID -> parser.doubleValue();
+                case StringType.ID -> parser.text();
+                default -> {
+                    throw new UnsupportedOperationException("PrimitiveTypeParser cannot parse value for type " + parsePath.type);
+                }
+            };
         }
     }
 }

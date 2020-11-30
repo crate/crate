@@ -96,7 +96,7 @@ public final class SourceLookup {
     }
 
     public SourceLookup registerRef(Reference ref) {
-        sourceParser.register(ref);
+        sourceParser.register(ref.column(), ref.valueType());
         return this;
     }
 }
