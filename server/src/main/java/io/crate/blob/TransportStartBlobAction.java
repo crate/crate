@@ -21,11 +21,11 @@
 
 package io.crate.blob;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -33,10 +33,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 public class TransportStartBlobAction extends TransportReplicationAction<StartBlobRequest, StartBlobRequest, StartBlobResponse> {
 
@@ -49,8 +48,7 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
                                     IndicesService indicesService,
                                     ThreadPool threadPool,
                                     ShardStateAction shardStateAction,
-                                    BlobTransferTarget transferTarget,
-                                    IndexNameExpressionResolver indexNameExpressionResolver) {
+                                    BlobTransferTarget transferTarget) {
         super(
             StartBlobAction.NAME,
             transportService,
@@ -58,7 +56,6 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
             indicesService,
             threadPool,
             shardStateAction,
-            indexNameExpressionResolver,
             StartBlobRequest::new,
             StartBlobRequest::new,
             ThreadPool.Names.WRITE
@@ -71,6 +68,18 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
     protected StartBlobResponse newResponseInstance(StreamInput in) throws IOException {
         logger.trace("newResponseInstance");
         return new StartBlobResponse(in);
+    }
+
+    @Override
+    protected void doExecute(Task task, StartBlobRequest request, ActionListener<StartBlobResponse> listener) {
+        ShardIterator shardIterator = clusterService.operationRouting().indexShards(
+            clusterService.state(),
+            request.index(),
+            request.id(),
+            null
+        );
+        request.setShardId(shardIterator.shardId());
+        super.doExecute(task, request, listener);
     }
 
     @Override
@@ -91,19 +100,6 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
         final StartBlobResponse response = new StartBlobResponse();
         transferTarget.startTransfer(request, response);
         return new ReplicaResult();
-    }
-
-    @Override
-    protected void resolveRequest(IndexMetadata indexMetadata, StartBlobRequest request) {
-        ShardIterator shardIterator = clusterService.operationRouting().indexShards(
-            clusterService.state(), request.index(), request.id(), null);
-        request.setShardId(shardIterator.shardId());
-        super.resolveRequest(indexMetadata, request);
-    }
-
-    @Override
-    protected boolean resolveIndex() {
-        return true;
     }
 }
 

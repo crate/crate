@@ -28,7 +28,6 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -54,7 +53,6 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
 
     @Inject
     public TransportShardDeleteAction(TransportService transportService,
-                                      IndexNameExpressionResolver indexNameExpressionResolver,
                                       ClusterService clusterService,
                                       IndicesService indicesService,
                                       ThreadPool threadPool,
@@ -63,7 +61,6 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
         super(
             ACTION_NAME,
             transportService,
-            indexNameExpressionResolver,
             clusterService,
             indicesService,
             threadPool,

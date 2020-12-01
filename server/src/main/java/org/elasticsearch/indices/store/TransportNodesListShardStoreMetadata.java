@@ -37,7 +37,6 @@ import org.elasticsearch.action.support.nodes.BaseNodesResponse;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -82,9 +81,8 @@ public class TransportNodesListShardStoreMetadata extends TransportNodesAction<T
                                                 TransportService transportService,
                                                 IndicesService indicesService,
                                                 NodeEnvironment nodeEnv,
-                                                IndexNameExpressionResolver indexNameExpressionResolver,
                                                 NamedXContentRegistry namedXContentRegistry) {
-        super(ACTION_NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
+        super(ACTION_NAME, threadPool, clusterService, transportService,
             Request::new, NodeRequest::new, ThreadPool.Names.FETCH_SHARD_STORE, NodeStoreFilesMetadata.class);
         this.settings = settings;
         this.indicesService = indicesService;

@@ -77,7 +77,6 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         transportShardDeleteAction = new TransportShardDeleteAction(
             MockTransportService.createNewService(
                 Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings()),
-            mock(IndexNameExpressionResolver.class),
             mock(ClusterService.class),
             indicesService,
             mock(ThreadPool.class),

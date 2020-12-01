@@ -39,7 +39,6 @@ import org.elasticsearch.action.bulk.MappingUpdatePerformer;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -72,7 +71,6 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     protected TransportShardAction(String actionName,
                                    TransportService transportService,
-                                   IndexNameExpressionResolver indexNameExpressionResolver,
                                    ClusterService clusterService,
                                    IndicesService indicesService,
                                    ThreadPool threadPool,
@@ -86,7 +84,6 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             indicesService,
             threadPool,
             shardStateAction,
-            indexNameExpressionResolver,
             reader,
             reader,
             ThreadPool.Names.WRITE,
@@ -101,11 +98,6 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     @Override
     protected ShardResponse newResponseInstance(StreamInput in) throws IOException {
         return new ShardResponse(in);
-    }
-
-    @Override
-    protected boolean resolveIndex() {
-        return true;
     }
 
     @Override

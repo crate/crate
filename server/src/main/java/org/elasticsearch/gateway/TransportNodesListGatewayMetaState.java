@@ -32,7 +32,6 @@ import org.elasticsearch.action.support.nodes.BaseNodesRequest;
 import org.elasticsearch.action.support.nodes.BaseNodesResponse;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -56,9 +55,8 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
     public TransportNodesListGatewayMetaState(ThreadPool threadPool,
                                               ClusterService clusterService,
                                               TransportService transportService,
-                                              IndexNameExpressionResolver indexNameExpressionResolver,
                                               GatewayMetaState metaState) {
-        super(ACTION_NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
+        super(ACTION_NAME, threadPool, clusterService, transportService,
             Request::new, NodeRequest::new, ThreadPool.Names.GENERIC, NodeGatewayMetaState.class);
         this.metaState = metaState;
     }

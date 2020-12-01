@@ -25,7 +25,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import javax.annotation.Nullable;
@@ -61,7 +60,6 @@ public abstract class TransportWriteAction<
                                    IndicesService indicesService,
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
-                                   IndexNameExpressionResolver indexNameExpressionResolver,
                                    Writeable.Reader<Request> reader,
                                    Writeable.Reader<ReplicaRequest> replicaReader,
                                    String executor,
@@ -73,7 +71,6 @@ public abstract class TransportWriteAction<
             indicesService,
             threadPool,
             shardStateAction,
-            indexNameExpressionResolver,
             reader,
             replicaReader,
             executor,

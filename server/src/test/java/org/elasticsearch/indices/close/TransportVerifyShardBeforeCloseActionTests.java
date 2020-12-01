@@ -154,11 +154,10 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             Settings.EMPTY,
             transportService,
             clusterService,
-            mock(
-                IndicesService.class),
+            mock(IndicesService.class),
             mock(ThreadPool.class),
-            shardStateAction,
-            mock(IndexNameExpressionResolver.class));
+            shardStateAction
+        );
     }
 
     @Override

@@ -30,7 +30,6 @@ import org.elasticsearch.action.support.nodes.BaseNodesResponse;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -75,7 +74,6 @@ public class TransportNodesListGatewayStartedShards extends
                                                   ThreadPool threadPool,
                                                   ClusterService clusterService,
                                                   TransportService transportService,
-                                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                                   NodeEnvironment env,
                                                   IndicesService indicesService,
                                                   NamedXContentRegistry namedXContentRegistry) {
@@ -84,7 +82,6 @@ public class TransportNodesListGatewayStartedShards extends
             threadPool,
             clusterService,
             transportService,
-            indexNameExpressionResolver,
             Request::new,
             NodeRequest::new,
             ThreadPool.Names.FETCH_SHARD_STARTED,

@@ -23,7 +23,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -62,12 +61,11 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
                                    ThreadPool threadPool,
                                    ClusterService clusterService,
                                    TransportService transportService,
-                                   IndexNameExpressionResolver indexNameExpressionResolver,
                                    Writeable.Reader<NodesRequest> nodesRequestReader,
                                    Writeable.Reader<NodeRequest> nodeRequestReader,
                                    String nodeExecutor,
                                    Class<NodeResponse> nodeResponseClass) {
-        super(actionName, threadPool, transportService, nodesRequestReader, indexNameExpressionResolver);
+        super(actionName, threadPool, transportService, nodesRequestReader);
         this.clusterService = Objects.requireNonNull(clusterService);
         this.transportService = Objects.requireNonNull(transportService);
         this.nodeResponseClass = Objects.requireNonNull(nodeResponseClass);

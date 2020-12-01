@@ -51,11 +51,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Base class for requests that should be executed on all shards of an index or several indices.
  * This action sends shard requests to all primary shards of the indices and they are then replicated like write requests
  */
-public abstract class TransportBroadcastReplicationAction<Request extends BroadcastRequest<Request>, Response extends BroadcastResponse, ShardRequest extends ReplicationRequest<ShardRequest>, ShardResponse extends ReplicationResponse>
-        extends HandledTransportAction<Request, Response> {
+public abstract class TransportBroadcastReplicationAction<Request extends BroadcastRequest<Request>,
+                                                          Response extends BroadcastResponse,
+                                                          ShardRequest extends ReplicationRequest<ShardRequest>,
+                                                          ShardResponse extends ReplicationResponse>
+                                                              extends HandledTransportAction<Request, Response> {
 
     private final ActionType<ShardResponse> replicatedBroadcastShardAction;
     private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final NodeClient client;
 
     public TransportBroadcastReplicationAction(String name,
@@ -66,10 +70,11 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
                                                NodeClient client,
                                                IndexNameExpressionResolver indexNameExpressionResolver,
                                                ActionType<ShardResponse> replicatedBroadcastShardAction) {
-        super(name, threadPool, transportService, reader, indexNameExpressionResolver);
+        super(name, threadPool, transportService, reader);
         this.client = client;
         this.replicatedBroadcastShardAction = replicatedBroadcastShardAction;
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override

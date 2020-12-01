@@ -440,7 +440,6 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                 mockIndicesService(shardId, executedOnPrimary, primary, replica),
                 threadPool,
                 shardStateAction,
-                new IndexNameExpressionResolver(),
                 Request::new,
                 Request::new,
                 ThreadPool.Names.SAME

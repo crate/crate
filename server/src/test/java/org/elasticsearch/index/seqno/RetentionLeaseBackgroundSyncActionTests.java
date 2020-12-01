@@ -31,7 +31,6 @@ import org.elasticsearch.action.LatchedActionListener;
 import org.elasticsearch.action.support.ActionTestUtils;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.Index;
@@ -103,8 +102,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
             clusterService,
             indicesService,
             threadPool,
-            shardStateAction,
-            new IndexNameExpressionResolver()
+            shardStateAction
         );
         final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseBackgroundSyncAction.Request request =
@@ -140,8 +138,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
             clusterService,
             indicesService,
             threadPool,
-            shardStateAction,
-            new IndexNameExpressionResolver()
+            shardStateAction
         );
         final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseBackgroundSyncAction.Request request =
@@ -178,8 +175,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
             clusterService,
             indicesService,
             threadPool,
-            shardStateAction,
-            new IndexNameExpressionResolver()
+            shardStateAction
         );
 
         assertNull(action.indexBlockLevel());

@@ -43,8 +43,8 @@ public class TransportFlushAction extends TransportBroadcastReplicationAction<Fl
     public TransportFlushAction(ThreadPool threadPool,
                                 ClusterService clusterService,
                                 TransportService transportService,
-                                NodeClient client,
-                                IndexNameExpressionResolver indexNameExpressionResolver) {
+                                IndexNameExpressionResolver indexNameExpressionResolver,
+                                NodeClient client) {
         super(NAME, FlushRequest::new, threadPool, clusterService, transportService, client, indexNameExpressionResolver, TransportShardFlushAction.TYPE);
     }
 
