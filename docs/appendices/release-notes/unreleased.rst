@@ -58,5 +58,8 @@ None
 Fixes
 =====
 
+- Fixed a memory leak in the DNS discovery seed provider. The memory leak
+  occurred if you configured ``discovery.seed_providers=srv``.
+
 - Fixed a regression introduced in CrateDB ``4.0`` preventing the global setting
   ``cluster.info.update.interval`` to be changed.
