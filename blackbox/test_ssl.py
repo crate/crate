@@ -10,6 +10,7 @@ from cr8.run_crate import CrateNode
 
 env = os.environ.copy()
 env['CRATE_HEAP_SIZE'] = '256M'
+env['CRATE_JAVA_OPTS'] = '-Dio.netty.leakDetection.level=paranoid'
 crate = CrateNode(
     crate_dir=crate_path(),
     settings={
