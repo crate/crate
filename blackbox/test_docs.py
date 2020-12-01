@@ -95,7 +95,10 @@ class ConnectingCrateLayer(CrateNode):
 
 crate = ConnectingCrateLayer(
     crate_dir=crate_path(),
-    env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
+    env={
+        'JAVA_HOME': os.environ.get('JAVA_HOME', ''),
+        'CRATE_JAVA_OPTS': '-Dio.netty.leakDetection.level=paranoid',
+    },
     settings=CRATE_SETTINGS,
     version=(4, 0, 0)
 )

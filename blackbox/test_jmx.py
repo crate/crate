@@ -39,6 +39,7 @@ JMX_OPTS = '''
      -Dcom.sun.management.jmxremote.port={}
      -Dcom.sun.management.jmxremote.ssl=false
      -Dcom.sun.management.jmxremote.authenticate=false
+     -Dio.netty.leakDetection.level=paranoid
 '''
 
 
