@@ -34,6 +34,8 @@ import io.netty.handler.codec.dns.DnsRecordType;
 import io.netty.resolver.dns.DnsNameResolver;
 import io.netty.resolver.dns.DnsNameResolverBuilder;
 import io.netty.resolver.dns.SingletonDnsServerAddressStreamProvider;
+import io.netty.util.ReferenceCounted;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Strings;
@@ -137,13 +139,21 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
         }
         try {
             List<DnsRecord> records = lookupRecords();
-            LOGGER.trace("Building dynamic unicast discovery nodes...");
-            if (records == null || records.size() == 0) {
-                LOGGER.debug("No nodes found");
-            } else {
-                List<TransportAddress> transportAddresses = parseRecords(records);
-                LOGGER.info("Using dynamic nodes {}", transportAddresses);
-                return transportAddresses;
+            try {
+                LOGGER.trace("Building dynamic unicast discovery nodes...");
+                if (records == null || records.size() == 0) {
+                    LOGGER.debug("No nodes found");
+                } else {
+                    List<TransportAddress> transportAddresses = parseRecords(records);
+                    LOGGER.info("Using dynamic nodes {}", transportAddresses);
+                    return transportAddresses;
+                }
+            } finally {
+                for (var record : records) {
+                    if (record instanceof ReferenceCounted) {
+                        ((ReferenceCounted) record).release();
+                    }
+                }
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             LOGGER.error("DNS lookup exception:", e);
