@@ -24,9 +24,20 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonPointer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ser.BeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.FilterProvider;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -38,6 +49,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
@@ -57,17 +69,40 @@ public final class SourceParser {
 
     static class ParsePath {
 
+        String name;
         DataType<?> type;
         int index;
+        List<ParsePath> children;
 
+		public ParsePath(int numColumns, List<String> path, DataType<?> type) {
+            assert path.size() > 0 : "Path must have at least 1 element";
+            this.name = path.get(0);
+            if (path.size() == 1) {
+                this.type = ArrayType.unnest(type);
+                this.index = numColumns;
+            } else {
+                this.type = null;
+                this.index = -1;
+                this.children = new ArrayList<>();
+                this.children.add(new ParsePath(numColumns, path.subList(1, path.size()), type));
+            }
+		}
+
+		public void add(int numColumns, List<String> path, DataType<?> type) {
+		}
+
+        @Nullable
 		public ParsePath forChild(String fieldName) {
+            if (children == null) {
+                return null;
+            }
+            for (int i = 0; i < children.size(); i++) {
+                ParsePath child = children.get(i);
+                if (child.name.equals(fieldName)) {
+                    return child;
+                }
+            }
 			return null;
-		}
-
-		public void add(int numColumns, List<String> list, DataType<?> type) {
-		}
-
-		public void add(int numColumns, DataType<?> type) {
 		}
     }
 
@@ -99,13 +134,10 @@ public final class SourceParser {
         String start = path.get(0);
         ParsePath parsePath = roots.get(start);
         if (parsePath == null) {
-            parsePath = new ParsePath();
+            parsePath = new ParsePath(numColumns, path, type);
             roots.put(start, parsePath);
-        }
-        if (path.size() == 1) {
-            parsePath.add(numColumns, type);
         } else {
-            parsePath.add(numColumns, path.subList(1, path.size()), type);
+            parsePath.add(numColumns, path, type);
         }
         numColumns++;
     }
@@ -114,7 +146,20 @@ public final class SourceParser {
         assert column.name().equals(DocSysColumns.DOC.name())
             : "All columns retrieved with sourceParser must start with _doc";
 
-        return null;
+        List<String> path = column.path();
+        ParsePath parsePath = roots.get(path.get(0));
+        if (parsePath == null) {
+            return null;
+        }
+        for (int i = 1; i < path.size(); i++) {
+            parsePath = parsePath.forChild(path.get(i));
+            if (parsePath == null) {
+                return null;
+            } else if (i + 1 == path.size()) {
+                return result[parsePath.index];
+            }
+        }
+        return parsePath.index >= 0 ? result[parsePath.index] : null;
     }
 
     public void reset() {
@@ -150,7 +195,7 @@ public final class SourceParser {
                     if (parsePath == null) {
                         parser.skipChildren();
                     } else {
-                        parseValue(parser, parsePath, 0);
+                        traverseParser(parser, parsePath, 0);
                     }
                 }
             }
@@ -159,7 +204,7 @@ public final class SourceParser {
         }
     }
 
-    void parseValue(XContentParser parser, ParsePath parsePath, int level) throws IOException {
+    void traverseParser(XContentParser parser, ParsePath parsePath, int level) throws IOException {
         Token token = parser.currentToken();
         if (token == XContentParser.Token.VALUE_NULL) {
         } else if (token == XContentParser.Token.START_OBJECT) {
@@ -171,27 +216,42 @@ public final class SourceParser {
                 if (child == null) {
                     parser.skipChildren();
                 } else {
-                    parseValue(parser, child, level++);
+                    if (child.index >= 0) {
+                        result[child.index] = parseValue(parser, child.type);
+                    } else {
+                        traverseParser(parser, child, level++);
+                    }
                 }
             }
         } else if (token == XContentParser.Token.START_ARRAY) {
             token = parser.nextToken();
-            // create list here and work with consumer to add value to result?
-            for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                parseValue(parser, parsePath, level); // level++ ?
-            }
-        } else {
-            result[parsePath.index] = switch (parsePath.type.id()) {
-                case ShortType.ID -> parser.shortValue(true);
-                case IntegerType.ID -> parser.intValue();
-                case LongType.ID -> parser.longValue();
-                case FloatType.ID -> parser.floatValue();
-                case DoubleType.ID -> parser.doubleValue();
-                case StringType.ID -> parser.text();
-                default -> {
-                    throw new UnsupportedOperationException("PrimitiveTypeParser cannot parse value for type " + parsePath.type);
+            if (parsePath.index >= 0) {
+                ArrayList<Object> values = new ArrayList<>();
+                for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
+                    values.add(parseValue(parser, parsePath.type));
                 }
-            };
+                result[parsePath.index] = values;
+            } else {
+                for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
+                    traverseParser(parser, parsePath, level);
+                }
+            }
+        } else if (parsePath.index >= 0) {
+            result[parsePath.index] = parseValue(parser, parsePath.type);
         }
     }
+
+	private static Object parseValue(XContentParser parser, DataType<?> type) throws IOException {
+        return switch (type.id()) {
+            case ShortType.ID -> parser.shortValue(true);
+            case IntegerType.ID -> parser.intValue();
+            case LongType.ID -> parser.longValue();
+            case FloatType.ID -> parser.floatValue();
+            case DoubleType.ID -> parser.doubleValue();
+            case StringType.ID -> parser.text();
+            default -> {
+                throw new UnsupportedOperationException("Primitive type expected. Cannot parse value for type=" + type);
+            }
+        };
+	}
 }
