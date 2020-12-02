@@ -1406,6 +1406,71 @@ token outputs, please consult the `Java DateTimeFormatter`_ documentation.
     SELECT 1 row in set (... sec)
 
 
+``to_number(expression, format_string)``
+----------------------------------------
+
+The ``to_number`` function converts a textual representation of a number to a
+an actual number based on a given format string.
+
+Returns: ``numeric``
+
+Synopsis
+........
+
+::
+
+    TO_NUMBER( expression, format_string )
+
+``expression`` can be a textual representation of a numeric value.
+
+Format
+......
+
+The syntax for the ``format_string`` follows that of the `Java DecimalFormat`_.
+For reference, the table of permitted tokens is replicated below:
+
++--------+---------------------+----------------------------------------------------------------------+
+| Symbol | Location            | Meaning                                                              |
++========+=====================+======================================================================+
+| ``0``  | Number              | Digit                                                                |
++--------+---------------------+----------------------------------------------------------------------+
+| ``#``  | Number              | Digit, zero shows as absent                                          |
++--------+---------------------+----------------------------------------------------------------------+
+| ``.``  | Number              | Decimal/monetary seperator                                           |
++--------+---------------------+----------------------------------------------------------------------+
+| ``-``  | Number              | Minus sign                                                           |
++--------+---------------------+----------------------------------------------------------------------+
+| ``,``  | Number              | Grouping separator                                                   |
++--------+---------------------+----------------------------------------------------------------------+
+| ``E``  | Number              | Separates mantissa and exponent in scientific notation               |
++--------+---------------------+----------------------------------------------------------------------+
+| ``;``  | Subpattern boundary | Seperates positive and negative subpatterns                          |
++--------+---------------------+----------------------------------------------------------------------+
+| ``%``  | Prefix/Suffix       | Mulitply by 100 and show as percentage                               |
++--------+---------------------+----------------------------------------------------------------------+
+| ``‰``  | Prefix/Suffix       | Multiply by 1000 and show as per mille value                         |
++--------+---------------------+----------------------------------------------------------------------+
+| ``¤``  | Prefix/Suffix       | Currency sign, replaced by currency symbol. If doubled, replaced by  |
+|        |                     | international currency symbol. If present in a pattern, the monetary |
+|        |                     | decimal separator is used instead of the decimal separator           |
++--------+---------------------+----------------------------------------------------------------------+
+| ``'``  | Prefix/Suffix       | Used to quote special characters in a prefix/suffix                  |
++--------+---------------------+----------------------------------------------------------------------+
+
+For further documentation on the behaviour of the formatter, please consult the
+`Java DecimalFormat`_ documentation.
+
+::
+
+    cr> select to_number('1,234,56.7000', '#,###,###.0000') as number;
+    +----------+
+    | number   |
+    +----------+
+    | 123456.7 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+
 Geo functions
 =============
 

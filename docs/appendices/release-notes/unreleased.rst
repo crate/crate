@@ -53,6 +53,8 @@ None
 Changes
 =======
 
+- Added the ``to_number`` scalar function.
+
 - Added the ``to_timestamp`` scalar function.
 
 - Added the ``to_char`` scalar function for timestamp, interval and numeric types.
