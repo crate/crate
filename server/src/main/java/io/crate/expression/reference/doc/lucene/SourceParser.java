@@ -31,32 +31,33 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonPointer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ser.BeanPropertyFilter;
-import com.fasterxml.jackson.databind.ser.FilterProvider;
-import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
-
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.ArrayType;
+import io.crate.types.BooleanType;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
+import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
+import io.crate.types.TimestampType;
+import io.crate.types.UndefinedType;
 
 public final class SourceParser {
 
@@ -74,7 +75,7 @@ public final class SourceParser {
         int index;
         List<ParsePath> children;
 
-		public ParsePath(int numColumns, List<String> path, DataType<?> type) {
+        public ParsePath(int numColumns, List<String> path, DataType<?> type) {
             assert path.size() > 0 : "Path must have at least 1 element";
             this.name = path.get(0);
             if (path.size() == 1) {
@@ -86,13 +87,13 @@ public final class SourceParser {
                 this.children = new ArrayList<>();
                 this.children.add(new ParsePath(numColumns, path.subList(1, path.size()), type));
             }
-		}
+        }
 
-		public void add(int numColumns, List<String> path, DataType<?> type) {
-		}
+        public void add(int numColumns, List<String> path, DataType<?> type) {
+        }
 
         @Nullable
-		public ParsePath forChild(String fieldName) {
+        public ParsePath forChild(String fieldName) {
             if (children == null) {
                 return null;
             }
@@ -102,8 +103,8 @@ public final class SourceParser {
                     return child;
                 }
             }
-			return null;
-		}
+            return null;
+        }
     }
 
     public void register(ColumnIdent docColumn, DataType<?> type) {
@@ -195,7 +196,7 @@ public final class SourceParser {
                     if (parsePath == null) {
                         parser.skipChildren();
                     } else {
-                        traverseParser(parser, parsePath, 0);
+                        traverseParser(parser, parsePath, false);
                     }
                 }
             }
@@ -204,9 +205,15 @@ public final class SourceParser {
         }
     }
 
-    void traverseParser(XContentParser parser, ParsePath parsePath, int level) throws IOException {
+    void traverseParser(XContentParser parser, ParsePath parsePath, boolean parentIsArray) throws IOException {
+        if (parsePath.index >= 0) {
+            result[parsePath.index] = parseValue(parser, parsePath.type);
+            return;
+        }
+
         Token token = parser.currentToken();
         if (token == XContentParser.Token.VALUE_NULL) {
+            // Nothing to do here; result[idx] defaults to null
         } else if (token == XContentParser.Token.START_OBJECT) {
             token = parser.nextToken();
             for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
@@ -217,41 +224,74 @@ public final class SourceParser {
                     parser.skipChildren();
                 } else {
                     if (child.index >= 0) {
-                        result[child.index] = parseValue(parser, child.type);
+                        if (parentIsArray) {
+                            List<Object> values = (List<Object>) result[child.index];
+                            if (values == null) {
+                                values = new ArrayList<>();
+                                result[child.index] = values;
+                            }
+                            values.add(parseValue(parser, child.type));
+                        } else {
+                            result[child.index] = parseValue(parser, child.type);
+                        }
                     } else {
-                        traverseParser(parser, child, level++);
+                        traverseParser(parser, child, parentIsArray);
                     }
                 }
             }
         } else if (token == XContentParser.Token.START_ARRAY) {
             token = parser.nextToken();
-            if (parsePath.index >= 0) {
-                ArrayList<Object> values = new ArrayList<>();
-                for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                    values.add(parseValue(parser, parsePath.type));
-                }
-                result[parsePath.index] = values;
-            } else {
-                for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                    traverseParser(parser, parsePath, level);
-                }
+            for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
+                traverseParser(parser, parsePath, true);
             }
         } else if (parsePath.index >= 0) {
             result[parsePath.index] = parseValue(parser, parsePath.type);
         }
     }
 
-	private static Object parseValue(XContentParser parser, DataType<?> type) throws IOException {
-        return switch (type.id()) {
-            case ShortType.ID -> parser.shortValue(true);
-            case IntegerType.ID -> parser.intValue();
-            case LongType.ID -> parser.longValue();
-            case FloatType.ID -> parser.floatValue();
-            case DoubleType.ID -> parser.doubleValue();
-            case StringType.ID -> parser.text();
-            default -> {
-                throw new UnsupportedOperationException("Primitive type expected. Cannot parse value for type=" + type);
+    private static Object parseValue(XContentParser parser, DataType<?> type) throws IOException {
+        return switch (parser.currentToken()) {
+            case VALUE_NULL -> null;
+            case START_ARRAY -> {
+                // TODO: This could be an array of geo-points or a geo-point :(
+                if (type.equals(DataTypes.GEO_POINT)) {
+                    parser.nextToken();
+                    final double x = parser.doubleValue();
+                    parser.nextToken();
+                    final double y = parser.doubleValue();
+                    parser.nextToken();
+                    yield new PointImpl(x, y, JtsSpatialContext.GEO);
+                } else {
+                    ArrayList<Object> values = new ArrayList<>();
+                    Token token = parser.nextToken();
+                    for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
+                        values.add(parseValue(parser, type));
+                    }
+                    yield values;
+                }
             }
+            case START_OBJECT -> {
+                // If there are inner types we could still parse it without implicitCast
+                yield type.implicitCast(parser.map());
+            }
+            default -> switch (type.id()) {
+                case ByteType.ID -> (byte) parser.shortValue(true);
+                case BooleanType.ID -> parser.booleanValue();
+                case ShortType.ID -> parser.shortValue(true);
+                case IntegerType.ID -> parser.intValue();
+                case LongType.ID -> parser.longValue();
+                case TimestampType.ID_WITH_TZ -> parser.longValue();
+                case TimestampType.ID_WITHOUT_TZ -> parser.longValue();
+                case FloatType.ID -> parser.floatValue();
+                case DoubleType.ID -> parser.doubleValue();
+                case StringType.ID -> parser.text();
+                case IpType.ID -> parser.text();
+                case GeoPointType.ID -> parser.doubleValue();
+                case UndefinedType.ID -> null; // should fallback to generic read?
+                default -> {
+                    throw new UnsupportedOperationException("Primitive type expected. Cannot parse value for type=" + type);
+                }
+            };
         };
-	}
+    }
 }

@@ -25,6 +25,7 @@ package io.crate.expression.reference.doc.lucene;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.elasticsearch.common.bytes.BytesArray;
@@ -71,9 +72,9 @@ public class SourceParserTest {
         var column = new ColumnIdent("_doc", List.of("x"));
         sourceParser.register(column, DataTypes.INTEGER_ARRAY);
         sourceParser.parse(new BytesArray("""
-            {"x": [10, 11, 12], "y": 20}
+            {"x": [10, null, 11, 12], "y": 20}
         """));
-        assertThat(sourceParser.get(column), is(List.of(10, 11, 12)));
+        assertThat(sourceParser.get(column), is(Arrays.asList(10, null, 11, 12)));
         assertThat(sourceParser.get(new ColumnIdent("_doc", List.of("y"))), Matchers.nullValue());
     }
 
@@ -83,9 +84,9 @@ public class SourceParserTest {
         var column = new ColumnIdent("_doc", List.of("obj_arr", "x"));
         sourceParser.register(column, DataTypes.INTEGER);
         sourceParser.parse(new BytesArray("""
-            {"obj_arr": [{"x": 10}, {"x": 11}, {"x": 12}], "y": 20}
+            {"obj_arr": [{"x": 10}, {"x": 11}, {"x": 12}, {"x": null}], "y": 20}
         """));
-        assertThat(sourceParser.get(column), is(List.of(10, 11, 12)));
+        assertThat(sourceParser.get(column), is(Arrays.asList(10, 11, 12, null)));
         assertThat(sourceParser.get(new ColumnIdent("_doc", List.of("y"))), Matchers.nullValue());
     }
 }

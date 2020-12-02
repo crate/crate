@@ -24,7 +24,6 @@ package io.crate.expression.reference.doc.lucene;
 
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.index.LeafReader;
