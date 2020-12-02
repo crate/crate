@@ -22,6 +22,8 @@
 
 package io.crate.breaker;
 
+import io.crate.types.NumericType;
+
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
 
@@ -37,6 +39,6 @@ public final class NumericSizeEstimator extends SizeEstimator<BigDecimal> {
         if (value == null) {
             return 8;
         }
-        return value.unscaledValue().toByteArray().length;
+        return NumericType.size(value);
     }
 }

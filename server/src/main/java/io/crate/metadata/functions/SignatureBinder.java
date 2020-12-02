@@ -24,6 +24,7 @@ package io.crate.metadata.functions;
 
 import io.crate.common.collections.Lists2;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.ParameterTypeSignature;
 import io.crate.types.TypeSignature;
 import io.crate.types.UndefinedType;
@@ -456,7 +457,14 @@ public class SignatureBinder {
                           && toType.precedes(fromType));
             case NONE:
             default:
-                return fromType.getTypeSignature().equals(toTypeSignature);
+                var fromTypeSignature = fromType.getTypeSignature();
+                // We always register numeric arguments without precision and scale thus the parameters
+                // should not be checked while signature matching.
+                if (fromTypeSignature.getBaseTypeName().equals(DataTypes.NUMERIC.getName())
+                    && toTypeSignature.getBaseTypeName().equals(DataTypes.NUMERIC.getName())) {
+                    return true;
+                }
+                return fromTypeSignature.equals(toTypeSignature);
         }
     }
 

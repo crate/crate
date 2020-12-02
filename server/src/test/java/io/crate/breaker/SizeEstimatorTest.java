@@ -95,7 +95,7 @@ public class SizeEstimatorTest extends ESTestCase {
     public void test_numeric_type_estimate_size_for_value() {
         var estimator = SizeEstimatorFactory.create(DataTypes.NUMERIC);
         assertThat(estimator.estimateSize(null), is(8L));
-        assertThat(estimator.estimateSize(BigDecimal.valueOf(1)), is(1L));
-        assertThat(estimator.estimateSize(BigDecimal.valueOf(Long.MAX_VALUE)), is(8L));
+        assertThat(estimator.estimateSize(BigDecimal.valueOf(1)), is(37L));
+        assertThat(estimator.estimateSize(BigDecimal.valueOf(Long.MAX_VALUE)), is(44L));
     }
 }

@@ -57,6 +57,10 @@ public abstract class Symbol implements Writeable {
         } else if (ArrayType.unnest(targetType).equals(DataTypes.UNTYPED_OBJECT)
                    && valueType().id() == targetType.id()) {
             return this;
+        } else if (ArrayType.unnest(targetType).equals(DataTypes.NUMERIC)
+                   && valueType().id() == DataTypes.NUMERIC.id()) {
+            // Do not cast numerics to unscaled numerics because we do not want to loose precision + scale
+            return this;
         }
         return CastFunctionResolver.generateCastFunction(this, targetType, modes);
     }

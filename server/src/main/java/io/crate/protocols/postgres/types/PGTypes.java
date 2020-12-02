@@ -154,6 +154,9 @@ public class PGTypes {
             case StringType.ID:
                 return VarCharType.INSTANCE;
 
+            case io.crate.types.NumericType.ID:
+                return NumericType.INSTANCE;
+
             default: {
                 PGType pgType = CRATE_TO_PG_TYPES.get(type);
                 if (pgType == null) {

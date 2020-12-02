@@ -160,7 +160,7 @@ public final class DataTypes {
             entry(ShortType.ID, in -> SHORT),
             entry(IntegerType.ID, in -> INTEGER),
             entry(LongType.ID, in -> LONG),
-            entry(NumericType.ID, in -> NUMERIC),
+            entry(NumericType.ID, NumericType::new),
             entry(TimeTZType.ID, in -> TIMETZ),
             entry(TimestampType.ID_WITH_TZ, in -> TIMESTAMPZ),
             entry(TimestampType.ID_WITHOUT_TZ, in -> TIMESTAMP),
@@ -397,11 +397,12 @@ public final class DataTypes {
             throw new IllegalArgumentException("Cannot find data type: " + typeName);
         }
         if (!parameters.isEmpty()) {
-            if (dataType.id() == StringType.ID) {
-                return StringType.of(parameters);
-            }
-            throw new IllegalArgumentException(
-                "The '" + typeName + "' type doesn't support type parameters.");
+            return switch (dataType.id()) {
+                case StringType.ID -> StringType.of(parameters);
+                case NumericType.ID -> NumericType.of(parameters);
+                default -> throw new IllegalArgumentException(
+                    "The '" + typeName + "' type doesn't support type parameters.");
+            };
         } else {
             return dataType;
         }
