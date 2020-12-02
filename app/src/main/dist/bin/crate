@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 # OPTIONS:
 #   -d: start the daemon in the background
@@ -126,12 +126,12 @@ launch_service()
     fi
 
     if [ "x$daemonized" = "x" ]; then
-        eval exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "$CRATE_CLASSPATH" \
+        eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
              io.crate.bootstrap.CrateDB $props
         execval=$?
     else
         # Startup Crate, background it, and write the pid.
-        eval exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "$CRATE_CLASSPATH" \
+        eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
              io.crate.bootstrap.CrateDB $props -d <&- &
         execval=$?
         [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
