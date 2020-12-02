@@ -29,34 +29,32 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
 
 import static java.time.ZoneOffset.UTC;
 
-public class ToTimestampFunction extends Scalar<Long, String> {
+public class ToDateFunction extends Scalar<Long, String> {
 
-    public static final String NAME = "to_timestamp";
+    public static final String NAME = "to_date";
 
     public static void register(ScalarFunctionModule module) {
         module.register(
-            Signature.scalar(
+                Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
-            ToTimestampFunction::new
+                ToDateFunction::new
         );
     }
 
     private final Signature signature;
     private final Signature boundSignature;
 
-    public ToTimestampFunction(Signature signature, Signature boundSignature) {
+    public ToDateFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -75,15 +73,9 @@ public class ToTimestampFunction extends Scalar<Long, String> {
         }
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH);
-        TemporalAccessor dt = formatter.parseBest(expression, OffsetDateTime::from, LocalDateTime::from);
-
-        if (dt instanceof LocalDateTime) {
-            LocalDateTime localDateTime = LocalDateTime.from(dt);
-            return localDateTime.toInstant(UTC).toEpochMilli();
-        } else {
-            OffsetDateTime offsetDateTime = OffsetDateTime.from(dt);
-            return offsetDateTime.toInstant().toEpochMilli();
-        }
+        TemporalAccessor dt = formatter.parse(expression, LocalDate::from);
+        LocalDate localDate = LocalDate.from(dt);
+        return localDate.atStartOfDay(UTC).toInstant().toEpochMilli();
     }
 
     @Override

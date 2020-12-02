@@ -135,6 +135,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
 
         ToCharFunction.register(this);
         ToTimestampFunction.register(this);
+        ToDateFunction.register(this);
         ToNumberFunction.register(this);
 
         ExplicitCastFunction.register(this);
