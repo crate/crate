@@ -63,3 +63,6 @@ Fixes
 
 - Fixed a regression introduced in CrateDB ``4.0`` preventing the global setting
   ``cluster.info.update.interval`` to be changed.
+
+- Fixed handling of spaces in `$CRATE_HOME`. Users would get a `No such file or
+  directory` error if the path set via `$CRATE_HOME` contained spaces.
