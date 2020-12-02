@@ -163,4 +163,30 @@ public class TypeSignatureTest extends ESTestCase {
             .build();
         assertThat(objectType.getTypeSignature().toString(), is("object(text,name text(1))"));
     }
+
+    @Test
+    public void test_parse_numeric_type_signature_round_trip() {
+        var signature = parseTypeSignature("numeric");
+        assertThat(signature.getBaseTypeName(), is("numeric"));
+        assertThat(signature.getParameters().size(), is(0));
+        assertThat(signature.createType(), is(NumericType.INSTANCE));
+    }
+
+    @Test
+    public void test_parse_numeric_type_signature_with_precision_round_trip() {
+        var signature = parseTypeSignature("numeric(1)");
+        assertThat(signature.getBaseTypeName(), is("numeric"));
+        assertThat(signature.getParameters(), contains(new IntegerLiteralTypeSignature(1)));
+        assertThat(signature.createType(), is(NumericType.of(1)));
+    }
+
+    @Test
+    public void test_parse_numeric_type_signature_with_precision_and_scale_round_trip() {
+        var signature = parseTypeSignature("numeric(1, 2)");
+        assertThat(signature.getBaseTypeName(), is("numeric"));
+        assertThat(
+            signature.getParameters(),
+            contains(new IntegerLiteralTypeSignature(1), new IntegerLiteralTypeSignature(2)));
+        assertThat(signature.createType(), is(NumericType.of(1, 2)));
+    }
 }
