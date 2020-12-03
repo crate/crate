@@ -52,6 +52,7 @@ public class PGTypes {
         .put(DataTypes.LONG, BigIntType.INSTANCE)
         .put(DataTypes.FLOAT, RealType.INSTANCE)
         .put(DataTypes.DOUBLE, DoubleType.INSTANCE)
+        .put(DataTypes.NUMERIC, NumericType.INSTANCE)
         .put(DataTypes.TIMETZ, TimeTZType.INSTANCE)
         .put(DataTypes.TIMESTAMPZ, TimestampZType.INSTANCE)
         .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
