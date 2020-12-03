@@ -28,6 +28,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IpType;
+import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.OidVectorType;
 import io.crate.types.RegprocType;
@@ -69,6 +70,9 @@ public class SizeEstimatorFactory {
 
             case RegprocType.ID:
                 return (SizeEstimator<T>) RegprocSizeEstimator.INSTANCE;
+
+            case NumericType.ID:
+                return (SizeEstimator<T>) NumericSizeEstimator.INSTANCE;
 
             default:
                 if (type instanceof FixedWidthType) {

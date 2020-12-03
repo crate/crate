@@ -28,6 +28,7 @@ import io.crate.types.Regproc;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
@@ -88,5 +89,13 @@ public class SizeEstimatorTest extends ESTestCase {
         var estimator = SizeEstimatorFactory.create(DataTypes.REGPROC);
         assertThat(estimator.estimateSize(null), is(8L));
         assertThat(estimator.estimateSize(Regproc.of("test")), is(64L));
+    }
+
+    @Test
+    public void test_numeric_type_estimate_size_for_value() {
+        var estimator = SizeEstimatorFactory.create(DataTypes.NUMERIC);
+        assertThat(estimator.estimateSize(null), is(8L));
+        assertThat(estimator.estimateSize(BigDecimal.valueOf(1)), is(1L));
+        assertThat(estimator.estimateSize(BigDecimal.valueOf(Long.MAX_VALUE)), is(8L));
     }
 }
