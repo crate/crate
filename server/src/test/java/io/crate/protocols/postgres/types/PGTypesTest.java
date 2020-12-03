@@ -68,6 +68,8 @@ public class PGTypesTest extends ESTestCase {
         assertThat(PGTypes.get(DataTypes.DOUBLE), instanceOf(DoubleType.class));
         assertThat("Crate IP type is mapped to PG varchar", PGTypes.get(DataTypes.IP),
             instanceOf(VarCharType.class));
+        assertThat(PGTypes.get(DataTypes.NUMERIC), instanceOf(NumericType.class));
+
     }
 
     @Test
@@ -86,6 +88,7 @@ public class PGTypesTest extends ESTestCase {
         assertThat(PGTypes.fromOID(BigIntType.OID), instanceOf(LongType.class));
         assertThat(PGTypes.fromOID(RealType.OID), instanceOf(FloatType.class));
         assertThat(PGTypes.fromOID(DoubleType.OID), instanceOf(io.crate.types.DoubleType.class));
+        assertThat(PGTypes.fromOID(NumericType.OID), instanceOf(io.crate.types.NumericType.class));
     }
 
     @Test
