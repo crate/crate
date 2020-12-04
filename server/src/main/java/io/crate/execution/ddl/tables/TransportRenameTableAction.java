@@ -42,6 +42,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -90,7 +91,10 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     }
 
     @Override
-    protected void masterOperation(RenameTableRequest request, ClusterState state, ActionListener<AcknowledgedResponse> listener) throws Exception {
+    protected void masterOperation(Task task,
+                                   RenameTableRequest request,
+                                   ClusterState state,
+                                   ActionListener<AcknowledgedResponse> listener) throws Exception {
         AtomicReference<String[]> newIndexNames = new AtomicReference<>(null);
         ActionListener<AcknowledgedResponse> waitForShardsListener = ActionListeners.waitForShards(
             listener,

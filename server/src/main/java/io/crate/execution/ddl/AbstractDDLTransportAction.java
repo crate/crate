@@ -37,6 +37,8 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.tasks.Task;
+
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -77,7 +79,10 @@ public abstract class AbstractDDLTransportAction<Request extends AcknowledgedReq
     }
 
     @Override
-    protected void masterOperation(Request request, ClusterState state, ActionListener<Response> listener) throws Exception {
+    protected void masterOperation(Task task,
+                                   Request request,
+                                   ClusterState state,
+                                   ActionListener<Response> listener) throws Exception {
         clusterService.submitStateUpdateTask(source,
             request,
             ClusterStateTaskConfig.build(Priority.HIGH, request.masterNodeTimeout()),

@@ -57,6 +57,7 @@ import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -109,7 +110,7 @@ public class TransportNodesListShardStoreMetadata extends TransportNodesAction<T
     }
 
     @Override
-    protected NodeStoreFilesMetadata nodeOperation(NodeRequest request) {
+    protected NodeStoreFilesMetadata nodeOperation(NodeRequest request, Task task) {
         try {
             return new NodeStoreFilesMetadata(clusterService.localNode(), listStoreMetadata(request.shardId));
         } catch (IOException e) {

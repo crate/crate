@@ -35,6 +35,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -69,7 +70,10 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
     }
 
     @Override
-    protected void masterOperation(CreateUserRequest request, ClusterState state, ActionListener<WriteUserResponse> listener) throws Exception {
+    protected void masterOperation(Task task,
+                                   CreateUserRequest request,
+                                   ClusterState state,
+                                   ActionListener<WriteUserResponse> listener) throws Exception {
         clusterService.submitStateUpdateTask("create_user [" + request.userName() + "]",
             new AckedClusterStateUpdateTask<WriteUserResponse>(Priority.URGENT, request, listener) {
 

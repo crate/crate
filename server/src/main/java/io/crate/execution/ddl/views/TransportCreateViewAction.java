@@ -37,6 +37,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -70,7 +71,10 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
     }
 
     @Override
-    protected void masterOperation(CreateViewRequest request, ClusterState state, ActionListener<CreateViewResponse> listener) {
+    protected void masterOperation(Task task,
+                                   CreateViewRequest request,
+                                   ClusterState state,
+                                   ActionListener<CreateViewResponse> listener) {
         ViewsMetadata views = state.metadata().custom(ViewsMetadata.TYPE);
         if (conflictsWithTable(request.name(), state.metadata()) || conflictsWithView(request, views)) {
             listener.onResponse(new CreateViewResponse(true));
