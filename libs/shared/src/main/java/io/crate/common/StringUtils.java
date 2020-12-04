@@ -26,6 +26,7 @@ package io.crate.common;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class StringUtils {
 
@@ -67,5 +68,25 @@ public final class StringUtils {
             }
         }
         return true;
+    }
+
+    public static String capitalize(String string) {
+        return string.substring(0,1).toUpperCase(Locale.ENGLISH) + string.substring(1).toLowerCase(Locale.ENGLISH);
+    }
+
+    public static String padEnd(String s, int minimumLength, char c) {
+        if (s == null) {
+            throw new NullPointerException("s");
+        }
+        if (s.length() >= minimumLength) {
+            return s;
+        } else {
+            StringBuilder sb = new StringBuilder(minimumLength);
+            sb.append(s);
+            for (int i = s.length(); i < minimumLength; i++) {
+                sb.append(c);
+            }
+            return sb.toString();
+        }
     }
 }
