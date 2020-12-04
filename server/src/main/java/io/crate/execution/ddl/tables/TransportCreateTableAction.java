@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -104,7 +105,10 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     }
 
     @Override
-    protected void masterOperation(final CreateTableRequest request, final ClusterState state, final ActionListener<CreateTableResponse> listener) {
+    protected void masterOperation(Task task,
+                                   final CreateTableRequest request,
+                                   final ClusterState state,
+                                   final ActionListener<CreateTableResponse> listener) {
         final RelationName relationName = request.getTableName();
         if (viewsExists(relationName, state)) {
             listener.onFailure(new RelationAlreadyExists(relationName));
@@ -116,14 +120,14 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                 response -> listener.onResponse(new CreateTableResponse(response.isShardsAcknowledged())),
                 listener::onFailure
             );
-            transportCreateIndexAction.masterOperation(createIndexRequest, state, wrappedListener);
+            transportCreateIndexAction.masterOperation(task, createIndexRequest, state, wrappedListener);
         } else if (request.getPutIndexTemplateRequest() != null) {
             PutIndexTemplateRequest putIndexTemplateRequest = request.getPutIndexTemplateRequest();
             ActionListener<AcknowledgedResponse> wrappedListener = ActionListener.wrap(
                 response -> listener.onResponse(new CreateTableResponse(response.isAcknowledged())),
                 listener::onFailure
             );
-            transportPutIndexTemplateAction.masterOperation(putIndexTemplateRequest, state, wrappedListener);
+            transportPutIndexTemplateAction.masterOperation(task, putIndexTemplateRequest, state, wrappedListener);
         } else {
             throw new IllegalStateException("Unknown table request");
         }

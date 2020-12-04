@@ -43,6 +43,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -81,8 +82,8 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
         return new ClusterHealthResponse(in);
     }
 
-    @Override
-    protected void masterOperation(final ClusterHealthRequest request,
+    protected void masterOperation(Task task,
+                                   final ClusterHealthRequest request,
                                    final ClusterState unusedState,
                                    final ActionListener<ClusterHealthResponse> listener) {
 

@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.regex.Regex;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -76,7 +77,10 @@ public class TransportGetIndexTemplatesAction extends TransportMasterNodeReadAct
     }
 
     @Override
-    protected void masterOperation(GetIndexTemplatesRequest request, ClusterState state, ActionListener<GetIndexTemplatesResponse> listener) {
+    protected void masterOperation(Task task,
+                                   GetIndexTemplatesRequest request,
+                                   ClusterState state,
+                                   ActionListener<GetIndexTemplatesResponse> listener) {
         List<IndexTemplateMetadata> results;
 
         // If we did not ask for a specific name, then we return all templates

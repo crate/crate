@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -77,7 +78,8 @@ public class TransportCreateUserDefinedFunctionAction
     }
 
     @Override
-    protected void masterOperation(final CreateUserDefinedFunctionRequest request,
+    protected void masterOperation(Task task,
+                                   final CreateUserDefinedFunctionRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         UserDefinedFunctionMetadata metadata = request.userDefinedFunctionMetadata();

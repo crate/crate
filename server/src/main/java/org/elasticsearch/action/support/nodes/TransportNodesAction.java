@@ -134,11 +134,7 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
 
     protected abstract NodeResponse read(StreamInput in) throws IOException;
 
-    protected abstract NodeResponse nodeOperation(NodeRequest request);
-
-    protected NodeResponse nodeOperation(NodeRequest request, Task task) {
-        return nodeOperation(request);
-    }
+    protected abstract NodeResponse nodeOperation(NodeRequest request, Task task);
 
     class AsyncAction {
 

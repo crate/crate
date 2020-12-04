@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -73,7 +74,10 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
     }
 
     @Override
-    public void masterOperation(final CreateIndexRequest request, final ClusterState state, final ActionListener<CreateIndexResponse> listener) {
+    public void masterOperation(Task task,
+                                final CreateIndexRequest request,
+                                final ClusterState state,
+                                final ActionListener<CreateIndexResponse> listener) {
         String cause = request.cause();
         if (cause.length() == 0) {
             cause = "api";

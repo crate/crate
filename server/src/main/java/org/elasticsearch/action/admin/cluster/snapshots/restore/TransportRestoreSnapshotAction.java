@@ -37,6 +37,7 @@ import org.elasticsearch.snapshots.RestoreInfo;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.RestoreService.RestoreCompletionResponse;
 import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -85,7 +86,10 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
     }
 
     @Override
-    protected void masterOperation(final RestoreSnapshotRequest request, final ClusterState state, final ActionListener<RestoreSnapshotResponse> listener) {
+    protected void masterOperation(Task task,
+                                   final RestoreSnapshotRequest request,
+                                   final ClusterState state,
+                                   final ActionListener<RestoreSnapshotResponse> listener) {
         RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(request.repository(), request.snapshot(),
                 request.indices(), request.templates(), request.indicesOptions(), request.renamePattern(), request.renameReplacement(),
                 request.settings(), request.masterNodeTimeout(), request.includeGlobalState(), request.partial(), request.includeAliases(),

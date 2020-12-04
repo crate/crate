@@ -84,7 +84,10 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
     }
 
     @Override
-    protected void masterOperation(final DeleteIndexRequest request, final ClusterState state, final ActionListener<AcknowledgedResponse> listener) {
+    protected void masterOperation(Task task,
+                                   final DeleteIndexRequest request,
+                                   final ClusterState state,
+                                   final ActionListener<AcknowledgedResponse> listener) {
         final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(indexNameExpressionResolver.concreteIndices(state, request)));
         if (concreteIndices.isEmpty()) {
             listener.onResponse(new AcknowledgedResponse(true));
