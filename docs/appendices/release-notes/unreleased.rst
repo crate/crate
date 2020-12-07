@@ -53,6 +53,10 @@ None
 Changes
 =======
 
+- Added support for the :ref:`numeric <numeric_type>` data type and allow the
+  ``sum`` aggregation on the :ref:`numeric <numeric_type>` type.
+  Note that the storage of the ``numeric`` data type is not supported.
+
 - Added information about the shards located on the node to the
   :ref:`NodeInfo MXBean <node_info_mxbean>` which is available as an
   enterprise feature.

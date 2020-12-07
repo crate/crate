@@ -272,7 +272,7 @@ Some Examples::
 ``sum``
 -------
 
-returns the sum of a set of numeric input values that are not ``NULL``.
+Returns the sum of a set of numeric input values that are not ``NULL``.
 Depending on the argument type a suitable return type is chosen. For ``real``
 and ``double precison`` argument types the return type is equal to the argument
 type. For ``char``, ``smallint``, ``integer`` and ``bigint`` the return type
@@ -306,6 +306,52 @@ exceeded an `ArithmeticException` will be raised.
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
     SQLParseException[Cannot cast value `North West Ripple` to type `char`]
+
+If the ``sum`` aggregation on a numeric data type with the fixed length can
+potentially exceed its range it is possible to handle the overflow by casting
+the function argument to the :ref:`numeric type <numeric_type>` with an
+arbitrary precision.
+
+.. Hidden: create user visits table
+
+    cr> CREATE TABLE uservisits (id integer, count bigint)
+    ... CLUSTERED INTO 1 SHARDS
+    ... WITH (number_of_replicas = 0);
+    CREATE OK, 1 row affected (... sec)
+
+.. Hidden: insert into uservisits table
+
+    cr> INSERT INTO uservisits VALUES (1, 9223372036854775807), (2, 10);
+    INSERT OK, 2 rows affected  (... sec)
+
+.. Hidden: refresh uservisits table
+
+    cr> REFRESH TABLE uservisits;
+    REFRESH OK, 1 row affected  (... sec)
+
+The ``sum`` aggregation on the ``bigint`` column will result in an overflow
+in the following aggregation query::
+
+    cr> SELECT sum(count)
+    ... FROM uservisits;
+    ArithmeticException[long overflow]
+
+To address the overflow of the sum aggregation on the given field, we cast
+the aggregation column to the ``numeric`` data type::
+
+    cr> SELECT sum(count::numeric)
+    ... FROM uservisits;
+    +-----------------------------+
+    | sum(cast(count AS numeric)) |
+    +-----------------------------+
+    |         9223372036854775817 |
+    +-----------------------------+
+    SELECT 1 row in set (... sec)
+
+.. Hidden: refresh uservisits table
+
+    cr> DROP TABLE uservisits;
+    DROP OK, 1 row affected (... sec)
 
 ``avg`` and ``mean``
 --------------------
