@@ -34,7 +34,7 @@ B221	Routine language Ada: VARCHAR and NUMERIC support			NO
 E011	Numeric data types			NO		Only Java types are supported
 E011	Numeric data types	1	INTEGER and SMALLINT data types	YES		
 E011	Numeric data types	2	REAL, DOUBLE PRECISION, and FLOAT data types	YES		
-E011	Numeric data types	3	DECIMAL and NUMERIC data types	NO		
+E011	Numeric data types	3	DECIMAL and NUMERIC data types	YES		Not supported in DDL
 E011	Numeric data types	4	Arithmetic operators	YES		
 E011	Numeric data types	5	Numeric comparison	YES		
 E011	Numeric data types	6	Implicit casting among the numeric data types	YES		

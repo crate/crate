@@ -39,6 +39,7 @@ or collections.
 * `integer <numeric types_>`_
 * `bigint <numeric types_>`_
 * `real <numeric types_>`_
+* `numeric <numeric types_>`_
 * `double precision <numeric types_>`_
 * `text <data-type-text_>`_
 * `ip`_
@@ -201,19 +202,41 @@ Numeric types
 
 CrateDB supports a set of the following numeric data types:
 
-+----------------------+----------+-----------------------------+-----------------------------+
-| Name                 | Size     | Description                 | Range                       |
-+======================+==========+=============================+=============================+
-| ``smallint``         | 2 bytes  | small-range integer         | -32,768 to 32,767           |
-+----------------------+----------+-----------------------------+-----------------------------+
-| ``integer``          | 4 bytes  | integer                     | -2^31 to 2^31-1.            |
-+----------------------+----------+-----------------------------+-----------------------------+
-| ``bigint``           | 8 bytes  | large-range integer         | -2^63 to 2^63-1             |
-+----------------------+----------+-----------------------------+-----------------------------+
-| ``real``             | 4 bytes  | inexact, variable-precision | 6 decimal digits precision  |
-+----------------------+----------+-----------------------------+-----------------------------+
-| ``double precision`` | 8 bytes  | inexact, variable-precision | 15 decimal digits precision |
-+----------------------+----------+-----------------------------+-----------------------------+
+.. list-table::
+    :header-rows: 1
+
+    * - Name
+      - Size
+      - Description
+      - Range
+    * - ``smallint``
+      - 2 bytes
+      - small-range integer
+      - -32,768 to 32,767
+    * - ``integer``
+      - 4 bytes
+      - typical choice for integer
+      - -2^31 to 2^31-1
+    * - ``bigint``
+      - 8 bytes
+      - large-range integer
+      - -2^63 to 2^63-1
+    * - ``numeric``
+      - variable
+      - user-specified precision, exact
+      - up to 131072 digits before the decimal point;
+        up to 16383 digits after the decimal point
+    * - ``real``
+      - 4 bytes
+      - inexact, variable-precision
+      - 6 decimal digits precision
+    * - ``double precision``
+      - 8 bytes
+      - inexact, variable-precision
+      - 15 decimal digits precision
+
+Floating-Point Types
+--------------------
 
 The ``real`` and ``double precision`` data types are inexact, variable-precision
 numeric types. It means that these types are stored as an approximation.
@@ -225,7 +248,7 @@ slightly vary between query executions or comparing floating-point values for
 equality might not always be correct.
 
 Special floating point values
------------------------------
+.............................
 
 CrateDB conforms to the `IEEE 754`_ standard concerning special values for
 ``real`` and ``double precision`` floating point data types. This means that
@@ -262,6 +285,48 @@ These special numeric values can also be inserted into a column of type
     cr> INSERT INTO my_table3 (fourth_column, fifth_column)
     ... VALUES ('NaN', 'Infinity');
     INSERT OK, 1 row affected (... sec)
+
+.. _numeric_type:
+
+Arbitrary Precision Numbers
+---------------------------
+
+.. NOTE::
+
+    The storage of the ``numeric`` data type is not supported. Therefore,
+    it is not possible to create tables with ``numeric`` fields.
+
+The ``numeric`` type literals store exact numeric data values and
+perform exact calculations on them.
+
+This type is usually used when it is important to preserve exact precision
+or handle values that exceed the range of the numeric types of the fixed
+length. The aggregations and arithmetic operations on numeric values are
+much slower compared to operations on the integer or floating-point types.
+
+The ``numeric`` type can be configured with the precision and scale. The
+``precision`` of a numeric is the total count of significant digits in the
+unscaled numeric value.  The ``scale`` of a numeric is the count of decimal
+digits in the fractional part, to the right of the decimal point. For example,
+the number 123.45 has a precision of 5 and a scale of 2. Integers have a scale
+of zero.
+
+To declare the ``numeric`` type with the precision and scale use the syntax::
+
+    NUMERIC(precision, scale)
+
+Alternatively, only the precision can be specified, the scale will be zero
+or positive integer in this case::
+
+    NUMERIC(precision)
+
+Without configuring the precision and scale the ``numeric`` type value will be
+represented by an unscaled value of the unlimited precision::
+
+    NUMERIC
+
+The ``numeric`` type backed internally by the Java ``BigDecimal`` class. For
+more detailed information about its behaviour, see `BigDecimal documentation`_.
 
 .. _ip-type:
 
@@ -1453,7 +1518,7 @@ See the table below for a full list of aliases:
    data type of any expression.
 
 .. _pattern letters and symbols:
-    https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/format/DateTimeFormatter.html
+    https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/time/format/DateTimeFormatter.html
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
 .. _GeoJSON: https://geojson.org/
 .. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1
@@ -1466,3 +1531,4 @@ See the table below for a full list of aliases:
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
 .. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
+.. _BigDecimal documentation: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/math/BigDecimal.html

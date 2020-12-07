@@ -199,14 +199,16 @@ table available in CrateDB::
     | 1185 | _timestamptz                 |        0 |    1184 |     -1 | b       | A           |
     | 1186 | interval                     |     1187 |       0 |     16 | b       | T           |
     | 1187 | _interval                    |        0 |    1186 |     -1 | b       | A           |
+    | 1231 | _numeric                     |        0 |    1700 |     -1 | b       | A           |
     | 1266 | timetz                       |     1270 |       0 |     12 | b       | D           |
     | 1270 | _timetz                      |        0 |    1266 |     -1 | b       | A           |
+    | 1700 | numeric                      |     1231 |       0 |     -1 | b       | N           |
     | 2249 | record                       |     2287 |       0 |     -1 | p       | P           |
     | 2276 | any                          |        0 |       0 |      4 | p       | P           |
     | 2277 | anyarray                     |        0 |    2276 |     -1 | p       | P           |
     | 2287 | _record                      |        0 |    2249 |     -1 | p       | A           |
     +------+------------------------------+----------+---------+--------+---------+-------------+
-    SELECT 39 rows in set (... sec)
+    SELECT 41 rows in set (... sec)
 
 .. NOTE::
 
