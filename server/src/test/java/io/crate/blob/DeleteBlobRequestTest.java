@@ -22,9 +22,12 @@
 package io.crate.blob;
 
 import io.crate.common.Hex;
-import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 
@@ -33,7 +36,10 @@ public class DeleteBlobRequestTest extends ESTestCase {
     @Test
     public void testDeleteBlobRequestStreaming() throws Exception {
         byte[] digest = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
-        DeleteBlobRequest request = new DeleteBlobRequest("foo", digest);
+        DeleteBlobRequest request = new DeleteBlobRequest(
+            new ShardId("foo", UUID.randomUUID().toString(), 1),
+            digest
+        );
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 

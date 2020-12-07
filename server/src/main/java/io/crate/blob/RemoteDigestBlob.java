@@ -26,14 +26,12 @@ import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import java.util.UUID;
 
 public class RemoteDigestBlob {
-
-    private final String index;
-    private Status status;
 
     public enum Status {
         FULL((byte) 0),
@@ -77,18 +75,20 @@ public class RemoteDigestBlob {
 
     private static final Logger LOGGER = LogManager.getLogger(RemoteDigestBlob.class);
 
+    private final ShardId shardId;
     private final String digest;
     private final Client client;
     private long size;
     private StartBlobResponse startResponse;
     private UUID transferId;
+    private Status status;
 
 
-    public RemoteDigestBlob(Client client, String index, String digest) {
+    public RemoteDigestBlob(Client client, ShardId shardId, String digest) {
         this.digest = digest;
         this.client = client;
         this.size = 0;
-        this.index = index;
+        this.shardId = shardId;
     }
 
     public Status status() {
@@ -99,7 +99,7 @@ public class RemoteDigestBlob {
         LOGGER.trace("delete");
         assert transferId == null : "transferId should be null";
         DeleteBlobRequest request = new DeleteBlobRequest(
-            index,
+            shardId,
             Hex.decodeHex(digest)
         );
 
@@ -110,7 +110,7 @@ public class RemoteDigestBlob {
         LOGGER.trace("start blob upload");
         assert transferId == null : "transferId should be null";
         StartBlobRequest request = new StartBlobRequest(
-            index,
+            shardId,
             Hex.decodeHex(digest),
             Netty4Utils.toBytesReference(buffer),
             last
@@ -126,7 +126,7 @@ public class RemoteDigestBlob {
     private Status chunk(ByteBuf buffer, boolean last) {
         assert transferId != null : "transferId should not be null";
         PutChunkRequest request = new PutChunkRequest(
-            index,
+            shardId,
             Hex.decodeHex(digest),
             transferId,
             Netty4Utils.toBytesReference(buffer),

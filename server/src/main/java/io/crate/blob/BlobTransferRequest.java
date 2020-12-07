@@ -25,6 +25,7 @@ import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -48,8 +49,8 @@ public abstract class BlobTransferRequest<T extends ReplicationRequest<T>>
         return last;
     }
 
-    public BlobTransferRequest(String index, UUID transferId, BytesReference content, boolean last) {
-        this.index = index;
+    public BlobTransferRequest(ShardId shardId, UUID transferId, BytesReference content, boolean last) {
+        super(shardId);
         this.transferId = transferId;
         this.content = content;
         this.last = last;

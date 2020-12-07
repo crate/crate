@@ -25,6 +25,7 @@ import io.crate.common.Hex;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 
@@ -32,9 +33,9 @@ public class DeleteBlobRequest extends ReplicationRequest<DeleteBlobRequest> {
 
     private byte[] digest;
 
-    public DeleteBlobRequest(String index, byte[] digest) {
+    public DeleteBlobRequest(ShardId shardId, byte[] digest) {
+        super(shardId);
         this.digest = digest;
-        this.index = index;
     }
 
     public DeleteBlobRequest() {

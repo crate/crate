@@ -24,13 +24,10 @@ package io.crate.blob;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -43,8 +40,7 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
     private final BlobTransferTarget transferTarget;
 
     @Inject
-    public TransportStartBlobAction(Settings settings,
-                                    TransportService transportService,
+    public TransportStartBlobAction(TransportService transportService,
                                     ClusterService clusterService,
                                     IndicesService indicesService,
                                     ThreadPool threadPool,
@@ -94,16 +90,8 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
     }
 
     @Override
-    protected void resolveRequest(IndexMetadata indexMetadata, StartBlobRequest request) {
-        ShardIterator shardIterator = clusterService.operationRouting().indexShards(
-            clusterService.state(), request.index(), request.id(), null);
-        request.setShardId(shardIterator.shardId());
-        super.resolveRequest(indexMetadata, request);
-    }
-
-    @Override
     protected boolean resolveIndex() {
-        return true;
+        return false;
     }
 }
 

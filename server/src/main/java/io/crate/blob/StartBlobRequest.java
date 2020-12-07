@@ -25,6 +25,7 @@ import io.crate.common.Hex;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -33,8 +34,8 @@ public class StartBlobRequest extends BlobTransferRequest<StartBlobRequest> {
 
     private byte[] digest;
 
-    public StartBlobRequest(String index, byte[] digest, BytesReference content, boolean last) {
-        super(index, UUID.randomUUID(), content, last);
+    public StartBlobRequest(ShardId shardId, byte[] digest, BytesReference content, boolean last) {
+        super(shardId, UUID.randomUUID(), content, last);
         this.digest = digest;
     }
 

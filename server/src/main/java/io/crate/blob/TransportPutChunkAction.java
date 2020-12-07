@@ -24,9 +24,7 @@ package io.crate.blob;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -67,14 +65,6 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     @Override
     protected PutChunkResponse newResponseInstance(StreamInput in) throws IOException {
         return new PutChunkResponse(in);
-    }
-
-    @Override
-    protected void resolveRequest(IndexMetadata indexMetadata, PutChunkRequest request) {
-        ShardIterator shardIterator = clusterService.operationRouting().indexShards(
-            clusterService.state(), request.index(), null, request.digest());
-        request.setShardId(shardIterator.shardId());
-        super.resolveRequest(indexMetadata, request);
     }
 
     @Override
