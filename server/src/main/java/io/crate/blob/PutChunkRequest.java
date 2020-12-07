@@ -25,6 +25,7 @@ import io.crate.common.Hex;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -34,9 +35,9 @@ public class PutChunkRequest extends BlobTransferRequest<PutChunkRequest> implem
     private byte[] digest;
     private long currentPos;
 
-    public PutChunkRequest(String index, byte[] digest, UUID transferId,
+    public PutChunkRequest(ShardId shardId, byte[] digest, UUID transferId,
                            BytesReference content, long currentPos, boolean last) {
-        super(index, transferId, content, last);
+        super(shardId, transferId, content, last);
         this.digest = digest;
         this.currentPos = currentPos;
     }

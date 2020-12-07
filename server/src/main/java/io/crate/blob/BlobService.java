@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
 import org.elasticsearch.transport.TransportService;
 
@@ -78,7 +79,10 @@ public class BlobService extends AbstractLifecycleComponent {
 
     public RemoteDigestBlob newBlob(String index, String digest) {
         assert client != null : "client for remote digest blob must not be null";
-        return new RemoteDigestBlob(client, index, digest);
+        ShardId shardId = clusterService.operationRouting()
+            .indexShards(clusterService.state(), index, digest, null)
+            .shardId();
+        return new RemoteDigestBlob(client, shardId, digest);
     }
 
     @Override

@@ -32,6 +32,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
+import io.crate.common.unit.TimeValue;
 import io.crate.test.utils.Blobs;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
@@ -40,7 +41,7 @@ import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationComman
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -79,6 +80,13 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         System.setProperty("tests.short_timeouts", "true");
     }
 
+
+    private ShardId resolveShardId(String index, String digest) {
+        return clusterService().operationRouting()
+            .indexShards(clusterService().state(), index, digest, null)
+            .shardId();
+    }
+
     private String uploadFile(Client client, String content) {
         byte[] digest = Blobs.digest(content);
         String digestString = Hex.encodeHexString(digest);
@@ -87,11 +95,20 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
             client.execute(StartBlobAction.INSTANCE,
-                new StartBlobRequest(BlobIndex.fullIndexName("test"), digest, bytes, true))
+                new StartBlobRequest(
+                    resolveShardId(BlobIndex.fullIndexName("test"), digestString),
+                    digest,
+                    bytes,
+                    true
+                ))
                 .actionGet();
         } else {
             StartBlobRequest startBlobRequest = new StartBlobRequest(
-                BlobIndex.fullIndexName("test"), digest, bytes, false);
+                resolveShardId(BlobIndex.fullIndexName("test"), digestString),
+                digest,
+                bytes,
+                false
+            );
             client.execute(StartBlobAction.INSTANCE, startBlobRequest).actionGet();
             for (int i = 1; i < contentBytes.length; i++) {
                 try {
@@ -103,9 +120,13 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 try {
                     client.execute(PutChunkAction.INSTANCE,
                         new PutChunkRequest(
-                            BlobIndex.fullIndexName("test"), digest,
-                            startBlobRequest.transferId(), bytes, i,
-                            (i + 1) == content.length())
+                            resolveShardId(BlobIndex.fullIndexName("test"), digestString),
+                            digest,
+                            startBlobRequest.transferId(),
+                            bytes,
+                            i,
+                            (i + 1) == content.length()
+                        )
                     ).actionGet();
                 } catch (IllegalStateException ex) {
                     Thread.interrupted();
