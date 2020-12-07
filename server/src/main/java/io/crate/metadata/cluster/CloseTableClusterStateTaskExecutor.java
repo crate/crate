@@ -31,10 +31,13 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.snapshots.RestoreService;
+import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 
@@ -56,7 +59,9 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
     protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) throws Exception {
         Context context = prepare(currentState, request);
 
-        Set<IndexMetadata> indicesToClose = context.indicesMetadata();
+        Set<Index> indicesToClose = context.indicesMetadata().stream()
+            .map(IndexMetadata::getIndex)
+            .collect(Collectors.toSet());
         IndexTemplateMetadata templateMetadata = context.templateMetadata();
 
         if (indicesToClose.isEmpty() && templateMetadata == null) {
@@ -64,14 +69,21 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
         }
 
         // Check if index closing conflicts with any running restores
-        RestoreService.checkIndexClosing(currentState, indicesToClose);
+        Set<Index> restoringIndices = RestoreService.restoringIndices(currentState, indicesToClose);
+        if (restoringIndices.isEmpty() == false) {
+            throw new IllegalArgumentException("Cannot close indices that are being restored: " + restoringIndices);
+        }
         // Check if index closing conflicts with any running snapshots
-        SnapshotsService.checkIndexClosing(currentState, indicesToClose);
+        Set<Index> snapshottingIndices = SnapshotsService.snapshottingIndices(currentState, indicesToClose);
+        if (snapshottingIndices.isEmpty() == false) {
+            throw new SnapshotInProgressException("Cannot close indices that are being snapshotted: " + snapshottingIndices +
+                ". Try again after snapshot finishes or cancel the currently running snapshot.");
+        }
 
         Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(currentState.blocks());
-        for (IndexMetadata openIndexMetadata : indicesToClose) {
+        for (IndexMetadata openIndexMetadata : context.indicesMetadata()) {
             final String indexName = openIndexMetadata.getIndex().getName();
             mdBuilder.put(IndexMetadata.builder(openIndexMetadata).state(IndexMetadata.State.CLOSE));
             blocksBuilder.addIndexBlock(indexName, INDEX_CLOSED_BLOCK);
@@ -94,10 +106,9 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
             updatedState = ddlClusterStateService.onCloseTable(updatedState, request.tableIdent());
         }
 
-
         RoutingTable.Builder rtBuilder = RoutingTable.builder(currentState.routingTable());
-        for (IndexMetadata index : indicesToClose) {
-            rtBuilder.remove(index.getIndex().getName());
+        for (Index index : indicesToClose) {
+            rtBuilder.remove(index.getName());
         }
 
         //no explicit wait for other nodes needed as we use AckedClusterStateUpdateTask

@@ -100,7 +100,7 @@ public class MetadataDeleteIndexService {
         Set<Index> snapshottingIndices = SnapshotsService.snapshottingIndices(currentState, indicesToDelete);
         if (snapshottingIndices.isEmpty() == false) {
             throw new SnapshotInProgressException("Cannot delete indices that are being snapshotted: " + snapshottingIndices +
-                                                  ". Try again after snapshot finishes or cancel the currently running snapshot.");
+                ". Try again after snapshot finishes or cancel the currently running snapshot.");
         }
 
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
