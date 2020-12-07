@@ -77,6 +77,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.RestoreService;
+import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -199,6 +200,19 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                     continue;
                 }
 
+                Set<Index> restoringIndices = RestoreService.restoringIndices(updatedState, Set.of(index));
+                if (restoringIndices.isEmpty() == false) {
+                    result.setValue(new AcknowledgedResponse(false));
+                    LOGGER.debug("verification of shards before closing {} succeeded but index is being restored in the meantime", index);
+                    continue;
+                }
+                Set<Index> snapshottingIndices = SnapshotsService.snapshottingIndices(updatedState, Set.of(index));
+                if (snapshottingIndices.isEmpty() == false) {
+                    result.setValue(new AcknowledgedResponse(false));
+                    LOGGER.debug("verification of shards before closing {} succeeded but index is being snapshot in the meantime", index);
+                    continue;
+                }
+
                 blocks.removeIndexBlockWithId(index.getName(), INDEX_CLOSED_BLOCK_ID);
                 blocks.addIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
                 final IndexMetadata.Builder updatedMetadata = IndexMetadata.builder(indexMetadata).state(IndexMetadata.State.CLOSE);
@@ -264,11 +278,11 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         Metadata.Builder metadata = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
 
-        Set<IndexMetadata> indicesToClose = new HashSet<>();
+        Set<Index> indicesToClose = new HashSet<>();
         for (Index index : indices) {
             final IndexMetadata indexMetadata = metadata.getSafe(index);
             if (indexMetadata.getState() != IndexMetadata.State.CLOSE) {
-                indicesToClose.add(indexMetadata);
+                indicesToClose.add(index);
             } else {
                 LOGGER.debug("index {} is already closed, ignoring", index);
                 assert currentState.blocks().hasIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
@@ -279,11 +293,17 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             return currentState;
         }
 
-        RestoreService.checkIndexClosing(currentState, indicesToClose);
-        SnapshotsService.checkIndexClosing(currentState, indicesToClose);
+        Set<Index> restoringIndices = RestoreService.restoringIndices(currentState, indicesToClose);
+        if (restoringIndices.isEmpty() == false) {
+            throw new IllegalArgumentException("Cannot close indices that are being restored: " + restoringIndices);
+        }
+        Set<Index> snapshottingIndices = SnapshotsService.snapshottingIndices(currentState, indicesToClose);
+        if (snapshottingIndices.isEmpty() == false) {
+            throw new SnapshotInProgressException("Cannot close indices that are being snapshotted: " + snapshottingIndices +
+                ". Try again after snapshot finishes or cancel the currently running snapshot.");
+        }
 
-        for (var indexToClose : indicesToClose) {
-            final Index index = indexToClose.getIndex();
+        for (var index : indicesToClose) {
             ClusterBlock indexBlock = null;
             final Set<ClusterBlock> clusterBlocks = currentState.blocks().indices().get(index.getName());
             if (clusterBlocks != null) {
@@ -416,6 +436,10 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 results
             );
             for (Map.Entry<Index, AcknowledgedResponse> result : results.entrySet()) {
+                if (result.getValue().isAcknowledged() == false) {
+                    acknowledged = false;
+                    break;
+                }
                 IndexMetadata updatedMetadata = updatedState.metadata().index(result.getKey());
                 if (updatedMetadata != null && updatedMetadata.getState() != IndexMetadata.State.CLOSE) {
                     acknowledged = false;
