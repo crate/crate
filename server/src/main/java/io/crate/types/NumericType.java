@@ -146,11 +146,18 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             getName() + " type cannot be used in insert statements");
     }
 
+    /**
+     * Returns the size of {@link BigDecimal} in bytes
+     */
     public static long size(@Nonnull BigDecimal value) {
         // BigInteger overhead 20 bytes
         // BigDecimal overhead 16 bytes
         // size of unscaled value
         return 36 + value.unscaledValue().bitLength() / 8 + 1;
+    }
+
+    public static long sizeDiff(@Nonnull BigDecimal first, @Nonnull BigDecimal second) {
+        return NumericType.size(first) - NumericType.size(second);
     }
 
     @VisibleForTesting

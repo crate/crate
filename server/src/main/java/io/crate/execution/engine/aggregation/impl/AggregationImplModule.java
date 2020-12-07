@@ -32,7 +32,10 @@ public class AggregationImplModule extends AbstractFunctionModule<AggregationFun
         MinimumAggregation.register(this);
         MaximumAggregation.register(this);
         ArbitraryAggregation.register(this);
+
         SumAggregation.register(this);
+        NumericSumAggregation.register(this);
+
         CountAggregation.register(this);
         CollectSetAggregation.register(this);
         PercentileAggregation.register(this);

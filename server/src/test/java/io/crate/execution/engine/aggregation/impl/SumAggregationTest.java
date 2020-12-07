@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
@@ -29,8 +30,10 @@ import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import io.crate.types.NumericType;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
@@ -165,5 +168,66 @@ public class SumAggregationTest extends AggregationTest {
             "Unknown function: sum(NULL)," +
             " no overload found for matching argument types: (geo_point).");
         getSum(DataTypes.GEO_POINT);
+    }
+
+    @Test
+    public void test_sum_numeric_on_long_non_doc_values_field() {
+        //noinspection rawtypes
+        var result = execPartialAggregationWithoutDocValues(
+            (AggregationFunction) nodeCtx.functions().getQualified(
+                NumericSumAggregation.SIGNATURE,
+                List.of(DataTypes.NUMERIC),
+                DataTypes.NUMERIC
+            ), new Object[][]{{1L}, {2L}, {3L}},
+            true
+        );
+        assertThat(result, is(BigDecimal.valueOf(6)));
+    }
+
+    @Test
+    public void test_sum_numeric_on_long_non_doc_values_field_with_overflow() {
+        //noinspection rawtypes
+        var result = execPartialAggregationWithoutDocValues(
+            (AggregationFunction) nodeCtx.functions().getQualified(
+                NumericSumAggregation.SIGNATURE,
+                List.of(DataTypes.NUMERIC),
+                DataTypes.NUMERIC
+            ), new Object[][]{{Long.MAX_VALUE}, {10L}},
+            true
+        );
+        assertThat(result, is(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN)));
+    }
+
+    @Test
+    public void test_sum_numeric_on_floating_point_non_doc_values_field() {
+        //noinspection rawtypes
+        var result = execPartialAggregationWithoutDocValues(
+            (AggregationFunction) nodeCtx.functions().getQualified(
+                NumericSumAggregation.SIGNATURE,
+                List.of(DataTypes.NUMERIC),
+                DataTypes.NUMERIC
+            ), new Object[][]{{1d}, {1d}},
+            true
+        );
+        assertThat(result, is(BigDecimal.valueOf(2.0)));
+    }
+
+    @Test
+    public void test_sum_numeric_with_precision_and_scale_on_double_non_doc_values_field() {
+        var type = NumericType.of(16, 2);
+        var expected = type.implicitCast(12.4357);
+        assertThat(expected.toString(), is("12.44"));
+
+        //noinspection rawtypes
+        var result = execPartialAggregationWithoutDocValues(
+            (AggregationFunction) nodeCtx.functions().getQualified(
+                NumericSumAggregation.SIGNATURE,
+                List.of(type),
+                DataTypes.NUMERIC
+            ),
+            new Object[][]{{12d}, {0.4357d}},
+            true
+        );
+        assertThat(result.toString(), is(expected.toString()));
     }
 }

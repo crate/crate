@@ -68,6 +68,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.LONG), PGArray.INT8_ARRAY)
         .put(new ArrayType<>(DataTypes.FLOAT), PGArray.FLOAT4_ARRAY)
         .put(new ArrayType<>(DataTypes.DOUBLE), PGArray.FLOAT8_ARRAY)
+        .put(new ArrayType<>(DataTypes.NUMERIC), PGArray.NUMERIC_ARRAY)
         .put(new ArrayType<>(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMESTAMPZ), PGArray.TIMESTAMPZ_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMESTAMP), PGArray.TIMESTAMP_ARRAY)
