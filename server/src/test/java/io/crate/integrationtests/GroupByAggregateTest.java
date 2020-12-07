@@ -25,6 +25,7 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
