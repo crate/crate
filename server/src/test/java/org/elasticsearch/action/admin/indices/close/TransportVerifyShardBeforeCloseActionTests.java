@@ -19,11 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
-package org.elasticsearch.indices.close;
+package org.elasticsearch.action.admin.indices.close;
 
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
