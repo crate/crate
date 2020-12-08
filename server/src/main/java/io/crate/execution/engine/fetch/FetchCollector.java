@@ -23,14 +23,12 @@
 package io.crate.execution.engine.fetch;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import org.apache.lucene.codecs.StoredFieldsReader;
-import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 
@@ -44,7 +42,6 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
-import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 
 class FetchCollector {
 
@@ -83,13 +80,14 @@ class FetchCollector {
 
     public StreamBucket collect(IntContainer docIds) {
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
-        var hasSequentialDocs = hasSequentialDocs(docIds);
+        int[] ids = docIds.toArray();
+        Arrays.sort(ids);
+        var hasSequentialDocs = hasSequentialDocs(ids);
         CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader = null;
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
-            for (IntCursor cursor : docIds) {
-                int docId = cursor.value;
+            for (int docId : ids) {
                 int readerIndex = ReaderUtil.subIndex(docId, leaves);
                 if (readerIndex == -1) {
                     throw new IllegalStateException("jobId=" + fetchTask.jobId() + " docId " + docId + " doesn't fit to leaves of searcher " + readerId + " fetchTask=" + fetchTask);
@@ -119,11 +117,8 @@ class FetchCollector {
         return builder.build();
     }
 
-    static boolean hasSequentialDocs(IntContainer docs) {
-        if (docs instanceof IntArrayList) {
-            var collection = (IntArrayList) docs;
-            return collection.size() > 0 && collection.get(collection.size() - 1) - collection.get(0) == docs.size() - 1;
-        }
-        return false;
+    static boolean hasSequentialDocs(int[] docIds) {
+        return docIds.length > 0 && docIds[docIds.length - 1] - docIds[0] == docIds.length - 1;
     }
 }
+
