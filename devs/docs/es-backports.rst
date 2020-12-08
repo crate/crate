@@ -42,7 +42,8 @@ repository. For example::
       server/src/main/java/org/elasticsearch/transport \
       server/src/main/java/org/elasticsearch/gateway \
       server/src/main/java/org/elasticsearch/action/admin/cluster/health \
-      server/src/main/java/org/elasticsearch/action/support/replication
+      server/src/main/java/org/elasticsearch/action/support/replication \
+      server/src/main/java/org/elasticsearch/action/support/master
 
 
 Here ``4b16d50cd4b`` is the starting point, it shows any changes since then
@@ -102,6 +103,7 @@ should be crossed out as well.
 - [ ] 8f8d2d1b4ba [DOCS] Fix dup word in ShardRouting hashcode method. (#63452)
 - [ ] 62857b49d1d Add support for missing value fetchers. (#63515)
 - [ ] 2d1bf0c79ef Dry up TransportMasterNodeAction Usage (#63524)
+- [ ] 4e740c2e4a5 Dry up AcknowledgedResponse Handling (#63335)
 - [ ] dc5dbbbfe29 Flush translog writer before adding new operation (#63505)
 - [ ] 8c56bbc3e6e Add factory methods for common value fetchers. (#63438)
 - [ ] 80268f9bff6 TextSearchInfo should never get null analyzers (#63472)
@@ -331,6 +333,7 @@ should be crossed out as well.
 - [ ] 6477924c262 Store parsed mapping settings in IndexSettings (#57492)
 - [ ] 4d6dc51c729 Header warning logging refactoring (#55941)
 - [ ] 2ef82cd7f95 Fix Local Translog Recovery not Updating Safe Commit in Edge Case (#57350)
+- [ ] 9d07229879d Change cluster info actions to be able to resolve data streams. (#56878)
 - [ ] 99871b18d64 Catch InputCoercionException thrown by Jackson parser (#57287)
 - [ ] 86b64e4c39e Remove unused logic from FieldNamesFieldMapper. (#56834)
 - [ ] 579ce2f99cb Reestablish peer recovery after network errors (#55274)
@@ -493,6 +496,7 @@ should be crossed out as well.
 - [ ] c117c0cf0a2 Password-protected Keystore Feature Branch PR (#51123)
 - [ ] 0c87892b3db Remove sync flush logic in Engine (#51450)
 - [ ] b034d1e2ef8 Remove translog retention policy (#51417)
+- [ ] db480292eeb Fix TransportMasterNodeAction not Retrying NodeClosedException (#51325)
 - [ ] 80cacc617f2 Enable operation-based recoveries for old copies (#51380)
 - [ ] 5132715bc10 Do not wrap soft-deletes reader for segment stats (#51331)
 - [ ] 151148622cb Exclude nested documents in LuceneChangesSnapshot (#51279)
@@ -505,6 +509,7 @@ should be crossed out as well.
 - [ ] 173c3bdac41 Introduce hidden indices (#50452)
 - [ ] 9bb7d21c0b0 Remove the AllFieldMapper from master (#51106)
 - [ ] 09b46c86463 Goodbye and thank you synced flush! (#50882)
+- [ ] 0e0f900d181 Tweak formatter config for long generic lines (#50909)
 - [ ] 7cd4b73b098 Fix compilation for #50813
 - [ ] d94b81e8b0e Remove custom metadata tool (#50813)
 - [ ] e349c5eec09 Track Snapshot Version in RepositoryData (#50930)
