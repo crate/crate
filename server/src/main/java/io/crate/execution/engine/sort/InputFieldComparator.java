@@ -23,16 +23,23 @@
 package io.crate.execution.engine.sort;
 
 import io.crate.data.Input;
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorable;
+import org.elasticsearch.common.CheckedBiConsumer;
+import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Comparator for sorting on generic Inputs (Scalar Functions mostly)
@@ -62,7 +69,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextReader(context);
+            collectorExpressions.get(i).setNextReader(new ReaderContext(context));
         }
         return this;
     }
@@ -85,7 +92,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public int compareBottom(int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextDocId(doc);
+            collectorExpressions.get(i).setNextDocId(doc, false);
         }
         return comparator.compare(bottom, getFirstNonNullOrNull(input.value(), missingValue));
     }
@@ -102,7 +109,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public int compareTop(int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextDocId(doc);
+            collectorExpressions.get(i).setNextDocId(doc, false);
         }
         return comparator.compare(top, getFirstNonNullOrNull(input.value(), missingValue));
     }
@@ -110,7 +117,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public void copy(int slot, int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextDocId(doc);
+            collectorExpressions.get(i).setNextDocId(doc, true);
         }
         Object value = input.value();
         if (value == null) {

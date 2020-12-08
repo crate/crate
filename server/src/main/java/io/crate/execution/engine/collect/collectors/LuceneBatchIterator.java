@@ -26,11 +26,14 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -38,6 +41,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -46,6 +50,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * BatchIterator implementation which exposes the data stored in a lucene index.
@@ -155,7 +161,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             currentDocIdSetIt = scorer.iterator();
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setScorer(currentScorer);
-                expression.setNextReader(currentLeaf);
+                expression.setNextReader(new ReaderContext(currentLeaf));
             }
             return true;
         }
@@ -206,7 +212,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
 
     private void onDoc(int doc) throws IOException {
         for (LuceneCollectorExpression<?> expression : expressions) {
-            expression.setNextDocId(doc);
+            expression.setNextDocId(doc, false);
         }
     }
 

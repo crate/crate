@@ -23,6 +23,8 @@
 package io.crate.expression.reference.doc;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.IpColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -30,17 +32,21 @@ import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.network.InetAddresses;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.function.Function;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -95,14 +101,14 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testIpExpression() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_COLUMN);
         columnReference.startCollect(ctx);
-        columnReference.setNextReader(readerContext);
+        columnReference.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 21);
         assertThat(topDocs.scoreDocs.length, is(21));
 
         int i = 0;
         for (ScoreDoc doc : topDocs.scoreDocs) {
-            columnReference.setNextDocId(doc.doc);
+            columnReference.setNextDocId(doc.doc, false);
             if (i == 20) {
                 assertThat(columnReference.value(), is(nullValue()));
             } else if (i < 10) {
@@ -119,12 +125,12 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testIpExpressionOnArrayThrowsException() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_ARRAY_COLUMN);
         columnReference.startCollect(ctx);
-        columnReference.setNextReader(readerContext);
+        columnReference.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
 
         ScoreDoc doc = topDocs.scoreDocs[0];
-        columnReference.setNextDocId(doc.doc);
+        columnReference.setNextDocId(doc.doc, false);
 
         expectedException.expect(GroupByOnArrayUnsupportedException.class);
         expectedException.expectMessage("Column \"ia\" has a value that is an array. Group by doesn't work on Arrays");
@@ -136,8 +142,8 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testNullDocValuesDoNotResultInNPE() throws IOException {
         IpColumnReference ref = new IpColumnReference("missing_column");
         ref.startCollect(ctx);
-        ref.setNextReader(readerContext);
-        ref.setNextDocId(0);
+        ref.setNextReader(new ReaderContext(readerContext));
+        ref.setNextDocId(0, false);
 
         assertThat(ref.value(), Matchers.nullValue());
     }

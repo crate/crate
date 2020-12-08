@@ -21,15 +21,20 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.compress.CompressorFactory;
 
 import java.io.IOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     private SourceLookup sourceLookup;
-    private LeafReaderContext context;
+    private ReaderContext context;
 
     @Override
     public void startCollect(CollectorContext context) {
@@ -37,12 +42,12 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int doc, boolean ordered) {
         sourceLookup.setSegmentAndDocument(context, doc);
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
         this.context = context;
     }
 

@@ -24,14 +24,18 @@ package io.crate.execution.engine.collect.collectors;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.ScoreDoc;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -40,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
 
@@ -85,8 +90,8 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         int subDoc = fieldDoc.doc - subReaderContext.docBase;
         for (LuceneCollectorExpression<?> expression : expressions) {
             try {
-                expression.setNextReader(subReaderContext);
-                expression.setNextDocId(subDoc);
+                expression.setNextReader(new ReaderContext(subReaderContext));
+                expression.setNextDocId(subDoc, true);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

@@ -22,12 +22,17 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class SeqNoCollectorExpression extends LuceneCollectorExpression<Long> {
 
@@ -35,16 +40,16 @@ public class SeqNoCollectorExpression extends LuceneCollectorExpression<Long> {
     private int doc;
 
     @Override
-    public void setNextReader(LeafReaderContext reader) {
+    public void setNextReader(ReaderContext context) throws IOException {
         try {
-            seqNumbers = reader.reader().getNumericDocValues(DocSysColumns.SEQ_NO.name());
+            seqNumbers = context.getLeafReaderContext().reader().getNumericDocValues(DocSysColumns.SEQ_NO.name());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int doc, boolean ordered) {
         this.doc = doc;
     }
 

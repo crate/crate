@@ -187,4 +187,40 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), Matchers.is("1| 1\n" +
                                                               "1| 2\n"));
     }
+
+    @Test
+    public void testOrderBy() {
+        execute("create table t1 (id int, value string) clustered into 1 shards with (number_of_replicas=0)");
+        for(int i = 20; i > 0; i--) {
+            execute("insert into t1 (id, value) values (?, ?)", new Object[]{i, i+""});
+        }
+        refresh();
+        execute("select * from t1 order by id");
+        System.out.println("response = " + response);
+    }
+
+    @Test
+    public void test_data() {
+        execute("""
+                CREATE TABLE uservisits (
+                            "sourceIP" STRING PRIMARY KEY,
+                            "destinationURL" STRING,
+                            "visitDate" TIMESTAMP,
+                            "adRevenue" FLOAT,
+                            "UserAgent" STRING INDEX USING FULLTEXT,
+                            "cCode" STRING,
+                            "lCode" STRING,
+                            "searchWord" STRING,
+                            "duration" INTEGER,
+                            INDEX uagent_plain USING PLAIN("UserAgent")
+                        ) clustered into 2 shards WITH (
+                        number_of_replicas = 0,
+                        refresh_interval = 0
+                        );
+                """);
+        execute("copy uservisits from 'file:///Users/mkleen/uservisits.gz' with (compression = 'gzip')");
+        execute("refresh table uservisits");
+        execute("select * from uservisits limit 10");
+        System.out.println("response = " + response);
+    }
 }

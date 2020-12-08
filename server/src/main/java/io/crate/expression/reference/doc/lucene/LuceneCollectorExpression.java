@@ -22,10 +22,16 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.data.Input;
+import io.crate.execution.engine.fetch.FetchId;
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.Scorable;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * An expression which gets evaluated in the collect phase
@@ -39,10 +45,10 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
 
     }
 
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int doc, boolean isSequental) {
     }
 
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
     }
 
     public void setScorer(Scorable scorer) {

@@ -21,16 +21,24 @@
 
 package io.crate.expression.reference.doc;
 
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.DoubleColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.NumericUtils;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.function.Function;
 
 import static org.hamcrest.core.Is.is;
 
@@ -55,12 +63,12 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
     public void testFieldCacheExpression() throws Exception {
         DoubleColumnReference doubleColumn = new DoubleColumnReference(column);
         doubleColumn.startCollect(ctx);
-        doubleColumn.setNextReader(readerContext);
+        doubleColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
         double d = 0.5;
         for (ScoreDoc doc : topDocs.scoreDocs) {
-            doubleColumn.setNextDocId(doc.doc);
+            doubleColumn.setNextDocId(doc.doc, false);
             assertThat(doubleColumn.value(), is(d));
             d++;
         }

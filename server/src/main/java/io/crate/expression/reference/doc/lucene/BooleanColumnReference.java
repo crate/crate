@@ -22,14 +22,19 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
 
@@ -62,13 +67,13 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public void setNextDocId(int docId, boolean orderd) {
         this.docId = docId;
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = FieldData.toString(DocValues.getSortedNumeric(context.reader(), columnName));
+        values = FieldData.toString(DocValues.getSortedNumeric(context.getLeafReaderContext().reader(), columnName));
     }
 }

@@ -21,17 +21,25 @@
 
 package io.crate.expression.reference.doc;
 
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.BooleanColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.function.Function;
 
 import static org.hamcrest.core.Is.is;
 
@@ -57,12 +65,12 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
     public void testBooleanExpression() throws Exception {
         BooleanColumnReference booleanColumn = new BooleanColumnReference(column);
         booleanColumn.startCollect(ctx);
-        booleanColumn.setNextReader(readerContext);
+        booleanColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         int i = 0;
         for (ScoreDoc doc : topDocs.scoreDocs) {
-            booleanColumn.setNextDocId(doc.doc);
+            booleanColumn.setNextDocId(doc.doc, false);
             assertThat(booleanColumn.value(), is(i % 2 == 0));
             i++;
         }

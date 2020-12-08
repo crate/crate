@@ -35,10 +35,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -46,6 +50,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -338,7 +343,7 @@ final class DocValuesGroupByOptimizedIterator {
                     continue;
                 }
                 for (int i = 0; i < keyExpressions.size(); i++) {
-                    keyExpressions.get(i).setNextReader(leaf);
+                    keyExpressions.get(i).setNextReader(new ReaderContext(leaf));
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
                     aggregators.get(i).loadDocValues(leaf.reader());
@@ -353,7 +358,7 @@ final class DocValuesGroupByOptimizedIterator {
                     }
 
                     for (int i = 0; i < keyExpressions.size(); i++) {
-                        keyExpressions.get(i).setNextDocId(doc);
+                        keyExpressions.get(i).setNextDocId(doc, false);
                     }
                     K key = keyExtractor.apply(keyExpressions);
 

@@ -23,8 +23,12 @@
 package io.crate.expression.reference.doc.lucene;
 
 
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -38,24 +42,24 @@ import java.util.RandomAccess;
 public final class SourceLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
-    private LeafReader reader;
     private int doc;
+    private ReaderContext reader;
     private Map<String, Object> source;
     private boolean docVisited = false;
 
     SourceLookup() {
     }
 
-    public void setSegmentAndDocument(LeafReaderContext context, int doc) {
-        if (this.doc == doc && this.reader == context.reader()) {
+    public void setSegmentAndDocument(ReaderContext context, int doc) {
+        if (this.doc == doc && this.reader != null && this.reader.getLeafReaderContext().reader() == context.getLeafReaderContext().reader()) {
             // Don't invalidate source
             return;
         }
         fieldsVisitor.reset();
         this.docVisited = false;
         this.source = null;
-        this.reader = context.reader();
         this.doc = doc;
+        this.reader = context;
     }
 
     public Object get(List<String> path) {
@@ -84,8 +88,13 @@ public final class SourceLookup {
         if (docVisited) {
             return;
         }
+        System.out.println("doc = " + doc);
         try {
-            reader.document(doc, fieldsVisitor);
+            if (reader.getFieldReader() != null) {
+                reader.getFieldReader().accept(doc, fieldsVisitor);
+            } else {
+                reader.getLeafReaderContext().reader().document(doc, fieldsVisitor);
+            }
             docVisited = true;
         } catch (IOException e) {
             throw new RuntimeException(e);

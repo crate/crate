@@ -21,18 +21,24 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
     private SourceLookup sourceLookup;
-    private LeafReaderContext context;
+    private ReaderContext context;
 
     public DocCollectorExpression() {
         super();
@@ -43,13 +49,14 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         sourceLookup = context.sourceLookup();
     }
 
+
     @Override
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int doc, boolean ordered) {
         sourceLookup.setSegmentAndDocument(context, doc);
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(ReaderContext context) throws IOException {
         this.context = context;
     }
 
@@ -72,20 +79,20 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         private final DataType<?> returnType;
         private final List<String> path;
         private SourceLookup sourceLookup;
-        private LeafReaderContext context;
-
+        private ReaderContext context;
+        private boolean isSequental;
         ChildDocCollectorExpression(DataType<?> returnType, List<String> path) {
             this.returnType = returnType;
             this.path = path;
         }
 
         @Override
-        public void setNextDocId(int doc) {
+        public void setNextDocId(int doc, boolean ordered) {
             sourceLookup.setSegmentAndDocument(context, doc);
         }
 
         @Override
-        public void setNextReader(LeafReaderContext context) {
+        public void setNextReader(ReaderContext context) throws IOException {
             this.context = context;
         }
 

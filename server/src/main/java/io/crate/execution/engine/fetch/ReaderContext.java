@@ -20,48 +20,35 @@
  * agreement.
  */
 
-package io.crate.expression.reference.doc.lucene;
+package io.crate.execution.engine.fetch;
 
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.elasticsearch.common.CheckedBiConsumer;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
-public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Long> {
+public class ReaderContext {
 
-    private NumericDocValues primaryTerms = null;
-    private int doc;
+    private final LeafReaderContext leafReaderContext;
+    private final CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
 
-    @Override
-    public void setNextReader(ReaderContext context) throws IOException {
-        try {
-            primaryTerms = context.getLeafReaderContext().reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    public ReaderContext(LeafReaderContext leafReaderContext) {
+        this(leafReaderContext, null);
     }
 
-    @Override
-    public void setNextDocId(int doc, boolean ordered) {
-        this.doc = doc;
+    public ReaderContext(LeafReaderContext leafReaderContext,
+                         @Nullable CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) {
+        this.leafReaderContext = leafReaderContext;
+        this.fieldReader = fieldReader;
     }
 
-    @Override
-    public Long value() {
-        try {
-            if (primaryTerms != null && primaryTerms.advanceExact(doc)) {
-                return primaryTerms.longValue();
-            }
-            return null;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    public LeafReaderContext getLeafReaderContext() {
+        return leafReaderContext;
+    }
+
+    public CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> getFieldReader() {
+        return fieldReader;
     }
 }

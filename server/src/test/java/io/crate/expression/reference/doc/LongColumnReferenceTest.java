@@ -21,17 +21,25 @@
 
 package io.crate.expression.reference.doc;
 
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.function.Function;
 
 import static org.hamcrest.core.Is.is;
 
@@ -57,12 +65,12 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
     public void testLongExpression() throws Exception {
         LongColumnReference longColumn = new LongColumnReference(column);
         longColumn.startCollect(ctx);
-        longColumn.setNextReader(readerContext);
+        longColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         long l = Long.MIN_VALUE;
         for (ScoreDoc doc : topDocs.scoreDocs) {
-            longColumn.setNextDocId(doc.doc);
+            longColumn.setNextDocId(doc.doc, false);
             assertThat(longColumn.value(), is(l));
             l++;
         }

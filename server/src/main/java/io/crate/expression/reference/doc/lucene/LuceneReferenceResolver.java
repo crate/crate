@@ -28,9 +28,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.Scorable;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.common.collections.Maps;
@@ -246,11 +251,11 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             inner.startCollect(context);
         }
 
-        public void setNextDocId(final int doc) {
-            inner.setNextDocId(doc);
+        public void setNextDocId(int doc, boolean ordered) {
+            inner.setNextDocId(doc, ordered);
         }
 
-        public void setNextReader(final LeafReaderContext context) throws IOException {
+        public void setNextReader(ReaderContext context) throws IOException {
             inner.setNextReader(context);
         }
 

@@ -23,11 +23,16 @@
 package io.crate.execution.engine.fetch;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
+import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 
@@ -38,6 +43,9 @@ import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
+import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 
 class FetchCollector {
 
@@ -67,27 +75,41 @@ class FetchCollector {
 
     }
 
-    private void setNextDocId(LeafReaderContext readerContext, int doc) throws IOException {
+    private void setNextDocId(LeafReaderContext readerContext, int doc, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
         for (LuceneCollectorExpression<?> e : collectorExpressions) {
-            e.setNextReader(readerContext);
-            e.setNextDocId(doc);
+            e.setNextReader(new ReaderContext(readerContext, fieldReader));
+            e.setNextDocId(doc, true);
         }
     }
 
     public StreamBucket collect(IntContainer docIds) {
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
+        int[] ids = docIds.toArray();
+        Arrays.sort(ids);
+        boolean isSequental = hasSequentialDocs(ids) && ids.length >= 10;
+        HashMap<Integer, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReaders = new HashMap<>();
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
-            for (IntCursor cursor : docIds) {
-                int docId = cursor.value;
+            for (int docId : ids) {
                 int readerIndex = ReaderUtil.subIndex(docId, leaves);
-                if (readerIndex == -1) {
-                    throw new IllegalStateException("jobId=" + fetchTask.jobId() + " docId " + docId + " doesn't fit to leaves of searcher " + readerId + " fetchTask=" + fetchTask);
-                }
                 LeafReaderContext subReaderContext = leaves.get(readerIndex);
+                var fieldReader = fieldReaders.get(
+                    readerIndex);
+                if (fieldReader == null) {
+                    if (isSequental) {
+                        fieldReader = FieldReader.getSequentialFieldReader(subReaderContext);
+                        fieldReaders.put(readerIndex, fieldReader);
+                    }
+                }
+                if (readerIndex == -1) {
+                    throw new IllegalStateException(
+                        "jobId=" + fetchTask.jobId() + " docId " + docId + " doesn't fit to leaves of searcher " +
+                        readerId + " fetchTask=" + fetchTask);
+                }
+
                 try {
-                    setNextDocId(subReaderContext, docId - subReaderContext.docBase);
+                    setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
                 } catch (IOException e) {
                     Exceptions.rethrowRuntimeException(e);
                 }
@@ -95,5 +117,17 @@ class FetchCollector {
             }
         }
         return builder.build();
+    }
+
+    private static boolean hasSequentialDocs(int[] docIds) {
+        // checks if doc ids are in sequential order
+        // it is sequential if last element - first element = distance of elements in between
+        // e.g. [1,2,3,4,5] -> 5 - 1 = 4
+        if (docIds.length <= 0) {
+            return false;
+        }
+        int last = docIds[docIds.length - 1];
+        int first = docIds[0];
+        return last - first == docIds.length - 1;
     }
 }

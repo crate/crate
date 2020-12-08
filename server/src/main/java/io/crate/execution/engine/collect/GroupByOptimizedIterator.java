@@ -37,9 +37,12 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.engine.fetch.FieldReader;
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -50,6 +53,7 @@ import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ObjectArray;
@@ -294,7 +298,7 @@ final class GroupByOptimizedIterator {
                 continue;
             }
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                expressions.get(i).setNextReader(leaf);
+                expressions.get(i).setNextReader(new ReaderContext(leaf));
             }
             SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
@@ -306,7 +310,7 @@ final class GroupByOptimizedIterator {
                         continue;
                     }
                     for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                        expressions.get(i).setNextDocId(doc);
+                        expressions.get(i).setNextDocId(doc, false);
                     }
                     for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
                         aggExpressions.get(i).setNextRow(inputRow);
