@@ -41,7 +41,8 @@ repository. For example::
       server/src/main/java/org/elasticsearch/cluster/routing \
       server/src/main/java/org/elasticsearch/transport \
       server/src/main/java/org/elasticsearch/gateway \
-      server/src/main/java/org/elasticsearch/action/admin/cluster/health
+      server/src/main/java/org/elasticsearch/action/admin/cluster/health \
+      server/src/main/java/org/elasticsearch/action/support/replication
 
 
 Here ``4b16d50cd4b`` is the starting point, it shows any changes since then
@@ -137,6 +138,7 @@ should be crossed out as well.
 - [ ] 39a6deccea9 Prioritise recovery of system index shards (#62640)
 - [ ] 3a9b65733c5 Move stored flag from TextSearchInfo to MappedFieldType (#62717)
 - [ ] e02555ce822 Cleanup Blobstore Repository Metadata Serialization (#62727)
+- [ ] f34246b90b5 Optimize XContentParserUtils.ensureExpectedToken (#62691)
 - [ ] 27ca0a8979d Convert ConstantKeywordFieldMapper to parametrized form (#62688)
 - [ ] ea2dbd93b49 Add field type for version strings (#59773)
 - [ ] db1a137927a Fix cluster health when closing (#61709)
@@ -256,6 +258,7 @@ should be crossed out as well.
 - [ ] 8bcca0c7a1d Preserve old serialization for CompletionFieldMapper (#59550)
 - [ ] 678ae31d1d6 Fix compilation in Eclipse (#59675)
 - [ ] fd88ab13419 Correct type parametrization in geo mappers. (#59583)
+- [ ] aa14860597e Separate coordinating and primary bytes in stats (#59487)
 - [ ] b083bafa786 Make MappedFieldType#meta final (#59383)
 - [ ] dc91a300700 Move getPointReaderOrNull into AggregatorBase (#58769)
 - [ ] b87bb86d88d Adding indexing pressure stats to node stats API (#59247)
@@ -268,6 +271,7 @@ should be crossed out as well.
 - [ ] 5e73d7133c9 Fix node health-check-related test failures (#59277)
 - [ ] 219b7dbd12f Add declarative parameters to FieldMappers (#58663)
 - [ ] 5688e0e4900 Do not release safe commit with CancellableThreads (#59182)
+- [ ] 611fb03f628 Implement rejections in `WriteMemoryLimits` (#58885)
 - [ ] cb6b05d12b9 Fix the timestamp field of a data stream to @timestamp (#59076)
 - [ ] 961db311f0e Sending operations concurrently in peer recovery (#58018)
 - [ ] 31a569a60a2 Remove uid from translog delete operation (#59101)
@@ -275,11 +279,13 @@ should be crossed out as well.
 - [ ] 2e3f3c0fce8 Extract recovery files details to its own class (#59039)
 - [ ] f6cc374e132 Remove IndexShardRoutingTable#primaryAsList (#59044)
 - [ ] 90e72a4194e Avoid flipping translog header version (#58866)
+- [ ] 922c8672cc7 Fix Two Common Zero Len Array Instantiations (#58944)
 - [ ] e592a9a5e72 Add include_data_streams flag for authorization (#58154)
 - [ ] 52ff121fcfc Re-enable support for array-valued geo_shape fields. (#58786)
 - [ ] 673444000e3 Percolator keyword fields should not store norms (#58899)
 - [ ] 001b3fb4406 Add data stream timestamp validation via metadata field mapper (#58582)
 - [ ] 69c7e73b665 Drop rewriting in date_histogram (#57836)
+- [ ] 9a36d6e5bde Count coordinating and primary bytes as write bytes (#58575)
 - [ ] 3944066e992 Move MappedFieldType#getSearchAnalyzer and #getSearchQuoteAnalyzer to TextSearchInfo (#58639)
 - [ ] dcd723a6b19 Enable BWC tests after backport of #58029 (#58815)
 - [ ] ee79ae072ba Week based parsing for ingest date processor (#58597)
@@ -295,6 +301,7 @@ should be crossed out as well.
 - [ ] 83ce7a96915 Move MappedFieldType.similarity() to TextSearchInfo (#58439)
 - [ ] d747c1bf7a8 [DOCS] Fix typo in RoutingNode comment (#58079)
 - [ ] 57316e26af6 Add text search information to MappedFieldType (#58230)
+- [ ] 63922dfcbdb Save Shard ID Serializations in Bulk Requests (#56209)
 - [ ] b8db2da0963 Remove anonymous PublicationContext implementation (#58405)
 - [ ] 3cbe56463ed Make FieldTypeLookup immutable (#58162)
 - [ ] 409306e01db Correct default formatting of binary fields (#58338)
@@ -344,11 +351,13 @@ should be crossed out as well.
 - [ ] 4de4c14b5b9 Save Bounds Checks in BytesReference (#56577)
 - [ ] a01d2bd24b0 [Geo] Refactor Point Field Mappers (#56060)
 - [ ] fa535d08b50 Use CollectionUtils.isEmpty where appropriate (#55910)
+- [ ] 77aa2362bbb Allow a number of broadcast transport actions to resolve data streams (#55726)
 - [ ] 0ae0e700397 Allow cluster health api to resolve data streams (#56413)
 - [ ] e1dbe2606ce Use snapshot information to build searchable snapshot store MetadataSnapshot (#56289)
 - [ ] a95586773fd Improve logging around SniffConnectionStrategy (#56292)
 - [ ] 601617a3fc0 Avoid copying file chunks in peer covery (#56072)
 - [ ] 77ac5d805bb Make sure to use ParseContext.Document#addAll when possible.
+- [ ] 378e36c26d1 Move includeDataStream flag from IndicesOptions to IndexNameExpressionResolver.Context (#56034)
 - [ ] 7a5d18ddc37 Simplify signature of FieldMapper#parseCreateField. (#56066)
 - [ ] bb04fbcd969 For constant_keyword, make sure exists query handles missing values. (#55757)
 - [ ] b2b32d7cf85 Retry failed replication due to transient errors (#55633)
@@ -511,6 +520,7 @@ should be crossed out as well.
 - [ ] fdd413370ef Deleted docs disregarded for if_seq_no check (#50526)
 - [ ] 4c1f1b2acab Declare remaining parsers `final` (#50571)
 - [ ] 77fd51f30ba Remove some Dead Code from Discovery Plugins (#50592)
+- [ ] 671fefaf59e Enhance TransportReplicationAction assertions (#49081)
 - [ ] 424ed93e38b Always use soft-deletes in InternalEngine (#50415)
 - [ ] d02afccd983 Ensure relocating shards establish peer recovery retention leases (#50486)
 - [ ] 50bd5842c3c Fix testCancelRecoveryDuringPhase1 (#50449)
@@ -544,6 +554,7 @@ should be crossed out as well.
 - [ ] 8c2dda90c0f Add int indicating size of transport header (#48884)
 - [ ] fb293adb0f5 Ensure remote strategy settings can be updated (#49772)
 - [ ] de5eb04f050 Silence lint warnings in server project - part 2 (#49728)
+- [ ] 8c165e04a1c Replicate write actions before fsyncing them (#49746)
 - [ ] 944c681680d Make Snapshot Metadata Javadocs Clearer (#49697)
 - [ ] f8e39d2ff18 New setting to prevent automatically importing dangling indices (#49174)
 - [x] 3ad8aa6d465 Remove obsolete resolving logic from TRA (#49685)
