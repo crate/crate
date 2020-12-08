@@ -23,6 +23,8 @@ package io.crate.expression.reference.doc.lucene;
 
 import io.crate.execution.engine.fetch.FetchId;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 
@@ -49,8 +51,8 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
-        super.setNextReader(context);
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+        super.setNextReader(context, fieldReader);
         docBase = context.docBase;
     }
 }

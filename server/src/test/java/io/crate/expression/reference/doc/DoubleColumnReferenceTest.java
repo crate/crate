@@ -55,7 +55,7 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
     public void testFieldCacheExpression() throws Exception {
         DoubleColumnReference doubleColumn = new DoubleColumnReference(column);
         doubleColumn.startCollect(ctx);
-        doubleColumn.setNextReader(readerContext);
+        doubleColumn.setNextReader(readerContext, null);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
         double d = 0.5;

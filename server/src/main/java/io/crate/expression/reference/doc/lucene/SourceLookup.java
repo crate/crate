@@ -25,9 +25,12 @@ package io.crate.expression.reference.doc.lucene;
 
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,6 +42,7 @@ public final class SourceLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
     private LeafReader reader;
+    private CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
     private int doc;
     private Map<String, Object> source;
     private boolean docVisited = false;
@@ -46,7 +50,7 @@ public final class SourceLookup {
     SourceLookup() {
     }
 
-    public void setSegmentAndDocument(LeafReaderContext context, int doc) {
+    public void setSegmentAndDocument(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader, int doc) {
         if (this.doc == doc && this.reader == context.reader()) {
             // Don't invalidate source
             return;
@@ -56,6 +60,7 @@ public final class SourceLookup {
         this.source = null;
         this.reader = context.reader();
         this.doc = doc;
+        this.fieldReader = fieldReader;
     }
 
     public Object get(List<String> path) {
@@ -85,7 +90,7 @@ public final class SourceLookup {
             return;
         }
         try {
-            reader.document(doc, fieldsVisitor);
+            fieldReader.accept(doc, fieldsVisitor);
             docVisited = true;
         } catch (IOException e) {
             throw new RuntimeException(e);

@@ -57,7 +57,7 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
     public void testShortExpression() throws Exception {
         ShortColumnReference shortColumn = new ShortColumnReference(column);
         shortColumn.startCollect(ctx);
-        shortColumn.setNextReader(readerContext);
+        shortColumn.setNextReader(readerContext, null);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         short i = -10;

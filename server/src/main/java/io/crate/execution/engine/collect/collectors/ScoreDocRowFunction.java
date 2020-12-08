@@ -85,7 +85,7 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         int subDoc = fieldDoc.doc - subReaderContext.docBase;
         for (LuceneCollectorExpression<?> expression : expressions) {
             try {
-                expression.setNextReader(subReaderContext);
+                expression.setNextReader(subReaderContext, null);
                 expression.setNextDocId(subDoc);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

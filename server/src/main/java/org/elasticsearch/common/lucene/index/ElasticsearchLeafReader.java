@@ -19,7 +19,9 @@
 
 package org.elasticsearch.common.lucene.index;
 
+import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.FilterLeafReader;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -27,7 +29,7 @@ import org.elasticsearch.index.shard.ShardId;
  * A {@link org.apache.lucene.index.FilterLeafReader} that exposes
  * Elasticsearch internal per shard / index information like the shard ID.
  */
-public final class ElasticsearchLeafReader extends FilterLeafReader {
+public final class ElasticsearchLeafReader extends SequentialStoredFieldsLeafReader {
 
     private final ShardId shardId;
 
@@ -50,7 +52,7 @@ public final class ElasticsearchLeafReader extends FilterLeafReader {
     }
 
     @Override
-    public CacheHelper getCoreCacheHelper() {
+    public IndexReader.CacheHelper getCoreCacheHelper() {
         return in.getCoreCacheHelper();
     }
 
@@ -72,5 +74,10 @@ public final class ElasticsearchLeafReader extends FilterLeafReader {
             }
         }
         return null;
+    }
+
+    @Override
+    protected StoredFieldsReader doGetSequentialStoredFieldsReader(StoredFieldsReader reader) {
+        return reader;
     }
 }

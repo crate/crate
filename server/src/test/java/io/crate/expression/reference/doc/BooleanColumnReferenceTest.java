@@ -57,7 +57,7 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
     public void testBooleanExpression() throws Exception {
         BooleanColumnReference booleanColumn = new BooleanColumnReference(column);
         booleanColumn.startCollect(ctx);
-        booleanColumn.setNextReader(readerContext);
+        booleanColumn.setNextReader(readerContext, null);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         int i = 0;

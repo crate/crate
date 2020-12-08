@@ -26,6 +26,8 @@ import java.io.UncheckedIOException;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
@@ -64,8 +66,8 @@ public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
-        super.setNextReader(context);
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+        super.setNextReader(context, fieldReader);
         values = FieldData.toString(DocValues.getSortedSet(context.reader(), columnName));
     }
 }

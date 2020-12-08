@@ -24,6 +24,8 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 
 import java.io.IOException;
@@ -32,6 +34,8 @@ import java.io.UncheckedIOException;
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
     private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.name());
+    private CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
+    // unused
     private LeafReader reader;
     private int docId;
 
@@ -47,7 +51,7 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     public String value() {
         try {
             visitor.setCanStop(false);
-            reader.document(docId, visitor);
+            fieldReader.accept(docId, visitor);
             return visitor.getId();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -55,7 +59,8 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
         reader = context.reader();
+        this.fieldReader = fieldReader;
     }
 }

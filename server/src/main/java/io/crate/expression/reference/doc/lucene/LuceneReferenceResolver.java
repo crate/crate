@@ -30,7 +30,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.Scorable;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.common.collections.Maps;
@@ -250,8 +252,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             inner.setNextDocId(doc);
         }
 
-        public void setNextReader(final LeafReaderContext context) throws IOException {
-            inner.setNextReader(context);
+        public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+            inner.setNextReader(context, fieldReader);
         }
 
         public void setScorer(final Scorable scorer) {

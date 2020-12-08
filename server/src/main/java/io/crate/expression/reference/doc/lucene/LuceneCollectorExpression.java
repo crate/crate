@@ -22,8 +22,12 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.data.Input;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.Scorable;
+import org.elasticsearch.common.CheckedBiConsumer;
+import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 
 import java.io.IOException;
 
@@ -42,7 +46,7 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
     public void setNextDocId(int doc) {
     }
 
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
     }
 
     public void setScorer(Scorable scorer) {

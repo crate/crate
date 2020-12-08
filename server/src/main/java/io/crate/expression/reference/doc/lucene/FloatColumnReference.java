@@ -27,9 +27,11 @@ import java.io.UncheckedIOException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.util.NumericUtils;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 public class FloatColumnReference extends LuceneCollectorExpression<Float> {
 
@@ -67,8 +69,8 @@ public class FloatColumnReference extends LuceneCollectorExpression<Float> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
-        super.setNextReader(context);
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+        super.setNextReader(context, fieldReader);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
     }
 }

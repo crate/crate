@@ -28,6 +28,8 @@ import org.apache.lucene.geo.GeoEncodingUtils;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
@@ -74,8 +76,8 @@ public class GeoPointColumnReference extends LuceneCollectorExpression<Point> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
-        super.setNextReader(context);
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+        super.setNextReader(context, fieldReader);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
     }
 }

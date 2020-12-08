@@ -26,7 +26,9 @@ import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.search.DocValueFormat;
 
 import java.io.IOException;
@@ -66,7 +68,7 @@ public class IpColumnReference extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
         values = context.reader().getSortedSetDocValues(columnName);
         if (values == null) {
             values = DocValues.emptySortedSet();

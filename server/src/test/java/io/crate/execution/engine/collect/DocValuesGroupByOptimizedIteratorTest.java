@@ -46,9 +46,11 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.junit.Before;
@@ -245,7 +247,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             List.of(new LuceneCollectorExpression<>() {
 
                 @Override
-                public void setNextReader(LeafReaderContext context) {
+                public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
                     onNextReader.run();
                 }
 

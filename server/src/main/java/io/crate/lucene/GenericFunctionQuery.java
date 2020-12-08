@@ -126,7 +126,7 @@ class GenericFunctionQuery extends Query {
 
     private FilteredTwoPhaseIterator getTwoPhaseIterator(final LeafReaderContext context) throws IOException {
         for (LuceneCollectorExpression expression : expressions) {
-            expression.setNextReader(context);
+            expression.setNextReader(context, null);
         }
         return new FilteredTwoPhaseIterator(context.reader(), condition, expressions);
     }

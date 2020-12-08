@@ -25,7 +25,10 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +36,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     private SourceLookup sourceLookup;
     private LeafReaderContext context;
+    private CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
 
     public DocCollectorExpression() {
         super();
@@ -45,12 +49,13 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(context, doc);
+        sourceLookup.setSegmentAndDocument(context, fieldReader, doc);
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
         this.context = context;
+        this.fieldReader = fieldReader;
     }
 
     @Override
@@ -73,6 +78,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         private final List<String> path;
         private SourceLookup sourceLookup;
         private LeafReaderContext context;
+        private CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
 
         ChildDocCollectorExpression(DataType<?> returnType, List<String> path) {
             this.returnType = returnType;
@@ -81,12 +87,13 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public void setNextDocId(int doc) {
-            sourceLookup.setSegmentAndDocument(context, doc);
+            sourceLookup.setSegmentAndDocument(context, fieldReader, doc);
         }
 
         @Override
-        public void setNextReader(LeafReaderContext context) {
+        public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
             this.context = context;
+            this.fieldReader = fieldReader;
         }
 
         @Override

@@ -97,7 +97,7 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testIpExpression() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_COLUMN);
         columnReference.startCollect(ctx);
-        columnReference.setNextReader(readerContext);
+        columnReference.setNextReader(readerContext, null);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 21);
         assertThat(topDocs.scoreDocs.length, is(21));
@@ -121,7 +121,7 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testIpExpressionOnArrayThrowsException() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_ARRAY_COLUMN);
         columnReference.startCollect(ctx);
-        columnReference.setNextReader(readerContext);
+        columnReference.setNextReader(readerContext, null);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
 
@@ -138,7 +138,7 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testNullDocValuesDoNotResultInNPE() throws IOException {
         IpColumnReference ref = new IpColumnReference("missing_column");
         ref.startCollect(ctx);
-        ref.setNextReader(readerContext);
+        ref.setNextReader(readerContext, null);
         ref.setNextDocId(0);
 
         assertThat(ref.value(), Matchers.nullValue());

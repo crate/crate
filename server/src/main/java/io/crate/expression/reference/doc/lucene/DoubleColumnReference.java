@@ -27,6 +27,8 @@ import java.io.UncheckedIOException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 
@@ -67,8 +69,8 @@ public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
-        super.setNextReader(context);
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+        super.setNextReader(context, fieldReader);
         SortedNumericDocValues raw = DocValues.getSortedNumeric(context.reader(), columnName);
         values = FieldData.sortableLongBitsToDoubles(raw);
     }

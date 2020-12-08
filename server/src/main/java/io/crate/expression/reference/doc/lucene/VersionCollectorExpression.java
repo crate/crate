@@ -25,6 +25,8 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -35,9 +37,9 @@ public class VersionCollectorExpression extends LuceneCollectorExpression<Long> 
     private int docId;
 
     @Override
-    public void setNextReader(LeafReaderContext reader) {
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
         try {
-            versions = reader.reader().getNumericDocValues(DocSysColumns.VERSION.name());
+            versions = context.reader().getNumericDocValues(DocSysColumns.VERSION.name());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

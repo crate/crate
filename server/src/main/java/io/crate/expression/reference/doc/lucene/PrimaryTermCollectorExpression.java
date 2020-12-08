@@ -25,6 +25,8 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -35,9 +37,9 @@ public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Lo
     private int doc;
 
     @Override
-    public void setNextReader(LeafReaderContext reader) {
+    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
         try {
-            primaryTerms = reader.reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
+            primaryTerms = context.reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

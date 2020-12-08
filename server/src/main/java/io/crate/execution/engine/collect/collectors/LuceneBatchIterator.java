@@ -155,7 +155,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             currentDocIdSetIt = scorer.iterator();
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setScorer(currentScorer);
-                expression.setNextReader(currentLeaf);
+                expression.setNextReader(currentLeaf, null);
             }
             return true;
         }

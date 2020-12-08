@@ -294,7 +294,7 @@ final class GroupByOptimizedIterator {
                 continue;
             }
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                expressions.get(i).setNextReader(leaf);
+                expressions.get(i).setNextReader(leaf, null);
             }
             SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {

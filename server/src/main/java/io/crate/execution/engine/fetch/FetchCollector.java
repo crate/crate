@@ -25,9 +25,12 @@ package io.crate.execution.engine.fetch;
 import java.io.IOException;
 import java.util.List;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
+import org.apache.lucene.codecs.StoredFieldsReader;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 
@@ -38,6 +41,10 @@ import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.CheckedBiConsumer;
+import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
+import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 
 class FetchCollector {
 
@@ -67,15 +74,17 @@ class FetchCollector {
 
     }
 
-    private void setNextDocId(LeafReaderContext readerContext, int doc) throws IOException {
+    private void setNextDocId(LeafReaderContext readerContext, int doc, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
         for (LuceneCollectorExpression<?> e : collectorExpressions) {
-            e.setNextReader(readerContext);
+            e.setNextReader(readerContext, fieldReader);
             e.setNextDocId(doc);
         }
     }
 
     public StreamBucket collect(IntContainer docIds) {
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
+        var hasSequentialDocs = hasSequentialDocs(docIds);
+        CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader = null;
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
@@ -87,7 +96,20 @@ class FetchCollector {
                 }
                 LeafReaderContext subReaderContext = leaves.get(readerIndex);
                 try {
-                    setNextDocId(subReaderContext, docId - subReaderContext.docBase);
+                    if (subReaderContext.reader() instanceof SequentialStoredFieldsLeafReader
+                        && hasSequentialDocs && docIds.size() >= 10) {
+                        // All the docs to fetch are adjacent but Lucene stored fields are optimized
+                        // for random access and don't optimize for sequential access - except for merging.
+                        // So we do a little hack here and pretend we're going to do merges in order to
+                        // get better sequential access.
+                        SequentialStoredFieldsLeafReader leafReader = (SequentialStoredFieldsLeafReader) subReaderContext.reader();
+                        StoredFieldsReader sequentialStoredFieldsReader = leafReader.getSequentialStoredFieldsReader();
+                        fieldReader = sequentialStoredFieldsReader::visitDocument;
+                        setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
+                    } else {
+                        fieldReader = subReaderContext.reader()::document;
+                        setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
+                    }
                 } catch (IOException e) {
                     Exceptions.rethrowRuntimeException(e);
                 }
@@ -95,5 +117,13 @@ class FetchCollector {
             }
         }
         return builder.build();
+    }
+
+    static boolean hasSequentialDocs(IntContainer docs) {
+        if (docs instanceof IntArrayList) {
+            var collection = (IntArrayList) docs;
+            return collection.size() > 0 && collection.get(collection.size() - 1) - collection.get(0) == docs.size() - 1;
+        }
+        return false;
     }
 }
