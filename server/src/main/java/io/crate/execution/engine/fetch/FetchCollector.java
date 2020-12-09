@@ -73,9 +73,9 @@ class FetchCollector {
 
     }
 
-    private void setNextDocId(LeafReaderContext readerContext, int doc, Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+    private void setNextDocId(LeafReaderContext readerContext, int doc, boolean isSequental) throws IOException {
         for (LuceneCollectorExpression<?> e : collectorExpressions) {
-            e.setNextReader(readerContext, fieldReader);
+            e.setNextReader(readerContext, isSequental);
             e.setNextDocId(doc);
         }
     }
@@ -85,7 +85,7 @@ class FetchCollector {
         int[] ids = docIds.toArray();
         Arrays.sort(ids);
         var hasSequentialDocs = hasSequentialDocs(ids);
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = null;
+        boolean isSequental = false;
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
@@ -104,11 +104,9 @@ class FetchCollector {
                         // for random access and don't optimize for sequential access - except for merging.
                         // So we do a little hack here and pretend we're going to do merges in order to
                         // get better sequential access.
-                        fieldReader = FieldReader::getSequentialFieldReaderIfAvailable;
-                    } else {
-                        fieldReader = FieldReader::getFieldReader;
+                        isSequental = true;
                     }
-                    setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
+                    setNextDocId(subReaderContext, docId - subReaderContext.docBase, isSequental);
                 } catch (IOException e) {
                     Exceptions.rethrowRuntimeException(e);
                 }

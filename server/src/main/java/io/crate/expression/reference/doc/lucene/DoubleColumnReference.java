@@ -71,8 +71,8 @@ public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
-        super.setNextReader(context, fieldReader);
+    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
+        super.setNextReader(context, isSequental);
         SortedNumericDocValues raw = DocValues.getSortedNumeric(context.reader(), columnName);
         values = FieldData.sortableLongBitsToDoubles(raw);
     }

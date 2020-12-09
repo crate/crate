@@ -129,9 +129,8 @@ class GenericFunctionQuery extends Query {
     }
 
     private FilteredTwoPhaseIterator getTwoPhaseIterator(final LeafReaderContext context) throws IOException {
-        java.util.function.Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         for (LuceneCollectorExpression expression : expressions) {
-            expression.setNextReader(context, fieldReader);
+            expression.setNextReader(context, false);
         }
         return new FilteredTwoPhaseIterator(context.reader(), condition, expressions);
     }

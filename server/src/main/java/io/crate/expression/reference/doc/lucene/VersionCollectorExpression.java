@@ -39,7 +39,7 @@ public class VersionCollectorExpression extends LuceneCollectorExpression<Long> 
     private int docId;
 
     @Override
-    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
         try {
             versions = context.reader().getNumericDocValues(DocSysColumns.VERSION.name());
         } catch (IOException e) {

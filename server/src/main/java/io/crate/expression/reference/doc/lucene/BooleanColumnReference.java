@@ -71,8 +71,8 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
-        super.setNextReader(context, fieldReader);
+    public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
+        super.setNextReader(context, isSequental);
         values = FieldData.toString(DocValues.getSortedNumeric(context.reader(), columnName));
     }
 }

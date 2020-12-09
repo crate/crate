@@ -23,6 +23,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 
+import io.crate.execution.engine.fetch.FieldReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.StoredFieldVisitor;
@@ -50,7 +51,7 @@ public final class SourceLookup {
     SourceLookup() {
     }
 
-    public void setSegmentAndDocument(LeafReaderContext context, Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader, int doc) {
+    public void setSegmentAndDocument(LeafReaderContext context, int doc, boolean isSequental) {
         if (this.doc == doc) {
             // Don't invalidate source
             return;
@@ -59,7 +60,7 @@ public final class SourceLookup {
         this.docVisited = false;
         this.source = null;
         this.doc = doc;
-        this.fieldReader = fieldReader.apply(context);
+        this.fieldReader = isSequental ? FieldReader.getSequentialFieldReaderIfAvailable(context) : FieldReader.getFieldReader(context);
     }
 
     public Object get(List<String> path) {

@@ -341,9 +341,8 @@ final class DocValuesGroupByOptimizedIterator {
                 if (scorer == null) {
                     continue;
                 }
-                Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
                 for (int i = 0; i < keyExpressions.size(); i++) {
-                    keyExpressions.get(i).setNextReader(leaf, fieldReader);
+                    keyExpressions.get(i).setNextReader(leaf, false);
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
                     aggregators.get(i).loadDocValues(leaf.reader());

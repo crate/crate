@@ -61,9 +61,8 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testFieldCacheExpression() throws Exception {
         FloatColumnReference floatColumn = new FloatColumnReference(column);
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         floatColumn.startCollect(ctx);
-        floatColumn.setNextReader(readerContext, fieldReader);
+        floatColumn.setNextReader(readerContext, false);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
         float f = -0.5f;

@@ -100,8 +100,7 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testIpExpression() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_COLUMN);
         columnReference.startCollect(ctx);
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
-        columnReference.setNextReader(readerContext, fieldReader);
+        columnReference.setNextReader(readerContext, false);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 21);
         assertThat(topDocs.scoreDocs.length, is(21));
@@ -124,9 +123,8 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testIpExpressionOnArrayThrowsException() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_ARRAY_COLUMN);
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         columnReference.startCollect(ctx);
-        columnReference.setNextReader(readerContext, fieldReader);
+        columnReference.setNextReader(readerContext, false);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
 
@@ -142,9 +140,8 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testNullDocValuesDoNotResultInNPE() throws IOException {
         IpColumnReference ref = new IpColumnReference("missing_column");
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         ref.startCollect(ctx);
-        ref.setNextReader(readerContext, fieldReader);
+        ref.setNextReader(readerContext, false);
         ref.setNextDocId(0);
 
         assertThat(ref.value(), Matchers.nullValue());

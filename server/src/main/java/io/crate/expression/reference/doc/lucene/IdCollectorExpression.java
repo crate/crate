@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -36,7 +37,7 @@ import java.util.function.Supplier;
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
     private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.name());
-    private  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader;
+    private  boolean isSequental;
     private LeafReaderContext context;
     private int docId;
 
@@ -52,7 +53,11 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     public String value() {
         try {
             visitor.setCanStop(false);
-            fieldReader.apply(context).accept(docId, visitor);
+            if (isSequental) {
+                FieldReader.getSequentialFieldReaderIfAvailable(context).accept(docId, visitor);
+            } else {
+                FieldReader.getFieldReader(context).accept(docId, visitor);
+            }
             return visitor.getId();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -60,8 +65,8 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
         this.context = context;
-        this.fieldReader = fieldReader;
+        this.isSequental = isSequental;
     }
 }

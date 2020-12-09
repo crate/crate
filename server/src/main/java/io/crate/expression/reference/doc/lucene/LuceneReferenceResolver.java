@@ -254,8 +254,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             inner.setNextDocId(doc);
         }
 
-        public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
-            inner.setNextReader(context, fieldReader);
+        public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
+            inner.setNextReader(context, isSequental);
         }
 
         public void setScorer(final Scorable scorer) {

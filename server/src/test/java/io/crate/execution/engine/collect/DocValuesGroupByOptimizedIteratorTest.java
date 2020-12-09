@@ -249,7 +249,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             List.of(new LuceneCollectorExpression<>() {
 
                 @Override
-                public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+                public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
                     onNextReader.run();
                 }
 

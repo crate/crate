@@ -241,10 +241,9 @@ public final class ReservoirSampler {
             int readerIndex = ReaderUtil.subIndex(docId, leaves);
             LeafReaderContext leafContext = leaves.get(readerIndex);
             int subDoc = docId - leafContext.docBase;
-            Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
             for (LuceneCollectorExpression<?> expression : expressions) {
                 try {
-                    expression.setNextReader(leafContext, fieldReader);
+                    expression.setNextReader(leafContext, false);
                     expression.setNextDocId(subDoc);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);

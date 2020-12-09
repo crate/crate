@@ -38,7 +38,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     private SourceLookup sourceLookup;
     private LeafReaderContext context;
-    private Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader;
+    private  boolean isSequental;
 
     public DocCollectorExpression() {
         super();
@@ -51,13 +51,13 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(context, fieldReader, doc);
+        sourceLookup.setSegmentAndDocument(context, doc, isSequental);
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
         this.context = context;
-        this.fieldReader = fieldReader;
+        this.isSequental = isSequental;
     }
 
     @Override
@@ -80,8 +80,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         private final List<String> path;
         private SourceLookup sourceLookup;
         private LeafReaderContext context;
-        private Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader;
-
+        private boolean isSequental;
         ChildDocCollectorExpression(DataType<?> returnType, List<String> path) {
             this.returnType = returnType;
             this.path = path;
@@ -89,13 +88,13 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public void setNextDocId(int doc) {
-            sourceLookup.setSegmentAndDocument(context, fieldReader, doc);
+            sourceLookup.setSegmentAndDocument(context, doc, isSequental);
         }
 
         @Override
-        public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+        public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
             this.context = context;
-            this.fieldReader = fieldReader;
+            this.isSequental = isSequental;
         }
 
         @Override

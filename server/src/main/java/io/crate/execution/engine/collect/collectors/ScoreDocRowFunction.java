@@ -87,10 +87,9 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         int readerIndex = ReaderUtil.subIndex(fieldDoc.doc, leaves);
         LeafReaderContext subReaderContext = leaves.get(readerIndex);
         int subDoc = fieldDoc.doc - subReaderContext.docBase;
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         for (LuceneCollectorExpression<?> expression : expressions) {
             try {
-                expression.setNextReader(subReaderContext, fieldReader);
+                expression.setNextReader(subReaderContext, false);
                 expression.setNextDocId(subDoc);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

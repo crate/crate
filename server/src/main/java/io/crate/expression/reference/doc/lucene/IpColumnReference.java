@@ -70,7 +70,7 @@ public class IpColumnReference extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
         values = context.reader().getSortedSetDocValues(columnName);
         if (values == null) {
             values = DocValues.emptySortedSet();

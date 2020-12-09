@@ -34,7 +34,7 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     private SourceLookup sourceLookup;
     private LeafReaderContext context;
-    private Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader;
+    private boolean isSequental;
 
     @Override
     public void startCollect(CollectorContext context) {
@@ -43,13 +43,13 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     @Override
     public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(context, fieldReader, doc);
+        sourceLookup.setSegmentAndDocument(context, doc, isSequental);
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
         this.context = context;
-        this.fieldReader = fieldReader;
+        this.isSequental = isSequental;
     }
 
     @Override

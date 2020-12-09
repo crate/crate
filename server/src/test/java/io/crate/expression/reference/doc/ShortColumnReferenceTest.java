@@ -64,8 +64,7 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
     public void testShortExpression() throws Exception {
         ShortColumnReference shortColumn = new ShortColumnReference(column);
         shortColumn.startCollect(ctx);
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
-        shortColumn.setNextReader(readerContext, fieldReader);
+        shortColumn.setNextReader(readerContext, false);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         short i = -10;

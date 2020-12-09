@@ -67,9 +67,8 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextReader(context, fieldReader);
+            collectorExpressions.get(i).setNextReader(context, false);
         }
         return this;
     }

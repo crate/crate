@@ -46,7 +46,7 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
     public void setNextDocId(int doc) {
     }
 
-    public void setNextReader(LeafReaderContext context, Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
     }
 
     public void setScorer(Scorable scorer) {

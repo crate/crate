@@ -62,10 +62,9 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testBooleanExpression() throws Exception {
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         BooleanColumnReference booleanColumn = new BooleanColumnReference(column);
         booleanColumn.startCollect(ctx);
-        booleanColumn.setNextReader(readerContext, fieldReader);
+        booleanColumn.setNextReader(readerContext, false);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         int i = 0;

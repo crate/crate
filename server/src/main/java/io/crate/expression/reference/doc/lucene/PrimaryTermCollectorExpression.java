@@ -39,7 +39,7 @@ public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Lo
     private int doc;
 
     @Override
-    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
         try {
             primaryTerms = context.reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
         } catch (IOException e) {

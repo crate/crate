@@ -67,8 +67,7 @@ public class StringColumnReferenceTest extends DocLevelExpressionsTest {
     public void testFieldCacheExpression() throws Exception {
         BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(column);
         bytesRefColumn.startCollect(ctx);
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
-        bytesRefColumn.setNextReader(readerContext, fieldReader);
+        bytesRefColumn.setNextReader(readerContext, false);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         int i = 0;

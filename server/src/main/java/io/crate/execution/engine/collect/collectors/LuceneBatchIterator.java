@@ -158,10 +158,9 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             currentScorer = scorer;
             currentLeaf = leaf;
             currentDocIdSetIt = scorer.iterator();
-            Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setScorer(currentScorer);
-                expression.setNextReader(currentLeaf, fieldReader);
+                expression.setNextReader(currentLeaf, false);
             }
             return true;
         }

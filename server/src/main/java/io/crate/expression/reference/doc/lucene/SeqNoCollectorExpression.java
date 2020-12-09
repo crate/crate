@@ -39,7 +39,7 @@ public class SeqNoCollectorExpression extends LuceneCollectorExpression<Long> {
     private int doc;
 
     @Override
-    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
         try {
             seqNumbers = context.reader().getNumericDocValues(DocSysColumns.SEQ_NO.name());
         } catch (IOException e) {

@@ -69,8 +69,8 @@ public class ByteColumnReference extends LuceneCollectorExpression<Byte> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
-        super.setNextReader(context, fieldReader);
+    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
+        super.setNextReader(context, isSequental);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
     }
 }

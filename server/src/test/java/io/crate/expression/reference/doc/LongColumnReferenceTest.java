@@ -63,9 +63,8 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testLongExpression() throws Exception {
         LongColumnReference longColumn = new LongColumnReference(column);
-        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         longColumn.startCollect(ctx);
-        longColumn.setNextReader(readerContext, fieldReader);
+        longColumn.setNextReader(readerContext, false);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         long l = Long.MIN_VALUE;
