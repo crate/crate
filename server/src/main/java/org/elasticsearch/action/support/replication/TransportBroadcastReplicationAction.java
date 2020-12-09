@@ -39,7 +39,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.ArrayList;
@@ -57,24 +56,20 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
     private final ActionType<ShardResponse> replicatedBroadcastShardAction;
     private final ClusterService clusterService;
     private final NodeClient client;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     public TransportBroadcastReplicationAction(String name,
                                                Writeable.Reader<Request> reader,
-                                               ThreadPool threadPool,
                                                ClusterService clusterService,
                                                TransportService transportService,
                                                NodeClient client,
                                                IndexNameExpressionResolver indexNameExpressionResolver,
                                                ActionType<ShardResponse> replicatedBroadcastShardAction) {
-        super(name, threadPool, transportService, reader, indexNameExpressionResolver);
+        super(name, transportService, reader);
         this.client = client;
         this.replicatedBroadcastShardAction = replicatedBroadcastShardAction;
         this.clusterService = clusterService;
-    }
-
-    @Override
-    protected final void doExecute(final Request request, final ActionListener<Response> listener) {
-        throw new UnsupportedOperationException("the task parameter is required for this operation");
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override

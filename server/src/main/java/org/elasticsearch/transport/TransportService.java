@@ -611,7 +611,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         DiscoveryNode node = connection.getNode();
 
         TimeoutResponseHandler<T> responseHandler = new TimeoutResponseHandler<>(handler);
-        // TODO we can probably fold this entire request ID dance into connection.sendReqeust but it will be a bigger refactoring
+        // TODO we can probably fold this entire request ID dance into connection.sendRequest but it will be a bigger refactoring
         final long requestId = responseHandlers.add(new Transport.ResponseContext<>(responseHandler, connection, action));
         final TimeoutHandler timeoutHandler;
         if (options.timeout() != null) {

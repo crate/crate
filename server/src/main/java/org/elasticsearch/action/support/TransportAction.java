@@ -21,10 +21,8 @@ package org.elasticsearch.action.support;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskManager;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
@@ -32,18 +30,12 @@ import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
 
 public abstract class TransportAction<Request extends TransportRequest, Response extends TransportResponse> {
 
-    protected final ThreadPool threadPool;
     protected final String actionName;
-    protected final IndexNameExpressionResolver indexNameExpressionResolver;
     protected final TaskManager taskManager;
 
     protected TransportAction(String actionName,
-                              ThreadPool threadPool,
-                              IndexNameExpressionResolver indexNameExpressionResolver,
                               TaskManager taskManager) {
-        this.threadPool = threadPool;
         this.actionName = actionName;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.taskManager = taskManager;
     }
 
@@ -98,9 +90,5 @@ public abstract class TransportAction<Request extends TransportRequest, Response
         }
     }
 
-    protected void doExecute(Task task, Request request, ActionListener<Response> listener) {
-        doExecute(request, listener);
-    }
-
-    protected abstract void doExecute(Request request, ActionListener<Response> listener);
+    protected abstract void doExecute(Task task, Request request, ActionListener<Response> listener);
 }

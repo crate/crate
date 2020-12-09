@@ -23,7 +23,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -52,6 +51,7 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
                                            NodeResponse extends BaseNodeResponse>
     extends HandledTransportAction<NodesRequest, NodesResponse> {
 
+    protected final ThreadPool threadPool;
     protected final ClusterService clusterService;
     protected final TransportService transportService;
     protected final Class<NodeResponse> nodeResponseClass;
@@ -62,12 +62,12 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
                                    ThreadPool threadPool,
                                    ClusterService clusterService,
                                    TransportService transportService,
-                                   IndexNameExpressionResolver indexNameExpressionResolver,
                                    Writeable.Reader<NodesRequest> nodesRequestReader,
                                    Writeable.Reader<NodeRequest> nodeRequestReader,
                                    String nodeExecutor,
                                    Class<NodeResponse> nodeResponseClass) {
-        super(actionName, threadPool, transportService, nodesRequestReader, indexNameExpressionResolver);
+        super(actionName, transportService, nodesRequestReader);
+        this.threadPool = threadPool;
         this.clusterService = Objects.requireNonNull(clusterService);
         this.transportService = Objects.requireNonNull(transportService);
         this.nodeResponseClass = Objects.requireNonNull(nodeResponseClass);
@@ -76,12 +76,6 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
 
         transportService.registerRequestHandler(
             transportNodeAction, nodeExecutor, nodeRequestReader, new NodeTransportHandler());
-    }
-
-    @Override
-    protected final void doExecute(NodesRequest request, ActionListener<NodesResponse> listener) {
-        logger.warn("attempt to execute a transport nodes operation without a task");
-        throw new UnsupportedOperationException("task parameter is required for this operation");
     }
 
     @Override

@@ -23,11 +23,9 @@ package io.crate.blob;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
-
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,8 +46,7 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
                                      IndicesService indicesService,
                                      ThreadPool threadPool,
                                      ShardStateAction shardStateAction,
-                                     BlobIndicesService blobIndicesService,
-                                     IndexNameExpressionResolver indexNameExpressionResolver) {
+                                     BlobIndicesService blobIndicesService) {
         super(
             DeleteBlobAction.NAME,
             transportService,
@@ -57,7 +54,6 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
             indicesService,
             threadPool,
             shardStateAction,
-            indexNameExpressionResolver,
             DeleteBlobRequest::new,
             DeleteBlobRequest::new,
             ThreadPool.Names.WRITE
@@ -90,11 +86,6 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
         BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
         blobShard.delete(request.id());
         return new ReplicaResult();
-    }
-
-    @Override
-    protected boolean resolveIndex() {
-        return false;
     }
 }
 

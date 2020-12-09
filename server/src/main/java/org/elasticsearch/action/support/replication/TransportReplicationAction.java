@@ -19,12 +19,8 @@
 
 package org.elasticsearch.action.support.replication;
 
-import java.io.IOException;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.annotation.Nullable;
-
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -46,10 +42,8 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.AllocationId;
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -83,8 +77,10 @@ import org.elasticsearch.transport.TransportResponse.Empty;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.SQLExceptions;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Base class for requests that should be executed on a primary copy followed by replica copies.
@@ -102,6 +98,7 @@ public abstract class TransportReplicationAction<
 
     protected final Logger logger = LogManager.getLogger(getClass());
 
+    protected final ThreadPool threadPool;
     protected final TransportService transportService;
     protected final ClusterService clusterService;
     protected final ShardStateAction shardStateAction;
@@ -115,19 +112,17 @@ public abstract class TransportReplicationAction<
 
     private final boolean syncGlobalCheckpointAfterOperation;
 
-
     protected TransportReplicationAction(String actionName,
                                          TransportService transportService,
                                          ClusterService clusterService,
                                          IndicesService indicesService,
                                          ThreadPool threadPool,
                                          ShardStateAction shardStateAction,
-                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                          Writeable.Reader<Request> reader,
                                          Writeable.Reader<ReplicaRequest> replicaReader,
                                          String executor) {
         this(actionName, transportService, clusterService, indicesService, threadPool, shardStateAction,
-                indexNameExpressionResolver, reader, replicaReader, executor, false, false);
+                reader, replicaReader, executor, false, false);
     }
 
 
@@ -137,13 +132,13 @@ public abstract class TransportReplicationAction<
                                          IndicesService indicesService,
                                          ThreadPool threadPool,
                                          ShardStateAction shardStateAction,
-                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                          Writeable.Reader<Request> reader,
                                          Writeable.Reader<ReplicaRequest> replicaReader,
                                          String executor,
                                          boolean syncGlobalCheckpointAfterOperation,
                                          boolean forceExecutionOnPrimary) {
-        super(actionName, threadPool, indexNameExpressionResolver, transportService.getTaskManager());
+        super(actionName, transportService.getTaskManager());
+        this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
@@ -177,17 +172,12 @@ public abstract class TransportReplicationAction<
     }
 
     @Override
-    protected final void doExecute(Request request, ActionListener<Response> listener) {
-        throw new UnsupportedOperationException("the task parameter is required for this operation");
-    }
-
-    @Override
     protected void doExecute(Task task, Request request, ActionListener<Response> listener) {
         new ReroutePhase((ReplicationTask) task, request, listener).run();
     }
 
-    protected ReplicationOperation.Replicas<ReplicaRequest> newReplicasProxy(long primaryTerm) {
-        return new ReplicasProxy(primaryTerm);
+    protected ReplicationOperation.Replicas<ReplicaRequest> newReplicasProxy() {
+        return new ReplicasProxy();
     }
 
     protected abstract Response newResponseInstance(StreamInput in) throws IOException;
@@ -241,19 +231,8 @@ public abstract class TransportReplicationAction<
         return null;
     }
 
-    /**
-     * True if provided index should be resolved when resolving request
-     */
-    protected boolean resolveIndex() {
-        return true;
-    }
-
     protected TransportRequestOptions transportOptions() {
         return TransportRequestOptions.EMPTY;
-    }
-
-    private String concreteIndex(final ClusterState state, final ReplicationRequest request) {
-        return resolveIndex() ? indexNameExpressionResolver.concreteSingleIndex(state, request).getName() : request.index();
     }
 
     private ClusterBlockException blockExceptions(final ClusterState state, final String indexName) {
@@ -375,7 +354,7 @@ public abstract class TransportReplicationAction<
                             primaryRequest.getPrimaryTerm()
                         ),
                         transportOptions,
-                        new ActionListenerResponseHandler<Response>(
+                        new ActionListenerResponseHandler<>(
                             onCompletionListener,
                             TransportReplicationAction.this::newResponseInstance) {
 
@@ -393,11 +372,35 @@ public abstract class TransportReplicationAction<
                         });
                 } else {
                     setPhase(replicationTask, "primary");
-                    final ActionListener<Response> listener = createResponseListener(primaryShardReference);
-                    createReplicatedOperation(primaryRequest.getRequest(),
-                            ActionListener.wrap(result -> result.respond(listener), listener::onFailure),
-                            primaryShardReference)
-                            .execute();
+
+                    final ActionListener<Response> referenceClosingListener = ActionListener.wrap(response -> {
+                        primaryShardReference.close(); // release shard operation lock before responding to caller
+                        setPhase(replicationTask, "finished");
+                        onCompletionListener.onResponse(response);
+                    }, e -> handleException(primaryShardReference, e));
+
+                    final ActionListener<Response> globalCheckpointSyncingListener = ActionListener.wrap(response -> {
+                        if (syncGlobalCheckpointAfterOperation) {
+                            final IndexShard shard = primaryShardReference.indexShard;
+                            try {
+                                shard.maybeSyncGlobalCheckpoint("post-operation");
+                            } catch (final Exception e) {
+                                // only log non-closed exceptions
+                                if (ExceptionsHelper.unwrap(
+                                    e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
+                                    // intentionally swallow, a missed global checkpoint sync should not fail this operation
+                                    logger.info(
+                                        new ParameterizedMessage(
+                                            "{} failed to execute post-operation global checkpoint sync", shard.shardId()), e);
+                                }
+                            }
+                        }
+                        referenceClosingListener.onResponse(response);
+                    }, referenceClosingListener::onFailure);
+
+                    new ReplicationOperation<>(primaryRequest.getRequest(), primaryShardReference,
+                        ActionListener.wrap(result -> result.respond(globalCheckpointSyncingListener), referenceClosingListener::onFailure),
+                        newReplicasProxy(), logger, actionName, primaryRequest.getPrimaryTerm()).execute();
                 }
             } catch (Exception e) {
                 Releasables.closeWhileHandlingException(primaryShardReference); // release shard operation lock before responding to caller
@@ -405,51 +408,15 @@ public abstract class TransportReplicationAction<
             }
         }
 
+        private void handleException(PrimaryShardReference primaryShardReference, Exception e) {
+            Releasables.closeWhileHandlingException(primaryShardReference); // release shard operation lock before responding to caller
+            onFailure(e);
+        }
+
         @Override
         public void onFailure(Exception e) {
             setPhase(replicationTask, "finished");
             onCompletionListener.onFailure(e);
-        }
-
-        private ActionListener<Response> createResponseListener(final PrimaryShardReference primaryShardReference) {
-            return new ActionListener<Response>() {
-                @Override
-                public void onResponse(Response response) {
-                    if (syncGlobalCheckpointAfterOperation) {
-                        final IndexShard shard = primaryShardReference.indexShard;
-                        try {
-                            shard.maybeSyncGlobalCheckpoint("post-operation");
-                        } catch (final Exception e) {
-                            // only log non-closed exceptions
-                            if (ExceptionsHelper.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
-                                logger.info(
-                                        new ParameterizedMessage(
-                                                "{} failed to execute post-operation global checkpoint sync",
-                                                shard.shardId()),
-                                        e);
-                                // intentionally swallow, a missed global checkpoint sync should not fail this operation
-                            }
-                        }
-                    }
-                    primaryShardReference.close(); // release shard operation lock before responding to caller
-                    setPhase(replicationTask, "finished");
-                    onCompletionListener.onResponse(response);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    primaryShardReference.close(); // release shard operation lock before responding to caller
-                    setPhase(replicationTask, "finished");
-                    onCompletionListener.onFailure(e);
-                }
-            };
-        }
-
-        protected ReplicationOperation<Request, ReplicaRequest, PrimaryResult<ReplicaRequest, Response>> createReplicatedOperation(
-            Request request, ActionListener<PrimaryResult<ReplicaRequest, Response>> listener,
-            PrimaryShardReference primaryShardReference) {
-            return new ReplicationOperation<>(request, primaryShardReference, listener,
-                    newReplicasProxy(primaryRequest.getPrimaryTerm()), logger, actionName);
         }
     }
 
@@ -693,9 +660,7 @@ public abstract class TransportReplicationAction<
         protected void doRun() {
             setPhase(task, "routing");
             final ClusterState state = observer.setAndGetObservedState();
-
-            final String concreteIndex = concreteIndex(state, request);
-            final ClusterBlockException blockException = blockExceptions(state, concreteIndex);
+            final ClusterBlockException blockException = blockExceptions(state, request.shardId().getIndexName());
             if (blockException != null) {
                 if (blockException.retryable()) {
                     logger.trace("cluster is blocked, scheduling a retry", blockException);
@@ -704,25 +669,47 @@ public abstract class TransportReplicationAction<
                     finishAsFailed(blockException);
                 }
             } else {
-                // request does not have a shardId yet, we need to pass the concrete index to
-                // resolve shardId
-                final IndexMetadata indexMetadata = state.metadata().index(concreteIndex);
+                final IndexMetadata indexMetadata = state.metadata().index(request.shardId().getIndex());
                 if (indexMetadata == null) {
-                    retry(new IndexNotFoundException(concreteIndex));
+                    // ensure that the cluster state on the node is at least as high as the node that decided that the index was there
+                    if (state.version() < request.routedBasedOnClusterVersion()) {
+                        logger.trace("failed to find index [{}] for request [{}] despite sender thinking it would be here. " +
+                                "Local cluster state version [{}]] is older than on sending node (version [{}]), scheduling a retry...",
+                            request.shardId().getIndex(), request, state.version(), request.routedBasedOnClusterVersion());
+                        retry(new IndexNotFoundException("failed to find index as current cluster state with version [" + state.version() +
+                            "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]",
+                            request.shardId().getIndexName()));
+                        return;
+                    } else {
+                        finishAsFailed(new IndexNotFoundException(request.shardId().getIndex()));
+                        return;
+                    }
+                }
+
+                if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+                    finishAsFailed(new IndexClosedException(indexMetadata.getIndex()));
                     return;
                 }
-                if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-                    throw new IndexClosedException(indexMetadata.getIndex());
+
+                if (request.waitForActiveShards() == ActiveShardCount.DEFAULT) {
+                    // if the wait for active shard count has not been set in the request,
+                    // resolve it from the index settings
+                    request.waitForActiveShards(indexMetadata.getWaitForActiveShards());
                 }
+                assert request.waitForActiveShards() != ActiveShardCount.DEFAULT :
+                    "request waitForActiveShards must be set in resolveRequest";
 
-                // resolve all derived request fields, so we can route and apply it
-                resolveRequest(indexMetadata, request);
-                assert request.shardId() != null : "request shardId must be set in resolveRequest";
-                assert request
-                        .waitForActiveShards() != ActiveShardCount.DEFAULT : "request waitForActiveShards must be set in resolveRequest";
-
-                final ShardRouting primary = primary(state);
-                if (retryIfUnavailable(state, primary)) {
+                final ShardRouting primary = state.getRoutingTable().shardRoutingTable(request.shardId()).primaryShard();
+                if (primary == null || primary.active() == false) {
+                    logger.trace("primary shard [{}] is not yet active, scheduling a retry: action [{}], request [{}], "
+                        + "cluster state version [{}]", request.shardId(), actionName, request, state.version());
+                    retryBecauseUnavailable(request.shardId(), "primary shard is not active");
+                    return;
+                }
+                if (state.nodes().nodeExists(primary.currentNodeId()) == false) {
+                    logger.trace("primary shard [{}] is assigned to an unknown node [{}], scheduling a retry: action [{}], request [{}], "
+                        + "cluster state version [{}]", request.shardId(), primary.currentNodeId(), actionName, request, state.version());
+                    retryBecauseUnavailable(request.shardId(), "primary shard isn't assigned to a known node.");
                     return;
                 }
                 final DiscoveryNode node = state.nodes().get(primary.currentNodeId());
@@ -764,27 +751,6 @@ public abstract class TransportReplicationAction<
             }
             setPhase(task, "rerouted");
             performAction(node, actionName, false, request);
-        }
-
-        private boolean retryIfUnavailable(ClusterState state, ShardRouting primary) {
-            if (primary == null || primary.active() == false) {
-                logger.trace("primary shard [{}] is not yet active, scheduling a retry: action [{}], request [{}], "
-                    + "cluster state version [{}]", request.shardId(), actionName, request, state.version());
-                retryBecauseUnavailable(request.shardId(), "primary shard is not active");
-                return true;
-            }
-            if (state.nodes().nodeExists(primary.currentNodeId()) == false) {
-                logger.trace("primary shard [{}] is assigned to an unknown node [{}], scheduling a retry: action [{}], request [{}], "
-                    + "cluster state version [{}]", request.shardId(), primary.currentNodeId(), actionName, request, state.version());
-                retryBecauseUnavailable(request.shardId(), "primary shard isn't assigned to a known node.");
-                return true;
-            }
-            return false;
-        }
-
-        private ShardRouting primary(ClusterState state) {
-            IndexShardRoutingTable indexShard = state.getRoutingTable().shardRoutingTable(request.shardId());
-            return indexShard.primaryShard();
         }
 
         private void performAction(final DiscoveryNode node, final String action, final boolean isPrimaryAction,
@@ -1047,16 +1013,11 @@ public abstract class TransportReplicationAction<
      */
     protected class ReplicasProxy implements ReplicationOperation.Replicas<ReplicaRequest> {
 
-        protected final long primaryTerm;
-
-        public ReplicasProxy(long primaryTerm) {
-            this.primaryTerm = primaryTerm;
-        }
-
         @Override
         public void performOn(
                 final ShardRouting replica,
                 final ReplicaRequest request,
+                final long primaryTerm,
                 final long globalCheckpoint,
                 final long maxSeqNoOfUpdatesOrDeletes,
                 final ActionListener<ReplicationOperation.ReplicaResponse> listener) {
@@ -1073,7 +1034,8 @@ public abstract class TransportReplicationAction<
         }
 
         @Override
-        public void failShardIfNeeded(ShardRouting replica, String message, Exception exception, ActionListener<Void> listener) {
+        public void failShardIfNeeded(ShardRouting replica, long primaryTerm, String message, Exception exception,
+                                      ActionListener<Void> listener) {
             // This does not need to fail the shard. The idea is that this
             // is a non-write operation (something like a refresh or a global
             // checkpoint sync) and therefore the replica should still be
@@ -1082,7 +1044,7 @@ public abstract class TransportReplicationAction<
         }
 
         @Override
-        public void markShardCopyAsStaleIfNeeded(ShardId shardId, String allocationId, ActionListener<Void> listener) {
+        public void markShardCopyAsStaleIfNeeded(ShardId shardId, String allocationId, long primaryTerm, ActionListener<Void> listener) {
             // This does not need to make the shard stale. The idea is that this
             // is a non-write operation (something like a refresh or a global
             // checkpoint sync) and therefore the replica should still be

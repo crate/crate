@@ -78,22 +78,23 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
     private final ClusterService clusterService;
     private final TransportService transportService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     private final String transportNodeBroadcastAction;
 
     public TransportBroadcastByNodeAction(
             String actionName,
-            ThreadPool threadPool,
             ClusterService clusterService,
             TransportService transportService,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Writeable.Reader<Request> reader,
             String executor,
             boolean canTripCircuitBreaker) {
-        super(actionName, canTripCircuitBreaker, threadPool, transportService, reader, indexNameExpressionResolver);
+        super(actionName, canTripCircuitBreaker, transportService, reader);
 
         this.clusterService = clusterService;
         this.transportService = transportService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
 
         transportNodeBroadcastAction = actionName + "[n]";
 
@@ -208,11 +209,6 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
      * @return a non-null exception if the operation if blocked
      */
     protected abstract ClusterBlockException checkRequestBlock(ClusterState state, Request request, String[] concreteIndices);
-
-    @Override
-    protected final void doExecute(Request request, ActionListener<Response> listener) {
-        throw new UnsupportedOperationException("the task parameter is required for this operation");
-    }
 
     @Override
     protected void doExecute(Task task, Request request, ActionListener<Response> listener) {

@@ -19,11 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
-package org.elasticsearch.indices.close;
+package org.elasticsearch.action.admin.indices.close;
 
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
@@ -37,7 +36,6 @@ import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -157,8 +155,8 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             mock(
                 IndicesService.class),
             mock(ThreadPool.class),
-            shardStateAction,
-            mock(IndexNameExpressionResolver.class));
+            shardStateAction
+        );
     }
 
     @Override
@@ -292,7 +290,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         TransportVerifyShardBeforeCloseAction.ShardRequest request =
             new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, false, clusterBlock);
         ReplicationOperation.Replicas<TransportVerifyShardBeforeCloseAction.ShardRequest> proxy =
-            action.newReplicasProxy(primaryTerm);
+            action.newReplicasProxy();
         ReplicationOperation<TransportVerifyShardBeforeCloseAction.ShardRequest,
             TransportVerifyShardBeforeCloseAction.ShardRequest, PrimaryResult> operation = new ReplicationOperation<>(
             request,
@@ -300,7 +298,8 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             listener,
             proxy,
             logger,
-            "test"
+            "test",
+            primaryTerm
         );
         operation.execute();
 

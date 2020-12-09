@@ -21,7 +21,6 @@ package org.elasticsearch.action.support;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -40,20 +39,16 @@ public abstract class HandledTransportAction<Request extends TransportRequest, R
     protected final Logger logger = LogManager.getLogger(getClass());
 
     protected HandledTransportAction(String actionName,
-                                     ThreadPool threadPool,
                                      TransportService transportService,
-                                     Writeable.Reader<Request> reader,
-                                     IndexNameExpressionResolver indexNameExpressionResolver) {
-        this(actionName, true, threadPool, transportService, reader, indexNameExpressionResolver);
+                                     Writeable.Reader<Request> reader) {
+        this(actionName, true, transportService, reader);
     }
 
     protected HandledTransportAction(String actionName,
                                      boolean canTripCircuitBreaker,
-                                     ThreadPool threadPool,
                                      TransportService transportService,
-                                     Writeable.Reader<Request> requestReader,
-                                     IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(actionName, threadPool, indexNameExpressionResolver, transportService.getTaskManager());
+                                     Writeable.Reader<Request> requestReader) {
+        super(actionName,transportService.getTaskManager());
         transportService.registerRequestHandler(
             actionName,
             ThreadPool.Names.SAME,

@@ -49,14 +49,12 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
     private final IndicesService indicesService;
 
     @Inject
-    public TransportIndicesStatsAction(ThreadPool threadPool,
-                                       ClusterService clusterService,
+    public TransportIndicesStatsAction(ClusterService clusterService,
                                        TransportService transportService,
                                        IndicesService indicesService,
                                        IndexNameExpressionResolver indexNameExpressionResolver) {
         super(
             IndicesStatsAction.NAME,
-            threadPool,
             clusterService,
             transportService,
             indexNameExpressionResolver,

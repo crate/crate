@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.List;
@@ -40,12 +39,11 @@ public class TransportFlushAction extends TransportBroadcastReplicationAction<Fl
     public static final String NAME = "indices:admin/flush";
 
     @Inject
-    public TransportFlushAction(ThreadPool threadPool,
-                                ClusterService clusterService,
+    public TransportFlushAction(ClusterService clusterService,
                                 TransportService transportService,
                                 NodeClient client,
                                 IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(NAME, FlushRequest::new, threadPool, clusterService, transportService, client, indexNameExpressionResolver, TransportShardFlushAction.TYPE);
+        super(NAME, FlushRequest::new, clusterService, transportService, client, indexNameExpressionResolver, TransportShardFlushAction.TYPE);
     }
 
     @Override

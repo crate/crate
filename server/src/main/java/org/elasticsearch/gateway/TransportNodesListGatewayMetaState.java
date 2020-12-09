@@ -19,11 +19,6 @@
 
 package org.elasticsearch.gateway;
 
-import java.io.IOException;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
@@ -32,7 +27,6 @@ import org.elasticsearch.action.support.nodes.BaseNodesRequest;
 import org.elasticsearch.action.support.nodes.BaseNodesResponse;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -42,6 +36,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.List;
 
 public class TransportNodesListGatewayMetaState extends TransportNodesAction<TransportNodesListGatewayMetaState.Request,
                                                                              TransportNodesListGatewayMetaState.NodesGatewayMetaState,
@@ -57,9 +55,8 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
     public TransportNodesListGatewayMetaState(ThreadPool threadPool,
                                               ClusterService clusterService,
                                               TransportService transportService,
-                                              IndexNameExpressionResolver indexNameExpressionResolver,
                                               GatewayMetaState metaState) {
-        super(ACTION_NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
+        super(ACTION_NAME, threadPool, clusterService, transportService,
             Request::new, NodeRequest::new, ThreadPool.Names.GENERIC, NodeGatewayMetaState.class);
         this.metaState = metaState;
     }

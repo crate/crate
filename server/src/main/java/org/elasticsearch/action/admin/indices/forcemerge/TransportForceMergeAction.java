@@ -46,14 +46,12 @@ public class TransportForceMergeAction extends TransportBroadcastByNodeAction<Fo
     private final IndicesService indicesService;
 
     @Inject
-    public TransportForceMergeAction(ThreadPool threadPool,
-                                     ClusterService clusterService,
+    public TransportForceMergeAction(ClusterService clusterService,
                                      TransportService transportService,
                                      IndicesService indicesService,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
         super(
             ForceMergeAction.NAME,
-            threadPool,
             clusterService,
             transportService,
             indexNameExpressionResolver,

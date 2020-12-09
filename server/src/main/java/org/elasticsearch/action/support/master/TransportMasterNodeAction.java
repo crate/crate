@@ -55,8 +55,10 @@ import java.util.function.Predicate;
 public abstract class TransportMasterNodeAction<Request extends MasterNodeRequest<Request>, Response extends TransportResponse>
     extends HandledTransportAction<Request, Response> {
 
+    protected final ThreadPool threadPool;
     protected final TransportService transportService;
     protected final ClusterService clusterService;
+    protected final IndexNameExpressionResolver indexNameExpressionResolver;
 
     private final String executor;
 
@@ -76,9 +78,11 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                                         ThreadPool threadPool,
                                         Writeable.Reader<Request> request,
                                         IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(actionName, canTripCircuitBreaker, threadPool, transportService, request, indexNameExpressionResolver);
+        super(actionName, canTripCircuitBreaker, transportService, request);
         this.transportService = transportService;
         this.clusterService = clusterService;
+        this.threadPool = threadPool;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.executor = executor();
     }
 
@@ -94,12 +98,6 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
     }
 
     protected abstract ClusterBlockException checkBlock(Request request, ClusterState state);
-
-    @Override
-    protected final void doExecute(final Request request, ActionListener<Response> listener) {
-        logger.warn("attempt to execute a master node operation without task");
-        throw new UnsupportedOperationException("task parameter is required for this operation");
-    }
 
     @Override
     protected void doExecute(Task task, final Request request, ActionListener<Response> listener) {

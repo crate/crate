@@ -76,13 +76,14 @@ import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.block.ClusterBlock;
+import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.indices.IndexClosedException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -104,6 +105,7 @@ import java.util.stream.StreamSupport;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 
 
 public class InsertFromValues implements LogicalPlan {
@@ -668,7 +670,7 @@ public class InsertFromValues implements LogicalPlan {
                             // we want to report duplicate key exceptions
                             if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&
                                 (partitionWasDeleted(throwable, request.index())
-                                 || throwable instanceof IndexClosedException
+                                 || partitionClosed(throwable, request.index())
                                  || mixedArgumentTypesFailure(throwable))) {
                                 result.complete(compressedResult);
                             } else {
@@ -699,6 +701,17 @@ public class InsertFromValues implements LogicalPlan {
 
     private static boolean partitionWasDeleted(Throwable throwable, String index) {
         return throwable instanceof IndexNotFoundException && IndexParts.isPartitioned(index);
+    }
+
+    private static boolean partitionClosed(Throwable throwable, String index) {
+        if (throwable instanceof ClusterBlockException && IndexParts.isPartitioned(index)) {
+            for (ClusterBlock clusterBlock : ((ClusterBlockException) throwable).blocks()) {
+                if (clusterBlock.equals(INDEX_CLOSED_BLOCK)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static CompletableFuture<AcknowledgedResponse> createIndices(TransportCreatePartitionsAction createPartitionsAction,

@@ -27,7 +27,6 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -56,8 +55,7 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
                                             ClusterService clusterService,
                                             IndicesService indicesService,
                                             ThreadPool threadPool,
-                                            ShardStateAction shardStateAction,
-                                            IndexNameExpressionResolver indexNameExpressionResolver) {
+                                            ShardStateAction shardStateAction) {
         super(
             ACTION_NAME,
             transportService,
@@ -65,7 +63,6 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
             indicesService,
             threadPool,
             shardStateAction,
-            indexNameExpressionResolver,
             ResyncReplicationRequest::new,
             ResyncReplicationRequest::new,
             ThreadPool.Names.WRITE,
@@ -85,8 +82,8 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     }
 
     @Override
-    protected ReplicationOperation.Replicas newReplicasProxy(long primaryTerm) {
-        return new ResyncActionReplicasProxy(primaryTerm);
+    protected ReplicationOperation.Replicas<ResyncReplicationRequest> newReplicasProxy() {
+        return new ResyncActionReplicasProxy();
     }
 
     @Override
@@ -104,9 +101,10 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     }
 
     @Override
-    protected WriteReplicaResult shardOperationOnReplica(ResyncReplicationRequest request, IndexShard replica) throws Exception {
+    protected WriteReplicaResult<ResyncReplicationRequest> shardOperationOnReplica(ResyncReplicationRequest request,
+                                                                                   IndexShard replica) throws Exception {
         Translog.Location location = performOnReplica(request, replica);
-        return new WriteReplicaResult(request, location, null, replica, logger);
+        return new WriteReplicaResult<>(request, location, null, replica, logger);
     }
 
     public static Translog.Location performOnReplica(ResyncReplicationRequest request, IndexShard replica) throws Exception {
@@ -181,12 +179,9 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
      */
     class ResyncActionReplicasProxy extends ReplicasProxy {
 
-        ResyncActionReplicasProxy(long primaryTerm) {
-            super(primaryTerm);
-        }
-
         @Override
-        public void failShardIfNeeded(ShardRouting replica, String message, Exception exception, ActionListener<Void> listener) {
+        public void failShardIfNeeded(ShardRouting replica, long primaryTerm, String message, Exception exception,
+                                      ActionListener<Void> listener) {
             shardStateAction.remoteShardFailed(
                 replica.shardId(), replica.allocationId().getId(), primaryTerm, false, message, exception, listener);
         }

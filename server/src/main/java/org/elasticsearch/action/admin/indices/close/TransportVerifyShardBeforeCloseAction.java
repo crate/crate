@@ -19,19 +19,16 @@
 
 package org.elasticsearch.action.admin.indices.close;
 
-import java.io.IOException;
-
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
-import org.elasticsearch.action.support.replication.ReplicationOperation.Replicas;
+import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -43,6 +40,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 public class TransportVerifyShardBeforeCloseAction extends TransportReplicationAction<
     TransportVerifyShardBeforeCloseAction.ShardRequest, TransportVerifyShardBeforeCloseAction.ShardRequest, ReplicationResponse> {
@@ -56,8 +55,7 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
                                                  final ClusterService clusterService,
                                                  final IndicesService indicesService,
                                                  final ThreadPool threadPool,
-                                                 final ShardStateAction stateAction,
-                                                 final IndexNameExpressionResolver resolver) {
+                                                 final ShardStateAction stateAction) {
         super(
             NAME,
             transportService,
@@ -65,7 +63,6 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
             indicesService,
             threadPool,
             stateAction,
-            resolver,
             ShardRequest::new,
             ShardRequest::new,
             ThreadPool.Names.MANAGEMENT
@@ -136,8 +133,8 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
     }
 
     @Override
-    public Replicas<ShardRequest> newReplicasProxy(long primaryTerm) {
-        return new VerifyShardBeforeCloseActionReplicasProxy(primaryTerm);
+    protected ReplicationOperation.Replicas<ShardRequest> newReplicasProxy() {
+        return new VerifyShardBeforeCloseActionReplicasProxy();
     }
 
     /**
@@ -146,13 +143,9 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
      * or reopened in an unverified state with potential non flushed translog operations.
      */
     class VerifyShardBeforeCloseActionReplicasProxy extends ReplicasProxy {
-
-        public VerifyShardBeforeCloseActionReplicasProxy(long primaryTerm) {
-            super(primaryTerm);
-        }
-
         @Override
-        public void markShardCopyAsStaleIfNeeded(ShardId shardId, String allocationId, ActionListener<Void> listener) {
+        public void markShardCopyAsStaleIfNeeded(final ShardId shardId, final String allocationId, final long primaryTerm,
+                                                 final ActionListener<Void> listener) {
             shardStateAction.remoteShardFailed(shardId, allocationId, primaryTerm, true, "mark copy as stale", null, listener);
         }
     }
