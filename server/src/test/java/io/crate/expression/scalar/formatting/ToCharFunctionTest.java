@@ -1,26 +1,28 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
-package io.crate.expression.scalar;
+package io.crate.expression.scalar.formatting;
 
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
 
@@ -29,18 +31,8 @@ public class ToCharFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateTimestamp() {
         assertEvaluate(
-            "to_char(timestamp '1970-01-01T17:31:12', 'EEEE, LLLL d - h:m a uuuu G')",
-            "Thursday, January 1 - 5:31 PM 1970 AD"
-        );
-    }
-
-    @Test
-    public void testEvaluateTimestampWithInvalidPattern() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Unknown pattern letter: B");
-        assertEvaluate(
-            "to_char(timestamp '1970-01-01T17:31:12', 'ABC')",
-            null
+            "to_char(timestamp '1970-01-01T17:31:12.12345', 'Day,  DD  HH12:MI:SS')",
+            "Thursday,  01  05:31:12"
         );
     }
 
