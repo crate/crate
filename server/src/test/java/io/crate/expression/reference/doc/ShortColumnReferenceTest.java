@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
+import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.expression.reference.doc.lucene.ShortColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -57,7 +58,8 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
     public void testShortExpression() throws Exception {
         ShortColumnReference shortColumn = new ShortColumnReference(column);
         shortColumn.startCollect(ctx);
-        shortColumn.setNextReader(readerContext, null);
+        var fieldReader = FieldReader.getFieldReader(readerContext);
+        shortColumn.setNextReader(readerContext, fieldReader);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         short i = -10;

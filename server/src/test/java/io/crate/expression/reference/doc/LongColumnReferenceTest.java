@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
+import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -56,8 +57,9 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testLongExpression() throws Exception {
         LongColumnReference longColumn = new LongColumnReference(column);
+        var fieldReader = FieldReader.getFieldReader(readerContext);
         longColumn.startCollect(ctx);
-        longColumn.setNextReader(readerContext, null);
+        longColumn.setNextReader(readerContext, fieldReader);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         long l = Long.MIN_VALUE;

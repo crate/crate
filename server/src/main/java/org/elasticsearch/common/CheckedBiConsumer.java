@@ -19,6 +19,7 @@
 
 package org.elasticsearch.common;
 
+import java.io.IOException;
 import java.util.function.BiConsumer;
 
 /**
@@ -26,5 +27,5 @@ import java.util.function.BiConsumer;
  */
 @FunctionalInterface
 public interface CheckedBiConsumer<T, U, E extends Exception> {
-    void accept(T t, U u) throws E;
+    void accept(T t, U u) throws E, IOException;
 }

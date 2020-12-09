@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
+import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -60,7 +61,8 @@ public class StringColumnReferenceTest extends DocLevelExpressionsTest {
     public void testFieldCacheExpression() throws Exception {
         BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(column);
         bytesRefColumn.startCollect(ctx);
-        bytesRefColumn.setNextReader(readerContext, null);
+        var fieldReader = FieldReader.getFieldReader(readerContext);
+        bytesRefColumn.setNextReader(readerContext, fieldReader);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         int i = 0;

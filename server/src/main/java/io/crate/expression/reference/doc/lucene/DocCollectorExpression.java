@@ -49,7 +49,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(context, fieldReader, doc);
+        sourceLookup.setSegmentAndDocument(fieldReader, doc);
     }
 
     @Override
@@ -87,7 +87,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public void setNextDocId(int doc) {
-            sourceLookup.setSegmentAndDocument(context, fieldReader, doc);
+            sourceLookup.setSegmentAndDocument(fieldReader, doc);
         }
 
         @Override

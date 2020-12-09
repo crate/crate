@@ -32,6 +32,7 @@ import io.crate.data.RowN;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.fetch.FetchId;
+import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
@@ -237,9 +238,10 @@ public final class ReservoirSampler {
             int readerIndex = ReaderUtil.subIndex(docId, leaves);
             LeafReaderContext leafContext = leaves.get(readerIndex);
             int subDoc = docId - leafContext.docBase;
+            var fieldReader = FieldReader.getFieldReader(leafContext);
             for (LuceneCollectorExpression<?> expression : expressions) {
                 try {
-                    expression.setNextReader(leafContext, null);
+                    expression.setNextReader(leafContext, fieldReader);
                     expression.setNextDocId(subDoc);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);

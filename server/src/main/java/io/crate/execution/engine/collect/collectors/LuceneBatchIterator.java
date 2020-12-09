@@ -26,6 +26,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
+import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -153,9 +154,10 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             currentScorer = scorer;
             currentLeaf = leaf;
             currentDocIdSetIt = scorer.iterator();
+            var fieldReader = FieldReader.getFieldReader(leaf);
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setScorer(currentScorer);
-                expression.setNextReader(currentLeaf, null);
+                expression.setNextReader(currentLeaf, fieldReader);
             }
             return true;
         }

@@ -94,7 +94,7 @@ class FetchCollector {
                 }
                 LeafReaderContext subReaderContext = leaves.get(readerIndex);
                 try {
-                    if (subReaderContext.reader() instanceof SequentialStoredFieldsLeafReader
+                        if (subReaderContext.reader() instanceof SequentialStoredFieldsLeafReader
                         && hasSequentialDocs && docIds.size() >= 10) {
                         // All the docs to fetch are adjacent but Lucene stored fields are optimized
                         // for random access and don't optimize for sequential access - except for merging.
@@ -103,11 +103,10 @@ class FetchCollector {
                         SequentialStoredFieldsLeafReader leafReader = (SequentialStoredFieldsLeafReader) subReaderContext.reader();
                         StoredFieldsReader sequentialStoredFieldsReader = leafReader.getSequentialStoredFieldsReader();
                         fieldReader = sequentialStoredFieldsReader::visitDocument;
-                        setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
                     } else {
                         fieldReader = subReaderContext.reader()::document;
-                        setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
                     }
+                    setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
                 } catch (IOException e) {
                     Exceptions.rethrowRuntimeException(e);
                 }
@@ -117,7 +116,7 @@ class FetchCollector {
         return builder.build();
     }
 
-    static boolean hasSequentialDocs(int[] docIds) {
+    private static boolean hasSequentialDocs(int[] docIds) {
         return docIds.length > 0 && docIds[docIds.length - 1] - docIds[0] == docIds.length - 1;
     }
 }

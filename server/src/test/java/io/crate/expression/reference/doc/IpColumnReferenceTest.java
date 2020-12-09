@@ -23,6 +23,7 @@
 package io.crate.expression.reference.doc;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.expression.reference.doc.lucene.IpColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -97,7 +98,8 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testIpExpression() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_COLUMN);
         columnReference.startCollect(ctx);
-        columnReference.setNextReader(readerContext, null);
+        var fieldReader = FieldReader.getFieldReader(readerContext);
+        columnReference.setNextReader(readerContext, fieldReader);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 21);
         assertThat(topDocs.scoreDocs.length, is(21));
@@ -120,8 +122,9 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testIpExpressionOnArrayThrowsException() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_ARRAY_COLUMN);
+        var fieldReader = FieldReader.getFieldReader(readerContext);
         columnReference.startCollect(ctx);
-        columnReference.setNextReader(readerContext, null);
+        columnReference.setNextReader(readerContext, fieldReader);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
 
@@ -137,8 +140,9 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testNullDocValuesDoNotResultInNPE() throws IOException {
         IpColumnReference ref = new IpColumnReference("missing_column");
+        var fieldReader = FieldReader.getFieldReader(readerContext);
         ref.startCollect(ctx);
-        ref.setNextReader(readerContext, null);
+        ref.setNextReader(readerContext, fieldReader);
         ref.setNextDocId(0);
 
         assertThat(ref.value(), Matchers.nullValue());

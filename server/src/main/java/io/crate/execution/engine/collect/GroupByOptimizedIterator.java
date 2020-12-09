@@ -37,6 +37,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.engine.fetch.FieldReader;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -293,8 +294,9 @@ final class GroupByOptimizedIterator {
             if (scorer == null) {
                 continue;
             }
+            var fieldReader = FieldReader.getFieldReader(leaf);
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                expressions.get(i).setNextReader(leaf, null);
+                expressions.get(i).setNextReader(leaf, fieldReader);
             }
             SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {

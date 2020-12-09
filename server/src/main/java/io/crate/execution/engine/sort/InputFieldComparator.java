@@ -23,11 +23,15 @@
 package io.crate.execution.engine.sort;
 
 import io.crate.data.Input;
+import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorable;
+import org.elasticsearch.common.CheckedBiConsumer;
+import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -61,8 +65,9 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
+        var fieldReader = FieldReader.getFieldReader(context);
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextReader(context, null);
+            collectorExpressions.get(i).setNextReader(context, fieldReader);
         }
         return this;
     }

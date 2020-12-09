@@ -41,7 +41,6 @@ import java.util.RandomAccess;
 public final class SourceLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
-    private LeafReader reader;
     private CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
     private int doc;
     private Map<String, Object> source;
@@ -50,15 +49,14 @@ public final class SourceLookup {
     SourceLookup() {
     }
 
-    public void setSegmentAndDocument(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader, int doc) {
-        if (this.doc == doc && this.reader == context.reader()) {
+    public void setSegmentAndDocument(CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader, int doc) {
+        if (this.doc == doc) {
             // Don't invalidate source
             return;
         }
         fieldsVisitor.reset();
         this.docVisited = false;
         this.source = null;
-        this.reader = context.reader();
         this.doc = doc;
         this.fieldReader = fieldReader;
     }
