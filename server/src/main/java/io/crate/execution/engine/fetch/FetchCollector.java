@@ -90,21 +90,21 @@ class FetchCollector {
             for (int docId : ids) {
                 int readerIndex = ReaderUtil.subIndex(docId, leaves);
                 if (readerIndex == -1) {
-                    throw new IllegalStateException("jobId=" + fetchTask.jobId() + " docId " + docId + " doesn't fit to leaves of searcher " + readerId + " fetchTask=" + fetchTask);
+                    throw new IllegalStateException(
+                        "jobId=" + fetchTask.jobId() + " docId " + docId + " doesn't fit to leaves of searcher " +
+                        readerId + " fetchTask=" + fetchTask);
                 }
                 LeafReaderContext subReaderContext = leaves.get(readerIndex);
                 try {
-                        if (subReaderContext.reader() instanceof SequentialStoredFieldsLeafReader
+                    if (subReaderContext.reader() instanceof SequentialStoredFieldsLeafReader
                         && hasSequentialDocs && docIds.size() >= 10) {
                         // All the docs to fetch are adjacent but Lucene stored fields are optimized
                         // for random access and don't optimize for sequential access - except for merging.
                         // So we do a little hack here and pretend we're going to do merges in order to
                         // get better sequential access.
-                        SequentialStoredFieldsLeafReader leafReader = (SequentialStoredFieldsLeafReader) subReaderContext.reader();
-                        StoredFieldsReader sequentialStoredFieldsReader = leafReader.getSequentialStoredFieldsReader();
-                        fieldReader = sequentialStoredFieldsReader::visitDocument;
+                        fieldReader = FieldReader.getSequentialFieldReaderIfAvailable(subReaderContext);
                     } else {
-                        fieldReader = subReaderContext.reader()::document;
+                        fieldReader = FieldReader.getFieldReader(subReaderContext);
                     }
                     setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
                 } catch (IOException e) {
