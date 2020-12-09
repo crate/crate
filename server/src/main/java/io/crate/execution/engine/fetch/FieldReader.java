@@ -35,6 +35,10 @@ public class FieldReader {
     private FieldReader() {}
 
     public static CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> getFieldReader(LeafReaderContext context) {
+        return context.reader()::document;
+    }
+
+    public static CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> getSequentialFieldReaderIfAvailable(LeafReaderContext context) {
         try {
             if (context.reader() instanceof SequentialStoredFieldsLeafReader) {
                 SequentialStoredFieldsLeafReader reader = (SequentialStoredFieldsLeafReader) context.reader();

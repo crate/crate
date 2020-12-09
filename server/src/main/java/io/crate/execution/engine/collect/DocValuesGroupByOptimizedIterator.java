@@ -38,6 +38,7 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.engine.fetch.FieldReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -337,8 +338,9 @@ final class DocValuesGroupByOptimizedIterator {
                 if (scorer == null) {
                     continue;
                 }
+                var fieldReader = FieldReader.getFieldReader(leaf);
                 for (int i = 0; i < keyExpressions.size(); i++) {
-                    keyExpressions.get(i).setNextReader(leaf, null);
+                    keyExpressions.get(i).setNextReader(leaf, fieldReader);
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
                     aggregators.get(i).loadDocValues(leaf.reader());

@@ -52,7 +52,7 @@ public class CrateNode extends Node {
         AzureRepositoryPlugin.class,
         Ec2DiscoveryPlugin.class,
         CommonAnalysisPlugin.class,
-//        AnalysisPhoneticPlugin.class,
+        AnalysisPhoneticPlugin.class,
         Netty4Plugin.class);
 
     protected CrateNode(Environment environment) {
