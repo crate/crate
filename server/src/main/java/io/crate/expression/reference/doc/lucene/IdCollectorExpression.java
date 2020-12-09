@@ -30,13 +30,14 @@ import org.elasticsearch.index.fieldvisitor.IDVisitor;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
     private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.name());
-    private CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
-    // unused
-    private LeafReader reader;
+    private  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader;
+    private LeafReaderContext context;
     private int docId;
 
     public IdCollectorExpression() {
@@ -51,7 +52,7 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     public String value() {
         try {
             visitor.setCanStop(false);
-            fieldReader.accept(docId, visitor);
+            fieldReader.apply(context).accept(docId, visitor);
             return visitor.getId();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -59,8 +60,8 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
-        reader = context.reader();
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
+        this.context = context;
         this.fieldReader = fieldReader;
     }
 }

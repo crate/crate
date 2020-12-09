@@ -193,7 +193,7 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id int)");
         execute("insert into t1 (id) values (1), (2), (3) , (4), (5), (6), (7), (8), (9), (10), (11)");
         refresh();
-        execute("select * from t1 order by _id"); // add 2nd order by to get deterministic results
+        execute("select * from t1 order by _id");
         System.out.println("response = " + response);
     }
 }

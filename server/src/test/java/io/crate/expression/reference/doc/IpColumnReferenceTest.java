@@ -31,19 +31,21 @@ import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.network.InetAddresses;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.function.Function;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -98,7 +100,7 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testIpExpression() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_COLUMN);
         columnReference.startCollect(ctx);
-        var fieldReader = FieldReader.getFieldReader(readerContext);
+        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         columnReference.setNextReader(readerContext, fieldReader);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 21);
@@ -122,7 +124,7 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testIpExpressionOnArrayThrowsException() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_ARRAY_COLUMN);
-        var fieldReader = FieldReader.getFieldReader(readerContext);
+        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         columnReference.startCollect(ctx);
         columnReference.setNextReader(readerContext, fieldReader);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -140,7 +142,7 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testNullDocValuesDoNotResultInNPE() throws IOException {
         IpColumnReference ref = new IpColumnReference("missing_column");
-        var fieldReader = FieldReader.getFieldReader(readerContext);
+        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         ref.startCollect(ctx);
         ref.setNextReader(readerContext, fieldReader);
         ref.setNextDocId(0);

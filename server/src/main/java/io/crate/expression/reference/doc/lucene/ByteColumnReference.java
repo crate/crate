@@ -30,6 +30,8 @@ import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class ByteColumnReference extends LuceneCollectorExpression<Byte> {
 
@@ -67,7 +69,7 @@ public class ByteColumnReference extends LuceneCollectorExpression<Byte> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         super.setNextReader(context, fieldReader);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
     }

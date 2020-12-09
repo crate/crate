@@ -48,6 +48,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
@@ -57,6 +58,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
@@ -74,6 +76,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 
@@ -238,7 +241,7 @@ public final class ReservoirSampler {
             int readerIndex = ReaderUtil.subIndex(docId, leaves);
             LeafReaderContext leafContext = leaves.get(readerIndex);
             int subDoc = docId - leafContext.docBase;
-            var fieldReader = FieldReader.getFieldReader(leafContext);
+            Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
             for (LuceneCollectorExpression<?> expression : expressions) {
                 try {
                     expression.setNextReader(leafContext, fieldReader);

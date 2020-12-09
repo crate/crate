@@ -32,6 +32,7 @@ import io.crate.expression.symbol.SymbolVisitors;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreScorer;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -42,11 +43,13 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Query implementation which filters docIds by evaluating {@code condition} on each docId to verify if it matches.
@@ -126,7 +129,7 @@ class GenericFunctionQuery extends Query {
     }
 
     private FilteredTwoPhaseIterator getTwoPhaseIterator(final LeafReaderContext context) throws IOException {
-        var fieldReader = FieldReader.getFieldReader(context);
+        java.util.function.Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         for (LuceneCollectorExpression expression : expressions) {
             expression.setNextReader(context, fieldReader);
         }

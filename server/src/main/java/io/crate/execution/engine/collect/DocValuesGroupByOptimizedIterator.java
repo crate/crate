@@ -35,11 +35,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import io.crate.execution.engine.fetch.FieldReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -47,6 +49,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -338,7 +341,7 @@ final class DocValuesGroupByOptimizedIterator {
                 if (scorer == null) {
                     continue;
                 }
-                var fieldReader = FieldReader.getFieldReader(leaf);
+                Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
                 for (int i = 0; i < keyExpressions.size(); i++) {
                     keyExpressions.get(i).setNextReader(leaf, fieldReader);
                 }

@@ -25,6 +25,8 @@ package io.crate.execution.engine.fetch;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.carrotsearch.hppc.IntContainer;
 
@@ -71,7 +73,7 @@ class FetchCollector {
 
     }
 
-    private void setNextDocId(LeafReaderContext readerContext, int doc, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    private void setNextDocId(LeafReaderContext readerContext, int doc, Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         for (LuceneCollectorExpression<?> e : collectorExpressions) {
             e.setNextReader(readerContext, fieldReader);
             e.setNextDocId(doc);
@@ -83,7 +85,7 @@ class FetchCollector {
         int[] ids = docIds.toArray();
         Arrays.sort(ids);
         var hasSequentialDocs = hasSequentialDocs(ids);
-        CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader = null;
+        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = null;
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
@@ -97,14 +99,14 @@ class FetchCollector {
                 LeafReaderContext subReaderContext = leaves.get(readerIndex);
                 try {
                     if (subReaderContext.reader() instanceof SequentialStoredFieldsLeafReader
-                        && hasSequentialDocs && docIds.size() >= 10) {
+                        && hasSequentialDocs && ids.length >= 10) {
                         // All the docs to fetch are adjacent but Lucene stored fields are optimized
                         // for random access and don't optimize for sequential access - except for merging.
                         // So we do a little hack here and pretend we're going to do merges in order to
                         // get better sequential access.
-                        fieldReader = FieldReader.getSequentialFieldReaderIfAvailable(subReaderContext);
+                        fieldReader = FieldReader::getSequentialFieldReaderIfAvailable;
                     } else {
-                        fieldReader = FieldReader.getFieldReader(subReaderContext);
+                        fieldReader = FieldReader::getFieldReader;
                     }
                     setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
                 } catch (IOException e) {

@@ -28,11 +28,17 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.function.Function;
 
 import static org.hamcrest.core.Is.is;
 
@@ -57,7 +63,7 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testLongExpression() throws Exception {
         LongColumnReference longColumn = new LongColumnReference(column);
-        var fieldReader = FieldReader.getFieldReader(readerContext);
+        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         longColumn.startCollect(ctx);
         longColumn.setNextReader(readerContext, fieldReader);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

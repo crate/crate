@@ -32,6 +32,8 @@ import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
 
@@ -69,7 +71,7 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         super.setNextReader(context, fieldReader);
         values = FieldData.toString(DocValues.getSortedNumeric(context.reader(), columnName));
     }

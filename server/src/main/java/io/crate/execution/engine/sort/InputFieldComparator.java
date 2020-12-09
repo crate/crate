@@ -37,6 +37,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Comparator for sorting on generic Inputs (Scalar Functions mostly)
@@ -65,7 +67,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
-        var fieldReader = FieldReader.getFieldReader(context);
+        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         for (int i = 0; i < collectorExpressions.size(); i++) {
             collectorExpressions.get(i).setNextReader(context, fieldReader);
         }

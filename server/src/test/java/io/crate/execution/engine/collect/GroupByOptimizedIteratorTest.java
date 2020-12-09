@@ -64,6 +64,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.instanceOf;
@@ -111,7 +113,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             List.of(new LuceneCollectorExpression<Object>() {
 
                 @Override
-                public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+                public void setNextReader(LeafReaderContext context, Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
                     onNextReader.run();
                 }
 

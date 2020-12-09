@@ -31,8 +31,10 @@ import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.ScoreDoc;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -41,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
 
@@ -84,7 +87,7 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         int readerIndex = ReaderUtil.subIndex(fieldDoc.doc, leaves);
         LeafReaderContext subReaderContext = leaves.get(readerIndex);
         int subDoc = fieldDoc.doc - subReaderContext.docBase;
-        var fieldReader = FieldReader.getFieldReader(subReaderContext);
+        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         for (LuceneCollectorExpression<?> expression : expressions) {
             try {
                 expression.setNextReader(subReaderContext, fieldReader);

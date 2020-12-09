@@ -30,6 +30,8 @@ import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class SeqNoCollectorExpression extends LuceneCollectorExpression<Long> {
 
@@ -37,7 +39,7 @@ public class SeqNoCollectorExpression extends LuceneCollectorExpression<Long> {
     private int doc;
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         try {
             seqNumbers = context.reader().getNumericDocValues(DocSysColumns.SEQ_NO.name());
         } catch (IOException e) {

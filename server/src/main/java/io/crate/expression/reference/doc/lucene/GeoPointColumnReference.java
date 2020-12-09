@@ -23,6 +23,8 @@ package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.lucene.geo.GeoEncodingUtils;
 import org.apache.lucene.index.DocValues;
@@ -76,7 +78,7 @@ public class GeoPointColumnReference extends LuceneCollectorExpression<Point> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         super.setNextReader(context, fieldReader);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
     }

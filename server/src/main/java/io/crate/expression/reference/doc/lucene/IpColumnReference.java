@@ -33,6 +33,8 @@ import org.elasticsearch.search.DocValueFormat;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class IpColumnReference extends LuceneCollectorExpression<String> {
 
@@ -68,7 +70,7 @@ public class IpColumnReference extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         values = context.reader().getSortedSetDocValues(columnName);
         if (values == null) {
             values = DocValues.emptySortedSet();

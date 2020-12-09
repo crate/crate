@@ -32,6 +32,7 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -39,6 +40,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
+import org.elasticsearch.common.CheckedBiConsumer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -47,6 +49,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * BatchIterator implementation which exposes the data stored in a lucene index.
@@ -154,7 +158,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             currentScorer = scorer;
             currentLeaf = leaf;
             currentDocIdSetIt = scorer.iterator();
-            var fieldReader = FieldReader.getFieldReader(leaf);
+            Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setScorer(currentScorer);
                 expression.setNextReader(currentLeaf, fieldReader);

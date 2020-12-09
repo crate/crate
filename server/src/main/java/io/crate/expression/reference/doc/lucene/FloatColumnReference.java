@@ -23,6 +23,8 @@ package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
@@ -69,7 +71,7 @@ public class FloatColumnReference extends LuceneCollectorExpression<Float> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         super.setNextReader(context, fieldReader);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
     }

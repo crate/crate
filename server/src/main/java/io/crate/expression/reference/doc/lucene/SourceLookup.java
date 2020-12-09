@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
+import java.util.function.Function;
 
 public final class SourceLookup {
 
@@ -49,7 +50,7 @@ public final class SourceLookup {
     SourceLookup() {
     }
 
-    public void setSegmentAndDocument(CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader, int doc) {
+    public void setSegmentAndDocument(LeafReaderContext context, Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader, int doc) {
         if (this.doc == doc) {
             // Don't invalidate source
             return;
@@ -58,7 +59,7 @@ public final class SourceLookup {
         this.docVisited = false;
         this.source = null;
         this.doc = doc;
-        this.fieldReader = fieldReader;
+        this.fieldReader = fieldReader.apply(context);
     }
 
     public Object get(List<String> path) {

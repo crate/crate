@@ -27,6 +27,8 @@ import org.apache.lucene.index.StoredFieldVisitor;
 import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> {
 
@@ -51,7 +53,7 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         super.setNextReader(context, fieldReader);
         docBase = context.docBase;
     }

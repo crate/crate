@@ -27,12 +27,14 @@ import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.compress.CompressorFactory;
 
 import java.io.IOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     private SourceLookup sourceLookup;
     private LeafReaderContext context;
-    private CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
+    private Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader;
 
     @Override
     public void startCollect(CollectorContext context) {
@@ -41,11 +43,11 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     @Override
     public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(fieldReader, doc);
+        sourceLookup.setSegmentAndDocument(context, fieldReader, doc);
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         this.context = context;
         this.fieldReader = fieldReader;
     }

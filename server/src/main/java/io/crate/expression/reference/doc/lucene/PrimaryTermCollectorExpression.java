@@ -30,6 +30,8 @@ import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Long> {
 
@@ -37,7 +39,7 @@ public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Lo
     private int doc;
 
     @Override
-    public void setNextReader(LeafReaderContext context, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    public void setNextReader(LeafReaderContext context,  Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader) throws IOException {
         try {
             primaryTerms = context.reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
         } catch (IOException e) {

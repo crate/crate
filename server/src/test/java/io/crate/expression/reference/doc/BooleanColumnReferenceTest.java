@@ -28,11 +28,17 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.function.Function;
 
 import static org.hamcrest.core.Is.is;
 
@@ -56,7 +62,7 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testBooleanExpression() throws Exception {
-        var fieldReader = FieldReader.getFieldReader(readerContext);
+        Function<LeafReaderContext, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReader = FieldReader::getFieldReader;
         BooleanColumnReference booleanColumn = new BooleanColumnReference(column);
         booleanColumn.startCollect(ctx);
         booleanColumn.setNextReader(readerContext, fieldReader);
