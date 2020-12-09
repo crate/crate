@@ -47,6 +47,7 @@ import io.crate.expression.scalar.conditional.GreatestFunction;
 import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.conditional.LeastFunction;
 import io.crate.expression.scalar.conditional.NullIfFunction;
+import io.crate.expression.scalar.formatting.ToCharFunction;
 import io.crate.expression.scalar.geo.CoordinateFunction;
 import io.crate.expression.scalar.geo.DistanceFunction;
 import io.crate.expression.scalar.geo.GeoHashFunction;
