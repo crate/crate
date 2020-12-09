@@ -25,10 +25,8 @@ package io.crate.execution.engine.indexing;
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.dml.ShardRequest;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import java.io.IOException;
 
 import static org.hamcrest.Matchers.is;
 

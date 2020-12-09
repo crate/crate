@@ -27,7 +27,6 @@ import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.license.LicenseService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.settings.CrateSetting;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.hamcrest.Matchers;
 import org.junit.Test;

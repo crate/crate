@@ -38,7 +38,6 @@ import static io.crate.testing.TestingHelpers.isDocKey;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
 public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{

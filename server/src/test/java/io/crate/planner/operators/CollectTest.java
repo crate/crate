@@ -26,7 +26,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

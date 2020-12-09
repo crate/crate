@@ -42,8 +42,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.Asserts.assertThrows;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class TransportCreatePartitionsActionTest extends SQLTransportIntegrationTest {

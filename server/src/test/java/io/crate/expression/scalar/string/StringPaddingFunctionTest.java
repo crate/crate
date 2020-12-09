@@ -24,9 +24,7 @@ package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class StringPaddingFunctionTest extends AbstractScalarFunctionsTest {
 

@@ -32,7 +32,6 @@ import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**

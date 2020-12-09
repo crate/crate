@@ -35,7 +35,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.CauseMatcher;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.index.Index;
 import org.junit.Test;
 
 import java.util.Collections;

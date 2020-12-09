@@ -24,7 +24,6 @@ package io.crate.expression.reference;
 
 import io.crate.data.Input;
 import io.crate.metadata.Reference;
-import io.crate.expression.reference.ReferenceResolver;
 
 import java.util.function.Consumer;
 

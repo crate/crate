@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.LocalClusterUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.logging.Loggers;
@@ -56,7 +55,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;

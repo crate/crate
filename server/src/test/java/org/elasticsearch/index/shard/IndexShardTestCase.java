@@ -21,7 +21,6 @@
  */
 package org.elasticsearch.index.shard;
 
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;

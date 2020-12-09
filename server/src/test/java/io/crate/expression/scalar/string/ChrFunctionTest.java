@@ -22,9 +22,7 @@
 
 package io.crate.expression.scalar.string;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 

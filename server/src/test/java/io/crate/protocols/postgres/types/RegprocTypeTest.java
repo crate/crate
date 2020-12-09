@@ -22,8 +22,6 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.metadata.functions.Signature;
-import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

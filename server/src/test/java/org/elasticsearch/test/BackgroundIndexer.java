@@ -49,7 +49,6 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.junit.Assert;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataTypes;
 

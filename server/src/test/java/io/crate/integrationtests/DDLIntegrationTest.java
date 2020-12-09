@@ -59,7 +59,6 @@ import io.crate.testing.SQLErrorMatcher;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ESIntegTestCase.ClusterScope()
 @UseRandomizedSchema(random = false)

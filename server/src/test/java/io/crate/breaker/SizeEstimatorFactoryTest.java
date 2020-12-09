@@ -25,7 +25,6 @@ package io.crate.breaker;
 import io.crate.data.RowN;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
 import org.junit.Test;
