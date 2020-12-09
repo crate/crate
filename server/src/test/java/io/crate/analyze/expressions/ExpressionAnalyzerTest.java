@@ -50,7 +50,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import io.crate.types.StringType;
 import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;

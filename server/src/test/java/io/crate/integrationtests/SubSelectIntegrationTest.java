@@ -29,7 +29,6 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;

@@ -73,7 +73,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class AllocationCommandsTests extends ESAllocationTestCase {

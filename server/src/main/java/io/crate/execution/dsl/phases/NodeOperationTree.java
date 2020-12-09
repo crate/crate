@@ -22,8 +22,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.execution.dsl.phases.ExecutionPhase;
-import io.crate.execution.dsl.phases.NodeOperation;
 
 import java.util.Collection;
 

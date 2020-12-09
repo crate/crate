@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import static io.crate.metadata.IndexParts.toIndexName;
 import static org.hamcrest.Matchers.equalTo;

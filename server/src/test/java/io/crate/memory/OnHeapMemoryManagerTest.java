@@ -22,7 +22,6 @@
 
 package io.crate.memory;
 
-import io.netty.buffer.ByteBuf;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicLong;

@@ -27,7 +27,6 @@ import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.settings.CrateSetting;
 import io.crate.udc.service.UDCService;
 import org.elasticsearch.cluster.ClusterInfoService;
-import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;

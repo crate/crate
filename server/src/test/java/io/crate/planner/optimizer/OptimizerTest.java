@@ -23,7 +23,6 @@
 package io.crate.planner.optimizer;
 
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;

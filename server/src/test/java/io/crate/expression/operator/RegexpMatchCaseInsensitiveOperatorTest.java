@@ -27,7 +27,6 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class RegexpMatchCaseInsensitiveOperatorTest extends AbstractScalarFunctionsTest {
 

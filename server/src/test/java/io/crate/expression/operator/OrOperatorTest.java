@@ -3,8 +3,6 @@ package io.crate.expression.operator;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class OrOperatorTest extends AbstractScalarFunctionsTest {

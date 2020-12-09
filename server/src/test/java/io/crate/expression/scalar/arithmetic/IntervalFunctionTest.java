@@ -22,7 +22,6 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.hamcrest.Matchers;
 import org.joda.time.Period;

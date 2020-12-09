@@ -68,7 +68,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 public class MasterService extends AbstractLifecycleComponent {
 

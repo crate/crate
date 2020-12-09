@@ -32,7 +32,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
-import org.elasticsearch.test.ESTestCase;
 
 public class TypeConversionTest extends ESTestCase {
 

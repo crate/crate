@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;

@@ -25,9 +25,7 @@ package io.crate.expression.scalar.timestamp;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TimezoneFunctionTest extends AbstractScalarFunctionsTest {
 

@@ -22,14 +22,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.VersioninigValidationException;
-import io.crate.protocols.postgres.PGErrorStatus;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
 
-import static io.crate.testing.Asserts.assertThrows;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static org.hamcrest.Matchers.containsString;
 
 public class SeqNoBasedOCCIntegrationTest extends SQLTransportIntegrationTest {
 
