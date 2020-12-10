@@ -54,11 +54,7 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     public String value() {
         try {
             visitor.setCanStop(false);
-            if (isOrdered) {
-                FieldReader.getSequentialFieldReaderIfAvailable(context).accept(docId, visitor);
-            } else {
-                FieldReader.getFieldReader(context).accept(docId, visitor);
-            }
+            FieldReader.visitReader(context, docId, visitor);
             return visitor.getId();
         } catch (IOException e) {
             throw new UncheckedIOException(e);

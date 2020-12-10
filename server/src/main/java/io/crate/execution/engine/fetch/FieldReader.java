@@ -34,8 +34,12 @@ public class FieldReader {
 
     private FieldReader() {}
 
-    public static CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> getFieldReader(LeafReaderContext context) {
-        return context.reader()::document;
+    public static void visitReader(LeafReaderContext context, Integer docId, StoredFieldVisitor visitor) throws IOException {
+        context.reader().document(docId, visitor);
+    }
+
+    public static void visitSequentialReader(LeafReaderContext context, Integer docId, StoredFieldVisitor visitor) throws IOException {
+        ((SequentialStoredFieldsLeafReader) context.reader()).getSequentialStoredFieldsReader().visitDocument(docId, visitor);
     }
 
     public static CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> getSequentialFieldReaderIfAvailable(LeafReaderContext context) {
@@ -50,4 +54,9 @@ public class FieldReader {
             throw Exceptions.toRuntimeException(e);
         }
     }
+
+    public static CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> getFieldReader(LeafReaderContext context) {
+        return context.reader()::document;
+    }
+
 }
