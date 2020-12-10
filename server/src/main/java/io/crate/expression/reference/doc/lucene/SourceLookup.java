@@ -62,7 +62,7 @@ public final class SourceLookup {
         this.source = null;
         this.doc = doc;
         this.reader = context.reader();
-        this.fieldReader = ordered ? FieldReader.getSequentialFieldReaderIfAvailable(context) : FieldReader.getFieldReader(context);
+        this.fieldReader = FieldReader.getFieldReader(context);
     }
 
     public Object get(List<String> path) {
