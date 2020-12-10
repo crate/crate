@@ -196,4 +196,30 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from t1 order by _id");
         System.out.println("response = " + response);
     }
+
+//    @Test
+//    public void test_data() {
+//        execute("""
+//   CREATE TABLE uservisits (
+//   "sourceIP" STRING PRIMARY KEY,
+//   "destinationURL" STRING,
+//   "visitDate" TIMESTAMP,
+//   "adRevenue" FLOAT,
+//   "UserAgent" STRING INDEX USING FULLTEXT,
+//   "cCode" STRING,
+//   "lCode" STRING,
+//   "searchWord" STRING,
+//   "duration" INTEGER,
+//   INDEX uagent_plain USING PLAIN("UserAgent")
+//   -- ^^ used for regex matching ^^ --
+//) WITH (
+//    number_of_replicas = 0,
+//    refresh_interval = 0
+//);
+//                    """);
+//        execute("copy uservisits from 'file:///Users/mkleen/uservisits.gz' with (compression = 'gzip')");
+//        execute("refresh table uservisits");
+//        execute("select * from uservisits order by _id");
+//        System.out.println("response = " + response);
+//    }
 }
