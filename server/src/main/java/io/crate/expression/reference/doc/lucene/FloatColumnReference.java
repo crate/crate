@@ -65,14 +65,14 @@ public class FloatColumnReference extends LuceneCollectorExpression<Float> {
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public void setNextDocId(int docId, boolean ordered) {
         this.docId = docId;
 
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
-        super.setNextReader(context, isSequental);
+    public void setNextReader(LeafReaderContext context) throws IOException {
+        super.setNextReader(context);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
     }
 }

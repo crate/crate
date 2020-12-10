@@ -39,7 +39,7 @@ public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Lo
     private int doc;
 
     @Override
-    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         try {
             primaryTerms = context.reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
         } catch (IOException e) {
@@ -48,7 +48,7 @@ public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Lo
     }
 
     @Override
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int doc, boolean ordered) {
         this.doc = doc;
     }
 

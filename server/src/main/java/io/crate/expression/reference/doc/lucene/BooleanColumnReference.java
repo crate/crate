@@ -66,13 +66,13 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public void setNextDocId(int docId, boolean orderd) {
         this.docId = docId;
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
-        super.setNextReader(context, isSequental);
+    public void setNextReader(LeafReaderContext context) throws IOException {
+        super.setNextReader(context);
         values = FieldData.toString(DocValues.getSortedNumeric(context.reader(), columnName));
     }
 }

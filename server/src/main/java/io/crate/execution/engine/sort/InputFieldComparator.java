@@ -68,7 +68,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextReader(context, false);
+            collectorExpressions.get(i).setNextReader(context);
         }
         return this;
     }
@@ -91,7 +91,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public int compareBottom(int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextDocId(doc);
+            collectorExpressions.get(i).setNextDocId(doc, false);
         }
         return comparator.compare(bottom, getFirstNonNullOrNull(input.value(), missingValue));
     }
@@ -108,7 +108,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public int compareTop(int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextDocId(doc);
+            collectorExpressions.get(i).setNextDocId(doc, false);
         }
         return comparator.compare(top, getFirstNonNullOrNull(input.value(), missingValue));
     }
@@ -116,7 +116,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public void copy(int slot, int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextDocId(doc);
+            collectorExpressions.get(i).setNextDocId(doc, true);
         }
         Object value = input.value();
         if (value == null) {

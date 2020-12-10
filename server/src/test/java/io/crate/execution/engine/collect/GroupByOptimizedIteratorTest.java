@@ -113,7 +113,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             List.of(new LuceneCollectorExpression<Object>() {
 
                 @Override
-                public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
+                public void setNextReader(LeafReaderContext context) throws IOException {
                     onNextReader.run();
                 }
 

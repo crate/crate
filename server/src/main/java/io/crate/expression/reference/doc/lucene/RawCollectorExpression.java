@@ -34,7 +34,6 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     private SourceLookup sourceLookup;
     private LeafReaderContext context;
-    private boolean isSequental;
 
     @Override
     public void startCollect(CollectorContext context) {
@@ -42,14 +41,13 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(context, doc, isSequental);
+    public void setNextDocId(int doc, boolean ordered) {
+        sourceLookup.setSegmentAndDocument(context, doc, ordered);
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         this.context = context;
-        this.isSequental = isSequental;
     }
 
     @Override

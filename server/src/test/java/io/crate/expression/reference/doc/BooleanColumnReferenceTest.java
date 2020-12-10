@@ -64,12 +64,12 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
     public void testBooleanExpression() throws Exception {
         BooleanColumnReference booleanColumn = new BooleanColumnReference(column);
         booleanColumn.startCollect(ctx);
-        booleanColumn.setNextReader(readerContext, false);
+        booleanColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         int i = 0;
         for (ScoreDoc doc : topDocs.scoreDocs) {
-            booleanColumn.setNextDocId(doc.doc);
+            booleanColumn.setNextDocId(doc.doc, false);
             assertThat(booleanColumn.value(), is(i % 2 == 0));
             i++;
         }

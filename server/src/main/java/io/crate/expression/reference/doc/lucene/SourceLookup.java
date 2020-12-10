@@ -45,14 +45,15 @@ public final class SourceLookup {
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
     private CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
     private int doc;
+    private LeafReader reader;
     private Map<String, Object> source;
     private boolean docVisited = false;
 
     SourceLookup() {
     }
 
-    public void setSegmentAndDocument(LeafReaderContext context, int doc, boolean isSequental) {
-        if (this.doc == doc) {
+    public void setSegmentAndDocument(LeafReaderContext context, int doc, boolean ordered) {
+        if (this.doc == doc && this.reader == context.reader()) {
             // Don't invalidate source
             return;
         }
@@ -60,7 +61,8 @@ public final class SourceLookup {
         this.docVisited = false;
         this.source = null;
         this.doc = doc;
-        this.fieldReader = isSequental ? FieldReader.getSequentialFieldReaderIfAvailable(context) : FieldReader.getFieldReader(context);
+        this.reader = context.reader();
+        this.fieldReader = ordered ? FieldReader.getSequentialFieldReaderIfAvailable(context) : FieldReader.getFieldReader(context);
     }
 
     public Object get(List<String> path) {

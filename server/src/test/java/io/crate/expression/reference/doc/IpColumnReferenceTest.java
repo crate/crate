@@ -100,14 +100,14 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testIpExpression() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_COLUMN);
         columnReference.startCollect(ctx);
-        columnReference.setNextReader(readerContext, false);
+        columnReference.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 21);
         assertThat(topDocs.scoreDocs.length, is(21));
 
         int i = 0;
         for (ScoreDoc doc : topDocs.scoreDocs) {
-            columnReference.setNextDocId(doc.doc);
+            columnReference.setNextDocId(doc.doc, false);
             if (i == 20) {
                 assertThat(columnReference.value(), is(nullValue()));
             } else if (i < 10) {
@@ -124,12 +124,12 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testIpExpressionOnArrayThrowsException() throws Exception {
         IpColumnReference columnReference = new IpColumnReference(IP_ARRAY_COLUMN);
         columnReference.startCollect(ctx);
-        columnReference.setNextReader(readerContext, false);
+        columnReference.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
 
         ScoreDoc doc = topDocs.scoreDocs[0];
-        columnReference.setNextDocId(doc.doc);
+        columnReference.setNextDocId(doc.doc, false);
 
         expectedException.expect(GroupByOnArrayUnsupportedException.class);
         expectedException.expectMessage("Column \"ia\" has a value that is an array. Group by doesn't work on Arrays");
@@ -141,8 +141,8 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     public void testNullDocValuesDoNotResultInNPE() throws IOException {
         IpColumnReference ref = new IpColumnReference("missing_column");
         ref.startCollect(ctx);
-        ref.setNextReader(readerContext, false);
-        ref.setNextDocId(0);
+        ref.setNextReader(readerContext);
+        ref.setNextDocId(0, false);
 
         assertThat(ref.value(), Matchers.nullValue());
     }

@@ -43,7 +43,7 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int doc, boolean ordered) {
         fetchId = FetchId.encode(readerId, docBase + doc);
     }
 
@@ -53,8 +53,8 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
-        super.setNextReader(context, isSequental);
+    public void setNextReader(LeafReaderContext context) throws IOException {
+        super.setNextReader(context);
         docBase = context.docBase;
     }
 }

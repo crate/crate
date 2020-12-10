@@ -64,12 +64,12 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
     public void testShortExpression() throws Exception {
         ShortColumnReference shortColumn = new ShortColumnReference(column);
         shortColumn.startCollect(ctx);
-        shortColumn.setNextReader(readerContext, false);
+        shortColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         short i = -10;
         for (ScoreDoc doc : topDocs.scoreDocs) {
-            shortColumn.setNextDocId(doc.doc);
+            shortColumn.setNextDocId(doc.doc, false);
             assertThat(shortColumn.value(), is(i));
             i++;
         }

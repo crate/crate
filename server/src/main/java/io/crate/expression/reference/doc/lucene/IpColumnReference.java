@@ -65,12 +65,12 @@ public class IpColumnReference extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public void setNextDocId(int doc, boolean ordered) {
         this.docId = docId;
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         values = context.reader().getSortedSetDocValues(columnName);
         if (values == null) {
             values = DocValues.emptySortedSet();

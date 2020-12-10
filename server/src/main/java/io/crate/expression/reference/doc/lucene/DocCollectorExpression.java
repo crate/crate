@@ -38,7 +38,6 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     private SourceLookup sourceLookup;
     private LeafReaderContext context;
-    private  boolean isSequental;
 
     public DocCollectorExpression() {
         super();
@@ -49,15 +48,15 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         sourceLookup = context.sourceLookup();
     }
 
+
     @Override
-    public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(context, doc, isSequental);
+    public void setNextDocId(int doc, boolean ordered) {
+        sourceLookup.setSegmentAndDocument(context, doc, ordered);
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         this.context = context;
-        this.isSequental = isSequental;
     }
 
     @Override
@@ -87,12 +86,12 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         }
 
         @Override
-        public void setNextDocId(int doc) {
-            sourceLookup.setSegmentAndDocument(context, doc, isSequental);
+        public void setNextDocId(int doc, boolean ordered) {
+            sourceLookup.setSegmentAndDocument(context, doc, ordered);
         }
 
         @Override
-        public void setNextReader(LeafReaderContext context,  boolean isSequental) throws IOException {
+        public void setNextReader(LeafReaderContext context) throws IOException {
             this.context = context;
             this.isSequental = isSequental;
         }

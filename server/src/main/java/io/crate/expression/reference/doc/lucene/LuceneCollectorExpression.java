@@ -22,6 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.data.Input;
+import io.crate.execution.engine.fetch.FetchId;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.Scorable;
@@ -43,10 +44,10 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
 
     }
 
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int doc, boolean isSequental) {
     }
 
-    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
+    public void setNextReader(LeafReaderContext context) throws IOException {
     }
 
     public void setScorer(Scorable scorer) {

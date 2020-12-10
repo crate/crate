@@ -75,8 +75,8 @@ class FetchCollector {
 
     private void setNextDocId(LeafReaderContext readerContext, int doc, boolean isSequental) throws IOException {
         for (LuceneCollectorExpression<?> e : collectorExpressions) {
-            e.setNextReader(readerContext, isSequental);
-            e.setNextDocId(doc);
+            e.setNextReader(readerContext);
+            e.setNextDocId(doc, isSequental);
         }
     }
 

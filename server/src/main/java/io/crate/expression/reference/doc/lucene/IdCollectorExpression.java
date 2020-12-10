@@ -37,23 +37,24 @@ import java.util.function.Supplier;
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
     private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.name());
-    private  boolean isSequental;
     private LeafReaderContext context;
     private int docId;
+    private boolean isOrdered;
 
     public IdCollectorExpression() {
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public void setNextDocId(int docId, boolean isOrdered) {
         this.docId = docId;
+        this.isOrdered = isOrdered;
     }
 
     @Override
     public String value() {
         try {
             visitor.setCanStop(false);
-            if (isSequental) {
+            if (isOrdered) {
                 FieldReader.getSequentialFieldReaderIfAvailable(context).accept(docId, visitor);
             } else {
                 FieldReader.getFieldReader(context).accept(docId, visitor);
@@ -65,8 +66,7 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context, boolean isSequental) throws IOException {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         this.context = context;
-        this.isSequental = isSequental;
     }
 }

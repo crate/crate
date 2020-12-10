@@ -64,12 +64,12 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
     public void testLongExpression() throws Exception {
         LongColumnReference longColumn = new LongColumnReference(column);
         longColumn.startCollect(ctx);
-        longColumn.setNextReader(readerContext, false);
+        longColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         long l = Long.MIN_VALUE;
         for (ScoreDoc doc : topDocs.scoreDocs) {
-            longColumn.setNextDocId(doc.doc);
+            longColumn.setNextDocId(doc.doc, false);
             assertThat(longColumn.value(), is(l));
             l++;
         }

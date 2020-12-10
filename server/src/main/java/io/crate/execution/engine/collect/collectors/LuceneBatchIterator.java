@@ -160,7 +160,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             currentDocIdSetIt = scorer.iterator();
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setScorer(currentScorer);
-                expression.setNextReader(currentLeaf, false);
+                expression.setNextReader(currentLeaf);
             }
             return true;
         }
@@ -211,7 +211,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
 
     private void onDoc(int doc) throws IOException {
         for (LuceneCollectorExpression<?> expression : expressions) {
-            expression.setNextDocId(doc);
+            expression.setNextDocId(doc, false);
         }
     }
 
