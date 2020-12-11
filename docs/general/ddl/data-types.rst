@@ -1106,6 +1106,11 @@ Combined::
 
   { id = 1, name = 'foo', tags = ['apple', 'banana', 'pear'], size = 3.1415, valid = ? }
 
+.. SEEALSO::
+
+    :ref:`Selecting values from inner objects and nested objects <sql_dql_objects>`
+
+
 .. _data-type-array:
 
 ``array``
