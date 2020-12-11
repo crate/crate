@@ -677,6 +677,7 @@ Inserting objects::
     ... );
     INSERT OK, 1 row affected (... sec)
 
+
 .. _sql_dql_object_arrays:
 
 Object arrays
