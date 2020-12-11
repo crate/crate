@@ -7,34 +7,27 @@ Host Based Authentication (HBA)
 This section explains how to configure CrateDB client connection and
 authentication.
 
-By default, the boolean setting ``auth.host_based.enabled`` is ``false`` and
-therefore host based authentication is disabled.
-In this instance, the CrateDB cluster allows any unauthenticated connections.
-
-To allow authenticated access to CrateDB from specific hosts, you need to set
-the ``auth.host_based.enabled`` setting in the ``crate.yml`` to ``true`` and
-specify HBA entries in the ``auth.host_based.config`` group setting.
-
-See: :ref:`applying-cluster-settings`.
-
 .. NOTE::
 
-   The ``crate.yml`` that is shipped with CrateDB explicitly enables host based
-   authentication and defines a set of sane rules, which take effect in case
-   HBA and Enterprise features are enabled.
+    The stock ``crate.yml`` shipped with the tarball distributions of CrateDB
+    explicitly enables host based authentication and defines a set of basic
+    authentication rules.
 
-   Host Based Authentication is an
-   :ref:`enterprise feature <enterprise-features>`.
+    *Host Based Authentication* (HBA) is an
+    :ref:`enterprise feature <enterprise-features>`.
 
-.. TIP::
+    If you do not want to use authentication, set ``auth.host_based.enabled``
+    to ``false``.
 
-   If you want to use Enterprise features, but do not require authentication,
-   you need to set ``auth.host_based.enabled`` to ``false``. However,
-   additionally you still need to provide the user ``crate`` when connecting to
-   CrateDB via the Postgres protocol, since the Enterprise version
-   automatically enables user management. HTTP uses
-   :ref:`auth.trust.http_default_user<auth_trust_http_default_user>` if no user
-   is provided.
+    If enterprise features are enabled but authentication is disabled,
+    :ref:`user management <administration_user_management>` is remains active,
+    and so you must specify the user ``crate`` when connecting via the Postgres
+    protocol. HTTP clients use
+    :ref:`auth.trust.http_default_user<auth_trust_http_default_user>` if no
+    user is provided.
+
+    :ref:`Non-runtime cluster-wide settings <applying-cluster-settings>` must
+    be configured exactly the same on every node.
 
 .. rubric:: Table of contents
 
