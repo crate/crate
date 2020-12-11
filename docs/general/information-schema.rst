@@ -706,8 +706,11 @@ Or get an overview of how many routines and routine types are available::
 ``schemata``
 ------------
 
-The schemata table lists all existing schemas. These schemas are always
-available: ``blob``, ``doc``, ``information_schema`` and ``sys``::
+The schemata table lists all existing schemas. Thes ``blob``,
+``information_schema``, and ``sys`` schemas are always available. The ``doc``
+schema is available after the first user table is created.
+
+::
 
     cr> select schema_name from information_schema.schemata order by schema_name;
     +--------------------+
