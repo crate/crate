@@ -396,12 +396,18 @@ new master node is elected.
   clusters. This can be useful for testing. It is not recommend to use this for
   production setups. The ``single-node`` mode also skips `bootstrap checks`_.
 
-.. NOTE::
+.. CAUTION::
 
-   If a node was started once using ``single-node``, it will never join any
-   cluster even if the configuration is changed. It is possible to force the
-   node to forget its current cluster state by using the :ref:`cli-crate-node`
-   CLI tool. However, be aware that this may result in data loss.
+    If a node is started without any :ref:`initial_master_nodes
+    <cluster.initial_master_nodes>` or a :ref:`discovery_type <discovery.type>`
+    set to ``single-node`` (e.g., the default configuration), it will never join
+    a cluster even if the configuration is subsequently changed.
+
+
+    It is possible to force the node to forget its current cluster state by
+    using the :ref:`cli-crate-node` CLI tool. However, be aware that this may
+    result in data loss.
+
 
 .. _conf_host_discovery:
 
@@ -1020,7 +1026,7 @@ keeps working.
   | *Runtime:*   ``no``
 
   .. CAUTION::
-  
+
       This setting is deprecated and has no effect.
 
 
@@ -1066,7 +1072,7 @@ exception is raised.
   | *Runtime:*  ``yes``
 
   .. CAUTION::
-  
+
       This setting is deprecated and has no effect.
 
 Accounting circuit breaker
@@ -1090,7 +1096,7 @@ memory used by Lucene for segments.
   | *Runtime:*  ``yes``
 
   .. CAUTION::
-  
+
       This setting is deprecated and has no effect.
 
 .. _stats.breaker.log:
