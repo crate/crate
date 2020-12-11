@@ -358,7 +358,7 @@ copies are either active or the replicas can be quickly promoted.
 If ``write.wait_for_active_shards`` would be set to ``2`` instead and a node is
 stopped, the write operations would block until the replica is fully replicated
 again or the write operations would timeout in case the replication is not fast
-enough. 
+enough.
 
 
 .. _table-settings-blocks.read_only:
@@ -382,11 +382,16 @@ Allows to have a read only table that additionally can be deleted.
 :value:
   Table is read only and can be deleted if value set to ``true``. Allows writes
   and table settings changes if set to ``false``.
+
   When a disk on a node exceeds the
   ``cluster.routing.allocation.disk.watermark.flood_stage`` threshold, this
   block is applied (set to ``true``) to all tables on that affected node. Once
   you've freed disk space again and the threshold is undershot, you need to set
   the ``blocks.read_only_allow_delete`` table setting to ``false``.
+
+.. SEEALSO::
+
+    :ref:`Disk-based shard allocation <cluster.routing.allocation.disk>`
 
 ``blocks.read``
 ---------------
@@ -422,7 +427,7 @@ Allows to have a read only table that additionally can be deleted.
 ``soft_deletes.enabled``
 ------------------------
 
-Indicates whether soft deletes are enabled or disabled. 
+Indicates whether soft deletes are enabled or disabled.
 
 Soft deletes allow CrateDB to preserve recent deletions within the Lucene
 index. This information is used for shard recovery.

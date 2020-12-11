@@ -820,6 +820,8 @@ addresses.
   to allocate a shard on it. This is in contrast to include which will include
   a node if ANY rule matches.
 
+.. _cluster.routing.allocation.disk:
+
 Disk-based shard allocation
 ...........................
 
