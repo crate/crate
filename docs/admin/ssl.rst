@@ -19,7 +19,8 @@ enforce SSL usage, please consult the :ref:`admin_hba`.
 
 .. NOTE::
 
-   Secured Communications is an Enterprise Edition feature.
+   Secured Communications is an :ref:`enterprise feature
+   <enterprise-features>`.
 
 .. rubric:: Table of contents
 
