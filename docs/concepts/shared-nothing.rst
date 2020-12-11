@@ -199,7 +199,6 @@ module.
 
 Node discovery happens in multiple steps:
 
-
 * CrateDB requires a list of potential host addresses for other CrateDB nodes
   when it is starting up. That list can either be provided by a static
   configuration or can be dynamically generated, for example by fetching DNS
@@ -215,6 +214,19 @@ Node discovery happens in multiple steps:
 
 * The cluster state is then published across the cluster. This guarantees the
   common knowledge of the node addition.
+
+.. CAUTION::
+
+    If a node is started without any :ref:`initial_master_nodes
+    <cluster.initial_master_nodes>` or a :ref:`discovery_type <discovery.type>`
+    set to ``single-node`` (e.g., the default configuration), it will never join
+    a cluster even if the configuration is subsequently changed.
+
+
+    It is possible to force the node to forget its current cluster state by
+    using the :ref:`cli-crate-node` CLI tool. However, be aware that this may
+    result in data loss.
+
 
 Networking
 ----------
