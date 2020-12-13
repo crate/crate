@@ -68,14 +68,14 @@ public class StringColumnReferenceTest extends DocLevelExpressionsTest {
     public void testFieldCacheExpression() throws Exception {
         BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(column);
         bytesRefColumn.startCollect(ctx);
-        bytesRefColumn.setNextReader(new ReaderContext(readerContext));
+        bytesRefColumn.setNextReader(new ReaderContext(readerContext, readerContext.reader()::document));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         int i = 0;
         StringBuilder builder = new StringBuilder();
         for (ScoreDoc doc : topDocs.scoreDocs) {
             builder.append(i);
-            bytesRefColumn.setNextDocId(doc.doc, false);
+            bytesRefColumn.setNextDocId(doc.doc);
             assertThat(bytesRefColumn.value(), is(builder.toString()));
             i++;
         }

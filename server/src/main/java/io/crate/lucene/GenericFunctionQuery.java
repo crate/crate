@@ -131,7 +131,7 @@ class GenericFunctionQuery extends Query {
 
     private FilteredTwoPhaseIterator getTwoPhaseIterator(final LeafReaderContext context) throws IOException {
         for (LuceneCollectorExpression expression : expressions) {
-            expression.setNextReader(new ReaderContext(context));
+            expression.setNextReader(new ReaderContext(context, null));
         }
         return new FilteredTwoPhaseIterator(context.reader(), condition, expressions);
     }
@@ -158,7 +158,7 @@ class GenericFunctionQuery extends Query {
         public boolean matches() throws IOException {
             int doc = approximation.docID();
             for (LuceneCollectorExpression expression : expressions) {
-                expression.setNextDocId(doc, false);
+                expression.setNextDocId(doc);
             }
             return InputCondition.matches(condition);
         }

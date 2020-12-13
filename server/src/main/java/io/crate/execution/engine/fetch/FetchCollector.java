@@ -23,16 +23,12 @@
 package io.crate.execution.engine.fetch;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import com.carrotsearch.hppc.IntContainer;
 
-import org.apache.lucene.codecs.StoredFieldsReader;
+import io.netty.util.collection.IntObjectHashMap;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 
@@ -72,13 +68,12 @@ class FetchCollector {
             collectorExpression.startCollect(collectorContext);
         }
         this.row = new InputRow(collectorExpressions);
-
     }
 
-    private void setNextDocId(LeafReaderContext readerContext, int doc, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) throws IOException {
+    private void setNextDocId(ReaderContext readerContext, int doc) throws IOException {
         for (LuceneCollectorExpression<?> e : collectorExpressions) {
-            e.setNextReader(new ReaderContext(readerContext, fieldReader));
-            e.setNextDocId(doc, true);
+            e.setNextReader(readerContext);
+            e.setNextDocId(doc);
         }
     }
 
@@ -86,32 +81,36 @@ class FetchCollector {
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
         int[] ids = docIds.toArray();
         Arrays.sort(ids);
-        boolean isSequental = hasSequentialDocs(ids) && ids.length >= 10;
-        HashMap<Integer, CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>> fieldReaders = new HashMap<>();
+        boolean optimizeForSequentialAccess = docIds.size() >= 10 && isSequential(ids);
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
+            var cachedDocumentAccess = new IntObjectHashMap<CheckedBiConsumer<Integer, StoredFieldVisitor, IOException>>(leaves.size());
             for (int docId : ids) {
                 int readerIndex = ReaderUtil.subIndex(docId, leaves);
                 LeafReaderContext subReaderContext = leaves.get(readerIndex);
-                var fieldReader = fieldReaders.get(
-                    readerIndex);
-                if (fieldReader == null) {
-                    if (isSequental) {
-                        fieldReader = FieldReader.getSequentialFieldReader(subReaderContext);
-                        fieldReaders.put(readerIndex, fieldReader);
+                if (optimizeForSequentialAccess) {
+                    var documentAccess = cachedDocumentAccess.get(readerIndex);
+                    if (documentAccess == null) {
+                        documentAccess = documentAccess(subReaderContext);
+                        cachedDocumentAccess.put(readerIndex, documentAccess);
                     }
-                }
-                if (readerIndex == -1) {
-                    throw new IllegalStateException(
-                        "jobId=" + fetchTask.jobId() + " docId " + docId + " doesn't fit to leaves of searcher " +
-                        readerId + " fetchTask=" + fetchTask);
-                }
-
-                try {
-                    setNextDocId(subReaderContext, docId - subReaderContext.docBase, fieldReader);
-                } catch (IOException e) {
-                    Exceptions.rethrowRuntimeException(e);
+                    if (readerIndex == -1) {
+                        throw new IllegalStateException(
+                            "jobId=" + fetchTask.jobId() + " docId " + docId + " doesn't fit to leaves of searcher " +
+                            readerId + " fetchTask=" + fetchTask);
+                    }
+                    try {
+                        setNextDocId(new ReaderContext(subReaderContext, documentAccess), docId - subReaderContext.docBase);
+                    } catch (IOException e) {
+                        Exceptions.rethrowRuntimeException(e);
+                    }
+                } else {
+                    try {
+                        setNextDocId(new ReaderContext(subReaderContext, null), docId - subReaderContext.docBase);
+                    } catch (IOException e) {
+                        Exceptions.rethrowRuntimeException(e);
+                    }
                 }
                 builder.add(row);
             }
@@ -119,15 +118,28 @@ class FetchCollector {
         return builder.build();
     }
 
-    private static boolean hasSequentialDocs(int[] docIds) {
-        // checks if doc ids are in sequential order
-        // it is sequential if last element - first element = distance of elements in between
-        // e.g. [1,2,3,4,5] -> 5 - 1 = 4
+    private static boolean isSequential(int[] docIds) {
+        // checks if doc ids are in sequential order using the following conditions:
+        // (last element - first element) = (number of elements in between first and last)
+        // [3,4,5,6,7] -> 7 - 3 == 4
         if (docIds.length <= 0) {
             return false;
         }
         int last = docIds[docIds.length - 1];
         int first = docIds[0];
         return last - first == docIds.length - 1;
+    }
+
+    private static CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> documentAccess(LeafReaderContext context) {
+        if (context.reader() instanceof SequentialStoredFieldsLeafReader) {
+            try {
+                SequentialStoredFieldsLeafReader reader = (SequentialStoredFieldsLeafReader) context.reader();
+                //Accessing the merge StoredFieldReader is expensive, since the underlying inputData is cloned
+                return reader.getSequentialStoredFieldsReader()::visitDocument;
+            } catch (IOException e) {
+                throw Exceptions.toRuntimeException(e);
+            }
+        }
+        throw new RuntimeException("Sequential access not available");
     }
 }

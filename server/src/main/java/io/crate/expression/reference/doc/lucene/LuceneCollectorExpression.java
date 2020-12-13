@@ -45,7 +45,7 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
 
     }
 
-    public void setNextDocId(int doc, boolean isSequental) {
+    public void setNextDocId(int doc) {
     }
 
     public void setNextReader(ReaderContext context) throws IOException {

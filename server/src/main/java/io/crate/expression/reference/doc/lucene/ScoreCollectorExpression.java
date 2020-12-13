@@ -41,7 +41,7 @@ public class ScoreCollectorExpression extends LuceneCollectorExpression<Float> {
     }
 
     @Override
-    public void setNextDocId(int doc, boolean ordered) {
+    public void setNextDocId(int doc) {
         if (scorer == null) {
             return;
         }

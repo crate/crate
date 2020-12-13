@@ -244,8 +244,8 @@ public final class ReservoirSampler {
             int subDoc = docId - leafContext.docBase;
             for (LuceneCollectorExpression<?> expression : expressions) {
                 try {
-                    expression.setNextReader(new ReaderContext(leafContext));
-                    expression.setNextDocId(subDoc, false);
+                    expression.setNextReader(new ReaderContext(leafContext, null));
+                    expression.setNextDocId(subDoc);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }

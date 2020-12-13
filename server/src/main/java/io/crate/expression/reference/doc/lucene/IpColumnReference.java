@@ -25,17 +25,12 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
-import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.search.DocValueFormat;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class IpColumnReference extends LuceneCollectorExpression<String> {
 
@@ -66,13 +61,13 @@ public class IpColumnReference extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextDocId(int doc, boolean ordered) {
+    public void setNextDocId(int doc) {
         this.docId = docId;
     }
 
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
-        values = context.getLeafReaderContext().reader().getSortedSetDocValues(columnName);
+        values = context.leafReaderContext().reader().getSortedSetDocValues(columnName);
         if (values == null) {
             values = DocValues.emptySortedSet();
         }

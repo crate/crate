@@ -42,7 +42,7 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextDocId(int doc, boolean ordered) {
+    public void setNextDocId(int doc) {
         sourceLookup.setSegmentAndDocument(context, doc);
     }
 

@@ -68,8 +68,9 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
+        CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> documentAccess = context.reader()::document;
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextReader(new ReaderContext(context));
+            collectorExpressions.get(i).setNextReader(new ReaderContext(context, documentAccess));
         }
         return this;
     }
@@ -92,7 +93,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public int compareBottom(int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextDocId(doc, false);
+            collectorExpressions.get(i).setNextDocId(doc);
         }
         return comparator.compare(bottom, getFirstNonNullOrNull(input.value(), missingValue));
     }
@@ -109,7 +110,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public int compareTop(int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextDocId(doc, false);
+            collectorExpressions.get(i).setNextDocId(doc);
         }
         return comparator.compare(top, getFirstNonNullOrNull(input.value(), missingValue));
     }
@@ -117,7 +118,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public void copy(int slot, int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextDocId(doc, true);
+            collectorExpressions.get(i).setNextDocId(doc);
         }
         Object value = input.value();
         if (value == null) {

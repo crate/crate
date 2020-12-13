@@ -24,15 +24,10 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class ByteColumnReference extends LuceneCollectorExpression<Byte> {
 
@@ -65,13 +60,13 @@ public class ByteColumnReference extends LuceneCollectorExpression<Byte> {
     }
 
     @Override
-    public void setNextDocId(int doc, boolean ordered) {
+    public void setNextDocId(int doc) {
         this.docId = docId;
     }
 
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = DocValues.getSortedNumeric(context.getLeafReaderContext().reader(), columnName);
+        values = DocValues.getSortedNumeric(context.leafReaderContext().reader(), columnName);
     }
 }

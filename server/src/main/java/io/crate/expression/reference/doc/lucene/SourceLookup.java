@@ -23,12 +23,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.execution.engine.fetch.ReaderContext;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -51,7 +46,8 @@ public final class SourceLookup {
     }
 
     public void setSegmentAndDocument(ReaderContext context, int doc) {
-        if (this.doc == doc && this.reader != null && this.reader.getLeafReaderContext().reader() == context.getLeafReaderContext().reader()) {
+        //TODO fix the check for the reference of the reader maybe this.reader = context is just enough
+        if (this.doc == doc && this.reader != null && this.reader.leafReaderContext().reader() == context.leafReaderContext().reader()) {
             // Don't invalidate source
             return;
         }
@@ -90,11 +86,7 @@ public final class SourceLookup {
         }
         System.out.println("doc = " + doc);
         try {
-            if (reader.getFieldReader() != null) {
-                reader.getFieldReader().accept(doc, fieldsVisitor);
-            } else {
-                reader.getLeafReaderContext().reader().document(doc, fieldsVisitor);
-            }
+            reader.visitDocument(doc, fieldsVisitor);
             docVisited = true;
         } catch (IOException e) {
             throw new RuntimeException(e);

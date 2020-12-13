@@ -27,7 +27,7 @@ public final class DocIdCollectorExpression extends LuceneCollectorExpression<In
     private Integer doc = null;
 
     @Override
-    public void setNextDocId(int doc, boolean ordered) {
+    public void setNextDocId(int doc) {
         this.doc = doc;
     }
 

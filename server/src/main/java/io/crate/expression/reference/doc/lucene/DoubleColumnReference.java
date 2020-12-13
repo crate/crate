@@ -23,15 +23,10 @@ package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 
@@ -67,14 +62,14 @@ public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
     }
 
     @Override
-    public void setNextDocId(int doc, boolean ordered) {
+    public void setNextDocId(int doc) {
         this.docId = docId;
     }
 
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
-        SortedNumericDocValues raw = DocValues.getSortedNumeric(context.getLeafReaderContext().reader(), columnName);
+        SortedNumericDocValues raw = DocValues.getSortedNumeric(context.leafReaderContext().reader(), columnName);
         values = FieldData.sortableLongBitsToDoubles(raw);
     }
 }

@@ -24,15 +24,10 @@ package io.crate.expression.reference.doc.lucene;
 
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.doc.DocSysColumns;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Long> {
 
@@ -42,14 +37,14 @@ public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Lo
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
         try {
-            primaryTerms = context.getLeafReaderContext().reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
+            primaryTerms = context.leafReaderContext().reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     @Override
-    public void setNextDocId(int doc, boolean ordered) {
+    public void setNextDocId(int doc) {
         this.doc = doc;
     }
 

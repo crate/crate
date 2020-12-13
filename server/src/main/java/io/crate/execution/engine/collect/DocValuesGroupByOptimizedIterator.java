@@ -343,7 +343,7 @@ final class DocValuesGroupByOptimizedIterator {
                     continue;
                 }
                 for (int i = 0; i < keyExpressions.size(); i++) {
-                    keyExpressions.get(i).setNextReader(new ReaderContext(leaf));
+                    keyExpressions.get(i).setNextReader(new ReaderContext(leaf, null));
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
                     aggregators.get(i).loadDocValues(leaf.reader());
@@ -358,7 +358,7 @@ final class DocValuesGroupByOptimizedIterator {
                     }
 
                     for (int i = 0; i < keyExpressions.size(); i++) {
-                        keyExpressions.get(i).setNextDocId(doc, false);
+                        keyExpressions.get(i).setNextDocId(doc);
                     }
                     K key = keyExtractor.apply(keyExpressions);
 

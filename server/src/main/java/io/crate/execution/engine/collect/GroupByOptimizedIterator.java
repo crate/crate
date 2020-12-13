@@ -294,11 +294,12 @@ final class GroupByOptimizedIterator {
         for (LeafReaderContext leaf: leaves) {
             raiseIfClosedOrKilled(killed);
             Scorer scorer = weight.scorer(leaf);
+            CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> documentAccess = leaf.reader()::document;
             if (scorer == null) {
                 continue;
             }
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                expressions.get(i).setNextReader(new ReaderContext(leaf));
+                expressions.get(i).setNextReader(new ReaderContext(leaf, null));
             }
             SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
@@ -310,7 +311,7 @@ final class GroupByOptimizedIterator {
                         continue;
                     }
                     for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                        expressions.get(i).setNextDocId(doc, false);
+                        expressions.get(i).setNextDocId(doc);
                     }
                     for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
                         aggExpressions.get(i).setNextRow(inputRow);

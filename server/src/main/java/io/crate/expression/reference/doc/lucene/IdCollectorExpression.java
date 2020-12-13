@@ -24,38 +24,30 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.execution.engine.fetch.FieldReader;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.doc.DocSysColumns;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
     private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.name());
     private ReaderContext context;
     private int docId;
-    private boolean isOrdered;
 
     public IdCollectorExpression() {
     }
 
     @Override
-    public void setNextDocId(int docId, boolean isOrdered) {
+    public void setNextDocId(int docId) {
         this.docId = docId;
-        this.isOrdered = isOrdered;
     }
 
     @Override
     public String value() {
         try {
             visitor.setCanStop(false);
-            FieldReader.visitReader(context.getLeafReaderContext(), docId, visitor);
+            context.visitDocument(docId, visitor);
             return visitor.getId();
         } catch (IOException e) {
             throw new UncheckedIOException(e);

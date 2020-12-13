@@ -23,13 +23,8 @@ package io.crate.expression.reference.doc.lucene;
 
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.execution.engine.fetch.ReaderContext;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.CheckedBiConsumer;
 
 import java.io.IOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> {
 
@@ -44,7 +39,7 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextDocId(int doc, boolean ordered) {
+    public void setNextDocId(int doc) {
         fetchId = FetchId.encode(readerId, docBase + doc);
     }
 
@@ -56,6 +51,6 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
-        docBase = context.getLeafReaderContext().docBase;
+        docBase = context.leafReaderContext().docBase;
     }
 }

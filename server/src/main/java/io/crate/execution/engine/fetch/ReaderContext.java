@@ -32,23 +32,22 @@ import java.io.IOException;
 public class ReaderContext {
 
     private final LeafReaderContext leafReaderContext;
-    private final CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader;
+    private final CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> visitDoc;
 
-    public ReaderContext(LeafReaderContext leafReaderContext) {
-        this(leafReaderContext, null);
-    }
-
-    public ReaderContext(LeafReaderContext leafReaderContext,
-                         @Nullable CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> fieldReader) {
+    public ReaderContext(LeafReaderContext leafReaderContext, @Nullable CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> visitDoc) {
         this.leafReaderContext = leafReaderContext;
-        this.fieldReader = fieldReader;
+        this.visitDoc = visitDoc;
     }
 
-    public LeafReaderContext getLeafReaderContext() {
+    public void visitDocument(int docId, StoredFieldVisitor visitor) throws IOException {
+        if (visitDoc == null) {
+            leafReaderContext.reader().document(docId, visitor);
+        } else {
+            visitDoc.accept(docId, visitor);
+        }
+    }
+
+    public LeafReaderContext leafReaderContext() {
         return leafReaderContext;
-    }
-
-    public CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> getFieldReader() {
-        return fieldReader;
     }
 }

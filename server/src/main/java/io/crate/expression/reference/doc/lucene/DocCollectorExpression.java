@@ -51,7 +51,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
 
     @Override
-    public void setNextDocId(int doc, boolean ordered) {
+    public void setNextDocId(int doc) {
         sourceLookup.setSegmentAndDocument(context, doc);
     }
 
@@ -80,14 +80,13 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         private final List<String> path;
         private SourceLookup sourceLookup;
         private ReaderContext context;
-        private boolean isSequental;
         ChildDocCollectorExpression(DataType<?> returnType, List<String> path) {
             this.returnType = returnType;
             this.path = path;
         }
 
         @Override
-        public void setNextDocId(int doc, boolean ordered) {
+        public void setNextDocId(int doc) {
             sourceLookup.setSegmentAndDocument(context, doc);
         }
 
