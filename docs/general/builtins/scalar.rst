@@ -1251,17 +1251,18 @@ containing any of the following symbols:
     +-----------------------------------------+
     SELECT 1 row in set (... sec)
 
-For ``interval`` expressions, the formatting string is discard and the interval
-is returned in a standard form:
+For ``interval`` expressions, the formatting string accepts the same tokens as
+``timestamp`` expressions. The function then uses the timestamp of the specified
+interval added to the timestamp of ``0000/01/01 00:00:00``:
 
 ::
 
-    cr> select to_char(interval '1-2 3 4:5:6', '') as interval;
-    +------------------------------------------------------------+
-    | interval                                                   |
-    +------------------------------------------------------------+
-    | 1 year, 2 months, 3 days, 4 hours, 5 minutes and 6 seconds |
-    +------------------------------------------------------------+
+    cr> select to_char(interval '1 year 3 weeks 200 minutes', 'YYYY MM DD HH12:MI:SS') as interval;
+    +---------------------+
+    | interval            |
+    +---------------------+
+    | 0001 01 22 03:20:00 |
+    +---------------------+
     SELECT 1 row in set (... sec)
 
 For ``numeric`` expressions, the syntax follows that of the `Java DecimalFormat`_.
