@@ -54,7 +54,7 @@ public class ToCharFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateInterval() {
-        assertEvaluate("to_char(INTERVAL '1-2 3 4:5:6', 'HH24:M:SS')", "1 year, 2 months, 3 days, 4 hours, 5 minutes and 6 seconds");
+        assertEvaluate("to_char(INTERVAL '1 year 2 months 3 weeks 5 hours 6 minutes 7 seconds', 'YYYY MM DD HH12:MI:SS')", "0001 03 22 05:06:07");
     }
 
     @Test
