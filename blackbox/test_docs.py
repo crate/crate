@@ -124,11 +124,11 @@ def bash_transform(s):
     if s.startswith("crash"):
         s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
         return u'cmd.process({0})'.format(repr(s.strip().rstrip(';')))
-    return (r'pretty_print(sh("""%s""").stdout.decode("utf-8"))' % s) + '\n'
+    return (r'pretty_print(sh(r"""%s""").stdout.decode("utf-8"))' % s) + '\n'
 
 
 bash_parser = zc.customdoctests.DocTestParser(
-    ps1=r'sh\$', comment_prefix='#', transform=bash_transform)
+    ps1='sh\\$', comment_prefix='#', transform=bash_transform)
 
 crash_parser = zc.customdoctests.DocTestParser(
     ps1='cr>', comment_prefix='#', transform=crash_transform)
@@ -182,13 +182,13 @@ def setUpLocations(test):
     setUp(test)
     _execute_sql("""
         create table locations (
-          id string primary key,
+          id integer primary key,
           name string,
           "date" timestamp with time zone,
           kind string,
           position integer,
           description string,
-          race object(dynamic) as (
+          inhabitants object(dynamic) as (
             interests array(string),
             description string,
             name string
@@ -198,6 +198,7 @@ def setUpLocations(test):
               evolution_level short
             )
           ),
+          landmarks array(string),
           index name_description_ft using fulltext(name, description) with (analyzer='english')
         ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
     _execute_sql("delete from locations")
