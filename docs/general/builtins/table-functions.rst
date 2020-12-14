@@ -127,9 +127,9 @@ The return value always matches the ``start`` / ``stop`` types.
 
 ::
 
-    cr> SELECT 
+    cr> SELECT
     ...     x,
-    ...     date_format('%Y-%m-%d, %H:%i', x) 
+    ...     date_format('%Y-%m-%d, %H:%i', x)
     ...     FROM generate_series('2019-01-01 00:00'::timestamp, '2019-01-04 00:00'::timestamp, '30 hours'::interval) AS t(x);
     +---------------+-----------------------------------+
     |             x | date_format('%Y-%m-%d, %H:%i', x) |
@@ -255,7 +255,7 @@ The ``regexp_matches`` function will return all groups as a ``text`` array::
     SELECT 1 row in set (... sec)
 
 Through array element access functionality, a group can be selected directly.
-See :ref:`sql_dql_object_arrays_select` for details.
+See :ref:`sql_dql_object_arrays` for details.
 
 ::
 

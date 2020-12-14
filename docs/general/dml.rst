@@ -377,7 +377,7 @@ used::
 
 Updating nested objects is also supported::
 
-    cr> update locations set race['name'] = 'Human' where name = 'Bartledan';
+    cr> update locations set inhabitants['name'] = 'Human' where name = 'Bartledan';
     UPDATE OK, 1 row affected (... sec)
 
 It's also possible to reference a column within the expression, for example to

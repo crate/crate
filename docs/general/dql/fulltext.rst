@@ -349,7 +349,7 @@ For searching of matching phrases (tokens are in the exact same order) use
 
     cr> select name, _score from locations
     ... where match(
-    ...     (name_description_ft, race['name'] 1.5, kind 0.75),
+    ...     (name_description_ft, inhabitants['name'] 1.5, kind 0.75),
     ...     'end of the galaxy'
     ... ) order by _score desc;
     +-------------------+------------+
