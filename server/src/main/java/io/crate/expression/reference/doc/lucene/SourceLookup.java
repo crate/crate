@@ -84,7 +84,6 @@ public final class SourceLookup {
         if (docVisited) {
             return;
         }
-        System.out.println("doc = " + doc);
         try {
             reader.visitDocument(doc, fieldsVisitor);
             docVisited = true;

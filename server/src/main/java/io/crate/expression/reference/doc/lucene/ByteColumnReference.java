@@ -60,7 +60,7 @@ public class ByteColumnReference extends LuceneCollectorExpression<Byte> {
     }
 
     @Override
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int docId) {
         this.docId = docId;
     }
 

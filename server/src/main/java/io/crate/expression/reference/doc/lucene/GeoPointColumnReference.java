@@ -69,7 +69,7 @@ public class GeoPointColumnReference extends LuceneCollectorExpression<Point> {
     }
 
     @Override
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int docId) {
         this.docId = docId;
     }
 

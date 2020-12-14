@@ -62,7 +62,7 @@ public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
     }
 
     @Override
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int docId) {
         this.docId = docId;
     }
 
