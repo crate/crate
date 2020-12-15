@@ -301,17 +301,17 @@ public class DateTimeFormatter {
                 String s = String.valueOf(datetime.getYear());
                 yield s.substring(0, 1) + "," + s.substring(1);
             }
-            case YEAR_YYYY -> datetime.getYear();
+            case YEAR_YYYY -> padStart(String.valueOf(datetime.getYear()), 4, '0');
             case YEAR_YYY -> {
-                String s = String.valueOf(datetime.getYear());
+                String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
                 yield s.substring(s.length() - 3);
             }
             case YEAR_YY -> {
-                String s = String.valueOf(datetime.getYear());
+                String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
                 yield s.substring(s.length() - 2);
             }
             case YEAR_Y -> {
-                String s = String.valueOf(datetime.getYear());
+                String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
                 yield s.substring(s.length() - 1);
             }
             case ISO_YEAR_YYY -> String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));

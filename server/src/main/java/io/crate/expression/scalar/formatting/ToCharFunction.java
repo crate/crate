@@ -31,8 +31,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.joda.time.Period;
-import org.joda.time.format.PeriodFormat;
-import org.joda.time.format.PeriodFormatter;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -106,8 +104,6 @@ public class ToCharFunction extends Scalar<String, Object> {
     private final DataType expressionType;
     private final BiFunction<Object, String, String> evaluatorFunc;
 
-    private static final PeriodFormatter PERIOD_FORMATTER = PeriodFormat.getDefault();
-
     public ToCharFunction(Signature signature, Signature boundSignature, BiFunction<Object, String, String> evaluatorFunc) {
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -126,7 +122,18 @@ public class ToCharFunction extends Scalar<String, Object> {
     }
 
     private static String evaluateInterval(Object interval, String pattern) {
-        return PERIOD_FORMATTER.print((Period) interval);
+        DateTimeFormatter formatter = new DateTimeFormatter(pattern);
+        Period period = DataTypes.INTERVAL.sanitizeValue(interval);
+        LocalDateTime dateTime = LocalDateTime.of(0, 1, 1, 0, 0, 0, 0)
+            .plusYears(period.getYears())
+            .plusMonths(period.getMonths())
+            .plusWeeks(period.getWeeks())
+            .plusDays(period.getDays())
+            .plusHours(period.getHours())
+            .plusMinutes(period.getMinutes())
+            .plusSeconds(period.getSeconds())
+            .plusNanos(period.getMillis() * 1000000);
+        return formatter.format(dateTime);
     }
 
     private static String evaluateNumber(Object number, String pattern) {
