@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import org.apache.lucene.index.LeafReaderContext;
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.elasticsearch.common.compress.CompressorFactory;
 
 import java.io.IOException;
@@ -29,7 +29,7 @@ import java.io.IOException;
 public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     private SourceLookup sourceLookup;
-    private LeafReaderContext context;
+    private ReaderContext context;
 
     @Override
     public void startCollect(CollectorContext context) {
@@ -42,7 +42,7 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
         this.context = context;
     }
 

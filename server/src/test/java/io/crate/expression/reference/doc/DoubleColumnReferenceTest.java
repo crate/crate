@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.DoubleColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -55,7 +56,7 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
     public void testFieldCacheExpression() throws Exception {
         DoubleColumnReference doubleColumn = new DoubleColumnReference(column);
         doubleColumn.startCollect(ctx);
-        doubleColumn.setNextReader(readerContext);
+        doubleColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
         double d = 0.5;

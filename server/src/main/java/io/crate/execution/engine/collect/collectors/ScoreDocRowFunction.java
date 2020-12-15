@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
@@ -85,7 +86,7 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         int subDoc = fieldDoc.doc - subReaderContext.docBase;
         for (LuceneCollectorExpression<?> expression : expressions) {
             try {
-                expression.setNextReader(subReaderContext);
+                expression.setNextReader(new ReaderContext(subReaderContext));
                 expression.setNextDocId(subDoc);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

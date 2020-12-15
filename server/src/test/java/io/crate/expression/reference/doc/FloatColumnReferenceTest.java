@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.FloatColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -55,7 +56,7 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
     public void testFieldCacheExpression() throws Exception {
         FloatColumnReference floatColumn = new FloatColumnReference(column);
         floatColumn.startCollect(ctx);
-        floatColumn.setNextReader(readerContext);
+        floatColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
         float f = -0.5f;

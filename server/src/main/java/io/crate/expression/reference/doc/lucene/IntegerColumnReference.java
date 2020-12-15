@@ -22,8 +22,8 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 
 import java.io.IOException;
@@ -64,7 +64,7 @@ public class IntegerColumnReference extends LuceneCollectorExpression<Integer> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
     }

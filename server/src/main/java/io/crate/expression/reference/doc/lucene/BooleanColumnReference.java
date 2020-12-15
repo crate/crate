@@ -22,8 +22,8 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
@@ -67,7 +67,7 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
         values = FieldData.toString(DocValues.getSortedNumeric(context.reader(), columnName));
     }

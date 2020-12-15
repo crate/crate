@@ -24,9 +24,9 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.geo.GeoEncodingUtils;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
@@ -74,7 +74,7 @@ public class GeoPointColumnReference extends LuceneCollectorExpression<Point> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
     }
