@@ -6,12 +6,17 @@ Run tests in a single module using multiple forks::
 
     $ ./gradlew --parallel -PtestForks=2 :sql:test
 
-Run the doc-tests::
+Run the all of `doctests`_::
 
     $ ./gradlew itest
-      (export ITEST_FILE_NAME_FILTER=<file-name>
-       if you want to only run the test of a particular file.
-       Clear the env var to test all files.)
+
+Run the doctests for a specific file (e.g., ``filename.rst``):
+
+    $ ITEST_FILE_NAME_FILTER=filename.rst ./gradlew itest
+
+You can also ``export`` ``ITEST_FILE_NAME_FILTER`` to your shell environment
+(e.g., export ITEST_FILE_NAME_FILTER=filename.rst``) if you want to set the
+value for the remainder of your terminal session.
 
 Filter tests::
 
@@ -39,3 +44,5 @@ Use ``@TestLogging(["<packageName1>:<logLevel1>", ...])`` on your test class or
 test method to enable more detailed logging. For example::
 
     @TestLogging("io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE")
+
+.. _doctests: https://github.com/crate/crate/blob/master/blackbox/test_docs.py
