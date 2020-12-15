@@ -26,6 +26,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
@@ -45,7 +46,6 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
@@ -245,7 +245,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             List.of(new LuceneCollectorExpression<>() {
 
                 @Override
-                public void setNextReader(LeafReaderContext context) {
+                public void setNextReader(ReaderContext context) throws IOException {
                     onNextReader.run();
                 }
 

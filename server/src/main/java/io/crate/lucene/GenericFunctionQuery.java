@@ -23,6 +23,7 @@
 package io.crate.lucene;
 
 import io.crate.data.Input;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputCondition;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.symbol.Function;
@@ -126,7 +127,7 @@ class GenericFunctionQuery extends Query {
 
     private FilteredTwoPhaseIterator getTwoPhaseIterator(final LeafReaderContext context) throws IOException {
         for (LuceneCollectorExpression expression : expressions) {
-            expression.setNextReader(context);
+            expression.setNextReader(new ReaderContext(context));
         }
         return new FilteredTwoPhaseIterator(context.reader(), condition, expressions);
     }

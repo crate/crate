@@ -24,8 +24,8 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
@@ -64,7 +64,7 @@ public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
         values = FieldData.toString(DocValues.getSortedSet(context.reader(), columnName));
     }

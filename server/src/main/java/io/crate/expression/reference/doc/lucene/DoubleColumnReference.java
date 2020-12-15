@@ -24,8 +24,8 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
@@ -67,7 +67,7 @@ public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
         SortedNumericDocValues raw = DocValues.getSortedNumeric(context.reader(), columnName);
         values = FieldData.sortableLongBitsToDoubles(raw);
