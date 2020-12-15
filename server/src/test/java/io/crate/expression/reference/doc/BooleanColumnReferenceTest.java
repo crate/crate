@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.BooleanColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -57,7 +58,7 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
     public void testBooleanExpression() throws Exception {
         BooleanColumnReference booleanColumn = new BooleanColumnReference(column);
         booleanColumn.startCollect(ctx);
-        booleanColumn.setNextReader(readerContext);
+        booleanColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
         int i = 0;

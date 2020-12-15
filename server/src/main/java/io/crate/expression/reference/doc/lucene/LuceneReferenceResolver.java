@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.lucene.index.LeafReaderContext;
+import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.search.Scorable;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
@@ -250,7 +250,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             inner.setNextDocId(doc);
         }
 
-        public void setNextReader(final LeafReaderContext context) throws IOException {
+        public void setNextReader(ReaderContext context) throws IOException {
             inner.setNextReader(context);
         }
 

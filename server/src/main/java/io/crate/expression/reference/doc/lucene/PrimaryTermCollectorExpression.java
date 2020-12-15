@@ -22,8 +22,8 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.doc.DocSysColumns;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 
 import java.io.IOException;
@@ -35,9 +35,9 @@ public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Lo
     private int doc;
 
     @Override
-    public void setNextReader(LeafReaderContext reader) {
+    public void setNextReader(ReaderContext context) throws IOException {
         try {
-            primaryTerms = reader.reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
+            primaryTerms = context.reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

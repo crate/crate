@@ -22,7 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.execution.engine.fetch.FetchId;
-import org.apache.lucene.index.LeafReaderContext;
+import io.crate.execution.engine.fetch.ReaderContext;
 
 import java.io.IOException;
 
@@ -49,8 +49,8 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
-        docBase = context.docBase;
+        docBase = context.docBase();
     }
 }

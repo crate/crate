@@ -21,9 +21,8 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.doc.DocSysColumns;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 
 import java.io.IOException;
@@ -32,7 +31,7 @@ import java.io.UncheckedIOException;
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
     private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.name());
-    private LeafReader reader;
+    private ReaderContext context;
     private int docId;
 
     public IdCollectorExpression() {
@@ -47,7 +46,7 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     public String value() {
         try {
             visitor.setCanStop(false);
-            reader.document(docId, visitor);
+            context.visitDocument(docId, visitor);
             return visitor.getId();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -55,7 +54,7 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
-        reader = context.reader();
+    public void setNextReader(ReaderContext context) throws IOException {
+        this.context = context;
     }
 }

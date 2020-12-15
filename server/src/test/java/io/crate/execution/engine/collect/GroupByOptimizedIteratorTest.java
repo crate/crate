@@ -27,6 +27,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -43,11 +44,13 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
@@ -62,6 +65,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.instanceOf;
@@ -109,7 +114,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             List.of(new LuceneCollectorExpression<Object>() {
 
                 @Override
-                public void setNextReader(LeafReaderContext context) throws IOException {
+                public void setNextReader(ReaderContext context) throws IOException {
                     onNextReader.run();
                 }
 

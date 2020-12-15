@@ -23,6 +23,7 @@
 package io.crate.execution.engine.sort;
 
 import io.crate.data.Input;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
@@ -62,7 +63,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
-            collectorExpressions.get(i).setNextReader(context);
+            collectorExpressions.get(i).setNextReader(new ReaderContext(context));
         }
         return this;
     }
