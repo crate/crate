@@ -27,6 +27,8 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -50,42 +52,48 @@ public class ArithmeticFunctions {
             Math::addExact,
             Double::sum,
             Math::addExact,
-            Float::sum
+            Float::sum,
+            BigDecimal::add
         ),
         SUBTRACT(
             Scalar.DETERMINISTIC_ONLY,
             Math::subtractExact,
                 (arg0, arg1) -> arg0 - arg1,
             Math::subtractExact,
-                (arg0, arg1) -> arg0 - arg1
+                (arg0, arg1) -> arg0 - arg1,
+            BigDecimal::subtract
         ),
         MULTIPLY(
             Scalar.DETERMINISTIC_ONLY,
             Math::multiplyExact,
                 (arg0, arg1) -> arg0 * arg1,
             Math::multiplyExact,
-                (arg0, arg1) -> arg0 * arg1
+                (arg0, arg1) -> arg0 * arg1,
+            BigDecimal::multiply
         ),
         DIVIDE(
             Scalar.DETERMINISTIC_ONLY,
                 (arg0, arg1) -> arg0 / arg1,
                 (arg0, arg1) -> arg0 / arg1,
                 (arg0, arg1) -> arg0 / arg1,
-                (arg0, arg1) -> arg0 / arg1
+                (arg0, arg1) -> arg0 / arg1,
+                (arg0, arg1) -> arg0.divide(arg1, MathContext.DECIMAL64)
         ),
         MODULUS(
             Scalar.DETERMINISTIC_ONLY,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
-                (arg0, arg1) -> arg0 % arg1
+                (arg0, arg1) -> arg0 % arg1,
+            BigDecimal::remainder
         ),
         MOD(
             Scalar.DETERMINISTIC_ONLY,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
-                (arg0, arg1) -> arg0 % arg1
+                (arg0, arg1) -> arg0 % arg1,
+            BigDecimal::remainder
         );
 
         private final Set<Scalar.Feature> features;
@@ -94,17 +102,20 @@ public class ArithmeticFunctions {
         private final BinaryOperator<Double> doubleFunction;
         private final BinaryOperator<Long> longFunction;
         private final BinaryOperator<Float> floatFunction;
+        private final BinaryOperator<BigDecimal> bdFunction;
 
         Operations(Set<Scalar.Feature> features,
                    BinaryOperator<Integer> integerFunction,
                    BinaryOperator<Double> doubleFunction,
                    BinaryOperator<Long> longFunction,
-                   BinaryOperator<Float> floatFunction) {
+                   BinaryOperator<Float> floatFunction,
+                   BinaryOperator<BigDecimal> bdFunction) {
             this.features = features;
             this.doubleFunction = doubleFunction;
             this.integerFunction = integerFunction;
             this.longFunction = longFunction;
             this.floatFunction = floatFunction;
+            this.bdFunction = bdFunction;
         }
 
         @Override
@@ -156,6 +167,16 @@ public class ArithmeticFunctions {
                 ).withFeatures(op.features),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.doubleFunction, signature, boundSignature, DataTypes.DOUBLE)
+            );
+            module.register(
+                Signature.scalar(
+                    op.toString(),
+                    DataTypes.NUMERIC.getTypeSignature(),
+                    DataTypes.NUMERIC.getTypeSignature(),
+                    DataTypes.NUMERIC.getTypeSignature()
+                ).withFeatures(op.features),
+                (signature, boundSignature) ->
+                    new BinaryScalar<>(op.bdFunction, signature, boundSignature, DataTypes.NUMERIC)
             );
         }
 
