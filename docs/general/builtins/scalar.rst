@@ -2021,7 +2021,7 @@ Returns: ``array``
 ``array_upper(anyarray, dimension)``
 ------------------------------------
 The ``array_upper`` function returns the number of elements in the requested
-array dimmension (the upper bound of the dimension).
+array dimension (the upper bound of the dimension).
 
 Returns: ``integer``
 
@@ -2041,7 +2041,7 @@ Returns: ``integer``
 -------------------------------------
 
 The ``array_length`` function returns the number of elements in the requested
-array dimmension.
+array dimension.
 
 Returns: ``integer``
 
