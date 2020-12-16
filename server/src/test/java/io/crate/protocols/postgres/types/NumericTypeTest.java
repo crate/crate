@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.ArrayList;
 
 import static org.hamcrest.Matchers.is;
 
@@ -47,7 +48,7 @@ public class NumericTypeTest extends BasePGTypeTest<BigDecimal> {
             pgType.writeAsText(buffer, expected);
             var actual = pgType.readTextValue(buffer, buffer.readInt());
             assertThat(actual, is(expected));
-            assertThat(actual.toString(), is("12.12"));
+            assertThat(actual.toString(), is(expected.toString()));
         } finally {
             buffer.release();
         }
@@ -55,21 +56,26 @@ public class NumericTypeTest extends BasePGTypeTest<BigDecimal> {
 
     @Test
     public void test_read_and_write_numeric_binary_value() {
-        var expected = new BigDecimal("12.123")
-            .setScale(2, MathContext.DECIMAL64.getRoundingMode());
-        assertThat(expected.scale(), is(2));
-        assertThat(expected.precision(), is(4));
+        ArrayList<BigDecimal> testNumbers = new ArrayList<>();
+        testNumbers.add(new BigDecimal("-123"));
+        testNumbers.add(new BigDecimal("12345.1"));
+        testNumbers.add(new BigDecimal("-12.12"));
+        testNumbers.add(new BigDecimal("00123"));
+        testNumbers.add(new BigDecimal("12.123").setScale(2, MathContext.DECIMAL64.getRoundingMode()));
+        testNumbers.add(new BigDecimal("1234.0"));
+        testNumbers.add(new BigDecimal("1234.0000").setScale(1, MathContext.DECIMAL64.getRoundingMode()));
 
-        ByteBuf buffer = Unpooled.buffer();
-        try {
-            //noinspection unchecked
-            pgType.writeAsBinary(buffer, expected);
-            BigDecimal actual = (BigDecimal) pgType.readBinaryValue(buffer, buffer.readInt());
-            assertThat(actual.precision(), is(expected.precision()));
-            assertThat(actual.scale(), is(expected.scale()));
-            assertThat(actual.toString(), is("12.12"));
-        } finally {
-            buffer.release();
+        for (var expected : testNumbers) {
+            ByteBuf buffer = Unpooled.buffer();
+            try {
+                //noinspection unchecked
+                pgType.writeAsBinary(buffer, expected);
+                BigDecimal actual = (BigDecimal) pgType.readBinaryValue(buffer, buffer.readInt());
+                assertThat(actual.scale(), is(expected.scale()));
+                assertThat(actual.toString(), is(expected.toString()));
+            } finally {
+                buffer.release();
+            }
         }
     }
 }
