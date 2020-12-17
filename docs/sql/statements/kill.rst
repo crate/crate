@@ -7,6 +7,12 @@
 
 Kills active jobs in the CrateDB cluster.
 
+.. NOTE::
+
+    This statement is only available for all users on clusters running CrateDB
+    versions :ref:`4.3 <version_4.3.0>` and above. Prior version 4.3, the
+    ``KILL`` statement can only be run by the ``crate`` superuser.
+
 .. rubric:: Table of contents
 
 .. contents::
@@ -56,4 +62,6 @@ Parameters
   The `UUID`_ of the currently active job that needs to be killed given
   as a string literal.
 
-.. _`UUID`: http://en.wikipedia.org/wiki/Universally_unique_identifier
+
+.. _CrateDB Cloud: https://crate.io/products/cratedb-cloud/
+.. _UUID: http://en.wikipedia.org/wiki/Universally_unique_identifier
