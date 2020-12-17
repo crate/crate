@@ -41,4 +41,4 @@ Fixes
 - Ensured natural order of config keys for the Host Based Authentication.
 
 - Fixed encoding/decoding of ``Timestamp`` type for PostgreSQL wire protocol
-  to support Golang Postgres drivers.
+  to support Golang PostgreSQL drivers.

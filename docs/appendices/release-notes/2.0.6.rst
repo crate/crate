@@ -95,7 +95,7 @@ Fixes
    to get stuck.
 
  - Fixed a ClassCastException that could occur on certain queries if connected
-   via the postgres protocol.
+   via the PostgreSQL protocol.
 
  - Fixed an issue that could cause the ``_score >= <minScore>`` filter to not
    work correctly if used in a query with an ``ORDER BY`` clause.

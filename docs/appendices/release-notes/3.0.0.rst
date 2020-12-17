@@ -77,7 +77,7 @@ Breaking Changes
 
 - Dropped support for reading AWS credentials used for S3 and EC2 discovery
   from environment variables ``AWS_ACCESS_KEY_ID`` and
-  ``AWS_SECRET_ACCESS_KEY`` as well as java system properties
+  ``AWS_SECRET_ACCESS_KEY`` as well as Java system properties
   ``aws.accessKeyId`` and ``aws.secretKey``.
 
 - EC2 ``cloud.aws.*`` settings have been renamed to ``discovery.ec2.*``.
@@ -118,12 +118,12 @@ Changes
 - Updated the bundled CrateDB Shell (``crash``) to version ``0.24.0`` which
   adds support for default schema for connections.
 
-- Added support in the Postgres Wire Protocol's SimpleQuery mode to process a
+- Added support in the PostgreSQL Wire Protocol's SimpleQuery mode to process a
   query string which contains multiple queries delimited by semicolons.
 
-- Added support for ``DEALLOCATE`` statement which is used by certain Postgres
-  Wire Protocol clients (e.g. libpq) to deallocate a prepared statement and
-  release its resources.
+- Added support for ``DEALLOCATE`` statement which is used by certain
+  PostgreSQL Wire Protocol clients (e.g. libpq) to deallocate a prepared
+  statement and release its resources.
 
 - Added support for ordering on analysed or partitioned columns.
 

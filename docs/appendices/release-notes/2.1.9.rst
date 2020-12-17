@@ -65,7 +65,7 @@ Fixes
   to be thrown when trying to insert rows in a table that has a generated
   column which is used both in ``PARTITION_BY`` and ``PRIMARY KEY``.
 
-- The postgres wire protocol service can now be bound to IPv6 addresses as
+- The PostgreSQL wire protocol service can now be bound to IPv6 addresses as
   documented.
 
 - Fixed an issue that resulted in aliases overriding column names when a
