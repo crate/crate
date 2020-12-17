@@ -128,7 +128,7 @@ Crate's HTTP endpoint remains unchanged. When you have turned on secure
 communication, it will use HTTPS instead of plain HTTP. Simply point your
 browser to the same URL you used before but changing the protocol to https:
 
-For example, ``http://localhost:4200`` becomes ``https://localhost:4200``.
+For example, ``https://localhost:4200`` becomes ``https://localhost:4200``.
 If you have not configured the CrateDB node's keystore with a signed
 certificate from a Certificate Authority (CA), then you will get something
 like the following: ``NET::ERR_CERT_AUTHORITY_INVALID``. You either need to

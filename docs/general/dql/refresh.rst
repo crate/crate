@@ -91,7 +91,7 @@ In case the ``PARTITION`` clause is omitted all partitions will be refreshed.
 If a table has many partitions this should be avoided due to performance
 reasons.
 
-.. _`eventually consistent`: http://en.wikipedia.org/wiki/Eventual_consistency
+.. _`eventually consistent`: https://en.wikipedia.org/wiki/Eventual_consistency
 
 .. hide:
 

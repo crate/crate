@@ -186,8 +186,8 @@ Possible values for the ``format`` settings are:
   array per line in an output file. This is the default behavior if
   columns are defined.
 
-.. _Amazon S3: http://aws.amazon.com/s3/
+.. _Amazon S3: https://aws.amazon.com/s3/
 .. _Docker volume: https://docs.docker.com/storage/volumes/
-.. _gzip: http://www.gzip.org/
-.. _NFS: http://en.wikipedia.org/wiki/Network_File_System
+.. _gzip: https://www.gzip.org/
+.. _NFS: https://en.wikipedia.org/wiki/Network_File_System
 .. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats

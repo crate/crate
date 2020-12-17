@@ -171,8 +171,8 @@ You can refer to our guide on running `CrateDB tarball installations`_.
 .. _LICENSE: https://github.com/crate/crate/blob/master/LICENSE
 .. _monitoring overview: https://crate.io/docs/clients/admin-ui/en/latest/monitoring.html
 .. _NOTICE: https://github.com/crate/crate/blob/master/NOTICE
-.. _OpenJDK: http://openjdk.java.net/projects/jdk/11/
-.. _Oracle's Java: http://www.java.com/en/download/help/mac_install.xml
+.. _OpenJDK: https://openjdk.java.net/projects/jdk/11/
+.. _Oracle's Java: https://www.java.com/en/download/help/mac_install.xml
 .. _privileges browser: https://crate.io/docs/clients/admin-ui/en/latest/privileges.html
 .. _product comparison: https://crate.io/products/cratedb-editions/
 .. _release: https://github.com/crate/crate/tags

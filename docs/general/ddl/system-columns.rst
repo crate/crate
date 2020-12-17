@@ -77,7 +77,7 @@ _id
   is defined the ``_id`` value is used for distributing the records on the
   shards.
 
-.. _Optimistic Concurrency Control: http://en.wikipedia.org/wiki/Optimistic_concurrency_control
+.. _Optimistic Concurrency Control: https://en.wikipedia.org/wiki/Optimistic_concurrency_control
 
 
 _docid

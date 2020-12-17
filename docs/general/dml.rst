@@ -603,4 +603,4 @@ exported::
 For further details see :ref:`copy_to`.
 
 .. _crate-python: https://pypi.python.org/pypi/crate/
-.. _PCRE: http://www.pcre.org/
+.. _PCRE: https://www.pcre.org/

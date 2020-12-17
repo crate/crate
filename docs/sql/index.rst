@@ -13,7 +13,7 @@ This section of the documentation provides a full SQL syntax reference.
    documentation. The SQL syntax reference assumes a basic familiarity with the
    relevant parts of CrateDB.
 
-.. _`SQL`: http://en.wikipedia.org/wiki/Sql
+.. _`SQL`: https://en.wikipedia.org/wiki/Sql
 
 .. toctree::
     :maxdepth: 2

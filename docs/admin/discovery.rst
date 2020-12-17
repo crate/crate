@@ -22,7 +22,7 @@ cluster on Amazon EC2.
 
 .. _`Amazon EC2`: https://aws.amazon.com/ec2
 .. _`EC2 API`: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/Welcome.html
-.. _best practice: http://crate.io/docs/crate/guide/best_practices/ec2_setup.html
+.. _best practice: https://crate.io/docs/crate/guide/best_practices/ec2_setup.html
 
 .. _azure_discovery:
 

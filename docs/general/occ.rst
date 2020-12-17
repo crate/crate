@@ -70,9 +70,9 @@ Querying for the correct ``_seq_no`` and ``_primary_term`` ensures that no
 concurrent update and cluster configuration change has taken place::
 
     cr> UPDATE sensors SET last_verification = '2020-01-10 09:40'
-    ... WHERE 
+    ... WHERE
     ...   id = 'ID1'
-    ...   AND "_seq_no" = 0 
+    ...   AND "_seq_no" = 0
     ...   AND "_primary_term" = 1;
     UPDATE OK, 1 row affected (... sec)
 
@@ -80,7 +80,7 @@ Updating a row with a wrong or outdated sequence number or primary term will
 not execute the update and results in 0 affected rows::
 
     cr> UPDATE sensors SET last_verification = '2020-01-10 09:40'
-    ... WHERE 
+    ... WHERE
     ...   id = 'ID1'
     ...   AND "_seq_no" = 42
     ...   AND "_primary_term" = 5;
@@ -91,7 +91,7 @@ Optimistic delete
 
 The same can be done when deleting a row::
 
-    cr> DELETE FROM sensors WHERE id = 'ID2' 
+    cr> DELETE FROM sensors WHERE id = 'ID2'
     ...   AND "_seq_no" = 0
     ...   AND "_primary_term" = 1;
     DELETE OK, 1 row affected (... sec)
@@ -104,7 +104,7 @@ Known limitations
    not possible with our used testing data because ``type`` is not declared as
    a primary key and results in an error::
 
-    cr> DELETE FROM sensors WHERE type = 'DHT11' 
+    cr> DELETE FROM sensors WHERE type = 'DHT11'
     ...   AND "_seq_no" = 3
     ...   AND "_primary_term" = 1;
     UnsupportedFeatureException["_seq_no" and "_primary_term" columns can only be used together in the WHERE clause with equals comparisons and if there are also equals comparisons on primary key columns]
@@ -123,4 +123,4 @@ Known limitations
    the given required version does not match the actual version of the relevant
    row.
 
-.. _Optimistic Concurrency Control: http://en.wikipedia.org/wiki/Optimistic_concurrency_control
+.. _Optimistic Concurrency Control: https://en.wikipedia.org/wiki/Optimistic_concurrency_control

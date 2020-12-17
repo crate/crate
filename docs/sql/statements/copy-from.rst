@@ -400,13 +400,13 @@ inserted records.
 |                                       | errors, to avoid buffer pressure on clients.   |               |
 +---------------------------------------+------------------------------------------------+---------------+
 
-.. _AWS documentation: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
-.. _AWS Java Documentation: http://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
+.. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
+.. _AWS Java Documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
 .. _Docker volume: https://docs.docker.com/storage/volumes/
-.. _GeoJSON: http://geojson.org/
-.. _RFC2396: http://www.ietf.org/rfc/rfc2396.txt
+.. _GeoJSON: https://geojson.org/
+.. _RFC2396: https://www.ietf.org/rfc/rfc2396.txt
 .. _URI Scheme: https://en.wikipedia.org/wiki/URI_scheme
 .. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding
-.. _URL: http://docs.oracle.com/javase/8/docs/api/java/net/URL.html
+.. _URL: https://docs.oracle.com/javase/8/docs/api/java/net/URL.html
 .. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
-.. _WKT: http://en.wikipedia.org/wiki/Well-known_text
+.. _WKT: https://en.wikipedia.org/wiki/Well-known_text

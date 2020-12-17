@@ -867,8 +867,8 @@ The following fields are supported:
   | The number of seconds since Jan 1, 1970.
   | Can be negative if earlier than Jan 1, 1970.
 
-.. _`available time zones`: http://www.joda.org/joda-time/timezones.html
-.. _`Joda-Time`: http://www.joda.org/joda-time/
+.. _`available time zones`: https://www.joda.org/joda-time/timezones.html
+.. _`Joda-Time`: https://www.joda.org/joda-time/
 
 .. _current_time:
 
@@ -1459,7 +1459,7 @@ implicit type casting from strings to geo point::
 
 Returns: ``text``
 
-Returns a `GeoHash <http://en.wikipedia.org/wiki/Geohash>`_ representation
+Returns a `GeoHash <https://en.wikipedia.org/wiki/Geohash>`_ representation
 based on full precision (12 characters) of the input point, or ``NULL`` if not
 available. The input has to be a column of type ``geo_point``, a valid WKT
 string or a ``double precision`` array. See :ref:`geo_point_data_type` for more
@@ -1968,7 +1968,7 @@ See the api documentation for more details.
    Be aware that, in contrast to the functions, the :ref:`regular expression
    operator <sql_ddl_regexp>` is using `Lucene Regular Expressions`_.
 
-.. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
+.. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 
 ``regexp_replace(source, pattern, replacement [, flags])``
 ----------------------------------------------------------
@@ -3137,11 +3137,11 @@ Example::
 
 .. rubric:: Footnotes
 
-.. [#MySQL-Docs] http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+.. [#MySQL-Docs] https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 
-.. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
-.. _Java Regular Expressions: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
-.. _`MySQL date_format`: http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+.. _`formatter`: https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+.. _Java Regular Expressions: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
+.. _`MySQL date_format`: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 .. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
 .. _`CrateDB PDO`: https://crate.io/docs/pdo/en/latest/connect.html
 .. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
