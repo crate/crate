@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.netty.util.collection.IntObjectHashMap;
 import org.apache.lucene.codecs.StoredFieldsReader;
@@ -79,51 +78,40 @@ class FetchCollector {
     }
 
     public StreamBucket collect(IntContainer docIds) {
-        if (docIds.size() >= 10) {
+        int[] ids = docIds.toArray();
+        final boolean collectSequential;
+        // I experimented with smaller values as size theshold since the amount
+        // of doc ids can be less due to parallel fetch execution in comparison
+        // to elasticsearch. However, the performance goes worse with smaller batches.
+        if (ids.length >= 10) {
             // If the doc ids are in sequential order we can leverage
             // the merge instances of the stored fields readers that
             // are optimized for sequential access.
-            int[] ids = docIds.toArray();
             Arrays.sort(ids);
-            if (isSequential(ids)) {
-                return collectSequential(ids);
-            }
+            collectSequential = isSequential(ids);
+        } else {
+            collectSequential = false;
         }
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
-            for (IntCursor cursor : docIds) {
-                int docId = cursor.value;
+            var readerContexts = new IntObjectHashMap<ReaderContext>(leaves.size());
+            for (int docId : ids) {
                 int readerIndex = readerIndex(docId, leaves);
                 LeafReaderContext subReaderContext = leaves.get(readerIndex);
                 try {
-                    setNextDocId(new ReaderContext(subReaderContext), docId - subReaderContext.docBase);
-                } catch (IOException e) {
-                    Exceptions.rethrowRuntimeException(e);
-                }
-                builder.add(row);
-            }
-        }
-        return builder.build();
-    }
-
-    private StreamBucket collectSequential(int[] docIds) {
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
-        try (var borrowed = fetchTask.searcher(readerId)) {
-            var searcher = borrowed.item();
-            List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
-            var storedFieldsReaders = new IntObjectHashMap<StoredFieldsReader>(leaves.size());
-            for (int docId : docIds) {
-                int readerIndex = readerIndex(docId, leaves);
-                LeafReaderContext subReaderContext = leaves.get(readerIndex);
-                try {
-                    var storedFieldReader = storedFieldsReaders.get(readerIndex);
-                    if (storedFieldReader == null) {
-                        storedFieldReader = sequentialStoredFieldReader(subReaderContext);
-                        storedFieldsReaders.put(readerIndex, storedFieldReader);
+                    var readerContext = readerContexts.get(readerIndex);
+                    if (readerContext == null) {
+                        if (collectSequential) {
+                            var storedFieldReader = sequentialStoredFieldReader(subReaderContext);
+                            readerContext = new ReaderContext(subReaderContext, storedFieldReader::visitDocument);
+                        } else {
+                            readerContext = new ReaderContext(subReaderContext);
+                        }
+                        readerContexts.put(readerIndex, readerContext);
                     }
-                    setNextDocId(new ReaderContext(subReaderContext, storedFieldReader::visitDocument), docId - subReaderContext.docBase);
+                    setNextDocId(readerContext, docId - subReaderContext.docBase);
                 } catch (IOException e) {
                     Exceptions.rethrowRuntimeException(e);
                 }

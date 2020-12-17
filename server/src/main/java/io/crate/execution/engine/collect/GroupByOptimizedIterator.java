@@ -294,8 +294,9 @@ final class GroupByOptimizedIterator {
             if (scorer == null) {
                 continue;
             }
+            var readerContext = new ReaderContext(leaf);
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                expressions.get(i).setNextReader(new ReaderContext(leaf));
+                expressions.get(i).setNextReader(readerContext);
             }
             SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {

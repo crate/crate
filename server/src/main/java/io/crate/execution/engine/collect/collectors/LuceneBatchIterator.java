@@ -154,9 +154,10 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             currentScorer = scorer;
             currentLeaf = leaf;
             currentDocIdSetIt = scorer.iterator();
+            var readerContext = new ReaderContext(currentLeaf);
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setScorer(currentScorer);
-                expression.setNextReader(new ReaderContext(currentLeaf));
+                expression.setNextReader(readerContext);
             }
             return true;
         }
