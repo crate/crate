@@ -238,9 +238,10 @@ public final class ReservoirSampler {
             int readerIndex = ReaderUtil.subIndex(docId, leaves);
             LeafReaderContext leafContext = leaves.get(readerIndex);
             int subDoc = docId - leafContext.docBase;
+            var readerContext = new ReaderContext(leafContext);
             for (LuceneCollectorExpression<?> expression : expressions) {
                 try {
-                    expression.setNextReader(new ReaderContext(leafContext));
+                    expression.setNextReader(readerContext);
                     expression.setNextDocId(subDoc);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
