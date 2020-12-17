@@ -60,7 +60,7 @@ Fixes
    when the table stats indicated that the left table of a join is smaller
    than the right.
 
- - Fixed passing arguments that contain spaces in the crate shell script.
+ - Fixed passing arguments that contain spaces in the ``crate`` shell script.
 
  - Fixed an issue that caused a table that is not part of the ``doc`` schema to
    be unavailable/hidden if it gets closed using ``ALTER TABLE``.

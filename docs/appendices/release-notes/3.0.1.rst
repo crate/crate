@@ -61,9 +61,10 @@ Fixes
 - Fixed support for views with aliased literals in select list / groupBy /
   orderBy.
 
-- Fixed a bug affecting the Postgres Wire Protocol's Simple Query mode and
+- Fixed a bug affecting the PostgreSQL Wire Protocol's Simple Query mode and
   queries which contained strings with escaped single quotes and semicolons,
   e.g. ``'Hello ''Joe'';'``.
 
-- Fixed an issue in the Postgres Wire Protocol's Simple Query mode which would
-  send an empty statement if the query string contained trailing whitespace.
+- Fixed an issue in the PostgreSQL Wire Protocol's Simple Query mode which
+  would send an empty statement if the query string contained trailing
+  whitespace.

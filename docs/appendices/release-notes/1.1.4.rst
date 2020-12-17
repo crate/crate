@@ -72,7 +72,7 @@ Fixes
    MBean.
 
  - The internal ``fetchSize`` is now dynamic based on configured heap and has
-   an upper bound to prevent ``OutOfMemory`` errors if a postgres client
+   an upper bound to prevent ``OutOfMemory`` errors if a PostgreSQL client
    retrieves a large result set without setting a ``fetchSize``, or setting a
    ``fetchSize`` which is too large.
 

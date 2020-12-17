@@ -160,7 +160,7 @@ Changes
 - Functions which accept regular expression flags now throw an error when
   invalid flags are provided.
 
-- Clients using the postgres wire protocol will now receive an additional
+- Clients using the PostgreSQL wire protocol will now receive an additional
   ``crate_version`` ParameterStatus message when establishing a connection.
   This can be used to identify the server as ``CrateDB``.
 

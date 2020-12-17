@@ -64,11 +64,12 @@ Fixes
  - Scalar functions are now allowed on the ``HAVING`` clause if the scalar
    function is used as a ``GROUP BY`` symbol.
 
- - Fixed an issue in the postgres protocol that could cause a ``StackOverflow``
-   exception due to connection errors or malfunctioning clients.
+ - Fixed an issue in the PostgreSQL protocol that could cause a
+   ``StackOverflow`` exception due to connection errors or malfunctioning
+   clients.
 
- - Closing a connection via the Postgres Wire Protocol now correctly closes the
-   internal resources.
+ - Closing a connection via the PostgreSQL Wire Protocol now correctly closes
+   the internal resources.
 
  - Fixed issue that led to casting exception when comparing an object column
    with an object literal that contains a string value.

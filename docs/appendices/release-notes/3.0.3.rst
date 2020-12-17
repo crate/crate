@@ -86,7 +86,7 @@ Fixes
 - Fixed a dependecy issue with the bundled ``crash`` that caused the app to be
   unable to connect to the server.
 
-- Fixed an issue that could prevent postgres clients from receiving an error
+- Fixed an issue that could prevent PostgreSQL clients from receiving an error
   and therefore getting stuck.
 
 - Fixed an issue that would cause a ``CAST`` from ``TIMESTAMP`` to ``LONG`` to
