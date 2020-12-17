@@ -220,9 +220,9 @@ flow for an ``ALTER TABLE`` statement which changes the schema of a table:
 #. Every node might take some local action depending on the type of cluster
    state change.
 
-.. _Elasticsearch: http://www.elasticsearch.org/
-.. _Lucene: http://lucene.apache.org/core/
-.. _WAL: http://en.wikipedia.org/wiki/Write-ahead_logging
+.. _Elasticsearch: https://www.elasticsearch.org/
+.. _Lucene: https://lucene.apache.org/core/
+.. _WAL: https://en.wikipedia.org/wiki/Write-ahead_logging
 .. _Optimistic Concurrency Control: https://crate.io/docs/crate/reference/sql/occ.html
 .. _internal identifier: https://crate.io/docs/crate/reference/sql/administration/system_columns.html#sql-administration-system-column-id
 .. _routing: https://crate.io/docs/crate/reference/sql/ddl/sharding.html#routing

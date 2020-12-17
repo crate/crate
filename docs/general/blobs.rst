@@ -203,4 +203,4 @@ If the blob doesn't exist a 404 Not Found error is returned::
     sh$ crash -c "drop blob table myblobs"
     DROP OK, 1 row affected (... sec)
 
-.. _`binary large objects`: http://en.wikipedia.org/wiki/Binary_large_object
+.. _`binary large objects`: https://en.wikipedia.org/wiki/Binary_large_object

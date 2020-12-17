@@ -173,7 +173,7 @@ TermRangeQuery::
 
 For details please refer to the `Apache Lucene`_ site.
 
-.. _`Apache Lucene`: http://lucene.apache.org/core/4_0_0/core/org/apache/lucene/search/Query.html
+.. _`Apache Lucene`: https://lucene.apache.org/core/4_0_0/core/org/apache/lucene/search/Query.html
 
 Number and date field comparison behave as expected from standard SQL.
 
@@ -299,8 +299,8 @@ Examples::
     +------------+
     SELECT 1 row in set (... sec)
 
-.. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
-.. _POSIX Extended Regular Expressions: http://en.wikipedia.org/wiki/Regular_expression#POSIX_extended
+.. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
+.. _POSIX Extended Regular Expressions: https://en.wikipedia.org/wiki/Regular_expression#POSIX_extended
 .. _PCRE: https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions
 
 .. _sql_dql_like:

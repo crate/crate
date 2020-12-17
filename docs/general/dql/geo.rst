@@ -276,6 +276,6 @@ into your geographic data::
 Nonetheless these scalars can be used everywhere in a SQL query where scalar
 functions are allowed.
 
-.. _GeoJSON: http://geojson.org/
-.. _WKT: http://en.wikipedia.org/wiki/Well-known_text
-.. _ISO 19107: http://www.iso.org/iso/catalogue_detail.htm?csnumber=26012
+.. _GeoJSON: https://geojson.org/
+.. _WKT: https://en.wikipedia.org/wiki/Well-known_text
+.. _ISO 19107: https://www.iso.org/iso/catalogue_detail.htm?csnumber=26012

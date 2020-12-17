@@ -150,7 +150,7 @@ logging of the JVM.
 .. _basic installations: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
 .. _a CrateDB Linux package: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/linux.html
 .. _CrateDB on Docker: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/docker.html
-.. _Java options: http://docs.oracle.com/javase/7/docs/technotes/tools/windows/java.html#CBBIJCHG
+.. _Java options: https://docs.oracle.com/javase/7/docs/technotes/tools/windows/java.html#CBBIJCHG
 .. _environment variables: https://en.wikipedia.org/wiki/Environment_variable
 .. _expanded tarball: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
 .. _Concurrent Mark Sweep: https://docs.oracle.com/javase/10/gctuning/concurrent-mark-sweep-cms-collector.htm

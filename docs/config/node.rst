@@ -617,7 +617,7 @@ sharing`_ settings in CrateDB allow for configuring these.
   Define allowed origins of a request. ``*`` allows *any* origin (which can be
   a substantial security risk) and by prepending a ``/`` the string will be
   treated as a regular expression. For example ``/https?:\/\/crate.io/`` will
-  allow requests from ``http://crate.io`` and ``https://crate.io``. This
+  allow requests from ``https://crate.io`` and ``https://crate.io``. This
   setting disallows any origin by default.
 
 .. _http.cors.max-age:
@@ -709,7 +709,7 @@ Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
 
 See also the :ref:`path.repo <path.repo>` Setting.
 
-.. _`JarURLConnection documentation`: http://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
+.. _`JarURLConnection documentation`: https://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
 
 Queries
 =======

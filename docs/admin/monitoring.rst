@@ -416,8 +416,8 @@ the `README`_ in the `Crate JMX HTTP Exporter`_ repository for more information.
 .. _Prometheus: https://prometheus.io/
 .. _README: https://github.com/crate/jmx_exporter/blob/master/README.rst
 .. _Crate JMX HTTP Exporter: https://github.com/crate/jmx_exporter
-.. _JMX: http://docs.oracle.com/javase/8/docs/technotes/guides/jmx/
-.. _JMX documentation: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
-.. _JConsole: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
+.. _JMX: https://docs.oracle.com/javase/8/docs/technotes/guides/jmx/
+.. _JMX documentation: https://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
+.. _JConsole: https://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
 .. _VisualVM: https://visualvm.github.io/
-.. _CompositeData: http://www.oracle.com/technetwork/java/javase/tech/best-practices-jsp-136021.html#mozTocId99420
+.. _CompositeData: https://www.oracle.com/technetwork/java/javase/tech/best-practices-jsp-136021.html#mozTocId99420

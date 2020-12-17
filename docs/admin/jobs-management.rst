@@ -35,4 +35,4 @@ ALL`` it returns the total number of contexts of that job killed on all nodes.
 
 See :ref:`sql_kill` for detailed syntax information on ``KILL`` statements.
 
-.. _`UUID`: http://en.wikipedia.org/wiki/Universally_unique_identifier
+.. _`UUID`: https://en.wikipedia.org/wiki/Universally_unique_identifier

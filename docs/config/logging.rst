@@ -190,4 +190,4 @@ garbage collection logging.
 .. _Log4j: https://logging.apache.org/log4j/1.2/
 .. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
 .. _rotated: https://en.wikipedia.org/wiki/Log_rotation
-.. _YAML: http://yaml.org/
+.. _YAML: https://yaml.org/

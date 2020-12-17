@@ -308,7 +308,7 @@ optimized.*
    Complex queries are broken down into subqueries that are run on their shards
    before joining.
 
-.. _this article: http://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins
+.. _this article: https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins
 .. _table function: https://crate.io/docs/reference/en/latest/sql/table_functions.html
 .. _information_schema: https://crate.io/docs/reference/sql/information_schema.html
 .. _system tables: https://crate.io/docs/reference/sql/system.html

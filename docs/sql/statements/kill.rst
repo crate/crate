@@ -64,4 +64,4 @@ Parameters
 
 
 .. _CrateDB Cloud: https://crate.io/products/cratedb-cloud/
-.. _UUID: http://en.wikipedia.org/wiki/Universally_unique_identifier
+.. _UUID: https://en.wikipedia.org/wiki/Universally_unique_identifier

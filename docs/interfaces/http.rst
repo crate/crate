@@ -523,5 +523,5 @@ error::
    Every bulk operation will be executed, independent if one of the operation
    fails.
 
-.. _prepared statement: http://en.wikipedia.org/wiki/Prepared_statement
-.. _here documents: http://www.tldp.org/LDP/abs/html/here-docs.html
+.. _prepared statement: https://en.wikipedia.org/wiki/Prepared_statement
+.. _here documents: https://www.tldp.org/LDP/abs/html/here-docs.html

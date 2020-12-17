@@ -1429,6 +1429,6 @@ max_output_size
     If the concatenated fingerprint grows larger than max_output_size, the
     token filter will exit and will not emit a token. Defaults to ``255``.
 
-.. _Java Pattern Api: http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#field_summary
-.. _`UAX#29`: http://www.unicode.org/reports/tr29/
-.. _Lucene regular expression: http://lucene.apache.org/core/7_0_1/core/org/apache/lucene/util/automaton/RegExp.html
+.. _Java Pattern Api: https://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#field_summary
+.. _`UAX#29`: https://www.unicode.org/reports/tr29/
+.. _Lucene regular expression: https://lucene.apache.org/core/7_0_1/core/org/apache/lucene/util/automaton/RegExp.html

@@ -1454,14 +1454,14 @@ See the table below for a full list of aliases:
 
 .. _pattern letters and symbols:
     https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/format/DateTimeFormatter.html
-.. _WKT: http://en.wikipedia.org/wiki/Well-known_text
-.. _GeoJSON: http://geojson.org/
+.. _WKT: https://en.wikipedia.org/wiki/Well-known_text
+.. _GeoJSON: https://geojson.org/
 .. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1
 .. _Geohash: https://en.wikipedia.org/wiki/Geohash
 .. _Quadtree: https://en.wikipedia.org/wiki/Quadtree
 .. _Trie: https://en.wikipedia.org/wiki/Trie
 .. _Tries: https://en.wikipedia.org/wiki/Trie
-.. _IEEE 754: http://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
+.. _IEEE 754: https://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
 .. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
