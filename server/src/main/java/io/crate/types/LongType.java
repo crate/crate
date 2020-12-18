@@ -64,11 +64,14 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
         } else if (value instanceof String) {
             return Long.valueOf((String) value);
         } else if (value instanceof BigDecimal) {
-            try {
-                return ((BigDecimal) value).longValueExact();
-            } catch (ArithmeticException e) {
+            var bigDecimalValue = (BigDecimal) value;
+            var max = BigDecimal.valueOf(Long.MAX_VALUE).toBigInteger();
+            var min = BigDecimal.valueOf(Long.MIN_VALUE).toBigInteger();
+            if (max.compareTo(bigDecimalValue.toBigInteger()) <= 0
+                || min.compareTo(bigDecimalValue.toBigInteger()) >= 0) {
                 throw new IllegalArgumentException(getName() + " value out of range: " + value);
             }
+            return ((BigDecimal) value).longValue();
         } else if (value instanceof Number) {
             return ((Number) value).longValue();
         } else {
