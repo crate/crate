@@ -69,11 +69,14 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
         } else if (value instanceof Regproc) {
             return ((Regproc) value).oid();
         } else if (value instanceof BigDecimal) {
-            try {
-                return ((BigDecimal) value).intValueExact();
-            } catch (ArithmeticException e) {
+            var bigDecimalValue = (BigDecimal) value;
+            var max = BigDecimal.valueOf(Integer.MAX_VALUE).toBigInteger();
+            var min = BigDecimal.valueOf(Integer.MIN_VALUE).toBigInteger();
+            if (max.compareTo(bigDecimalValue.toBigInteger()) <= 0
+                || min.compareTo(bigDecimalValue.toBigInteger()) >= 0) {
                 throw new IllegalArgumentException(getName() + " value out of range: " + value);
             }
+            return ((BigDecimal) value).intValue();
         } else if (value instanceof Number) {
             long longVal = ((Number) value).longValue();
             if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {

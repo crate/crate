@@ -107,4 +107,19 @@ public class LongTypeTest extends ESTestCase {
         expectedException.expectMessage("Can't cast 'true' to bigint");
         LongType.INSTANCE.implicitCast(true);
     }
+
+    @Test
+    public void test_cast_out_of_range_numeric_to_bigint_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("bigint value out of range: 9223372036854775808");
+        LongType.INSTANCE.implicitCast(new BigDecimal("9223372036854775808"));
+    }
+
+    @Test
+    public void test_cast_numeric_with_fraction_to_long_looses_fraction() {
+        assertThat(
+            LongType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12)),
+            is(12L)
+        );
+    }
 }

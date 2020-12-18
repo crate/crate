@@ -86,4 +86,12 @@ public class IntegerTypeTest extends ESTestCase {
         expectedException.expectMessage("integer value out of range: 9223372036854775807");
         IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(Long.MAX_VALUE));
     }
+
+    @Test
+    public void test_cast_numeric_with_fraction_to_integer_looses_fraction() {
+        assertThat(
+            IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12)),
+            is(12)
+        );
+    }
 }
