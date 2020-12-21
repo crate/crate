@@ -58,6 +58,12 @@ None
 Fixes
 =====
 
+- Fixed an issue resulting in the full generated expression as the column name
+  inside data exported by ``COPY TO`` statements.
+
+- Fixed an issue resulting double-quoted column names inside data exported by
+  ``COPY TO`` statements.
+
 - Fixed a memory leak in the DNS discovery seed provider. The memory leak
   occurred if you configured ``discovery.seed_providers=srv``.
 
