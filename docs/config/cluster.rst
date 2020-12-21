@@ -1260,6 +1260,6 @@ Metadata gateway
   number of nodes in the cluster.
 
 
-.. _bootstrap checks: https://crate.io/docs/crate/guide/en/latest/admin/bootstrap-checks.html
+.. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
 .. _`Azure Portal`: https://portal.azure.com
 .. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
