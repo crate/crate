@@ -55,7 +55,7 @@ is applied, (see :ref:`ref_clustered_clause`).
    Well tuned shard allocation is vital. Read the `Sharding Guide`_ to make
    sure you're getting the best performance out ot CrateDB.
 
-.. _Sharding Guide: https://crate.io/docs/crate/guide/best_practices/sharding.html
+.. _Sharding Guide: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html
 
 .. _routing:
 

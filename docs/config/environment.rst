@@ -92,7 +92,7 @@ General
 
      `Appropriate memory configuration`_ is important for optimal performance.
 
-.. _appropriate memory configuration: https://crate.io/docs/crate/guide/en/latest/performance/memory.html
+.. _appropriate memory configuration: https://crate.io/docs/crate/howtos/en/latest/performance/memory.html
 
 .. _conf-env-dump-path:
 
