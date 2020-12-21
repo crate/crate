@@ -364,4 +364,22 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("node_filters argument 'name' must be a String, not 20 (Integer)");
         analyze("COPY users FROM '/' WITH (node_filters={name=20})");
     }
+
+    @Test
+    public void test_copy_to_using_upper_case_columns_does_not_result_in_quoted_col_names() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE doc.upper (\"Name\" varchar)")
+            .build();
+        BoundCopyTo analysis = analyze("COPY doc.upper (\"Name\") TO DIRECTORY '/dummy'");
+        assertThat(analysis.outputNames(), contains("Name"));
+    }
+
+    @Test
+    public void test_copy_to_using_generated_columns_does_not_result_in_full_expression() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE doc.generated_copy (i as 1 + 1)")
+            .build();
+        BoundCopyTo analysis = analyze("COPY doc.generated_copy (i) TO DIRECTORY '/dummy'");
+        assertThat(analysis.outputNames(), contains("i"));
+    }
 }

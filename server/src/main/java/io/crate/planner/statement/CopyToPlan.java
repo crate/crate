@@ -40,8 +40,8 @@ import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
@@ -205,12 +205,12 @@ public final class CopyToPlan implements Plan {
         List<Symbol> outputs = new ArrayList<>();
         Map<ColumnIdent, Symbol> overwrites = null;
         boolean columnsDefined = false;
-        List<String> outputNames = null;
+        final List<String> outputNames = new ArrayList<>(copyTo.columns().size());
         if (!copyTo.columns().isEmpty()) {
             // TODO: remove outputNames?
-            outputNames = new ArrayList<>(copyTo.columns().size());
             for (Symbol symbol : copyTo.columns()) {
-                outputNames.add(symbol.toString(Style.UNQUALIFIED));
+                assert symbol instanceof Reference : "Only references are expected here";
+                RefVisitor.visitRefs(symbol, r -> outputNames.add(r.column().sqlFqn()));
                 outputs.add(DocReferences.toSourceLookup(symbol));
             }
             columnsDefined = true;
@@ -256,7 +256,7 @@ public final class CopyToPlan implements Plan {
             Literal.of(DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()))),
             compressionType,
             outputFormat,
-            outputNames,
+            outputNames.isEmpty() ? null : outputNames,
             columnsDefined,
             overwrites);
     }
