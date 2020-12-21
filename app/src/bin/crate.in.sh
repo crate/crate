@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # check in case a user was using this mechanism
 if [ "x$CRATE_CLASSPATH" != "x" ]; then
     cat >&2 << EOF
@@ -9,11 +7,11 @@ EOF
     exit 1
 fi
 
-for libname in $CRATE_HOME/lib/*.jar; do
+for libname in "$CRATE_HOME"/lib/*.jar; do
     if [ "x$CRATE_CLASSPATH" != "x" ]; then
-        CRATE_CLASSPATH=$CRATE_CLASSPATH:$libname
+        CRATE_CLASSPATH="$CRATE_CLASSPATH:$libname"
     else
-        CRATE_CLASSPATH=$libname
+        CRATE_CLASSPATH="$libname"
     fi
 done
 
@@ -78,7 +76,7 @@ EOF
   else
       JAVA=java
   fi
-  JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=${LOGGC}:utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
+  JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=\"${LOGGC}\":utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
 fi
 
 # Disables explicit GC
