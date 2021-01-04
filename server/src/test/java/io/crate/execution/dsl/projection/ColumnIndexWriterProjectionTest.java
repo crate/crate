@@ -32,13 +32,18 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class ColumnIndexWriterProjectionTest {
@@ -97,20 +102,65 @@ public class ColumnIndexWriterProjectionTest {
             null
         );
 
-        assertThat(projection.columnReferencesExclPartition(), Matchers.is(Arrays.asList(
+        assertThat(projection.columnReferencesExclPartition(), is(Arrays.asList(
             domainRef, areaRef, hRef)
         ));
-        assertThat(projection.columnSymbolsExclPartition(), Matchers.is(Arrays.asList(
+        assertThat(projection.columnSymbolsExclPartition(), is(Arrays.asList(
             new InputColumn(1, DataTypes.STRING),
             new InputColumn(2, DataTypes.STRING),
             new InputColumn(4, DataTypes.INTEGER))));
     }
 
-    private Reference ref(ColumnIdent column, DataType type) {
+    /**
+     * Tests a fix for a regression introduced by an incorrect writing of the columns size by
+     * https://github.com/crate/crate/commit/468ef007fa8#diff-43b49f4a960311009a1e5c62672bcc13f8721f0c91f5b87e4d7c0d53146005c8R211
+     * This led to a NPE https://github.com/crate/crate/issues/10874.
+     */
+    @Test
+    public void test_streaming_with_lot_of_target_columns() throws Exception {
+        int numColumns = 200;
+        ArrayList<Reference> targetColumns = new ArrayList<>(numColumns);
+        for (int i = 0; i < numColumns; i++) {
+            var ident = new ColumnIdent(String.valueOf(i));
+            targetColumns.add(ref(ident, DataTypes.INTEGER));
+        }
+        InputColumns.SourceSymbols targetColsCtx = new InputColumns.SourceSymbols(targetColumns);
+        List<Symbol> columnSymbols = InputColumns.create(
+            targetColumns,
+            targetColsCtx);
+        var projection = new ColumnIndexWriterProjection(
+            relationName,
+            null,
+            List.of(),
+            targetColumns,
+            targetColumns,
+            columnSymbols,
+            false,
+            Collections.emptyMap(),
+            List.of(),
+            List.of(),
+            null,
+            null,
+            Settings.EMPTY,
+            true,
+            List.of(),
+            List.of()
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        Projection.toStream(projection, out);
+
+        StreamInput in = out.bytes().streamInput();
+        ColumnIndexWriterProjection p2 = (ColumnIndexWriterProjection) Projection.fromStream(in);
+
+        assertThat(p2, is(projection));
+    }
+
+    private Reference ref(ColumnIdent column, DataType<?> type) {
         return new Reference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, null, null);
     }
 
-    private Reference partitionRef(ColumnIdent column, DataType type) {
+    private Reference partitionRef(ColumnIdent column, DataType<?> type) {
         return new Reference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, null, null);
     }
 }

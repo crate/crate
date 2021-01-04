@@ -58,6 +58,10 @@ None
 Fixes
 =====
 
+- Fixed a regression introduced in CrateDB ``4.2.0`` leading to a NPE when
+  copying data from one table to another using ``INSERT INTO ...`` while the
+  source table contains more than 128 columns.
+
 - Fixed an issue resulting in the full generated expression as the column name
   inside data exported by ``COPY TO`` statements.
 
