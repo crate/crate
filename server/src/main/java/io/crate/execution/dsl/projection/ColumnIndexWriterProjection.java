@@ -259,7 +259,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         }
 
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.write(allTargetColumns.size());
+            out.writeVInt(allTargetColumns.size());
             for (var ref : allTargetColumns) {
                 Symbols.toStream(ref, out);
             }
