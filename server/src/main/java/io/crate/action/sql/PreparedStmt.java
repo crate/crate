@@ -60,6 +60,10 @@ public class PreparedStmt {
         this.describedParameterTypes = describedParameters;
     }
 
+    boolean isDescribed() {
+        return describedParameterTypes != null;
+    }
+
     Statement parsedStatement() {
         return parsedStatement;
     }
@@ -69,12 +73,12 @@ public class PreparedStmt {
      * of the {@link ParamTypeHints} and the types determined during ParameterDescription.
      * @param idx type at index (zero-based).
      */
-    DataType getEffectiveParameterType(int idx) {
+    DataType<?> getEffectiveParameterType(int idx) {
         if (describedParameterTypes == null) {
-            return paramTypeHints.getType(idx);
+            throw new IllegalStateException("Statement must be described before param types can be resolved");
         }
         if (idx >= describedParameterTypes.length) {
-            throw new IllegalStateException("Requested parameter index exceeds the number of parameters: " + idx);
+            return paramTypeHints.getType(idx);
         }
         return describedParameterTypes[idx];
     }
