@@ -44,7 +44,6 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RoutingProvider;
@@ -57,6 +56,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
@@ -149,6 +149,9 @@ public class Collect implements LogicalPlan {
         RoutedCollectPhase collectPhase = createPhase(plannerContext, binder);
         PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
         if (positionalOrderBy != null) {
+            if (preferSourceLookup) {
+                order = order.map(DocReferences::toSourceLookup);
+            }
             collectPhase.orderBy(
                 order.map(binder)
                     // Filter out literal constants as ordering by constants is a NO-OP and also not supported
