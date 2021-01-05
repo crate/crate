@@ -25,6 +25,9 @@ package io.crate.planner.consumer;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.planner.Merge;
+import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.Version;
@@ -34,6 +37,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
+
+import static org.hamcrest.Matchers.is;
 
 public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -47,6 +52,7 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
     private static SQLExecutor buildExecutor(ClusterService clusterService) throws IOException {
         return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addTable("create table target (id int, name varchar)")
             .build();
     }
 
@@ -73,4 +79,13 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
         e.plan("insert into users (id, name) select '1' as id, 'b' as name returning id");
     }
 
+    @Test
+    public void test_insert_from_subquery_with_order_by_symbols_match_collect_symbols() {
+        // Ensures that order by symbols may also be rewritten to source lookup refs if collect symbols are rewritten
+        Merge localMerge = e.plan("insert into target (id, name) " +
+                                  "select id, name from users order by id, name");
+        Collect collect = (Collect) localMerge.subPlan();
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
+        assertThat(collectPhase.orderBy().orderBySymbols(), is(collectPhase.toCollect()));
+    }
 }
