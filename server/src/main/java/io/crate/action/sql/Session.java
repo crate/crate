@@ -358,9 +358,7 @@ public class Session implements AutoCloseable {
 
                 DataType[] parameterSymbols =
                     parameterTypeExtractor.getParameterTypes(x -> Relations.traverseDeepSymbols(analyzedStatement, x));
-                if (parameterSymbols.length > 0) {
-                    preparedStmt.setDescribedParameters(parameterSymbols);
-                }
+                preparedStmt.setDescribedParameters(parameterSymbols);
                 return new DescribeResult(analyzedStatement.outputs(), parameterSymbols);
             default:
                 throw new AssertionError("Unsupported type: " + type);
@@ -729,5 +727,13 @@ public class Session implements AutoCloseable {
 
     public TransactionState transactionState() {
         return currentTransactionState;
+    }
+
+    public void ensureDescribed(String statementName) {
+        PreparedStmt stmt = getSafeStmt(statementName);
+        if (stmt.isDescribed()) {
+            return;
+        }
+        describe('S', statementName);
     }
 }

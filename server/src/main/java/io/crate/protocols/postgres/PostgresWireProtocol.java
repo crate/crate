@@ -541,6 +541,7 @@ public class PostgresWireProtocol {
         String statementName = readCString(buffer);
 
         FormatCodes.FormatCode[] formatCodes = FormatCodes.fromBuffer(buffer);
+        session.ensureDescribed(statementName);
 
         short numParams = buffer.readShort();
         List<Object> params = createList(numParams);
