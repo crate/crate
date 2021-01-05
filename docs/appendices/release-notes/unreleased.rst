@@ -58,6 +58,10 @@ None
 Fixes
 =====
 
+- Fixed an issue in the PostgreSQL wire protocol that prevented values from
+  being serialized correctly if the client didn't send a ``describe`` message
+  and used the binary serialization format.
+
 - Fixed an issue resulting in an error when using a ``ORDER BY`` clause inside
   the subquery of a ``INSERT INTO`` statement.
 

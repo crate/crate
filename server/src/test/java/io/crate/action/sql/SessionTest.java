@@ -63,6 +63,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
@@ -123,9 +124,43 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGetParamType() {
+    public void test_get_param_type_fails_if_statement_has_not_been_described() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+        Session session = new Session(
+            sqlExecutor.nodeCtx,
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            mock(DependencyCarrier.class),
+            AccessControl.DISABLED,
+            SessionContext.systemSessionContext());
 
+        session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
+        assertThrows(IllegalStateException.class, () -> session.getParamType("S_1", 0), "foo");
+    }
+
+    @Test
+    public void test_out_of_bounds_getParamType_falls_back_to_typehints() throws Exception {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+        Session session = new Session(
+            sqlExecutor.nodeCtx,
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            mock(DependencyCarrier.class),
+            AccessControl.DISABLED,
+            SessionContext.systemSessionContext());
+
+        session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
+        session.ensureDescribed("S_1");
+        assertThat(session.getParamType("S_1", 3), is(DataTypes.UNDEFINED));
+    }
+
+    @Test
+    public void test_getParamType_returns_types_infered_from_statement() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
         DependencyCarrier executor = mock(DependencyCarrier.class);
         Session session = new Session(
             sqlExecutor.nodeCtx,
@@ -138,18 +173,15 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
-        assertThat(session.getParamType("S_1", 0), is(DataTypes.UNDEFINED));
-        assertThat(session.getParamType("S_1", 2), is(DataTypes.UNDEFINED));
+        session.ensureDescribed("S_1");
+        assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
+        assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
 
         DescribeResult describe = session.describe('S', "S_1");
         assertThat(describe.getParameters(), equalTo(new DataType[] { DataTypes.INTEGER, DataTypes.INTEGER }));
 
         assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
         assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
-
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("Requested parameter index exceeds the number of parameters");
-        assertThat(session.getParamType("S_1", 3), is(DataTypes.UNDEFINED));
     }
 
     @Test
