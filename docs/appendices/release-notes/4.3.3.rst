@@ -1,0 +1,58 @@
+.. _version_4.3.3:
+
+=============
+Version 4.3.3
+=============
+
+Released on 2021-01-06.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.3.3.
+
+    We recommend that you upgrade to the latest 4.2 release before moving to
+    4.3.3.
+
+    A rolling upgrade from 4.2.6+ to 4.3.3 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+Fixes
+=====
+
+- Fixed an issue in the PostgreSQL wire protocol that prevented values from
+  being serialized correctly if the client didn't send a ``describe`` message
+  and used the binary serialization format.
+
+- Fixed an issue resulting in an error when using a ``ORDER BY`` clause inside
+  the subquery of a ``INSERT INTO`` statement.
+
+- Fixed a regression introduced in CrateDB ``4.2.0`` leading to a NPE when
+  copying data from one table to another using ``INSERT INTO ...`` while the
+  source table contains more than 128 columns.
+
+- Fixed an issue resulting in the full generated expression as the column name
+  inside data exported by ``COPY TO`` statements.
+
+- Fixed an issue resulting double-quoted column names inside data exported by
+  ``COPY TO`` statements.
+
+- Fixed a memory leak in the DNS discovery seed provider. The memory leak
+  occurred if you configured ``discovery.seed_providers=srv``.
+
+- Fixed a regression introduced in CrateDB ``4.0`` preventing the global setting
+  ``cluster.info.update.interval`` to be changed.
+
+- Fixed handling of spaces in `$CRATE_HOME`. Users would get a `No such file or
+  directory` error if the path set via `$CRATE_HOME` contained spaces.
