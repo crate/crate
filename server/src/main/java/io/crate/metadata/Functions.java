@@ -480,11 +480,11 @@ public class Functions {
                                                    List<TypeSignature> actualArgumentTypes) {
         int leftExactMatches = numberOfExactTypeMatches(
             actualArgumentTypes,
-            left.getBoundSignature().getArgumentTypes()
+            left.getDeclaredSignature().getArgumentTypes()
         );
         int rightExactMatches = numberOfExactTypeMatches(
             actualArgumentTypes,
-            right.getBoundSignature().getArgumentTypes()
+            right.getDeclaredSignature().getArgumentTypes()
         );
         return leftExactMatches > rightExactMatches;
     }
@@ -500,7 +500,7 @@ public class Functions {
                                                 List<TypeSignature> declaredArgumentTypes) {
         int cnt = 0;
         for (int i = 0; i < actualArgumentTypes.size(); i++) {
-            if (actualArgumentTypes.get(i).equals(declaredArgumentTypes.get(i))) {
+            if (declaredArgumentTypes.size() > i && actualArgumentTypes.get(i).equals(declaredArgumentTypes.get(i))) {
                 cnt++;
             }
         }
