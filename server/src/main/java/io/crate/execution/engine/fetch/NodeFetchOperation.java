@@ -33,7 +33,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
@@ -113,7 +113,7 @@ public class NodeFetchOperation {
 
     public CompletableFuture<? extends IntObjectMap<StreamBucket>> fetch(UUID jobId,
                                                                          int phaseId,
-                                                                         @Nullable IntObjectMap<? extends IntContainer> docIdsToFetch,
+                                                                         @Nullable IntObjectMap<IntArrayList> docIdsToFetch,
                                                                          boolean closeTaskOnFinish) {
         if (docIdsToFetch == null) {
             if (closeTaskOnFinish) {
@@ -168,16 +168,16 @@ public class NodeFetchOperation {
         return result;
     }
 
-    private CompletableFuture<? extends IntObjectMap<StreamBucket>> doFetch(FetchTask fetchTask, IntObjectMap<? extends IntContainer> toFetch) throws Exception {
+    private CompletableFuture<? extends IntObjectMap<StreamBucket>> doFetch(FetchTask fetchTask, IntObjectMap<IntArrayList> toFetch) throws Exception {
         HashMap<RelationName, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchTask);
 
         // RamAccounting is per doFetch call instead of per FetchTask/fetchPhase
         // To be able to free up the memory count when the operation is complete
         final var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("fetch-" + fetchTask.id(), circuitBreaker);
         ArrayList<Supplier<StreamBucket>> collectors = new ArrayList<>(toFetch.size());
-        for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
+        for (IntObjectCursor<IntArrayList> toFetchCursor : toFetch) {
             final int readerId = toFetchCursor.key;
-            final IntContainer docIds = toFetchCursor.value;
+            final IntArrayList docIds = toFetchCursor.value;
 
             RelationName ident = fetchTask.tableIdent(readerId);
             final TableFetchInfo tfi = tableFetchInfos.get(ident);

@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
@@ -59,7 +59,7 @@ public class FetchMapper implements AsyncFlatMapper<ReaderBuckets, Row> {
         Iterator<Map.Entry<String, IntSet>> it = readerIdsByNode.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, IntSet> entry = it.next();
-            IntObjectHashMap<IntContainer> toFetch = readerBuckets.generateToFetch(entry.getValue());
+            IntObjectHashMap<IntArrayList> toFetch = readerBuckets.generateToFetch(entry.getValue());
             if (toFetch.isEmpty() && !isLastCall) {
                 continue;
             }

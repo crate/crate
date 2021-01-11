@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.fetch;
 
-import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectMap;
 import io.crate.data.Bucket;
 
@@ -36,6 +36,6 @@ public interface FetchOperation {
      * @param closeContext indicate if context must be closed after fetch
      */
     CompletableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
-                                                            IntObjectMap<? extends IntContainer> toFetch,
+                                                            IntObjectMap<IntArrayList> toFetch,
                                                             boolean closeContext);
 }

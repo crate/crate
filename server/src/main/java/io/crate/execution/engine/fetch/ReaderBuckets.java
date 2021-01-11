@@ -27,7 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
@@ -117,12 +117,12 @@ public class ReaderBuckets {
         };
     }
 
-    public IntObjectHashMap<IntContainer> generateToFetch(IntSet readerIds) {
-        IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>(readerIds.size());
+    public IntObjectHashMap<IntArrayList> generateToFetch(IntSet readerIds) {
+        IntObjectHashMap<IntArrayList> toFetch = new IntObjectHashMap<>(readerIds.size());
         for (IntCursor readerIdCursor : readerIds) {
             ReaderBucket readerBucket = readerBuckets.get(readerIdCursor.value);
-            if (readerBucket != null && readerBucket.docs.size() > 0) {
-                toFetch.put(readerIdCursor.value, readerBucket.docs.keys());
+            if (readerBucket != null && !readerBucket.isEmpty()) {
+                toFetch.put(readerIdCursor.value, readerBucket.sortedDocs());
             }
         }
         return toFetch;

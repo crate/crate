@@ -43,12 +43,12 @@ public class NodeFetchRequest extends TransportRequest {
     private final boolean closeContext;
 
     @Nullable
-    private final IntObjectMap<? extends IntContainer> toFetch;
+    private final IntObjectMap<IntArrayList> toFetch;
 
     public NodeFetchRequest(UUID jobId,
                             int fetchPhaseId,
                             boolean closeContext,
-                            IntObjectMap<? extends IntContainer> toFetch) {
+                            IntObjectMap<IntArrayList> toFetch) {
         this.jobId = jobId;
         this.fetchPhaseId = fetchPhaseId;
         this.closeContext = closeContext;
@@ -72,7 +72,7 @@ public class NodeFetchRequest extends TransportRequest {
     }
 
     @Nullable
-    public IntObjectMap<? extends IntContainer> toFetch() {
+    public IntObjectMap<IntArrayList> toFetch() {
         return toFetch;
     }
 

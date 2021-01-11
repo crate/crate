@@ -1913,4 +1913,26 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             is(1L)
         );
     }
+
+
+    @Test
+    public void test_query_then_fetch_result_order_of_all_columns_matches() throws Exception {
+        int numItems = 40;
+        Object[][] args = new Object[numItems][];
+        for (int i = 0; i < numItems; i++) {
+            args[i] = new Object[] { Integer.toString(i), i };
+        }
+        execute("create table tbl (x text, y int) clustered into 2 shards");
+        execute("insert into tbl (x, y) values (?, ?)", args);
+        execute("refresh table tbl");
+        Object[][] rows = execute("select x, y from tbl order by y desc").rows();
+        assertThat(
+            rows[0],
+            Matchers.arrayContaining(Integer.toString(numItems - 1), numItems - 1)
+        );
+        assertThat(
+            rows[1],
+            Matchers.arrayContaining(Integer.toString(numItems - 2), numItems - 2)
+        );
+    }
 }
