@@ -47,7 +47,7 @@ repository. For example::
 
 
 Here ``4b16d50cd4b`` is the starting point, it shows any changes since then
-thatvaffected files in the given folder.
+that affected files in the given folder.
 
 (Note that there may be changes before ``4b16d50cd4b`` that are missing.)
 
