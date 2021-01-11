@@ -225,7 +225,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         };
     }
 
-    static class SumLong implements DocValueAggregator<MutableLong> {
+    @VisibleForTesting
+    public static class SumLong implements DocValueAggregator<MutableLong> {
 
         private final String columnName;
         private SortedNumericDocValues values;

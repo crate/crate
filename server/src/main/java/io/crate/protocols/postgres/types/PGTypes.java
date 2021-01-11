@@ -52,6 +52,7 @@ public class PGTypes {
         .put(DataTypes.LONG, BigIntType.INSTANCE)
         .put(DataTypes.FLOAT, RealType.INSTANCE)
         .put(DataTypes.DOUBLE, DoubleType.INSTANCE)
+        .put(DataTypes.NUMERIC, NumericType.INSTANCE)
         .put(DataTypes.TIMETZ, TimeTZType.INSTANCE)
         .put(DataTypes.TIMESTAMPZ, TimestampZType.INSTANCE)
         .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
@@ -67,6 +68,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.LONG), PGArray.INT8_ARRAY)
         .put(new ArrayType<>(DataTypes.FLOAT), PGArray.FLOAT4_ARRAY)
         .put(new ArrayType<>(DataTypes.DOUBLE), PGArray.FLOAT8_ARRAY)
+        .put(new ArrayType<>(DataTypes.NUMERIC), PGArray.NUMERIC_ARRAY)
         .put(new ArrayType<>(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMESTAMPZ), PGArray.TIMESTAMPZ_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMESTAMP), PGArray.TIMESTAMP_ARRAY)
@@ -153,6 +155,9 @@ public class PGTypes {
 
             case StringType.ID:
                 return VarCharType.INSTANCE;
+
+            case io.crate.types.NumericType.ID:
+                return NumericType.INSTANCE;
 
             default: {
                 PGType pgType = CRATE_TO_PG_TYPES.get(type);

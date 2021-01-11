@@ -55,13 +55,17 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     public static final String NAME = "subscript";
 
     public static void register(ScalarFunctionModule module) {
+        // All signatures but `array[int]` must forbid coercion.
+        // Otherwise they would also match for non-int numeric indices like e.g. `array[long]`
+
         // subscript(array(object)), text) -> array(undefined)
         module.register(
             Signature.scalar(
                 NAME,
                 parseTypeSignature("array(object)"),
                 DataTypes.STRING.getTypeSignature(),
-                parseTypeSignature("array(undefined)")),
+                parseTypeSignature("array(undefined)")
+            ).withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -91,7 +95,8 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 NAME,
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNDEFINED.getTypeSignature()),
+                DataTypes.UNDEFINED.getTypeSignature()
+            ).withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -111,7 +116,8 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 NAME,
                 DataTypes.UNDEFINED.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNDEFINED.getTypeSignature()),
+                DataTypes.UNDEFINED.getTypeSignature()
+            ).withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,

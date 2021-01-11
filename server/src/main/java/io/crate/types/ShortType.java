@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
 
@@ -65,6 +66,12 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
             return (Short) value;
         } else if (value instanceof String) {
             return Short.valueOf((String) value);
+        } else if (value instanceof BigDecimal) {
+            try {
+                return ((BigDecimal) value).shortValueExact();
+            } catch (ArithmeticException e) {
+                throw new IllegalArgumentException("short value out of range: " + value);
+            }
         } else if (value instanceof Number) {
             int intVal = ((Number) value).intValue();
             if (intVal < Short.MIN_VALUE || Short.MAX_VALUE < intVal) {

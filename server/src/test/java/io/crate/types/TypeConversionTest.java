@@ -206,4 +206,17 @@ public class TypeConversionTest extends ESTestCase {
 
         assertThat(thisObj.isConvertableTo(thatObj, false), is(false));
     }
+
+    @Test
+    public void test_numeric_type_conversions_to_and_from_primitive_numeric_types() {
+        for (DataType<?> type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            assertThat(
+                "numeric is not convertible to type '" + type + "'",
+                DataTypes.NUMERIC.isConvertableTo(type, false), is(true));
+
+            assertThat(
+                "'" + type + "' is not convertible to numeric type",
+                type.isConvertableTo(DataTypes.NUMERIC, false), is(true));
+        }
+    }
 }

@@ -32,6 +32,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -66,7 +67,11 @@ public class SizeEstimatorFactoryTest {
     public void test_estimate_size_of_record() throws Exception {
         var estimator = SizeEstimatorFactory.create(new RowType(List.of(DataTypes.LONG, DataTypes.INTEGER)));
         assertThat(estimator.estimateSize(new RowN(20L, 10)), is(40L));
-
     }
 
+    @Test
+    public void test_create_size_estimator_for_numeric_type() {
+        var estimator = SizeEstimatorFactory.create(DataTypes.NUMERIC);
+        assertThat(estimator, instanceOf(NumericSizeEstimator.class));
+    }
 }

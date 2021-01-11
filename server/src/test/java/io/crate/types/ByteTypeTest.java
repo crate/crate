@@ -25,6 +25,7 @@ package io.crate.types;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
@@ -32,13 +33,18 @@ import static org.hamcrest.Matchers.is;
 public class ByteTypeTest extends ESTestCase {
 
     @Test
-    public void test_cast_text_to_char() {
+    public void test_cast_text_to_byte() {
         assertThat(ByteType.INSTANCE.implicitCast("123"), is((byte) 123));
     }
 
     @Test
-    public void test_cast_long_to_char() {
+    public void test_cast_long_to_byte() {
         assertThat(ByteType.INSTANCE.implicitCast(123L), is((byte) 123));
+    }
+
+    @Test
+    public void test_cast_numeric_to_byte() {
+        assertThat(ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is((byte) 123));
     }
 
     @Test
@@ -72,5 +78,12 @@ public class ByteTypeTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("byte value out of range: 129");
         ByteType.INSTANCE.implicitCast(129);
+    }
+
+    @Test
+    public void test_cast_out_of_range_numeric_to_byte_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("byte value out of range: 129");
+        ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(129));
     }
 }

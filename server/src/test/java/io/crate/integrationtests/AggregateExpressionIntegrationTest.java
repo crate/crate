@@ -44,6 +44,27 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
     }
 
     @Test
+    public void test_numeric_sum_with_on_floating_point_and_long_columns_with_doc_values() {
+        execute("CREATE TABLE tbl (x float, y double, z long) " +
+                "CLUSTERED INTO 1 SHARDS " +
+                "WITH (number_of_replicas=0)");
+        execute(
+            "INSERT INTO tbl VALUES (?, ?, ?)", new Object[][]{
+                new Object[]{1.0d, 1f, 9223372036854775807L},
+                new Object[]{1.56d, 2.12f, 2L}});
+        execute("refresh table tbl");
+
+        execute("SELECT sum(x::numeric(16, 1))," +
+                "       sum(y::numeric(16, 2))," +
+                "       sum(z::numeric) " + // overflow
+                "FROM tbl");
+        assertThat(
+            TestingHelpers.printedTable(response.rows()),
+            is("2.6| 3.12| 9223372036854775809\n")
+        );
+    }
+
+    @Test
     public void test_filter_in_aggregate_expr_with_group_by() {
         execute("SELECT" +
                 "   y, " +

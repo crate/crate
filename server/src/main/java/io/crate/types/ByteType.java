@@ -26,6 +26,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
@@ -63,6 +64,12 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
             return (Byte) value;
         } else if (value instanceof String) {
             return Byte.parseByte((String) value);
+        } else if (value instanceof BigDecimal) {
+            try {
+                return ((BigDecimal) value).byteValueExact();
+            } catch (ArithmeticException e) {
+                throw new IllegalArgumentException("byte value out of range: " + value);
+            }
         } else if (value instanceof Number) {
             int val = ((Number) value).intValue();
             if (val < Byte.MIN_VALUE || Byte.MAX_VALUE < val) {

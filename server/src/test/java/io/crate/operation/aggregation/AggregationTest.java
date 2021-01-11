@@ -234,9 +234,9 @@ public abstract class AggregationTest extends ESTestCase {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private Object execPartialAggregationWithoutDocValues(AggregationFunction function,
-                                                          Object[][] data,
-                                                          boolean randomExtraStates) {
+    protected Object execPartialAggregationWithoutDocValues(AggregationFunction function,
+                                                            Object[][] data,
+                                                            boolean randomExtraStates) {
         var argumentsSize = function.signature().getArgumentTypes().size();
         InputCollectExpression[] inputs = new InputCollectExpression[argumentsSize];
         for (int i = 0; i < argumentsSize; i++) {
@@ -522,7 +522,7 @@ public abstract class AggregationTest extends ESTestCase {
 
     protected Symbol normalize(String functionName, Symbol... args) {
         List<Symbol> arguments = Arrays.asList(args);
-        AggregationFunction<?,?> function = (AggregationFunction<?, ?>) nodeCtx.functions().get(
+        AggregationFunction<?, ?> function = (AggregationFunction<?, ?>) nodeCtx.functions().get(
             null,
             functionName,
             arguments,
@@ -542,7 +542,7 @@ public abstract class AggregationTest extends ESTestCase {
             InputColumn.mapToInputColumns(argumentTypes),
             SearchPath.pathWithPGCatalogAndDoc()
         );
-        var docValueAggregator =  aggregationFunction.getDocValueAggregator(
+        var docValueAggregator = aggregationFunction.getDocValueAggregator(
             argumentTypes,
             Lists2.map(argumentTypes, dataType -> mock(MappedFieldType.class))
         );

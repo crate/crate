@@ -25,6 +25,7 @@ package io.crate.types;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
@@ -40,6 +41,11 @@ public class ShortTypeTest extends ESTestCase {
     @Test
     public void test_cast_bigint_to_smallint() {
         assertThat(ShortType.INSTANCE.implicitCast(123L), is((short) 123));
+    }
+
+    @Test
+    public void test_cast_numeric_to_integer() {
+        assertThat(ShortType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is((short) 123));
     }
 
     @Test
@@ -66,6 +72,13 @@ public class ShortTypeTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("short value out of range: 2147483647");
         ShortType.INSTANCE.implicitCast(Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void test_cast_out_of_range_numeric_to_integer_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("short value out of range: 2147483647");
+        ShortType.INSTANCE.implicitCast(BigDecimal.valueOf(Integer.MAX_VALUE));
     }
 
     @Test

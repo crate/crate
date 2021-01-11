@@ -37,6 +37,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -263,5 +264,12 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         );
 
         assertThat(functionImpl.info().returnType(), is(returnType));
+    }
+
+    @Test
+    public void test_cast_numeric_to_numeric_with_changed_scale() {
+        // Test that NumericType.equals() is implemented correctly otherwise the expression analyzer
+        // would just skip the 2nd cast
+        assertEvaluate("12.12::numeric(4, 2)::numeric(3, 1)", is(new BigDecimal("12.1")));
     }
 }

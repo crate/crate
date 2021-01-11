@@ -24,6 +24,7 @@ package io.crate.types;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
@@ -37,6 +38,11 @@ public class LongTypeTest extends ESTestCase {
         assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MAX_VALUE)), is(Long.MAX_VALUE));
         assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MIN_VALUE)), is(Long.MIN_VALUE));
         assertThat(LongType.INSTANCE.implicitCast("+2147483647111"), is(2147483647111L));
+    }
+
+    @Test
+    public void test_cast_numeric_to_long() {
+        assertThat(LongType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is(123L));
     }
 
     @Test
@@ -82,6 +88,13 @@ public class LongTypeTest extends ESTestCase {
     }
 
     @Test
+    public void test_cast_out_of_range_numeric_to_integer_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("bigint value out of range: 9223372036854775817");
+        LongType.INSTANCE.implicitCast(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN));
+    }
+
+    @Test
     public void test_cast_object_to_bigint_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '{}' to bigint");
@@ -93,5 +106,20 @@ public class LongTypeTest extends ESTestCase {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast 'true' to bigint");
         LongType.INSTANCE.implicitCast(true);
+    }
+
+    @Test
+    public void test_cast_out_of_range_numeric_to_bigint_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("bigint value out of range: 9223372036854775808");
+        LongType.INSTANCE.implicitCast(new BigDecimal("9223372036854775808"));
+    }
+
+    @Test
+    public void test_cast_numeric_with_fraction_to_long_looses_fraction() {
+        assertThat(
+            LongType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12)),
+            is(12L)
+        );
     }
 }
