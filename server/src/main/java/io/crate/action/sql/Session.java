@@ -272,13 +272,17 @@ public class Session implements AutoCloseable {
             }
         }
 
-        var paramTypeHints = new ParamTypeHints(paramTypes);
         AnalyzedStatement analyzedStatement;
+        DataType[] parameterTypes;
         try {
             analyzedStatement = analyzer.analyze(
                 statement,
                 sessionContext,
-                paramTypeHints);
+                new ParamTypeHints(paramTypes));
+
+            parameterTypes = parameterTypeExtractor.getParameterTypes(
+                x -> Relations.traverseDeepSymbols(analyzedStatement, x)
+            );
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
                 UUID.randomUUID(),
@@ -289,7 +293,7 @@ public class Session implements AutoCloseable {
         }
         preparedStatements.put(
             statementName,
-            new PreparedStmt(statement, analyzedStatement, query, paramTypeHints));
+            new PreparedStmt(statement, analyzedStatement, query, parameterTypes));
     }
 
     public void bind(String portalName,
@@ -355,11 +359,7 @@ public class Session implements AutoCloseable {
                  */
                 PreparedStmt preparedStmt = preparedStatements.get(portalOrStatement);
                 AnalyzedStatement analyzedStatement = preparedStmt.analyzedStatement();
-
-                DataType[] parameterSymbols =
-                    parameterTypeExtractor.getParameterTypes(x -> Relations.traverseDeepSymbols(analyzedStatement, x));
-                preparedStmt.setDescribedParameters(parameterSymbols);
-                return new DescribeResult(analyzedStatement.outputs(), parameterSymbols);
+                return new DescribeResult(analyzedStatement.outputs(), preparedStmt.parameterTypes());
             default:
                 throw new AssertionError("Unsupported type: " + type);
         }
@@ -727,13 +727,5 @@ public class Session implements AutoCloseable {
 
     public TransactionState transactionState() {
         return currentTransactionState;
-    }
-
-    public void ensureDescribed(String statementName) {
-        PreparedStmt stmt = getSafeStmt(statementName);
-        if (stmt.isDescribed()) {
-            return;
-        }
-        describe('S', statementName);
     }
 }

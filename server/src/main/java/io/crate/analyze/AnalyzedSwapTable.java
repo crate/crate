@@ -22,6 +22,8 @@
 
 package io.crate.analyze;
 
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -52,6 +54,11 @@ public final class AnalyzedSwapTable implements AnalyzedStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitSwapTable(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        consumer.accept(dropSource);
     }
 
     @Override

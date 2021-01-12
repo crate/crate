@@ -124,7 +124,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_get_param_type_fails_if_statement_has_not_been_described() throws Exception {
+    public void test_out_of_bounds_getParamType_fails() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
         Session session = new Session(
             sqlExecutor.nodeCtx,
@@ -137,25 +137,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
-        assertThrows(IllegalStateException.class, () -> session.getParamType("S_1", 0), "foo");
-    }
-
-    @Test
-    public void test_out_of_bounds_getParamType_falls_back_to_typehints() throws Exception {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            sqlExecutor.planner,
-            new JobsLogs(() -> false),
-            false,
-            mock(DependencyCarrier.class),
-            AccessControl.DISABLED,
-            SessionContext.systemSessionContext());
-
-        session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
-        session.ensureDescribed("S_1");
-        assertThat(session.getParamType("S_1", 3), is(DataTypes.UNDEFINED));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> session.getParamType("S_1", 3),
+            "foo"
+        );
     }
 
     @Test
@@ -173,7 +159,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
-        session.ensureDescribed("S_1");
         assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
         assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
 

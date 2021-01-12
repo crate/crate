@@ -25,8 +25,11 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.User;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.Query;
+
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -71,6 +74,11 @@ public final class CreateViewStmt implements AnalyzedStatement {
     @Nullable
     public User owner() {
         return owner;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        analyzedQuery.visitSymbols(consumer);
     }
 
     @Override

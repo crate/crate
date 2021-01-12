@@ -27,45 +27,34 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 
-import javax.annotation.Nullable;
-
 public class PreparedStmt {
 
     private final AnalyzedStatement analyzedStatement;
-    private final ParamTypeHints paramTypeHints;
     private final Statement parsedStatement;
     private final String rawStatement;
-    @Nullable
-    private DataType[] describedParameterTypes;
+    private final DataType[] describedParameterTypes;
 
     PreparedStmt(Statement parsedStatement,
                  AnalyzedStatement analyzedStatement,
                  String query,
-                 ParamTypeHints paramTypeHints) {
+                 DataType[] parameterTypes) {
         this.parsedStatement = parsedStatement;
         this.analyzedStatement = analyzedStatement;
-        this.paramTypeHints = paramTypeHints;
         this.rawStatement = query;
+        this.describedParameterTypes = parameterTypes;
     }
 
     public AnalyzedStatement analyzedStatement() {
         return analyzedStatement;
     }
 
-    /**
-     * Sets the parameters sent back from a ParameterDescription message.
-     * @param describedParameters The parameters in sorted order.
-     */
-    void setDescribedParameters(DataType[] describedParameters) {
-        this.describedParameterTypes = describedParameters;
-    }
-
-    boolean isDescribed() {
-        return describedParameterTypes != null;
-    }
 
     Statement parsedStatement() {
         return parsedStatement;
+    }
+
+    DataType[] parameterTypes() {
+        return describedParameterTypes;
     }
 
     /**
@@ -74,11 +63,8 @@ public class PreparedStmt {
      * @param idx type at index (zero-based).
      */
     DataType<?> getEffectiveParameterType(int idx) {
-        if (describedParameterTypes == null) {
-            throw new IllegalStateException("Statement must be described before param types can be resolved");
-        }
         if (idx >= describedParameterTypes.length) {
-            return paramTypeHints.getType(idx);
+            throw new IllegalArgumentException("Requested parameter index exceeds the number of parameters: " + idx);
         }
         return describedParameterTypes[idx];
     }
