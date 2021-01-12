@@ -20,9 +20,11 @@
 package org.elasticsearch.action.admin.cluster.state;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -33,11 +35,13 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.function.Predicate;
 
 public class TransportClusterStateAction extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {
 
@@ -71,7 +75,51 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
     @Override
     protected void masterOperation(Task task, final ClusterStateRequest request, final ClusterState state,
                                    final ActionListener<ClusterStateResponse> listener) throws IOException {
-        ClusterState currentState = clusterService.state();
+
+        if (request.waitForMetadataVersion() != null) {
+            final Predicate<ClusterState> metadataVersionPredicate = clusterState -> {
+                return clusterState.metadata().version() >= request.waitForMetadataVersion();
+            };
+            final ClusterStateObserver observer =
+                new ClusterStateObserver(clusterService, request.waitForTimeout(), logger);
+            final ClusterState clusterState = observer.setAndGetObservedState();
+            if (metadataVersionPredicate.test(clusterState)) {
+                buildResponse(request, clusterState, listener);
+            } else {
+                observer.waitForNextChange(new ClusterStateObserver.Listener() {
+                    @Override
+                    public void onNewClusterState(ClusterState state) {
+                        try {
+                            buildResponse(request, state, listener);
+                        } catch (Exception e) {
+                            listener.onFailure(e);
+                        }
+                    }
+
+                    @Override
+                    public void onClusterServiceClose() {
+                        listener.onFailure(new NodeClosedException(clusterService.localNode()));
+                    }
+
+                    @Override
+                    public void onTimeout(TimeValue timeout) {
+                        try {
+                            listener.onResponse(new ClusterStateResponse(clusterState.getClusterName(), null, true));
+                        } catch (Exception e) {
+                            listener.onFailure(e);
+                        }
+                    }
+                }, metadataVersionPredicate);
+            }
+        } else {
+            ClusterState currentState = clusterService.state();
+            buildResponse(request, currentState, listener);
+        }
+    }
+
+    private void buildResponse(final ClusterStateRequest request,
+                               final ClusterState currentState,
+                               final ActionListener<ClusterStateResponse> listener) throws IOException {
         logger.trace("Serving cluster state request using version {}", currentState.version());
         ClusterState.Builder builder = ClusterState.builder(currentState.getClusterName());
         builder.version(currentState.version());
@@ -129,7 +177,7 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
                 }
             }
         }
-        listener.onResponse(new ClusterStateResponse(currentState.getClusterName(), builder.build()));
+        listener.onResponse(new ClusterStateResponse(currentState.getClusterName(), builder.build(), false));
     }
 
 
