@@ -28,6 +28,7 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.RerouteMoveShard;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class AnalyzedRerouteMoveShard extends RerouteAnalyzedStatement {
 
@@ -42,6 +43,14 @@ public class AnalyzedRerouteMoveShard extends RerouteAnalyzedStatement {
 
     public RerouteMoveShard<Symbol> rerouteMoveShard() {
         return rerouteMoveShard;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        super.visitSymbols(consumer);
+        consumer.accept(rerouteMoveShard.shardId());
+        consumer.accept(rerouteMoveShard.fromNodeIdOrName());
+        consumer.accept(rerouteMoveShard.toNodeIdOrName());
     }
 
     @Override

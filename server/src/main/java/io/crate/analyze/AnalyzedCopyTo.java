@@ -29,6 +29,7 @@ import io.crate.sql.tree.Table;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class AnalyzedCopyTo implements AnalyzedStatement {
 
@@ -82,6 +83,20 @@ public class AnalyzedCopyTo implements AnalyzedStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitCopyToStatement(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (var partitionProperty : table.partitionProperties()) {
+            consumer.accept(partitionProperty.columnName());
+            partitionProperty.expressions().forEach(consumer);
+        }
+        columns.forEach(consumer);
+        if (whereClause != null) {
+            consumer.accept(whereClause);
+        }
+        consumer.accept(uri);
+        properties.properties().values().forEach(consumer);
     }
 
     @Override

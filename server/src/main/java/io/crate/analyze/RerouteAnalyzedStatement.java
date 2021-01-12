@@ -27,6 +27,7 @@ import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.Assignment;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public abstract class RerouteAnalyzedStatement implements DDLStatement {
 
@@ -44,5 +45,13 @@ public abstract class RerouteAnalyzedStatement implements DDLStatement {
 
     public List<Assignment<Symbol>> partitionProperties() {
         return partitionProperties;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (var partitionProperty : partitionProperties) {
+            consumer.accept(partitionProperty.columnName());
+            partitionProperty.expressions().forEach(consumer);
+        }
     }
 }

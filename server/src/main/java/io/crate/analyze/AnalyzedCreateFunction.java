@@ -30,6 +30,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class AnalyzedCreateFunction implements DDLStatement {
 
@@ -60,6 +61,12 @@ public class AnalyzedCreateFunction implements DDLStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitCreateFunction(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        consumer.accept(language);
+        consumer.accept(definition);
     }
 
     public String name() {

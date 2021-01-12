@@ -28,6 +28,7 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.PromoteReplica;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class AnalyzedPromoteReplica extends RerouteAnalyzedStatement {
 
@@ -49,6 +50,16 @@ public class AnalyzedPromoteReplica extends RerouteAnalyzedStatement {
 
     public Symbol acceptDataLoss() {
         return acceptDataLoss;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        super.visitSymbols(consumer);
+        consumer.accept(promoteReplica.shardId());
+        consumer.accept(promoteReplica.node());
+        consumer.accept(acceptDataLoss);
+        // promoteReplica.properties() is not visited, because the `acceptDataLoss` value was extracted
+        // from it and other properties are not permited
     }
 
     @Override
