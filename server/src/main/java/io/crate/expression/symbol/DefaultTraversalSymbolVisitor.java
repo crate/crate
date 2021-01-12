@@ -93,6 +93,8 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
         for (Symbol field : matchPredicate.identBoostMap().keySet()) {
             field.accept(this, context);
         }
+        matchPredicate.queryTerm().accept(this, context);
+        matchPredicate.options().accept(this, context);
         return null;
     }
 
