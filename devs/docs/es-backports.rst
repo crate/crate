@@ -567,6 +567,7 @@ should be crossed out as well.
 - [s] a354c607228 Revert "Remove obsolete resolving logic from TRA (#49647)"
 - [s] 6cca2b04fa0 Remove obsolete resolving logic from TRA (#49647)
 - [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper  (#49645)
+- [x] c1de8c29db2 Cluster state from API should always have a master (#42454)
 - [x] 2f41b1b64de Remove `Tracer` from `MockTransportService` (#40237)
 - [x] 7624734f14b Added wait_for_metadata_version parameter to cluster state api (#35535)
 
