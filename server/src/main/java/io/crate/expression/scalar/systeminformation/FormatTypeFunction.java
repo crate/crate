@@ -31,6 +31,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public final class FormatTypeFunction extends Scalar<String, Object> {
@@ -79,7 +80,20 @@ public final class FormatTypeFunction extends Scalar<String, Object> {
         if (type == null) {
             return "???";
         } else {
-            return type.getName();
+            int dimensions = 0;
+            while (type instanceof ArrayType) {
+                type = ((ArrayType<?>) type).innerType();
+                dimensions++;
+            }
+            if (dimensions == 0) {
+                return type.getName();
+            }
+            var sb = new StringBuilder();
+            sb.append(type.getName());
+            for (int i = 0; i < dimensions; i++) {
+                sb.append("[]");
+            }
+            return sb.toString();
         }
     }
 }
