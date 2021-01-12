@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
+import io.crate.common.unit.TimeValue;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadRequest;
@@ -30,15 +32,50 @@ import java.io.IOException;
 
 public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateRequest> implements IndicesRequest.Replaceable {
 
+    public static final TimeValue DEFAULT_WAIT_FOR_NODE_TIMEOUT = TimeValue.timeValueMinutes(1);
+
     private boolean routingTable = true;
     private boolean nodes = true;
     private boolean metadata = true;
     private boolean blocks = true;
     private boolean customs = true;
+    private Long waitForMetadataVersion;
+    private TimeValue waitForTimeout = DEFAULT_WAIT_FOR_NODE_TIMEOUT;
     private String[] indices = Strings.EMPTY_ARRAY;
     private IndicesOptions indicesOptions = IndicesOptions.lenientExpandOpen();
 
     public ClusterStateRequest() {
+    }
+
+    public ClusterStateRequest(StreamInput in) throws IOException {
+        super(in);
+        routingTable = in.readBoolean();
+        nodes = in.readBoolean();
+        metadata = in.readBoolean();
+        blocks = in.readBoolean();
+        customs = in.readBoolean();
+        indices = in.readStringArray();
+        indicesOptions = IndicesOptions.readIndicesOptions(in);
+        if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
+            waitForTimeout = in.readTimeValue();
+            waitForMetadataVersion = in.readOptionalLong();
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeBoolean(routingTable);
+        out.writeBoolean(nodes);
+        out.writeBoolean(metadata);
+        out.writeBoolean(blocks);
+        out.writeBoolean(customs);
+        out.writeStringArray(indices);
+        indicesOptions.writeIndicesOptions(out);
+        if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
+            out.writeTimeValue(waitForTimeout);
+            out.writeOptionalLong(waitForMetadataVersion);
+        }
     }
 
     public ClusterStateRequest all() {
@@ -127,26 +164,26 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         return customs;
     }
 
-    public ClusterStateRequest(StreamInput in) throws IOException {
-        super(in);
-        routingTable = in.readBoolean();
-        nodes = in.readBoolean();
-        metadata = in.readBoolean();
-        blocks = in.readBoolean();
-        customs = in.readBoolean();
-        indices = in.readStringArray();
-        indicesOptions = IndicesOptions.readIndicesOptions(in);
+    public TimeValue waitForTimeout() {
+        return waitForTimeout;
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeBoolean(routingTable);
-        out.writeBoolean(nodes);
-        out.writeBoolean(metadata);
-        out.writeBoolean(blocks);
-        out.writeBoolean(customs);
-        out.writeStringArray(indices);
-        indicesOptions.writeIndicesOptions(out);
+    public ClusterStateRequest waitForTimeout(TimeValue waitForTimeout) {
+        this.waitForTimeout = waitForTimeout;
+        return this;
     }
+
+    public Long waitForMetadataVersion() {
+        return waitForMetadataVersion;
+    }
+
+    public ClusterStateRequest waitForMetadataVersion(long waitForMetadataVersion) {
+        if (waitForMetadataVersion < 1) {
+            throw new IllegalArgumentException("provided waitForMetadataVersion should be >= 1, but instead is [" +
+                waitForMetadataVersion + "]");
+        }
+        this.waitForMetadataVersion = waitForMetadataVersion;
+        return this;
+    }
+
 }

@@ -566,7 +566,8 @@ should be crossed out as well.
 - [x] 602e589235d fix mis typo (#49689)
 - [s] a354c607228 Revert "Remove obsolete resolving logic from TRA (#49647)"
 - [s] 6cca2b04fa0 Remove obsolete resolving logic from TRA (#49647)
-- [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper  (#49645)
+- [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper (#49645)
+- [x] 7624734f14b Added wait_for_metadata_version parameter to cluster state api. (#35535)
 
 Below lists deferred patches. In-between patches that we applied or skipped
 are not listed anymore.
