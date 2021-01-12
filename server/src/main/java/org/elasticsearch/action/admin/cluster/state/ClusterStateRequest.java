@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
+import io.crate.common.unit.TimeValue;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadRequest;
@@ -30,11 +32,15 @@ import java.io.IOException;
 
 public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateRequest> implements IndicesRequest.Replaceable {
 
+    public static final TimeValue DEFAULT_WAIT_FOR_NODE_TIMEOUT = TimeValue.timeValueMinutes(1);
+
     private boolean routingTable = true;
     private boolean nodes = true;
     private boolean metadata = true;
     private boolean blocks = true;
     private boolean customs = true;
+    private Long waitForMetadataVersion;
+    private TimeValue waitForTimeout = DEFAULT_WAIT_FOR_NODE_TIMEOUT;
     private String[] indices = Strings.EMPTY_ARRAY;
     private IndicesOptions indicesOptions = IndicesOptions.lenientExpandOpen();
 
@@ -127,6 +133,19 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         return customs;
     }
 
+    public TimeValue waitForTimeout() {
+        return waitForTimeout;
+    }
+
+    public ClusterStateRequest waitForTimeout(TimeValue waitForTimeout) {
+        this.waitForTimeout = waitForTimeout;
+        return this;
+    }
+
+    public Long waitForMetadataVersion() {
+        return waitForMetadataVersion;
+    }
+
     public ClusterStateRequest(StreamInput in) throws IOException {
         super(in);
         routingTable = in.readBoolean();
@@ -136,6 +155,10 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         customs = in.readBoolean();
         indices = in.readStringArray();
         indicesOptions = IndicesOptions.readIndicesOptions(in);
+        if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
+            waitForTimeout = in.readTimeValue();
+            waitForMetadataVersion = in.readOptionalLong();
+        }
     }
 
     @Override
@@ -148,5 +171,18 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         out.writeBoolean(customs);
         out.writeStringArray(indices);
         indicesOptions.writeIndicesOptions(out);
+        if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
+            out.writeTimeValue(waitForTimeout);
+            out.writeOptionalLong(waitForMetadataVersion);
+        }
+    }
+
+    public ClusterStateRequest waitForMetadataVersion(long waitForMetadataVersion) {
+        if (waitForMetadataVersion < 1) {
+            throw new IllegalArgumentException("provided waitForMetadataVersion should be >= 1, but instead is [" +
+                waitForMetadataVersion + "]");
+        }
+        this.waitForMetadataVersion = waitForMetadataVersion;
+        return this;
     }
 }
