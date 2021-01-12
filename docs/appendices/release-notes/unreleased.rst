@@ -58,4 +58,6 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that could result in a ``The assembled list of
+  ParameterSymbols is invalid. Missing parameters.`` error if using the
+  ``MATCH`` predicate and parameter placeholders within a query.
