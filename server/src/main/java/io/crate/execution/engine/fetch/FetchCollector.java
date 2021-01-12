@@ -23,15 +23,14 @@
 package io.crate.execution.engine.fetch;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
-import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntArrayList;
 
-import io.netty.util.collection.IntObjectHashMap;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
+import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
@@ -40,7 +39,7 @@ import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
+import io.netty.util.collection.IntObjectHashMap;
 
 class FetchCollector {
 
@@ -77,27 +76,15 @@ class FetchCollector {
         }
     }
 
-    public StreamBucket collect(IntContainer docIds) {
-        int[] ids = docIds.toArray();
-        final boolean collectSequential;
-        // I experimented with smaller values as size theshold since the amount
-        // of doc ids can be less due to parallel fetch execution in comparison
-        // to elasticsearch. However, the performance goes worse with smaller batches.
-        if (ids.length >= 10) {
-            // If the doc ids are in sequential order we can leverage
-            // the merge instances of the stored fields readers that
-            // are optimized for sequential access.
-            Arrays.sort(ids);
-            collectSequential = isSequential(ids);
-        } else {
-            collectSequential = false;
-        }
+    public StreamBucket collect(IntArrayList docIds) {
+        boolean collectSequential = isSequential(docIds);
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
             var readerContexts = new IntObjectHashMap<ReaderContext>(leaves.size());
-            for (int docId : ids) {
+            for (var cursor : docIds) {
+                int docId = cursor.value;
                 int readerIndex = readerIndex(docId, leaves);
                 LeafReaderContext subReaderContext = leaves.get(readerIndex);
                 try {
@@ -129,16 +116,16 @@ class FetchCollector {
         return readerIndex;
     }
 
-    static boolean isSequential(int[] docIds) {
+    static boolean isSequential(IntArrayList docIds) {
+        if (docIds.size() < 2) {
+            return false;
+        }
         // checks if doc ids are in sequential order using the following conditions:
         // (last element - first element) = (number of elements in between first and last)
         // [3,4,5,6,7] -> 7 - 3 == 4
-        if (docIds.length == 0) {
-            return false;
-        }
-        int last = docIds[docIds.length - 1];
-        int first = docIds[0];
-        return last - first == docIds.length - 1;
+        int last = docIds.get(docIds.size() - 1);
+        int first = docIds.get(0);
+        return last - first == docIds.size() - 1;
     }
 
     static StoredFieldsReader sequentialStoredFieldReader(LeafReaderContext context) {

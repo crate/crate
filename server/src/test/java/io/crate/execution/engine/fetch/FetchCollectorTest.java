@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.fetch;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,17 +37,16 @@ public class FetchCollectorTest {
     @Test
     public void test_sequential_docs_ids() {
         int start = randomIntBetween(0, Short.MAX_VALUE);
-        var sequential = new int[10];
-        for (int i = 0; i < 10; i++) {
-            sequential[i] = start;
-            start++;
+        IntArrayList sequential = new IntArrayList(10);
+        for (int i = start; i < start + 10; i++) {
+            sequential.add(i);
         }
         assertThat(FetchCollector.isSequential(sequential), is(true));
 
-        var random = new int[10];
-        for (int i = 0; i < 10; i++) {
-            random[i] = randomIntBetween(0, Short.MAX_VALUE);
-        }
-        assertThat(FetchCollector.isSequential(random), is(false));
+        IntArrayList nonSequential = new IntArrayList();
+        nonSequential.add(10);
+        nonSequential.add(2);
+        nonSequential.add(48);
+        assertThat(FetchCollector.isSequential(nonSequential), is(false));
     }
 }

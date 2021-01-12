@@ -22,25 +22,25 @@
 
 package io.crate.execution.engine.fetch;
 
-import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectHashMap;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.junit.Test;
 
 public class NodeFetchRequestTest {
 
     @Test
     public void testStreaming() throws Exception {
 
-        IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>();
-        IntHashSet docIds = new IntHashSet(3);
+        IntObjectHashMap<IntArrayList> toFetch = new IntObjectHashMap<>();
+        IntArrayList docIds = new IntArrayList(3);
         toFetch.put(1, docIds);
 
         NodeFetchRequest orig = new NodeFetchRequest(UUID.randomUUID(), 1, true, toFetch);

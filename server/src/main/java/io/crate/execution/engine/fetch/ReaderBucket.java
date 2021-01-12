@@ -22,17 +22,20 @@
 
 package io.crate.execution.engine.fetch;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import io.crate.data.Bucket;
-import io.crate.data.Row;
-
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Locale;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectHashMap;
+
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+
 class ReaderBucket {
 
-    final IntObjectHashMap<Object[]> docs = new IntObjectHashMap<>();
+    private final IntObjectHashMap<Object[]> docs = new IntObjectHashMap<>();
+    private IntArrayList sortedDocs;
 
     ReaderBucket() {
     }
@@ -45,14 +48,34 @@ class ReaderBucket {
         return docs.get(doc);
     }
 
+    IntArrayList sortedDocs() {
+        // The FetchCollector has an optimization that only works if the documents are sequential
+        // We pre-sort the ids here to ensure the optimization could work and also so that we can
+        // map the results to the right rows, because the rows in the bucket we receive from the FetchCollector
+        // are in the same order as the ids we requested.
+        if (sortedDocs == null) {
+            int[] keys = docs.keys().toArray();
+            Arrays.sort(keys);
+            sortedDocs = new IntArrayList(keys.length);
+            sortedDocs.add(keys);
+        }
+        return sortedDocs;
+    }
+
     void fetched(Bucket bucket) {
         assert bucket.size() == docs.size()
             : String.format(Locale.ENGLISH, "requested %d docs but got %d", docs.size(), bucket.size());
+        assert sortedDocs != null : "sortedDocs() must have been called before fetched()";
 
         Iterator<Row> rowIterator = bucket.iterator();
-        for (IntCursor intCursor : docs.keys()) {
-            docs.indexReplace(intCursor.index, rowIterator.next().materialize());
+        for (var cursor : sortedDocs) {
+            docs.put(cursor.value, rowIterator.next().materialize());
         }
+        sortedDocs = null;
         assert !rowIterator.hasNext() : "no more rows should exist";
+    }
+
+    public boolean isEmpty() {
+        return docs.isEmpty();
     }
 }

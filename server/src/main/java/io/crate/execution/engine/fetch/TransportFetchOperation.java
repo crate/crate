@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.fetch;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
 import io.crate.Streamer;
@@ -61,7 +62,7 @@ public class TransportFetchOperation implements FetchOperation {
 
     @Override
     public CompletableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
-                                                                   IntObjectMap<? extends IntContainer> toFetch,
+                                                                   IntObjectMap<IntArrayList> toFetch,
                                                                    boolean closeContext) {
         FutureActionListener<NodeFetchResponse, IntObjectMap<? extends Bucket>> listener = new FutureActionListener<>(GET_FETCHED);
         transportFetchNodeAction.execute(

@@ -21,6 +21,7 @@
  */
 package io.crate.execution.engine.fetch;
 
+import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
@@ -80,7 +81,11 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
         long fetchIdRel1 = FetchId.encode(1, 1);
         long fetchIdRel2 = FetchId.encode(2, 1);
         var readerBuckets = new ReaderBuckets(fetchRows);
+        IntHashSet readerIds = new IntHashSet(2);
+        readerIds.add(1);
+        readerIds.add(2);
         readerBuckets.add(new RowN(fetchIdRel1, fetchIdRel2, 42));
+        readerBuckets.generateToFetch(readerIds);
         IntObjectHashMap<Bucket> results = new IntObjectHashMap<>();
         results.put(1, new ArrayBucket($$($("Arthur"))));
         results.put(2, new ArrayBucket($$($("Trillian"))));
