@@ -20,4 +20,9 @@ public class FormatTypeFunctionTest extends AbstractScalarFunctionsTest {
     public void test_format_type_for_known_oid_returns_type_name() throws Exception {
         assertEvaluate("format_type(25, null)", "text");
     }
+
+    @Test
+    public void test_format_type_return_pg_array_notation_for_array_types() throws Exception {
+        assertEvaluate("format_type(1009, null)", "text[]");
+    }
 }
