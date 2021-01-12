@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadOperationRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
@@ -99,6 +100,23 @@ public class ClusterStateRequestBuilder extends MasterNodeReadOperationRequestBu
 
     public ClusterStateRequestBuilder setIndicesOptions(IndicesOptions indicesOptions) {
         request.indicesOptions(indicesOptions);
+        return this;
+    }
+
+    /**
+     * Causes the request to wait for the metadata version to advance to at least the given version.
+     * @param waitForMetadataVersion The metadata version for which to wait
+     */
+    public ClusterStateRequestBuilder setWaitForMetadataVersion(long waitForMetadataVersion) {
+        request.waitForMetadataVersion(waitForMetadataVersion);
+        return this;
+    }
+
+    /**
+     * If {@link ClusterStateRequest#waitForMetadataVersion()} is set then this determines how long to wait
+     */
+    public ClusterStateRequestBuilder setWaitForTimeOut(TimeValue waitForTimeout) {
+        request.waitForTimeout(waitForTimeout);
         return this;
     }
 }
