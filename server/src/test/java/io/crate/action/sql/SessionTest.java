@@ -545,4 +545,17 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.sync().get(5, TimeUnit.SECONDS);
         assertThat(jobsLogs.metrics().iterator().next().totalCount(), is(1L));
     }
+
+
+    @Test
+    public void test_can_extract_parameters_from_match_predicate() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (name text, keywords text)")
+            .build();
+        AnalyzedStatement statement = e.analyze(
+            "select * from users where match(keywords, ?) using best_fields with (fuzziness= ?) and name = ?");
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
+        DataType[] parameterTypes = typeExtractor.getParameterTypes(statement::visitSymbols);
+        assertThat(parameterTypes, arrayContaining(DataTypes.STRING, DataTypes.UNDEFINED, DataTypes.STRING));
+    }
 }
