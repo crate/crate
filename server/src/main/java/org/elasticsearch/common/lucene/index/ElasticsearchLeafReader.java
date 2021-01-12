@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common.lucene.index;
 
-import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
 import org.elasticsearch.index.shard.ShardId;
@@ -73,10 +72,5 @@ public final class ElasticsearchLeafReader extends SequentialStoredFieldsLeafRea
             }
         }
         return null;
-    }
-
-    @Override
-    protected StoredFieldsReader doGetSequentialStoredFieldsReader(StoredFieldsReader reader) {
-        return reader;
     }
 }
