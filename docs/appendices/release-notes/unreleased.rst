@@ -99,6 +99,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could lead to errors like ``Can't map PGType with oid=26
+  to Crate type`` using a PostgreSQL client.
+
 - Fixed an issue that could result in a ``The assembled list of
   ParameterSymbols is invalid. Missing parameters.`` error if using the
   ``MATCH`` predicate and parameter placeholders within a query.
