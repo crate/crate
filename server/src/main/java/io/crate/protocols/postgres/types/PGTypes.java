@@ -96,13 +96,15 @@ public class PGTypes {
         PG_TYPES_TO_CRATE_TYPE.put(0, DataTypes.UNDEFINED);
         PG_TYPES_TO_CRATE_TYPE.put(VarCharType.TextType.OID, DataTypes.STRING);
         PG_TYPES_TO_CRATE_TYPE.put(PGArray.TEXT_ARRAY.oid(), new ArrayType<>(DataTypes.STRING));
+        PG_TYPES_TO_CRATE_TYPE.put(AnyType.OID, DataTypes.UNDEFINED);
+        PG_TYPES_TO_CRATE_TYPE.put(PGArray.ANY_ARRAY.oid(), new ArrayType<>(DataTypes.UNDEFINED));
+        PG_TYPES_TO_CRATE_TYPE.put(VarCharType.NameType.OID, DataTypes.STRING);
+        PG_TYPES_TO_CRATE_TYPE.put(OidType.OID, DataTypes.INTEGER);
         TYPES = new HashSet<>(CRATE_TO_PG_TYPES.values()); // some pgTypes are used multiple times, de-dup them
-        // the following polymorphic types are added manually,
-        // because there are no corresponding data types in CrateDB
+
+        // There is no entry in `CRATE_TO_PG_TYPES` for these because we have no 1:1 mapping from dataType to pgType
         TYPES.add(AnyType.INSTANCE);
         TYPES.add(PGArray.ANY_ARRAY);
-        // the below is added manually as currently we do not want to expose this type to crateDB
-        // we merely need this type information in 'pg_types' static table for postgres compatibility
         TYPES.add(VarCharType.NameType.INSTANCE);
         TYPES.add(OidType.INSTANCE);
 
