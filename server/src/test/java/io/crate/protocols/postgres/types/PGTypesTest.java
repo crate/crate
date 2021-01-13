@@ -226,6 +226,17 @@ public class PGTypesTest extends ESTestCase {
         );
     }
 
+    @Test
+    public void test_all_types_exposed_via_pg_type_table_can_be_resolved_via_oid() throws Exception {
+        for (var type : PGTypes.pgTypes()) {
+            assertThat(
+                "Must be possible to retrieve " + type.typName() + "/" + type.oid() + " via PGTypes.fromOID",
+                PGTypes.fromOID(type.oid()),
+                Matchers.notNullValue()
+            );
+        }
+    }
+
     private Object writeAndReadBinary(Entry entry, PGType pgType) {
         ByteBuf buffer = Unpooled.buffer();
         try {
