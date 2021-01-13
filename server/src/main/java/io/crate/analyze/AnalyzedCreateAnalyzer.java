@@ -27,6 +27,7 @@ import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class AnalyzedCreateAnalyzer implements DDLStatement {
 
@@ -82,5 +83,15 @@ public class AnalyzedCreateAnalyzer implements DDLStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitCreateAnalyzerStatement(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        if (tokenizer != null) {
+            tokenizer.v2().properties().values().forEach(consumer);
+        }
+        tokenFilters.values().forEach(x -> x.properties().values().forEach(consumer));
+        charFilters.values().forEach(x -> x.properties().values().forEach(consumer));
+        genericAnalyzerProperties.properties().values().forEach(consumer);
     }
 }
