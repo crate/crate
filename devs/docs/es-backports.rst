@@ -567,6 +567,7 @@ should be crossed out as well.
 - [s] a354c607228 Revert "Remove obsolete resolving logic from TRA (#49647)"
 - [s] 6cca2b04fa0 Remove obsolete resolving logic from TRA (#49647)
 - [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper  (#49645)
+- [x] 3b71a31557e Remove Zen1 (#39466)
 - [x] 3a5d4dcec2c Simplify and Fix Synchronization in InternalTestCluster (#39168)
 - [x] 7624734f14b Added wait_for_metadata_version parameter to cluster state api (#35535)
 

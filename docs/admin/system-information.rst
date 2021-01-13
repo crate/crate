@@ -95,7 +95,7 @@ applied cluster settings.
     +-------------------------------------------------------...-+
     | settings                                                  |
     +-------------------------------------------------------...-+
-    | {"bulk": {...}, "cluster": {...}, "discovery": {...}, ... |
+    | {"bulk": {...}, "cluster": {...}, "info": {...}, ...      |
     +-------------------------------------------------------...-+
     SELECT 1 row in set (... sec)
 
@@ -154,9 +154,6 @@ applied cluster settings.
     | settings['cluster']['routing']['allocation']['total_shards_per_node']             | integer          |
     | settings['cluster']['routing']['rebalance']                                       | object           |
     | settings['cluster']['routing']['rebalance']['enable']                             | text             |
-    | settings['discovery']                                                             | object           |
-    | settings['discovery']['zen']                                                      | object           |
-    | settings['discovery']['zen']['publish_timeout']                                   | text             |
     | settings['gateway']                                                               | object           |
     | settings['gateway']['expected_nodes']                                             | integer          |
     | settings['gateway']['recover_after_nodes']                                        | integer          |
