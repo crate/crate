@@ -53,6 +53,7 @@ import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -390,7 +391,12 @@ public class PostgresWireProtocol {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            LOGGER.error("Uncaught exception: ", cause);
+            if (cause instanceof SocketException && cause.getMessage().equals("Connection reset")) {
+                LOGGER.info("Connection reset. Client likely terminated connection");
+                closeSession();
+            } else {
+                LOGGER.error("Uncaught exception: ", cause);
+            }
         }
 
         @Override
