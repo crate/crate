@@ -26,6 +26,8 @@ import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -73,5 +75,10 @@ public class NegateFunctionsTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNegateUndefinedType() throws Exception {
         assertEvaluate("- - (case 3 when 1 then 1 else Null end) + 1 ", null);
+    }
+
+    @Test
+    public void test_negate_cast_to_numeric() throws Exception {
+        assertEvaluate("- 12.34::numeric", new BigDecimal("-12.34"));
     }
 }

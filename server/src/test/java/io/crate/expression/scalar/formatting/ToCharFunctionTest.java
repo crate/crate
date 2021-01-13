@@ -70,6 +70,7 @@ public class ToCharFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("to_char(12345.678, '###,###.##')", "12,345.68");
         assertEvaluate("to_char(125.6::real, '0000')", "0126");
         assertEvaluate("to_char(-125.8, '###.00')", "-125.80");
+        assertEvaluate("to_char(-125.8::numeric(4, 1), '###.00')", "-125.80");
     }
 
     @Test
