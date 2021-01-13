@@ -179,6 +179,4 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
         }
         listener.onResponse(new ClusterStateResponse(currentState.getClusterName(), builder.build(), false));
     }
-
-
 }

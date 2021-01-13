@@ -21,7 +21,6 @@ package org.elasticsearch.node;
 
 import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.cluster.node.DiscoveryNode.getRolesFromSettings;
-import static org.elasticsearch.discovery.DiscoverySettings.INITIAL_STATE_TIMEOUT_SETTING;
 
 import java.io.BufferedWriter;
 import java.io.Closeable;
@@ -209,6 +208,21 @@ public class Node implements Closeable {
             Property.NodeScope
         )
     );
+
+    public static final Setting<String> BREAKER_TYPE_KEY = new Setting<>("indices.breaker.type", "hierarchy", (s) -> {
+        switch (s) {
+            case "hierarchy":
+            case "none":
+                return s;
+            default:
+                throw new IllegalArgumentException("indices.breaker.type must be one of [hierarchy, none] but was: " + s);
+        }
+    }, Setting.Property.NodeScope);
+
+    public static final Setting<TimeValue> INITIAL_STATE_TIMEOUT_SETTING =
+        Setting.positiveTimeSetting("discovery.initial_state_timeout", TimeValue.timeValueSeconds(30), Property.NodeScope);
+
+    private static final String CLIENT_TYPE = "node";
 
     private final Lifecycle lifecycle = new Lifecycle();
 

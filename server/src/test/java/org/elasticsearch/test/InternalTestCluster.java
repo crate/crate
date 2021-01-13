@@ -25,9 +25,9 @@ import static org.apache.lucene.util.LuceneTestCase.rarely;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_TYPE_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.ZEN2_DISCOVERY_TYPE;
-import static org.elasticsearch.discovery.DiscoverySettings.INITIAL_STATE_TIMEOUT_SETTING;
 import static org.elasticsearch.discovery.FileBasedSeedHostsProvider.UNICAST_HOSTS_FILE;
 import static org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService.TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING;
+import static org.elasticsearch.node.Node.INITIAL_STATE_TIMEOUT_SETTING;
 import static org.elasticsearch.test.ESTestCase.assertBusy;
 import static org.elasticsearch.test.ESTestCase.awaitBusy;
 import static org.elasticsearch.test.ESTestCase.randomFrom;
@@ -84,6 +84,8 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -147,9 +149,6 @@ import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
-
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
 
 /**
  * InternalTestCluster manages a set of JVM private nodes and allows convenient access to them.
@@ -580,7 +579,6 @@ public final class InternalTestCluster extends TestCluster {
         final Settings settings = getSettings(nodeId, seed, extraSettings);
 
         final String name = buildNodeName(nodeId, settings);
-
         final Settings.Builder updatedSettings = Settings.builder();
 
         updatedSettings.put(Environment.PATH_HOME_SETTING.getKey(), baseDir);
@@ -603,8 +601,7 @@ public final class InternalTestCluster extends TestCluster {
         if (autoManageMinMasterNodes) {
             assertThat("if master nodes are automatically managed then nodes must complete a join cycle when starting",
                 updatedSettings.get(INITIAL_STATE_TIMEOUT_SETTING.getKey()), nullValue());
-        }
-
+            }
         return updatedSettings.build();
     }
 

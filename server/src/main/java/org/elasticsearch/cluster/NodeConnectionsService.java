@@ -28,6 +28,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.GroupedActionListener;
 import org.elasticsearch.action.support.PlainListenableActionFuture;
 import org.elasticsearch.cluster.coordination.FollowersChecker;
+import org.elasticsearch.cluster.coordination.LeaderChecker;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterApplier;
@@ -54,6 +55,7 @@ import static org.elasticsearch.common.settings.Setting.Property;
 import static org.elasticsearch.common.settings.Setting.positiveTimeSetting;
 
 /**
+<<<<<<< HEAD
  * This component is responsible for maintaining connections from this node to all the nodes listed in the cluster state, and for
  * disconnecting from nodes once they are removed from the cluster state. It periodically checks that all connections are still open and
  * restores them if needed. Note that this component is *not* responsible for removing nodes from the cluster state if they disconnect or
@@ -68,6 +70,12 @@ import static org.elasticsearch.common.settings.Setting.positiveTimeSetting;
  * <p>
  * This component does not block on disconnections at all, because a disconnection might need to wait for an ongoing (background) connection
  * attempt to complete first.
+=======
+ * This component is responsible for connecting to nodes once they are added to the cluster state, and disconnect when they are
+ * removed. Also, it periodically checks that all connections are still open and if needed restores them.
+ * Note that this component is *not* responsible for removing nodes from the cluster if they disconnect / do not respond
+ * to pings. This is done by {@link FollowersChecker}. Master fault detection is done by {@link LeaderChecker}.
+>>>>>>> 3b71a31557e... Remove Zen1 (#39466)
  */
 public class NodeConnectionsService extends AbstractLifecycleComponent {
 

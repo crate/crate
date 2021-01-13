@@ -61,7 +61,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.discovery.DiscoveryModule;
-import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.discovery.PeerFinder;
 import org.elasticsearch.discovery.SeedHostsResolver;
 import org.elasticsearch.discovery.SettingsBasedSeedHostsProvider;
@@ -213,10 +212,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING,
         DestructiveOperations.REQUIRES_NAME_SETTING,
         NoMasterBlockService.NO_MASTER_BLOCK_SETTING,
-        DiscoverySettings.PUBLISH_TIMEOUT_SETTING,
-        DiscoverySettings.PUBLISH_DIFF_ENABLE_SETTING,
-        DiscoverySettings.COMMIT_TIMEOUT_SETTING,
-        DiscoverySettings.NO_MASTER_BLOCK_SETTING,
         GatewayService.EXPECTED_DATA_NODES_SETTING,
         GatewayService.EXPECTED_MASTER_NODES_SETTING,
         GatewayService.EXPECTED_NODES_SETTING,
@@ -347,7 +342,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING,
         SeedHostsResolver.DISCOVERY_SEED_RESOLVER_MAX_CONCURRENT_RESOLVERS_SETTING,
         SeedHostsResolver.DISCOVERY_SEED_RESOLVER_TIMEOUT_SETTING,
-        DiscoverySettings.INITIAL_STATE_TIMEOUT_SETTING,
+        Node.INITIAL_STATE_TIMEOUT_SETTING,
         Node.WRITE_PORTS_FILE_SETTING,
         Node.NODE_NAME_SETTING,
         Node.NODE_DATA_SETTING,

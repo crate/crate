@@ -45,7 +45,6 @@ public class Gateway {
 
     private final NodeClient client;
 
-
     public Gateway(final ClusterService clusterService, final NodeClient client) {
         this.clusterService = clusterService;
         this.client = client;

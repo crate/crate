@@ -121,6 +121,7 @@ public class SeedHostsResolver extends AbstractLifecycleComponent implements Con
                 try {
                     final TransportAddress[] addresses = future.get();
                     LOGGER.trace("resolved host [{}] to {}", hostname, addresses);
+
                     for (int addressId = 0; addressId < addresses.length; addressId++) {
                         final TransportAddress address = addresses[addressId];
                         // no point in pinging ourselves
