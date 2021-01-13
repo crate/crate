@@ -53,6 +53,10 @@ None
 Changes
 =======
 
+- Changed the :ref:`format_type <format_type>` function to use the PostgreSQL
+  compatible type name notation with ``[]`` suffixes for arrays, instead of
+  ``_array``.
+
 - Added arithmetic operation support for the :ref:`numeric <numeric_type>`.
 
 - Added support for the :ref:`numeric <numeric_type>` data type and allow the
