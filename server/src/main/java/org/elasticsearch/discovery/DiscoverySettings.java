@@ -65,8 +65,6 @@ public class DiscoverySettings {
                             Property.Dynamic,
                             Property.Deprecated,
                             Property.NodeScope);
-    public static final Setting<TimeValue> INITIAL_STATE_TIMEOUT_SETTING =
-        Setting.positiveTimeSetting("discovery.initial_state_timeout", TimeValue.timeValueSeconds(30), Property.NodeScope);
 
     private volatile ClusterBlock noMasterBlock;
     private volatile TimeValue publishTimeout;
