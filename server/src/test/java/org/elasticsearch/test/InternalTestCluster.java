@@ -669,7 +669,7 @@ public final class InternalTestCluster extends TestCluster {
     public synchronized Client client() {
         ensureOpen();
         /* Randomly return a client to one of the nodes in the cluster */
-        return getOrBuildRandomNode().client(random);
+        return getOrBuildRandomNode().client();
     }
 
     /**
@@ -678,7 +678,7 @@ public final class InternalTestCluster extends TestCluster {
      */
     public Client dataNodeClient() {
         /* Randomly return a client to one of the nodes in the cluster */
-        return getRandomNodeAndClient(DATA_NODE_PREDICATE).client(random);
+        return getRandomNodeAndClient(DATA_NODE_PREDICATE).client();
     }
 
     /**
@@ -711,12 +711,12 @@ public final class InternalTestCluster extends TestCluster {
         ensureOpen();
         NodeAndClient randomNodeAndClient = getRandomNodeAndClient(NO_DATA_NO_MASTER_PREDICATE);
         if (randomNodeAndClient != null) {
-            return randomNodeAndClient.client(random);
+            return randomNodeAndClient.client();
         }
         int nodeId = nextNodeId.getAndIncrement();
         Settings settings = getSettings(nodeId, random.nextLong(), Settings.EMPTY);
         startCoordinatingOnlyNode(settings);
-        return getRandomNodeAndClient(NO_DATA_NO_MASTER_PREDICATE).client(random);
+        return getRandomNodeAndClient(NO_DATA_NO_MASTER_PREDICATE).client();
     }
 
     public synchronized String startCoordinatingOnlyNode(Settings settings) {
@@ -732,7 +732,7 @@ public final class InternalTestCluster extends TestCluster {
     public Client client(String nodeName) {
         NodeAndClient nodeAndClient = nodes.get(nodeName);
         if (nodeAndClient != null) {
-            return nodeAndClient.client(random);
+            return nodeAndClient.client();
         }
         throw new AssertionError("No node found with name: [" + nodeName + "]");
     }
@@ -769,7 +769,6 @@ public final class InternalTestCluster extends TestCluster {
         private MockNode node;
         private final Settings originalNodeSettings;
         private Client nodeClient;
-        private Client transportClient;
         private final AtomicBoolean closed = new AtomicBoolean(false);
         private final String name;
         private final int nodeAndClientId;
@@ -801,7 +800,7 @@ public final class InternalTestCluster extends TestCluster {
             return Node.NODE_MASTER_SETTING.get(node.settings());
         }
 
-        Client client(Random random) {
+        Client client() {
             return getOrBuildNodeClient();
         }
 
@@ -826,9 +825,8 @@ public final class InternalTestCluster extends TestCluster {
 
         void resetClient() {
             if (closed.get() == false) {
-                Releasables.close(nodeClient, transportClient);
+                Releasables.close(nodeClient);
                 nodeClient = null;
-                transportClient = null;
             }
         }
 
@@ -937,7 +935,7 @@ public final class InternalTestCluster extends TestCluster {
     }
 
     @Override
-    public void beforeTest(Random random) throws IOException, InterruptedException {
+    public synchronized void beforeTest(Random random) throws IOException, InterruptedException {
         super.beforeTest(random);
         reset(true);
     }
@@ -1666,7 +1664,7 @@ public final class InternalTestCluster extends TestCluster {
         if (excludedNodeIds.isEmpty() == false) {
             logger.info("removing voting config exclusions for {} after restart/shutdown", excludedNodeIds);
             try {
-                Client client = getRandomNodeAndClient(node -> excludedNodeIds.contains(node.name) == false).client(random);
+                Client client = getRandomNodeAndClient(node -> excludedNodeIds.contains(node.name) == false).client();
                 client.execute(ClearVotingConfigExclusionsAction.INSTANCE, new ClearVotingConfigExclusionsRequest()).get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new AssertionError("unexpected", e);
@@ -2117,7 +2115,7 @@ public final class InternalTestCluster extends TestCluster {
 
                 @Override
                 public Client next() {
-                    return iterator.next().client(random);
+                    return iterator.next().client();
                 }
 
                 @Override
