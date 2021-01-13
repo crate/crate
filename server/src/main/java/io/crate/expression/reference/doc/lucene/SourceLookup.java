@@ -23,20 +23,21 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import io.crate.execution.engine.fetch.ReaderContext;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
 
+import org.elasticsearch.common.bytes.BytesReference;
+
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.metadata.Reference;
+
 public final class SourceLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
+    private final SourceParser sourceParser = new SourceParser();
     private int doc;
     private ReaderContext readerContext;
     private Map<String, Object> source;
@@ -46,8 +47,9 @@ public final class SourceLookup {
     }
 
     public void setSegmentAndDocument(ReaderContext context, int doc) {
-        if (this.doc == doc && this.readerContext != null &&
-            this.readerContext.reader() == context.reader()) {
+        if (this.doc == doc
+                && this.readerContext != null
+                && this.readerContext.reader() == context.reader()) {
             // Don't invalidate source
             return;
         }
@@ -76,7 +78,7 @@ public final class SourceLookup {
     private void ensureSourceParsed() {
         if (source == null) {
             ensureDocVisited();
-            source = XContentHelper.toMap(fieldsVisitor.source(), XContentType.JSON);
+            source = sourceParser.parse(fieldsVisitor.source());
         }
     }
 
@@ -119,5 +121,10 @@ public final class SourceLookup {
             }
         }
         return tmp;
+    }
+
+    public SourceLookup registerRef(Reference ref) {
+        sourceParser.register(ref.column());
+        return this;
     }
 }
