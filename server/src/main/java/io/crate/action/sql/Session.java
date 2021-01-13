@@ -34,6 +34,8 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationInfo;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -46,7 +48,10 @@ import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.Relations;
+import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.AccessControl;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
@@ -61,6 +66,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -334,7 +340,11 @@ public class Session implements AutoCloseable {
             case 'P':
                 Portal portal = getSafePortal(portalOrStatement);
                 var analyzedStmt = portal.analyzedStatement();
-                return new DescribeResult(analyzedStmt.outputs());
+                return new DescribeResult(
+                    portal.preparedStmt().parameterTypes(),
+                    analyzedStmt.outputs(),
+                    resolveTableFromSelect(analyzedStmt)
+                );
             case 'S':
                 /*
                  * describe might be called without prior bind call.
@@ -359,10 +369,29 @@ public class Session implements AutoCloseable {
                  */
                 PreparedStmt preparedStmt = preparedStatements.get(portalOrStatement);
                 AnalyzedStatement analyzedStatement = preparedStmt.analyzedStatement();
-                return new DescribeResult(analyzedStatement.outputs(), preparedStmt.parameterTypes());
+                return new DescribeResult(
+                    preparedStmt.parameterTypes(),
+                    analyzedStatement.outputs(),
+                    resolveTableFromSelect(analyzedStatement)
+                );
             default:
                 throw new AssertionError("Unsupported type: " + type);
         }
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    private RelationInfo resolveTableFromSelect(AnalyzedStatement stmt) {
+        // See description of {@link DescribeResult#relation()}
+        // It is only populated if it is a SELECT on a single table
+        if (stmt instanceof QueriedSelectRelation) {
+            var relation = ((QueriedSelectRelation) stmt);
+            List<AnalyzedRelation> from = relation.from();
+            if (from.size() == 1 && from.get(0) instanceof AbstractTableRelation) {
+                return ((AbstractTableRelation<? extends TableInfo>) from.get(0)).tableInfo();
+            }
+        }
+        return null;
     }
 
     @Nullable

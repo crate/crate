@@ -607,15 +607,14 @@ public class PostgresWireProtocol {
         String portalOrStatement = readCString(buffer);
         DescribeResult describeResult = session.describe((char) type, portalOrStatement);
         Collection<Symbol> fields = describeResult.getFields();
-        DataType[] parameterTypes = describeResult.getParameters();
-        if (parameterTypes != null) {
-            Messages.sendParameterDescription(channel, parameterTypes);
+        if (type == 'S') {
+            Messages.sendParameterDescription(channel, describeResult.getParameters());
         }
         if (fields == null) {
             Messages.sendNoData(channel);
         } else {
             var resultFormatCodes = type == 'P' ? session.getResultFormatCodes(portalOrStatement) : null;
-            Messages.sendRowDescription(channel, fields, resultFormatCodes);
+            Messages.sendRowDescription(channel, fields, resultFormatCodes, describeResult.relation());
         }
     }
 
@@ -752,7 +751,7 @@ public class PostgresWireProtocol {
                 RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel.bypassDelay(), accessControl);
                 execute = session.execute("", 0, rowCountReceiver);
             } else {
-                Messages.sendRowDescription(channel, fields, null);
+                Messages.sendRowDescription(channel, fields, null, describeResult.relation());
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
                     channel.bypassDelay(),

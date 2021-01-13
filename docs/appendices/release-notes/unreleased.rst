@@ -53,6 +53,12 @@ None
 Changes
 =======
 
+- Extended the ``RowDescription`` message that can be sent while communicating
+  with PostgreSQL clients to include a ``table_oid`` and a ``attr_num`` based
+  on the values that are also exposed via the ``pg_catalog.pg_attribute``
+  table. This improves compatibility with clients which make use of these
+  attributes.
+
 - Changed the :ref:`format_type <format_type>` function to use the PostgreSQL
   compatible type name notation with ``[]`` suffixes for arrays, instead of
   ``_array``.

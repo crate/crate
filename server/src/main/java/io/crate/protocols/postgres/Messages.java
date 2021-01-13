@@ -27,6 +27,9 @@ import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationInfo;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -375,7 +378,10 @@ public class Messages {
      * <p>
      * See https://www.postgresql.org/docs/current/static/protocol-message-formats.html
      */
-    static void sendRowDescription(Channel channel, Collection<Symbol> columns, @Nullable FormatCodes.FormatCode[] formatCodes) {
+    static void sendRowDescription(Channel channel,
+                                   Collection<Symbol> columns,
+                                   @Nullable FormatCodes.FormatCode[] formatCodes,
+                                   @Nullable RelationInfo relation) {
         int length = 4 + 2;
         int columnSize = 4 + 2 + 4 + 2 + 4 + 2;
         ByteBuf buffer = channel.alloc().buffer(
@@ -385,6 +391,7 @@ public class Messages {
         buffer.writeInt(0); // will be set at the end
         buffer.writeShort(columns.size());
 
+        int tableOid = relation == null ? 0 : OidHash.relationOid(relation);
         int idx = 0;
         for (Symbol column : columns) {
             byte[] nameBytes = Symbols.pathFromSymbol(column).sqlFqn().getBytes(StandardCharsets.UTF_8);
@@ -392,8 +399,14 @@ public class Messages {
             length += columnSize;
 
             writeCString(buffer, nameBytes);
-            buffer.writeInt(0);     // table_oid
-            buffer.writeShort(0);   // attr_num
+            buffer.writeInt(tableOid);
+            // attr_num
+            if (column instanceof Reference) {
+                Integer position = ((Reference) column).position();
+                buffer.writeShort(position == null ? 0 : position);
+            } else {
+                buffer.writeShort(0);
+            }
 
             PGType<?> pgType = PGTypes.get(column.valueType());
             buffer.writeInt(pgType.oid());
