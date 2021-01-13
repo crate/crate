@@ -38,9 +38,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -123,7 +123,11 @@ import static org.hamcrest.Matchers.greaterThan;
  *     stale or dirty, i.e., come from a stale primary or belong to a write that ends up being discarded.</li>
  * </ul>
  */
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, minNumDataNodes = 4, maxNumDataNodes = 6)
+
+@TestLogging("_root:DEBUG,org.elasticsearch.action.bulk:TRACE,org.elasticsearch.action.get:TRACE," +
+             "org.elasticsearch.discovery:TRACE,org.elasticsearch.action.support.replication:TRACE," +
+             "org.elasticsearch.cluster.service:TRACE,org.elasticsearch.indices.recovery:TRACE," +
+             "org.elasticsearch.indices.cluster:TRACE,org.elasticsearch.index.shard:TRACE")
 public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
 
     @Override
