@@ -27,6 +27,8 @@ import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import java.math.BigDecimal;
+
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class NegateFunctions {
@@ -83,6 +85,16 @@ public final class NegateFunctions {
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.SHORT, x -> (short) (x * -1))
+        );
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.NUMERIC.getTypeSignature(),
+                DataTypes.NUMERIC.getTypeSignature()
+            )
+                .withForbiddenCoercion(),
+            (signature, boundSignature) ->
+                new UnaryScalar<>(signature, boundSignature, DataTypes.NUMERIC, BigDecimal::negate)
         );
     }
 }

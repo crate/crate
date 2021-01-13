@@ -97,6 +97,20 @@ public class ToCharFunction extends Scalar<String, Object> {
                         )
                 );
             });
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.NUMERIC.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new ToCharFunction(
+                    signature,
+                    boundSignature,
+                    ToCharFunction::evaluateNumber
+                )
+        );
     }
 
     private final Signature signature;
