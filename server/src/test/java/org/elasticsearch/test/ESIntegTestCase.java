@@ -25,16 +25,19 @@ package org.elasticsearch.test;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.testing.SQLTransportExecutor;
 import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
+import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -56,6 +59,7 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
+import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
@@ -114,6 +118,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -194,6 +200,16 @@ public abstract class ESIntegTestCase extends ESTestCase {
     public static final String TEST_CLUSTER_NODE_PREFIX = "node_t";
 
     /**
+     * Key used to eventually switch to using an external cluster and provide its transport addresses
+     */
+    public static final String TESTS_CLUSTER = "tests.cluster";
+
+    /**
+     * Key used to eventually switch to using an external cluster and provide the cluster name
+     */
+    public static final String TESTS_CLUSTER_NAME = "tests.clustername";
+
+    /**
      * Key used to retrieve the index random seed from the index settings on a running node.
      * The value of this seed can be used to initialize a random context for a specific index.
      * It's set once per test via a generic index template.
@@ -248,6 +264,12 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     protected final void beforeInternal() throws Exception {
         final Scope currentClusterScope = getCurrentClusterScope();
+        Callable<Void> setup = () -> {
+            cluster().beforeTest(random());
+            cluster().wipe(excludeTemplates());
+            randomIndexTemplate();
+            return null;
+        };
         switch (currentClusterScope) {
             case SUITE:
                 assert SUITE_SEED != null : "Suite seed was not initialized";
@@ -823,6 +845,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
             byte[] masterClusterStateBytes = ClusterState.Builder.toBytes(masterClusterState);
             // remove local node reference
             masterClusterState = ClusterState.Builder.fromBytes(masterClusterStateBytes, null, namedWriteableRegistry);
+            Map<String, Object> masterStateMap = convertToMap(masterClusterState);
             int masterClusterStateSize = ClusterState.Builder.toBytes(masterClusterState).length;
             String masterId = masterClusterState.nodes().getMasterNodeId();
             for (Client client : cluster().getClients()) {
@@ -830,20 +853,21 @@ public abstract class ESIntegTestCase extends ESTestCase {
                 byte[] localClusterStateBytes = ClusterState.Builder.toBytes(localClusterState);
                 // remove local node reference
                 localClusterState = ClusterState.Builder.fromBytes(localClusterStateBytes, null, namedWriteableRegistry);
+                final Map<String, Object> localStateMap = convertToMap(localClusterState);
                 final int localClusterStateSize = ClusterState.Builder.toBytes(localClusterState).length;
                 // Check that the non-master node has the same version of the cluster state as the master and
                 // that the master node matches the master (otherwise there is no requirement for the cluster state to match)
                 if (masterClusterState.version() == localClusterState.version()
                         && masterId.equals(localClusterState.nodes().getMasterNodeId())) {
                     try {
-                        assertThat("cluster state UUID does not match", masterClusterState.stateUUID(), is(localClusterState.stateUUID()));
-                        assertThat("cluster state size does not match", masterClusterStateSize, is(localClusterStateSize));
-                        // remove non-core customs and compare the cluster states
+                        assertEquals("cluster state UUID does not match", masterClusterState.stateUUID(), localClusterState.stateUUID());
+                        // We cannot compare serialization bytes since serialization order of maps is not guaranteed
+                        // but we can compare serialization sizes - they should be the same
+                        assertEquals("cluster state size does not match", masterClusterStateSize, localClusterStateSize);
+                        // Compare JSON serialization
                         assertNull(
-                                "cluster state JSON serialization does not match (after removing some customs)",
-                                differenceBetweenMapsIgnoringArrayOrder(
-                                        convertToMap(removePluginCustoms(masterClusterState)),
-                                        convertToMap(removePluginCustoms(localClusterState))));
+                                "cluster state JSON serialization does not match",
+                                differenceBetweenMapsIgnoringArrayOrder(masterStateMap, localStateMap));
                     } catch (final AssertionError error) {
                         logger.error(
                                 "Cluster state from master:\n{}\nLocal cluster state:\n{}",
@@ -943,8 +967,42 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Returns a random admin client. This client can either be a node or a transport client pointing to any of
-     * the nodes in the cluster.
+     * Flushes and refreshes all indices in the cluster
+     */
+    protected final void flushAndRefresh(String... indices) {
+        refresh(indices);
+    }
+
+    /**
+     * Waits for all relocations and force merge all indices in the cluster to 1 segment.
+     */
+    protected ForceMergeResponse forceMerge() {
+        waitForRelocation();
+        ForceMergeResponse actionGet = client().admin().indices().prepareForceMerge().setMaxNumSegments(1).execute().actionGet();
+        assertNoFailures(actionGet);
+        return actionGet;
+    }
+
+    /**
+     * Syntactic sugar for enabling allocation for <code>indices</code>
+     */
+    protected final void enableAllocation(String... indices) {
+        client().admin().indices().prepareUpdateSettings(indices).setSettings(Settings.builder().put(
+            EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey(), "all"
+        )).get();
+    }
+
+    /**
+     * Syntactic sugar for disabling allocation for <code>indices</code>
+     */
+    protected final void disableAllocation(String... indices) {
+        client().admin().indices().prepareUpdateSettings(indices).setSettings(Settings.builder().put(
+            EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey(), "none"
+        )).get();
+    }
+
+    /**
+     * Returns a random admin client. This client can be pointing to any of the nodes in the cluster.
      */
     protected AdminClient admin() {
         return client().admin();
@@ -1014,6 +1072,50 @@ public abstract class ESIntegTestCase extends ESTestCase {
          * negative value means that the number of client nodes will be randomized.
          */
         int numClientNodes() default InternalTestCluster.DEFAULT_NUM_CLIENT_NODES;
+    }
+
+    private class LatchedActionListener<Response> implements ActionListener<Response> {
+        private final CountDownLatch latch;
+
+        LatchedActionListener(CountDownLatch latch) {
+            this.latch = latch;
+        }
+
+        @Override
+        public final void onResponse(Response response) {
+            latch.countDown();
+        }
+
+        @Override
+        public final void onFailure(Exception t) {
+            try {
+                logger.info("Action Failed", t);
+                addError(t);
+            } finally {
+                latch.countDown();
+            }
+        }
+
+        protected void addError(Exception e) {
+        }
+
+    }
+
+    private class PayloadLatchedActionListener<Response, T> extends LatchedActionListener<Response> {
+        private final CopyOnWriteArrayList<Tuple<T, Exception>> errors;
+        private final T builder;
+
+        PayloadLatchedActionListener(T builder, CountDownLatch latch, CopyOnWriteArrayList<Tuple<T, Exception>> errors) {
+            super(latch);
+            this.errors = errors;
+            this.builder = builder;
+        }
+
+        @Override
+        protected void addError(Exception e) {
+            errors.add(new Tuple<>(builder, e));
+        }
+
     }
 
     private static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotationClass) {
@@ -1104,6 +1206,14 @@ public abstract class ESIntegTestCase extends ESTestCase {
      */
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return Collections.emptyList();
+    }
+
+    protected Settings externalClusterClientSettings() {
+        return Settings.EMPTY;
+    }
+
+    protected boolean ignoreExternalCluster() {
+        return false;
     }
 
     protected TestCluster buildTestCluster(Scope scope, long seed) throws IOException {
