@@ -602,5 +602,6 @@ are not listed anymore.
 - [d] 56a662ed288 Remove Support for VERSION_CHECKPOINTS Translogs (#42782)
 - [d] 6e39433cd53 Remove "nodes/0" folder prefix from data path (#42489)
 - [d] c459ea828f6 Remove node.max_local_storage_nodes (#42428)
+- [s] bc2fe70e55d Don't swallow IOExceptions in InternalTestCluster (#39068)
 - [d] 3af0c1746b3 Expose external refreshes through the stats API (#38643)
 - [d] ef18d3fb5b2 Add analysis modes to restrict token filter use contexts (#36103)
