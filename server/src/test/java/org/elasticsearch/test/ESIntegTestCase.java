@@ -1010,9 +1010,10 @@ public abstract class ESIntegTestCase extends ESTestCase {
         boolean supportsDedicatedMasters() default true;
 
         /**
-         * The cluster automatically manages the bootstrap voting configuration. Set this to false to manage the setting manually.
+         * Indicates whether the cluster automatically manages cluster bootstrapping and the removal of any master-eligible nodes. If
+         * set to {@code false} then the tests must manage these processes explicitly.
          */
-        boolean autoMinMasterNodes() default true;
+        boolean autoManageMasterNodes() default true;
 
         /**
          * Returns the number of client nodes in the cluster. Default is {@link InternalTestCluster#DEFAULT_NUM_CLIENT_NODES}, a
@@ -1047,9 +1048,9 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return annotation == null ? true : annotation.supportsDedicatedMasters();
     }
 
-    private boolean getAutoMinMasterNodes() {
+    private boolean getAutoManageMasterNodes() {
         ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
-        return annotation == null ? true : annotation.autoMinMasterNodes();
+        return annotation == null ? true : annotation.autoManageMasterNodes();
     }
 
     private int getNumDataNodes() {
@@ -1150,7 +1151,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
             seed,
             createTempDir(),
             supportsDedicatedMasters,
-            getAutoMinMasterNodes(),
+            getAutoManageMasterNodes(),
             minNumDataNodes,
             maxNumDataNodes,
             InternalTestCluster.clusterName(scope.name(), seed) + "-cluster",
