@@ -66,6 +66,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -232,6 +233,7 @@ public final class InternalTestCluster extends TestCluster {
     private final Path baseDir;
 
     private ServiceDisruptionScheme activeDisruptionScheme;
+    private final Function<Client, Client> clientWrapper;
 
     private int bootstrapMasterNodeIndex = -1;
 
@@ -246,7 +248,8 @@ public final class InternalTestCluster extends TestCluster {
             final NodeConfigurationSource nodeConfigurationSource,
             final int numClientNodes,
             final String nodePrefix,
-            final Collection<Class<? extends Plugin>> mockPlugins) {
+            final Collection<Class<? extends Plugin>> mockPlugins,
+            final Function<Client, Client> clientWrapper) {
         this(
                 clusterSeed,
                 baseDir,
@@ -259,6 +262,7 @@ public final class InternalTestCluster extends TestCluster {
                 numClientNodes,
                 nodePrefix,
                 mockPlugins,
+                clientWrapper,
                 true);
     }
 
@@ -274,9 +278,11 @@ public final class InternalTestCluster extends TestCluster {
             final int numClientNodes,
             final String nodePrefix,
             final Collection<Class<? extends Plugin>> mockPlugins,
+            final Function<Client, Client> clientWrapper,
             final boolean forbidPrivateIndexSettings) {
         super(clusterSeed);
         this.autoManageMinMasterNodes = autoManageMinMasterNodes;
+        this.clientWrapper = clientWrapper;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.baseDir = baseDir;
         this.clusterName = clusterName;
@@ -766,6 +772,8 @@ public final class InternalTestCluster extends TestCluster {
         }
     }
 
+    private static final int REMOVED_MINIMUM_MASTER_NODES = Integer.MAX_VALUE;
+
     private final class NodeAndClient implements Closeable {
         private MockNode node;
         private final Settings originalNodeSettings;
@@ -821,7 +829,7 @@ public final class InternalTestCluster extends TestCluster {
                 if (nodeClient == null) {
                     nodeClient = node.client();
                 }
-                return nodeClient;
+                return clientWrapper.apply(nodeClient);
             }
         }
 
@@ -2254,20 +2262,22 @@ public final class InternalTestCluster extends TestCluster {
 
     private void assertRequestsFinished() {
         assert Thread.holdsLock(this);
-        for (NodeAndClient nodeAndClient : nodes.values()) {
-            CircuitBreaker inFlightRequestsBreaker = getInstance(CircuitBreakerService.class, nodeAndClient.name)
-                .getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
-            try {
-                // see #ensureEstimatedStats()
-                assertBusy(() -> {
-                    // ensure that our size accounting on transport level is reset properly
-                    long bytesUsed = inFlightRequestsBreaker.getUsed();
-                    assertThat("All incoming requests on node [" + nodeAndClient.name + "] should have finished. Expected 0 but got " +
-                        bytesUsed, bytesUsed, equalTo(0L));
-                });
-            } catch (Exception e) {
-                logger.error("Could not assert finished requests within timeout", e);
-                fail("Could not assert finished requests within timeout on node [" + nodeAndClient.name + "]");
+        if (size() > 0) {
+            for (NodeAndClient nodeAndClient : nodes.values()) {
+                CircuitBreaker inFlightRequestsBreaker = getInstance(CircuitBreakerService.class, nodeAndClient.name)
+                    .getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
+                try {
+                    // see #ensureEstimatedStats()
+                    assertBusy(() -> {
+                        // ensure that our size accounting on transport level is reset properly
+                        long bytesUsed = inFlightRequestsBreaker.getUsed();
+                        assertThat("All incoming requests on node [" + nodeAndClient.name + "] should have finished. Expected 0 but got " +
+                            bytesUsed, bytesUsed, equalTo(0L));
+                    });
+                } catch (Exception e) {
+                    logger.error("Could not assert finished requests within timeout", e);
+                    fail("Could not assert finished requests within timeout on node [" + nodeAndClient.name + "]");
+                }
             }
         }
     }
