@@ -54,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.elasticsearch.cluster.node.DiscoveryNode.Role.DATA;
@@ -90,10 +89,10 @@ public class InternalTestClusterTests extends ESTestCase {
         Path baseDir = createTempDir();
         InternalTestCluster cluster0 = new InternalTestCluster(clusterSeed, baseDir, masterNodes,
                                                                randomBoolean(), minNumDataNodes, maxNumDataNodes, clusterName, nodeConfigurationSource, numClientNodes,
-                                                               nodePrefix, Collections.emptyList(), Function.identity());
+                                                               nodePrefix, Collections.emptyList());
         InternalTestCluster cluster1 = new InternalTestCluster(clusterSeed, baseDir, masterNodes,
                                                                randomBoolean(), minNumDataNodes, maxNumDataNodes, clusterName, nodeConfigurationSource, numClientNodes,
-                                                               nodePrefix, Collections.emptyList(), Function.identity());
+                                                               nodePrefix, Collections.emptyList());
         assertClusters(cluster0, cluster1, true);
     }
 
@@ -183,12 +182,12 @@ public class InternalTestClusterTests extends ESTestCase {
 
         InternalTestCluster cluster0 = new InternalTestCluster(clusterSeed, createTempDir(), masterNodes,
                                                                autoManageMinMasterNodes, minNumDataNodes, maxNumDataNodes, "clustername", nodeConfigurationSource, numClientNodes,
-                                                               nodePrefix, mockPlugins(), Function.identity());
+                                                               nodePrefix, mockPlugins());
         cluster0.setBootstrapMasterNodeIndex(bootstrapMasterNodeIndex);
 
         InternalTestCluster cluster1 = new InternalTestCluster(clusterSeed, createTempDir(), masterNodes,
                                                                autoManageMinMasterNodes, minNumDataNodes, maxNumDataNodes, "clustername", nodeConfigurationSource, numClientNodes,
-                                                               nodePrefix, mockPlugins(), Function.identity());
+                                                               nodePrefix, mockPlugins());
         cluster1.setBootstrapMasterNodeIndex(bootstrapMasterNodeIndex);
 
         assertClusters(cluster0, cluster1, false);
@@ -250,7 +249,7 @@ public class InternalTestClusterTests extends ESTestCase {
         Path baseDir = createTempDir();
         InternalTestCluster cluster = new InternalTestCluster(clusterSeed, baseDir, masterNodes,
                                                               true, minNumDataNodes, maxNumDataNodes, clusterName1, nodeConfigurationSource, numClientNodes,
-                                                              nodePrefix, mockPlugins(), Function.identity());
+                                                              nodePrefix, mockPlugins());
         try {
             cluster.beforeTest(random());
             final int originalMasterCount = cluster.numMasterNodes();
@@ -339,7 +338,7 @@ public class InternalTestClusterTests extends ESTestCase {
                 return Settings.builder()
                     .put(NetworkModule.TRANSPORT_TYPE_KEY, transportClient).build();
             }
-        }, 0, "", mockPlugins(), Function.identity());
+        }, 0, "", mockPlugins());
         cluster.beforeTest(random());
         List<DiscoveryNode.Role> roles = new ArrayList<>();
         for (int i = 0; i < numNodes; i++) {
@@ -423,7 +422,7 @@ public class InternalTestClusterTests extends ESTestCase {
         plugins.add(NodeAttrCheckPlugin.class);
         InternalTestCluster cluster = new InternalTestCluster(randomLong(), baseDir, false, true, 2, 2,
                                                               "test", nodeConfigurationSource, 0, nodePrefix,
-                                                              plugins, Function.identity());
+                                                              plugins);
         try {
             cluster.beforeTest(random());
             switch (randomInt(2)) {
