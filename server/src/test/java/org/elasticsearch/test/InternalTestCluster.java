@@ -766,6 +766,8 @@ public final class InternalTestCluster extends TestCluster {
         }
     }
 
+    private static final int REMOVED_MINIMUM_MASTER_NODES = Integer.MAX_VALUE;
+
     private final class NodeAndClient implements Closeable {
         private MockNode node;
         private final Settings originalNodeSettings;
@@ -2254,20 +2256,22 @@ public final class InternalTestCluster extends TestCluster {
 
     private void assertRequestsFinished() {
         assert Thread.holdsLock(this);
-        for (NodeAndClient nodeAndClient : nodes.values()) {
-            CircuitBreaker inFlightRequestsBreaker = getInstance(CircuitBreakerService.class, nodeAndClient.name)
-                .getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
-            try {
-                // see #ensureEstimatedStats()
-                assertBusy(() -> {
-                    // ensure that our size accounting on transport level is reset properly
-                    long bytesUsed = inFlightRequestsBreaker.getUsed();
-                    assertThat("All incoming requests on node [" + nodeAndClient.name + "] should have finished. Expected 0 but got " +
-                        bytesUsed, bytesUsed, equalTo(0L));
-                });
-            } catch (Exception e) {
-                logger.error("Could not assert finished requests within timeout", e);
-                fail("Could not assert finished requests within timeout on node [" + nodeAndClient.name + "]");
+        if (size() > 0) {
+            for (NodeAndClient nodeAndClient : nodes.values()) {
+                CircuitBreaker inFlightRequestsBreaker = getInstance(CircuitBreakerService.class, nodeAndClient.name)
+                    .getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
+                try {
+                    // see #ensureEstimatedStats()
+                    assertBusy(() -> {
+                        // ensure that our size accounting on transport level is reset properly
+                        long bytesUsed = inFlightRequestsBreaker.getUsed();
+                        assertThat("All incoming requests on node [" + nodeAndClient.name + "] should have finished. Expected 0 but got " +
+                            bytesUsed, bytesUsed, equalTo(0L));
+                    });
+                } catch (Exception e) {
+                    logger.error("Could not assert finished requests within timeout", e);
+                    fail("Could not assert finished requests within timeout on node [" + nodeAndClient.name + "]");
+                }
             }
         }
     }
