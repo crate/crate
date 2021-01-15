@@ -64,3 +64,6 @@ Fixes
 - Fixed an issue that could result in a ``The assembled list of
   ParameterSymbols is invalid. Missing parameters.`` error if using the
   ``MATCH`` predicate and parameter placeholders within a query.
+
+- Bump JNA library to version 5.6.0. This will make CrateDB start flawlessly
+  on recent versions of Windows.
