@@ -19,7 +19,6 @@
 package org.elasticsearch.test;
 
 import static io.crate.common.unit.TimeValue.timeValueSeconds;
-import static java.util.Collections.emptyList;
 import static org.apache.lucene.util.LuceneTestCase.TEST_NIGHTLY;
 import static org.apache.lucene.util.LuceneTestCase.rarely;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
@@ -848,6 +847,7 @@ public final class InternalTestCluster extends TestCluster {
         Settings closeForRestart(RestartCallback callback) throws Exception {
             assert callback != null;
             close();
+            removeNode(this);
             Settings callbackSettings = callback.onNodeStopped(name);
             assert callbackSettings != null;
             Settings.Builder newSettings = Settings.builder();
@@ -1588,20 +1588,9 @@ public final class InternalTestCluster extends TestCluster {
         final Settings newSettings = nodeAndClient.closeForRestart(callback);
         removeExclusions(excludedNodeIds);
 
-        boolean success = false;
-        try {
-            nodeAndClient.recreateNode(newSettings, () -> rebuildUnicastHostFiles(emptyList()));
-            nodeAndClient.startNode();
-            success = true;
-        } finally {
-            if (success == false) {
-                removeNode(nodeAndClient);
-            }
-        }
-
-        if (activeDisruptionScheme != null) {
-            activeDisruptionScheme.applyToNode(nodeAndClient.name, this);
-        }
+        nodeAndClient.recreateNode(newSettings, () -> rebuildUnicastHostFiles(Collections.singletonList(nodeAndClient)));
+        nodeAndClient.startNode();
+        publishNode(nodeAndClient);
 
         if (callback.validateClusterForming() || excludedNodeIds.isEmpty() == false) {
             // we have to validate cluster size to ensure that the restarted node has rejoined the cluster if it was master-eligible;
@@ -1668,6 +1657,7 @@ public final class InternalTestCluster extends TestCluster {
         final Settings[] newNodeSettings = new Settings[nextNodeId.get()];
         Map<Set<Role>, List<NodeAndClient>> nodesByRoles = new HashMap<>();
         Set[] rolesOrderedByOriginalStartupOrder = new Set[nextNodeId.get()];
+        final int nodeCount = nodes.size();
         for (NodeAndClient nodeAndClient : nodes.values()) {
             callback.doAfterNodes(numNodesRestarted++, nodeAndClient.nodeClient());
             logger.info("Stopping and resetting node [{}] ", nodeAndClient.name);
@@ -1681,8 +1671,7 @@ public final class InternalTestCluster extends TestCluster {
             nodesByRoles.computeIfAbsent(discoveryNode.getRoles(), k -> new ArrayList<>()).add(nodeAndClient);
         }
 
-        callback.onAllNodesStopped();
-        assert nodesByRoles.values().stream().mapToInt(List::size).sum() == nodes.size();
+        assert nodesByRoles.values().stream().mapToInt(List::size).sum() == nodeCount;
 
         // randomize start up order, but making sure that:
         // 1) A data folder that was assigned to a data node will stay so
