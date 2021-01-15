@@ -24,19 +24,21 @@ package io.crate.expression.scalar.formatting;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.TriFunction;
 import org.joda.time.Period;
 
+import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.function.BiFunction;
 
 
 public class ToCharFunction extends Scalar<String, Object> {
@@ -81,9 +83,20 @@ public class ToCharFunction extends Scalar<String, Object> {
     private final Signature signature;
     private final Signature boundSignature;
     private final DataType expressionType;
-    private final BiFunction<Object, String, String> evaluatorFunc;
+    private final TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc;
+    @Nullable
+    private final DateTimeFormatter formatter;
 
-    public ToCharFunction(Signature signature, Signature boundSignature, BiFunction<Object, String, String> evaluatorFunc) {
+    public ToCharFunction(Signature signature,
+                          Signature boundSignature,
+                          TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc) {
+        this(signature, boundSignature, evaluatorFunc, null);
+    }
+
+    public ToCharFunction(Signature signature,
+                          Signature boundSignature,
+                          TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc,
+                          @Nullable DateTimeFormatter formatter) {
         this.signature = signature;
         this.boundSignature = boundSignature;
 
@@ -91,17 +104,22 @@ public class ToCharFunction extends Scalar<String, Object> {
         this.expressionType = boundSignature.getArgumentDataTypes().get(0);
 
         this.evaluatorFunc = evaluatorFunc;
+        this.formatter = formatter;
     }
 
-    private static String evaluateTimestamp(Object timestamp, String pattern) {
-        DateTimeFormatter formatter = new DateTimeFormatter(pattern);
+    private static String evaluateTimestamp(Object timestamp, String pattern, @Nullable DateTimeFormatter formatter) {
+        if (formatter == null) {
+            formatter = new DateTimeFormatter(pattern);
+        }
         Long ts = DataTypes.TIMESTAMPZ.sanitizeValue(timestamp);
         LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), TimeZone.getTimeZone("UTC").toZoneId());
         return formatter.format(dateTime);
     }
 
-    private static String evaluateInterval(Object interval, String pattern) {
-        DateTimeFormatter formatter = new DateTimeFormatter(pattern);
+    private static String evaluateInterval(Object interval, String pattern, @Nullable DateTimeFormatter formatter) {
+        if (formatter == null) {
+            formatter = new DateTimeFormatter(pattern);
+        }
         Period period = DataTypes.INTERVAL.sanitizeValue(interval);
         LocalDateTime dateTime = LocalDateTime.of(0, 1, 1, 0, 0, 0, 0)
             .plusYears(period.getYears())
@@ -128,7 +146,21 @@ public class ToCharFunction extends Scalar<String, Object> {
             return null;
         }
 
-        return evaluatorFunc.apply(expression, pattern);
+        return evaluatorFunc.apply(expression, pattern, formatter);
+    }
+
+    @Override
+    public Scalar<String, Object> compile(List<Symbol> arguments) {
+        assert arguments.size() == 2 : "Invalid number of arguments";
+
+        if (!arguments.get(1).symbolType().isValueSymbol()) {
+            // arguments are no values, we can't compile
+            return this;
+        }
+
+        String pattern = (String) ((Input<?>) arguments.get(1)).value();
+        DateTimeFormatter formatter = new DateTimeFormatter(pattern);
+        return new ToCharFunction(signature, boundSignature, evaluatorFunc, formatter);
     }
 
     @Override
