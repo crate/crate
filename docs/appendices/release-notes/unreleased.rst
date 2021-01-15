@@ -67,7 +67,8 @@ Changes
   :ref:`NodeInfo MXBean <node_info_mxbean>` which is available as an
   enterprise feature.
 
-- Added the ``to_char`` scalar function for timestamp, interval and numeric types.
+- Added the ``to_char`` scalar function for ``timestamp`` and ``interval``
+  argument data types.
 
 - Added support for the ``split_part`` scalar function
 
