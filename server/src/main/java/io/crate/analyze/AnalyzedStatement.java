@@ -48,8 +48,7 @@ public interface AnalyzedStatement {
      * Use {@link Relations#traverseDeepSymbols(AnalyzedStatement, Consumer)}
      * For a variant that traverses into sub-relations.
      */
-    default void visitSymbols(Consumer<? super Symbol> consumer) {
-    }
+    void visitSymbols(Consumer<? super Symbol> consumer);
 
     /**
      * Expressions which define the output of the statement.

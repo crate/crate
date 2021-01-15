@@ -22,7 +22,10 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.DiscardStatement.Target;
+
+import java.util.function.Consumer;
 
 public final class AnalyzedDiscard implements AnalyzedStatement {
 
@@ -44,5 +47,9 @@ public final class AnalyzedDiscard implements AnalyzedStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitDiscard(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

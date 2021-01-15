@@ -22,7 +22,10 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
+
+import java.util.function.Consumer;
 
 public class AnalyzedAlterTableDropCheckConstraint implements DDLStatement {
 
@@ -45,5 +48,9 @@ public class AnalyzedAlterTableDropCheckConstraint implements DDLStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitAlterTableDropCheckConstraint(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

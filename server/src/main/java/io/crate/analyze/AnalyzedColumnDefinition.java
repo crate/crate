@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
@@ -78,9 +79,11 @@ public class AnalyzedColumnDefinition<T> {
     private String collectionType;
 
     private String geoTree;
+    @Nullable
     private GenericProperties<T> geoProperties;
 
     private Reference.IndexType indexType;
+    @Nullable
     private T analyzer;
     private String indexMethod;
     private Settings analyzerSettings = Settings.EMPTY;
@@ -95,6 +98,7 @@ public class AnalyzedColumnDefinition<T> {
     private boolean isIndex = false;
     private ArrayList<String> copyToTargets;
     private boolean isParentColumn;
+    @Nullable
     private GenericProperties<T> storageProperties;
 
     private boolean generated;
@@ -197,6 +201,26 @@ public class AnalyzedColumnDefinition<T> {
         );
     }
 
+    public void visitSymbols(Consumer<? super T> consumer) {
+        if (analyzer != null) {
+            consumer.accept(analyzer);
+        }
+        if (geoProperties != null) {
+            geoProperties.properties().values().forEach(consumer);
+        }
+        for (var child : children) {
+            child.visitSymbols(consumer);
+        }
+        if (storageProperties != null) {
+            storageProperties.properties().values().forEach(consumer);
+        }
+        if (generatedExpression != null) {
+            consumer.accept(generatedExpression);
+        }
+        if (defaultExpression != null) {
+            consumer.accept(defaultExpression);
+        }
+    }
 
     public void name(String name) {
         this.name = name;

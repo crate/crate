@@ -22,8 +22,11 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
+
+import java.util.function.Consumer;
 
 public class AnalyzedAlterTableRename implements DDLStatement {
 
@@ -51,5 +54,9 @@ public class AnalyzedAlterTableRename implements DDLStatement {
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

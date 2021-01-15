@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.expression.symbol.Symbol;
 
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class AnalyzedResetStatement implements AnalyzedStatement {
 
@@ -46,5 +47,10 @@ public class AnalyzedResetStatement implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        settingsToRemove.forEach(consumer);
     }
 }

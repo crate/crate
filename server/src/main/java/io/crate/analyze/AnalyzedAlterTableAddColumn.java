@@ -26,6 +26,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 
+import java.util.function.Consumer;
+
 public class AnalyzedAlterTableAddColumn implements DDLStatement {
 
     private final DocTableInfo tableInfo;
@@ -70,5 +72,15 @@ public class AnalyzedAlterTableAddColumn implements DDLStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitAlterTableAddColumn(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (var col : analyzedTableElements.columns()) {
+            col.visitSymbols(consumer);
+        }
+        for (var col : analyzedTableElementsWithExpressions.columns()) {
+            col.visitSymbols(consumer);
+        }
     }
 }

@@ -26,6 +26,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Table;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class AnalyzedRefreshTable implements DDLStatement {
 
@@ -42,5 +43,16 @@ public class AnalyzedRefreshTable implements DDLStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitRefreshTableStatement(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (var entry : tables.entrySet()) {
+            var table = entry.getKey();
+            for (var partitionProperty : table.partitionProperties()) {
+                consumer.accept(partitionProperty.columnName());
+                partitionProperty.expressions().forEach(consumer);
+            }
+        }
     }
 }

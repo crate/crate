@@ -23,7 +23,10 @@
 package io.crate.analyze;
 
 
+import io.crate.expression.symbol.Symbol;
+
 import javax.annotation.Nullable;
+import java.util.function.Consumer;
 
 public class AnalyzedDeallocate implements AnalyzedStatement {
 
@@ -47,5 +50,9 @@ public class AnalyzedDeallocate implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return false;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

@@ -22,9 +22,11 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class AnalyzedDropView implements AnalyzedStatement {
 
@@ -52,5 +54,9 @@ public final class AnalyzedDropView implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }
