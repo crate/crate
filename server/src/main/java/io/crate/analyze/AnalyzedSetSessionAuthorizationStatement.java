@@ -21,9 +21,11 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 
 import javax.annotation.Nullable;
+import java.util.function.Consumer;
 
 public class AnalyzedSetSessionAuthorizationStatement implements AnalyzedStatement {
 
@@ -61,5 +63,9 @@ public class AnalyzedSetSessionAuthorizationStatement implements AnalyzedStateme
     @Override
     public boolean isWriteOperation() {
         return false;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

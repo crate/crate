@@ -21,9 +21,11 @@
 
 package io.crate.analyze;
 
-import java.util.List;
-
+import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.SetTransactionStatement.TransactionMode;
+
+import java.util.List;
+import java.util.function.Consumer;
 
 public final class AnalyzedSetTransaction implements AnalyzedStatement {
 
@@ -45,5 +47,9 @@ public final class AnalyzedSetTransaction implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return false;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

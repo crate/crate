@@ -22,6 +22,10 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
+
+import java.util.function.Consumer;
+
 public class AnalyzedCommit implements AnalyzedStatement {
 
     @Override
@@ -32,5 +36,9 @@ public class AnalyzedCommit implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return false;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

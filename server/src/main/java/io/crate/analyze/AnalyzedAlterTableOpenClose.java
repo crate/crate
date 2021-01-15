@@ -26,6 +26,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Table;
 
+import java.util.function.Consumer;
+
 public class AnalyzedAlterTableOpenClose implements DDLStatement {
 
 
@@ -57,5 +59,13 @@ public class AnalyzedAlterTableOpenClose implements DDLStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitAnalyzedAlterTableOpenClose(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (var partitionProperty : table.partitionProperties()) {
+            consumer.accept(partitionProperty.columnName());
+            partitionProperty.expressions().forEach(consumer);
+        }
     }
 }

@@ -22,6 +22,10 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
+
+import java.util.function.Consumer;
+
 public class AnalyzedDropRepository implements DDLStatement {
 
     private final String name;
@@ -37,5 +41,9 @@ public class AnalyzedDropRepository implements DDLStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitDropRepositoryAnalyzedStatement(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }
