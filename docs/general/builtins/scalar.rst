@@ -1120,7 +1120,7 @@ It has two variants depending on the type of ``timestamp``:
 ``to_char(expression, format_string)``
 --------------------------------------
 
-The ``to_char`` function converts a timestamp, interval or numeric value to
+The ``to_char`` function converts a ``timestamp`` or ``interval`` value to
 a string, based on a given format string.
 
 Returns: ``text``
@@ -1133,7 +1133,7 @@ Synopsis
     TO_CHAR( expression, format_string )
 
 ``expression`` can be any value with the type of ``timestamp`` (with or without
-a timezone), ``interval`` or a ``numeric`` type.
+a timezone) or ``interval``.
 
 Format
 ......
@@ -1265,49 +1265,6 @@ interval added to the timestamp of ``0000/01/01 00:00:00``:
     +---------------------+
     SELECT 1 row in set (... sec)
 
-For ``numeric`` expressions, the syntax follows that of the `Java DecimalFormat`_.
-For reference, the table of permitted tokens is replicated below:
-
-+--------+---------------------+----------------------------------------------------------------------+
-| Symbol | Location            | Meaning                                                              |
-+========+=====================+======================================================================+
-| ``0``  | Number              | Digit                                                                |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``#``  | Number              | Digit, zero shows as absent                                          |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``.``  | Number              | Decimal/monetary seperator                                           |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``-``  | Number              | Minus sign                                                           |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``,``  | Number              | Grouping separator                                                   |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``E``  | Number              | Separates mantissa and exponent in scientific notation               |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``;``  | Subpattern boundary | Seperates positive and negative subpatterns                          |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``%``  | Prefix/Suffix       | Mulitply by 100 and show as percentage                               |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``‰``  | Prefix/Suffix       | Multiply by 1000 and show as per mille value                         |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``¤``  | Prefix/Suffix       | Currency sign, replaced by currency symbol. If doubled, replaced by  |
-|        |                     | international currency symbol. If present in a pattern, the monetary |
-|        |                     | decimal separator is used instead of the decimal separator           |
-+--------+---------------------+----------------------------------------------------------------------+
-| ``'``  | Prefix/Suffix       | Used to quote special characters in a prefix/suffix                  |
-+--------+---------------------+----------------------------------------------------------------------+
-
-For further documentation on the behaviour of the formatter, please consult the
-`Java DecimalFormat`_ documentation.
-
-::
-
-    cr> select to_char(123456.789, '###,###.0000') as number;
-    +--------------+
-    | number       |
-    +--------------+
-    | 123,456.7890 |
-    +--------------+
-    SELECT 1 row in set (... sec)
 
 
 Geo functions

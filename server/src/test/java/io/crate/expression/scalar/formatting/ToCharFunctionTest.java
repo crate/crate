@@ -64,26 +64,4 @@ public class ToCharFunctionTest extends AbstractScalarFunctionsTest {
             null
         );
     }
-
-    @Test
-    public void testEvaluateNumeric() {
-        assertEvaluate("to_char(12345.678, '###,###.##')", "12,345.68");
-        assertEvaluate("to_char(125.6::real, '0000')", "0126");
-        assertEvaluate("to_char(-125.8, '###.00')", "-125.80");
-        assertEvaluate("to_char(-125.8::numeric(4, 1), '###.00')", "-125.80");
-    }
-
-    @Test
-    public void testEvaluateNumericWithEmptyPattern() {
-        assertEvaluate("to_char(12345.678, '')", "12,345.678");
-        assertEvaluate("to_char(-125.8, '')", "-125.8");
-    }
-
-    @Test
-    public void testEvaluateNumericWithNullPattern() {
-        assertEvaluate("to_char(12345.678, null)", null);
-        assertEvaluate("to_char(125.6::real, null)", null);
-        assertEvaluate("to_char(-125.8, null)", null);
-    }
-
 }

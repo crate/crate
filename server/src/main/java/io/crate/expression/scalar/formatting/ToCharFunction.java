@@ -32,12 +32,9 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.joda.time.Period;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Locale;
 import java.util.TimeZone;
 import java.util.function.BiFunction;
 
@@ -79,38 +76,6 @@ public class ToCharFunction extends Scalar<String, Object> {
                     ToCharFunction::evaluateInterval
                 )
         );
-
-        DataTypes.NUMERIC_PRIMITIVE_TYPES.stream()
-            .forEach(type -> {
-                module.register(
-                    Signature.scalar(
-                        NAME,
-                        type.getTypeSignature(),
-                        DataTypes.STRING.getTypeSignature(),
-                        DataTypes.STRING.getTypeSignature()
-                    ),
-                    (signature, boundSignature) ->
-                        new ToCharFunction(
-                            signature,
-                            boundSignature,
-                            ToCharFunction::evaluateNumber
-                        )
-                );
-            });
-        module.register(
-            Signature.scalar(
-                NAME,
-                DataTypes.NUMERIC.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
-            (signature, boundSignature) ->
-                new ToCharFunction(
-                    signature,
-                    boundSignature,
-                    ToCharFunction::evaluateNumber
-                )
-        );
     }
 
     private final Signature signature;
@@ -148,12 +113,6 @@ public class ToCharFunction extends Scalar<String, Object> {
             .plusSeconds(period.getSeconds())
             .plusNanos(period.getMillis() * 1000000);
         return formatter.format(dateTime);
-    }
-
-    private static String evaluateNumber(Object number, String pattern) {
-        DecimalFormat formatter = (DecimalFormat) NumberFormat.getNumberInstance(Locale.ENGLISH);
-        formatter.applyLocalizedPattern(pattern);
-        return formatter.format(number);
     }
 
     @Override
