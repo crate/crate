@@ -663,6 +663,7 @@ Returns: ``text``
    +--------+
    SELECT 1 row in set (... sec)
 
+.. _scalar-split_part:
 
 ``split_part(text, text, integer)``
 -----------------------------------
@@ -1116,6 +1117,7 @@ It has two variants depending on the type of ``timestamp``:
     +--------------+------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-to_char:
 
 ``to_char(expression, format_string)``
 --------------------------------------
