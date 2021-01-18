@@ -106,6 +106,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could lead to a ``String index out of range`` error when
+  streaming values of type ``TIMESTAMP WITH TIME ZONE`` using a PostgreSQL
+  client.
+
 - Fixed an issue that could lead to errors like ``Can't map PGType with oid=26
   to Crate type`` using a PostgreSQL client.
 
