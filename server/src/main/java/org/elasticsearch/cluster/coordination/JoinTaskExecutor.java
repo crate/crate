@@ -222,9 +222,14 @@ public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecut
         // we ensure that all indices in the cluster we join are compatible with us no matter if they are
         // closed or not we can't read mappings of these indices so we need to reject the join...
         for (IndexMetadata idxMetadata : metadata) {
-            if (idxMetadata.getCreationVersion().after(nodeVersion)) {
+            if (idxMetadata.getCreationVersion().afterMajorMinor(nodeVersion)) {
                 throw new IllegalStateException("index " + idxMetadata.getIndex() + " version not supported: "
                     + idxMetadata.getCreationVersion() + " the node version is: " + nodeVersion);
+            }
+            if (nodeVersion.luceneVersion.onOrAfter(idxMetadata.getCreationVersion().luceneVersion) == false) {
+                throw new IllegalStateException("index " + idxMetadata.getIndex() + " lucene version not supported: "
+                                                + idxMetadata.getCreationVersion().luceneVersion
+                                                + ", compatible index lucene version is: " + nodeVersion.luceneVersion);
             }
             if (idxMetadata.getCreationVersion().before(supportedIndexVersion)) {
                 throw new IllegalStateException("index " + idxMetadata.getIndex() + " version not supported: "
