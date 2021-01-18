@@ -25,6 +25,8 @@ package io.crate.protocols.postgres.types;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import io.crate.types.DataTypes;
+
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
@@ -92,26 +94,29 @@ final class TimestampZType extends BaseTimestampType {
         // Currently seems that only GoLang prepared statements are sent as TimestampType with time zone
         // Other PostgreSQL clients send the parameter as Bigint or Varchar
         String s = new String(bytes, StandardCharsets.UTF_8);
-
-        int endOfSeconds = s.indexOf(".");
-        int idx = endOfSeconds;
-        if (endOfSeconds > 0) {
-            idx++;
-            while (s.charAt(idx) != '+' && s.charAt(idx) != '-') { // start of timezone
+        try {
+            return DataTypes.TIMESTAMPZ.explicitCast(s);
+        } catch (Exception e) {
+            int endOfSeconds = s.indexOf(".");
+            int idx = endOfSeconds;
+            if (endOfSeconds > 0) {
                 idx++;
+                while (s.charAt(idx) != '+' && s.charAt(idx) != '-') { // start of timezone
+                    idx++;
+                }
             }
-        }
 
-        int fractionDigits = idx - endOfSeconds - 1;
-        fractionDigits = fractionDigits < 0 ? 0 : fractionDigits;
-        if (fractionDigits > 9) {
-            throw new IllegalArgumentException("Cannot parse more than 9 digits for fraction of a second");
-        }
+            int fractionDigits = idx - endOfSeconds - 1;
+            fractionDigits = fractionDigits < 0 ? 0 : fractionDigits;
+            if (fractionDigits > 9) {
+                throw new IllegalArgumentException("Cannot parse more than 9 digits for fraction of a second");
+            }
 
-        boolean withEra = s.endsWith("BC") || s.endsWith("AD");
-        if (withEra) {
-            return PARSERS_WITH_ERA[fractionDigits].parseMillis(s);
+            boolean withEra = s.endsWith("BC") || s.endsWith("AD");
+            if (withEra) {
+                return PARSERS_WITH_ERA[fractionDigits].parseMillis(s);
+            }
+            return PARSERS_WITHOUT_ERA[fractionDigits].parseMillis(s);
         }
-        return PARSERS_WITHOUT_ERA[fractionDigits].parseMillis(s);
     }
 }
