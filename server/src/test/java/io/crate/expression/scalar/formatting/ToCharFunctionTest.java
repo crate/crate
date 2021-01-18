@@ -23,7 +23,10 @@
 package io.crate.expression.scalar.formatting;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import org.hamcrest.core.IsSame;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.not;
 
 
 public class ToCharFunctionTest extends AbstractScalarFunctionsTest {
@@ -66,23 +69,12 @@ public class ToCharFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testEvaluateNumeric() {
-        assertEvaluate("to_char(12345.678, '###,###.##')", "12,345.68");
-        assertEvaluate("to_char(125.6::real, '0000')", "0126");
-        assertEvaluate("to_char(-125.8, '###.00')", "-125.80");
+    public void testCompileWithValues() throws Exception {
+        assertCompile("to_char(timestamp, 'Day,  DD  HH12:MI:SS')", (s) -> not(IsSame.sameInstance(s)));
     }
 
     @Test
-    public void testEvaluateNumericWithEmptyPattern() {
-        assertEvaluate("to_char(12345.678, '')", "12,345.678");
-        assertEvaluate("to_char(-125.8, '')", "-125.8");
+    public void testCompileWithRefs() throws Exception {
+        assertCompile("to_char(timestamp, name)", IsSame::sameInstance);
     }
-
-    @Test
-    public void testEvaluateNumericWithNullPattern() {
-        assertEvaluate("to_char(12345.678, null)", null);
-        assertEvaluate("to_char(125.6::real, null)", null);
-        assertEvaluate("to_char(-125.8, null)", null);
-    }
-
 }

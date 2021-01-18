@@ -53,6 +53,12 @@ None
 Changes
 =======
 
+- Extended the ``RowDescription`` message that can be sent while communicating
+  with PostgreSQL clients to include a ``table_oid`` and a ``attr_num`` based
+  on the values that are also exposed via the ``pg_catalog.pg_attribute``
+  table. This improves compatibility with clients which make use of these
+  attributes.
+
 - Changed the :ref:`format_type <format_type>` function to use the PostgreSQL
   compatible type name notation with ``[]`` suffixes for arrays, instead of
   ``_array``.
@@ -67,7 +73,8 @@ Changes
   :ref:`NodeInfo MXBean <node_info_mxbean>` which is available as an
   enterprise feature.
 
-- Added the ``to_char`` scalar function for timestamp, interval and numeric types.
+- Added the ``to_char`` scalar function for ``timestamp`` and ``interval``
+  argument data types.
 
 - Added support for the ``split_part`` scalar function
 
@@ -105,3 +112,6 @@ Fixes
 - Fixed an issue that could result in a ``The assembled list of
   ParameterSymbols is invalid. Missing parameters.`` error if using the
   ``MATCH`` predicate and parameter placeholders within a query.
+
+- Bumped JNA library to version 5.6.0. This will make CrateDB start flawlessly
+  and without warnings on recent versions of Windows.

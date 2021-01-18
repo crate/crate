@@ -23,9 +23,11 @@
 package io.crate.analyze;
 
 import io.crate.analyze.user.Privilege;
+import io.crate.expression.symbol.Symbol;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class AnalyzedPrivileges implements DCLStatement {
 
@@ -48,5 +50,9 @@ public class AnalyzedPrivileges implements DCLStatement {
 
     public Set<Privilege> privileges() {
         return privileges;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

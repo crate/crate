@@ -84,8 +84,10 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     private EmbeddedChannel channel;
 
     @Before
-    public void prepare() {
-        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+    public void prepare() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (name text not null)")
+            .build();
         sqlOperations = new SQLOperations(
             e.nodeCtx,
             e.analyzer,
@@ -327,6 +329,62 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 response.release();
             }
         }
+    }
+
+    @Test
+    public void test_row_description_for_statement_on_single_table_includes_table_oid() throws Exception {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                sessionContext -> AccessControl.DISABLED,
+                new AlwaysOKNullAuthentication(),
+                null);
+
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        {
+            ByteBuf buffer = Unpooled.buffer();
+
+            ClientMessages.sendStartupMessage(buffer, "doc");
+            ClientMessages.sendParseMessage(buffer, "S1", "SELECT name FROM users", new int[0]);
+            channel.writeInbound(buffer);
+            channel.releaseInbound();
+
+            // we're not interested in the startup, parse, or bind replies
+            channel.flushOutbound();
+            channel.releaseOutbound();
+            channel.outboundMessages().clear();
+        }
+        {
+            ByteBuf buffer = Unpooled.buffer();
+            ClientMessages.sendDescribeMessage(buffer, ClientMessages.DescribeType.STATEMENT, "S1");
+            channel.writeInbound(buffer);
+            channel.releaseInbound();
+
+            // we should get back a ParameterDescription message, but not interesting for this test case
+            channel.flushOutbound();
+            ByteBuf response = channel.readOutbound();
+            response.release();
+
+            // we should get back a RowDescription message
+            response = channel.readOutbound();
+            try {
+                assertThat(response.readByte(), is((byte) 'T'));
+                assertThat(response.readInt(), is(29));
+                assertThat(response.readShort(), is((short) 1));
+                assertThat(PostgresWireProtocol.readCString(response), is("name"));
+
+                assertThat("table_oid", response.readInt(), is(893280107));
+                assertThat("attr_num", response.readShort(), is((short) 1));
+                var pgType = PGTypes.get(DataTypes.STRING);
+                assertThat(response.readInt(), is(pgType.oid()));
+                assertThat(response.readShort(), is(pgType.typeLen()));
+                assertThat(response.readInt(), is(pgType.typeMod()));
+                assertThat("format_code", response.readShort(), is((short) 0));
+            } finally {
+                response.release();
+            }
+        }
+
     }
 
     @Test

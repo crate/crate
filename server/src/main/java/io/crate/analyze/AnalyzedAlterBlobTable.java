@@ -25,6 +25,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTable;
 
+import java.util.function.Consumer;
+
 public class AnalyzedAlterBlobTable implements DDLStatement {
 
     private final TableInfo tableInfo;
@@ -46,5 +48,14 @@ public class AnalyzedAlterBlobTable implements DDLStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitAnalyzedAlterBlobTable(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (var partitionProperty : alterTable.table().partitionProperties()) {
+            consumer.accept(partitionProperty.columnName());
+            partitionProperty.expressions().forEach(consumer);
+        }
+        alterTable.genericProperties().properties().values().forEach(consumer);
     }
 }

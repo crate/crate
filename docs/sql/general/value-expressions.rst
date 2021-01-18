@@ -99,7 +99,7 @@ the array which should be retrieved.
 
 .. SEEALSO::
 
-    :ref:`sql_dql_object_arrays_select`
+    :ref:`sql_dql_object_arrays`
 
 .. _object-subscript:
 

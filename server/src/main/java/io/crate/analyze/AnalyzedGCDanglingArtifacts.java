@@ -22,6 +22,10 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
+
+import java.util.function.Consumer;
+
 public final class AnalyzedGCDanglingArtifacts implements AnalyzedStatement {
 
     public static final AnalyzedGCDanglingArtifacts INSTANCE = new AnalyzedGCDanglingArtifacts();
@@ -34,5 +38,9 @@ public final class AnalyzedGCDanglingArtifacts implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

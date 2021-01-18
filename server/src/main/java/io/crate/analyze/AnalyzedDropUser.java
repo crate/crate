@@ -22,6 +22,10 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
+
+import java.util.function.Consumer;
+
 public class AnalyzedDropUser implements AnalyzedStatement {
 
     private final String userName;
@@ -48,5 +52,9 @@ public class AnalyzedDropUser implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

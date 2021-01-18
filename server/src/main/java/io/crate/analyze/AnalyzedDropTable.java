@@ -21,10 +21,12 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
+import java.util.function.Consumer;
 
 public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatement {
 
@@ -64,5 +66,9 @@ public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatemen
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitDropTable(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

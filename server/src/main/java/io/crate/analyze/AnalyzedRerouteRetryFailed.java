@@ -22,10 +22,18 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
+
+import java.util.function.Consumer;
+
 public class AnalyzedRerouteRetryFailed implements DDLStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitRerouteRetryFailedStatement(this, context);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

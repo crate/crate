@@ -23,6 +23,7 @@
 package io.crate.action.sql;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationInfo;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -35,16 +36,15 @@ public class DescribeResult {
 
     @Nullable
     private final List<Symbol> fields;
-    @Nullable
-    private DataType[] parameters;
+    private final DataType[] parameters;
+    private final RelationInfo relation;
 
-    DescribeResult(@Nullable List<Symbol> fields) {
-        this.fields = fields;
-    }
-
-    DescribeResult(@Nullable List<Symbol> fields, @Nullable DataType[] parameters) {
+    DescribeResult(DataType[] parameters,
+                   @Nullable List<Symbol> fields,
+                   @Nullable RelationInfo relation) {
         this.fields = fields;
         this.parameters = parameters;
+        this.relation = relation;
     }
 
     @Nullable
@@ -56,8 +56,17 @@ public class DescribeResult {
      * Returns the described parameters in sorted order ($1, $2, etc.)
      * @return An array containing the parameters, or null if they could not be obtained.
      */
-    @Nullable
     public DataType[] getParameters() {
         return parameters;
+    }
+
+    /**
+     * Relation/Table of the query if the query operates directly on a table.
+     *
+     * `null` if the query operates on a virtual table or involves joins.
+     **/
+    @Nullable
+    public RelationInfo relation() {
+        return relation;
     }
 }

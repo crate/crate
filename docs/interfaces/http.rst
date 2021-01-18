@@ -40,8 +40,8 @@ A simple ``SELECT`` statement can be submitted like this::
           1
         ],
         [
-          "Arkintoofle Minor",
-          3
+          "Outer Eastern Rim",
+          2
         ]
       ],
       "rowcount": 2,
@@ -171,8 +171,8 @@ It is possible to set a default schema while querying the CrateDB cluster via
           1
         ],
         [
-          "Arkintoofle Minor",
-          3
+          "Outer Eastern Rim",
+          2
         ]
       ],
       "rowcount": 2,

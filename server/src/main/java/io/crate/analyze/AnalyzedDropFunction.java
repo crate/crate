@@ -26,9 +26,11 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class AnalyzedDropFunction implements AnalyzedStatement {
 
@@ -68,5 +70,9 @@ public class AnalyzedDropFunction implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }
