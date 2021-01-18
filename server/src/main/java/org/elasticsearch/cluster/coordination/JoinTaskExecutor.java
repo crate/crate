@@ -19,14 +19,6 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.BiConsumer;
-
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -41,6 +33,14 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.Priority;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.BiConsumer;
+
+import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
 
 public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecutor.Task> {
 
@@ -230,9 +230,14 @@ public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecut
         // we ensure that all indices in the cluster we join are compatible with us no matter if they are
         // closed or not we can't read mappings of these indices so we need to reject the join...
         for (IndexMetadata idxMetadata : metadata) {
-            if (idxMetadata.getCreationVersion().after(nodeVersion)) {
+            if (idxMetadata.getCreationVersion().afterMajorMinor(nodeVersion)) {
                 throw new IllegalStateException("index " + idxMetadata.getIndex() + " version not supported: "
                     + idxMetadata.getCreationVersion() + " the node version is: " + nodeVersion);
+            }
+            if (nodeVersion.luceneVersion.onOrAfter(idxMetadata.getCreationVersion().luceneVersion) == false) {
+                throw new IllegalStateException("index " + idxMetadata.getIndex() + " lucene version not supported: "
+                                                + idxMetadata.getCreationVersion().luceneVersion
+                                                + ", compatible index lucene version is: " + nodeVersion.luceneVersion);
             }
             if (idxMetadata.getCreationVersion().before(supportedIndexVersion)) {
                 throw new IllegalStateException("index " + idxMetadata.getIndex() + " version not supported: "

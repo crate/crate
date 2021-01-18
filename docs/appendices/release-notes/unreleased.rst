@@ -123,6 +123,9 @@ New scalar and window functions
 Fixes
 =====
 
+- Fixed an issue inside the table version and node version compatibility check
+  which prevented downgrading from one hotfix version to another one.
+
 - Fixed an issue that could lead to a ``String index out of range`` error when
   streaming values of type ``TIMESTAMP WITH TIME ZONE`` using a PostgreSQL
   client.
