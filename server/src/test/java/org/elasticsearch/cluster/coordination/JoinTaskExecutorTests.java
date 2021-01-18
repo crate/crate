@@ -24,6 +24,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.VersionUtils;
+import org.junit.Test;
 
 public class JoinTaskExecutorTests extends ESTestCase {
 
@@ -61,5 +62,20 @@ public class JoinTaskExecutorTests extends ESTestCase {
         Metadata metadata = metaBuilder.build();
             JoinTaskExecutor.ensureIndexCompatibility(Version.CURRENT,
                 metadata);
+    }
+
+    @Test
+    public void test_nodes_with_same_major_and_minor_version_can_join() {
+        Settings.builder().build();
+        Metadata.Builder metaBuilder = Metadata.builder();
+        IndexMetadata indexMetadata = IndexMetadata.builder("test")
+            .settings(settings(Version.V_4_3_3))
+            .numberOfShards(1)
+            .numberOfReplicas(1).build();
+        metaBuilder.put(indexMetadata, false);
+        Metadata metadata = metaBuilder.build();
+
+        JoinTaskExecutor.ensureIndexCompatibility(Version.V_4_3_2,
+            metadata);
     }
 }
