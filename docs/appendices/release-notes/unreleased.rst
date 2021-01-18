@@ -53,6 +53,30 @@ None
 Changes
 =======
 
+Performance improvements
+------------------------
+
+- Improved the performance of queries on the ``sys.health`` table.
+
+- Added support for using the optimized primary key lookup plan if additional
+  filters are combined via ``AND`` operators.
+
+- Improved the performance of queries on the ``sys.allocations`` table in cases
+  where there are filters restricting the result set or if only a sub-set of
+  the columns is selected.
+
+- Improved the performance for queries which select a subset of the columns
+  available in a wide table.
+
+SQL and PostgreSQL compatibility improvements
+---------------------------------------------
+
+- Added arithmetic operation support for the :ref:`numeric <numeric_type>`.
+
+- Added support for the :ref:`numeric <numeric_type>` data type and allow the
+  ``sum`` aggregation on the :ref:`numeric <numeric_type>` type.
+  Note that the storage of the ``numeric`` data type is not supported.
+
 - Extended the ``RowDescription`` message that can be sent while communicating
   with PostgreSQL clients to include a ``table_oid`` and a ``attr_num`` based
   on the values that are also exposed via the ``pg_catalog.pg_attribute``
@@ -63,29 +87,6 @@ Changes
   compatible type name notation with ``[]`` suffixes for arrays, instead of
   ``_array``.
 
-- Added arithmetic operation support for the :ref:`numeric <numeric_type>`.
-
-- Added support for the :ref:`numeric <numeric_type>` data type and allow the
-  ``sum`` aggregation on the :ref:`numeric <numeric_type>` type.
-  Note that the storage of the ``numeric`` data type is not supported.
-
-- Added information about the shards located on the node to the
-  :ref:`NodeInfo MXBean <node_info_mxbean>` which is available as an
-  enterprise feature.
-
-- Added the ``to_char`` scalar function for ``timestamp`` and ``interval``
-  argument data types.
-
-- Added support for the ``split_part`` scalar function
-
-- Improved the performance of queries on the ``sys.health`` table.
-
-- Added support for the ``dense_rank`` window function, which is available as an
-  enterprise feature.
-
-- Added support for the ``rank`` window function, which is available as an
-  enterprise feature.
-
 - Added the ``delimiter`` option for :ref:`copy_from` CSV files. The option is
   used to specify the character that separates columns within a row.
 
@@ -93,15 +94,31 @@ Changes
   If the option is enabled, all column's values represented by an empty string,
   including a quoted empty string, are set to ``NULL``.
 
-- Added the :ref:`sys.snapshot_restore <sys-snapshot-restore>` table to track the
-  progress of the :ref:`snapshot restore <snapshot-restore>` operations.
 
-- Added support for using the optimized primary key lookup plan if additional
-  filters are combined via ``AND`` operators.
+Administration and Operations
+-----------------------------
 
-- Improved the performance of queries on the ``sys.allocations`` table in cases
-  where there are filters restricting the result set or if only a sub-set of
-  the columns is selected.
+- Added information about the shards located on the node to the :ref:`NodeInfo
+  MXBean <node_info_mxbean>` which is available as an enterprise feature.
+
+- Added the :ref:`sys.snapshot_restore <sys-snapshot-restore>` table to track
+  the progress of the :ref:`snapshot restore <snapshot-restore>` operations.
+
+
+New scalar and window functions
+-------------------------------
+
+- Added the :ref:`to_char <scalar-to_char>` scalar function for ``timestamp``
+  and ``interval`` argument data types.
+
+- Added the :ref:`split_part <scalar-split_part>` scalar function.
+
+- Added the :ref:`dense_rank <window-function-dense_rank>` window function,
+  which is available as an enterprise feature.
+
+- Added the :ref:`rank <window-function-rank>` window function, which is
+  available as an enterprise feature.
+
 
 Fixes
 =====
