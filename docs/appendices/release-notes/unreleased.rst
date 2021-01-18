@@ -53,6 +53,12 @@ None
 Changes
 =======
 
+- Extended the ``RowDescription`` message that can be sent while communicating
+  with PostgreSQL clients to include a ``table_oid`` and a ``attr_num`` based
+  on the values that are also exposed via the ``pg_catalog.pg_attribute``
+  table. This improves compatibility with clients which make use of these
+  attributes.
+
 - Changed the :ref:`format_type <format_type>` function to use the PostgreSQL
   compatible type name notation with ``[]`` suffixes for arrays, instead of
   ``_array``.
@@ -99,6 +105,10 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue that could lead to a ``String index out of range`` error when
+  streaming values of type ``TIMESTAMP WITH TIME ZONE`` using a PostgreSQL
+  client.
 
 - Fixed an issue that could lead to errors like ``Can't map PGType with oid=26
   to Crate type`` using a PostgreSQL client.

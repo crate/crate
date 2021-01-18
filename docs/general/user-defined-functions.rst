@@ -412,7 +412,7 @@ passed as array-like objects.
 .. _slice: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
 .. _reduce: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
 
-.. _ECMAScript 2019: https://www.ecma-international.org/ecma-262/10.0/
+.. _ECMAScript 2019: https://262.ecma-international.org/10.0/index.html
 .. _GraalVM JavaScript: https://www.graalvm.org/docs/reference-manual/languages/js/
 .. _GraalVM Polyglot API: https://www.graalvm.org/docs/reference-manual/polyglot/
 .. _stock host Java VM JIT compilers: https://www.graalvm.org/reference-manual/js/RunOnJDK/
