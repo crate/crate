@@ -266,20 +266,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_foo() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (ts timestamp with time zone)")
-            .build();
-        AnalyzedStatement analyzedStatement = e.analyze(
-            "insert into tbl (ts) values (?)",
-            ParamTypeHints.EMPTY
-        );
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
-        assertThat(parameterTypes, is(new DataType[]{DataTypes.TIMESTAMPZ}));
-    }
-
-    @Test
     public void testExtractTypesFromInsertWithOnDuplicateKey() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
