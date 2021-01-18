@@ -32,7 +32,9 @@ import java.util.EnumSet;
 
 /**
  * Exposes common discovery settings that may be supported by all the different discovery implementations
+ * @deprecated The discovery settings are not used anymore for the zen 2 discovery and will be removed.
  */
+@Deprecated
 public class DiscoverySettings {
 
     public static final int NO_MASTER_BLOCK_ID = 2;
@@ -44,7 +46,7 @@ public class DiscoverySettings {
      **/
     public static final Setting<TimeValue> PUBLISH_TIMEOUT_SETTING =
         Setting.positiveTimeSetting("discovery.zen.publish_timeout", TimeValue.timeValueSeconds(30),
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.Deprecated, Property.NodeScope);
 
     /**
      * sets the timeout for receiving enough acks for a specific cluster state and committing it. failing
@@ -53,12 +55,16 @@ public class DiscoverySettings {
     public static final Setting<TimeValue> COMMIT_TIMEOUT_SETTING =
         new Setting<>("discovery.zen.commit_timeout", (s) -> PUBLISH_TIMEOUT_SETTING.getRaw(s),
             (s) -> TimeValue.parseTimeValue(s, TimeValue.timeValueSeconds(30), "discovery.zen.commit_timeout"),
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.Deprecated, Property.NodeScope);
     public static final Setting<ClusterBlock> NO_MASTER_BLOCK_SETTING =
         new Setting<>("discovery.zen.no_master_block", "write", DiscoverySettings::parseNoMasterBlock,
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.Deprecated, Property.NodeScope);
     public static final Setting<Boolean> PUBLISH_DIFF_ENABLE_SETTING =
-        Setting.boolSetting("discovery.zen.publish_diff.enable", true, Property.Dynamic, Property.NodeScope);
+        Setting.boolSetting("discovery.zen.publish_diff.enable",
+                            true,
+                            Property.Dynamic,
+                            Property.Deprecated,
+                            Property.NodeScope);
     public static final Setting<TimeValue> INITIAL_STATE_TIMEOUT_SETTING =
         Setting.positiveTimeSetting("discovery.initial_state_timeout", TimeValue.timeValueSeconds(30), Property.NodeScope);
 

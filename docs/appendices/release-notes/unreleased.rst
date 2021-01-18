@@ -48,7 +48,9 @@ None
 Deprecations
 ============
 
-None
+- The settings ``discovery.zen.publish_timeout``, ``discovery.zen.commit_timeout``,
+  ``discovery.zen.no_master_block``, ``discovery.zen.publish_diff.enable``
+  have been marked as deprecated and will be removed in a future version.
 
 Changes
 =======
