@@ -37,6 +37,8 @@ import org.junit.Test;
 
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class SourceParserTest extends ESTestCase {
 
@@ -44,7 +46,7 @@ public class SourceParserTest extends ESTestCase {
     public void test_extract_single_value_from_json_with_multiple_columns() throws Exception {
         SourceParser sourceParser = new SourceParser();
         var column = new ColumnIdent("_doc", List.of("x"));
-        sourceParser.register(column);
+        sourceParser.register(column, DataTypes.INTEGER);
         Map<String, Object> result = sourceParser.parse(new BytesArray("""
             {"x": 10, "y": 20}
         """));
@@ -58,15 +60,15 @@ public class SourceParserTest extends ESTestCase {
         SourceParser sourceParser = new SourceParser();
         var x = new ColumnIdent("_doc", List.of("obj", "x"));
         var z = new ColumnIdent("_doc", List.of("obj", "z"));
-        sourceParser.register(x);
-        sourceParser.register(z);
+        sourceParser.register(x, DataTypes.INTEGER);
+        sourceParser.register(z, DataTypes.LONG);
         Map<String, Object> result = sourceParser.parse(new BytesArray("""
             {"obj": {"x": 1, "y": 2, "z": 3}}
         """));
 
         assertThat(Maps.getByPath(result, "obj.x"), is(1));
         assertThat(Maps.getByPath(result, "obj.y"), Matchers.nullValue());
-        assertThat(Maps.getByPath(result, "obj.z"), is(3));
+        assertThat(Maps.getByPath(result, "obj.z"), is(3L));
     }
 
     @Test
@@ -75,12 +77,13 @@ public class SourceParserTest extends ESTestCase {
         var obj = new ColumnIdent("_doc", List.of("obj"));
         var x = new ColumnIdent("_doc", List.of("obj", "x"));
         // the order in which the columns are registered must not matter
-        ArrayList<ColumnIdent> columns = new ArrayList<>();
-        columns.add(obj);
-        columns.add(x);
-        Collections.shuffle(columns, random());
-        for (var column : columns) {
-            sourceParser.register(column);
+        boolean xFirst = randomBoolean();
+        if (xFirst) {
+            sourceParser.register(x, DataTypes.INTEGER);
+            sourceParser.register(obj, ObjectType.UNTYPED);
+        } else {
+            sourceParser.register(obj, ObjectType.UNTYPED);
+            sourceParser.register(x, DataTypes.INTEGER);
         }
 
         Map<String, Object> result = sourceParser.parse(new BytesArray("""

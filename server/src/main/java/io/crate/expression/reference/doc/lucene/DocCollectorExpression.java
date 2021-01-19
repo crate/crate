@@ -98,7 +98,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
             // for example:
             //      sourceExtractor might read byte as int and
             //      then eq(byte, byte) would get eq(byte, int) and fail
-            return ref.valueType().implicitCast(sourceLookup.get(ref.column().path()));
+            return sourceLookup.get(ref.column().path());
         }
     }
 }
