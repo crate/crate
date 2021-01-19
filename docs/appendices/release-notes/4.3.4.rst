@@ -1,0 +1,49 @@
+.. _version_4.3.4:
+
+=============
+Version 4.3.4
+=============
+
+Released on 2021-01-19.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.3.4.
+
+    We recommend that you upgrade to the latest 4.2 release before moving to
+    4.3.4.
+
+    A rolling upgrade from 4.2.6+ to 4.3.4 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+Fixes
+=====
+
+- Fixed an issue inside the table version and node version compatibility check
+  which prevented downgrading from one hotfix version to another one.
+
+- Fixed an issue that could lead to a ``String index out of range`` error when
+  streaming values of type ``TIMESTAMP WITH TIME ZONE`` using a PostgreSQL
+  client.
+
+- Fixed an issue that could lead to errors like ``Can't map PGType with oid=26
+  to Crate type`` using a PostgreSQL client.
+
+- Fixed an issue that could result in a ``The assembled list of
+  ParameterSymbols is invalid. Missing parameters.`` error if using the
+  ``MATCH`` predicate and parameter placeholders within a query.
+
+- Bumped JNA library to version 5.6.0. This will make CrateDB start flawlessly
+  and without warnings on recent versions of Windows.
