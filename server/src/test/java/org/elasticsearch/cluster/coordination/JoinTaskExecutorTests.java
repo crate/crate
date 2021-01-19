@@ -40,7 +40,7 @@ public class JoinTaskExecutorTests extends ESTestCase {
         JoinTaskExecutor.ensureIndexCompatibility(Version.CURRENT, metadata);
 
         expectThrows(IllegalStateException.class, () ->
-        JoinTaskExecutor.ensureIndexCompatibility(VersionUtils.getPreviousVersion(Version.CURRENT),
+        JoinTaskExecutor.ensureIndexCompatibility(VersionUtils.getPreviousMinorVersion(),
             metadata));
     }
 
