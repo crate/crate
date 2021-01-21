@@ -37,6 +37,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.TestEnvironment;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.junit.Test;
@@ -45,10 +46,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static org.elasticsearch.discovery.DiscoverySettings.INITIAL_STATE_TIMEOUT_SETTING;
 import static org.hamcrest.Matchers.containsString;
 
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numClientNodes = 0, numDataNodes = 0, autoMinMasterNodes = false)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numClientNodes = 0, numDataNodes = 0, autoManageMasterNodes = false)
 public class UnsafeBootstrapAndDetachCommandIT extends SQLTransportIntegrationTest {
 
     private MockTerminal executeCommand(ElasticsearchNodeCommand command,
@@ -98,12 +98,12 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLTransportIntegrationTe
 
         logger.info("--> start 1st master-eligible node");
         masterNodes.add(internalCluster().startMasterOnlyNode(Settings.builder()
-                .put(INITIAL_STATE_TIMEOUT_SETTING.getKey(), "0s")
+                .put(Node.INITIAL_STATE_TIMEOUT_SETTING.getKey(), "0s")
                 .build())); // node ordinal 0
 
         logger.info("--> start one data-only node");
         String dataNode = internalCluster().startDataOnlyNode(Settings.builder()
-                .put(INITIAL_STATE_TIMEOUT_SETTING.getKey(), "0s")
+                .put(Node.INITIAL_STATE_TIMEOUT_SETTING.getKey(), "0s")
                 .build()); // node ordinal 1
 
         logger.info("--> start 2nd and 3rd master-eligible nodes and bootstrap");

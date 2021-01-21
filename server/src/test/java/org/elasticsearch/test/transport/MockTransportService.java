@@ -81,7 +81,7 @@ import java.util.function.Supplier;
  * Matching requests to rules is based on the delegate address associated with the
  * discovery node of the request, namely by DiscoveryNode.getAddress().
  * This address is usually the publish address of the node but can also be a different one
- * (for example, @see org.elasticsearch.discovery.zen.ping.unicast.UnicastZenPing, which constructs
+ * (for example, @see org.elasticsearch.discovery.HandshakingTransportAddressConnector, which constructs
  * fake DiscoveryNode instances where the publish address is one of the bound addresses).
  */
 public final class MockTransportService extends TransportService {
@@ -589,64 +589,6 @@ public final class MockTransportService extends TransportService {
 
     public StubbableConnectionManager connectionManager() {
         return (StubbableConnectionManager) connectionManager;
-    }
-
-    List<Tracer> activeTracers = new CopyOnWriteArrayList<>();
-
-    public static class Tracer {
-        public void receivedRequest(long requestId, String action) {
-        }
-
-        public void responseSent(long requestId, String action) {
-        }
-
-        public void responseSent(long requestId, String action, Throwable t) {
-        }
-
-        public void receivedResponse(long requestId, DiscoveryNode sourceNode, String action) {
-        }
-
-        public void requestSent(DiscoveryNode node, long requestId, String action, TransportRequestOptions options) {
-        }
-    }
-
-    public void addTracer(Tracer tracer) {
-        activeTracers.add(tracer);
-    }
-
-    public boolean removeTracer(Tracer tracer) {
-        return activeTracers.remove(tracer);
-    }
-
-    public void clearTracers() {
-        activeTracers.clear();
-    }
-
-    @Override
-    public void openConnection(DiscoveryNode node, ConnectionProfile connectionProfile, ActionListener<Transport.Connection> listener) {
-        super.openConnection(node, connectionProfile, ActionListener.delegateFailure(listener, (l, connection) -> {
-            synchronized (openConnections) {
-                openConnections.computeIfAbsent(node, n -> new CopyOnWriteArrayList<>()).add(connection);
-                connection.addCloseListener(ActionListener.wrap(() -> {
-                    synchronized (openConnections) {
-                        List<Transport.Connection> connections = openConnections.get(node);
-                        boolean remove = connections.remove(connection);
-                        assert remove : "Should have removed connection";
-                        if (connections.isEmpty()) {
-                            openConnections.remove(node);
-                        }
-                        if (openConnections.isEmpty()) {
-                            openConnections.notifyAll();
-                        }
-                    }
-                }));
-            }
-            l.onResponse(connection);
-        }));
-    }
-
-    public void addOnStopListener(Runnable listener) {
-        onStopListeners.add(listener);
     }
 
     @Override
