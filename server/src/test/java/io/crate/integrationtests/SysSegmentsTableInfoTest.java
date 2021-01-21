@@ -22,22 +22,21 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
-
-import java.util.Map;
-
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 
+import java.util.Map;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SysSegmentsTableInfoTest extends SQLTransportIntegrationTest {
 
-    @AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/10843")
     @Test
     public void test_retrieve_segment_information() {
         execute("create table t1 (id INTEGER, name STRING) clustered into 1 shards" +
