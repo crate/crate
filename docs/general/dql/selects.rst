@@ -866,7 +866,7 @@ Individual elements of the *child array* can be selected by combining the
     process.
 
     To avoid this issue, CrateDB indexes complex structures by flattening them
-    into multiple Lucine records. Accordingly, an expression like
+    into multiple Lucene records. Accordingly, an expression like
     ``inhabitants[1]['interests']`` is better thought of as a search
     instruction for the Lucene index.
 
@@ -877,7 +877,7 @@ Limitations
 ^^^^^^^^^^^
 
 As mentioned above, CrateDB indexes complex structures by flattening them into
-multiple Lucine records. While this approach makes it possible to efficiently
+multiple Lucene records. While this approach makes it possible to efficiently
 query nested documents to an arbitrary depth with the full speed of the table
 index, it does have some limitations:
 
