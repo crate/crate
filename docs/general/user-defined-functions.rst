@@ -227,8 +227,8 @@ privileges to allow for the safe execution of less trusted guest language
 code. The guest language application context for each user-defined function
 is created with default access modifiers, so any access to managed resources
 is denied. The only exception is the host language interoperability
-configuration which explicitly allows access to Java lists and arrays. **Please
-refer to `GraalVM Security Guide`_ for more detailed information**
+configuration which explicitly allows access to Java lists and arrays. Please
+refer to `GraalVM Security Guide`_ for more detailed information.
 
 Also, even though user-defined functions implemented with ECMA-compliant
 JavaScript, objects that are normally accessible with a web browser
