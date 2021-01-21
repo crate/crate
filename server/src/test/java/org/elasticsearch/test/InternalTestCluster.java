@@ -1689,6 +1689,7 @@ public final class InternalTestCluster extends TestCluster {
             final List<NodeAndClient> nodesByRole = nodesByRoles.get(roles);
             startUpOrder.add(nodesByRole.remove(0));
         }
+        callback.onAllNodesStopped();
         assert nodesByRoles.values().stream().mapToInt(List::size).sum() == 0;
 
         for (NodeAndClient nodeAndClient : startUpOrder) {
