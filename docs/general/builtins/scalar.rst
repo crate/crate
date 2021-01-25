@@ -601,9 +601,11 @@ Example::
 ``encode(bytea, format)``
 -------------------------
 
-Encode takes a binary string in hex format and returns a textual representation
-into the specified format. Supported formats are base64, hex, and escape. The
-escape format represents unprintable characters with an octal sequence `\nnn`.
+Encode takes a binary string (``hex`` format) and returns a text encoding using
+the specified format. Supported formats are: ``base64``, ``hex``, and
+``escape``. The ``escape`` format replaces unprintable characters with octal
+byte notation like ``\nnn``. For the reverse function, see :ref:`decode()
+<scalar-decode>`.
 
 Synopsis::
 
@@ -619,13 +621,15 @@ Example::
     +--------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-decode:
 
 ``decode(text, format)``
 -------------------------
 
-Decodes text encoded in the given format, which are listed in the `encode`
-documentation. Returns a binary string in the hex format.
+Decodes a text encoded string using the specified format and returns a binary
+string (``hex`` format). Supported formats are: ``base64``, ``hex``, and
+``escape``. For the reverse function, see :ref:`encode() <scalar-encode>`.
 
 Synopsis::
 
@@ -640,6 +644,7 @@ Example::
     | \x548c |
     +--------+
     SELECT 1 row in set (... sec)
+
 
 .. _scalar-repeat:
 
