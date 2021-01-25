@@ -375,10 +375,12 @@ escape them using a backslash::
 
 .. CAUTION::
 
-    Queries with a like/ilike clause can be quite slow. Especially if the clause
-    starts with a wildcard character. Because in that case CrateDB has to iterate
-    over all rows and can't utilize the index. For better performance consider
-    using a fulltext index.
+    ``LIKE`` and ``ILIKE`` clauses can slow a query down, especially when used
+    in combination with wildcard characters. This is because CrateDB has to
+    iterate over all rows for the comparison and cannot utilize the index.
+
+    For better performance, consider using :ref:`fulltext search
+    <sql_dql_fulltext_search>`.
 
 
 .. _sql_dql_not:
