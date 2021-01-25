@@ -318,36 +318,26 @@ public final class MockTransportService extends TransportService {
      * and failing to connect once the rule was added.
      */
     public void addUnresponsiveRule(TransportAddress transportAddress) {
-        transport().addConnectBehavior(transportAddress, (transport, discoveryNode, profile, listener) ->
-            listener.onFailure(new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated")));
+        transport().addSendBehavior(transportAddress, new StubbableTransport.SendRequestBehavior() {
+            private Set<Transport.Connection> toClose = ConcurrentHashMap.newKeySet();
+            @Override
+            public void sendRequest(Transport.Connection connection, long requestId, String action,
+                                    TransportRequest request, TransportRequestOptions options) {
+                // don't send anything, the receiving node is unresponsive
+                toClose.add(connection);
+            }
 
-        transport().addSendBehavior(
-            transportAddress,
-            new StubbableTransport.SendRequestBehavior() {
-                private Set<Transport.Connection> toClose = ConcurrentHashMap.newKeySet();
-
-                @Override
-                public void sendRequest(Transport.Connection connection,
-                                        long requestId,
-                                        String action,
-                                        TransportRequest request,
-                                        TransportRequestOptions options) {
-                    // don't send anything, the receiving node is unresponsive
-                    toClose.add(connection);
-                }
-
-                @Override
-                public void clearCallback() {
-                    // close to simulate that tcp-ip eventually times out and closes connection
-                    // (necessary to ensure transport eventually responds).
-                    try {
-                        IOUtils.close(toClose);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+            @Override
+            public void clearCallback() {
+                // close to simulate that tcp-ip eventually times out and closes connection (necessary to ensure transport eventually
+                // responds).
+                try {
+                    IOUtils.close(toClose);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             }
-        );
+        });
     }
 
     /**

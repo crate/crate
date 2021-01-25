@@ -570,6 +570,7 @@ should be crossed out as well.
 - [x] 4fd7a22fcfd Allow cluster access during node restart (#42946)
 - [x] bc008d8a9db Increase waiting time when check retention locks (#42994)
 - [x] fe1674174f6 Remove some leftover refs to minimum_master_nodes (#42700)
+- [x] 7130e62a126 Fix unresponsive network simulation (#42579)
 - [x] 1b6dc178388 Remove transport client from tests (#42457)
 - [x] c1de8c29db2 Cluster state from API should always have a master (#42454)
 - [x] 2f41b1b64de Remove `Tracer` from `MockTransportService` (#40237)
