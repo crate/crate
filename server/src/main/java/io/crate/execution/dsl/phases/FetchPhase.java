@@ -22,26 +22,26 @@
 
 package io.crate.execution.dsl.phases;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+
 public class FetchPhase implements ExecutionPhase {
 
     private final TreeMap<String, Integer> bases;
-    private final Multimap<RelationName, String> tableIndices;
+    private final Map<RelationName, Collection<String>> tableIndices;
     private final Collection<Reference> fetchRefs;
 
     private final int executionPhaseId;
@@ -50,7 +50,7 @@ public class FetchPhase implements ExecutionPhase {
     public FetchPhase(int executionPhaseId,
                       Set<String> executionNodes,
                       TreeMap<String, Integer> bases,
-                      Multimap<RelationName, String> tableIndices,
+                      Map<RelationName, Collection<String>> tableIndices,
                       Collection<Reference> fetchRefs) {
         this.executionPhaseId = executionPhaseId;
         this.executionNodes = executionNodes;
@@ -110,12 +110,13 @@ public class FetchPhase implements ExecutionPhase {
         }
 
         n = in.readVInt();
-        tableIndices = HashMultimap.create(n, 1);
+        tableIndices = new HashMap<>(n);
         for (int i = 0; i < n; i++) {
             RelationName ti = new RelationName(in);
             int nn = in.readVInt();
             for (int j = 0; j < nn; j++) {
-                tableIndices.put(ti, in.readString());
+                Collection<String> collection = tableIndices.computeIfAbsent(ti, ignored -> new ArrayList<>());
+                collection.add(in.readString());
             }
         }
     }
@@ -139,9 +140,8 @@ public class FetchPhase implements ExecutionPhase {
         for (Reference ref : fetchRefs) {
             Reference.toStream(ref, out);
         }
-        Map<RelationName, Collection<String>> map = tableIndices.asMap();
-        out.writeVInt(map.size());
-        for (Map.Entry<RelationName, Collection<String>> entry : map.entrySet()) {
+        out.writeVInt(tableIndices.size());
+        for (Map.Entry<RelationName, Collection<String>> entry : tableIndices.entrySet()) {
             entry.getKey().writeTo(out);
             out.writeVInt(entry.getValue().size());
             for (String s : entry.getValue()) {
@@ -151,7 +151,7 @@ public class FetchPhase implements ExecutionPhase {
 
     }
 
-    public Multimap<RelationName, String> tableIndices() {
+    public Map<RelationName, Collection<String>> tableIndices() {
         return tableIndices;
     }
 

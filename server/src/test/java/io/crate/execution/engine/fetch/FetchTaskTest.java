@@ -22,7 +22,6 @@
 package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.HashMultimap;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.ColumnIdent;
@@ -40,7 +39,9 @@ import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -64,7 +65,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 1,
                 null,
                 new TreeMap<>(),
-                HashMultimap.create(),
+                new HashMap<>(),
                 List.of()),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class), UnaryOperator.identity()),
@@ -83,8 +84,8 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
         IndexBaseBuilder ibb = new IndexBaseBuilder();
         ibb.allocate("i1", shards);
 
-        HashMultimap<RelationName, String> tableIndices = HashMultimap.create();
-        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i1"), "i1");
+        Map<RelationName, Collection<String>> tableIndices = new HashMap<>();
+        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i1"), List.of("i1"));
 
         Metadata metadata = Metadata.builder()
             .put(IndexMetadata.builder("i1")
