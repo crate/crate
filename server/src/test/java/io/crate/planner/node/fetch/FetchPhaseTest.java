@@ -22,8 +22,6 @@
 
 package io.crate.planner.node.fetch;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -36,6 +34,8 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
@@ -54,10 +54,9 @@ public class FetchPhaseTest {
         bases.put(t1.name(), 0);
         bases.put("i2", 1);
 
-        Multimap<RelationName, String> tableIndices = HashMultimap.create();
-        tableIndices.put(t1, t1.name());
-        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i2"), "i2_s1");
-        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i2"), "i2_s2");
+        HashMap<RelationName, Collection<String>> tableIndices = new HashMap<>();
+        tableIndices.put(t1, List.of(t1.name()));
+        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i2"), List.of("i2_s1", "i2_s2"));
 
         ReferenceIdent nameIdent = new ReferenceIdent(t1, "name");
         Reference name = new Reference(nameIdent, RowGranularity.DOC, DataTypes.STRING, null, null);
