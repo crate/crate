@@ -717,32 +717,46 @@ across generic attributes associated with nodes.
 **cluster.routing.allocation.awareness.attributes**
   | *Runtime:*  ``no``
 
-  Define node attributes which will be used to do awareness based on the
-  allocation of a shard and its replicas. For example, let's say we have
-  defined an attribute ``rack_id`` and we start 2 nodes with
-  ``node.attr.rack_id`` set to rack_one, and deploy a single table with 5
-  shards and 1 replica. The table will be fully deployed on the current nodes
-  (5 shards and 1 replica each, total of 10 shards).
+  You may define :ref:`custom node attributes <conf-node-attributes>` which can
+  then be used to do awareness based on the allocation of a shard and its
+  replicas.
 
-  Now, if we start two more nodes, with ``node.attr.rack_id`` set to rack_two,
-  shards will relocate to even the number of shards across the nodes, but a
-  shard and its replica will not be allocated in the same rack_id value.
+  For example, let's say we want to use an attribute named ``rack_id``. We
+  start two nodes with ``node.attr.rack_id`` set to ``rack_one``. Then we
+  create a single table with five shards and one replica. The table will be
+  fully deployed on the current nodes (five shards and one replica each, making
+  a total of 10 shards).
 
-  The awareness attributes can hold several values
+  Now, if we start two more nodes with ``node.attr.rack_id`` set to
+  ``rack_two``, CrateDB will relocate shards to even out the number of shards
+  across the nodes. However, a shard and its replica will not be allocated to
+  nodes sharing the same ``rack_id`` value.
+
+  The ``awareness.attributes`` setting supports using several values.
 
 .. _cluster.routing.allocation.awareness.force.\*.values:
 
 **cluster.routing.allocation.awareness.force.\*.values**
   | *Runtime:*  ``no``
 
-  Attributes on which shard allocation will be forced. ``*`` is a placeholder
-  for the awareness attribute, which can be defined using the
-  `cluster.routing.allocation.awareness.attributes`_ setting. Let's say we
-  configured an awareness attribute ``zone`` and the values ``zone1, zone2``
-  here, start 2 nodes with ``node.attr.zone`` set to ``zone1`` and create a
-  table with 5 shards and 1 replica. The table will be created, but only 5
-  shards will be allocated (with no replicas). Only when we start more nodes
-  with ``node.attr.zone`` set to ``zone2`` the replicas will be allocated.
+  Attributes on which shard allocation will be forced. Here, ``*`` is a
+  placeholder for the awareness attribute, which can be configured using the
+  :ref:`cluster.routing.allocation.awareness.attributes
+  <cluster.routing.allocation.awareness.attributes>` setting.
+
+  For example, let's say we configured forced shard allocation for an awareness
+  attribute named ``zone`` with ``values`` set to ``zone1, zone2``. Start two
+  nodes with ``node.attr.zone`` set to ``zone1``. Then, create a table with
+  five shards and one replica. The table will be created, but only five shards
+  will be allocated (with no replicas). The replicas will only be allocated
+  when when we start one or more nodes with ``node.attr.zone`` set to
+  ``zone2``.
+
+.. SEEALSO::
+
+    For a more in-depth example that uses custom node attributes, check out the
+    `multi-zone setup how-to guide`_.
+
 
 Balanced shards
 ...............
@@ -1260,6 +1274,7 @@ Metadata gateway
   number of nodes in the cluster.
 
 
-.. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
-.. _`Azure Portal`: https://portal.azure.com
 .. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
+.. _`Azure Portal`: https://portal.azure.com
+.. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
+.. _multi-zone setup how-to guide: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html

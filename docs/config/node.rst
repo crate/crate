@@ -752,13 +752,12 @@ Javascript language
 Custom attributes
 =================
 
-The ``node.attr`` namespace is a bag of custom attributes.
+The ``node.attr`` namespace is a bag of custom attributes. Custom attributes
+can be :ref:`used to control shard allocation
+<conf-routing-allocation-awareness>`.
 
 You can create any attribute you want under this namespace, like
 ``node.attr.key: value``. These attributes use the ``node.attr`` namespace to
 distinguish them from core node attribute like ``node.name``.
 
 Custom attributes are not validated by CrateDB, unlike core node attributes.
-
-Custom attributes can, however, be :ref:`used to control shard allocation
-<conf-routing-allocation-awareness>`.
