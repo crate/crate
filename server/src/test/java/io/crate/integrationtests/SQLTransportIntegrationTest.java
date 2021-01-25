@@ -25,7 +25,6 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.TestGroup;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-import com.google.common.collect.Multimap;
 
 import io.crate.Constants;
 import io.crate.action.sql.SQLOperations;
@@ -90,6 +89,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.ConfigurationException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.Index;
@@ -97,6 +97,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -125,6 +126,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -273,7 +275,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                 }
                 for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
                     try {
-                        Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
+                        ConcurrentHashMap<TaskId, KillableCallable<?>> operations = (ConcurrentHashMap<TaskId, KillableCallable<?>>) activeOperationsSb.get(action);
                         assertThat(operations.size(), is(0));
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
@@ -281,7 +283,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                 }
                 for (TransportShardDeleteAction action : internalCluster().getInstances(TransportShardDeleteAction.class)) {
                     try {
-                        Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
+                        ConcurrentHashMap<TaskId, KillableCallable<?>> operations = (ConcurrentHashMap<TaskId, KillableCallable<?>>) activeOperationsSb.get(action);
                         assertThat(operations.size(), is(0));
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
