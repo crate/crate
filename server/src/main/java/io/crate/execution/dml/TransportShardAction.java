@@ -23,9 +23,6 @@
 package io.crate.execution.dml;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import io.crate.common.CheckedSupplier;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.JobKilledException;
@@ -46,14 +43,16 @@ import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -65,7 +64,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         extends TransportWriteAction<Request, Request, ShardResponse>
         implements KillAllListener {
 
-    private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
+    private final ConcurrentHashMap<TaskId, KillableCallable<?>> activeOperations = new ConcurrentHashMap<>();
     private final MappingUpdatePerformer mappingUpdate;
 
     protected TransportShardAction(String actionName,
@@ -107,7 +106,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             listener,
             () -> {
                 KillableWrapper<WritePrimaryResult<Request, ShardResponse>> callable =
-                    new KillableWrapper<WritePrimaryResult<Request, ShardResponse>>() {
+                    new KillableWrapper<WritePrimaryResult<Request, ShardResponse>>(request.jobId()) {
                         @Override
                         public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
                             return processRequestItems(primary, request, killed);
@@ -121,7 +120,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     @Override
     protected WriteReplicaResult<Request> shardOperationOnReplica(Request replicaRequest, IndexShard indexShard) {
         KillableWrapper<WriteReplicaResult<Request>> callable =
-            new KillableWrapper<WriteReplicaResult<Request>>() {
+            new KillableWrapper<WriteReplicaResult<Request>>(replicaRequest.jobId()) {
                 @Override
                 public WriteReplicaResult<Request> call() throws Exception {
                     return processRequestItemsOnReplica(indexShard, replicaRequest);
@@ -131,15 +130,15 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     }
 
     private <WrapperResponse> WrapperResponse wrapOperationInKillable(Request request, KillableCallable<WrapperResponse> callable) {
-        activeOperations.put(request.jobId(), callable);
+        TaskId id = request.getParentTask();
+        activeOperations.put(id, callable);
         WrapperResponse response;
         try {
-            //noinspection unchecked
             response = callable.call();
         } catch (Throwable e) {
             throw Throwables.propagate(e);
         } finally {
-            activeOperations.remove(request.jobId(), callable);
+            activeOperations.remove(id, callable);
         }
         return response;
 
@@ -148,7 +147,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     @Override
     public void killAllJobs() {
         synchronized (activeOperations) {
-            for (KillableCallable callable : activeOperations.values()) {
+            for (KillableCallable<?> callable : activeOperations.values()) {
                 callable.kill(new InterruptedException(JobKilledException.MESSAGE));
             }
             activeOperations.clear();
@@ -158,11 +157,15 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     @Override
     public void killJob(UUID jobId) {
         synchronized (activeOperations) {
-            Collection<KillableCallable> operations = activeOperations.get(jobId);
-            for (KillableCallable callable : operations) {
-                callable.kill(new InterruptedException(JobKilledException.MESSAGE));
+            Iterator<Entry<TaskId, KillableCallable<?>>> iterator = activeOperations.entrySet().iterator();
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                KillableCallable<?> killable = entry.getValue();
+                if (killable.jobId().equals(jobId)) {
+                    iterator.remove();
+                    killable.kill(new InterruptedException(JobKilledException.MESSAGE));
+                }
             }
-            activeOperations.removeAll(jobId);
         }
     }
 
@@ -172,7 +175,16 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     abstract static class KillableWrapper<WrapperResponse> implements KillableCallable<WrapperResponse> {
 
-        protected AtomicBoolean killed = new AtomicBoolean(false);
+        protected final AtomicBoolean killed = new AtomicBoolean(false);
+        final UUID jobId;
+
+        KillableWrapper(UUID jobId) {
+            this.jobId = jobId;
+        }
+
+        public UUID jobId() {
+            return jobId;
+        }
 
         @Override
         public void kill(@Nullable Throwable t) {
