@@ -29,7 +29,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon --parallel -PtestForks=8 test checkstyleMain forbiddenApisMain jacocoReport'
+            sh './gradlew --no-daemon --parallel -Dtests.crate.slow=true -PtestForks=8 test checkstyleMain forbiddenApisMain jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
           post {

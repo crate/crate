@@ -591,64 +591,6 @@ public final class MockTransportService extends TransportService {
         return (StubbableConnectionManager) connectionManager;
     }
 
-    List<Tracer> activeTracers = new CopyOnWriteArrayList<>();
-
-    public static class Tracer {
-        public void receivedRequest(long requestId, String action) {
-        }
-
-        public void responseSent(long requestId, String action) {
-        }
-
-        public void responseSent(long requestId, String action, Throwable t) {
-        }
-
-        public void receivedResponse(long requestId, DiscoveryNode sourceNode, String action) {
-        }
-
-        public void requestSent(DiscoveryNode node, long requestId, String action, TransportRequestOptions options) {
-        }
-    }
-
-    public void addTracer(Tracer tracer) {
-        activeTracers.add(tracer);
-    }
-
-    public boolean removeTracer(Tracer tracer) {
-        return activeTracers.remove(tracer);
-    }
-
-    public void clearTracers() {
-        activeTracers.clear();
-    }
-
-    @Override
-    public void openConnection(DiscoveryNode node, ConnectionProfile connectionProfile, ActionListener<Transport.Connection> listener) {
-        super.openConnection(node, connectionProfile, ActionListener.delegateFailure(listener, (l, connection) -> {
-            synchronized (openConnections) {
-                openConnections.computeIfAbsent(node, n -> new CopyOnWriteArrayList<>()).add(connection);
-                connection.addCloseListener(ActionListener.wrap(() -> {
-                    synchronized (openConnections) {
-                        List<Transport.Connection> connections = openConnections.get(node);
-                        boolean remove = connections.remove(connection);
-                        assert remove : "Should have removed connection";
-                        if (connections.isEmpty()) {
-                            openConnections.remove(node);
-                        }
-                        if (openConnections.isEmpty()) {
-                            openConnections.notifyAll();
-                        }
-                    }
-                }));
-            }
-            l.onResponse(connection);
-        }));
-    }
-
-    public void addOnStopListener(Runnable listener) {
-        onStopListeners.add(listener);
-    }
-
     @Override
     protected void doStop() {
         onStopListeners.forEach(Runnable::run);

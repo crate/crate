@@ -48,7 +48,7 @@ import java.util.Locale;
 
 import static org.hamcrest.Matchers.containsString;
 
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numClientNodes = 0, numDataNodes = 0, autoMinMasterNodes = false)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numClientNodes = 0, numDataNodes = 0, autoManageMasterNodes = false)
 public class UnsafeBootstrapAndDetachCommandIT extends SQLTransportIntegrationTest {
 
     private MockTerminal executeCommand(ElasticsearchNodeCommand command,

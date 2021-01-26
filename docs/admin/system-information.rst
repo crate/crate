@@ -1582,7 +1582,7 @@ CrateDB maintains backward compatibility for tables created in ``majorVersion - 
       - Current Version
       - Current Version
       - Current Version
-    * - 
+    * -
       - 3.x
       - 4.x
       - 5.x
@@ -1697,12 +1697,12 @@ How to reindex
     +----------+
     SELECT 1 row in set (... sec)
 
-    cr> SELECT version['created'] FROM information_schema.tables 
+    cr> SELECT version['created'] FROM information_schema.tables
     ... WHERE table_schema = 'rx' AND table_name = 'metrics';
     +--------------------+
     | version['created'] |
     +--------------------+
-    | 4.4.0              |
+    | 4.5.0              |
     +--------------------+
     SELECT 1 row in set (... sec)
 
