@@ -93,6 +93,7 @@ public class AzureSnapshotIntegrationTest extends SQLTransportIntegrationTest {
         execute("DROP TABLE t1");
 
         execute("RESTORE SNAPSHOT r1.s1 ALL WITH (wait_for_completion = true)");
+        execute("REFRESH TABLE t1");
 
         execute("SELECT COUNT(*) FROM t1");
         assertThat(response.rows()[0][0], is(numberOfDocs));
