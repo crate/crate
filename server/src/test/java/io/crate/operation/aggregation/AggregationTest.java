@@ -57,6 +57,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.planner.distribution.DistributionInfo;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
@@ -114,7 +115,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -406,7 +406,7 @@ public abstract class AggregationTest extends ESTestCase {
                     shard.routingEntry().currentNodeId(),
                     buildNewFakeTransportAddress(),
                     Map.of(),
-                    EnumSet.allOf(DiscoveryNode.Role.class),
+                    DiscoveryNodeRole.BUILT_IN_ROLES,
                     Version.CURRENT),
                 null)
         );

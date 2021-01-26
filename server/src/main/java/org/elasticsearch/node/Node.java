@@ -84,6 +84,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.BatchedRerouteService;
 import org.elasticsearch.cluster.routing.LazilyInitializedRerouteService;
 import org.elasticsearch.cluster.routing.RerouteService;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdMonitor;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.StopWatch;
@@ -269,8 +270,16 @@ public class Node implements Closeable {
             }
 
             this.pluginsService = new PluginsService(tmpSettings, environment.configFile(), environment.modulesFile(),
-                                                     environment.pluginsFile(), classpathPlugins);
+                environment.pluginsFile(), classpathPlugins);
             this.settings = pluginsService.updatedSettings();
+            final Set<DiscoveryNodeRole> possibleRoles = Stream.concat(
+                    DiscoveryNodeRole.BUILT_IN_ROLES.stream(),
+                    pluginsService.filterPlugins(Plugin.class)
+                            .stream()
+                            .map(Plugin::getRoles)
+                            .flatMap(Set::stream))
+                    .collect(Collectors.toSet());
+            DiscoveryNode.setPossibleRoles(possibleRoles);
             localNodeFactory = new LocalNodeFactory(settings, nodeEnvironment.nodeId());
 
             // create the environment based on the finalized (processed) view of the settings
@@ -1016,7 +1025,7 @@ public class Node implements Closeable {
         public DiscoveryNode apply(BoundTransportAddress boundTransportAddress) {
             // CRATE_PATCH: use existing node attributes to pass and stream http_address between the nodes
             Map<String, String> attributes = new HashMap<>(NODE_ATTRIBUTES.getAsMap(settings));
-            Set<DiscoveryNode.Role> roles = getRolesFromSettings(settings);
+            Set<DiscoveryNodeRole> roles = getRolesFromSettings(settings);
             if (httpPublishAddress != null) {
                 attributes.put("http_address", httpPublishAddress);
             }

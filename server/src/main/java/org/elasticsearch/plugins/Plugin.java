@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.bootstrap.BootstrapCheck;
@@ -32,6 +33,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -202,6 +204,10 @@ public abstract class Plugin implements Closeable {
      */
     public List<BootstrapCheck> getBootstrapChecks() {
         return Collections.emptyList();
+    }
+
+    public Set<DiscoveryNodeRole> getRoles() {
+        return Set.of();
     }
 
     /**

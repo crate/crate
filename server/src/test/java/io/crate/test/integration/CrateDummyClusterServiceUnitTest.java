@@ -27,6 +27,7 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -44,10 +45,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -117,7 +116,7 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
             NODE_ID,
             buildNewFakeTransportAddress(),
             Collections.emptyMap(),
-            new HashSet<>(Arrays.asList(DiscoveryNode.Role.values())),
+            DiscoveryNodeRole.BUILT_IN_ROLES,
             version
         );
         DiscoveryNodes nodes = DiscoveryNodes.builder()
