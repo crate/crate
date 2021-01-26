@@ -25,6 +25,7 @@ import org.elasticsearch.cluster.coordination.ClusterFormationFailureHelper.Clus
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -32,6 +33,7 @@ import org.elasticsearch.test.ESTestCase;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -353,8 +355,8 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
 
         final DiscoveryNode otherMasterNode = new DiscoveryNode("other-master", buildNewFakeTransportAddress(), Version.CURRENT);
         final DiscoveryNode otherNonMasterNode = new DiscoveryNode("other-non-master", buildNewFakeTransportAddress(), emptyMap(),
-            new HashSet<>(randomSubsetOf(Arrays.stream(DiscoveryNode.Role.values())
-                .filter(r -> r != DiscoveryNode.Role.MASTER).collect(Collectors.toList()))),
+            new HashSet<>(randomSubsetOf(DiscoveryNodeRole.BUILT_IN_ROLES).stream()
+                .filter(r -> r != DiscoveryNodeRole.MASTER_ROLE).collect(Collectors.toList())),
             Version.CURRENT);
 
         String[] configNodeIds = new String[]{"n1", "n2"};

@@ -26,6 +26,7 @@ import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -78,7 +79,7 @@ public class ClusterHealthAllocationTests extends ESAllocationTestCase {
 
     private ClusterState addNode(ClusterState clusterState, String nodeName, boolean isMaster) {
         DiscoveryNodes.Builder nodeBuilder = DiscoveryNodes.builder(clusterState.getNodes());
-        nodeBuilder.add(newNode(nodeName, Collections.singleton(isMaster ? DiscoveryNode.Role.MASTER : DiscoveryNode.Role.DATA)));
+        nodeBuilder.add(newNode(nodeName, Collections.singleton(isMaster ? DiscoveryNodeRole.MASTER_ROLE : DiscoveryNodeRole.DATA_ROLE)));
         return ClusterState.builder(clusterState).nodes(nodeBuilder).build();
     }
 
