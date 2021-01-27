@@ -36,6 +36,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +71,7 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     @Before
     public void prepare() {
-        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()));
+        NodeContext nodeCtx = TestingHelpers.createNodeContext();
         inputFactory = new InputFactory(nodeCtx);
     }
 

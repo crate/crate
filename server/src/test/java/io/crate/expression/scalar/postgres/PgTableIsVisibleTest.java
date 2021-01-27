@@ -20,46 +20,23 @@
  * agreement.
  */
 
-package io.crate.metadata;
+package io.crate.expression.scalar.postgres;
 
-import javax.annotation.Nullable;
+import org.junit.jupiter.api.Test;
 
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.metadata.pgcatalog.OidHash;
 
-import io.crate.auth.user.User;
-import io.crate.auth.user.UserLookup;
+public class PgTableIsVisibleTest extends AbstractScalarFunctionsTest {
 
-@Singleton
-public class NodeContext implements UserLookup {
-
-    private final Functions functions;
-    private final Schemas schemas;
-    private final UserLookup userLookup;
-
-    @Inject
-    public NodeContext(Functions functions,
-                       Schemas schemas,
-                       UserLookup userLookup) {
-        this.functions = functions;
-        this.schemas = schemas;
-        this.userLookup = userLookup;
+    @Test
+    public void test_null_oid_results_in_null() throws Exception {
+        assertEvaluate("pg_table_is_visible(null)", null);
     }
 
-    public Functions functions() {
-        return functions;
-    }
-
-    public Schemas schemas() {
-        return schemas;
-    }
-
-    @Nullable
-    public User findUser(String userName) {
-        return userLookup.findUser(userName);
-    }
-
-    public NodeContext copy() {
-        return new NodeContext(functions.copyOf(), schemas, userLookup);
+    @Test
+    public void test_returns_true_for_table_oid_which_exists_and_is_visible() throws Exception {
+        int oid = OidHash.relationOid(usersTable);
+        assertEvaluate("pg_table_is_visible(" + oid + ")", null);
     }
 }

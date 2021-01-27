@@ -268,13 +268,13 @@ public class UserDefinedFunctionService {
     }
 
     void validateFunctionIsNotInUseByGeneratedColumn(String schema,
-                                                             String functionName,
-                                                             UserDefinedFunctionsMetadata functionsMetadata,
-                                                             ClusterState currentState) {
+                                                     String functionName,
+                                                     UserDefinedFunctionsMetadata functionsMetadata,
+                                                     ClusterState currentState) {
         // The iteration of schemas/tables must happen on the node context WITHOUT the UDF already removed.
         // Otherwise the lazy table factories will already fail while evaluating generated functionsMetadata.
         // To avoid that, a copy of the node context with the removed UDF function is used on concrete expression evaluation.
-        var nodeCtxWithRemovedFunction = new NodeContext(nodeCtx.functions().copyOf());
+        var nodeCtxWithRemovedFunction = nodeCtx.copy();
         updateImplementations(schema, functionsMetadata.functionsMetadata().stream(), nodeCtxWithRemovedFunction);
 
         var metadata = currentState.metadata();

@@ -92,7 +92,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             CoordinatorTxnCtx.systemTransactionContext(),
-            new NodeContext(internalCluster().getInstance(Functions.class)),
+            internalCluster().getInstance(NodeContext.class),
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
             NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),

@@ -184,7 +184,7 @@ public class TestingHelpers {
                 modulesBuilder.add(module);
             }
         }
-        return new NodeContext(modulesBuilder.createInjector().getInstance(Functions.class));
+        return modulesBuilder.createInjector().getInstance(NodeContext.class);
     }
 
     public static Reference createReference(String columnName, DataType dataType) {

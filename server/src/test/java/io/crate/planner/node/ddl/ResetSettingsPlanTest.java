@@ -32,6 +32,8 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.testing.TestingHelpers;
+
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -112,7 +114,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
     private Function<Symbol, Object> symbolEvaluator(Row row) {
         return x -> SymbolEvaluator.evaluate(
             TransactionContext.of(new SessionSettings("", SearchPath.createSearchPathFrom(""))),
-            new NodeContext(new Functions(Map.of())),
+            TestingHelpers.createNodeContext(),
             x,
             row,
             SubQueryResults.EMPTY);

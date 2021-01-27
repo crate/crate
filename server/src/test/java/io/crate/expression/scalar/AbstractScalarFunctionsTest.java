@@ -67,6 +67,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
     protected Map<RelationName, AnalyzedRelation> tableSources;
     protected TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private InputFactory inputFactory;
+    protected DocTableInfo usersTable;
 
     protected static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",
@@ -106,13 +107,13 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             "  obj_ignored object(ignored)" +
             ")";
 
-        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+        usersTable = SQLExecutor.tableInfo(
             new RelationName(DocSchemaInfo.NAME, "users"),
             createTableStmt,
             clusterService);
 
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-        tableSources = Map.of(tableInfo.ident(), tableRelation);
+        DocTableRelation tableRelation = new DocTableRelation(usersTable);
+        tableSources = Map.of(usersTable.ident(), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);
         inputFactory = new InputFactory(sqlExpressions.nodeCtx);
     }
