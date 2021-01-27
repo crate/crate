@@ -189,6 +189,11 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         if (offset != null) {
             consumer.accept(offset);
         }
+        for (var joinPair : joinPairs) {
+            if (joinPair.condition() != null) {
+                consumer.accept(joinPair.condition());
+            }
+        }
     }
 
     public List<JoinPair> joinPairs() {
