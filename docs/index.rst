@@ -28,7 +28,6 @@ massive amounts of machine data in real-time.
    admin/index
    sql/index
    interfaces/index
-   editions
    appendices/index
 
 

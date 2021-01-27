@@ -1237,9 +1237,8 @@ that is performing the query::
 
 .. NOTE::
 
-    If the :ref:`enterprise edition <enterprise-features>` is disabled or the
-    user management module is not available, the ``username`` is represented as
-    ``crate``.
+    If the user management module is not available, the ``username`` is
+    given as ``crate``.
 
 Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request
@@ -1528,9 +1527,8 @@ Here's an example query::
   +----+--------------------------------------------------------------...-+
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be recreated for compatibility w... |
-  |  6 | Your CrateDB license is valid. Enjoy CrateDB!                    |
   +----+--------------------------------------------------------------...-+
-  SELECT 3 rows in set (... sec)
+  SELECT 2 rows in set (... sec)
 
 Cluster checks are also indicated in the CrateDB `admin console`_. When all
 cluster checks (and all :ref:`sys-node-checks`) pass, the *Checks* icon will be
@@ -2044,7 +2042,6 @@ Users
 =====
 
 The ``sys.users`` table contains all existing database users in the cluster.
-The table is only available in the CrateDB `Enterprise Edition`_.
 
 +---------------+----------------------------------------------+-------------+
 | Column Name   | Description                                  | Return Type |
@@ -2244,5 +2241,3 @@ been analyzed.
 
     Not all data types support creating statistics. So some columns may not
     show up in the table.
-
-.. _Enterprise Edition: https://crate.io/products/cratedb-editions/

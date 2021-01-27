@@ -28,7 +28,7 @@ Breaking Changes
    ``FUNCTION``, ``LANGUAGE``, ``INPUT``
 
  - The ``license.enterprise`` setting is set to ``true`` by default. This
-   enables the CrateDB `Enterprise Edition`_.
+   enables the CrateDB Enterprise Edition.
 
    Enabling this setting requires a valid enterprise license for production
    use.
@@ -317,8 +317,6 @@ with a single variable ``CRATE_HEAP_SIZE``. The :ref:`CRATE_HEAP_SIZE
 <conf-env-heap-size>` variable sets both the minimum and maximum memory to
 allocate, and should be set to whatever your previous ``CRATE_MAX_MEM`` was set
 to.
-
-.. _enterprise edition: https://crate.io/products/cratedb-editions/
 
 Cluster name in path data
 -------------------------
