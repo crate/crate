@@ -58,4 +58,6 @@ None
 Fixes
 =====
 
-None
+- Fixed a regression that caused queries which used a parameter placeholder in
+  a join condition to fail with an ``The assembled list of ParameterSymbols is
+  invalid. Missing parameters`` error.
