@@ -852,23 +852,16 @@ Individual elements of the *child array* can be selected by combining the
       +----------+-----------------------------+
       SELECT 1 row in set (... sec)
 
-.. TIP::
+.. CAUTION::
 
     The example above might surprise you because the child array index comes
     before the parent object property name, which doesn't follow the usual
     left-to-right convention for addressing the contents of a nested structure.
 
-    To address the contents of a nested structure in the usual left-to-right
-    sense, CrateDB would have to read the :ref:`string literal <data-types>`
-    from disk, parse it into memory, and then manipulate the result. Compared
-    to a Lucene search (:ref:`which CrateDB uses for most other
-    <concepts_data_storage>`), this would be a very slow and resource intensive
-    process.
-
-    To avoid this issue, CrateDB indexes complex structures by flattening them
-    into multiple Lucene records. Accordingly, an expression like
-    ``inhabitants[1]['interests']`` is better thought of as a search
-    instruction for the Lucene index.
+    Due to an implementation quirk in early versions of CrateDB, the array
+    index always comes first (see :ref:`the next subsection
+    <sql_dql_object_arrays_limitations>` for more information). Support for a
+    more traditional left-to-right syntax may be added in the future.
 
 
 .. _sql_dql_object_arrays_limitations:
@@ -876,10 +869,7 @@ Individual elements of the *child array* can be selected by combining the
 Limitations
 ^^^^^^^^^^^
 
-As mentioned above, CrateDB indexes complex structures by flattening them into
-multiple Lucene records. While this approach makes it possible to efficiently
-query nested documents to an arbitrary depth with the full speed of the table
-index, it does have some limitations:
+There are two limitations to be aware of:
 
 .. rst-class:: open
 
@@ -889,9 +879,9 @@ index, it does have some limitations:
   is a valid).
 
 * Using the standard syntax, you can only address the elements of one array in
-  a single expression. *Note: If you do address the elements of an array, the
-  array index must appear before any object property names (see the previous
-  tip for more information).*
+  a single expression. If you do address the elements of an array, the array
+  index must appear before any object property names (see :ref:`the previous
+  admonition <sql_dql_object_arrays>` for more information).
 
 .. TIP::
 

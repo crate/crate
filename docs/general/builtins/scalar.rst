@@ -601,9 +601,11 @@ Example::
 ``encode(bytea, format)``
 -------------------------
 
-Encode takes a binary string in hex format and returns a textual representation
-into the specified format. Supported formats are base64, hex, and escape. The
-escape format represents unprintable characters with an octal sequence `\nnn`.
+Encode takes a binary string (``hex`` format) and returns a text encoding using
+the specified format. Supported formats are: ``base64``, ``hex``, and
+``escape``. The ``escape`` format replaces unprintable characters with octal
+byte notation like ``\nnn``. For the reverse function, see :ref:`decode()
+<scalar-decode>`.
 
 Synopsis::
 
@@ -619,13 +621,15 @@ Example::
     +--------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-decode:
 
 ``decode(text, format)``
 -------------------------
 
-Decodes text encoded in the given format, which are listed in the `encode`
-documentation. Returns a binary string in the hex format.
+Decodes a text encoded string using the specified format and returns a binary
+string (``hex`` format). Supported formats are: ``base64``, ``hex``, and
+``escape``. For the reverse function, see :ref:`encode() <scalar-encode>`.
 
 Synopsis::
 
@@ -640,6 +644,7 @@ Example::
     | \x548c |
     +--------+
     SELECT 1 row in set (... sec)
+
 
 .. _scalar-repeat:
 
@@ -905,6 +910,23 @@ The ``CURRENT_TIMESTAMP`` expression returns the timestamp in milliseconds
 since epoch at the time the SQL statement was handled. Therefore, the same
 timestamp value is returned for every invocation of a single statement.
 
+Synopsis::
+
+    CURRENT_TIMESTAMP [ ( precision ) ]
+
+Here, ``precision`` must be a positive integer between ``0`` and ``3``. The
+default value is ``3``. This value determines the number of fractional seconds
+to output. A value of ``0`` means the timestamp will have second precision, no
+fractional seconds (milliseconds) are given.
+
+.. TIP::
+
+    To get an offset value of ``CURRENT_TIMESTAMP`` (e.g., this same time one
+    day ago), you can add or subtract an :ref:`interval <interval_data_type>`,
+    like so::
+
+        CURRENT_TIMESTAMP - '1 day'::interval
+
 .. NOTE::
 
     If the ``CURRENT_TIMESTAMP`` function is used in
@@ -912,19 +934,9 @@ timestamp value is returned for every invocation of a single statement.
     ``UPDATE`` operations. In such a case the actual timestamp of each row
     update is returned.
 
-synopsis::
+    The return value of expressions ``CURRENT_TIMESTAMP`` and ``CURRENT_TIME``
+    depends on the system clock and the JVM implementation.
 
-    CURRENT_TIMESTAMP [ ( precision ) ]
-
-``precision`` must be a positive integer between 0 and 3. The default value is
-3. It determines the number of fractional seconds to output. A value of 0 means
-the timestamp will have second precision, no fractional seconds (milliseconds)
-are given.
-
-.. NOTE::
-
-   The return value of expressions ``CURRENT_TIMESTAMP`` and ``CURRENT_TIME``
-   depends on the system clock and the JVM implementation.
 
 .. _now:
 
