@@ -5,10 +5,20 @@
 Privileges
 ==========
 
-To execute statements in CrateDB a user needs to have the required privileges
-to do so.
+To execute statements, a user needs to have the required privileges.
 
-There is a superuser (``crate``) which has the privilege to do anything. The
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+.. _privileges-intro:
+
+Introduction
+============
+
+CrateDB has a superuser (``crate``) which has the privilege to do anything. The
 privileges of other users have to be managed using the ``GRANT``, ``DENY`` or
 ``REVOKE`` statements.
 
@@ -29,23 +39,9 @@ These privileges can be granted on different levels:
 
 Skip to :ref:`hierarchical_privileges_inheritance` for details.
 
-
 A user with ``AL`` on level ``CLUSTER`` can grant privileges they themselves
 have to other users as well.
 
-
-.. NOTE::
-
-   Privileges are an :ref:`enterprise feature <enterprise-features>`.
-
-   When the CrateDB Enterprise Edition is disabled, there will be no user
-   privilege checks, and every statement will be executed without the
-   validation of privileges.
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 .. _privilege_types:
 
@@ -190,8 +186,10 @@ through the ``doc`` schema::
     +----+
     SELECT 1 row in set (... sec)
 
-For more information regarding views, please see the
-:ref:`views page <views_enterprise>`.
+.. SEEALSO::
+
+    :ref:`Views: Privileges <views-privileges>`
+
 
 Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
 ==============================================
@@ -361,9 +359,6 @@ or denied. The column ``class`` identifies on which type of context the
 privilege applies. ``ident`` stands for the ident of the object that the
 privilege is set on and finally ``type`` stands for the type of privileges that
 was granted or denied.
-
-
-.. _Enterprise Edition: https://crate.io/enterprise/
 
 .. hide:
 

@@ -207,11 +207,6 @@ JavaScript
 The user defined function JavaScript is compatible with the `ECMAScript 2019`_
 specification.
 
-.. NOTE::
-
-   The JavaScript language is an :ref:`enterprise feature
-   <enterprise-features>`.
-
 CrateDB uses the `GraalVM JavaScript`_ engine as a JavaScript (ECMAScript)
 language execution runtime. The `GraalVM JavaScript`_ engine is a Java
 application that works on the stock Java Virtual Machines (VMs). The

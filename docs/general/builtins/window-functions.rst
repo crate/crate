@@ -37,7 +37,7 @@ The synopsis of a window function call is one of the following
 
 where ``function_name`` is a name of
 a :ref:`general-purpose window <general-purpose-window-functions>` or
-:ref:`aggregate <aggregate-functions>` function 
+:ref:`aggregate <aggregate-functions>` function
 and ``expression`` is a column reference, scalar function or literal.
 
 If ``FILTER`` is specified, then only the rows that met the
@@ -156,7 +156,7 @@ the rows are considered a single partition.
 
 Example::
 
-   cr> SELECT dept_id, ROW_NUMBER() OVER(PARTITION BY dept_id) AS row_num 
+   cr> SELECT dept_id, ROW_NUMBER() OVER(PARTITION BY dept_id) AS row_num
    ... FROM employees ORDER BY 1, 2;
    +---------+---------+
    | dept_id | row_num |
@@ -392,8 +392,8 @@ Returns the number of the current row within its window.
 
 Example::
 
-   cr> SELECT 
-   ...  col1, 
+   cr> SELECT
+   ...  col1,
    ...  ROW_NUMBER() OVER(ORDER BY col1) as row_num
    ... FROM (VALUES('x'), ('y'), ('z')) AS t;
    +------+---------+
@@ -410,19 +410,14 @@ Example::
 ``first_value(arg)``
 --------------------
 
-.. note::
-
-   The ``first_value`` window function is an :ref:`enterprise
-   feature <enterprise-features>`.
-
 Returns the argument value evaluated at the first row within the window.
 
 Its return type is the type of its argument.
 
 Example::
 
-   cr> SELECT 
-   ...  col1, 
+   cr> SELECT
+   ...  col1,
    ...  FIRST_VALUE(col1) OVER (ORDER BY col1) AS value
    ... FROM (VALUES('x'), ('y'), ('y'), ('z')) AS t;
    +------+-------+
@@ -440,19 +435,14 @@ Example::
 ``last_value(arg)``
 -------------------
 
-.. note::
-
-   The ``last_value`` window function is an :ref:`enterprise
-   feature <enterprise-features>`.
-
 Returns the argument value evaluated at the last row within the window.
 
 Its return type is the type of its argument.
 
 Example::
 
-   cr> SELECT 
-   ...  col1, 
+   cr> SELECT
+   ...  col1,
    ...  LAST_VALUE(col1) OVER(ORDER BY col1) AS value
    ... FROM (VALUES('x'), ('y'), ('y'), ('z')) AS t;
    +------+-------+
@@ -470,11 +460,6 @@ Example::
 ``nth_value(arg, number)``
 --------------------------
 
-.. note::
-
-   The ``nth_value`` window function is an :ref:`enterprise
-   feature <enterprise-features>`.
-
 Returns the argument value evaluated at row that is the nth row within the
 window. Null is returned if the nth row doesn't exist in the window.
 
@@ -482,8 +467,8 @@ Its return type is the type of its first argument.
 
 Example::
 
-   cr> SELECT 
-   ...  col1, 
+   cr> SELECT
+   ...  col1,
    ...  NTH_VALUE(col1, 3) OVER(ORDER BY col1) AS val
    ... FROM (VALUES ('x'), ('y'), ('y'), ('z')) AS t;
    +------+------+
@@ -501,10 +486,6 @@ Example::
 ``lag(arg [, offset [, default] ])``
 ------------------------------------
 
-.. note::
-
-   The ``lag`` window function is an :ref:`enterprise feature
-   <enterprise-features>`.
 
 Synopsis
 ........
@@ -555,10 +536,6 @@ Example::
 ``lead(arg [, offset [, default] ])``
 -------------------------------------
 
-.. note::
-
-   The ``lead`` window function is an :ref:`enterprise feature
-   <enterprise-features>`.
 
 Synopsis
 ........
@@ -613,10 +590,6 @@ Example::
 ``rank()``
 ----------
 
-.. NOTE::
-
-    The ``rank`` window function is an :ref:`enterprise feature
-    <enterprise-features>`.
 
 Synopsis
 ........
@@ -664,10 +637,6 @@ Example::
 ``dense_rank()``
 ----------------
 
-.. NOTE::
-
-    The ``dense_rank`` window function is an :ref:`enterprise feature
-    <enterprise-features>`.
 
 Synopsis
 ........

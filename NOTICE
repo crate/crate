@@ -5,15 +5,8 @@ Copyright 2013-2018 Crate.IO GmbH ("Crate")
 Licensed to Crate.IO GmbH (referred to in this notice as "Crate") under one or
 more contributor license agreements.
 
-Different parts of CrateDB are available under different licences.
-
-Unless otherwise indicated, the CrateDB source code is licensed under the
+Unless otherwise stated, every component of CrateDB is licensed under the
 Apache License, Version 2.0.
-
-Crate bundles proprietary enterprise modules with CrateDB.  These modules
-(which in turn provide Enterprise Features) are not licensed under any Open
-Source license.  These modules are indicated in the LICENSE file along with
-information about their licensing.
 
 Third-party components bundled with the CrateDB source code are indicated in
 the LICENSE file along with their respective licenses.  Any additional
