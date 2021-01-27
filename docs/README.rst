@@ -30,9 +30,6 @@ The documentation is structured as follows:
 | Client Interfaces      | Documentation for client interfaces, split         |
 |                        | into documents by interface.                       |
 +------------------------+----------------------------------------------------+
-| Enterprise Features    | A list of each enterprise feature, with a link     |
-|                        | to the primary documentation.                      |
-+------------------------+----------------------------------------------------+
 | Appendices             | Supplementary information.                         |
 |                        |                                                    |
 |                        | This also includes collection of release notes,    |
@@ -67,8 +64,3 @@ added to *Configuration* or *SQL Syntax* sections.
 
 When a feature is documented in more than one place, those locations should be
 interlinked.
-
-Enterprise features must be documented (with an explanatory note) alongside
-standard features in the appropriate section of the documentation. The
-*Enterprise Features* page must then be updated to link through to the primary
-feature documentation.
