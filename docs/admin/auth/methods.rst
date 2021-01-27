@@ -6,11 +6,6 @@ Authentication Methods
 
 There are multiple ways to authenticate against CrateDB.
 
-.. NOTE::
-
-   Authentication methods are an :ref:`enterprise feature
-   <enterprise-features>`.
-
 .. rubric:: Table of contents
 
 .. contents::
@@ -58,11 +53,10 @@ setting like this:
 
 .. NOTE::
 
-   When the Enterprise Edition, and the User Management are enabled,
-   the user of the Admin UI needs to be granted the following privileges:
-   ``DQL`` on ``sys.shards``, ``sys.nodes``, ``sys.node_checks``,
-   ``sys.checks``, ``sys.cluster``, and ``sys.jobs_log`` tables.
-   As well as ``DQL`` on the ``doc`` schema.
+   When user management is enabled, the user of the Admin UI needs to be
+   granted the following privileges: ``DQL`` on ``sys.shards``, ``sys.nodes``,
+   ``sys.node_checks``, ``sys.checks``, ``sys.cluster``, and ``sys.jobs_log``
+   tables. As well as ``DQL`` on the ``doc`` schema.
 
    These ``DQL`` privileges are required by the Admin UI to display the
    cluster health, monitoring,  and checks, to list the available nodes

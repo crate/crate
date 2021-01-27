@@ -4,23 +4,6 @@
 User management
 ===============
 
-.. NOTE::
-
-   User management is an
-   :ref:`enterprise feature <enterprise-features>`.
-
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-Introduction
-============
-
-A CrateDB cluster contains a set of database users. A database user is a
-principle at cluster level.
-
 User account information is stored in the cluster metatdata of CrateDB and
 supports the following statements to create, alter and drop users:
 
@@ -36,6 +19,11 @@ When CrateDB is started, the cluster contains one predefined superuser. This
 user is called ``crate``. It is not possible to create any other superusers
 
 Users cannot be backed up or restored.
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
 
 ``CREATE USER``
 ===============
@@ -155,6 +143,3 @@ shows whether the user has superuser privileges or not.
     CrateDB also supports retrieving the current connected user using the
     system information functions: :ref:`CURRENT_USER <current_user>`,
     :ref:`USER <user>` and :ref:`SESSION_USER <session_user>`.
-
-
-.. _Enterprise Edition: https://crate.io/enterprise/

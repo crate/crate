@@ -2621,11 +2621,6 @@ Example::
 ``CURRENT_USER``
 ----------------
 
-.. NOTE::
-
-   ``CURRENT_USER`` is an
-   :ref:`enterprise feature <enterprise-features>`.
-
 The ``CURRENT_USER`` system information function returns the name of the
 current connected user or ``crate`` if the user management module is disabled.
 
@@ -2650,11 +2645,6 @@ Example::
 ``USER``
 --------
 
-.. NOTE::
-
-   ``USER`` is an
-   :ref:`enterprise feature <enterprise-features>`.
-
 Equivalent to `CURRENT_USER`_.
 
 Returns: ``text``
@@ -2677,11 +2667,6 @@ Example::
 
 ``SESSION_USER``
 ----------------
-
-.. NOTE::
-
-   ``SESSION_USER`` is an
-   :ref:`enterprise feature <enterprise-features>`.
 
 The ``SESSION_USER`` system information function returns the name of the
 current connected user or ``crate`` if the user management module is disabled.

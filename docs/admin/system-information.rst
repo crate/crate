@@ -29,7 +29,9 @@ Basic information about the CrateDB cluster can be retrieved from the
 |                  | system.                         |             |
 +------------------+---------------------------------+-------------+
 | ``license``      | The current CrateDB license     | ``OBJECT``  |
-|                  | information.                    |             |
+|                  | information. Always `NULL`.     |             |
+|                  | This exists for backward        |             |
+|                  | compatibility                   |             |
 +------------------+---------------------------------+-------------+
 | ``name``         | The cluster name.               | ``TEXT``    |
 +------------------+---------------------------------+-------------+
@@ -1237,9 +1239,8 @@ that is performing the query::
 
 .. NOTE::
 
-    If the :ref:`enterprise edition <enterprise-features>` is disabled or the
-    user management module is not available, the ``username`` is represented as
-    ``crate``.
+    If the user management module is not available, the ``username`` is
+    given as ``crate``.
 
 Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request
@@ -1731,7 +1732,8 @@ License check
 
 .. NOTE::
 
-   This check is obsolete with CrateDB 4.5
+   This check was removed in version 4.5 because CrateDB no longer requires an
+   enterprise license
 
 
 This check warns you when your license is close to expiration, is already
@@ -2044,7 +2046,6 @@ Users
 =====
 
 The ``sys.users`` table contains all existing database users in the cluster.
-The table is only available in the CrateDB `Enterprise Edition`_.
 
 +---------------+----------------------------------------------+-------------+
 | Column Name   | Description                                  | Return Type |
@@ -2244,5 +2245,3 @@ been analyzed.
 
     Not all data types support creating statistics. So some columns may not
     show up in the table.
-
-.. _Enterprise Edition: https://crate.io/products/cratedb-editions/

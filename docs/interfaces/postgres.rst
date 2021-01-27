@@ -49,22 +49,12 @@ Start-Up
 SSL Support
 ...........
 
-SSL support is only available in the `Enterprise Edition`_. If enterprise is
-disabled, all ``SSLRequests`` are answered with ``N``, indicating to the client
-that SSL is not available.
-
-.. SEEALSO::
-
-  :ref:`admin_ssl`
+SSL can be configured using :ref:`admin_ssl`.
 
 Authentication
 ..............
 
-If the `Enterprise Edition`_ is enabled, authentication methods can be
-configured using :ref:`admin_hba`.
-
-If the enterprise functionality is disabled, all "start up" requests are
-answered with an ``AuthenticationOK`` response.
+Authentication methods can be configured using :ref:`admin_hba`.
 
 ParameterStatus
 ...............
@@ -413,7 +403,6 @@ Unlike PostgreSQL, expressions are not evaluated if the query results in 0 rows
 either because of the table is empty or by a not matching where clause.
 
 .. _Arrays: https://www.postgresql.org/docs/current/static/arrays.html
-.. _Enterprise Edition: https://crate.io/products/cratedb-editions/
 .. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
 .. _Github: https://github.com/crate/crate
 .. _pg_description: https://www.postgresql.org/docs/10/catalog-pg-description.html

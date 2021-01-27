@@ -17,11 +17,6 @@ HTTPS are allowed. This is in contrast to the PostgreSQL Wire Protocol, which
 still allows non-encrypted connections when SSL is enabled. If you want to
 enforce SSL usage, please consult the :ref:`admin_hba`.
 
-.. NOTE::
-
-   Secured Communications is an :ref:`enterprise feature
-   <enterprise-features>`.
-
 .. rubric:: Table of contents
 
 .. contents::

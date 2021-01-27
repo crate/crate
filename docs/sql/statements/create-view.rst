@@ -56,8 +56,8 @@ operations.
   It is generally recommended to avoid using ``*`` in view definitions.
 
 
-Privileges (Enterprise only)
-============================
+Privileges
+==========
 
 Regular users need to have ``DDL`` permissions on the schema in which the view
 is being created. In addition the user creating the view requires ``DQL``
