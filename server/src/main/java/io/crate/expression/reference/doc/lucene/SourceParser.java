@@ -41,33 +41,42 @@ import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.types.ArrayType;
+import io.crate.types.ByteType;
+import io.crate.types.DataType;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.GeoPointType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.TimestampType;
 
 public final class SourceParser {
 
-    private static final Object FULL_OBJECT = new Object();
     private final Map<String, Object> requiredColumns = new HashMap<>();
 
     public SourceParser() {
     }
 
-    public void register(ColumnIdent docColumn) {
+    public void register(ColumnIdent docColumn, DataType<?> type) {
         assert docColumn.name().equals(DocSysColumns.DOC.name()) && docColumn.path().size() > 0
             : "All columns registered for sourceParser must start with _doc";
 
         List<String> path = docColumn.path();
         if (path.size() == 1) {
-            requiredColumns.put(docColumn.path().get(0), FULL_OBJECT);
+            requiredColumns.put(docColumn.path().get(0), type);
         } else {
             Map<String, Object> columns = requiredColumns;
             for (int i = 0; i < path.size(); i++) {
                 String part = path.get(i);
                 if (i + 1 == path.size()) {
-                    columns.put(part, FULL_OBJECT);
+                    columns.put(part, type);
                 } else {
                     Object object = columns.get(part);
                     if (object instanceof Map) {
                         columns = (Map) object;
-                    } else if (object == FULL_OBJECT) {
+                    } else if (object instanceof DataType) {
                         break;
                     } else {
                         HashMap<String, Object> children = new HashMap<String, Object>();
@@ -90,75 +99,86 @@ public final class SourceParser {
             if (token == null) {
                 token = parser.nextToken();
             }
-            if (token == XContentParser.Token.START_OBJECT) {
-                token = parser.nextToken();
-            }
-            Map<String, Object> result = new HashMap<>();
-            for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
-                String fieldName = parser.currentName();
-                parser.nextToken();
-                // empty means the full _doc is required
-                if (requiredColumns.isEmpty()) {
-                    result.put(fieldName, parseValue(parser, null));
-                } else {
-                    Object required = requiredColumns.get(fieldName);
-                    if (required == null) {
-                        parser.skipChildren();
-                    } else if (required == FULL_OBJECT) {
-                        result.put(fieldName, parseValue(parser, null));
-                    } else {
-                        assert required instanceof Map
-                            : "requiredColumns must either contain the FULL_OBJECT marker or a Map with child columns to load";
-
-                        result.put(fieldName, parseValue(parser, (Map) required));
-                    }
-                }
-            }
-            return result;
+            return parseObject(parser, null, requiredColumns);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private static Object parseValue(XContentParser parser, @Nullable Map<String, Object> requiredColumns) throws IOException {
+    private static Object parseArray(XContentParser parser,
+                                     @Nullable DataType<?> type,
+                                     @Nullable Map<String, Object> requiredColumns) throws IOException {
+        if (type instanceof GeoPointType) {
+            return type.implicitCast(parser.list());
+        } else {
+            ArrayList<Object> values = new ArrayList<>();
+            Token token = parser.nextToken();
+            if (type instanceof ArrayType) {
+                type = ((ArrayType<?>) type).innerType();
+            }
+            for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
+                values.add(parseValue(parser, type, requiredColumns));
+            }
+            return values;
+        }
+    }
+
+    private static Map<String, Object> parseObject(XContentParser parser,
+                                                   @Nullable DataType<?> type,
+                                                   @Nullable Map<String, Object> requiredColumns) throws IOException {
+        if (requiredColumns == null || requiredColumns.isEmpty()) {
+            return type == null ? parser.map() : (Map) type.implicitCast(parser.map());
+        } else {
+            HashMap<String, Object> values = new HashMap<>();
+            XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
+            for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
+                String fieldName = parser.currentName();
+                parser.nextToken();
+                var required = requiredColumns.get(fieldName);
+                if (required == null) {
+                    parser.skipChildren();
+                } else if (required instanceof DataType) {
+                    values.put(fieldName, parseValue(parser, (DataType<?>) required, null));
+                } else {
+                    values.put(fieldName, parseValue(parser, null, (Map) required));
+                }
+            }
+            return values;
+        }
+    }
+
+    private static Object parseValue(XContentParser parser,
+                                     @Nullable DataType<?> type,
+                                     @Nullable Map<String, Object> requiredColumns) throws IOException {
         return switch (parser.currentToken()) {
             case VALUE_NULL -> null;
-            case START_ARRAY -> {
-                ArrayList<Object> values = new ArrayList<>();
-                Token token = parser.nextToken();
-                for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                    values.add(parseValue(parser, requiredColumns));
-                }
-                yield values;
-            }
-            case START_OBJECT -> {
-                if (requiredColumns == null) {
-                    yield parser.map();
-                } else {
-                    HashMap<String, Object> values = new HashMap<>();
-                    XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
-                    for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
-                        String fieldName = parser.currentName();
-                        parser.nextToken();
-                        var required = requiredColumns.get(fieldName);
-                        if (required == null) {
-                            parser.skipChildren();
-                        } else if (required == FULL_OBJECT) {
-                            values.put(fieldName, parseValue(parser, null));
-                        } else {
-                            values.put(fieldName, parseValue(parser, (Map) required));
-                        }
-                    }
-                    yield values;
-                }
-            }
+            case START_ARRAY -> parseArray(parser, type, requiredColumns);
+            case START_OBJECT -> parseObject(parser, type, requiredColumns);
             case VALUE_STRING -> parser.text();
-            case VALUE_NUMBER -> parser.numberValue();
+            case VALUE_NUMBER -> parseNumber(parser, type);
             case VALUE_BOOLEAN -> parser.booleanValue();
             case VALUE_EMBEDDED_OBJECT -> parser.binaryValue();
             default -> {
                 throw new UnsupportedOperationException("Unsupported token encountered, expected a value, got " + parser.currentToken());
             }
+        };
+    }
+
+    private static Object parseNumber(XContentParser parser, @Nullable DataType<?> type) throws IOException {
+        if (type == null) {
+            return parser.numberValue();
+        }
+        // Type could be an array if traversed into an object array → unnest to get the inner type
+        return switch (ArrayType.unnest(type).id()) {
+            case ByteType.ID -> (byte) parser.intValue();
+            case ShortType.ID -> parser.shortValue(false);
+            case IntegerType.ID -> parser.intValue();
+            case LongType.ID -> parser.longValue();
+            case TimestampType.ID_WITH_TZ -> parser.longValue();
+            case TimestampType.ID_WITHOUT_TZ -> parser.longValue();
+            case FloatType.ID -> parser.floatValue();
+            case DoubleType.ID -> parser.doubleValue();
+            default -> parser.numberValue();
         };
     }
 }
