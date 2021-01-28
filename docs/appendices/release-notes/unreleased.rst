@@ -58,6 +58,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that could lead to a ``stream has already been operated upon
+  or closed`` error when using primary key lookup operations as part of a query
+  with several JOIN clauses.
+
 - Fixed a regression that caused queries which used a parameter placeholder in
   a join condition to fail with an ``The assembled list of ParameterSymbols is
   invalid. Missing parameters`` error.
