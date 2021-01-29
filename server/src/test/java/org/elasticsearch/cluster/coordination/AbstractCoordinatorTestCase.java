@@ -103,6 +103,7 @@ import org.elasticsearch.cluster.coordination.LinearizabilityChecker.SequentialS
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -981,7 +982,7 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
                     address.getAddress(),
                     address, Collections.emptyMap(),
                     localNode.isMasterNode() && Node.NODE_MASTER_SETTING.get(nodeSettings)
-                        ? Set.of(DiscoveryNode.Role.MASTER, DiscoveryNode.Role.DATA)
+                        ? Set.of(DiscoveryNodeRole.MASTER_ROLE, DiscoveryNodeRole.DATA_ROLE)
                         : emptySet(),
                     Version.CURRENT
                 );
@@ -1367,7 +1368,7 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
         return new DiscoveryNode("", "node" + nodeIndex,
             UUIDs.randomBase64UUID(random()), // generated deterministically for repeatable tests
             address.address().getHostString(), address.getAddress(), address, Collections.emptyMap(),
-            masterEligible ? Set.of(DiscoveryNode.Role.MASTER, DiscoveryNode.Role.DATA) : emptySet(), Version.CURRENT);
+            masterEligible ? Set.of(DiscoveryNodeRole.MASTER_ROLE, DiscoveryNodeRole.DATA_ROLE) : emptySet(), Version.CURRENT);
     }
 
     /**

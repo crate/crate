@@ -567,11 +567,13 @@ should be crossed out as well.
 - [s] a354c607228 Revert "Remove obsolete resolving logic from TRA (#49647)"
 - [s] 6cca2b04fa0 Remove obsolete resolving logic from TRA (#49647)
 - [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper  (#49645)
+- [x] aa12af8a3c4 Enable node roles to be pluggable (#43175)
 - [x] 4fd7a22fcfd Allow cluster access during node restart (#42946)
 - [x] bc008d8a9db Increase waiting time when check retention locks (#42994)
 - [x] fe1674174f6 Remove some leftover refs to minimum_master_nodes (#42700)
 - [x] 1b6dc178388 Remove transport client from tests (#42457)
 - [x] c1de8c29db2 Cluster state from API should always have a master (#42454)
+- [x] 328ba09f84b Omit non-masters in ClusterFormationFailureHelper (#41344)
 - [x] 2f41b1b64de Remove `Tracer` from `MockTransportService` (#40237)
 - [x] 7624734f14b Added wait_for_metadata_version parameter to cluster state api (#35535)
 

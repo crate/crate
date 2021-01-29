@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -76,7 +77,7 @@ public class RoutingTest extends ESTestCase {
     @Test
     public void testRoutingForRandomMasterOrDataNode() throws IOException {
         Map<String, String> attr = Map.of();
-        Set<DiscoveryNode.Role> master_and_data = Set.of(DiscoveryNode.Role.MASTER, DiscoveryNode.Role.DATA);
+        Set<DiscoveryNodeRole> master_and_data = Set.of(DiscoveryNodeRole.MASTER_ROLE, DiscoveryNodeRole.DATA_ROLE);
         DiscoveryNode local = new DiscoveryNode("client_node_1", buildNewFakeTransportAddress(), attr, Set.of(), null);
         DiscoveryNodes nodes = new DiscoveryNodes.Builder()
             .add(new DiscoveryNode("data_master_node_1", buildNewFakeTransportAddress(), attr, master_and_data, null))
@@ -98,7 +99,7 @@ public class RoutingTest extends ESTestCase {
 
     @Test
     public void testRoutingForRandomMasterOrDataNodePrefersLocal() throws Exception {
-        Set<DiscoveryNode.Role> data = Set.of(DiscoveryNode.Role.DATA);
+        Set<DiscoveryNodeRole> data = Set.of(DiscoveryNodeRole.DATA_ROLE);
         Map<String, String> attr = Map.of();
         DiscoveryNode local = new DiscoveryNode("local_data", buildNewFakeTransportAddress(), attr, data, null);
         DiscoveryNodes nodes = new DiscoveryNodes.Builder()
