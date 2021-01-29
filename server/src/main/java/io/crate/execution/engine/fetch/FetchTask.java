@@ -221,7 +221,7 @@ public class FetchTask implements Task {
                 return;
             }
             HashMap<String, RelationName> index2TableIdent = new HashMap<>();
-            for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().asMap().entrySet()) {
+            for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().entrySet()) {
                 for (String indexName : entry.getValue()) {
                     index2TableIdent.put(indexName, entry.getKey());
                 }

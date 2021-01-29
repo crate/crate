@@ -29,6 +29,8 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseRandomizedSchema;
+
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -1117,5 +1119,50 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(execute(stmt).rows()), is(
             ""
         ));
+    }
+
+
+    @Test
+    @UseHashJoins(value = 1.0)
+    @UseRandomizedSchema(random = false)
+    public void test_nested_join_with_primary_key_lookup() throws Exception {
+        // Tests for a bug where the "requires scroll" property wasn't inherited correctly.
+        // This led to a primary-key lookup operation which didn't support `moveToStart`
+        execute("create table t1 (id int primary key, a int)");
+        execute("create table t2 (id int primary key, b int)");
+        execute("create table t3 (id int primary key, c int)");
+        execute("create table t4 (id int primary key, d int)");
+        execute("insert into t1 (id, a) values (1, 1), (2, 10)");
+        execute("insert into t2 (id, b) values (1, 2), (2, 20)");
+        execute("insert into t3 (id, c) values (1, 2), (3, 30)");
+        execute("insert into t4 (id, d) values (1, 3), (4, 40)");
+
+        execute("refresh table t1, t2, t3");
+        execute("analyze");
+        String stmt = """
+            SELECT
+                *
+            FROM
+                t1
+                JOIN t2 on t2.id = t1.id
+                JOIN t3 on t3.id = t2.id
+                LEFT OUTER JOIN t4 on t4.id = t3.id
+            WHERE
+                t2.id = 1 OR t2.id = 2
+        """;
+        execute("EXPLAIN " + stmt);
+        // ensure that the query is using the execution plan we want to test
+        // This should prevent from the test case becoming invalid
+        assertThat(printedTable(response.rows()), is(
+            "Eval[id, a, id, b, id, c, id, d]\n" +
+            "  └ NestedLoopJoin[LEFT | (id = id)]\n" +
+            "    ├ HashJoin[(id = id)]\n" +
+            "    │  ├ HashJoin[(id = id)]\n" +
+            "    │  │  ├ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]\n" +
+            "    │  │  └ Collect[doc.t1 | [id, a] | true]\n" +
+            "    │  └ Collect[doc.t3 | [id, c] | true]\n" +
+            "    └ Collect[doc.t4 | [id, d] | true]\n"
+        ));
+        execute(stmt);
     }
 }

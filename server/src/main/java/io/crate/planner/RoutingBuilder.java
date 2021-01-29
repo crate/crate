@@ -22,10 +22,18 @@
 
 package io.crate.planner;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.ShardRouting;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.RelationName;
@@ -33,13 +41,6 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.fetch.IndexBaseBuilder;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.ShardRouting;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 final class RoutingBuilder {
 
@@ -68,7 +69,7 @@ final class RoutingBuilder {
     }
 
     ReaderAllocations buildReaderAllocations() {
-        Multimap<RelationName, String> indicesByTable = HashMultimap.create();
+        Map<RelationName, Collection<String>> indicesByTable = new HashMap<>();
         IndexBaseBuilder indexBaseBuilder = new IndexBaseBuilder();
         Map<String, Map<Integer, String>> shardNodes = new HashMap<>();
 
@@ -80,7 +81,8 @@ final class RoutingBuilder {
 
                 for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : routing.locations().entrySet()) {
                     Map<String, IntIndexedContainer> shardsByIndex = entry.getValue();
-                    indicesByTable.putAll(table, shardsByIndex.keySet());
+                    Collection<String> indices = indicesByTable.computeIfAbsent(table, ignored -> new ArrayList<>());
+                    indices.addAll(shardsByIndex.keySet());
 
                     for (Map.Entry<String, IntIndexedContainer> shardsByIndexEntry : shardsByIndex.entrySet()) {
                         indexBaseBuilder.allocate(shardsByIndexEntry.getKey(), shardsByIndexEntry.getValue());

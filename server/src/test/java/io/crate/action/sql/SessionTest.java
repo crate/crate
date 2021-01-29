@@ -543,4 +543,24 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         DataType[] parameterTypes = typeExtractor.getParameterTypes(statement::visitSymbols);
         assertThat(parameterTypes, arrayContaining(DataTypes.STRING, DataTypes.UNDEFINED, DataTypes.STRING));
     }
+
+
+    @Test
+    public void test_can_extract_parameters_from_join_condition() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table subscriptions (id text primary key, name text not null)")
+            .addTable("create table clusters (id text, subscription_id text)")
+            .build();
+
+        AnalyzedStatement stmt = e.analyze("""
+            select
+                *
+            from subscriptions
+            join clusters on clusters.subscription_id = subscriptions.id
+                AND subscriptions.name = ?
+        """);
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
+        DataType[] parameterTypes = typeExtractor.getParameterTypes(stmt::visitSymbols);
+        assertThat(parameterTypes, arrayContaining(DataTypes.STRING));
+    }
 }
