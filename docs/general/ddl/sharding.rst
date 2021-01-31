@@ -62,11 +62,17 @@ is applied, (see :ref:`ref_clustered_clause`).
 Routing
 =======
 
-CrateDB algorithmically determines which shard each table row belongs to. It
-does this using the value of a routing column.
+Given a fixed number of primary shards, individual rows can be routed to a
+fixed shard number using a simple formula:
 
-The column used for routing can be freely defined using the ``CLUSTERED BY
-(<column>)`` statement and is used to route a row to a particular shard.
+*shard number = hash(routing column) % total primary shards*
+
+When hash values are distributed evenly (which will be approximately true in
+most cases), rows will be distributed evenly amongst the fixed amount of
+available shards.
+
+The routing column can be specified with the ``CLUSTERED BY (<column>)``
+statement. If no column is specified, the internal document ID is used.
 
 Example::
 
@@ -75,6 +81,7 @@ Example::
     ...   second_column text
     ... ) clustered by (first_column);
     CREATE OK, 1 row affected (... sec)
+
 
 If primary key constraints are defined, the routing column definition can be
 omitted as primary key columns are always used for routing by default.
