@@ -145,7 +145,8 @@ removed from the result set::
 ``WHERE`` clause
 ================
 
-A simple where clause example using an equality operator::
+Here is a simple ``WHERE`` clause using an equality :ref:`operator
+<sql_dql_comparison_operators>`::
 
     cr> select description from locations where id = '1';
     +---------------------------------------...--------------------------------------+
@@ -155,60 +156,22 @@ A simple where clause example using an equality operator::
     +---------------------------------------...--------------------------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _sql_dql_comparison_operators:
+
 Comparison operators
---------------------
+====================
 
-These :ref:`sql_operators` are supported and can be used for all simple data
-types.
-
-For strings a lexicographical comparison is performed based on the Lucene
-TermRangeQuery::
-
-    cr> select name from locations where name > 'Argabuthon' order by name;
-    +------------------------------------+
-    | name                               |
-    +------------------------------------+
-    | Arkintoofle Minor                  |
-    | Bartledan                          |
-    | Galactic Sector QQ7 Active J Gamma |
-    | North West Ripple                  |
-    | Outer Eastern Rim                  |
-    +------------------------------------+
-    SELECT 5 rows in set (... sec)
-
-For details please refer to the `Apache Lucene`_ site.
-
-.. _`Apache Lucene`: https://lucene.apache.org/core/4_0_0/core/org/apache/lucene/search/Query.html
-
-Number and date field comparison behave as expected from standard SQL.
-
-The following example uses one of the supported ISO date formats::
-
-    cr> select date, position from locations where date <= '1979-10-12' and
-    ... position < 3 order by position;
-    +--------------+----------+
-    | date         | position |
-    +--------------+----------+
-    | 308534400000 |        1 |
-    | 308534400000 |        2 |
-    +--------------+----------+
-    SELECT 2 rows in set (... sec)
-
-For a detailed explanation of the supported ISO date formats please refer to
-the `joda date_optional_time`_ site.
-
-.. _`joda date_optional_time`: http://joda-time.sourceforge.net/api-release/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser%28%29
-
-For custom date types, or defined date formats in the object mapping the
-corresponding format should be used for a comparison. Otherwise the operation
-may fail.
+CrateDB supports a variety of :ref:`comparison operators
+<comparison-operators>` (including basic operators such as ``=``, ``<``, ``>``,
+and so on).
 
 .. _sql_ddl_regexp:
 
 Regular expressions
-===================
+-------------------
 
-Operators for matching using regular expressions.
+Operators for matching using regular expressions:
 
 .. list-table::
    :widths: 5 20 15
@@ -303,11 +266,6 @@ Examples::
     | no_match   |
     +------------+
     SELECT 1 row in set (... sec)
-
-.. _sql_dql_comparison_operators:
-
-Comparison operators
-====================
 
 
 .. _sql_dql_like:
@@ -413,37 +371,6 @@ null        null
    standard SQL three-valued-logic and will be fixed in a future release.
 
 
-.. _sql_dql_in:
-
-``IN``
-------
-
-CrateDB also supports the binary operator ``IN``, which allows you to verify
-the membership of left-hand operand in a right-hand set of expressions. Returns
-``true`` if any evaluated expression value from a right-hand set equals
-left-hand operand. Returns ``false`` otherwise::
-
-    cr> select name, kind from locations
-    ... where (kind in ('Star System', 'Planet'))  order by name asc;
-     +---------------------+-------------+
-     | name                | kind        |
-     +---------------------+-------------+
-     |                     | Planet      |
-     | Aldebaran           | Star System |
-     | Algol               | Star System |
-     | Allosimanius Syneca | Planet      |
-     | Alpha Centauri      | Star System |
-     | Altair              | Star System |
-     | Argabuthon          | Planet      |
-     | Arkintoofle Minor   | Planet      |
-     | Bartledan           | Planet      |
-     +---------------------+-------------+
-     SELECT 9 rows in set (... sec)
-
-The ``IN`` construct can be used in :ref:`sql_subquery_expressions` or
-:ref:`sql_array_comparisons`.
-
-
 .. _sql_dql_is_null:
 
 ``IS NULL``
@@ -523,6 +450,45 @@ does always return ``NULL`` when comparing ``NULL``.
     |       12 |
     +----------+
     SELECT 1 row in set (... sec)
+
+
+.. _sql_dql_array_comparisons:
+
+Array comparisons
+=================
+
+CrateDB supports a variety of :ref:`array comparisons <sql_array_comparisons>`.
+
+
+.. _sql_dql_in:
+
+``IN``
+------
+
+CrateDB also supports the binary operator ``IN``, which allows you to verify
+the membership of the left-hand operand in a right-hand set of expressions.
+Returns ``true`` if any evaluated expression value from a right-hand set equals
+left-hand operand. Returns ``false`` otherwise::
+
+    cr> select name, kind from locations
+    ... where (kind in ('Star System', 'Planet'))  order by name asc;
+     +---------------------+-------------+
+     | name                | kind        |
+     +---------------------+-------------+
+     |                     | Planet      |
+     | Aldebaran           | Star System |
+     | Algol               | Star System |
+     | Allosimanius Syneca | Planet      |
+     | Alpha Centauri      | Star System |
+     | Altair              | Star System |
+     | Argabuthon          | Planet      |
+     | Arkintoofle Minor   | Planet      |
+     | Bartledan           | Planet      |
+     +---------------------+-------------+
+     SELECT 9 rows in set (... sec)
+
+The ``IN`` construct can be used in :ref:`sql_subquery_expressions` or
+:ref:`sql_array_comparisons`.
 
 
 .. _sql_dql_any_array:
