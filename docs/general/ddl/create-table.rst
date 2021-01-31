@@ -9,15 +9,15 @@ Creating tables
 .. contents::
    :local:
 
-Introduction
-============
+Basics
+======
 
 To create a table use the ``CREATE TABLE`` command. You must at least specify a
 name for the table and names and types of the columns.
 
 See :ref:`data-types` for information about the supported data types.
 
-Let's create a simple table with two columns of type ``integer`` and
+This query creates a simple table with two columns of type ``integer`` and
 ``text``::
 
     cr> create table my_table (
@@ -36,6 +36,7 @@ prevents the generation of an error if the specified table does not exist::
 
     cr> drop table if exists my_table;
     DROP OK, 0 rows affected (... sec)
+
 
 .. _sql_ddl_schemas:
 
@@ -151,3 +152,15 @@ Column names are restricted in terms of patterns:
   - Character sequences that conform to the
     :ref:`subscript notation <sql_dql_object_arrays>` (e.g. ``col['id']``) are
     not allowed.
+
+Advanced use
+============
+
+Tables can be:
+
+- :ref:`Clustered <ref_clustered_clause>` into multiple :ref:`shards <sql_ddl_sharding>`
+- :ref:`Partitioned <partitioned_by_clause>` by column (to create
+  :ref:`partitioned tables <partitioned_tables>`)
+- Fine-tuned with :ref:`table paramaters <with_clause>` (e.g., to configure
+  :ref:`replication <replication>`)
+
