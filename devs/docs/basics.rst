@@ -13,8 +13,8 @@ to build documentation and run tests require Python_.
 
 To set up a minimal development environment, you will need:
 
- - Java_ (>= 11)
- - Python_ (>= 3.7)
+- Java_ (>= 11)
+- Python_ (>= 3.7)
 
 Then, clone the repository and navigate into its directory::
 
@@ -189,7 +189,7 @@ Troubleshooting
 ===============
 
 If you pulled in some new commits and are getting strange compile errors, try
-to reset everything and re-compile:
+to reset everything and re-compile::
 
     $ git clean -xdff
     $ ./gradlew compileTestJava
