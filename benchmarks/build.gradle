@@ -13,7 +13,7 @@ dependencies {
     compile project(':server')
     compile project(path: ':server', configuration: 'testOutput')
     compile project(path: ':libs:dex', configuration: 'testOutput')
-    compile project(path: ':enterprise:functions', configuration: 'testOutput')
+    compile project(path: ':extensions:functions', configuration: 'testOutput')
     implementation project(':libs:sql-parser')
 
     compile 'org.openjdk.jmh:jmh-core:1.25'

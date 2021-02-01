@@ -1,4 +1,4 @@
-apply from: "$rootDir/enterprise/enterpriseModule.gradle"
+apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'jmx-monitoring'
 group = 'io.crate'

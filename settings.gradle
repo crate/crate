@@ -18,12 +18,11 @@ include 'libs:shared',
         'plugins:es-analysis-phonetic',
         'app',
         'blackbox',
-        'enterprise:jmx-monitoring',
-        'enterprise:lang-js',
-        'enterprise:users',
-        'enterprise:ssl-impl',
-        'enterprise:functions',
-        'enterprise:licensing',
+        'extensions:jmx-monitoring',
+        'extensions:lang-js',
+        'extensions:users',
+        'extensions:ssl-impl',
+        'extensions:functions',
         'benchmarks'
 
 buildCache {

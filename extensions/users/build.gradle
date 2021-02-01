@@ -1,4 +1,4 @@
-apply from: "$rootDir/enterprise/enterpriseModule.gradle"
+apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'users'
 group = 'io.crate'
@@ -8,7 +8,7 @@ dependencies {
     implementation project(':server')
     implementation project(':libs:sql-parser')
     implementation "io.netty:netty-codec-http:${versions.netty4}"
-    testImplementation project(':enterprise:ssl-impl')
+    testImplementation project(':extensions:ssl-impl')
     testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')
     testImplementation "org.postgresql:postgresql:${versions.jdbc}"

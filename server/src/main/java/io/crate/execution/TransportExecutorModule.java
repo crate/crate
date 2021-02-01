@@ -48,6 +48,7 @@ import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
+import io.crate.license.TransportSetLicenseAction;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.statistics.TransportAnalyzeAction;
 
@@ -83,5 +84,6 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportSwapRelationsAction.class).asEagerSingleton();
         bind(TransportAlterTableAction.class).asEagerSingleton();
         bind(TransportAnalyzeAction.class).asEagerSingleton();
+        bind(TransportSetLicenseAction.class).asEagerSingleton();
     }
 }

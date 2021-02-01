@@ -1,8 +1,8 @@
-apply from: "$rootDir/enterprise/enterpriseModule.gradle"
+apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'functions'
 group = 'io.crate'
-description = 'Enterprise functions for CrateDB'
+description = 'Additional functions for CrateDB'
 
 configurations {
     // export the main and test output so benchmarks (which are run as tests) can test the main output of this module
@@ -28,7 +28,7 @@ dependencies {
 task jarTest (type: Jar) {
     from sourceSets.main.output
     from sourceSets.test.output
-    classifier = 'enterprise-functions-main-and-tests'
+    classifier = 'extensions-functions-main-and-tests'
 }
 
 artifacts {
