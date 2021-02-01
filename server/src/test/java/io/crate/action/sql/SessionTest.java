@@ -49,6 +49,8 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -204,6 +206,36 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.preparedStatements.size(), is(0));
         assertThat(session.deferredExecutionsByStmt.size(), is(0));
         assertThat(session.activeExecution, is(nullValue()));
+    }
+
+
+    @Test
+    public void test_flush_triggers_deferred_executions_and_sets_active_execution() throws Exception {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .addTable("create table users (name text)")
+            .build();
+        DependencyCarrier dependencies = mock(DependencyCarrier.class);
+        when(dependencies.clusterService()).thenReturn(clusterService);
+        Session session = Mockito.spy(new Session(
+            sqlExecutor.nodeCtx,
+            sqlExecutor.analyzer,
+            mock(Planner.class, Answers.RETURNS_MOCKS),
+            new JobsLogs(() -> false),
+            false,
+            dependencies,
+            AccessControl.DISABLED,
+            SessionContext.systemSessionContext())
+        );
+        session.parse("", "insert into users (name) values (?)", List.of());
+        session.bind("", "", List.of("Arthur"), null);
+        session.execute("", -1, new BaseResultReceiver());
+        assertThat(session.deferredExecutionsByStmt.size(), is(1));
+        session.flush();
+        var activeExecution = session.activeExecution;
+        assertThat(activeExecution, Matchers.notNullValue());
+
+        CompletableFuture<?> sync = session.sync();
+        assertThat(sync, Matchers.sameInstance(activeExecution));
     }
 
     @Test

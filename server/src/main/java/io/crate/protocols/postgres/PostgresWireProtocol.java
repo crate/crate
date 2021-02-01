@@ -477,7 +477,7 @@ public class PostgresWireProtocol {
             // (That we've been holding back, as we don't eager react to `execute` requests. (We do that to optimize batch inserts))
             // The sync will also trigger a flush eventually if there are deferred executions.
             if (session.hasDeferredExecutions()) {
-                session.sync();
+                session.flush();
             } else {
                 channel.flush();
             }
