@@ -51,6 +51,8 @@ multiple alias or table definitions::
 
     :ref:`sql_lexical`
 
+.. _expression-parameter:
+
 Parameter reference
 ===================
 
