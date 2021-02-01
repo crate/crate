@@ -72,8 +72,6 @@ import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
-import io.crate.license.CeLicenseModule;
-import io.crate.license.LicenseExtension;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
@@ -105,8 +103,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     @Nullable
     private final UserExtension userExtension;
     @Nullable
-    private final LicenseExtension licenseExtension;
-    @Nullable
     private final SslExtension sslExtension;
     private final IndexEventListenerProxy indexEventListenerProxy;
 
@@ -114,7 +110,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         this.settings = settings;
         this.indexEventListenerProxy = new IndexEventListenerProxy();
         userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
-        licenseExtension = EnterpriseLoader.loadSingle(LicenseExtension.class);
         sslExtension = EnterpriseLoader.loadSingle(SslExtension.class);
     }
 
@@ -144,7 +139,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.setting());
 
         // also add CrateSettings
-        for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {
+        for (CrateSetting<?> crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {
             settings.add(crateSetting.setting());
         }
 
@@ -164,9 +159,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             .add(DefaultTemplateService.class)
             .add(ArrayMapperService.class)
             .add(DanglingArtifactsService.class);
-        if (licenseExtension != null) {
-            builder.addAll(licenseExtension.getGuiceServiceClasses());
-        }
         if (sslExtension != null) {
             builder.addAll(sslExtension.getGuiceServiceClasses());
         }
@@ -198,11 +190,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             modules.addAll(userExtension.getModules(settings));
         } else {
             modules.add(new UserFallbackModule());
-        }
-        if (licenseExtension != null) {
-            modules.addAll(licenseExtension.getModules(settings));
-        } else {
-            modules.add(new CeLicenseModule());
         }
         if (sslExtension != null) {
             modules.addAll(sslExtension.getModules());
@@ -248,9 +235,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedWriteables());
         }
-        if (licenseExtension != null) {
-            entries.addAll(licenseExtension.getNamedWriteables());
-        }
         return entries;
     }
 
@@ -270,9 +254,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedXContent());
-        }
-        if (licenseExtension != null) {
-            entries.addAll(licenseExtension.getNamedXContent());
         }
         return entries;
     }

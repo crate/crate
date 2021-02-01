@@ -23,11 +23,11 @@
 package io.crate.planner.statement;
 
 import io.crate.analyze.AnalyzedSetLicenseStatement;
-import io.crate.analyze.SymbolEvaluator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.support.OneRowActionListener;
+import io.crate.data.SentinelRow;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -52,15 +52,7 @@ public class SetLicensePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        Object license = SymbolEvaluator.evaluate(
-            plannerContext.transactionContext(),
-            plannerContext.nodeContext(),
-            stmt.licenseKey(),
-            params,
-            subQueryResults
-        );
-        dependencies.licenseService().registerLicense(license.toString())
-            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+        consumer.accept(InMemoryBatchIterator.of(new Row1(1L), SentinelRow.SENTINEL), null);
     }
 }
 

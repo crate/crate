@@ -24,26 +24,21 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+/**
+ * Kept for BWC so it can still be streamed when coming from a CrateDB < 4.5 node
+ */
 public class SetLicenseRequest extends MasterNodeRequest<SetLicenseRequest> {
 
-    private final LicenseKey licenseKey;
-
-    SetLicenseRequest(LicenseKey licenseKey) {
-        this.licenseKey = licenseKey;
-    }
-
-    LicenseKey licenseMetadata() {
-        return licenseKey;
-    }
+    private final String licenseKey;
 
     public SetLicenseRequest(StreamInput in) throws IOException {
         super(in);
-        licenseKey = new LicenseKey(in);
+        licenseKey = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        licenseKey.writeTo(out);
+        out.writeString(licenseKey);
     }
 }

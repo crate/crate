@@ -35,7 +35,6 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.JobKilledException;
-import io.crate.exceptions.LicenseViolationException;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.PartitionAlreadyExistsException;
@@ -155,8 +154,6 @@ public class HttpError {
                 httpErrorStatus = HttpErrorStatus.RELATION_INVALID_NAME;
             } else if (crateException instanceof InvalidSchemaNameException) {
                 httpErrorStatus = HttpErrorStatus.RELATION_INVALID_NAME;
-            } else if (crateException instanceof LicenseViolationException) {
-                httpErrorStatus = HttpErrorStatus.LICENSE_EXPIRED;
             } else if (crateException instanceof OperationOnInaccessibleRelationException) {
                 httpErrorStatus = HttpErrorStatus.RELATION_OPERATION_NOT_SUPPORTED;
             } else if (crateException instanceof RelationValidationException) {

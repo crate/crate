@@ -38,8 +38,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.http.HttpTestServer;
-import io.crate.license.LicenseData;
-import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -47,24 +45,12 @@ import io.crate.types.DataTypes;
 
 public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
-    static private LicenseData LICENSE = new LicenseData(
-        System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30),
-        "crate" ,
-        3
-        );
-
     private ExtendedNodeInfo extendedNodeInfo;
-    private LicenseService licenseService;
 
     private HttpTestServer testServer;
 
     private PingTask createPingTask(String pingUrl) {
-        return new PingTask(
-            clusterService,
-            extendedNodeInfo,
-            pingUrl,
-            licenseService
-        );
+        return new PingTask(clusterService, extendedNodeInfo, pingUrl);
     }
 
     private PingTask createPingTask() {
@@ -82,7 +68,6 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws Exception {
         extendedNodeInfo = mock(ExtendedNodeInfo.class);
         when(extendedNodeInfo.networkInfo()).thenReturn(new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE));
-        licenseService = mock(LicenseService.class);
     }
 
     @Test
@@ -93,8 +78,6 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSuccessfulPingTaskRunWhenLicenseIsNotNull() throws Exception {
-        when(licenseService.currentLicense()).thenReturn(LICENSE);
-
         testServer = new HttpTestServer(18080, false);
         testServer.run();
 
@@ -127,42 +110,11 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("crate_version"), is(notNullValue()));
             assertThat(map, hasKey("java_version"));
             assertThat(map.get("java_version"), is(notNullValue()));
-            assertThat(map, hasKey("license_expiry_date"));
-            assertThat(map.get("license_expiry_date"), is(String.valueOf(LICENSE.expiryDateInMs())));
-            assertThat(map, hasKey("license_issued_to"));
-            assertThat(map.get("license_issued_to"), is(LICENSE.issuedTo()));
-            assertThat(Integer.parseInt((String) map.get("num_processors")), greaterThan(0));
-            assertThat(map, hasKey("license_max_nodes"));
-            assertThat(map.get("license_max_nodes"), is(String.valueOf(LICENSE.maxNumberOfNodes())));
-            assertThat(map, hasKey("enterprise_edition"));
-            assertThat(map.get("enterprise_edition"), is(String.valueOf(true)));
         }
     }
 
     @Test
-    public void testSuccessfulPingTaskRunWhenLicenseIsNull() throws Exception {
-        when(licenseService.currentLicense()).thenReturn(null);
-
-        testServer = new HttpTestServer(18080, false);
-        testServer.run();
-
-        PingTask task = createPingTask("http://localhost:18080/");
-        task.run();
-        assertThat(testServer.responses.size(), is(1));
-        String json = testServer.responses.get(0);
-        Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json);
-
-        assertThat(map, not(hasKey("license_expiry_date")));
-        assertThat(map, not(hasKey("license_issued_to")));
-        assertThat(map, not(hasKey("license_max_nodes")));
-        assertThat(map, hasKey("enterprise_edition"));
-        assertThat(map.get("enterprise_edition"), is(String.valueOf(false)));
-    }
-
-    @Test
     public void testUnsuccessfulPingTaskRun() throws Exception {
-        when(licenseService.currentLicense()).thenReturn(LICENSE);
-
         testServer = new HttpTestServer(18081, true);
         testServer.run();
         PingTask task = createPingTask("http://localhost:18081/");
@@ -196,12 +148,6 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("crate_version"), is(notNullValue()));
             assertThat(map, hasKey("java_version"));
             assertThat(map.get("java_version"), is(notNullValue()));
-            assertThat(map, hasKey("license_expiry_date"));
-            assertThat(map.get("license_expiry_date"), is(notNullValue()));
-            assertThat(map, hasKey("license_issued_to"));
-            assertThat(map.get("license_issued_to"), is(notNullValue()));
-            assertThat(map, hasKey("license_max_nodes"));
-            assertThat(map.get("license_max_nodes"), is(notNullValue()));
         }
     }
 }
