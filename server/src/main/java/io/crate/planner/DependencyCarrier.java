@@ -37,7 +37,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
-import io.crate.license.LicenseService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Schemas;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -72,7 +71,6 @@ public class DependencyCarrier {
     private final TransportCreateIndexAction createIndexAction;
     private final TransportCreateUserDefinedFunctionAction createFunctionAction;
     private final TransportDropUserDefinedFunctionAction dropFunctionAction;
-    private final LicenseService licenseService;
     private final Provider<TransportAnalyzeAction> analyzeAction;
     private final AlterTableOperation alterTableOperation;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -87,7 +85,6 @@ public class DependencyCarrier {
                              Schemas schemas,
                              NodeContext nodeCtx,
                              ClusterService clusterService,
-                             LicenseService licenseService,
                              DCLStatementDispatcher dclStatementDispatcher,
                              TransportDropTableAction transportDropTableAction,
                              TransportCreateViewAction createViewAction,
@@ -108,7 +105,6 @@ public class DependencyCarrier {
         this.schemas = schemas;
         this.nodeCtx = nodeCtx;
         this.clusterService = clusterService;
-        this.licenseService = licenseService;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
         projectionBuilder = new ProjectionBuilder(nodeCtx);
@@ -147,10 +143,6 @@ public class DependencyCarrier {
 
     public ClusterService clusterService() {
         return clusterService;
-    }
-
-    public LicenseService licenseService() {
-        return licenseService;
     }
 
     public ScheduledExecutorService scheduler() {

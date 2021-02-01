@@ -79,10 +79,7 @@ import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.UserManager;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.LicenseViolationException;
 import io.crate.execution.ddl.tables.TableCreator;
-import io.crate.license.LicenseService;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -140,7 +137,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.function.BooleanSupplier;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
@@ -148,10 +144,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private static final Logger LOGGER = LogManager.getLogger(Planner.class);
 
     private final ClusterService clusterService;
-    private final NodeContext nodeCtx;
     private final TableStats tableStats;
     private final LogicalPlanner logicalPlanner;
-    private final IsStatementExecutionAllowed isStatementExecutionAllowed;
     private final NumberOfShards numberOfShards;
     private final TableCreator tableCreator;
     private final Schemas schemas;
@@ -165,43 +159,14 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    ClusterService clusterService,
                    NodeContext nodeCtx,
                    TableStats tableStats,
-                   LicenseService licenseService,
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
                    Schemas schemas,
                    UserManager userManager,
                    SessionSettingRegistry sessionSettingRegistry) {
-        this(
-            settings,
-            clusterService,
-            nodeCtx,
-            tableStats,
-            numberOfShards,
-            tableCreator,
-            schemas,
-            userManager,
-            () -> licenseService.getLicenseState() == LicenseService.LicenseState.VALID,
-            sessionSettingRegistry
-        );
-    }
-
-    @VisibleForTesting
-    public Planner(Settings settings,
-                   ClusterService clusterService,
-                   NodeContext nodeCtx,
-                   TableStats tableStats,
-                   NumberOfShards numberOfShards,
-                   TableCreator tableCreator,
-                   Schemas schemas,
-                   UserManager userManager,
-                   BooleanSupplier hasValidLicense,
-                   SessionSettingRegistry sessionSettingRegistry
-    ) {
         this.clusterService = clusterService;
-        this.nodeCtx = nodeCtx;
         this.tableStats = tableStats;
         this.logicalPlanner = new LogicalPlanner(nodeCtx, tableStats, () -> clusterService.state().nodes().getMinNodeVersion());
-        this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(hasValidLicense);
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
         this.schemas = schemas;
@@ -237,9 +202,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
      * @return plan
      */
     public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
-        if (isStatementExecutionAllowed.test(analyzedStatement) == false) {
-            throw new LicenseViolationException("Statement not allowed");
-        }
         return analyzedStatement.accept(this, plannerContext);
     }
 

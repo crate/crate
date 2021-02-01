@@ -21,7 +21,6 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.license.LicenseService;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -44,9 +43,9 @@ public class SysSchemaInfo implements SchemaInfo {
     private final Map<String, TableInfo> tableInfos;
 
     @Inject
-    public SysSchemaInfo(ClusterService clusterService, CrateSettings crateSettings, LicenseService licenseService) {
+    public SysSchemaInfo(ClusterService clusterService, CrateSettings crateSettings) {
         tableInfos = new HashMap<>();
-        tableInfos.put(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService, crateSettings, licenseService));
+        tableInfos.put(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService, crateSettings));
         tableInfos.put(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.create());
         tableInfos.put(SysShardsTableInfo.IDENT.name(), SysShardsTableInfo.create());
         Supplier<DiscoveryNode> localNode = clusterService::localNode;

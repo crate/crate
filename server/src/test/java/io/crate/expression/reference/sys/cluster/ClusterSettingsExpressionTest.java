@@ -36,7 +36,6 @@ import org.junit.Test;
 
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.license.CeLicenseService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -49,8 +48,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
         Settings settings = Settings.builder().put("bulk.request_timeout", "20s").build();
         var sysCluster = SysClusterTableInfo.of(
             clusterService,
-            new CrateSettings(clusterService, settings),
-            new CeLicenseService()
+            new CrateSettings(clusterService, settings)
         );
 
         var expressionFactory = sysCluster.expressions().get(new ColumnIdent("settings", List.of("bulk", "request_timeout")));
@@ -63,8 +61,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
     public void testSettingsAreUpdated() throws Exception {
         var sysCluster = SysClusterTableInfo.of(
             clusterService,
-            new CrateSettings(clusterService, Settings.EMPTY),
-            new CeLicenseService()
+            new CrateSettings(clusterService, Settings.EMPTY)
         );
 
         Settings settings = Settings.builder()

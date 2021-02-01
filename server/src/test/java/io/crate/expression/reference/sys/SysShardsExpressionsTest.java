@@ -25,7 +25,6 @@ import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.license.CeLicenseService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
@@ -94,7 +93,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
         schemas = new Schemas(
-            Map.of("sys", new SysSchemaInfo(this.clusterService, crateSettings, new CeLicenseService())),
+            Map.of("sys", new SysSchemaInfo(this.clusterService, crateSettings)),
             clusterService,
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), (ident, state) -> null , nodeCtx, udfService)
         );
