@@ -473,6 +473,20 @@ public class Session implements AutoCloseable {
         return null;
     }
 
+    public void flush() {
+        assert !deferredExecutionsByStmt.isEmpty()
+            : "Session.flush() must only be called if there are deferred executions";
+
+        // This will make `sync` use the triggered execution instead of
+        // returning a new completed future.
+        //
+        // We need to wait for the operation that is now being triggered to complete
+        // before any further messages are sent to clients.
+        // E.g. PostgresWireProtocol would otherwise send a `ReadyForQuery` message too
+        // early.
+        activeExecution = triggerDeferredExecutions();
+    }
+
     public CompletableFuture<?> sync() {
         if (activeExecution == null) {
             return triggerDeferredExecutions();
@@ -757,4 +771,5 @@ public class Session implements AutoCloseable {
     public TransactionState transactionState() {
         return currentTransactionState;
     }
+
 }

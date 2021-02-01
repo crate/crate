@@ -58,6 +58,11 @@ None
 Fixes
 =====
 
+- Fixed an issue in the PostgreSQL wire protocol implementation that could lead
+  to incorrect results on the client side if a client invoked a write operation
+  and sent an explicit flush message before the sync message. The
+  ``node-postgres`` client is one client that uses such a message sequence.
+
 - Fixed an issue that could lead to a ``stream has already been operated upon
   or closed`` error when using primary key lookup operations as part of a query
   with several JOIN clauses.
