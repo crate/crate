@@ -1353,7 +1353,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testTwoSubStrOnSameColumn() throws Exception {
         execute("select substr(name, 0, 4), substr(name, 4, 8) from sys.cluster");
-        assertThat(printedTable(response.rows()), is("SUIT| TE-CHILD\n"));
+        assertThat(printedTable(response.rows()), is("SUIT| TE-TEST_\n"));
     }
 
 
