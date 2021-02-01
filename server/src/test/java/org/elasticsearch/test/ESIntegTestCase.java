@@ -43,14 +43,9 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.RestoreInProgress;
-import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
-import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.metadata.IndexGraveyard;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -103,7 +98,6 @@ import java.lang.annotation.Target;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -280,8 +274,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
      * Creates a randomized index template. This template is used to pass in randomized settings on a
      * per index basis. Allows to enable/disable the randomization for number of shards and replicas
      */
-    public void randomIndexTemplate() throws IOException {
-
+    private void randomIndexTemplate() {
         // TODO move settings for random directory etc here into the index based randomized settings.
         if (cluster().size() > 0) {
             Settings.Builder randomSettingsBuilder =
@@ -381,12 +374,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     private TestCluster buildWithPrivateContext(final Scope scope, final long seed) throws Exception {
-        return RandomizedContext.current().runWithPrivateRandomness(seed, new Callable<TestCluster>() {
-            @Override
-            public TestCluster call() throws Exception {
-                return buildTestCluster(scope, seed);
-            }
-        });
+        return RandomizedContext.current().runWithPrivateRandomness(seed, () -> buildTestCluster(scope, seed));
     }
 
     private TestCluster buildAndPutCluster(Scope currentClusterScope, long seed) throws Exception {
@@ -416,11 +404,13 @@ public abstract class ESIntegTestCase extends ESTestCase {
         }
     }
 
-    protected final void afterInternal(boolean afterClass) throws Exception {
+    private void afterInternal(boolean afterClass) throws Exception {
         boolean success = false;
         try {
             final Scope currentClusterScope = getCurrentClusterScope();
-            clearDisruptionScheme();
+            if (isInternalCluster()) {
+                internalCluster().clearDisruptionScheme();
+            }
             try {
                 if (cluster() != null) {
                     if (currentClusterScope != Scope.TEST) {
@@ -536,12 +526,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     public void setDisruptionScheme(ServiceDisruptionScheme scheme) {
         internalCluster().setDisruptionScheme(scheme);
-    }
-
-    public void clearDisruptionScheme() {
-        if (isInternalCluster()) {
-            internalCluster().clearDisruptionScheme();
-        }
     }
 
     /**
@@ -863,37 +847,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     }
 
-    private static final Set<String> SAFE_METADATA_CUSTOMS =
-            Collections.unmodifiableSet(
-                    new HashSet<>(Arrays.asList(IndexGraveyard.TYPE, RepositoriesMetadata.TYPE)));
-
-    private static final Set<String> SAFE_CUSTOMS =
-            Collections.unmodifiableSet(
-                    new HashSet<>(Arrays.asList(RestoreInProgress.TYPE, SnapshotDeletionsInProgress.TYPE, SnapshotsInProgress.TYPE)));
-
-    /**
-     * Remove any customs except for customs that we know all clients understand.
-     *
-     * @param clusterState the cluster state to remove possibly-unknown customs from
-     * @return the cluster state with possibly-unknown customs removed
-     */
-    private ClusterState removePluginCustoms(final ClusterState clusterState) {
-        final ClusterState.Builder builder = ClusterState.builder(clusterState);
-        clusterState.customs().keysIt().forEachRemaining(key -> {
-            if (SAFE_CUSTOMS.contains(key) == false) {
-                builder.removeCustom(key);
-            }
-        });
-        final Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata());
-        clusterState.metadata().customs().keysIt().forEachRemaining(key -> {
-            if (SAFE_METADATA_CUSTOMS.contains(key) == false) {
-                mdBuilder.removeCustom(key);
-            }
-        });
-        builder.metadata(mdBuilder);
-        return builder.build();
-    }
-
     protected void ensureStableCluster(int nodeCount) {
         ensureStableCluster(nodeCount, TimeValue.timeValueSeconds(30));
     }
@@ -934,7 +887,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         NetworkDisruption.ensureFullyConnectedCluster(internalCluster());
     }
 
-
     /**
      * Waits for relocations and refreshes all indices in the cluster.
      *
@@ -954,6 +906,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
     protected AdminClient admin() {
         return client().admin();
     }
+
 
     /**
      * The scope of a test cluster used together with
@@ -1163,17 +1116,17 @@ public abstract class ESIntegTestCase extends ESTestCase {
         );
     }
 
-    protected NodeConfigurationSource getNodeConfigSource() {
-        Settings.Builder networkSettings = Settings.builder();
+    private NodeConfigurationSource getNodeConfigSource() {
+        Settings.Builder initialNodeSettings = Settings.builder();
         if (addMockTransportService()) {
-            networkSettings.put(NetworkModule.TRANSPORT_TYPE_KEY, getTestTransportType());
+            initialNodeSettings.put(NetworkModule.TRANSPORT_TYPE_KEY, getTestTransportType());
         }
 
         return new NodeConfigurationSource() {
             @Override
             public Settings nodeSettings(int nodeOrdinal) {
                 return Settings.builder()
-                    .put(networkSettings.build())
+                    .put(initialNodeSettings.build())
                     .put(ESIntegTestCase.this.nodeSettings(nodeOrdinal)).build();
             }
 

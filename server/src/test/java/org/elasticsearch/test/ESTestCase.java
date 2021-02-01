@@ -24,9 +24,6 @@ import static org.hamcrest.Matchers.equalTo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Security;
 import java.time.ZoneId;
@@ -90,7 +87,6 @@ import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
-import org.elasticsearch.common.CheckedBiFunction;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.PathUtils;
@@ -119,7 +115,6 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.TestEnvironment;
@@ -133,7 +128,6 @@ import org.elasticsearch.index.analysis.TokenizerFactory;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MetadataFieldMapper;
 import org.elasticsearch.indices.IndicesModule;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
@@ -892,10 +886,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         }
     }
 
-    public Path getBwcIndicesPath() {
-        return getDataPath("/indices/bwc");
-    }
-
     /** Returns a random number of temporary paths. */
     public String[] tmpPaths() {
         final int numPaths = TestUtil.nextInt(random(), 1, 3);
@@ -1002,21 +992,8 @@ public abstract class ESTestCase extends LuceneTestCase {
      */
     protected final BytesReference toShuffledXContent(ToXContent toXContent, XContentType xContentType, ToXContent.Params params,
                                                       boolean humanReadable, String... exceptFieldNames) throws IOException{
-        return toShuffledXContent(toXContent, xContentType, params, humanReadable, this::createParser, exceptFieldNames);
-    }
-
-    /**
-     * Returns the bytes that represent the XContent output of the provided {@link ToXContent} object, using the provided
-     * {@link XContentType}. Wraps the output into a new anonymous object according to the value returned
-     * by the {@link ToXContent#isFragment()} method returns. Shuffles the keys to make sure that parsing never relies on keys ordering.
-     */
-    protected static BytesReference toShuffledXContent(ToXContent toXContent, XContentType xContentType, ToXContent.Params params,
-                                                       boolean humanReadable,
-                                                       CheckedBiFunction<XContent, BytesReference, XContentParser, IOException>
-                                                               parserFunction,
-                                                       String... exceptFieldNames) throws IOException{
         BytesReference bytes = XContentHelper.toXContent(toXContent, xContentType, params, humanReadable);
-        try (XContentParser parser = parserFunction.apply(xContentType.xContent(), bytes)) {
+        try (XContentParser parser = createParser(xContentType.xContent(), bytes)) {
             try (XContentBuilder builder = shuffleXContent(parser, rarely(), exceptFieldNames)) {
                 return BytesReference.bytes(builder);
             }
@@ -1123,77 +1100,6 @@ public abstract class ESTestCase extends LuceneTestCase {
                 in.setVersion(version);
                 return reader.read(in);
             }
-        }
-    }
-
-    public void assertAllIndicesRemovedAndDeletionCompleted(Iterable<IndicesService> indicesServices) throws Exception {
-        for (IndicesService indicesService : indicesServices) {
-            assertBusy(() -> assertFalse(indicesService.iterator().hasNext()), 1, TimeUnit.MINUTES);
-            assertBusy(() -> assertFalse(indicesService.hasUncompletedPendingDeletes()), 1, TimeUnit.MINUTES);
-        }
-    }
-
-    /**
-     * Asserts that there are no files in the specified path
-     */
-    public void assertPathHasBeenCleared(Path path) {
-        logger.info("--> checking that [{}] has been cleared", path);
-        int count = 0;
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        if (Files.exists(path)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
-                for (Path file : stream) {
-                    // Skip files added by Lucene's ExtraFS
-                    if (file.getFileName().toString().startsWith("extra")) {
-                        continue;
-                    }
-                    logger.info("--> found file: [{}]", file.toAbsolutePath().toString());
-                    if (Files.isDirectory(file)) {
-                        assertPathHasBeenCleared(file);
-                    } else if (Files.isRegularFile(file)) {
-                        count++;
-                        sb.append(file.toAbsolutePath().toString());
-                        sb.append("\n");
-                    }
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        }
-        sb.append("]");
-        assertThat(count + " files exist that should have been cleaned:\n" + sb.toString(), count, equalTo(0));
-    }
-
-    /**
-     * Assert that two objects are equals, calling {@link ToXContent#toXContent(XContentBuilder, ToXContent.Params)} to print out their
-     * differences if they aren't equal.
-     */
-    public static <T extends ToXContent> void assertEqualsWithErrorMessageFromXContent(T expected, T actual) {
-        if (Objects.equals(expected, actual)) {
-            return;
-        }
-        if (expected == null) {
-            throw new AssertionError("Expected null be actual was [" + actual.toString() + "]");
-        }
-        if (actual == null) {
-            throw new AssertionError("Didn't expect null but actual was [null]");
-        }
-        try (XContentBuilder actualJson = JsonXContent.contentBuilder();
-                XContentBuilder expectedJson = JsonXContent.contentBuilder()) {
-            actualJson.startObject();
-            actual.toXContent(actualJson, ToXContent.EMPTY_PARAMS);
-            actualJson.endObject();
-            expectedJson.startObject();
-            expected.toXContent(expectedJson, ToXContent.EMPTY_PARAMS);
-            expectedJson.endObject();
-            NotEqualMessageBuilder message = new NotEqualMessageBuilder();
-            message.compareMaps(
-                    XContentHelper.convertToMap(BytesReference.bytes(actualJson), false).v2(),
-                    XContentHelper.convertToMap(BytesReference.bytes(expectedJson), false).v2());
-            throw new AssertionError("Didn't match expected value:\n" + message);
-        } catch (IOException e) {
-            throw new AssertionError("IOException while building failure message", e);
         }
     }
 
