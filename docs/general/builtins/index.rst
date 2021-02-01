@@ -19,7 +19,7 @@ Operators are reserved keywords that are primarily used in a
   aggregation
   arithmetic
   table-functions
-  operators
+  comparison-operators
   array-comparisons
   subquery-expressions
   window-functions

@@ -8,7 +8,7 @@ This section contains several constructs that can be used to make comparisons
 between a list of values. Comparison operations result in a boolean value
 (``true``/``false``) or ``null``.
 
-These :ref:`sql_operators` are supported for doing array comparisons.
+These operators are supported for doing array comparisons.
 
 For additional examples of row comparisons, see :ref:`sql_subquery_expressions`.
 

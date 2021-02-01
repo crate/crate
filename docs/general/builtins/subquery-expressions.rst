@@ -12,7 +12,7 @@ expression that results in a boolean value (``true``/``false``) or ``null``.
     The used subquery has to be uncorrelated which means that the subquery does
     not contain references to relations in a parent statement.
 
-These :ref:`sql_operators` are supported for subquery expressions.
+These operators are supported for subquery expressions.
 
 To compare a list of values other than subqueries, see
 :ref:`sql_array_comparisons`.

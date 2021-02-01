@@ -190,9 +190,10 @@ The optional CLUSTERED clause specifies how a table should be distributed
 accross a cluster.
 
 :num_shards:
-  Specifies the number of shards a table is stored in. Must be greater
-  than 0. If not provided the number of shards is calculated based on
-  the number of currently active data nodes with the following formula::
+  Specifies the number of :ref:`shards <sql_ddl_sharding>` a table is stored
+  in. Must be greater than 0. If not provided, the number of shards is
+  calculated based on the number of currently active data nodes with the
+  following formula::
 
       num_shards = max(4, num_data_nodes * 2)
 
@@ -208,13 +209,19 @@ accross a cluster.
   stored in the same shard. The default is the primary key if specified,
   otherwise the internal ``_id`` column.
 
+.. SEEALSO::
+
+    :ref:`sql_ddl_sharding`
+
+
 .. _partitioned_by_clause:
 
 ``PARTITIONED BY``
 ==================
 
-The PARTITIONED clause splits the created table into separate partitions for
-every distinct combination of values in the listed columns.
+The ``PARTITIONED`` clause splits the created table into separate
+:ref:`partitions <partitioned_tables>` for every distinct combination of values
+in the listed columns.
 
 ::
 
@@ -236,6 +243,11 @@ Several restrictions apply to columns that can be used here:
 
    Columns referenced in the PARTITIONED clause cannot be altered by an
    ``UPDATE`` statement.
+
+.. SEEALSO::
+
+    :ref:`partitioned_tables`
+
 
 .. _with_clause:
 
