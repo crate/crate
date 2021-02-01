@@ -29,6 +29,9 @@ import java.util.Objects;
 
 public class Paging {
 
+    // Indicates that no paging should be done but all results will be sent all at once.
+    public static final int NO_PAGING = Integer.MAX_VALUE;
+
     // this must not be final so tests could adjust it
     public static int PAGE_SIZE = 500_000;
     public static final long MAX_PAGE_BYTES = (long) (ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax() * 0.10);

@@ -564,7 +564,7 @@ public class JobSetup {
             var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
             RowConsumer consumer = context.getRowConsumer(
                 phase,
-                0,
+                Paging.NO_PAGING,
                 new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes));
             consumer.completionFuture().whenComplete((result, error) -> ramAccounting.close());
             context.registerSubContext(new CountTask(
@@ -596,7 +596,11 @@ public class JobSetup {
                 ramAccountingBlockSizeInBytes);
             var consumerMemoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
 
-            RowConsumer lastConsumer = context.getRowConsumer(pkLookupPhase, 0, consumerRamAccounting);
+            RowConsumer lastConsumer = context.getRowConsumer(
+                pkLookupPhase,
+                Paging.NO_PAGING,
+                consumerRamAccounting
+            );
             lastConsumer.completionFuture().whenComplete((result, error) -> {
                 consumerMemoryManager.close();
                 ramAccounting.close();
