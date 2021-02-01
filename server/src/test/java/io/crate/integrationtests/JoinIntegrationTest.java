@@ -30,7 +30,6 @@ import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
-
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -1163,6 +1162,48 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
             "    │  └ Collect[doc.t3 | [id, c] | true]\n" +
             "    └ Collect[doc.t4 | [id, d] | true]\n"
         ));
+        execute(stmt);
+    }
+
+    @Test
+    @UseHashJoins(value = 0.0)
+    @UseRandomizedSchema(random = false)
+    public void test_nested_join_with_primary_key_lookup_on_each_join() throws Exception {
+        // Tests for a bug where join operations got stuck because the Paging.PAGE_SIZE was set to 0 which
+        // resulted in intermediate requests for just 1 record. This causes the join operations to get stuck.
+        execute("create table t1 (id int primary key, a int)");
+        execute("create table t2 (id int primary key, b int) clustered into 1 shards");
+        execute("create table t3 (id int primary key, c int) clustered into 1 shards");
+        execute("insert into t1 (id, a) values (1, 1), (2, 10)");
+        execute("insert into t2 (id, b) values (1, 2), (2, 20)");
+        Object[][] bulkArgs = new Object[10][];
+        for (int i = 0; i < 10; i++) {
+            bulkArgs[i] = new Object[] { i, i * 10 };
+        }
+        execute("insert into t3 (id, c) values (?, ?)", bulkArgs);
+        execute("refresh table t1, t2, t3");
+        execute("analyze");
+        String stmt = """
+            SELECT
+                *
+            FROM
+                t1
+                JOIN t2 on t2.id = t1.id
+                LEFT OUTER JOIN t3 on t3.id = t2.id
+            WHERE
+                t2.id = 1
+                AND t3.id = 1
+        """;
+        execute("EXPLAIN " + stmt);
+        // ensure that the query is using the execution plan we want to test
+        // This should prevent from the test case becoming invalid
+        assertThat(printedTable(response.rows()), is(
+            "Eval[id, a, id, b, id, c]\n" +
+            "  └ NestedLoopJoin[INNER | (id = id)]\n" +
+            "    ├ NestedLoopJoin[INNER | (id = id)]\n" +
+            "    │  ├ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]\n" +
+            "    │  └ Collect[doc.t1 | [id, a] | true]\n" +
+            "    └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]\n"));
         execute(stmt);
     }
 }
