@@ -22,7 +22,7 @@
 
 package io.crate.protocols;
 
-import io.crate.auth.user.AccessControl;
+import io.crate.auth.AccessControl;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.InvalidSchemaNameException;

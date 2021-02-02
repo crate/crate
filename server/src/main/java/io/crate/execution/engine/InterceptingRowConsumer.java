@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

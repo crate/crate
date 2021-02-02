@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.JobKilledException;

@@ -47,7 +47,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.TaskMissing;

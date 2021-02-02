@@ -30,7 +30,7 @@ import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.auth.user.UserManager;
+import io.crate.user.UserManager;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;

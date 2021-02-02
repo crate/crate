@@ -25,7 +25,7 @@ package io.crate.planner;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

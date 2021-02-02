@@ -23,8 +23,8 @@
 package io.crate.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import io.crate.analyze.user.Privilege;
-import io.crate.auth.user.User;
+import io.crate.user.Privilege;
+import io.crate.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Tuple;
 import io.crate.exceptions.RelationUnknown;

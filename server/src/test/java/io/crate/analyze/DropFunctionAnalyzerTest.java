@@ -27,7 +27,7 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

@@ -59,6 +59,7 @@ import org.elasticsearch.plugins.Plugin;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AuthSettings;
+import io.crate.auth.AuthenticationModule;
 import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.TransportExecutorModule;
@@ -95,14 +96,14 @@ import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProviderFallbackModule;
 import io.crate.protocols.ssl.SslExtension;
 import io.crate.settings.CrateSetting;
-import io.crate.user.UserExtension;
-import io.crate.user.UserFallbackModule;
+import io.crate.user.UserManagementModule;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
+import io.crate.user.scalar.UsersScalarFunctionModule;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
     private final Settings settings;
-    @Nullable
-    private final UserExtension userExtension;
     @Nullable
     private final SslExtension sslExtension;
     private final IndexEventListenerProxy indexEventListenerProxy;
@@ -110,7 +111,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     public SQLPlugin(Settings settings) {
         this.settings = settings;
         this.indexEventListenerProxy = new IndexEventListenerProxy();
-        userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
         sslExtension = EnterpriseLoader.loadSingle(SslExtension.class);
     }
 
@@ -187,11 +187,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new BulkModule());
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
-        if (userExtension != null) {
-            modules.addAll(userExtension.getModules(settings));
-        } else {
-            modules.add(new UserFallbackModule());
-        }
+        modules.add(new UserManagementModule());
+        modules.add(new AuthenticationModule(settings));
+        modules.add(new UsersScalarFunctionModule());
         if (sslExtension != null) {
             modules.addAll(sslExtension.getModules());
         } else {
@@ -233,9 +231,28 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             ViewsMetadata.TYPE,
             in -> ViewsMetadata.readDiffFrom(Metadata.Custom.class, ViewsMetadata.TYPE, in)
         ));
-        if (userExtension != null) {
-            entries.addAll(userExtension.getNamedWriteables());
-        }
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            UsersMetadata.TYPE,
+            UsersMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            UsersMetadata.TYPE,
+            in -> UsersMetadata.readDiffFrom(Metadata.Custom.class, UsersMetadata.TYPE, in)
+        ));
+
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            UsersPrivilegesMetadata.TYPE,
+            UsersPrivilegesMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            UsersPrivilegesMetadata.TYPE,
+            in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
+        ));
+
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedWriteables());
         return entries;
@@ -254,10 +271,16 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             new ParseField(ViewsMetadata.TYPE),
             ViewsMetadata::fromXContent
         ));
-
-        if (userExtension != null) {
-            entries.addAll(userExtension.getNamedXContent());
-        }
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(UsersMetadata.TYPE),
+            UsersMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(UsersPrivilegesMetadata.TYPE),
+            UsersPrivilegesMetadata::fromXContent
+        ));
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedXContent());
         return entries;

@@ -42,7 +42,6 @@ dependencies {
     }
 
     // include the extensions module in classpath to be able to use it with Crate launched from within intellij
-    runtime project(':extensions:users')
     runtime project(':extensions:ssl-impl')
     runtime project(':extensions:functions')
     runtime project(':extensions:lang-js')
@@ -277,13 +276,11 @@ jar {
 }
 
 task collectExtensionsModules(
-    dependsOn: [':extensions:users:jar',
-                ':extensions:ssl-impl:jar']) {
+    dependsOn: [':extensions:ssl-impl:jar']) {
     // this task collects the extensions module jar into a single folder
     // named extensions from which the files are taken for the installDist task
     doLast {
         copy {
-            from(project(':extensions:users').tasks.jar.archivePath)
             from(project(':extensions:ssl-impl').tasks.jar.archivePath)
             into 'extensions'
         }

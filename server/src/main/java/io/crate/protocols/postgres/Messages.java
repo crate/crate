@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.auth.user.AccessControl;
+import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;

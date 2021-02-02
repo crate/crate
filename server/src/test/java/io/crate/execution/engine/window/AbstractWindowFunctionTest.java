@@ -25,7 +25,7 @@ package io.crate.execution.engine.window;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;

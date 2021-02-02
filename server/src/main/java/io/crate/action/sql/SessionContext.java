@@ -22,7 +22,7 @@
 
 package io.crate.action.sql;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.metadata.SearchPath;
 import io.crate.planner.optimizer.Rule;
 

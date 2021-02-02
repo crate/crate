@@ -24,9 +24,9 @@ package io.crate.execution.engine.collect.sources;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.Iterables;
 
-import io.crate.auth.user.User;
-import io.crate.auth.user.UserLookup;
-import io.crate.auth.user.UserManager;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
+import io.crate.user.UserManager;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
