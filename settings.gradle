@@ -23,7 +23,6 @@ include 'libs:shared',
         'enterprise:users',
         'enterprise:ssl-impl',
         'enterprise:functions',
-        'enterprise:licensing',
         'benchmarks'
 
 buildCache {
