@@ -23,7 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;

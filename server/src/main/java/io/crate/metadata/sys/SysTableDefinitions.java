@@ -22,7 +22,7 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.analyze.user.Privilege;
+import io.crate.user.Privilege;
 import io.crate.execution.engine.collect.files.SummitsIterable;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.StaticTableDefinition;

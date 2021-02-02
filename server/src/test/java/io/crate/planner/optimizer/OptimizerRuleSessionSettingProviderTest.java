@@ -23,7 +23,7 @@
 package io.crate.planner.optimizer;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;

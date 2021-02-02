@@ -25,7 +25,7 @@ package io.crate.action.sql;
 import io.crate.analyze.AnalyzedPrivileges;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.auth.user.UserManager;
+import io.crate.user.UserManager;
 import io.crate.data.Row;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;

@@ -26,7 +26,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.Relations;
 import io.crate.analyze.TableDefinitions;
-import io.crate.auth.user.AccessControl;
+import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;

@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;

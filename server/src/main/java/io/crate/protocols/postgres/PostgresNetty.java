@@ -55,7 +55,7 @@ import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.Authentication;
-import io.crate.auth.user.UserManager;
+import io.crate.user.UserManager;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.CrateChannelBootstrapFactory;
 import io.crate.netty.EventLoopGroups;

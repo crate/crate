@@ -22,7 +22,9 @@
 
 package io.crate.auth.user;
 
-import io.crate.analyze.user.Privilege;
+import io.crate.user.Privilege;
+import io.crate.user.UserPrivileges;
+
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.util.set.Sets;
 import org.junit.Test;

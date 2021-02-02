@@ -23,8 +23,8 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.auth.AlwaysOKNullAuthentication;
-import io.crate.auth.user.AccessControl;
+import io.crate.auth.AccessControl;
+import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.protocols.ssl.SslContextProvider;
 import org.elasticsearch.test.ESTestCase;
 import io.netty.buffer.ByteBuf;
@@ -60,7 +60,7 @@ public class SslReqHandlerTest extends ESTestCase {
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
                 sessionContext -> AccessControl.DISABLED,
-                new AlwaysOKNullAuthentication(),
+                new AlwaysOKAuthentication(userName -> null),
                 // use a simple ssl context
                 getSelfSignedSslContextProvider());
 

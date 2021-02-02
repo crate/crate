@@ -22,11 +22,11 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.auth.AlwaysOKNullAuthentication;
+import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import org.elasticsearch.test.ESTestCase;
 import org.apache.logging.log4j.LogManager;
 import org.junit.Test;
@@ -38,7 +38,7 @@ import static org.hamcrest.core.Is.is;
 
 public class AuthenticationContextTest extends ESTestCase {
 
-    private static final Authentication AUTHENTICATION = new AlwaysOKNullAuthentication();
+    private static final Authentication AUTHENTICATION = new AlwaysOKAuthentication(userName -> User.CRATE_USER);
 
     @Test
     public void testAuthenticationContextCycle() throws Exception {

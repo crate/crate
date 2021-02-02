@@ -23,11 +23,12 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.auth.AlwaysOKNullAuthentication;
+import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.netty.EventLoopGroups;
 import io.crate.protocols.ssl.SslContextProvider;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.user.StubUserManager;
+
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -78,18 +79,20 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
     public void testBindAndPublishAddressDefault() {
         // First check if binding to a local works
         NetworkService networkService = new NetworkService(Collections.emptyList());
+        StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             Settings.EMPTY,
             mock(SQLOperations.class),
-            new StubUserManager(),
+            userManager,
             networkService,
-            new AlwaysOKNullAuthentication(),
+            new AlwaysOKAuthentication(userManager),
             new EventLoopGroups(),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
         } finally {
             psql.doStop();
+            psql.close();
         }
     }
 
@@ -98,12 +101,13 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         // Check override for network.host
         Settings settingsWithCustomHost = Settings.builder().put("network.host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
+        StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomHost,
             mock(SQLOperations.class),
-            new StubUserManager(),
+            userManager,
             networkService,
-            new AlwaysOKNullAuthentication(),
+            new AlwaysOKAuthentication(userManager),
             new EventLoopGroups(),
             mock(SslContextProvider.class));
         try {
@@ -123,12 +127,13 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         // Check override for network.bind_host
         Settings settingsWithCustomBind = Settings.builder().put("network.bind_host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
+        StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomBind,
             mock(SQLOperations.class),
-            new StubUserManager(),
+            userManager,
             networkService,
-            new AlwaysOKNullAuthentication(),
+            new AlwaysOKAuthentication(userManager),
             new EventLoopGroups(),
             mock(SslContextProvider.class));
         try {
@@ -148,12 +153,13 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         // Check override for network.publish_host
         Settings settingsWithCustomPublish = Settings.builder().put("network.publish_host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
+        StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomPublish,
             mock(SQLOperations.class),
-            new StubUserManager(),
+            userManager,
             networkService,
-            new AlwaysOKNullAuthentication(),
+            new AlwaysOKAuthentication(userManager),
             new EventLoopGroups(),
             mock(SslContextProvider.class));
         try {

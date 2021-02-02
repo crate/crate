@@ -26,8 +26,8 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.auth.user.AccessControl;
-import io.crate.auth.user.User;
+import io.crate.auth.AccessControl;
+import io.crate.user.User;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -314,6 +314,7 @@ public class SQLTransportExecutor {
             if (random.nextBoolean()) {
                 properties.setProperty("prepareThreshold", "-1"); // always use prepared statements
             }
+            properties.put("user", User.CRATE_USER.name());
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
                 for (String setSessionStmt : setSessionStatementsList) {

@@ -21,7 +21,7 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.After;

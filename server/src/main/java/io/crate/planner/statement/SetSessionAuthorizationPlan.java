@@ -23,8 +23,8 @@
 package io.crate.planner.statement;
 
 import io.crate.analyze.AnalyzedSetSessionAuthorizationStatement;
-import io.crate.auth.user.User;
-import io.crate.auth.user.UserManager;
+import io.crate.user.User;
+import io.crate.user.UserManager;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

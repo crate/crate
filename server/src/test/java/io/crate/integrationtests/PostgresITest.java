@@ -124,9 +124,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             // force binary transfer & use server-side prepared statements
             properties.setProperty("prepareThreshold", "-1");
         }
-        if (randomBoolean()) {
-            properties.setProperty("user", "crate");
-        }
+        properties.setProperty("user", "crate");
     }
 
     @Test
@@ -140,6 +138,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     @Test
     public void testMultidimensionalArrayWithDifferentSizedArrays() throws Exception {
         Properties properties = new Properties();
+        properties.setProperty("user", "crate");
         properties.setProperty(PGProperty.PREFER_QUERY_MODE.getName(), PreferQueryMode.SIMPLE.value());
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             Statement statement = conn.createStatement();
@@ -157,6 +156,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         }
 
         properties = new Properties();
+        properties.setProperty("user", "crate");
         properties.setProperty("prepareThreshold", "-1"); // force binary transfer
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             ResultSet resultSet = conn.createStatement().executeQuery("select o1['o2']['x'] from t");
@@ -210,6 +210,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     @Test
     public void testPreparedStatementHandling() throws Exception {
         Properties properties = new Properties();
+        properties.setProperty("user", "crate");
         properties.setProperty("prepareThreshold", "-1");
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             PreparedStatement p1 = conn.prepareStatement("select 1 from sys.cluster");
@@ -231,6 +232,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     @Test
     public void testPreparedSelectStatementWithParametersCanBeDescribed() throws Exception {
         Properties properties = new Properties();
+        properties.setProperty("user", "crate");
         properties.setProperty("prepareThreshold", "-1");
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             PreparedStatement p1 = conn.prepareStatement("select ? from sys.cluster");
@@ -778,7 +780,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testRepeatedFetchDoesNotLeakSysJobsLog() throws Exception {
-        try (Connection conn = DriverManager.getConnection(url(RW))) {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.prepareStatement(
                 "create table t (" +
                 "   x int, ts timestamp with time zone" +
@@ -811,7 +813,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void test_insert_with_on_conflict_do_nothing_batch_error_resp_is_0_for_conflicting_items() throws Exception {
-        try (Connection conn = DriverManager.getConnection(url(RW))) {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.prepareStatement("create table t (id int primary key) clustered into 1 shards").execute();
             conn.prepareStatement("insert into t (id) (select col1 from generate_series(1, 3))").execute();
 
@@ -830,7 +832,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void test_all_system_columns_can_be_queried_via_postgres() throws Exception {
-        try (Connection conn = DriverManager.getConnection(url(RW))) {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             // Create a table to also have some shards and sys.allocations, sys.heatlh, sys.shards, etc are not empty.
             conn.prepareStatement("create table tbl (x int)").execute();
 
@@ -880,7 +882,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void test_getProcedureColumns() throws Exception {
-        try (Connection conn = DriverManager.getConnection(url(RW))) {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             var results = conn.getMetaData().getProcedureColumns("", "", "", "");
             assertThat(results.next(), is(true));
             assertThat(results.getString(3), is("_pg_expandarray"));
@@ -889,7 +891,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void test_each_non_array_pg_type_entry_can_be_joined_with_pg_proc() throws Exception {
-        try (Connection conn = DriverManager.getConnection(url(RW))) {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             PreparedStatement stmt = conn.prepareStatement(
                 "SELECT pg_type.oid, pg_type.typname, pg_proc.proname " +
                 "FROM pg_catalog.pg_type LEFT OUTER JOIN pg_catalog.pg_proc ON pg_proc.oid = pg_type.typreceive " +
@@ -907,7 +909,9 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void test_insert_from_unnest_returning_which_inserts_duplicate_keys() throws Exception {
-        try (var conn = DriverManager.getConnection(url(RW))) {
+        Properties properties = new Properties();
+        properties.setProperty("user", "crate");
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
             var statement = conn.createStatement();
             statement.execute("create table tbl (id bigint primary key, val text)");
             var textGenerator = DataTypeTesting.getDataGenerator(DataTypes.STRING);

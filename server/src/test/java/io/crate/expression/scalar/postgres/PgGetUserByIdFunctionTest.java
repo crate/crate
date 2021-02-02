@@ -22,7 +22,7 @@
 
 package io.crate.expression.scalar.postgres;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 

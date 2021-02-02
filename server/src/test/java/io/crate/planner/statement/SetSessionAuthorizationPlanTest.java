@@ -23,9 +23,9 @@
 package io.crate.planner.statement;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.auth.user.AccessControl;
-import io.crate.auth.user.User;
-import io.crate.auth.user.UserManager;
+import io.crate.auth.AccessControl;
+import io.crate.user.User;
+import io.crate.user.UserManager;
 import io.crate.data.Row;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.NoopPlan;

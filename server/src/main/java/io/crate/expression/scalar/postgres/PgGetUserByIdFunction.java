@@ -28,7 +28,7 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-import static io.crate.auth.user.User.CRATE_USER;
+import static io.crate.user.User.CRATE_USER;
 import static io.crate.metadata.functions.Signature.scalar;
 
 public class PgGetUserByIdFunction {
