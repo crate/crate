@@ -45,7 +45,6 @@ dependencies {
     runtime project(':enterprise:users')
     runtime project(':enterprise:ssl-impl')
     runtime project(':enterprise:functions')
-    runtime project(':enterprise:licensing')
     runtime project(':enterprise:lang-js')
 
     testCompile project(path: ':server', configuration: 'testOutput')
@@ -279,15 +278,13 @@ jar {
 
 task collectEnterpriseModules(
     dependsOn: [':enterprise:users:jar',
-                ':enterprise:ssl-impl:jar',
-                ':enterprise:licensing:jar']) {
+                ':enterprise:ssl-impl:jar']) {
     // this task collects the enterprise module jar into a single folder
     // named enterprise from which the files are taken for the installDist task
     doLast {
         copy {
             from(project(':enterprise:users').tasks.jar.archivePath)
             from(project(':enterprise:ssl-impl').tasks.jar.archivePath)
-            from(project(':enterprise:licensing').tasks.jar.archivePath)
             into 'enterprise'
         }
     }
