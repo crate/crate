@@ -44,6 +44,7 @@ tmp/
 app/adminui/
 app/data/
 app/enterprise/
+app/extensions/
 app/logs/
 app/oss_modules/
 app/plugins/

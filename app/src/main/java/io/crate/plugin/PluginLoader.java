@@ -61,7 +61,7 @@ public class PluginLoader {
         "path.crate_plugins", Setting.Property.NodeScope);
 
     private static final String RESOURCE_PATH = "META-INF/services/";
-    private static final String ENTERPRISE_FOLDER_NAME = "enterprise";
+    private static final String EXTENSIONS_FOLDER_NAME = "extensions";
 
     private final Settings settings;
     private final Logger logger;
@@ -105,14 +105,14 @@ public class PluginLoader {
         }
 
         final File[] plugins = pluginsPath.toFile()
-            .listFiles(file -> !file.getName().equals(ENTERPRISE_FOLDER_NAME));
+            .listFiles(file -> !file.getName().equals(EXTENSIONS_FOLDER_NAME));
 
         if (plugins == null) {
             return Collections.emptyList();
         }
 
         final File[] allPlugins;
-        File enterprisePluginDir = new File(pluginsPath.toFile(), ENTERPRISE_FOLDER_NAME);
+        File enterprisePluginDir = new File(pluginsPath.toFile(), EXTENSIONS_FOLDER_NAME);
         File[] enterpriseFiles = enterprisePluginDir.listFiles();
         if (enterpriseFiles != null) {
             allPlugins = Arrays.copyOf(plugins, plugins.length + enterpriseFiles.length);
