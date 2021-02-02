@@ -193,56 +193,6 @@ def jdkCopySpec = copySpec {
 }
 
 distributions {
-    communityEdition {
-        baseName = 'crate-ce'
-        contents {
-            into("") {
-                from("$rootDir") {
-                    include 'LICENSE'
-                    include 'NOTICE'
-                    include 'README.rst'
-                }
-                from("src/main/dist")
-                from(project.buildDir.path + "/releaseNotes") {
-                    include 'CHANGES.txt'
-                }
-                File.createTempDir().with {
-                    def tmpLogs = new File(absolutePath, 'logs')
-                    tmpLogs.mkdirs()
-                    from(absolutePath) {
-                        includeEmptyDirs = true
-                    }
-                }
-            }
-            into("bin") {
-                from(project.buildDir.path + "/bin")
-            }
-            into("lib") {
-                from libs
-                exclude 'crate-*.jar'
-                exclude 'es.jar'
-                exclude 'es-*.jar'
-            }
-            into("lib") {
-                from jar
-            }
-            into("lib") {
-                from("oss_modules")
-            }
-            into('plugins') {
-                from('plugins') {
-                    includeEmptyDirs = true
-                    exclude 'enterprise'
-                }
-            }
-            into('lib/site') {
-                from('adminui/_site')
-            }
-            into('jdk') {
-                with jdkCopySpec
-            }
-        }
-    }
     main {
         baseName = 'crate'
         contents {
