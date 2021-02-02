@@ -376,9 +376,6 @@ long. The following settings can be used to adjust these timeouts:
 Authentication
 ==============
 
-.. NOTE::
-
-    Authentication is an :ref:`enterprise feature <enterprise-features>`.
 
 .. _host_based_auth:
 
@@ -518,10 +515,6 @@ Secured communications (SSL/TLS)
 Secured communications via SSL allows you to encrypt traffic between CrateDB
 nodes and clients connecting to them. Connections are secured using Transport
 Layer Security (TLS).
-
-.. NOTE::
-
-    SSL is an :ref:`enterprise feature <enterprise-features>`.
 
 .. _ssl.http.enabled:
 
@@ -743,9 +736,6 @@ Javascript language
 
   Setting to enable or disable :ref:`JavaScript UDF support <udf_lang_js>`.
 
-  .. NOTE::
-
-      This is an :ref:`enterprise feature <enterprise-features>`.
 
 .. _conf-node-attributes:
 

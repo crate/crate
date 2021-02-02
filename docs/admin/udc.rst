@@ -48,7 +48,6 @@ Hardware Address  MAC address to uniquely identify instances behind
 Processor count   Number of available CPUs as reported by
                   ``Runtime.availableProcessors``
 Enterprise        Identifies whether the Enterprise Edition is used.
-License           License information of the CrateDB Enterprise Edition.
 ================  =========================================================
 
 After startup, UDC waits for 10 minutes before sending the first ping. It does

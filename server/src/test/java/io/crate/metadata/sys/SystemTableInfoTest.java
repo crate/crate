@@ -22,7 +22,6 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.license.CeLicenseService;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.TableInfo;
@@ -41,8 +40,7 @@ public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() {
         sysSchemaInfo = new SysSchemaInfo(
             this.clusterService,
-            new CrateSettings(clusterService, clusterService.getSettings()),
-            new CeLicenseService()
+            new CrateSettings(clusterService, clusterService.getSettings())
         );
     }
 

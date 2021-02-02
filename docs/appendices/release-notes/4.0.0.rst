@@ -160,7 +160,7 @@ Removed Settings
   the :ref:`SET LICENSE <ref-set-license>` statement.
 
 - Removed the deprecated ``license.enterprise`` setting. To use CrateDB without
-  any enterprise features one should use the :ref:`community-edition` instead.
+  any enterprise features one should use the community edition instead.
 
 - Removed the experimental `enable_semijoin` session setting. As this defaulted
   to false, this execution strategy cannot be used anymore.

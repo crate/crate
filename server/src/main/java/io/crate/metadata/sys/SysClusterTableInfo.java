@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.license.LicenseService;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.SystemTable.Builder;
@@ -64,17 +63,16 @@ public class SysClusterTableInfo {
     }
 
     public static SystemTable<Void> of(ClusterService clusterService,
-                                       CrateSettings crateSettings,
-                                       LicenseService licenseService) {
+                                       CrateSettings crateSettings) {
         Settings settings = clusterService.getSettings();
         var relBuilder = SystemTable.<Void>builder(IDENT)
             .add("id", DataTypes.STRING, nothing -> clusterService.state().metadata().clusterUUID())
             .add("name", DataTypes.STRING, nothing -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value())
             .add("master_node", DataTypes.STRING, nothing -> clusterService.state().nodes().getMasterNodeId())
-            .startObject("license", x -> licenseService.currentLicense() == null)
-                .add("expiry_date", DataTypes.TIMESTAMPZ, x -> licenseService.getExpiryDateInMs())
-                .add("issued_to", DataTypes.STRING, x -> licenseService.getIssuedTo())
-                .add("max_nodes", DataTypes.INTEGER, x -> licenseService.getMaxNodes())
+            .startObject("license", ignored -> true)
+                .add("expiry_date", DataTypes.TIMESTAMPZ, ignored -> null)
+                .add("issued_to", DataTypes.STRING, ignored -> null)
+                .add("max_nodes", DataTypes.INTEGER, ignored -> null)
             .endObject();
 
         var settingsBuilder = relBuilder.startObject("settings")

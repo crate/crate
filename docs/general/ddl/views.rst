@@ -9,8 +9,11 @@ Views
 .. contents::
     :local:
 
-Introduction: Creating views
-============================
+
+.. _views-create:
+
+Creating views
+==============
 
 Views are stored named queries which can be used in place of table names.
 They're resolved at runtime and can be used to simplify common queries.
@@ -24,6 +27,8 @@ pre-defined filter::
     ... SELECT * FROM sys.summits WHERE height > 2000;
     CREATE OK, 1 row affected (... sec)
 
+
+.. _views-query:
 
 Querying views
 ==============
@@ -41,17 +46,17 @@ Once created, views can be used instead of a table in a statement::
     SELECT 3 rows in set (... sec)
 
 
-.. _views_enterprise:
+.. _views-privileges:
 
-Privileges (Enterprise only)
-----------------------------
+Privileges
+----------
 
 In order to be able to query data from a view, a user needs to have ``DQL``
 privileges on a view. DQL privileges can be granted on a cluster level, on the
 schema in which the view is contained, or the view itself. Privileges on
 relations accessed by the view are not necessary.
 
-However, it is required, at all time, that the **owner** (the user who created
+However, it is required, at all times, that the *owner* (the user who created
 the view), has ``DQL`` privileges on all relations occurring within the view's
 query definition.
 
@@ -60,7 +65,12 @@ without exposing the table itself as well. If the owner ``DQL`` permissions
 on the underlying relations, a user who has access to the view will no longer
 be able to query it.
 
-See also :ref:`administration-privileges`.
+.. SEEALSO::
+
+    :ref:`Administration: Privileges <administration-privileges>`
+
+
+.. _views-drop:
 
 Dropping views
 ==============

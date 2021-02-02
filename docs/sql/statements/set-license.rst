@@ -5,8 +5,6 @@
 ``SET LICENSE``
 ===============
 
-Sets the license Key.
-
 .. rubric:: Table of contents
 
 .. contents::
@@ -22,19 +20,8 @@ Synopsis
 Description
 ===========
 
-``SET LICENSE`` registers a license key that will enable
-CrateDB to operate in `Enterprise Edition`_  until the license expiry date.
-
-.. NOTE::
-
-    Should the license registration fail, the cluster will continue to
-    operate in the existing mode e.g. `Enterprise Edition`_ as long as
-    the current license is still valid (i.e. not expired).
-
-    When the existing licence expires, the cluster will run in a *degraded mode*,
-    allowing only read only system information operations and the
-    ``SET LICENSE`` statement. Switching to the `Community Edition`_
-    is an alternative. For more details on that see :ref:`enterprise-features`.
+``SET LICENSE`` is a no-op statement (i.e., does nothing) and is supported for
+backward compatibility with earlier versions of CrateDB.
 
 
 Parameters
@@ -43,12 +30,8 @@ Parameters
 License Key
 -----------
 
-The ``license_key`` parameter is the encoded representation of
-a CrateDB license that CrateIO will provide.
+The ``license_key`` parameter is ignored.
 
 .. SEEALSO::
-    You can view the current license by querying the ``sys.cluster`` table.
-    See :ref:`sys-cluster-license`.
 
-.. _enterprise edition: https://crate.io/products/cratedb-editions/
-.. _community edition: https://crate.io/products/cratedb-editions/
+    :ref:`sys-cluster-license`

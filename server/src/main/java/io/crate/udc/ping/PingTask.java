@@ -21,8 +21,6 @@
 
 package io.crate.udc.ping;
 
-import io.crate.license.LicenseData;
-import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,19 +56,16 @@ public class PingTask extends TimerTask {
     private final ClusterService clusterService;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final String pingUrl;
-    private final LicenseService licenseService;
 
     private final AtomicLong successCounter = new AtomicLong(0);
     private final AtomicLong failCounter = new AtomicLong(0);
 
     public PingTask(ClusterService clusterService,
                     ExtendedNodeInfo extendedNodeInfo,
-                    String pingUrl,
-                    LicenseService licenseService) {
+                    String pingUrl) {
         this.clusterService = clusterService;
         this.pingUrl = pingUrl;
         this.extendedNodeInfo = extendedNodeInfo;
-        this.licenseService = licenseService;
     }
 
     private Map<String, String> getKernelData() {
@@ -113,16 +108,6 @@ public class PingTask extends TimerTask {
         queryMap.put("num_processors", Integer.toString(Runtime.getRuntime().availableProcessors()));
         queryMap.put("crate_version", Version.CURRENT.externalNumber());
         queryMap.put("java_version", System.getProperty("java.version"));
-
-        LicenseData license = licenseService.currentLicense();
-        if (license != null) {
-            queryMap.put("enterprise_edition", String.valueOf(true));
-            queryMap.put("license_expiry_date", String.valueOf(license.expiryDateInMs()));
-            queryMap.put("license_issued_to", license.issuedTo());
-            queryMap.put("license_max_nodes", String.valueOf(license.maxNumberOfNodes()));
-        } else {
-            queryMap.put("enterprise_edition", String.valueOf(false));
-        }
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Sending data: {}", queryMap);

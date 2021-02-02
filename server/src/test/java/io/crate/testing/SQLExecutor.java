@@ -55,7 +55,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.license.CeLicenseService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexParts;
@@ -227,7 +226,6 @@ public class SQLExecutor {
         private UserManager userManager = new StubUserManager();
 
         private TableStats tableStats = new TableStats();
-        private boolean hasValidLicense = true;
         private Schemas schemas;
         private LoadedRules loadedRules = new LoadedRules();
         private SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules));
@@ -247,7 +245,7 @@ public class SQLExecutor {
             udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
             CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
-            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, crateSettings, new CeLicenseService()));
+            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, crateSettings));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
             schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats));
             IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
@@ -345,11 +343,6 @@ public class SQLExecutor {
             return this;
         }
 
-        public Builder setHasValidLicense(boolean hasValidLicense) {
-            this.hasValidLicense = hasValidLicense;
-            return this;
-        }
-
         /**
          * Adds a couple of tables which are defined in {@link T3} and {@link io.crate.analyze.TableDefinitions}.
          * <p>
@@ -418,7 +411,6 @@ public class SQLExecutor {
                     null,
                     schemas,
                     userManager,
-                    () -> hasValidLicense,
                     sessionSettingRegistry
                 ),
                 relationAnalyzer,

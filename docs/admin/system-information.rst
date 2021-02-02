@@ -29,7 +29,9 @@ Basic information about the CrateDB cluster can be retrieved from the
 |                  | system.                         |             |
 +------------------+---------------------------------+-------------+
 | ``license``      | The current CrateDB license     | ``OBJECT``  |
-|                  | information.                    |             |
+|                  | information. Always `NULL`.     |             |
+|                  | This exists for backward        |             |
+|                  | compatibility                   |             |
 +------------------+---------------------------------+-------------+
 | ``name``         | The cluster name.               | ``TEXT``    |
 +------------------+---------------------------------+-------------+
@@ -1237,9 +1239,8 @@ that is performing the query::
 
 .. NOTE::
 
-    If the :ref:`enterprise edition <enterprise-features>` is disabled or the
-    user management module is not available, the ``username`` is represented as
-    ``crate``.
+    If the user management module is not available, the ``username`` is
+    given as ``crate``.
 
 Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request
@@ -1528,9 +1529,8 @@ Here's an example query::
   +----+--------------------------------------------------------------...-+
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be recreated for compatibility w... |
-  |  6 | Your CrateDB license is valid. Enjoy CrateDB!                    |
   +----+--------------------------------------------------------------...-+
-  SELECT 3 rows in set (... sec)
+  SELECT 2 rows in set (... sec)
 
 Cluster checks are also indicated in the CrateDB `admin console`_. When all
 cluster checks (and all :ref:`sys-node-checks`) pass, the *Checks* icon will be
@@ -1729,6 +1729,13 @@ After you reindexed all tables, this cluster check will pass.
 License check
 .............
 
+
+.. NOTE::
+
+   This check was removed in version 4.5 because CrateDB no longer requires an
+   enterprise license
+
+
 This check warns you when your license is close to expiration, is already
 expired, or if the cluster contains more nodes than allowed by your license. It
 will yield a ``MEDIUM`` alert when your license is valid for less than 15 days
@@ -1737,11 +1744,6 @@ All other cases, like `already expired` or `max-nodes-violation`, it will
 result in a ``HIGH`` alert. We recommend that you request a new license when
 this check triggers, in order to avoid the situation where operations are
 rejected due to an invalid license.
-
-.. NOTE::
-
-   This check is not active when running the CrateDB Community Edition as no
-   license is supported.
 
 .. _sys-health:
 
@@ -2044,7 +2046,6 @@ Users
 =====
 
 The ``sys.users`` table contains all existing database users in the cluster.
-The table is only available in the CrateDB `Enterprise Edition`_.
 
 +---------------+----------------------------------------------+-------------+
 | Column Name   | Description                                  | Return Type |
@@ -2244,5 +2245,3 @@ been analyzed.
 
     Not all data types support creating statistics. So some columns may not
     show up in the table.
-
-.. _Enterprise Edition: https://crate.io/products/cratedb-editions/

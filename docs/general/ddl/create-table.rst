@@ -77,14 +77,8 @@ The following schema names are reserved and may not be used:
 
 .. TIP::
 
-   Schemas are primarily namespaces for tables.
-
-   In the standard edition of CrateDB, there is no notion of access control and
-   everybody can see and manipulate tables in every schema.
-
-   In the :ref:`Enterprise Edition <enterprise-features>` of CrateDB, you can
-   use :ref:`privileges <administration-privileges>` to control access to
-   schemas.
+   Schemas are primarily namespaces for tables. You can use :ref:`privileges
+   <administration-privileges>` to control access to schemas.
 
 A user created schema exists as long as there are tables with the same schema
 name. If the last table with that schema is dropped, the schema is gone (except

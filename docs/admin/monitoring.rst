@@ -6,10 +6,6 @@ JMX monitoring
 
 The JMX monitoring feature exposes query metrics via the `JMX`_ API.
 
-.. NOTE::
-
-   JMX monitoring is an :ref:`enterprise feature <enterprise-features>`.
-
 .. rubric:: Table of contents
 
 .. contents::

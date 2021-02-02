@@ -21,7 +21,6 @@
 
 package io.crate.udc.service;
 
-import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
@@ -64,18 +63,15 @@ public class UDCService extends AbstractLifecycleComponent {
 
     private final ClusterService clusterService;
     private final ExtendedNodeInfo extendedNodeInfo;
-    private final LicenseService licenseService;
     private final Settings settings;
 
     @Inject
     public UDCService(Settings settings,
                       ExtendedNodeInfo extendedNodeInfo,
-                      ClusterService clusterService,
-                      LicenseService licenseService) {
+                      ClusterService clusterService) {
         this.settings = settings;
         this.extendedNodeInfo = extendedNodeInfo;
         this.clusterService = clusterService;
-        this.licenseService = licenseService;
         this.timer = new Timer("crate-udc");
     }
 
@@ -88,7 +84,7 @@ public class UDCService extends AbstractLifecycleComponent {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
         }
-        PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url, licenseService);
+        PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
     }
 

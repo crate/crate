@@ -1,46 +1,48 @@
 /*
- * This file is part of a module with proprietary Enterprise Features.
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- * Licensed to Crate.io Inc. ("Crate.io") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unauthorized copying of this file, via any medium is strictly prohibited.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
- * To use this file, Crate.io must have given you permission to enable and
- * use such Enterprise Features and you must have a valid Enterprise or
- * Subscription Agreement with Crate.io.  If you enable or use the Enterprise
- * Features, you represent and warrant that you have a valid Enterprise or
- * Subscription Agreement with Crate.io.  Your use of the Enterprise Features
- * if governed by the terms and conditions of your Enterprise or Subscription
- * Agreement with Crate.io.
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.license;
+
+import java.io.IOException;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.tasks.Task;
-
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
 
-import static io.crate.license.LicenseKey.decode;
-
+/**
+ * Kept for BWC with CrateDB < 4.5
+ **/
 @Singleton
 public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLicenseRequest, AcknowledgedResponse> {
 
@@ -74,49 +76,11 @@ public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLice
                                    final SetLicenseRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) {
-        LicenseKey metadata = request.licenseMetadata();
-        clusterService.submitStateUpdateTask("register license with key [" + metadata.licenseKey() + "]",
-            new ClusterStateUpdateTask() {
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata currentMetadata = currentState.metadata();
-                    if (ignoreNewTrialLicense(metadata, currentMetadata)) {
-                        return currentState;
-                    }
-                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                    mdBuilder.putCustom(LicenseKey.WRITEABLE_TYPE, metadata);
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                }
-
-                @Override
-                public TimeValue timeout() {
-                    return request.masterNodeTimeout();
-                }
-
-                @Override
-                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    listener.onResponse(new AcknowledgedResponse(true));
-                }
-
-                @Override
-                public void onFailure(String source, Exception e) {
-                    listener.onFailure(e);
-                }
-            });
+        listener.onResponse(new AcknowledgedResponse(true));
     }
 
     @Override
     protected ClusterBlockException checkBlock(SetLicenseRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
-    }
-
-    static boolean ignoreNewTrialLicense(LicenseKey newLicenseKey,
-                                         Metadata currentMetadata) throws Exception {
-        LicenseKey previousLicenseKey = currentMetadata.custom(LicenseKey.WRITEABLE_TYPE);
-        if (previousLicenseKey != null) {
-            License newLicense = decode(newLicenseKey);
-            return newLicense.type() == License.Type.TRIAL;
-        }
-        return false;
     }
 }

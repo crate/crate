@@ -69,7 +69,7 @@ The synopsis of an aggregate expression is one of the following
    aggregate_function ( [ DISTINCT ] expression [ , ... ] ) [ FILTER ( WHERE condition ) ]
 
 where ``aggregate_function`` is a name of an
-:ref:`aggregate function <aggregate-functions>` 
+:ref:`aggregate function <aggregate-functions>`
 and ``expression`` is a column reference, scalar function or literal.
 
 If ``FILTER`` is specified, then only the rows that met the
@@ -153,7 +153,7 @@ The ``count`` aggregate function also supports the ``distinct`` keyword. This
 keyword changes the behaviour of the function so that it will only count the
 number of distinct values in this column that are not ``NULL``::
 
-    cr> select 
+    cr> select
     ...   count(distinct kind) AS num_kind,
     ...   count(*),
     ...   date
@@ -381,7 +381,7 @@ The ``avg`` aggregate function also supports the ``distinct`` keyword. This
 keyword changes the behaviour of the function so that it will only average the
 number of distinct values in this column that are not ``NULL``::
 
-    cr> select 
+    cr> select
     ...   avg(distinct position) AS avg_pos,
     ...   count(*),
     ...   date
@@ -440,7 +440,7 @@ If all input values are null, null is returned as a result.
 
 ::
 
-    array_agg(any_non_array) -> array  
+    array_agg(any_non_array) -> array
 
 The ``array_agg`` aggregate function concatenates all input values into an
 array.
@@ -652,11 +652,6 @@ do.
 
 ``hyperloglog_distinct``
 ------------------------
-
-.. note::
-
-   The ``hyperloglog_distinct`` aggregate function is an :ref:`enterprise
-   feature <enterprise-features>`.
 
 The ``hyperloglog_distinct`` aggregate function calculates an approximate count
 of distinct non-null values using the `HyperLogLog++`_ algorithm.

@@ -88,7 +88,6 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
             null,
             sqlExecutor.schemas(),
             new StubUserManager(),
-            () -> true,
             mock(SessionSettingRegistry.class)
             ) {
 
