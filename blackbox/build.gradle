@@ -29,19 +29,6 @@ task unpackDistTar(dependsOn: [project(':app').installDist, deleteCrateDist]) {
     outputs.dir crateDist
 }
 
-task unpackCommunityEditionDistTar(dependsOn: [project(':app').installCommunityEditionDist, deleteCrateDist]) {
-    doLast {
-        copy {
-            from(project(':app').installCommunityEditionDist.destinationDir) {
-                includeEmptyDirs = true
-            }
-            into crateDist
-        }
-        ignoreDiskThreshold()
-    }
-    outputs.dir crateDist
-}
-
 def ignoreDiskThreshold() {
     def file = new File("$projectDir/tmp/crate/config/crate.yml")
     file.write(file.text.replaceAll(
@@ -84,18 +71,6 @@ task gtest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
 
 task dnsDiscoveryTest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
     commandLine "$projectDir/bin/test-dns-discovery"
-}
-
-task ceItest(type: Exec, dependsOn: ['bootstrap', 'unpackCommunityEditionDistTar']) {
-    commandLine "$projectDir/bin/test-ce-docs"
-}
-
-task ceNoEnterpriseTest(type: Exec, dependsOn: ['bootstrap', 'unpackCommunityEditionDistTar']) {
-    commandLine "$projectDir/bin/test-ce-no-enterprise"
-}
-
-task ceLicenseTest(type: Exec, dependsOn: ['bootstrap', 'unpackCommunityEditionDistTar']) {
-    commandLine "$projectDir/bin/test-ce-licensing"
 }
 
 task cleanDocs {

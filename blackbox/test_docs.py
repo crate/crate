@@ -47,8 +47,6 @@ def is_target_file_name(item):
     return not ITEST_FILE_NAME_FILTER or (item and ITEST_FILE_NAME_FILTER in item)
 
 
-CRATE_CE = True if os.environ.get('CRATE_CE') == "1" else False
-
 CRATE_SETTINGS = {
     'psql.port': 0,
     'transport.tcp.port': 0,
@@ -453,20 +451,6 @@ def load_tests(loader, suite, ignore):
             )
         )
 
-    if not CRATE_CE:
-        # These tests uses features only available in the CrateDB Enterprise Edition
-        for fn in doctest_files('general/user-defined-functions.rst',
-                                'general/information-schema.rst',
-                                'general/builtins/aggregation.rst',
-                                'general/builtins/scalar.rst',
-                                'admin/user-management.rst',
-                                'admin/system-information.rst',
-                                'admin/privileges.rst'):
-            tests.append(docsuite(fn, setUp=setUpLocationsAndQuotes))
-
-        for fn in doctest_files('general/builtins/window-functions.rst'):
-            tests.append(docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo))
-
     for fn in doctest_files('general/ddl/create-table.rst',
                             'general/ddl/generated-columns.rst',
                             'general/ddl/constraints.rst',
@@ -494,6 +478,13 @@ def load_tests(loader, suite, ignore):
                             'general/ddl/views.rst',
                             'sql/general/value-expressions.rst',
                             'sql/general/lexical-structure.rst',
+                            'general/user-defined-functions.rst',
+                            'general/information-schema.rst',
+                            'general/builtins/aggregation.rst',
+                            'general/builtins/scalar.rst',
+                            'admin/user-management.rst',
+                            'admin/system-information.rst',
+                            'admin/privileges.rst',
                             'sql/statements/values.rst'):
         tests.append(docsuite(fn, setUp=setUpLocationsAndQuotes))
 
@@ -503,7 +494,8 @@ def load_tests(loader, suite, ignore):
     for fn in doctest_files('general/dql/geo.rst',):
         tests.append(docsuite(fn, setUp=setUpCountries))
 
-    for fn in doctest_files('general/dql/joins.rst',
+    for fn in doctest_files('general/builtins/window-functions.rst',
+                            'general/dql/joins.rst',
                             'general/builtins/subquery-expressions.rst'):
         tests.append(docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo))
 

@@ -47,23 +47,6 @@ pipeline {
             sh './gradlew --no-daemon itest'
           }
         }
-        stage('ce itest') {
-          agent { label 'medium' }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'python3 ./blackbox/kill_4200.py'
-            sh './gradlew --no-daemon ceItest'
-          }
-        }
-        stage('ce licenseTest') {
-          agent { label 'medium' }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh './gradlew --no-daemon ceLicenseTest'
-          }
-        }
         stage('blackbox tests') {
           agent { label 'medium' }
           steps {

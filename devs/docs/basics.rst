@@ -60,12 +60,6 @@ And then start CrateDB like this::
 
     ./app/build/install/crate/bin/crate
 
-To build a tarball of the Community Edition, run::
-
-    $ ./gradlew communityEditionDistTar
-
-The built tarball will be in the ``app/build/distributions`` directory.
-
 To get a full list of all available tasks, run::
 
     $ ./gradlew tasks
