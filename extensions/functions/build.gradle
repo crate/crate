@@ -1,4 +1,4 @@
-apply from: "$rootDir/enterprise/enterpriseModule.gradle"
+apply from: "$rootDir/extensions/extensionModule.gradle"
 
 archivesBaseName = 'functions'
 group = 'io.crate'

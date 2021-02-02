@@ -41,11 +41,11 @@ dependencies {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
 
-    // include the enterprise module in classpath to be able to use it with Crate launched from within intellij
-    runtime project(':enterprise:users')
-    runtime project(':enterprise:ssl-impl')
-    runtime project(':enterprise:functions')
-    runtime project(':enterprise:lang-js')
+    // include the extensions module in classpath to be able to use it with Crate launched from within intellij
+    runtime project(':extensions:users')
+    runtime project(':extensions:ssl-impl')
+    runtime project(':extensions:functions')
+    runtime project(':extensions:lang-js')
 
     testCompile project(path: ':server', configuration: 'testOutput')
     testCompile("org.postgresql:postgresql:${versions.jdbc}")
@@ -135,7 +135,7 @@ ext {
 
 def rootDir = project.parent.projectDir
 def libs = project.configurations.runtime.filter {
-    !it.toPath().startsWith(Paths.get(rootDir.toString(), "enterprise"))
+    !it.toPath().startsWith(Paths.get(rootDir.toString(), "extensions"))
 }
 
 // For releases choose the file under the release_notes structure
@@ -229,7 +229,7 @@ distributions {
                 from("oss_modules")
             }
             into("lib") {
-                from("enterprise")
+                from("extensions")
             }
             into('plugins') {
                 from('plugins') {
@@ -276,29 +276,29 @@ jar {
     from fileTree(buildDir).matching { include 'META-INF/services/*' }
 }
 
-task collectEnterpriseModules(
-    dependsOn: [':enterprise:users:jar',
-                ':enterprise:ssl-impl:jar']) {
-    // this task collects the enterprise module jar into a single folder
-    // named enterprise from which the files are taken for the installDist task
+task collectExtensionsModules(
+    dependsOn: [':extensions:users:jar',
+                ':extensions:ssl-impl:jar']) {
+    // this task collects the extensions module jar into a single folder
+    // named extensions from which the files are taken for the installDist task
     doLast {
         copy {
-            from(project(':enterprise:users').tasks.jar.archivePath)
-            from(project(':enterprise:ssl-impl').tasks.jar.archivePath)
-            into 'enterprise'
+            from(project(':extensions:users').tasks.jar.archivePath)
+            from(project(':extensions:ssl-impl').tasks.jar.archivePath)
+            into 'extensions'
         }
     }
 }
-collectEnterpriseModules.outputs.dir('enterprise')
+collectExtensionsModules.outputs.dir('extensions')
 
 
 task downloadPlugins(
     dependsOn: ['downloadAdminUI',
                 ':plugins:es-repository-hdfs:jar',
                 ':plugins:azure-discovery:jar',
-                ':enterprise:jmx-monitoring:jar',
-                ':enterprise:lang-js:jar',
-                ':enterprise:functions:jar']) {
+                ':extensions:jmx-monitoring:jar',
+                ':extensions:lang-js:jar',
+                ':extensions:functions:jar']) {
     doLast {
         // copy es-repository-hdfs plugin
         copy {
@@ -323,17 +323,17 @@ task downloadPlugins(
             into 'adminui'
         }
         copy {
-            from(project(':enterprise:jmx-monitoring').tasks.jar.archivePath)
-            into 'plugins/enterprise/jmx-monitoring'
+            from(project(':extensions:jmx-monitoring').tasks.jar.archivePath)
+            into 'plugins/extensions/jmx-monitoring'
         }
         copy {
-            from(project(':enterprise:lang-js').tasks.jar.archivePath)
-            from(project(':enterprise:lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
-            into 'plugins/enterprise/lang-js'
+            from(project(':extensions:lang-js').tasks.jar.archivePath)
+            from(project(':extensions:lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
+            into 'plugins/extensions/lang-js'
         }
         copy {
-            from(project(':enterprise:functions').tasks.jar.archivePath)
-            into 'plugins/enterprise/functions'
+            from(project(':extensions:functions').tasks.jar.archivePath)
+            into 'plugins/extensions/functions'
         }
     }
 }
@@ -362,7 +362,7 @@ task downloadAdminUI {
 }
 
 
-processResources.dependsOn(downloadPlugins, collectEnterpriseModules)
+processResources.dependsOn(downloadPlugins, collectExtensionsModules)
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
     main = 'io.crate.bootstrap.CrateDB'
@@ -397,7 +397,7 @@ test {
 
 
 clean.dependsOn(['cleanDownloadPlugins',
-                 'cleanCollectEnterpriseModules'])
+                 'cleanCollectExtensionsModules'])
 
 
 def extractTopfolder(File src, String trg) {
