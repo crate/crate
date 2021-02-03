@@ -83,9 +83,9 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0][1], is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault()));
         assertThat(response.rows()[0][2], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
 
-        execute("set global transient \"indices.breaker.query.limit\" = '2mb'");
+        execute("set global transient \"indices.breaker.query.limit\" = '20mb'");
         execute("select settings from sys.cluster");
-        assertSettingsValue(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "2mb");
+        assertSettingsValue(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "20mb");
     }
 
     @Test
