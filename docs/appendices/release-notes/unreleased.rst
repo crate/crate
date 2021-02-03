@@ -58,20 +58,4 @@ None
 Fixes
 =====
 
-- Fixed an issue that could lead to stuck queries when joining more than two
-  relations and if the WHERE clause contained filters on primary key columns
-  that led to an execution plan using a ``primary key`` lookup on at least one
-  relation.
-
-- Fixed an issue in the PostgreSQL wire protocol implementation that could lead
-  to incorrect results on the client side if a client invoked a write operation
-  and sent an explicit flush message before the sync message. The
-  ``node-postgres`` client is one client that uses such a message sequence.
-
-- Fixed an issue that could lead to a ``stream has already been operated upon
-  or closed`` error when using primary key lookup operations as part of a query
-  with several JOIN clauses.
-
-- Fixed a regression that caused queries which used a parameter placeholder in
-  a join condition to fail with an ``The assembled list of ParameterSymbols is
-  invalid. Missing parameters`` error.
+None
