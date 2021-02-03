@@ -30,7 +30,6 @@ import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableList;
 
 import io.crate.license.License;
 import org.elasticsearch.action.bulk.BulkModule;
@@ -93,8 +92,7 @@ import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.protocols.ssl.SslContextProviderFallbackModule;
-import io.crate.protocols.ssl.SslExtension;
+import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.settings.CrateSetting;
 import io.crate.user.UserManagementModule;
 import io.crate.user.metadata.UsersMetadata;
@@ -105,13 +103,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     private final Settings settings;
     @Nullable
-    private final SslExtension sslExtension;
     private final IndexEventListenerProxy indexEventListenerProxy;
 
     public SQLPlugin(Settings settings) {
         this.settings = settings;
         this.indexEventListenerProxy = new IndexEventListenerProxy();
-        sslExtension = EnterpriseLoader.loadSingle(SslExtension.class);
     }
 
     @Override
@@ -129,7 +125,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting());
         settings.add(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting());
 
-        // Settings for SSL (available only in the Enterprise version)
+        // Settings for SSL
         settings.add(SslConfigSettings.SSL_HTTP_ENABLED.setting());
         settings.add(SslConfigSettings.SSL_PSQL_ENABLED.setting());
         settings.add(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting());
@@ -149,21 +145,18 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        ImmutableList.Builder<Class<? extends LifecycleComponent>> builder =
-            ImmutableList.<Class<? extends LifecycleComponent>>builder()
-            .add(DecommissioningService.class)
-            .add(NodeDisconnectJobMonitorService.class)
-            .add(JobsLogService.class)
-            .add(PostgresNetty.class)
-            .add(TasksService.class)
-            .add(Schemas.class)
-            .add(DefaultTemplateService.class)
-            .add(ArrayMapperService.class)
-            .add(DanglingArtifactsService.class);
-        if (sslExtension != null) {
-            builder.addAll(sslExtension.getGuiceServiceClasses());
-        }
-        return builder.build();
+        return List.<Class<? extends LifecycleComponent>>of(
+            DecommissioningService.class,
+            NodeDisconnectJobMonitorService.class,
+            JobsLogService.class,
+            PostgresNetty.class,
+            TasksService.class,
+            Schemas.class,
+            DefaultTemplateService.class,
+            ArrayMapperService.class,
+            DanglingArtifactsService.class,
+            SslContextProviderService.class
+        );
     }
 
     @Override
@@ -190,11 +183,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new UserManagementModule());
         modules.add(new AuthenticationModule(settings));
         modules.add(new UsersScalarFunctionModule());
-        if (sslExtension != null) {
-            modules.addAll(sslExtension.getModules());
-        } else {
-            modules.add(new SslContextProviderFallbackModule());
-        }
         return modules;
     }
 
@@ -205,7 +193,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Collection<AllocationDecider> createAllocationDeciders(Settings settings, ClusterSettings clusterSettings) {
-        return ImmutableList.of(new DecommissionAllocationDecider(settings, clusterSettings));
+        return List.of(new DecommissionAllocationDecider(settings, clusterSettings));
     }
 
     @Override
