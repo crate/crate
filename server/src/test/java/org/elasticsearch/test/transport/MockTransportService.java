@@ -572,28 +572,6 @@ public final class MockTransportService extends TransportService {
     }
 
     /**
-     * Adds a node connected behavior that is used for the given delegate service.
-     *
-     * @return {@code true} if no other node connected behavior was registered for any of the addresses bound by delegate service.
-     */
-    public boolean addNodeConnectedBehavior(TransportService transportService, StubbableConnectionManager.NodeConnectedBehavior behavior) {
-        boolean noRegistered = true;
-        for (TransportAddress transportAddress : extractTransportAddresses(transportService)) {
-            noRegistered &= addNodeConnectedBehavior(transportAddress, behavior);
-        }
-        return noRegistered;
-    }
-
-    /**
-     * Adds a node connected behavior that is used for the given delegate address.
-     *
-     * @return {@code true} if no other node connected behavior was registered for this address before.
-     */
-    public boolean addNodeConnectedBehavior(TransportAddress transportAddress, StubbableConnectionManager.NodeConnectedBehavior behavior) {
-        return connectionManager().addNodeConnectedBehavior(transportAddress, behavior);
-    }
-
-    /**
      * Adds a node connected behavior that is the default node connected behavior.
      *
      * @return {@code true} if no default node connected behavior was registered.

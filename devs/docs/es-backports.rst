@@ -567,6 +567,7 @@ should be crossed out as well.
 - [s] a354c607228 Revert "Remove obsolete resolving logic from TRA (#49647)"
 - [s] 6cca2b04fa0 Remove obsolete resolving logic from TRA (#49647)
 - [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper  (#49645)
+- [x] f00b658130d Remove RemoteClusterConnection.ConnectedNodes (#44235)
 - [x] 433b3458522 Fix port range allocation with large worker IDs (#44213)
 - [x] c40b77b771b Simplify port usage in transport tests (#44157)
 - [x] 45b8aca6203 Some Cleanup in Test Framework (#44039)
