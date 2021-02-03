@@ -5,20 +5,13 @@
 Aggregation
 ===========
 
-.. rubric:: Table of contents
+When selecting data from CrateDB, you can use an :ref:`aggregate function
+<sql_dql_aggregation>` to calculate a single summary value for one or more
+columns.
 
-.. contents::
-   :local:
+For example::
 
-Introduction
-============
-
-An *aggregate function* computes a single result from a set of input values.
-
-::
-
-   cr> SELECT count(*)
-   ... FROM locations;
+   cr> SELECT count(*) FROM locations;
    +----------+
    | count(*) |
    +----------+
@@ -26,18 +19,16 @@ An *aggregate function* computes a single result from a set of input values.
    +----------+
    SELECT 1 row in set (... sec)
 
-In the example above the ``count(*)`` aggregate function computes the result
+Here, the :ref:`count(*) <aggregation-count-star>` function computes the result
 across all rows.
 
-Aggregate functions can be used with the :ref:`sql_dql_group_by` clause of
-the :ref:`sql_reference_select` statement. If so, an aggregate function computes
-a single result per each group of input values produced by a query.
+Aggregate functions can be used with the :ref:`sql_dql_group_by` clause. When
+used like this, an aggregate function returns a single summary value for each
+grouped collection of column values.
 
-::
+For example::
 
-   cr> SELECT kind, count(*)
-   ... FROM locations
-   ... GROUP BY kind;
+   cr> SELECT kind, count(*) FROM locations GROUP BY kind;
    +-------------+----------+
    | kind        | count(*) |
    +-------------+----------+
@@ -47,11 +38,19 @@ a single result per each group of input values produced by a query.
    +-------------+----------+
    SELECT 3 rows in set (... sec)
 
-For a tabulated summary of aggregate functions, see :ref:`sql_dql_aggregation`.
+.. SEEALSO::
+
+    `Aggregate function`_
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
 
 .. _aggregate-expressions:
 
-Aggregate Expressions
+Aggregate expressions
 =====================
 
 An *aggregate expression* represents the application of an aggregate function
@@ -704,9 +703,11 @@ Limitations
    <sql_ddl_datatypes_primitives>` columns. For more information, please refer
    to :ref:`sql_ddl_index_plain`.
 
+
+.. _Aggregate function: https://en.wikipedia.org/wiki/Aggregate_function
 .. _Geometric Mean: https://en.wikipedia.org/wiki/Geometric_mean
-.. _Variance: https://en.wikipedia.org/wiki/Variance
-.. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
-.. _Percentile: https://en.wikipedia.org/wiki/Percentile
-.. _TDigest: https://github.com/tdunning/t-digest/blob/master/docs/t-digest-paper/histo.pdf
 .. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
+.. _Percentile: https://en.wikipedia.org/wiki/Percentile
+.. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
+.. _TDigest: https://github.com/tdunning/t-digest/blob/master/docs/t-digest-paper/histo.pdf
+.. _Variance: https://en.wikipedia.org/wiki/Variance
