@@ -295,6 +295,7 @@ The number of replicas is defined like this::
 
 For further details and examples see :ref:`replication`.
 
+.. _sql_ref_number_of_routing_shards:
 
 ``number_of_routing_shards``
 ----------------------------

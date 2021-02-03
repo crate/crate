@@ -46,9 +46,11 @@ is applied, (see :ref:`ref_clustered_clause`).
 
 .. NOTE::
 
-   The number of shards can be changed later on but it involves having the table
-   in a ``READ-ONLY`` state until the operation is completed
-   (see :ref:`alter_change_number_of_shard`).
+   The number of shards :ref:`can be changed <alter_change_number_of_shard>`
+   after table creation, providing the value is a multiple of
+   :ref:`number_of_routing_shards <sql_ref_number_of_routing_shards>` (set at
+   table-creation time). Altering the number of shards will put the table into
+   a read-only state until the operation has completed.
 
 .. CAUTION::
 
