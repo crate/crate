@@ -20,18 +20,16 @@
  * agreement.
  */
 
-package io.crate.protocols.http;
+package io.crate.protocols.postgres;
 
-import io.crate.integrationtests.SQLHttpIntegrationTest;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -42,30 +40,24 @@ import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 
-@UseJdbc(value = 0)
+@UseJdbc(value = 1)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
-public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrationTest {
+public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
 
     private final static char[] EMPTY_PASS = new char[]{};
 
     private static SelfSignedCertificate trustedCert;
     private static File keyStoreFile;
-    private static File trustStoreFile;
 
-    public HttpsTransportKeyStoreReloadIntegrationTest() {
+    public SslReqHandlerIntegrationTest() {
         super(true);
     }
 
     @BeforeClass
     public static void beforeTest() throws Exception {
         trustedCert = new SelfSignedCertificate();
-
         keyStoreFile = createTempFile().toFile();
-        trustStoreFile = createTempFile().toFile();
 
         updateKeyStore(
             keyStoreFile,
@@ -73,21 +65,10 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
                 SelfSignedCertificate fakeCert = new SelfSignedCertificate();
                 store.setKeyEntry(
                     "key",
-                    fakeCert.key(),
+                    trustedCert.key(),
                     EMPTY_PASS,
                     new Certificate[]{fakeCert.cert()});
             });
-
-        updateKeyStore(
-            trustStoreFile,
-            keyStore -> keyStore.setCertificateEntry("cert", trustedCert.cert()));
-
-        System.setProperty("javax.net.ssl.trustStore", trustStoreFile.getAbsolutePath());
-    }
-
-    @AfterClass
-    public static void afterTest() {
-        System.clearProperty("javax.net.ssl.trustStore");
     }
 
     private static void updateKeyStore(File keyStoreFile, CheckedConsumer<KeyStore, Exception> consumer)
@@ -99,24 +80,26 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
             keyStore.load(null);
         }
         consumer.accept(keyStore);
-        keyStore.store(new FileOutputStream(keyStoreFile), EMPTY_PASS);
+        try (var fs = new FileOutputStream(keyStoreFile)) {
+            keyStore.store(fs, EMPTY_PASS);
+        }
     }
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
+            .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
             .put(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), "2s")
             .build();
     }
 
     @Test
     public void testReloadSslContextOnKeyStoreChange() throws Throwable {
-        try (CloseableHttpResponse ignored = post("{\"stmt\": \"select 'sslWorks'\"}")) {
-            fail("Certificates in the trusted store signed with unknown key");
+        try {
+            execute("select name from sys.nodes");
+            fail("Unknown certificate in the certificate chain");
         } catch (Exception ignored) {
         }
 
@@ -129,12 +112,9 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
                 new Certificate[]{trustedCert.cert()}));
 
         assertBusy(() -> {
-            try (CloseableHttpResponse response = post("{\"stmt\": \"select 'sslWorks'\"}")) {
-                assertThat(response, not(nullValue()));
-                assertEquals(200, response.getStatusLine().getStatusCode());
-                String result = EntityUtils.toString(response.getEntity());
-                assertThat(result, containsString("\"rowcount\":1"));
-                assertThat(result, containsString("sslWorks"));
+            try {
+                SQLResponse response = execute("select name from sys.nodes");
+                assertEquals(1, response.rowCount());
             } catch (Exception e) {
                 fail(e.getMessage());
             }
