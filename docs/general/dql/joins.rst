@@ -4,6 +4,14 @@
 Joins
 =====
 
+When selecting data from CrateDB, you can :ref:`join
+<sql_reference_joined_tables>` one or more relations (e.g., tables) to combine
+columns into one result set.
+
+.. SEEALSO::
+
+    `Join (SQL)`_
+
 .. rubric:: Table of contents
 
 .. contents::
@@ -257,7 +265,7 @@ result set to a large degree, so that later joins have less work to do. In the
 example before, joining `r1 ⋈ (r2 ⋈ r3)` might be the better order.
 
 
-.. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
-.. _`Cartesian Product`: https://en.wikipedia.org/wiki/Cartesian_product
-.. _`Equi-Joins`: https://en.wikipedia.org/wiki/Join_(SQL)#Equi-join
-.. _`Hash Join`: https://en.wikipedia.org/wiki/Hash_join
+.. _Cartesian Product: https://en.wikipedia.org/wiki/Cartesian_product
+.. _Equi-Joins: https://en.wikipedia.org/wiki/Join_(SQL)#Equi-join
+.. _Hash Join: https://en.wikipedia.org/wiki/Hash_join
+.. _Join (SQL): https://en.wikipedia.org/wiki/Join_(SQL)
