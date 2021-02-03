@@ -76,23 +76,23 @@ The following settings can be used to differentiate nodes upon startup:
   Whether or not this node will store data.
 
 Using different combinations of these two settings, you can create four
-different types of node. Each type of node is differentiate by what types of
+different types of node. Each type of node is differentiated by what types of
 load it will handle.
 
-The four types of node possible are:
+Tabulating the truth values for ``node.master`` and ``node.data`` produces a
+truth table outlining the four different types of node:
 
-+---------------+----------------------------+------------------------------+
-|               | **Master**                 | **No Master**                |
-+---------------+----------------------------+------------------------------+
-| **Data**      | Can handle all loads.      | Handles request handling and |
-|               |                            | query execution loads.       |
-+---------------+----------------------------+------------------------------+
-| **No Data**   | Can handle cluster         | Handles request handling     |
-|               | management loads.          | loads.                       |
-+---------------+----------------------------+------------------------------+
++---------------+-----------------------------+------------------------------+
+|               | **Master**                  | **No master**                |
++---------------+-----------------------------+------------------------------+
+| **Data**      | Handle all loads.           | Handles client requests and  |
+|               |                             | query execution.             |
++---------------+-----------------------------+------------------------------+
+| **No data**   | Handles cluster management. | Handles client requests.     |
++---------------+-----------------------------+------------------------------+
 
-Nodes marked as ``node.master`` will only handle cluster management loads if
-they are elected as the cluster master. All other loads are shared equally.
+Nodes marked as ``node.master`` will only handle cluster management if they are
+elected as the cluster master. All other loads are shared equally.
 
 Read-only node
 ==============
