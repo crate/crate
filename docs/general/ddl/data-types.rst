@@ -1106,74 +1106,125 @@ An example:
     DROP OK, 1 row affected (... sec)
 
 
+.. _data-type-object-insert:
+
+Inserting objects
+-----------------
+
+
 .. _data-type-object-literals:
 
 Object literals
----------------
+...............
 
-To insert values into object columns one can use object literals or parameters.
-
-.. NOTE::
-
-   Even though they look like JSON - object literals are not JSON
-   compatible.
-
-Object literals are given in curly brackets. Key value pairs are connected via
-``=``.
+You can insert objects using object literals. Object literals are delimited
+using curly brackets and key-value pairs are connected via ``=``.
 
 Synopsis::
 
     { [ ident = expr [ , ... ] ] }
 
-The *key* of a key-value pair is an SQL identifier. That means every unquoted
-identifier in an object literal key will be lowercased.
-
-The *value* of a key-value pair is another literal or a parameter.
-
-An object literal can contain zero or more key value pairs
-
-Examples
-........
+Here, ``ident`` is the key and ``expr`` is the value. The key must be a
+lowercase column identifier or a quoted mixed-case column identifier. The value
+must be a value literal (object literals are permitted and can be nested in this
+way).
 
 Empty object literal::
 
-  {}
+    {}
 
 Boolean type::
 
-  { my_bool_column = true }
+    { my_bool_column = true }
 
 Text type::
 
-  { my_str_col = 'this is a text value' }
+    { my_str_col = 'this is a text value' }
 
 Number types::
 
-  { my_int_col = 1234, my_float_col = 5.6 }
+    { my_int_col = 1234, my_float_col = 5.6 }
 
 Array type::
 
-  { my_array_column = ['v', 'a', 'l', 'u', 'e'] }
+    { my_array_column = ['v', 'a', 'l', 'u', 'e'] }
 
 Camel case keys must be quoted::
 
-  { "CamelCaseColumn" = 'this is a text value' }
+    { "CamelCaseColumn" = 'this is a text value' }
 
 Nested object::
 
-  { nested_obj_colmn = { int_col = 1234, str_col = 'text value' } }
+    { nested_obj_colmn = { int_col = 1234, str_col = 'text value' } }
 
-You can even specify a placeholder parameter for a value::
+You can even specify a :ref:`placeholder parameter <expression-parameter>` for
+a value::
 
-  { my_other_column = ? }
+    { my_other_column = ? }
 
 Combined::
 
-  { id = 1, name = 'foo', tags = ['apple', 'banana', 'pear'], size = 3.1415, valid = ? }
+    { id = 1, name = 'foo', tags = ['apple', 'banana', 'pear'], size = 3.1415, valid = ? }
+
+.. NOTE::
+
+   Even though they look like JSON, object literals are not JSON. If you want
+   to use JSON, skip to the next subsection.
 
 .. SEEALSO::
 
     :ref:`Selecting values from inner objects and nested objects <sql_dql_objects>`
+
+
+.. _data-type-object-json:
+
+JSON
+....
+
+You can insert objects using JSON strings. To do this, you must :ref:`type cast
+<type_cast>` the string to an object with an implicit cast (i.e., passing a
+string into an object column) or an explicit cast (i.e., using the ``::object``
+syntax).
+
+.. TIP::
+
+    Explicit casts can improve query readability.
+
+Below you will find examples from the previous subsection rewritten to use JSON
+strings with explicit casts.
+
+Empty object literal::
+
+    '{}'::object
+
+Boolean type::
+
+    '{ "my_bool_column": true }'::object
+
+Text type::
+
+    '{ "my_str_col": "this is a text value" }'::object
+
+Number types::
+
+    '{ "my_int_col": 1234, "my_float_col": 5.6 }'::object
+
+Array type::
+
+    '{ "my_array_column": ["v", "a", "l", "u", "e"] }'::object
+
+Camel case keys::
+
+    '{ "CamelCaseColumn": "this is a text value" }'::object
+
+Nested object::
+
+    '{ "nested_obj_colmn": { "int_col": 1234, "str_col": "text value" } }'::object
+
+.. NOTE::
+
+    You cannot use :ref:`placeholder parameters <expression-parameter>` inside
+    a JSON string.
 
 
 .. _data-type-array:
