@@ -210,7 +210,7 @@ public class GatewayMetaState {
      *
      * @return input <code>metadata</code> if no upgrade is needed or an upgraded metadata
      */
-    static Metadata upgradeMetadata(Metadata metadata,
+    public static Metadata upgradeMetadata(Metadata metadata,
                                     MetadataIndexUpgradeService metadataIndexUpgradeService,
                                     MetadataUpgrader metadataUpgrader) {
         // upgrade index meta data
