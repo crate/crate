@@ -567,6 +567,7 @@ should be crossed out as well.
 - [s] a354c607228 Revert "Remove obsolete resolving logic from TRA (#49647)"
 - [s] 6cca2b04fa0 Remove obsolete resolving logic from TRA (#49647)
 - [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper  (#49645)
+- [x] ba5b4f14131 ESIntegTestCase always cleans up static fields (#49105)
 - [x] 5ba4f5fb3c9 Use dynamic port ranges for ExternalTestCluster (#45601)
 - [x] 29235a637f7 Wait for events in waitForRelocation (#45074)
 - [x] f00b658130d Remove RemoteClusterConnection.ConnectedNodes (#44235)
