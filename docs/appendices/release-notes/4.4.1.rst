@@ -1,0 +1,52 @@
+.. _version_4.4.1:
+
+=============
+Version 4.4.1
+=============
+
+Released on 2021-02-03.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.4.1.
+
+    We recommend that you upgrade to the latest 4.3 release before moving to
+    4.4.1.
+
+    A rolling upgrade from 4.3.0+ to 4.4.1 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_4.4.0` release notes for a full list of changes in the
+4.4 series.
+
+Fixes
+=====
+
+- Fixed an issue that could lead to stuck queries when joining more than two
+  relations and if the WHERE clause contained filters on primary key columns
+  that led to an execution plan using a ``primary key`` lookup on at least one
+  relation.
+
+- Fixed an issue in the PostgreSQL wire protocol implementation that could lead
+  to incorrect results on the client side if a client invoked a write operation
+  and sent an explicit flush message before the sync message. The
+  ``node-postgres`` client is one client that uses such a message sequence.
+
+- Fixed an issue that could lead to a ``stream has already been operated upon
+  or closed`` error when using primary key lookup operations as part of a query
+  with several JOIN clauses.
+
+- Fixed a regression that caused queries which used a parameter placeholder in
+  a join condition to fail with an ``The assembled list of ParameterSymbols is
+  invalid. Missing parameters`` error.
