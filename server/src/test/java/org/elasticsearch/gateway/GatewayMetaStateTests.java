@@ -251,10 +251,10 @@ public class GatewayMetaStateTests extends ESTestCase {
         }
     }
 
-    private static class MockMetadataIndexUpgradeService extends MetadataIndexUpgradeService {
+    public static class MockMetadataIndexUpgradeService extends MetadataIndexUpgradeService {
         private final boolean upgrade;
 
-        MockMetadataIndexUpgradeService(boolean upgrade) {
+        public MockMetadataIndexUpgradeService(boolean upgrade) {
             super(Settings.EMPTY, null, null, null, null);
             this.upgrade = upgrade;
         }
@@ -311,7 +311,7 @@ public class GatewayMetaStateTests extends ESTestCase {
         }
     }
 
-    private static Metadata randomMetadata(TestCustomMetadata... customMetadatas) {
+    public static Metadata randomMetadata(TestCustomMetadata... customMetadatas) {
         Metadata.Builder builder = Metadata.builder();
         for (TestCustomMetadata customMetadata : customMetadatas) {
             builder.putCustom(customMetadata.getWriteableName(), customMetadata);
