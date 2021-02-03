@@ -758,14 +758,21 @@ across generic attributes associated with nodes.
     `multi-zone setup how-to guide`_.
 
 
+.. _conf-routing-allocation-balance:
+
 Balanced shards
 ...............
 
-All these values are relative to one another. The first three are used to
-compose a three separate weighting functions into one. The cluster is balanced
-when no allowed action can bring the weights of each node closer together by
-more then the fourth setting. Actions might not be allowed, for instance, due
-to forced awareness or allocation filtering.
+CrateDB will attempt to balance a cluster using the weights described in this
+subsection. The cluster is considered balanced when no further allowed action
+can bring the respective properties of each node closer together.
+
+.. NOTE::
+
+    Balancing may be restricted by other settings (e.g., forced :ref:`awareness
+    <conf-routing-allocation-awareness>`, :ref:`allocation filtering
+    <conf-routing-allocation-filtering>`, and :ref:`disk-based allocation
+    <cluster.routing.allocation.disk>`).
 
 .. _cluster.routing.allocation.balance.shard:
 
@@ -796,6 +803,9 @@ to forced awareness or allocation filtering.
   Minimal optimization value of operations that should be performed (non
   negative float). Increasing this value will cause the cluster to be less
   aggressive about optimising the shard balance.
+
+
+.. _conf-routing-allocation-filtering:
 
 Cluster-wide allocation filtering
 .................................
@@ -833,6 +843,7 @@ addresses.
   Used to specify a number of rules, which all MUST match for a node in order
   to allocate a shard on it. This is in contrast to include which will include
   a node if ANY rule matches.
+
 
 .. _cluster.routing.allocation.disk:
 
