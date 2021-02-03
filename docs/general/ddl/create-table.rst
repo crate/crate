@@ -12,8 +12,8 @@ Creating tables
 Basics
 ======
 
-To create a table use the ``CREATE TABLE`` command. You must at least specify a
-name for the table and names and types of the columns.
+To create a table use the :ref:`ref-create-table` command. You must at least
+specify a name for the table and names and types of the columns.
 
 See :ref:`data-types` for information about the supported data types.
 
@@ -26,12 +26,12 @@ This query creates a simple table with two columns of type ``integer`` and
     ... );
     CREATE OK, 1 row affected (... sec)
 
-A table can be removed by using the ``DROP TABLE`` command::
+A table can be removed by using the :ref:`drop-table` command::
 
     cr> drop table my_table;
     DROP OK, 1 row affected (... sec)
 
-The ``DROP TABLE`` command takes the optional clause ``IF EXISTS`` which
+The :ref:`drop-table` command takes the optional clause ``IF EXISTS`` which
 prevents the generation of an error if the specified table does not exist::
 
     cr> drop table if exists my_table;
