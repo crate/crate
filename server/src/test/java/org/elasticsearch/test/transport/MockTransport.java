@@ -84,7 +84,7 @@ public class MockTransport implements Transport, LifecycleComponent {
             this,
             threadPool
         );
-        connectionManager.setDefaultNodeConnectedBehavior((cm, discoveryNode) -> nodeConnected(discoveryNode));
+        connectionManager.setDefaultNodeConnectedBehavior(cm -> Collections.emptySet());
         connectionManager.setDefaultGetConnectionBehavior((cm, discoveryNode) -> createConnection(discoveryNode));
         return new TransportService(
             settings,
@@ -210,10 +210,6 @@ public class MockTransport implements Transport, LifecycleComponent {
     }
 
     protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
-    }
-
-    protected boolean nodeConnected(DiscoveryNode discoveryNode) {
-        return true;
     }
 
     @Override
