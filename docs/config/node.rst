@@ -305,8 +305,8 @@ Memory
 .. _bootstrap.memory_lock:
 
 **bootstrap.memory_lock**
-  | *Runtime:* ``no``
   | *Default:* ``false``
+  | *Runtime:* ``no``
 
   CrateDB performs poorly when the JVM starts swapping: you should ensure that
   it *never* swaps. If set to ``true``, CrateDB will use the ``mlockall``
@@ -385,8 +385,8 @@ Trust authentication
 .. _auth.trust.http_default_user:
 
 **auth.trust.http_default_user**
-  | *Runtime:* ``no``
   | *Default:* ``crate``
+  | *Runtime:* ``no``
 
   The default user that should be used for authentication when clients connect
   to CrateDB via HTTP protocol and they do not specify a user via the
@@ -402,8 +402,8 @@ nodes may have different authentication settings.
 .. _auth.host_based.enabled:
 
 **auth.host_based.enabled**
-  | *Runtime:* ``no``
   | *Default:* ``false``
+  | *Runtime:* ``no``
 
   Setting to enable or disable Host Based Authentication (HBA). It is disabled
   by default.
@@ -473,8 +473,8 @@ The meaning of the fields of the are as follows:
 .. _auth.host_based.config.${order}.ssl:
 
 **auth.host_based.config.${order}.ssl**
-  | *Runtime:* ``no``
   | *Default:* ``optional``
+  | *Runtime:* ``no``
 
   | Specifies whether the client must use SSL/TLS to connect to the cluster.
   | If set to ``on`` then the client must be connected through SSL/TLS
@@ -519,8 +519,8 @@ Layer Security (TLS).
 .. _ssl.http.enabled:
 
 **ssl.http.enabled**
-  | *Runtime:*  ``no``
   | *Default:* ``false``
+  | *Runtime:*  ``no``
 
   Set this to true to enable secure communication between the CrateDB node
   and the client through SSL via the HTTPS protocol.
@@ -528,8 +528,8 @@ Layer Security (TLS).
 .. _ssl.psql.enabled:
 
 **ssl.psql.enabled**
-  | *Runtime:*  ``no``
   | *Default:* ``false``
+  | *Runtime:*  ``no``
 
   Set this to true to enable secure communication between the CrateDB node
   and the client through SSL via the PostgreSQL wire protocol.
@@ -580,8 +580,8 @@ Layer Security (TLS).
 .. _ssl.resource_poll_interval:
 
 **ssl.resource_poll_interval**
-  | *Runtime:* ``no``
   | *Default:* ``5m``
+  | *Runtime:* ``no``
 
   The frequency at which SSL files such as keystore and truststore are polled
   for changes.

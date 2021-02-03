@@ -273,7 +273,7 @@ nodes of the cluster:
 **cluster.graceful_stop.min_availability**
   | *Default:*   ``primaries``
   | *Runtime:*  ``yes``
-  | *Allowed Values:*   ``none | primaries | full``
+  | *Allowed values:*   ``none | primaries | full``
 
   ``none``: No minimum data availability is required. The node may shut down
   even if records are missing after shutdown.
@@ -387,7 +387,7 @@ new master node is elected.
 **discovery.type**
   | *Default:* ``zen``
   | *Runtime:* ``no``
-  | *Allowed Values:*  ``zen | single-node``
+  | *Allowed values:*  ``zen | single-node``
 
   Specifies whether CrateDB should form a multiple-node cluster. By default,
   CrateDB discovers other nodes when forming a cluster and allows other nodes to
@@ -435,7 +435,7 @@ is re-elected (see `Cluster Meta Data`).
 **discovery.seed_providers**
   | *Default:*   ``not set``
   | *Runtime:*   ``no``
-  | *Allowed Values:* ``srv``, ``ec2``, ``azure``
+  | *Allowed values:* ``srv``, ``ec2``, ``azure``
 
 See also: `Discovery`_.
 
@@ -514,8 +514,8 @@ Following settings control the discovery:
 .. _discovery.ec2.any_group:
 
 **discovery.ec2.any_group**
-  | *Runtime:*  ``no``
   | *Default:*  ``true``
+  | *Runtime:*  ``no``
 
   Defines whether all (``false``) or just any (``true``) security group must
   be present for the instance to be used for discovery.
@@ -523,9 +523,9 @@ Following settings control the discovery:
 .. _discovery.ec2.host_type:
 
 **discovery.ec2.host_type**
-  | *Runtime:*  ``no``
   | *Default:*  ``private_ip``
-  | *Allowed Values:*  ``private_ip``, ``public_ip``, ``private_dns``, ``public_dns``
+  | *Runtime:*  ``no``
+  | *Allowed values:*  ``private_ip``, ``public_ip``, ``private_dns``, ``public_dns``
 
   Defines via which host type to communicate with other instances.
 
@@ -607,9 +607,9 @@ To enable Azure discovery set the ``discovery.seed_providers`` setting to
 .. _discovery.azure.method:
 
 **discovery.azure.method**
-  | *Runtime:* ``no``
   | *Default:* ``vnet``
-  | *Allowed Values:* ``vnet | subnet``
+  | *Runtime:* ``no``
+  | *Allowed values:* ``vnet | subnet``
 
   Defines the scope of the discovery. ``vnet`` will discover all VMs within the
   same virtual network (default), ``subnet`` will discover all VMs within the
@@ -626,7 +626,7 @@ Routing allocation
 **cluster.routing.allocation.enable**
   | *Default:*   ``all``
   | *Runtime:*  ``yes``
-  | *Allowed Values:* ``all | none | primaries | new_primaries``
+  | *Allowed values:* ``all | none | primaries | new_primaries``
 
   ``all`` allows all shard allocations, the cluster can allocate all kinds of
   shards.
@@ -655,7 +655,7 @@ Routing allocation
 **cluster.routing.rebalance.enable**
   | *Default:*   ``all``
   | *Runtime:*  ``yes``
-  | *Allowed Values:* ``all | none | primaries | replicas``
+  | *Allowed values:* ``all | none | primaries | replicas``
 
   Enables/Disables rebalancing for different types of shards.
 
@@ -672,7 +672,7 @@ Routing allocation
 **cluster.routing.allocation.allow_rebalance**
   | *Default:*   ``indices_all_active``
   | *Runtime:*  ``yes``
-  | *Allowed Values:* ``always | indices_primary_active | indices_all_active``
+  | *Allowed values:* ``always | indices_primary_active | indices_all_active``
 
   Allow to control when rebalancing will happen based on the total state of all
   the indices shards in the cluster. Defaulting to ``indices_all_active`` to
@@ -1183,7 +1183,7 @@ a node. There are several pools, but the important ones include:
 
 **thread_pool.<name>.type**
   | *Runtime:*  ``no``
-  | *Allowed Values:* ``fixed | scaling``
+  | *Allowed values:* ``fixed | scaling``
 
   ``fixed`` holds a fixed size of threads to handle the requests. It also has a
   queue for pending requests if no threads are available.
