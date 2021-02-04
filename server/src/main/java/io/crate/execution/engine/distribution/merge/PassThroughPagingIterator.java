@@ -22,17 +22,18 @@
 package io.crate.execution.engine.distribution.merge;
 
 import com.google.common.collect.ForwardingIterator;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 public class PassThroughPagingIterator<TKey, TRow> extends ForwardingIterator<TRow> implements PagingIterator<TKey, TRow> {
 
     private Iterator<TRow> iterator = Collections.emptyIterator();
-    private final ImmutableList.Builder<KeyIterable<TKey, TRow>> iterables = ImmutableList.builder();
+    private final ArrayList<KeyIterable<TKey, TRow>> iterables = new ArrayList<>();
     private final boolean repeatable;
     private Iterable<TRow> storedForRepeat = null;
 
@@ -65,7 +66,9 @@ public class PassThroughPagingIterator<TKey, TRow> extends ForwardingIterator<TR
         Iterable<TRow> concat = Iterables.concat(iterables);
 
         if (repeatable) {
-            this.iterables.addAll(iterables);
+            for (var iterable : iterables) {
+                this.iterables.add(iterable);
+            }
             this.storedForRepeat = null;
         }
         if (iterator.hasNext()) {
@@ -88,7 +91,7 @@ public class PassThroughPagingIterator<TKey, TRow> extends ForwardingIterator<TR
     public Iterable<TRow> repeat() {
         Iterable<TRow> repeatMe = storedForRepeat;
         if (repeatMe == null) {
-            repeatMe = Iterables.concat(this.iterables.build());
+            repeatMe = Iterables.concat(List.copyOf(this.iterables));
             this.storedForRepeat = repeatMe;
         }
         return repeatMe;

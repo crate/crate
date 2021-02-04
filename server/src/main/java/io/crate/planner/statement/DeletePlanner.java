@@ -22,7 +22,6 @@
 
 package io.crate.planner.statement;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.WhereClause;
@@ -194,7 +193,7 @@ public final class DeletePlanner {
             routing,
             tableInfo.rowGranularity(),
             newArrayList(idReference),
-            ImmutableList.of(deleteProjection),
+            List.of(deleteProjection),
             Optimizer.optimizeCasts(where.queryOrFallback(), context),
             DistributionInfo.DEFAULT_BROADCAST
         );

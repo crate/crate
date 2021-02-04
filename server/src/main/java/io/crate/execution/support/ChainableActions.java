@@ -22,7 +22,6 @@
 
 package io.crate.execution.support;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.MultiException;
 
@@ -54,7 +53,7 @@ public class ChainableActions {
                 previousActions.add(lastAction);
                 lastAction = action;
                 future = future.handle(result::addResultAndError)
-                    .thenCompose(r -> runOrRollbackOnErrors(r, action, ImmutableList.copyOf(previousActions)));
+                    .thenCompose(r -> runOrRollbackOnErrors(r, action, List.copyOf(previousActions)));
             }
         } else {
             // we'll want to undo the action in case it fails

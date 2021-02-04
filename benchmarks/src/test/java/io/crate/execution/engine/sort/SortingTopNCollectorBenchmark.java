@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingBatchIterator;
@@ -57,8 +56,8 @@ public class SortingTopNCollectorBenchmark {
 
     private static final Comparator<Object[]> COMPARATOR = (o1, o2) -> Integer.compare((int) o2[0], (int) o1[0]);
     private static final InputCollectExpression INPUT = new InputCollectExpression(0);
-    private static final List<Input<?>> INPUTS = ImmutableList.of(INPUT);
-    private static final Iterable<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = ImmutableList.of(INPUT);
+    private static final List<Input<?>> INPUTS = List.of(INPUT);
+    private static final Iterable<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = List.of(INPUT);
 
     private List<Row> rows = StreamSupport.stream(RowGenerator.range(0, 10_000_000).spliterator(), false)
         .map(Row::materialize)

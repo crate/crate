@@ -37,7 +37,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.ImmutableList;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -187,7 +186,7 @@ public class TasksService extends AbstractLifecycleComponent {
                 }
             }
         }
-        Collection<UUID> toKill = ImmutableList.copyOf(activeTasks.keySet());
+        Collection<UUID> toKill = List.copyOf(activeTasks.keySet());
         if (toKill.isEmpty()) {
             return CompletableFuture.completedFuture(0);
         }

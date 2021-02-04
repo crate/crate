@@ -22,7 +22,6 @@
 
 package io.crate.operation.language;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.module.JavaScriptLanguageModule;
 import io.crate.testing.TestingHelpers;
@@ -71,7 +70,7 @@ public class JavaScriptUDFIntegrationTest extends SQLTransportIntegrationTest {
     public void testJavascriptFunction() throws Exception {
         execute("CREATE FUNCTION subtract_js(LONG, LONG) " +
                 "RETURNS LONG LANGUAGE JAVASCRIPT AS 'function subtract_js(x, y) { return x-y; }'");
-        assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "subtract_js", ImmutableList.of(DataTypes.LONG, DataTypes.LONG));
+        assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "subtract_js", List.of(DataTypes.LONG, DataTypes.LONG));
         execute("SELECT SUBTRACT_JS(a, b) FROM test ORDER BY a ASC");
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][0], is(2L));
@@ -88,7 +87,7 @@ public class JavaScriptUDFIntegrationTest extends SQLTransportIntegrationTest {
         execute("INSERT INTO test.t (a, b) VALUES (1, 1), (2, 1), (3, 1)");
         refresh("test.t");
         execute("CREATE FUNCTION test.subtract(integer, integer) RETURNS INTEGER LANGUAGE javascript AS 'function subtract(x, y){ return x-y; }'");
-        assertFunctionIsCreatedOnAll("test", "subtract", ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
+        assertFunctionIsCreatedOnAll("test", "subtract", List.of(DataTypes.INTEGER, DataTypes.INTEGER));
         execute("SELECT test.subtract(a, b) FROM test.t ORDER BY 1");
         assertThat(TestingHelpers.printedTable(response.rows()), is("0\n1\n2\n"));
     }

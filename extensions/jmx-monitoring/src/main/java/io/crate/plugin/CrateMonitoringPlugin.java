@@ -22,12 +22,12 @@
 
 package io.crate.plugin;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.Plugin;
 import io.crate.module.CrateMonitoringModule;
 import org.elasticsearch.common.inject.Module;
 
 import java.util.Collection;
+import java.util.List;
 
 public class CrateMonitoringPlugin implements Plugin {
 
@@ -43,6 +43,6 @@ public class CrateMonitoringPlugin implements Plugin {
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return ImmutableList.of(new CrateMonitoringModule());
+        return List.of(new CrateMonitoringModule());
     }
 }

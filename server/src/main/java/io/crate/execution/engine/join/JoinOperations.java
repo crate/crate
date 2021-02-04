@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.join;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -186,7 +185,7 @@ public final class JoinOperations {
         if (condition1 == null) {
             return condition2;
         } else {
-            return AndOperator.join(ImmutableList.of(condition1, condition2));
+            return AndOperator.join(List.of(condition1, condition2));
         }
     }
 }

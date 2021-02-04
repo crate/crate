@@ -22,8 +22,6 @@
 
 package io.crate.beans;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.sys.ClassifiedMetrics.Metrics;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.Plan.StatementType;
@@ -33,6 +31,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.crate.beans.QueryStats.createMetricsMap;
 import static org.hamcrest.Matchers.is;
@@ -49,7 +48,7 @@ public class QueryStatsTest {
     private static final Classification DDL_CLASSIFICATION = new Classification(StatementType.DDL);
     private static final Classification COPY_CLASSIFICATION = new Classification(StatementType.COPY);
 
-    private final List<MetricsView> metrics = ImmutableList.of(
+    private final List<MetricsView> metrics = List.of(
         createMetric(SELECT_CLASSIFICATION, 35),
         createMetric(SELECT_CLASSIFICATION, 35),
         createMetric(UPDATE_CLASSIFICATION, 20),
@@ -128,9 +127,9 @@ public class QueryStatsTest {
 
     @Test
     public void testSameTypeWithDifferentLabelsClassificationsAreMerged() {
-        List<MetricsView> selectMetrics = ImmutableList.of(
+        List<MetricsView> selectMetrics = List.of(
             createMetric(SELECT_CLASSIFICATION, 35),
-            createMetric(new Classification(StatementType.SELECT, ImmutableSet.of("lookup")), 55)
+            createMetric(new Classification(StatementType.SELECT, Set.of("lookup")), 55)
         );
         Map<StatementType, QueryStats.Metric> metricsByCommand = createMetricsMap(selectMetrics);
         assertThat(metricsByCommand.size(), is(1));
