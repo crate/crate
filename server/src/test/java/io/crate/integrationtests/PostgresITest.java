@@ -285,7 +285,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.setAutoCommit(false);
             ResultSet resultSet = conn.prepareStatement("select name from sys.cluster").executeQuery();
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
+            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-TEST_WORKER"));
         }
     }
 
@@ -475,7 +475,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             PreparedStatement preparedStatement = conn.prepareStatement("select name from sys.cluster");
             ResultSet resultSet = preparedStatement.executeQuery();
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
+            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-TEST_WORKER"));
         }
     }
 
@@ -649,7 +649,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.setString(1, "SUITE%");
             ResultSet resultSet = preparedStatement.executeQuery();
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
+            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-TEST_WORKER"));
         }
     }
 
@@ -942,6 +942,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         stmt = conn.prepareStatement("select name from sys.cluster");
         ResultSet resultSet = stmt.executeQuery();
         assertThat(resultSet.next(), is(true));
-        assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
+        assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-TEST_WORKER"));
     }
 }

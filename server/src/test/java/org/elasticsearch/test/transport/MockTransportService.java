@@ -19,7 +19,6 @@
 
 package org.elasticsearch.test.transport;
 
-import com.carrotsearch.randomizedtesting.SysGlobals;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterModule;
@@ -42,6 +41,7 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.tasks.TaskManager;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.tasks.MockTaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -87,7 +87,6 @@ import java.util.function.Supplier;
 public final class MockTransportService extends TransportService {
 
     private final Map<DiscoveryNode, List<Transport.Connection>> openConnections = new HashMap<>();
-    private static final int JVM_ORDINAL = Integer.parseInt(System.getProperty(SysGlobals.CHILDVM_SYSPROP_JVM_ID, "0"));
 
     private final List<Runnable> onStopListeners = new CopyOnWriteArrayList<>();
 
@@ -107,12 +106,7 @@ public final class MockTransportService extends TransportService {
     }
 
     public static MockTcpTransport newMockTransport(Settings settings, Version version, ThreadPool threadPool) {
-        // some tests use MockTransportService to do network based testing. Yet, we run tests in multiple JVMs that means
-        // concurrent tests could claim port that another JVM just released and if that test tries to simulate a disconnect it might
-        // be smart enough to re-connect depending on what is tested. To reduce the risk, since this is very hard to debug we use
-        // a different default port range per JVM unless the incoming settings override it
-        int basePort = 10300 + (JVM_ORDINAL * 100); // use a non-default port otherwise some cluster in this JVM might reuse a port
-        settings = Settings.builder().put(TransportSettings.PORT.getKey(), basePort + "-" + (basePort + 100)).put(settings).build();
+        settings = Settings.builder().put(TransportSettings.PORT.getKey(), ESTestCase.getPortRange()).put(settings).build();
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
         return new MockTcpTransport(settings, threadPool, BigArrays.NON_RECYCLING_INSTANCE,
             new NoneCircuitBreakerService(), namedWriteableRegistry, new NetworkService(Collections.emptyList()), version);
@@ -550,28 +544,6 @@ public final class MockTransportService extends TransportService {
      */
     public boolean addGetConnectionBehavior(StubbableConnectionManager.GetConnectionBehavior behavior) {
         return connectionManager().setDefaultGetConnectionBehavior(behavior);
-    }
-
-    /**
-     * Adds a node connected behavior that is used for the given delegate service.
-     *
-     * @return {@code true} if no other node connected behavior was registered for any of the addresses bound by delegate service.
-     */
-    public boolean addNodeConnectedBehavior(TransportService transportService, StubbableConnectionManager.NodeConnectedBehavior behavior) {
-        boolean noRegistered = true;
-        for (TransportAddress transportAddress : extractTransportAddresses(transportService)) {
-            noRegistered &= addNodeConnectedBehavior(transportAddress, behavior);
-        }
-        return noRegistered;
-    }
-
-    /**
-     * Adds a node connected behavior that is used for the given delegate address.
-     *
-     * @return {@code true} if no other node connected behavior was registered for this address before.
-     */
-    public boolean addNodeConnectedBehavior(TransportAddress transportAddress, StubbableConnectionManager.NodeConnectedBehavior behavior) {
-        return connectionManager().addNodeConnectedBehavior(transportAddress, behavior);
     }
 
     /**

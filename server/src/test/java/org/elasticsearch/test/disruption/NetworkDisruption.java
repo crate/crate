@@ -40,8 +40,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
 
-import static org.junit.Assert.assertFalse;
-
 /**
  * Network disruptions are modeled using two components:
  * 1) the {@link DisruptedLinks} represents the links in the network that are to be disrupted
@@ -118,10 +116,7 @@ public class NetworkDisruption implements ServiceDisruptionScheme {
     }
 
     protected void ensureNodeCount(InternalTestCluster cluster) {
-        assertFalse("cluster failed to form after disruption was healed", cluster.client().admin().cluster().prepareHealth()
-            .setWaitForNodes(String.valueOf(cluster.size()))
-            .setWaitForNoRelocatingShards(true)
-            .get().isTimedOut());
+        cluster.validateClusterFormed();
     }
 
     @Override

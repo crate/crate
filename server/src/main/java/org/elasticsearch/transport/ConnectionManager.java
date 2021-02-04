@@ -40,6 +40,8 @@ import org.elasticsearch.common.util.concurrent.ListenableFuture;
 import org.elasticsearch.common.util.concurrent.RunOnce;
 
 import io.crate.common.io.IOUtils;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * This class manages node connections. The connection is opened by the underlying transport. Once the
@@ -223,6 +225,13 @@ public class ConnectionManager implements Closeable {
      */
     public int size() {
         return connectedNodes.size();
+    }
+
+    /**
+     * Returns the set of nodes this manager is connected to.
+     */
+    public Set<DiscoveryNode> connectedNodes() {
+        return Collections.unmodifiableSet(connectedNodes.keySet());
     }
 
     @Override
