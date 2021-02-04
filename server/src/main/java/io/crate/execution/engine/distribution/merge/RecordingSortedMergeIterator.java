@@ -24,10 +24,11 @@ package io.crate.execution.engine.distribution.merge;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
+
+import org.elasticsearch.common.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -130,7 +131,7 @@ class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow
 
         ReplayingIterator(int[] sorting, Iterable<? extends Iterator<T>> iterators) {
             this.sorting = sorting;
-            this.iters = ImmutableList.<Iterator<T>>builder().addAll(iterators).build();
+            this.iters = CollectionUtils.iterableAsArrayList(iterators);
             this.itersSize = this.iters.size();
         }
 

@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.blob.v2.BlobShard;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -42,6 +41,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -96,7 +96,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
         Iterable<File> files = blobShard.blobContainer().getFiles();
         Iterable<Row> rows = RowsTransformer.toRowsIterable(txnCtx, inputFactory, BlobReferenceResolver.INSTANCE, collectPhase, files);
         if (requiresRepeat) {
-            return ImmutableList.copyOf(rows);
+            return CollectionUtils.iterableAsArrayList(rows);
         }
         return rows;
     }

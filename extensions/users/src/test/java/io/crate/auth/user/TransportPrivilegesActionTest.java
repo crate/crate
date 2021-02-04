@@ -22,7 +22,6 @@
 
 package io.crate.auth.user;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.user.Privilege;
 import io.crate.metadata.UserDefinitions;
@@ -95,7 +94,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         Metadata metadata = Metadata.builder()
             .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.DUMMY_USERS))
             .build();
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, ImmutableList.of("Ford", "Arthur"));
+        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, List.of("Ford", "Arthur"));
         assertThat(unknownUserNames.size(), is(0));
     }
 

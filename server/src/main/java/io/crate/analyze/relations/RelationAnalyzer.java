@@ -21,7 +21,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.OrderBy;
@@ -112,7 +111,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private final NodeContext nodeCtx;
     private final Schemas schemas;
 
-    private static final List<Relation> EMPTY_ROW_TABLE_RELATION = ImmutableList.of(
+    private static final List<Relation> EMPTY_ROW_TABLE_RELATION = List.of(
         new TableFunction(new FunctionCall(QualifiedName.of("empty_row"), Collections.emptyList()))
     );
 

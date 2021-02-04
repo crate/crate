@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect.files;
 
-import com.google.common.collect.ImmutableList;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -50,11 +49,11 @@ public class LocalFsFileInput implements FileInput {
         if (!Files.isDirectory(path)) {
             path = path.getParent();
             if (path == null) {
-                return ImmutableList.of();
+                return List.of();
             }
         }
         if (Files.notExists(path)) {
-            return ImmutableList.of();
+            return List.of();
         }
 
         final List<URI> uris = new ArrayList<>();
