@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
 
+import io.crate.license.License;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -235,6 +236,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedWriteables());
         }
+        //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
+        entries.addAll(License.getNamedWriteables());
         return entries;
     }
 
@@ -255,6 +258,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedXContent());
         }
+        //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
+        entries.addAll(License.getNamedXContent());
         return entries;
     }
 
