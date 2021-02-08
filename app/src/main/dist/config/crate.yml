@@ -217,12 +217,16 @@ auth:
 
 #################################### Paths ###################################
 
+# Relative paths are relative to CRATE_HOME. Absolute paths override this
+# behavior.
+
+
 # Path to directory containing configuration (this file and
 # log4j2.properties):
-#path.conf: /path/to/conf
+#path.conf: config
 
 # Path to directory where to store table data allocated for this node.
-#path.data: /path/to/data
+#path.data: data
 #
 # Can optionally include more than one location, causing data to be striped
 # across the locations (a la RAID 0) on a file level, favouring locations with
@@ -230,20 +234,17 @@ auth:
 #path.data: /path/to/data1,/path/to/data2
 
 # Path to log files:
-#path.logs: /path/to/logs
+#path.logs: logs
 
-# Path to where plugins are installed:
-#path.plugins: /path/to/plugins
-
+# Alternative syntax for configuring path settings
 #path:
 #  logs: /var/log/crate
 #  data: /var/lib/crate
 
-# BLOBS: Path to directory where to store blob data allocated for this node.
-# By default blobs will be stored under the same path as normal data.
-# A relative path value is relative to CRATE_HOME.
-#blobs.path: /path/to/blobs
+# Path to directory where to store blob data allocated for this node.
+#blobs.path: blobs
 
+# See also: path.repo (further down)
 
 ################################### Memory ###################################
 
