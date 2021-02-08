@@ -23,6 +23,8 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.protocols.postgres.parser.PgArrayParser;
+import io.crate.protocols.postgres.parser.PgArrayParsingException;
+
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -195,10 +197,14 @@ public class ArrayType<T> extends DataType<List<T>> {
             }
         } else if (value instanceof String) {
             //noinspection unchecked
-            return (List<T>) PgArrayParser.parse(
-                ((String) value).getBytes(StandardCharsets.UTF_8),
-                bytes -> innerType.apply(new String(bytes, StandardCharsets.UTF_8))
-            );
+            try {
+                return (List<T>) PgArrayParser.parse(
+                    ((String) value).getBytes(StandardCharsets.UTF_8),
+                    bytes -> innerType.apply(new String(bytes, StandardCharsets.UTF_8))
+                );
+            } catch (PgArrayParsingException e) {
+                throw new IllegalArgumentException("Cannot parse `" + value + "` as array", e);
+            }
         } else {
             Object[] values = (Object[]) value;
             result = new ArrayList<>(values.length);
