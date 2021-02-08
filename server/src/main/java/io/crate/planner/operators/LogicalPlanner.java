@@ -40,6 +40,7 @@ import io.crate.analyze.relations.UnionSelect;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.ConversionException;
 import io.crate.execution.MultiPhaseExecutor;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
@@ -497,6 +498,8 @@ public class LogicalPlanner {
         try {
             executionPlan = logicalPlan.build(
                 plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryResults);
+        } catch (ConversionException e) {
+            throw e;
         } catch (Exception e) {
             // This should really only happen if there are planner bugs,
             // so the additional costs of creating a more informative exception shouldn't matter.

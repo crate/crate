@@ -1,24 +1,34 @@
 package io.crate.planner;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.expression.symbol.Literal;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.RoutingProvider;
-import io.crate.planner.node.ddl.UpdateSettingsPlan;
-import io.crate.sql.tree.Assignment;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.Randomness;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.common.Randomness;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.action.sql.SessionContext;
+import io.crate.data.Row1;
+import io.crate.exceptions.ConversionException;
+import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.RoutingProvider;
+import io.crate.planner.node.ddl.UpdateSettingsPlan;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.Assignment;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
+import io.crate.testing.SQLExecutor;
+import static org.mockito.Mockito.mock;
 
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -68,5 +78,23 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testDeallocate() {
         assertThat(e.plan("deallocate all"), instanceOf(NoopPlan.class));
         assertThat(e.plan("deallocate test_prep_stmt"), instanceOf(NoopPlan.class));
+    }
+
+    @Test
+    public void test_invalid_any_param_leads_to_clear_error_message() throws Exception {
+        LogicalPlan plan = e.logicalPlan("select name = ANY(?) from sys.cluster");
+        Asserts.assertThrows(
+            () -> {
+                LogicalPlanner.getNodeOperationTree(
+                    plan,
+                    mock(DependencyCarrier.class),
+                    e.getPlannerContext(clusterService.state()),
+                    new Row1("foo"),
+                    SubQueryResults.EMPTY
+                );
+            },
+            ConversionException.class,
+            "Cannot cast value `foo` to type `text_array`"
+        );
     }
 }
