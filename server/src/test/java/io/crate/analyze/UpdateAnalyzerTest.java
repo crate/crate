@@ -27,6 +27,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.VersioninigValidationException;
@@ -283,8 +284,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set name=?, friends=? where other_id=?");
 
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast [{}] to type TEXT");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast value `[{}]` to type `text`");
         assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
     }
 
@@ -421,8 +422,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         };
         AnalyzedUpdateStatement update = analyze("update users set tags=? where id=1");
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast [a, b] to type TEXT");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast value `[[a, b]]` to type `text_array`");
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
         assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
     }

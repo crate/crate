@@ -24,6 +24,7 @@ package io.crate.exceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 public class ConversionException extends IllegalArgumentException {
@@ -51,7 +52,7 @@ public class ConversionException extends IllegalArgumentException {
         super(String.format(
             Locale.ENGLISH,
             "Cannot cast value `%s` to type `%s`",
-            sourceValue,
+            sourceValue.getClass().isArray() ? Arrays.deepToString((Object[]) sourceValue) : sourceValue,
             targetType.getName()
         ));
     }
