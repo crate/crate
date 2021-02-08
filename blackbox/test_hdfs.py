@@ -35,7 +35,7 @@ from crate.client import connect
 from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
-HADOOP_VERSION = '2.8.5'
+HADOOP_VERSION = '2.10.1'
 HADOOP_SOURCE = ('http://www-eu.apache.org/dist/hadoop/common/'
                  'hadoop-{version}/hadoop-{version}.tar.gz'.format(version=HADOOP_VERSION))
 CACHE_DIR = os.environ.get(

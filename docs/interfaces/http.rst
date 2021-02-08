@@ -524,4 +524,4 @@ error::
    fails.
 
 .. _prepared statement: https://en.wikipedia.org/wiki/Prepared_statement
-.. _here documents: https://www.tldp.org/LDP/abs/html/here-docs.html
+.. _here documents: https://en.wikipedia.org/wiki/Here_document
