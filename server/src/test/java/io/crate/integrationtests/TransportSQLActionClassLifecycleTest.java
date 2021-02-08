@@ -74,13 +74,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    @Before
-    public void initTestData() throws Exception {
-        Setup setup = new Setup(sqlExecutor);
-        setup.partitionTableSetup();
-        setup.groupBySetup();
-    }
-
     @After
     public void resetSettings() throws Exception {
         // reset stats settings in case of some tests changed it and failed without resetting.
@@ -89,12 +82,14 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         assertThrows(() -> execute("select count(race), suess.cluster.name from characters"),
             isSQLError(is("Relation 'suess.cluster' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
     @Test
     public void testSelectDoc() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select _doc from characters order by name desc limit 1");
         assertArrayEquals(new String[]{"_doc"}, response.cols());
         Map<String, Object> _doc = new TreeMap<>((Map) response.rows()[0][0]);
@@ -106,6 +101,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testSelectRaw() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select _raw from characters order by name desc limit 1");
         Object raw = response.rows()[0][0];
         Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
@@ -119,6 +115,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testSelectRawWithGrouping() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select name, _raw from characters " +
                                        "group by _raw, name order by name desc limit 1");
 
@@ -134,6 +131,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testGlobalAggregateSimple() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select max(age) from characters");
 
         assertEquals(1, response.rowCount());
@@ -159,6 +157,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testGlobalAggregateWithoutNulls() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse firstResp = execute("select sum(age) from characters");
         SQLResponse secondResp = execute("select sum(age) from characters where age is not null");
 
@@ -174,6 +173,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testGlobalAggregateNullRowWithoutMatchingRows() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select sum(age), avg(age) from characters where characters.age > 112");
         assertEquals(1, response.rowCount());
@@ -186,6 +186,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testGlobalAggregateMany() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select sum(age), min(age), max(age), avg(age) from characters");
         assertEquals(1, response.rowCount());
         assertEquals(221L, response.rows()[0][0]);
@@ -202,6 +203,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testGroupByNestedObject() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select count(*), details['job'] from characters " +
                                        "group by details['job'] order by count(*), details['job']");
         assertEquals(3, response.rowCount());
@@ -215,6 +217,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCountWithGroupByOrderOnKeyDescAndLimit() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select count(*), race from characters group by race order by race desc limit 2");
 
@@ -227,6 +230,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select count(*), race from characters group by race order by race asc limit 2");
 
@@ -240,12 +244,14 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     @UseJdbc(0) // NPE because of unused null parameter
     public void testCountWithGroupByNullArgs() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select count(*), race from characters group by race", new Object[]{null});
         assertEquals(3, response.rowCount());
     }
 
     @Test
     public void testGroupByAndOrderByAlias() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select characters.race as test_race from characters group by characters.race order by characters.race");
         assertEquals(3, response.rowCount());
@@ -257,6 +263,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCountWithGroupByWithWhereClause() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select count(*), race from characters where race = 'Human' group by race");
         assertEquals(1, response.rowCount());
@@ -264,6 +271,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndLimit() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select count(*), race from characters " +
                                        "group by race order by count(*) asc limit ?",
             new Object[]{2});
@@ -277,6 +285,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimit() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select count(*), gender, race from characters " +
                                        "group by race, gender order by count(*) desc, race, gender asc limit 2");
 
@@ -291,6 +300,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndOffset() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select count(*), gender, race from characters " +
                                        "group by race, gender order by count(*) desc, race asc limit 2 offset 2");
 
@@ -305,6 +315,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndTooLargeOffset() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select count(*), gender, race from characters " +
                                        "group by race, gender order by count(*) desc, race asc limit 2 offset 20");
 
@@ -314,6 +325,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCountWithGroupByOrderOnAggDescFuncAndLimit() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select count(*), race from characters group by race order by count(*) desc limit 2");
 
@@ -326,12 +338,14 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testDateRange() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select * from characters where birthdate > '1970-01-01'");
         assertThat(response.rowCount(), Matchers.is(2L));
     }
 
     @Test
     public void testCopyToDirectoryOnPartitionedTableWithPartitionClause() throws Exception {
+        new Setup(sqlExecutor).partitionTableSetup();
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy parted partition (date='2014-01-01') to DIRECTORY ?", $(uriTemplate));
         assertThat(response.rowCount(), is(2L));
@@ -352,6 +366,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testCopyToDirectoryOnPartitionedTableWithoutPartitionClause() throws Exception {
+        new Setup(sqlExecutor).partitionTableSetup();
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy parted to DIRECTORY ?", $(uriTemplate));
         assertThat(response.rowCount(), is(4L));
@@ -431,6 +446,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testSysOperationsLog() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         execute("set global transient stats.enabled = false");
 
         execute(
@@ -468,6 +484,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testSysOperationsLogConcurrentAccess() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         execute("set global transient stats.enabled = true, stats.operations_log_size=10");
         waitNoPendingTasksOnAll();
 
@@ -505,6 +522,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testAddPrimaryKeyColumnToNonEmptyTable() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         assertThrows(() -> execute("alter table characters add newpkcol string primary key"),
                      isSQLError(is("Cannot add a primary key column to a table that isn't empty"),
                                 INTERNAL_ERROR,
@@ -514,6 +532,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testIsNullOnObjects() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse resp = execute("select name from characters where details is null order by name");
         assertThat(resp.rowCount(), is(5L));
         List<String> names = new ArrayList<>(5);
