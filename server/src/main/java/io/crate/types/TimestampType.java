@@ -171,7 +171,7 @@ public final class TimestampType extends DataType<Long>
         }
     }
 
-    static long parseTimestampIgnoreTimeZone(String timestamp) {
+    public static long parseTimestampIgnoreTimeZone(String timestamp) {
         try {
             return Long.parseLong(timestamp);
         } catch (NumberFormatException e) {

@@ -26,8 +26,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
-import java.time.format.DateTimeParseException;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.is;
 
@@ -62,7 +60,15 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expectMessage("Text '2016-06-28 00:00:00.0000000001+05:00' could not be parsed");
         TimestampType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8));
+    }
+
+    @Test
+    public void test_decode_ts_string() throws Exception {
+        assertThat(
+            TimestampType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988".getBytes(UTF_8)),
+            is(1610548637259L)
+        );
     }
 }

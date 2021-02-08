@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.data.Row;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
@@ -87,6 +88,10 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
         if (type.equals(DataTypes.UNDEFINED)) {
             type = DataTypes.guessType(value);
         }
-        return Literal.ofUnchecked(type, type.implicitCast(value));
+        try {
+            return Literal.ofUnchecked(type, type.implicitCast(value));
+        } catch (ClassCastException | IllegalArgumentException e) {
+            throw new ConversionException(value, type);
+        }
     }
 }
