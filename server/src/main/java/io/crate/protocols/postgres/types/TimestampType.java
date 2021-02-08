@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres.types;
 
 import javax.annotation.Nonnull;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -92,7 +93,11 @@ final class TimestampType extends BaseTimestampType {
     Object decodeUTF8Text(byte[] bytes) {
         String s = new String(bytes, StandardCharsets.UTF_8);
 
-        LocalDateTime dt = LocalDateTime.parse(s, PARSER_WITH_OPTIONAL_ERA);
-        return dt.toInstant(ZoneOffset.UTC).toEpochMilli();
+        try {
+            LocalDateTime dt = LocalDateTime.parse(s, PARSER_WITH_OPTIONAL_ERA);
+            return dt.toInstant(ZoneOffset.UTC).toEpochMilli();
+        } catch (Exception e) {
+            return io.crate.types.TimestampType.parseTimestampIgnoreTimeZone(s);
+        }
     }
 }
