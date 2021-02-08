@@ -6,9 +6,10 @@ Secured communications (SSL/TLS)
 
 Secured communication allows you to encrypt traffic between the CrateDB node
 and a client. This applies to connections using HTTP (i.e. `Admin UI
-<https://crate.io/docs/crate/tutorials/en/latest/first-use.html#admin-ui>`_,
+<https://crate.io/docs/crate/tutorials/en/latest/first-use.html#introducing-the-admin-ui>`_,
 `Crash <https://crate.io/docs/crate/crash/en/latest/>`_,
-:ref:`sql_http_endpoint`) and the :ref:`postgres_wire_protocol` (i.e. JDBC, psql).
+:ref:`sql_http_endpoint`) and the :ref:`postgres_wire_protocol` (i.e. JDBC,
+psql).
 
 Connections are secured using Transport Layer Security (TLS).
 
