@@ -98,7 +98,7 @@ public class ClusterHealthIT extends SQLTransportIntegrationTest {
         execute("alter table t2 close");
 
         var table_3 = getFqn("t3");
-        execute("create table t3 (id int) with (number_of_replicas = 50)");
+        execute("create table t3 (id int) with (number_of_replicas = 20)");
         execute("alter table t3 close");
 
         {
