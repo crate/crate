@@ -58,4 +58,7 @@ None
 Fixes
 =====
 
-None
+
+- Fixed an issue that could lead to a serialization error when streaming values
+  of the ``TIMESTAMP WITHOUT TIME ZONE`` type in text format using the
+  PostgreSQL wire protocol.
