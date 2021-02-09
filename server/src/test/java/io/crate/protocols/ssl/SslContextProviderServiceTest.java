@@ -22,17 +22,20 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.netty.handler.ssl.SslContext;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.hamcrest.CoreMatchers.is;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Test;
+
+import io.crate.protocols.ssl.SslContextProviderService.FingerPrint;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.netty.handler.ssl.SslContext;
 
 public class SslContextProviderServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -57,7 +60,8 @@ public class SslContextProviderServiceTest extends CrateDummyClusterServiceUnitT
         Path dataLink = tempDir.resolve("data");
 
         Files.createSymbolicLink(dataLink, dataTarget05);
-        Files.write(dataLink.resolve("keystore.jks"), List.of("version1"));
+        Path resolvedKeystore = dataLink.resolve("keystore.jks");
+        Files.write(resolvedKeystore, List.of("version1"));
 
         Path keystoreLink = tempDir.resolve("keystore.jks");
         Path keystoreTarget = tempDir.resolve("data/keystore.jks");
@@ -65,11 +69,10 @@ public class SslContextProviderServiceTest extends CrateDummyClusterServiceUnitT
 
         Settings settings = Settings.builder()
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keystoreLink.toString())
-            .put(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL_NAME, "1")
             .build();
 
         final AtomicBoolean reloadCalled = new AtomicBoolean(false);
-        SslContextProviderService sslContextProviderService = new SslContextProviderService(
+        try (var sslContextProviderService = new SslContextProviderService(
             settings,
             THREAD_POOL,
             new SslContextProvider() {
@@ -84,16 +87,23 @@ public class SslContextProviderServiceTest extends CrateDummyClusterServiceUnitT
                         reloadCalled.set(true);
                     }
                 }
-        );
-        sslContextProviderService.start();
+        )) {
 
-        Files.write(dataTarget06.resolve("keystore.jks"), List.of("version2"));
-        Files.deleteIfExists(dataLink);
-        Files.createSymbolicLink(dataLink, dataTarget06);
-        Files.deleteIfExists(dataTarget05.resolve("keystore.jks"));
+            List<FingerPrint> filesToWatch = sslContextProviderService.createFilesToWatch();
+            assertThat(filesToWatch.size(), is(1));
 
-        assertBusy(() -> {
-            assertThat(reloadCalled.get(), is(true));
-        });
+            FingerPrint fingerPrint = filesToWatch.get(0);
+            long checksum = fingerPrint.checksum;
+
+            Files.write(dataTarget06.resolve("keystore.jks"), List.of("version2"));
+            assertThat("dataLink file must exist", Files.deleteIfExists(dataLink), is(true));
+            Files.createSymbolicLink(dataLink, dataTarget06);
+
+            sslContextProviderService.pollForChanges(filesToWatch);
+            assertThat("checksum must change after file changed", fingerPrint.checksum, is(not(checksum)));
+
+            assertThat("reload must be called on SslContextProvider", reloadCalled.get(), is(true));
+
+        }
     }
 }
