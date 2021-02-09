@@ -937,88 +937,13 @@ like so::
 
 .. _sql_dql_aggregation:
 
-Data aggregation
-================
+Aggregation
+===========
 
-CrateDB supports :ref:`aggregation` via the following aggregation functions.
+CrateDB provides built-in :ref:`aggregation functions <aggregation>` that allow
+you to calculate a single summary value for one or more columns.
 
-Aggregation works across all the rows that match a query or on all matching
-rows in every distinct group of a ``GROUP BY`` statement. Aggregating
-``SELECT`` statements without ``GROUP BY`` will always return one row.
-
-+---------------------+---------------+----------------------------------+-----------------------+
-| Name                | Arguments     | Description                      | Return Type           |
-+=====================+===============+==================================+=======================+
-| ARBITRARY           | column name of| Returns an undefined value of    | the input             |
-|                     | a primitive   | all the values in the argument   | column type or NULL   |
-|                     | typed         | column. Can be NULL.             | if some value of the  |
-|                     | column        |                                  | matching rows in that |
-|                     | (all but      |                                  | column is NULL        |
-|                     | object)       |                                  |                       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| AVG / MEAN          | column name of| Returns the arithmetic mean of   | double or NULL        |
-|                     | a numeric or  | the values in the argument       | if all values of all  |
-|                     | timestamp     | column.                          | matching rows in that |
-|                     | column        | NULL-values are ignored.         | column are NULL       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| COUNT(*)            | star as       | Counts the number of rows        | long                  |
-|                     | parameter or  | that match the query.            |                       |
-|                     | as constant   |                                  |                       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| COUNT               | column name   | Counts the number of rows        | long                  |
-|                     |               | that contain a non NULL          |                       |
-|                     |               | value for the given column.      |                       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| COUNT(DISTINCT col) | column name   | Counts the number of distinct    | long                  |
-|                     |               | values for the given column      |                       |
-|                     |               | that are not NULL.               |                       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| GEOMETRIC_MEAN      | column name of| Computes the geometric mean for  | double or NULL        |
-|                     | a numeric or  | positive numbers.                | if all values of all  |
-|                     | timestamp     |                                  | matching rows in that |
-|                     | column        |                                  | are NULL or if a value|
-|                     |               |                                  | is negative.          |
-+---------------------+---------------+----------------------------------+-----------------------+
-| MIN                 | column name of| Returns the smallest of the      | the input             |
-|                     | a numeric,    | values in the argument column    | column type or NULL   |
-|                     | timestamp     | in case of strings this          | if all values in that |
-|                     | or string     | means the lexicographically      | matching rows in that |
-|                     | column        | smallest. NULL-values are ignored| column are NULL       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| MAX                 | column name of| Returns the biggest of the       | the input             |
-|                     | a numeric,    | values in the argument column    | column type or NULL   |
-|                     | timestamp     | in case of strings this          | if all values of all  |
-|                     | or string     | means the lexicographically      | matching rows in that |
-|                     | column        | biggest. NULL-values are ignored | column are NULL       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| STDDEV              | column name of| Returns the standard deviation   | double or NULL        |
-|                     | a numeric or  | of the values in the argument    | if all values are NULL|
-|                     | timestamp     | column.                          | or we got no value at |
-|                     | column        | NULL-values are ignored.         | all                   |
-+---------------------+---------------+----------------------------------+-----------------------+
-| STRING_AGG          | an expression | Concatenated input values into   | text                  |
-|                     | and delimiter | a string, separated by a         |                       |
-|                     | of a text type| delimiter.                       |                       |
-|                     |               | NULL-values are ignored.         |                       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| PERCENTILE          | column of a   | Returns the provided percentile  | a double precision    |
-|                     | numeric type  | of the values in the argument    | value                 |
-|                     | and a double  | column.                          |                       |
-|                     | percentile    | NULL-values are ignored.         |                       |
-|                     | value         |                                  |                       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| SUM                 | column name of| Returns the sum of the values in | double or NULL        |
-|                     | a numeric or  | the argument column.             | if all values of all  |
-|                     | timestamp     | NULL-values are ignored.         | matching rows in that |
-|                     | column        |                                  | column are NULL       |
-+---------------------+---------------+----------------------------------+-----------------------+
-| VARIANCE            | column name of| Returns the variance of the      | double or NULL        |
-|                     | a numeric or  | values in the argument column.   | if all values are NULL|
-|                     | timestamp     | NULL-values are ignored.         | or we got no value at |
-|                     | column        |                                  | all                   |
-+---------------------+---------------+----------------------------------+-----------------------+
-
-Some Examples::
+Some examples::
 
     cr> select count(*) from locations;
     +----------+

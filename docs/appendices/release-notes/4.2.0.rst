@@ -201,7 +201,7 @@ Functions and operators
 - Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`
   scalar functions.
 
-- Added the :ref:`array_agg <array_agg>` aggregation function.
+- Added the :ref:`array_agg <aggregation-array-agg>` aggregation function.
 
 - Added the :ref:`trunc <scalar-trunc>` scalar function.
 

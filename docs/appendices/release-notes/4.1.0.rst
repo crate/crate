@@ -193,7 +193,7 @@ New statements and clauses
   :ref:`ref-alter-table`.
 
 - Added support for the filter clause in
-  :ref:`aggregate expressions <aggregate-expressions>` and
+  :ref:`aggregate expressions <aggregation-expressions>` and
   :ref:`window functions <window-function-call>` that are
   :ref:`aggregates <aggregation>`.
 
