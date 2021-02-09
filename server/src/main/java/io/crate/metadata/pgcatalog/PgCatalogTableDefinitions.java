@@ -32,7 +32,7 @@ import java.util.Map;
 
 import org.elasticsearch.common.inject.Inject;
 
-import io.crate.analyze.user.Privilege;
+import io.crate.user.Privilege;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.RelationName;

@@ -33,11 +33,9 @@ import java.util.Map;
  */
 public class LicenseCustomMetadataUpgrader implements CustomMetadataUpgrader {
 
-    public static final String TYPE = "license";
-
     @Override
     public Map<String, Metadata.Custom> apply(Settings settings, Map<String, Metadata.Custom> customs) {
-        customs.remove(TYPE);
+        customs.remove(License.WRITEABLE_TYPE);
         return customs;
     }
 }

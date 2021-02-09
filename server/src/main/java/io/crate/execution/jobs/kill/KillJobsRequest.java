@@ -26,7 +26,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

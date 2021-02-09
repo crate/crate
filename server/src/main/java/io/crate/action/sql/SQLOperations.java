@@ -23,8 +23,8 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.Analyzer;
-import io.crate.auth.user.User;
-import io.crate.auth.user.UserManager;
+import io.crate.user.User;
+import io.crate.user.UserManager;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;

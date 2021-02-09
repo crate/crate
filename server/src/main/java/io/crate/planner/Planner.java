@@ -78,7 +78,7 @@ import io.crate.analyze.DCLStatement;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.auth.user.UserManager;
+import io.crate.user.UserManager;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;

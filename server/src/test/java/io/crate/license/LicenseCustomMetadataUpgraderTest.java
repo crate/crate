@@ -63,7 +63,7 @@ public class LicenseCustomMetadataUpgraderTest {
     }
 
     private static class LicenseCustomMetaData extends TestCustomMetadata {
-        public static final String TYPE = "license";
+        public static final String TYPE = License.WRITEABLE_TYPE;
 
         protected LicenseCustomMetaData(String data) {
             super(data);

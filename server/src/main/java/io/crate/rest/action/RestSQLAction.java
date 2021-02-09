@@ -29,7 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.auth.user.UserManager;
+import io.crate.user.UserManager;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslContextProvider;
 

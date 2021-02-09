@@ -23,7 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.auth.user.AccessControl;
+import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.netty.channel.Channel;
 

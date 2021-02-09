@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;

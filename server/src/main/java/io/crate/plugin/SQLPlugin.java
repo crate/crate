@@ -30,8 +30,8 @@ import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableList;
 
+import io.crate.license.License;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -58,6 +58,7 @@ import org.elasticsearch.plugins.Plugin;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AuthSettings;
+import io.crate.auth.AuthenticationModule;
 import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.TransportExecutorModule;
@@ -91,26 +92,22 @@ import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.protocols.ssl.SslContextProviderFallbackModule;
-import io.crate.protocols.ssl.SslExtension;
+import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.settings.CrateSetting;
-import io.crate.user.UserExtension;
-import io.crate.user.UserFallbackModule;
+import io.crate.user.UserManagementModule;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
+import io.crate.user.scalar.UsersScalarFunctionModule;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
     private final Settings settings;
     @Nullable
-    private final UserExtension userExtension;
-    @Nullable
-    private final SslExtension sslExtension;
     private final IndexEventListenerProxy indexEventListenerProxy;
 
     public SQLPlugin(Settings settings) {
         this.settings = settings;
         this.indexEventListenerProxy = new IndexEventListenerProxy();
-        userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
-        sslExtension = EnterpriseLoader.loadSingle(SslExtension.class);
     }
 
     @Override
@@ -128,7 +125,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting());
         settings.add(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting());
 
-        // Settings for SSL (available only in the Enterprise version)
+        // Settings for SSL
         settings.add(SslConfigSettings.SSL_HTTP_ENABLED.setting());
         settings.add(SslConfigSettings.SSL_PSQL_ENABLED.setting());
         settings.add(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting());
@@ -148,21 +145,18 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        ImmutableList.Builder<Class<? extends LifecycleComponent>> builder =
-            ImmutableList.<Class<? extends LifecycleComponent>>builder()
-            .add(DecommissioningService.class)
-            .add(NodeDisconnectJobMonitorService.class)
-            .add(JobsLogService.class)
-            .add(PostgresNetty.class)
-            .add(TasksService.class)
-            .add(Schemas.class)
-            .add(DefaultTemplateService.class)
-            .add(ArrayMapperService.class)
-            .add(DanglingArtifactsService.class);
-        if (sslExtension != null) {
-            builder.addAll(sslExtension.getGuiceServiceClasses());
-        }
-        return builder.build();
+        return List.<Class<? extends LifecycleComponent>>of(
+            DecommissioningService.class,
+            NodeDisconnectJobMonitorService.class,
+            JobsLogService.class,
+            PostgresNetty.class,
+            TasksService.class,
+            Schemas.class,
+            DefaultTemplateService.class,
+            ArrayMapperService.class,
+            DanglingArtifactsService.class,
+            SslContextProviderService.class
+        );
     }
 
     @Override
@@ -186,16 +180,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new BulkModule());
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
-        if (userExtension != null) {
-            modules.addAll(userExtension.getModules(settings));
-        } else {
-            modules.add(new UserFallbackModule());
-        }
-        if (sslExtension != null) {
-            modules.addAll(sslExtension.getModules());
-        } else {
-            modules.add(new SslContextProviderFallbackModule());
-        }
+        modules.add(new UserManagementModule());
+        modules.add(new AuthenticationModule(settings));
+        modules.add(new UsersScalarFunctionModule());
         return modules;
     }
 
@@ -206,7 +193,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Collection<AllocationDecider> createAllocationDeciders(Settings settings, ClusterSettings clusterSettings) {
-        return ImmutableList.of(new DecommissionAllocationDecider(settings, clusterSettings));
+        return List.of(new DecommissionAllocationDecider(settings, clusterSettings));
     }
 
     @Override
@@ -232,9 +219,30 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             ViewsMetadata.TYPE,
             in -> ViewsMetadata.readDiffFrom(Metadata.Custom.class, ViewsMetadata.TYPE, in)
         ));
-        if (userExtension != null) {
-            entries.addAll(userExtension.getNamedWriteables());
-        }
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            UsersMetadata.TYPE,
+            UsersMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            UsersMetadata.TYPE,
+            in -> UsersMetadata.readDiffFrom(Metadata.Custom.class, UsersMetadata.TYPE, in)
+        ));
+
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            UsersPrivilegesMetadata.TYPE,
+            UsersPrivilegesMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            UsersPrivilegesMetadata.TYPE,
+            in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
+        ));
+
+        //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
+        entries.addAll(License.getNamedWriteables());
         return entries;
     }
 
@@ -251,10 +259,18 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             new ParseField(ViewsMetadata.TYPE),
             ViewsMetadata::fromXContent
         ));
-
-        if (userExtension != null) {
-            entries.addAll(userExtension.getNamedXContent());
-        }
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(UsersMetadata.TYPE),
+            UsersMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(UsersPrivilegesMetadata.TYPE),
+            UsersPrivilegesMetadata::fromXContent
+        ));
+        //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
+        entries.addAll(License.getNamedXContent());
         return entries;
     }
 

@@ -48,7 +48,7 @@ import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.transport.TransportException;
 
-import io.crate.auth.user.AccessControl;
+import io.crate.auth.AccessControl;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 

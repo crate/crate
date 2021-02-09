@@ -23,7 +23,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AnalyzedCreateUser;
-import io.crate.auth.user.UserManager;
+import io.crate.user.UserManager;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

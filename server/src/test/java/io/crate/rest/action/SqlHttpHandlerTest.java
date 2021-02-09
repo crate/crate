@@ -24,8 +24,8 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AuthSettings;
-import io.crate.auth.user.AccessControl;
-import io.crate.auth.user.User;
+import io.crate.auth.AccessControl;
+import io.crate.user.User;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;

@@ -20,8 +20,6 @@ include 'libs:shared',
         'blackbox',
         'extensions:jmx-monitoring',
         'extensions:lang-js',
-        'extensions:users',
-        'extensions:ssl-impl',
         'extensions:functions',
         'benchmarks'
 
