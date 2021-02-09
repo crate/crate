@@ -140,7 +140,6 @@ public class RecoverySourceHandler {
     /**
      * performs the recovery from the local engine to the target
      */
-
     public void recoverToTarget(ActionListener<RecoveryResponse> listener) {
         final Closeable releaseResources = () -> IOUtils.close(resources);
         final ActionListener<RecoveryResponse> wrappedListener = ActionListener.notifyOnce(listener);
@@ -311,7 +310,6 @@ public class RecoverySourceHandler {
             }
             assert startingSeqNo >= 0 : "startingSeqNo must be non negative. got: " + startingSeqNo;
 
-
             sendFileStep.whenComplete(r -> {
                 assert Transports.assertNotTransportThread(RecoverySourceHandler.this + "[prepareTargetForTranslog]");
                 // For a sequence based recovery, the target can keep its local translog
@@ -421,6 +419,45 @@ public class RecoverySourceHandler {
         return targetHistoryUUID.equals(shard.getHistoryUUID());
     }
 
+    static void runUnderPrimaryPermit(CancellableThreads.Interruptable runnable, String reason,
+                                      IndexShard primary, CancellableThreads cancellableThreads, Logger logger) {
+        cancellableThreads.execute(() -> {
+            CompletableFuture<Releasable> permit = new CompletableFuture<>();
+            final ActionListener<Releasable> onAcquired = new ActionListener<>() {
+                @Override
+                public void onResponse(Releasable releasable) {
+                    if (permit.complete(releasable) == false) {
+                        releasable.close();
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    permit.completeExceptionally(e);
+                }
+            };
+            primary.acquirePrimaryOperationPermit(onAcquired, ThreadPool.Names.SAME, reason);
+            try (Releasable ignored = FutureUtils.get(permit)) {
+                // check that the IndexShard still has the primary authority. This needs to be checked under operation permit to prevent
+                // races, as IndexShard will switch its authority only when it holds all operation permits, see IndexShard.relocated()
+                if (primary.isRelocatedPrimary()) {
+                    throw new IndexShardRelocatedException(primary.shardId());
+                }
+                runnable.run();
+            } finally {
+                // just in case we got an exception (likely interrupted) while waiting for the get
+                permit.whenComplete((r, e) -> {
+                    if (r != null) {
+                        r.close();
+                    }
+                    if (e != null) {
+                        logger.trace("suppressing exception on completion (it was already bubbled up or the operation was aborted)", e);
+                    }
+                });
+            }
+        });
+    }
+
     /**
      * Increases the store reference and returns a {@link Releasable} that will decrease the store reference using the generic thread pool.
      * We must never release the store using an interruptible thread as we can risk invalidating the node lock.
@@ -463,45 +500,6 @@ public class RecoverySourceHandler {
         static final SendFileResult EMPTY = new SendFileResult(
             Collections.emptyList(), Collections.emptyList(), 0L,
             Collections.emptyList(), Collections.emptyList(), 0L, TimeValue.ZERO);
-    }
-
-    static void runUnderPrimaryPermit(CancellableThreads.Interruptable runnable, String reason,
-                                      IndexShard primary, CancellableThreads cancellableThreads, Logger logger) {
-        cancellableThreads.execute(() -> {
-            CompletableFuture<Releasable> permit = new CompletableFuture<>();
-            final ActionListener<Releasable> onAcquired = new ActionListener<>() {
-                @Override
-                public void onResponse(Releasable releasable) {
-                    if (permit.complete(releasable) == false) {
-                        releasable.close();
-                    }
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    permit.completeExceptionally(e);
-                }
-            };
-            primary.acquirePrimaryOperationPermit(onAcquired, ThreadPool.Names.SAME, reason);
-            try (Releasable ignored = FutureUtils.get(permit)) {
-                // check that the IndexShard still has the primary authority. This needs to be checked under operation permit to prevent
-                // races, as IndexShard will switch its authority only when it holds all operation permits, see IndexShard.relocated()
-                if (primary.isRelocatedPrimary()) {
-                    throw new IndexShardRelocatedException(primary.shardId());
-                }
-                runnable.run();
-            } finally {
-                // just in case we got an exception (likely interrupted) while waiting for the get
-                permit.whenComplete((r, e) -> {
-                    if (r != null) {
-                        r.close();
-                    }
-                    if (e != null) {
-                        logger.trace("suppressing exception on completion (it was already bubbled up or the operation was aborted)", e);
-                    }
-                });
-            }
-        });
     }
 
     // CRATE_PATCH: used by BlobRecoveryHandler
