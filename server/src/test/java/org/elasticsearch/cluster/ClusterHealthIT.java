@@ -89,16 +89,18 @@ public class ClusterHealthIT extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testHealthWithClosedIndices() {
+    public void testHealthWithClosedIndices() throws Exception {
         var table_1 = getFqn("t1");
         execute("create table t1 (id int) with (number_of_replicas = 0)");
 
         var table_2 = getFqn("t2");
         execute("create table t2 (id int) with (number_of_replicas = 0)");
+        waitNoPendingTasksOnAll();
         execute("alter table t2 close");
 
         var table_3 = getFqn("t3");
-        execute("create table t3 (id int) with (number_of_replicas = 50)");
+        execute("create table t3 (id int) with (number_of_replicas = 20)");
+        waitNoPendingTasksOnAll();
         execute("alter table t3 close");
 
         {
