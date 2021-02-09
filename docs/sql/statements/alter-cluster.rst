@@ -17,7 +17,7 @@ Synopsis
 
 ::
 
-    ALTER CLUSTER 
+    ALTER CLUSTER
       { REROUTE RETRY FAILED
       | DECOMMISSION <nodeId | nodeName>
       | SWAP TABLE source TO target [ WITH ( expr = expr [ , ... ] ) ]
@@ -36,9 +36,11 @@ Arguments
 ``REROUTE RETRY FAILED``
 ------------------------
 
-The index setting :ref:`allocation.max_retries <allocation_max_retries>`
-indicates the maximum of attempts to allocate a shard on a node. If this limit
-is reached it leaves the shard unallocated.
+The index setting :ref:`routing.allocation.max_retries
+<sql-create-table-routing-allocation-max-retries>` indicates the maximum of
+attempts to :ref:`allocate a shard <gloss-shard-allocation>` on a node. If this
+limit is reached it leaves the shard unallocated.
+
 This command allows the enforcement to retry the allocation of shards which
 failed to allocate. See :ref:`ddl_reroute_shards` to get convenient use-cases.
 

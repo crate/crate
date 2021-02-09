@@ -1,5 +1,6 @@
 .. highlight:: psql
-.. _sql_ref_optimize:
+
+.. _sql-optimize:
 
 ============
 ``OPTIMIZE``
@@ -12,13 +13,19 @@ Optimize one or more tables explicitly.
 .. contents::
    :local:
 
+
+.. _sql-optimize-synopsis:
+
 Synopsis
 ========
 
 ::
 
-    OPTIMIZE TABLE table_ident [ PARTITION (partition_column=value [ , ... ]) ] [, ...] 
+    OPTIMIZE TABLE table_ident [ PARTITION (partition_column=value [ , ... ]) ] [, ...]
     [ WITH ( optimization_parameter [= value] [, ... ] ) ]
+
+
+.. _sql-optimize-description:
 
 Description
 ===========
@@ -31,19 +38,23 @@ the connection to CrateDB is lost, the request will continue in the background,
 and any new requests will block until the previous optimization is complete.
 
 The ``PARTITION`` clause can be used to only optimize specific partitions of a
-partitioned table. All columns by which a table is partitioned are required.
+partitioned table. Specified values for all :ref:`partition columns
+<gloss-partition-column>` are required.
 
 In case the ``PARTITION`` clause is omitted all open partitions will be
 optimized. Closed partitions are not optimized.
 For performance reasons doing that should be avoided if possible.
 
-See :ref:`partitioned_tables` for more information on partitioned tables.
+See :ref:`partitioned-tables` for more information on partitioned tables.
 
 For further information see :ref:`optimize`.
 
 .. NOTE::
 
-    System tables cannot be optimized
+    System tables cannot be optimized.
+
+
+.. _sql-optimize-parameters:
 
 Parameters
 ==========
@@ -52,27 +63,59 @@ Parameters
   The name (optionally schema-qualified) of an existing table that is to
   be optimized.
 
-:partition_column:
-  Column name by which the table is partitioned.
+
+.. _sql-optimize-clauses:
 
 Clauses
 =======
 
+
+.. _sql-optimize-partition:
+
 ``PARTITION``
 -------------
+
+.. EDITORIAL NOTE
+   ##############
+
+   Multiple files (in this directory) use the same standard text for
+   documenting the ``PARTITION`` clause. (Minor verb changes are made to
+   accomodate the specifics of the parent statement.)
+
+   For consistency, if you make changes here, please be sure to make a
+   corresponding change to the other files.
+
+If the table is :ref:`partitioned <partitioned-tables>`, the optional
+``PARTITION`` clause can be used to optimize one partition exclusively.
 
 ::
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
-:partition_column:
-  The name of the column by which the table is partitioned.
 
-  All partition columns that were part of the :ref:`partitioned_by_clause` of
-  the :ref:`ref-create-table` statement must be specified.
+:partition_column:
+  One of the column names used for table partitioning.
 
 :value:
-  The columns value.
+  The respective column value.
+
+All :ref:`partition columns <gloss-partition-column>` (specified by the
+:ref:`sql-create-table-partitioned-by` clause) must be listed inside the
+parentheses along with their respective values using the ``partition_column =
+value`` syntax (separated by commas).
+
+Because each partition corresponds to a unique set of :ref:`partition column
+<gloss-partition-column>` row values, this clause uniquely identifies a single
+partition to optimize.
+
+.. TIP::
+
+    The :ref:`ref-show-create-table` statement will show you the complete list
+    of partition columns specified by the
+    :ref:`sql-create-table-partitioned-by` clause.
+
+
+.. _sql-optimize-with:
 
 ``WITH``
 --------

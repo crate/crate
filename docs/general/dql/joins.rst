@@ -192,8 +192,8 @@ tuples for all other records from *right* that don't match any record on the
 Join conditions
 ---------------
 
-CrateDB supports all operators and scalar functions as join conditions in the
-``WHERE`` clause.
+CrateDB supports all :ref:`operators <gloss-operator>` and scalar functions as
+join conditions in the ``WHERE`` clause.
 
 Example with ``within`` scalar function::
 
@@ -238,12 +238,12 @@ available memory, only a certain block size of a relation is loaded at once. The
 whole operation will be repeated with the next block of the first relation once
 scanning the second relation has finished.
 
-This optimisation cannot be applied unless the join is an  **INNER** join and
-the `join condition` obeys the following rules:
+This optimisation cannot be applied unless the join is an ``INNER`` join and
+the join condition satisfies the following rules:
 
-  - contains at least one ``EQUAL`` operator
-  - contains no ``OR`` operator
-  - every argument of a ``EQUAL`` operator can only references fields from one
+  - Contains at least one ``EQUAL`` :ref:`operator <gloss-operator>`
+  - Contains no ``OR`` operator
+  - Every argument of a ``EQUAL`` operator can only references fields from one
     relation
 
 The `Hash Join`_ algorithm is faster but has a bigger memory footprint. As such

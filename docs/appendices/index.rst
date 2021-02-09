@@ -15,3 +15,4 @@ Supplementary information for the CrateDB reference manual.
     compatibility
     compliance
     resiliency
+    glossary

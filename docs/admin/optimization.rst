@@ -28,7 +28,7 @@ If required one or more tables or table partitions can be optimized explicitly
 in order to improve performance. A few parameters can also be configured for
 the optimization process, like the max number of segments you wish to have when
 optimization is completed, or if you only wish to merge segments with deleted
-data, etc. See :ref:`sql_ref_optimize` for detailed description of parameters.
+data, etc. See :ref:`sql-optimize` for detailed description of parameters.
 
 ::
 
@@ -78,13 +78,13 @@ Partition optimization
 ======================
 
 Additionally it is possible to define a specific ``PARTITION`` of a partitioned
-table which should be optimized (see :ref:`partitioned_tables`).
+table which should be optimized (see :ref:`partitioned-tables`).
 
 By using the ``PARTITION`` clause in the optimize statement a separate request
 for a given partition can be performed. That means that only specific
 partitions of a partitioned table are optimized. For further details on how to
 create an optimize request on partitioned tables see the SQL syntax and its
-synopsis (see :ref:`sql_ref_optimize`).
+synopsis (see :ref:`sql-optimize`).
 
 ::
 

@@ -6,10 +6,23 @@
 Comparison operators
 ====================
 
-A comparison operator tests the relationship between two values and returns a
-corresponding value of ``true``, ``false``, or ``null``.
+A comparison :ref:`operator <gloss-operator>` tests the relationship between
+two values and returns a corresponding value of ``true``, ``false``, or
+``NULL``.
 
-The following operators can be used for all simple data types:
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+.. _comparison-operators-basic:
+
+Basic operators
+===============
+
+For simple :ref:`data types <data-types>`, the following basic operators can be
+used:
 
 ========  ==========================
 Operator  Description
@@ -29,8 +42,7 @@ Operator  Description
 ``!=``    Not equal (same as ``<>``)
 ========  ==========================
 
-When comparing strings, a lexicographical comparison is performed. For
-example::
+When comparing strings, a `lexicographical comparison`_ is performed::
 
     cr> select name from locations where name > 'Argabuthon' order by name;
     +------------------------------------+
@@ -44,11 +56,7 @@ example::
     +------------------------------------+
     SELECT 5 rows in set (... sec)
 
-.. SEEALSO::
-
-    For more details, refer to the *Apache Lucene* `TermRangeQuery`_ documentation.
-
-When comparing dates, strings using ISO date formats can be used::
+When comparing dates, `ISO date formats`_ can be used::
 
     cr> select date, position from locations where date <= '1979-10-12' and
     ... position < 3 order by position;
@@ -60,17 +68,12 @@ When comparing dates, strings using ISO date formats can be used::
     +--------------+----------+
     SELECT 2 rows in set (... sec)
 
-.. SEEALSO::
-
-    For more details, refer to the *Joda Time* `dateOptionalTimeParser`_
-    documentation.
-
 .. TIP::
 
     Comparison operators are commonly used to filter rows (e.g., in the
     ``WHERE`` and ``HAVING`` clauses of a :ref:`sql_reference_select`
-    statement). However, basic comparison operators can be used as value
-    expressions in any context. For example::
+    statement). However, basic comparison operators can be used as :ref:`value
+    expressions <sql-operator-invocation>` in any context. For example::
 
         cr> SELECT 1 < 10 as my_column;
         +--------------+
@@ -80,8 +83,12 @@ When comparing dates, strings using ISO date formats can be used::
         +--------------+
         SELECT 1 rows in set (... sec)
 
-Within a :ref:`sql_dql_where_clause`, the following operators are also
-available:
+.. _comparison-operators-where:
+
+``WHERE`` clause operators
+==========================
+
+Within a :ref:`sql_dql_where_clause`, the following operators can also be used:
 
 ==========================  ===================================================
 Operator                    Description
@@ -112,9 +119,10 @@ Operator                    Description
 .. SEEALSO::
 
     - :ref:`sql_array_comparisons`
+
     - :ref:`sql_subquery_expressions`
 
 
 .. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
-.. _dateOptionalTimeParser: http://joda-time.sourceforge.net/api-release/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser%28%29
-.. _TermRangeQuery: https://lucene.apache.org/core/6_6_0/core/org/apache/lucene/search/TermRangeQuery.html
+.. _ISO date formats: http://joda-time.sourceforge.net/api-release/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser%28%29
+.. _lexicographical comparison: https://lucene.apache.org/core/6_6_0/core/org/apache/lucene/search/TermRangeQuery.html

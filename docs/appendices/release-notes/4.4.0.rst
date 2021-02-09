@@ -44,7 +44,7 @@ Performance improvements
 - Improved the performance of queries on the ``sys.health`` table.
 
 - Added support for using the optimized primary key lookup plan if additional
-  filters are combined via ``AND`` operators.
+  filters are combined via ``AND`` :ref:`operators <gloss-operator>`.
 
 - Improved the performance of queries on the ``sys.allocations`` table in cases
   where there are filters restricting the result set or if only a sub-set of
@@ -56,7 +56,8 @@ Performance improvements
 SQL and PostgreSQL compatibility improvements
 ---------------------------------------------
 
-- Added arithmetic operation support for the :ref:`numeric <numeric_type>`.
+- Added :ref:`arithmetic operation <arithmetic>` support for the :ref:`numeric
+  <numeric_type>` type.
 
 - Added support for the :ref:`numeric <numeric_type>` data type and allow the
   ``sum`` aggregation on the :ref:`numeric <numeric_type>` type.
@@ -72,10 +73,10 @@ SQL and PostgreSQL compatibility improvements
   compatible type name notation with ``[]`` suffixes for arrays, instead of
   ``_array``.
 
-- Added the ``delimiter`` option for :ref:`copy_from` CSV files. The option is
-  used to specify the character that separates columns within a row.
+- Added the ``delimiter`` option for :ref:`sql-copy-from` CSV files. The option
+  is used to specify the character that separates columns within a row.
 
-- Added the ``empty_string_as_null`` option for :ref:`copy_from` CSV files.
+- Added the ``empty_string_as_null`` option for :ref:`sql-copy-from` CSV files.
   If the option is enabled, all column's values represented by an empty string,
   including a quoted empty string, are set to ``NULL``.
 

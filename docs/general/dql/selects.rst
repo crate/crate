@@ -34,8 +34,8 @@ A simple select::
     +----+-------------------+
     SELECT 2 rows in set (... sec)
 
-If the '*' operator is used, all columns defined in the schema are returned for
-each row::
+If the ``*`` :ref:`operator <gloss-operator>` is used, all columns defined in
+the schema are returned for each row::
 
     cr> select * from locations order by id limit 2;
     +----+-------------------+--------------+--------+----------+-------------...-+-----------+
@@ -70,7 +70,7 @@ based upon. Can be a single table, many tables, a view, a :ref:`JOIN
 Tables and views are referenced by schema and table name and can optionally be
 aliased.  If the relation ``t`` is only referenced by name, CrateDB assumes the
 relation ``doc.t`` was meant. Schemas that were newly created using
-:ref:`ref-create-table` must be referenced explicitly.
+:ref:`sql-create-table` must be referenced explicitly.
 
 The two following queries are equivalent::
 
@@ -171,7 +171,7 @@ and so on).
 Regular expressions
 -------------------
 
-Operators for matching using regular expressions:
+:ref:`Operators <gloss-operator>` for matching using regular expressions:
 
 .. list-table::
    :widths: 5 20 15
@@ -273,10 +273,10 @@ Examples::
 ``LIKE (ILIKE)``
 ----------------
 
-CrateDB supports the ``LIKE`` and ``ILIKE`` operators. These operators can
-be used to query for rows where only part of a columns value should match
-something. The only difference is that, in the case of ``ILIKE``, the
-matching is case insensitive.
+CrateDB supports the ``LIKE`` and ``ILIKE`` :ref:`operators <gloss-operator>`.
+These operators can be used to query for rows where only part of a columns
+value should match something. The only difference is that, in the case of
+``ILIKE``, the matching is case insensitive.
 
 For example to get all locations where the name starts with 'Ar' the following
 queries can be used::
@@ -303,10 +303,10 @@ queries can be used::
 
 The following wildcard operators are available:
 
-== ========================================
-%  A substitute for zero or more characters
-_  A substitute for a single character
-== ========================================
+===== ========================================
+``%``  A substitute for zero or more characters
+``_``  A substitute for a single character
+===== ========================================
 
 The wildcard operators may be used at any point in the string literal. For
 example a more complicated like clause could look like this::
@@ -465,10 +465,10 @@ CrateDB supports a variety of :ref:`array comparisons <sql_array_comparisons>`.
 ``IN``
 ------
 
-CrateDB also supports the binary operator ``IN``, which allows you to verify
-the membership of the left-hand operand in a right-hand set of expressions.
-Returns ``true`` if any evaluated expression value from a right-hand set equals
-left-hand operand. Returns ``false`` otherwise::
+CrateDB supports the :ref:`operator <gloss-operator>` ``IN`` which allows you
+to verify the membership of the left-hand operand in a right-hand set of
+expressions. Returns ``true`` if any evaluated expression value from a
+right-hand set equals left-hand operand. Returns ``false`` otherwise::
 
     cr> select name, kind from locations
     ... where (kind in ('Star System', 'Planet'))  order by name asc;
@@ -496,8 +496,8 @@ The ``IN`` construct can be used in :ref:`sql_subquery_expressions` or
 ``ANY (array)``
 ---------------
 
-The ANY (or SOME) function allows you to query elements within :ref:`arrays
-<sql_dql_arrays>`.
+The ANY (or SOME) :ref:`operator <gloss-operator>` allows you to query elements
+within :ref:`arrays <sql_dql_arrays>`.
 
 For example, this query returns any row where the array
 ``inhabitants['interests']`` contains a ``netball`` element::
@@ -512,7 +512,7 @@ For example, this query returns any row where the array
     +---------------------+------------------------------+
     SELECT 2 rows in set (... sec)
 
-This query combines the ``ANY`` function with the :ref:`LIKE <sql_dql_like>`
+This query combines the ``ANY`` operator with the :ref:`LIKE <sql_dql_like>`
 operator::
 
     cr> select inhabitants['name'], inhabitants['interests'] from locations
@@ -524,7 +524,7 @@ operator::
     +---------------------+------------------------------+
     SELECT 1 row in set (... sec)
 
-This query passes a literal array value to the ``ANY`` function::
+This query passes a literal array value to the ``ANY`` operator::
 
     cr> select name, inhabitants['interests'] from locations
     ... where name = ANY(ARRAY['Bartledan', 'Algol'])
@@ -558,7 +558,7 @@ This query selects any locations with at least one (i.e., :ref:`ANY
     as it cannot utilize the table index and requires the equivalent of a table
     scan.
 
-The ``ANY`` construct can be used in :ref:`subquery expressions
+The ``ANY`` operator can be used in :ref:`subquery expressions
 <sql_subquery_expressions>` and :ref:`array comparisons
 <sql_array_comparisons>`.
 
@@ -689,9 +689,9 @@ Individual array elements can also be addressed in the :ref:`where clause
     +----------+-------------------------------------------+
     SELECT 1 row in set (... sec)
 
-When using the ``=`` operator, as above, the value of the array element at
-index ``n`` is compared. To compare against *any* array element, see
-:ref:`sql_dql_any_array`.
+When using the ``=`` :ref:`operator <gloss-operator>`, as above, the value of
+the array element at index ``n`` is compared. To compare against *any* array
+element, see :ref:`sql_dql_any_array`.
 
 
 .. _sql_dql_objects:
@@ -1130,7 +1130,8 @@ This is useful if used in conjunction with aggregation functions::
 The having clause is the equivalent to the where clause for the resulting rows
 of a group by clause.
 
-A simple having clause example using an equality operator::
+A simple having clause example using an equality :ref:`operator
+<gloss-operator>`::
 
     cr> select count(*), kind from locations
     ... group by kind having count(*) = 4 order by kind;

@@ -1,5 +1,6 @@
 .. highlight:: psql
-.. _sql_ref_refresh:
+
+.. _sql-refresh:
 
 ===========
 ``REFRESH``
@@ -12,12 +13,18 @@ Refresh one or more tables explicitly.
 .. contents::
    :local:
 
+
+.. _sql-refresh-synopsis:
+
 Synopsis
 ========
 
 ::
 
     REFRESH TABLE (table_ident [ PARTITION (partition_column=value [ , ... ])] [, ...] )
+
+
+.. _sql-refresh-description:
 
 Description
 ===========
@@ -27,19 +34,21 @@ to that table visible to subsequent commands.
 
 The ``PARTITION`` clause can be used to refresh specific partitions of a
 partitioned table instead of all partitions. The ``PARTITION`` clause requires
-all partitioned columns with the values that identify the partition as
+a list of all :ref:`partition columns <gloss-partitioned-column>` as an
 argument.
 
 In case the ``PARTITION`` clause is omitted all open partitions will be
 refreshed. Closed partitions are not refreshed.
 
-See :ref:`partitioned_tables` for more information on partitioned tables.
+.. SEEALSO::
 
+    :ref:`partitioned-tables`
 
 For performance reasons, refreshing tables or partitions should be avoided as
 it is an expensive operation. By default CrateDB periodically refreshes the
-tables anyway. See :ref:`refresh_data` and :ref:`sql_ref_refresh_interval` for
-more information about the periodic refreshes.
+tables anyway. See :ref:`refresh_data` and
+:ref:`sql-create-table-refresh-interval` for more information about the
+periodic refreshes.
 
 Without an explicit ``REFRESH``, other statements like ``UPDATE``, ``DELETE``
 or ``SELECT`` won't see data until the periodic refresh happens.
@@ -74,8 +83,9 @@ These kind of filters will result in a primary key lookup. You can use the
     EXPLAIN 1 row in set (... sec)
 
 
-This lists a ``Get`` operator, which is the internal operator name for a
-primary key lookup. Compare this with the following output::
+This lists a ``Get`` :ref:`operator <gloss-operator>`, which is the internal
+operator name for a primary key lookup. Compare this with the following
+output::
 
     cr> EXPLAIN SELECT * FROM pk_demo WHERE id > 1;
     +----------------------------------------+
@@ -89,13 +99,13 @@ primary key lookup. Compare this with the following output::
 The filter changed to ``id > 1``, in this case CrateDB can no longer use a
 primary key lookup and the used operator changed to a ``Collect`` operator.
 
-
 To avoid the need for manual refreshes it can be useful to make use of primary
 key lookups, as they see the data even if the table hasn't been refreshed yet.
 
-
 See also :ref:`consistency`.
 
+
+.. _sql-refresh-parameters:
 
 Parameters
 ==========
@@ -104,24 +114,52 @@ Parameters
   The name (optionally schema-qualified) of an existing table that is to
   be refreshed.
 
-:partition_column:
-  Column name by which the table is partitioned.
+
+.. _sql-refresh-clauses:
 
 Clauses
 =======
 
+
+.. _sql-refresh-partition:
+
 ``PARTITION``
 -------------
+
+.. EDITORIAL NOTE
+   ##############
+
+   Multiple files (in this directory) use the same standard text for
+   documenting the ``PARTITION`` clause. (Minor verb changes are made to
+   accomodate the specifics of the parent statement.)
+
+   For consistency, if you make changes here, please be sure to make a
+   corresponding change to the other files.
+
+If the table is :ref:`partitioned <partitioned-tables>`, the optional
+``PARTITION`` clause can be used to refresh one partition exclusively.
 
 ::
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
 :partition_column:
-  The name of the column by which the table is partitioned.
-
-  All partition columns that were part of the :ref:`partitioned_by_clause` of
-  the :ref:`ref-create-table` statement must be specified.
+  One of the column names used for table partitioning.
 
 :value:
-  The columns value.
+  The respective column value.
+
+All :ref:`partition columns <gloss-partition-column>` (specified by the
+:ref:`sql-create-table-partitioned-by` clause) must be listed inside the
+parentheses along with their respective values using the ``partition_column =
+value`` syntax (separated by commas).
+
+Because each partition corresponds to a unique set of :ref:`partition column
+<gloss-partition-column>` row values, this clause uniquely identifies a single
+partition to refresh.
+
+.. TIP::
+
+    The :ref:`ref-show-create-table` statement will show you the complete list
+    of partition columns specified by the
+    :ref:`sql-create-table-partitioned-by` clause.

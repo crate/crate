@@ -35,9 +35,9 @@ Fixes
   if ``SSL`` is enabled on the server side, even if no cert authentication
   method is configured.
 
-- Fixed a regression introduced in CrateDB ``4.1`` resulting in duplicated recovery
-  file chunk responses sent.
-  This causes log entries of ``Transport handler not found ...``.
+- Fixed a regression introduced in CrateDB ``4.1`` resulting in duplicated
+  recovery file chunk responses sent. This causes log entries of ``Transport
+  handler not found ...``.
 
 - Fixed an issue that resulted in records in ``pg_catalog.pg_proc`` which
   wouldn't be joined with ``pg_catalog.pg_type``. Clients like ``npgsql`` use
@@ -56,9 +56,9 @@ Fixes
   validation was by passed and resulted in an execution exception instead of
   an user friendly validation exception.
 
-- Fixed an issue that caused ``IS NULL`` and ``IS NOT NULL`` operators on
-  columns of type ``OBJECT`` with the column policy ``IGNORED`` to match
-  incorrect records.
+- Fixed an issue that caused ``IS NULL`` and ``IS NOT NULL`` :ref:`operators
+  <gloss-operator>` on columns of type ``OBJECT`` with the column policy
+  ``IGNORED`` to match incorrect records.
 
 - Fixed an issue that led to an error like ``UnsupportedOperationException:
   Can't handle Symbol [ParameterSymbol: $1]`` if using ``INSERT INTO`` with a

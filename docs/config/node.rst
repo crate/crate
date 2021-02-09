@@ -54,7 +54,7 @@ Basics
 Node types
 ==========
 
-CrateDB supports different kinds of nodes.
+CrateDB supports different types of nodes.
 
 The following settings can be used to differentiate nodes upon startup:
 
@@ -731,9 +731,9 @@ Queries
   | *Default:* ``8192``
   | *Runtime:* ``no``
 
-  This setting defines the maximum number of elements an array can have so
-  that the ``!= ANY()``, ``LIKE ANY()``, ``ILIKE ANY()``, ``NOT LIKE ANY()``
-  and the ``NOT ILIKE ANY()`` operators can be applied on it.
+  This setting defines the maximum number of elements an array can have so that
+  the ``!= ANY()``, ``LIKE ANY()``, ``ILIKE ANY()``, ``NOT LIKE ANY()`` and the
+  ``NOT ILIKE ANY()`` :ref:`operators <gloss-operator>` can be applied on it.
 
   .. NOTE::
 

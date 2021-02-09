@@ -7,7 +7,7 @@ Resiliency
 Distributed systems are tricky. All sorts of things can go wrong that are
 beyond your control. The network can go away, disks can fail, hosts can be
 terminated unexpectedly. CrateDB tries very hard to cope with these sorts of
-issues while maintaining :doc:`availability <shared-nothing>`,
+issues while maintaining :doc:`availability <clustering>`,
 :ref:`consistency <consistency>`, and :ref:`durability <durability>`.
 
 However, as with any distributed system, sometimes, *rarely*, things can go
@@ -53,9 +53,9 @@ Code that expects the behavior of an `ACID
 <https://en.wikipedia.org/wiki/ACID>`_ compliant database like MySQL may not
 always work as expected with CrateDB.
 
-CrateDB does not support ACID transactions, but instead has :ref:`atomic operations
-<concepts_atomic_document_level>` and :doc:`eventual consistency
-<shared-nothing>` at the row level. Eventual consistency is the trade-off that
+CrateDB does not support ACID transactions, but instead has :ref:`atomic
+operations <concepts_atomic_document_level>` and :doc:`eventual consistency
+<clustering>` at the row level. Eventual consistency is the trade-off that
 CrateDB makes in exchange for high-availability that can tolerate most hardware
 and network failures. So you may observe data from different cluster nodes
 temporarily falling very briefly out-of-sync with each other, although over
@@ -63,7 +63,7 @@ time they will become consistent.
 
 For example, you know a row has been written as soon as you get the ``INSERT
 OK`` message. But that row might not be read back by a subsequent ``SELECT`` on
-a different node until after a :ref:`table refresh <sql_ref_refresh>` (which
+a different node until after a :ref:`table refresh <sql-refresh>` (which
 typically occurs within one second).
 
 Your applications should be designed to work this storage and consistency model.

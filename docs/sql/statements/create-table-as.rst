@@ -33,7 +33,7 @@ Only the column names, types, and the output rows will be used from the
 the table creation.
 
 For further details on the default values of the optional parameters,
-see :ref:`ref-create-table`.
+see :ref:`sql-create-table`.
 
 
 Parameters

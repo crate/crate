@@ -423,7 +423,7 @@ Client specific settings
 A read-only repository that points to the location of a
 :ref:`ref-create-repository-types-fs` repository via ``http``, ``https``,
 ``ftp``, ``file`` and ``jar`` urls. It only allows for
-:ref:`ref-restore-snapshot` operations.
+:ref:`sql-restore-snapshot` operations.
 
 .. rubric:: Parameters
 

@@ -54,7 +54,7 @@ how data types of `standard SQL`_ map to CrateDB :ref:`data-types`.
 Create table
 ------------
 
-:ref:`ref-create-table` supports additional storage and table parameters for
+:ref:`sql-create-table` supports additional storage and table parameters for
 sharding, replication and routing of data, and does not support inheritance.
 
 
@@ -62,7 +62,7 @@ Alter table
 -----------
 
 ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported (see
-:ref:`ref-alter-table`).
+:ref:`sql-alter-table`).
 
 
 System information tables
@@ -133,7 +133,7 @@ These **functions** of `standard SQL`_ are either not supported or only partly s
 
 - ``IS DISTINCT FROM``
 
-- Network address functions and operators
+- Network address functions and :ref:`operators <gloss-operator>`
 
 - Mathematical functions
 

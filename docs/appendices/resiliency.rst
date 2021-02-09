@@ -426,16 +426,17 @@ Make table creation resilient to closing and full cluster crashes
 
 .. rubric:: Scenario
 
-Recovering a table requires a quorum of shard copies to be available to allocate
-a primary. This means that a primary cannot be assigned if the cluster dies
-before enough shards have been allocated. The same happens if a table is closed
-before enough shard copies were started, making it impossible to reopen the
-table. Allocation IDs solve this issue by tracking allocated shard copies in the
-cluster. This makes it possible to safely recover a table in the presence of a
-single shard copy. Allocation IDs can also distinguish the situation where a
-table has been created but none of the shards have been started. If such an
-table was inadvertently closed before at least one shard could be started, a
-fresh shard will be allocated upon reopening the table.
+Recovering a table requires a quorum of shard copies to be available to
+:ref:`allocate <gloss-shard-allocation>` a primary. This means that a
+primary cannot be assigned if the cluster dies before enough shards have been
+allocated. The same happens if a table is closed before enough shard copies
+were started, making it impossible to reopen the table. Allocation IDs solve
+this issue by tracking allocated shard copies in the cluster. This makes it
+possible to safely recover a table in the presence of a single shard copy.
+Allocation IDs can also distinguish the situation where a table has been
+created but none of the shards have been started. If such an table was
+inadvertently closed before at least one shard could be started, a fresh shard
+will be allocated upon reopening the table.
 
 .. rubric:: Consequence
 

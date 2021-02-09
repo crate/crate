@@ -1,5 +1,6 @@
 .. highlight:: psql
-.. _ref-alter-table:
+
+.. _sql-alter-table:
 
 ===============
 ``ALTER TABLE``
@@ -11,6 +12,9 @@ Alter an existing table.
 
 .. contents::
    :local:
+
+
+.. _sql-alter-table-synopsis:
 
 Synopsis
 ========
@@ -38,12 +42,15 @@ where ``column_constraint`` is::
     }
 
 
+.. _sql-alter-table-description:
+
 Description
 ===========
 
 ``ALTER TABLE`` can be used to modify an existing table definition. It provides
-options to add columns, modify constraints, enabling or disabling
-table parameters and allows to execute a shard reroute allocation.
+options to add columns, modify constraints, enabling or disabling table
+parameters and allows to execute a shard  :ref:`reroute allocation
+<sql-alter-table-reroute>`.
 
 Use the ``BLOB`` keyword in order to alter a blob table (see
 :ref:`blob_support`). Blob tables cannot have custom columns which means that
@@ -54,49 +61,78 @@ table **only** and not for any possible existing partitions. So these changes
 will only be applied to new partitions. The ``ONLY`` keyword cannot be used
 together with a `PARTITION`_ clause.
 
-See the CREATE TABLE :ref:`with_clause` for a list of available parameters.
+See the CREATE TABLE :ref:`sql-create-table-with` for a list of available
+parameters.
 
 :table_ident:
   The name (optionally schema-qualified) of the table to alter.
 
-.. _ref-alter-table-partition-clause:
+
+.. _sql-alter-table-clauses:
 
 Clauses
 =======
 
+
+.. _sql-alter-table-partition:
+
 ``PARTITION``
 -------------
 
-If the table is partitioned this clause can be used to alter only a single
-partition.
+.. EDITORIAL NOTE
+   ##############
 
-.. NOTE::
+   Multiple files (in this directory) use the same standard text for
+   documenting the ``PARTITION`` clause. (Minor verb changes are made to
+   accomodate the specifics of the parent statement.)
 
-   BLOB tables cannot be partitioned and hence this clause cannot be used.
+   For consistency, if you make changes here, please be sure to make a
+   corresponding change to the other files.
 
-This clause identifies a single partition. It takes one or more partition
-columns with a value each to identify the partition to alter.
+If the table is :ref:`partitioned <partitioned-tables>`, the optional
+``PARTITION`` clause can be used to alter one partition exclusively.
 
 ::
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
 :partition_column:
-  The name of the column by which the table is partitioned.
-
-  All partition columns that were part of the :ref:`partitioned_by_clause` of
-  the :ref:`ref-create-table` statement must be specified.
+  One of the column names used for table partitioning.
 
 :value:
-  The columns value.
+  The respective column value.
 
-.. SEEALSO:: :ref:`Alter Partitioned Tables <partitioned_tables_alter>`
+All :ref:`partition columns <gloss-partition-column>` (specified by the
+:ref:`sql-create-table-partitioned-by` clause) must be listed inside the
+parentheses along with their respective values using the ``partition_column =
+value`` syntax (separated by commas).
 
+Because each partition corresponds to a unique set of :ref:`partition column
+<gloss-partition-column>` row values, this clause uniquely identifies a single
+partition to alter.
+
+.. TIP::
+
+    The :ref:`ref-show-create-table` statement will show you the complete list
+    of partition columns specified by the
+    :ref:`sql-create-table-partitioned-by` clause.
+
+.. NOTE::
+
+   BLOB tables cannot be partitioned and hence this clause cannot be used.
+
+.. SEEALSO::
+
+    :ref:`Partitioned tables: Alter <partitioned-alter>`
+
+
+.. _sql-alter-table-arguments:
 
 Arguments
 =========
 
-.. _alter_table_set_reset:
+
+.. _sql-alter-table-set-reset:
 
 ``SET/RESET``
 -------------
@@ -108,26 +144,33 @@ Using ``RESET`` will reset the parameter to its default value.
   The name of the parameter that is set to a new value or its default.
 
 The supported parameters are listed in the :ref:`CREATE TABLE WITH CLAUSE
-<with_clause>` documentation. In addition to those, for dynamically
-changing the number of allocated shards, the parameter ``number_of_shards``
-can be used. For more more info on that, see :ref:`alter_change_number_of_shard`.
+<sql-create-table-with>` documentation. In addition to those, for dynamically
+changing the number of :ref:`allocated shards <gloss-shard-allocation>`, the
+parameter ``number_of_shards`` can be used. For more more info on that, see
+:ref:`alter-shard-number`.
 
+
+.. _sql-alter-table-add-column:
 
 ``ADD COLUMN``
 --------------
 
 Can be used to add an additional column to a table. While columns can be added
-at any time, adding a new :ref:`generated column <ref-generated-columns>` is
-only possible if the table is empty. In addition, adding a base column with
-:ref:`ref-default-clause` is not supported. It is possible to define a CHECK
-constraint with the restriction that only the column being added may be used
-in the boolean expression.
+at any time, adding a new :ref:`generated column
+<sql-create-table-generated-columns>` is only possible if the table is empty.
+In addition, adding a base column with :ref:`sql-create-table-default-clause`
+is not supported. It is possible to define a CHECK constraint with the
+restriction that only the column being added may be used in the boolean
+expression.
 
 :data_type:
   Data type of the column which should be added.
 
 :column_name:
   Name of the column which should be added.
+
+
+.. _sql-alter-table-open-close:
 
 ``OPEN/CLOSE``
 --------------
@@ -138,7 +181,8 @@ partitions will not produce an exception, but will have no effect. Similarly,
 like ``SELECT`` and ``INSERT`` on partitioned will exclude closed partitions and
 continue working.
 
-.. _alter_table_rename:
+
+.. _sql-alter-table-rename-to:
 
 ``RENAME TO``
 -------------
@@ -146,23 +190,24 @@ continue working.
 Can be used to rename a table, while maintaining its schema and data. During
 this operation the shards of the table will become temporarily unavailable.
 
-.. _alter_table_reroute:
+
+.. _sql-alter-table-reroute:
 
 ``REROUTE``
 -----------
 
 The ``REROUTE`` command provides various options to manually control the
-allocation of shards. It allows the enforcement of explicit allocations,
-cancellations and the moving of shards between nodes in a cluster. See
-:ref:`ddl_reroute_shards` to get the convenient use-cases.
+:ref:`allocation of shards <gloss-shard-allocation>`. It allows the enforcement
+of explicit allocations, cancellations and the moving of shards between nodes
+in a cluster. See :ref:`ddl_reroute_shards` to get the convenient use-cases.
 
 The rowcount defines if the reroute or allocation process of a shard was
 acknowledged or rejected.
 
 .. NOTE::
 
-   Partitioned tables require a :ref:`Partition Clause <ref-alter-table-partition-clause>`
-   in order to specify a unique ``shard_id``.
+    Tables require a :ref:`sql-alter-table-partition` clause in order to
+    specify a unique ``shard_id``.
 
 ::
 
@@ -216,6 +261,6 @@ where ``reroute_option`` is::
   error out.
 
 **CANCEL**
-  This cancels the allocation/recovery of a ``shard_id`` of a ``table_ident``
-  on a given ``node``. The ``allow_primary`` flag indicates if it is allowed to
-  cancel the allocation of a primary shard.
+  This cancels the allocation or :ref:`recovery <gloss-shard-recovery>` of a
+  ``shard_id`` of a ``table_ident`` on a given ``node``. The ``allow_primary``
+  flag indicates if it is allowed to cancel the allocation of a primary shard.

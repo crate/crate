@@ -69,7 +69,8 @@ Fixes
    ``CASE/WHEN`` expression is not a boolean.
 
  - Fixed an issue which caused an exception if ``EXPLAIN`` is used on a
-   statement that uses the ``ANY (array_expression)`` operator.
+   statement that uses the ``ANY (array_expression)`` :ref:`operator
+   <gloss-operator>`.
 
  - Allow support of conditional expressions with different return types that can
    be converted to a single return type.

@@ -28,7 +28,7 @@ that the latest state of the table gets fetched.
 A table is refreshed periodically with a specified refresh interval. By
 default, the refresh interval is set to 1000 milliseconds. The refresh interval
 of a table can be changed with the table parameter ``refresh_interval`` (see
-:ref:`sql_ref_refresh_interval`).
+:ref:`sql-create-table-refresh-interval`).
 
 .. SEEALSO::
 
@@ -74,13 +74,13 @@ Partition Refresh
 =================
 
 Additionally it is possible to define a specific ``PARTITION`` of a partitioned
-table which should be refreshed (see :ref:`partitioned_tables`).
+table which should be refreshed (see :ref:`partitioned-tables`).
 
 By using the ``PARTITION`` clause in the refresh statement a separate request
 for a given partition can be performed. That means that only specific
 partitions of a partitioned table are refreshed. For further details on how to
 create a refresh request on partitioned tables see the SQL syntax and its
-synopsis (see :ref:`sql_ref_refresh`).
+synopsis (see :ref:`sql-refresh`).
 
 ::
 

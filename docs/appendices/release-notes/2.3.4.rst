@@ -49,11 +49,12 @@ Fixes
   results.
 
 - Re-enable implicit casting for columns whenever columns are used on both
-  sides of an operator or function. The implicit cast will obey the type
-  precedence (eg. long > integer).
+  sides of an :ref:`operator <gloss-operator>` or function. The implicit cast
+  will obey the type precedence (eg. long > integer).
 
 - Fixed an issue that caused incorrect results to be returned when a ``WHERE``
-  clause filters on a partitioned and an non-partitioned column. E.g.::
+  clause filters on a :ref:`partition column <gloss-partition-column>` and a
+  non partition column. E.g.::
 
     SELECT * FROM t WHERE parted_col='value' AND other_col='some_value'
 

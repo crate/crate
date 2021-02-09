@@ -1,5 +1,6 @@
 .. highlight:: psql
-.. _copy_from:
+
+.. _sql-copy-from:
 
 =============
 ``COPY FROM``
@@ -12,6 +13,9 @@ Copy data from files into a table.
 .. contents::
    :local:
 
+
+.. _sql-copy-from-synopsis:
+
 Synopsis
 ========
 
@@ -20,13 +24,16 @@ Synopsis
     COPY table_ident [ PARTITION (partition_column = value [ , ... ]) ]
     FROM uri [ WITH ( option = value [, ...] ) ] [ RETURN SUMMARY ]
 
-where ``option`` can be one of:
+Here, ``option`` can be one of:
 
 - ``bulk_size`` *integer*
 - ``shared`` *boolean*
 - ``num_readers`` *integer*
 - ``compression`` *text*
 - ``overwrite_duplicates`` *boolean*
+
+
+.. _sql-copy-from-description:
 
 Description
 ===========
@@ -44,13 +51,17 @@ Here's an example:
     cr> COPY quotes FROM 'file:///tmp/import_data/quotes.json';
     COPY OK, 3 rows affected (... sec)
 
+
+.. _sql-copy-from-formats:
+
 Supported formats
 -----------------
 
 CrateDB accepts both JSON and CSV inputs. The format is inferred from the file
-extension (``.json`` or ``.csv`` respectively) if possible. The format can also
-be provided as an option (see :ref:`with_option`). If a format is not specified
-and the format cannot be inferred, the file will be processed as JSON.
+extension (``.json`` or ``.csv`` respectively) if possible. The
+:ref:`sql-copy-from-format` can also be provided as an option. If a format is
+not specified and the format cannot be inferred, the file will be processed as
+JSON.
 
 Files must be UTF-8 encoded. Any keys in the object will be added as columns,
 regardless of the previously defined table. Empty lines are skipped.
@@ -73,6 +84,9 @@ Example CSV data::
 
 See also: :ref:`importing_data`.
 
+
+.. _sql-copy-from-casts-constraints:
+
 Type casts and constraints
 --------------------------
 
@@ -90,6 +104,9 @@ or ``geo_point`` type, since there is no implict cast to the `GeoJSON`_ format.
    provide an error message. Any data that has been imported until then has
    been written to the table and should be deleted before restarting the
    import.
+
+
+.. _sql-copy-from-uri:
 
 URI
 ===
@@ -112,8 +129,14 @@ Will be converted to:
 
     'file:///tmp%20folder/file.json'
 
+
+.. _sql-copy-from-schemes:
+
 Supported schemes
 -----------------
+
+
+.. _sql-copy-from-file:
 
 ``file``
 ........
@@ -132,18 +155,18 @@ By default, every node will attempt to import every file. If the file is
 accessible on multiple nodes, you can set the `shared`_ option to true in
 order to avoid importing duplicates.
 
-Use :ref:`return_summary` to get information about what actions were performed
-on each node.
+Use :ref:`sql-copy-from-return-summary` to get information about what actions
+were performed on each node.
 
 .. TIP::
 
     If you are running CrateDB inside a container, the file must be inside the
-    container. If you are using Docker, you may have to configure a `Docker
+    container. If you are using *Docker*, you may have to configure a `Docker
     volume`_ to accomplish this.
 
-.. NOTE::
+.. TIP::
 
-    If you are using Microsoft Windows, you must include the drive letter in
+    If you are using *Microsoft Windows*, you must include the drive letter in
     the file URI.
 
     For example:
@@ -154,7 +177,8 @@ on each node.
 
     Consult the `Windows documentation`_ for more information.
 
-.. _copy_from_s3:
+
+.. _sql-copy-from-s3:
 
 ``s3``
 ......
@@ -170,7 +194,7 @@ If no credentials are set the s3 client will operate in anonymous mode, see
 
 Using the ``s3://`` schema automatically sets the `shared`_ to true.
 
-.. NOTE::
+.. TIP::
 
    A ``secretkey`` provided by Amazon Web Services can contain characters such
    as '/', '+' or '='. These characters must be `URL encoded`_. For a detailed
@@ -188,6 +212,9 @@ Using the ``s3://`` schema automatically sets the `shared`_ to true.
    0.51.x these connections are using the HTTPS protocol. Please make sure you
    update your firewall rules to allow outgoing connections on port ``443``.
 
+
+.. _sql-copy-from-http-https-jar:
+
 ``http``, ``https``, and ``jar`` (Java URL protocols)
 .....................................................
 
@@ -197,6 +224,9 @@ and ``jar``). Please refer to the documentation of the JVM vendor for an
 accurate list of supported protocols.
 
 These schemes *do not* support wildcard expansion.
+
+
+.. _sql-copy-from-parameters:
 
 Parameters
 ==========
@@ -210,36 +240,64 @@ Parameters
   supported schemes are listed above. The last part of the path may also
   contain ``*`` wildcards to match multiple files.
 
+
+.. _sql-copy-from-clauses:
+
 Clauses
 =======
+
+
+.. _sql-copy-from-partition:
 
 ``PARTITION``
 -------------
 
-For partitioned tables this clause can be used to import data into the
-specified partition. This clause takes one or more partition columns and for
-each column a value.
+.. EDITORIAL NOTE
+   ##############
+
+   Multiple files (in this directory) use the same standard text for
+   documenting the ``PARTITION`` clause. (Minor verb changes are made to
+   accomodate the specifics of the parent statement.)
+
+   For consistency, if you make changes here, please be sure to make a
+   corresponding change to the other files.
+
+If the table is :ref:`partitioned <partitioned-tables>`, the optional
+``PARTITION`` clause can be used to import data into one partition exclusively.
 
 ::
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
 :partition_column:
-  The name of the column by which the table is partitioned. All partition
-  columns that were part of the :ref:`partitioned_by_clause` of the
-  :ref:`ref-create-table` statement must be specified.
+  One of the column names used for table partitioning
 
 :value:
-  The column's value.
+  The respective column value.
 
-.. NOTE::
+All :ref:`partition columns <gloss-partition-column>` (specified by the
+:ref:`sql-create-table-partitioned-by` clause) must be listed inside the
+parentheses along with their respective values using the ``partition_column =
+value`` syntax (separated by commas).
 
-   Partitioned tables do not store the value for the partition column in each
-   row, hence every row will be imported into the specified partition
-   regardless of the value provided for the partition columns.
+Because each partition corresponds to a unique set of :ref:`partition column
+<gloss-partition-column>` row values, this clause uniquely identifies a single
+partition for import.
+
+.. TIP::
+
+    The :ref:`ref-show-create-table` statement will show you the complete list
+    of partition columns specified by the
+    :ref:`sql-create-table-partitioned-by` clause.
+
+.. CAUTION::
+
+    Partitioned tables do not store the row values for the partition columns,
+    hence every row will be imported into the specified partition regardless of
+    partition column values.
 
 
-.. _with_option:
+.. _sql-copy-from-with:
 
 ``WITH``
 --------
@@ -250,8 +308,14 @@ The optional ``WITH`` clause can specify options for the COPY FROM statement.
 
     [ WITH ( option = value [, ...] ) ]
 
+
+.. _sql-copy-from-with-options:
+
 Options
 .......
+
+
+.. _sql-copy-from-bulk-size:
 
 ``bulk_size``
 '''''''''''''
@@ -259,6 +323,9 @@ Options
 CrateDB will process the lines it reads from the ``path`` in bulks. This option
 specifies the size of one batch. The provided value must be greater than 0, the
 default value is 10000.
+
+
+.. _sql-copy-from-shared:
 
 ``shared``
 ''''''''''
@@ -270,6 +337,9 @@ The default value depends on the scheme of each URI.
 
 If an array of URIs is passed to ``COPY FROM`` this option will overwrite the
 default for *all* URIs.
+
+
+.. _sql-copy-from-node-filters:
 
 ``node_filters``
 ''''''''''''''''
@@ -295,7 +365,10 @@ If the `shared`_ option is false, a strict node filter might exclude nodes with
 access to the data leading to a partial import.
 
 To verify which nodes match the filter, run the statement with
-:doc:`EXPLAIN <explain>`.
+:ref:`EXPLAIN <ref-explain>`.
+
+
+.. _sql-copy-from-num-readers:
 
 ``num_readers``
 '''''''''''''''
@@ -310,10 +383,16 @@ If `shared`_ is set to false this option has to be used with caution. It might
 exclude the wrong nodes, causing COPY FROM to read no files or only a subset of
 the files.
 
+
+.. _sql-copy-from-compression:
+
 ``compression``
 '''''''''''''''
 
 The default value is ``null``, set to ``gzip`` to read gzipped files.
+
+
+.. _sql-copy-from-overwrite-duplicates:
 
 ``overwrite_duplicates``
 ''''''''''''''''''''''''
@@ -322,6 +401,9 @@ Default: false
 
 ``COPY FROM`` by default won't overwrite rows if a document with the same
 primary key already exists. Set to true to overwrite duplicate rows.
+
+
+.. _sql-copy-from-empty-string-as-null:
 
 ``empty_string_as_null``
 ''''''''''''''''''''''''
@@ -334,6 +416,9 @@ execution.
 The option is only supported when using the ``CSV`` format,
 otherwise, it will be ignored.
 
+
+.. _sql-copy-from-delimiter:
+
 ``delimiter``
 '''''''''''''
 
@@ -343,6 +428,9 @@ of the file. The default delimiter is ``,``.
 The option is only supported when using the ``CSV`` format, otherwise, it will
 be ignored.
 
+
+.. _sql-copy-from-format:
+
 ``format``
 ''''''''''
 
@@ -350,7 +438,8 @@ This option specifies the format of the input file. Available formats are
 ``csv`` or ``json``. If a format is not specified and the format cannot be
 guessed from the file extension, the file will be processed as JSON.
 
-.. _return_summary:
+
+.. _sql-copy-from-return-summary:
 
 ``RETURN SUMMARY``
 ------------------
@@ -399,6 +488,7 @@ inserted records.
 |                                       | error occurred, limited to the first 50        |               |
 |                                       | errors, to avoid buffer pressure on clients.   |               |
 +---------------------------------------+------------------------------------------------+---------------+
+
 
 .. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 .. _AWS Java Documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html

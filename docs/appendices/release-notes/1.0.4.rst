@@ -36,8 +36,8 @@ Changelog
 Changes
 -------
 
- - Removed limitation which didn't allow ordering on partitioned columns in a
-   ``GROUP BY`` query.
+ - Removed limitation which didn't allow ordering on :ref:`partition columns
+   <gloss-partition-column>` in a ``GROUP BY`` query.
 
  - Updated crate-admin to 1.0.5 which includes the following change:
 
@@ -60,9 +60,10 @@ Fixes
  - Fixed an issue which caused restoring a whole partitioned table from a
    snapshot to fail.
 
- - Fixed the low/high disk-based shard allocation watermark settings. When a
-   percentage value is provided for either of settings, it won't be converted
-   to an absolute byte value.
+ - Fixed the low/high disk-based :ref:`shard allocation
+   <gloss-shard-allocation>` watermark settings. When a percentage value is
+   provided for either of settings, it won't be converted to an absolute byte
+   value.
 
  - Index columns based on string arrays are correctly populated with values.
 

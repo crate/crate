@@ -169,8 +169,8 @@ SQL Standard and PostgreSQL compatibility improvements
 
 - Added entries for primary keys to ``pg_class`` and ``pg_index`` table.
 
-- Added support for :ref:`record subscript <record-subscript>` syntax as
-  alternative to the existing :ref:`object subscript <object-subscript>`
+- Added support for :ref:`record subscript <sql-record-subscript>` syntax as
+  alternative to the existing :ref:`object subscript <sql-object-subscript>`
   syntax.
 
 - Added support for using columns of type ``long`` inside subscript expressions
@@ -189,8 +189,9 @@ SQL Standard and PostgreSQL compatibility improvements
 Functions and operators
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-- Fixed arithmetics containing a non-floating numeric column type and a
-  floatling literal which resulted wrongly in a non-floating return type.
+- Fixed :ref:`arithmetics <arithmetic>` containing a non-floating numeric
+  column type and a floatling literal which resulted wrongly in a non-floating
+  return type.
 
 - Replaced the ``Nashorn`` JavaScript engine with ``GraalVM`` for JavaScript
   :ref:`user-defined functions <sql_administration_udf>`. This change upgrades

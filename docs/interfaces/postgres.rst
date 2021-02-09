@@ -330,8 +330,8 @@ CrateDB's SQL query engine enables real-time search & aggregations for online
 analytic processing (OLAP) and business intelligence (BI) with the benefit of
 the ability to scale horizontally. The use-cases of CrateDB are different than
 those of PostgreSQL, as CrateDB's specialized storage schema and query
-execution engine address different requirements (see :doc:`Clustering
-<../concepts/shared-nothing>`).
+execution engine address different requirements (see :ref:`Clustering
+<clustering>`).
 
 The listed features below cover the main differences in implementation and
 dialect between CrateDB and PostgreSQL. A detailed comparison between CrateDB's
@@ -343,7 +343,7 @@ SQL dialect and standard SQL is defined in
 
 CrateDB does not support the distinct sub-protocol that is used to serve
 ``COPY`` operations and provides another implementation for transferring bulk
-data using the :ref:`copy_from` and :ref:`copy_to` statements.
+data using the :ref:`sql-copy-from` and :ref:`sql-copy-to` statements.
 
 Objects
 -------
@@ -387,10 +387,10 @@ is not supported.
 Text search functions and operators
 -----------------------------------
 
-The functions and operators provided by PostgreSQL for full-text search (see
-`PostgreSQL Fulltext Search`_) are not compatible with those provided by
-CrateDB. For more information about the built-in full-text search in CrateDB
-refer to :ref:`sql_dql_fulltext_search`.
+The functions and :ref:`operators <gloss-operator>` provided by PostgreSQL for
+full-text search (see `PostgreSQL Fulltext Search`_) are not compatible with
+those provided by CrateDB. For more information about the built-in full-text
+search in CrateDB refer to :ref:`sql_dql_fulltext_search`.
 
 If you are missing features, functions or dialect improvements and have a great
 use case for it, let us know on `Github`_. We're always improving and extending

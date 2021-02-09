@@ -119,9 +119,9 @@ number of replicas.
     +--------------------+-------------------------+------------+------------------+--------------------+
     SELECT 50 rows in set (... sec)
 
-The table also contains additional information such as specified routing
-(:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
-columns::
+The table also contains additional information such as the specified
+:ref:`routing column <gloss-routing-column>` and :ref:`partition columns
+<gloss-partition-column>`::
 
     cr> SELECT table_name, clustered_by, partitioned_by
     ... FROM information_schema.tables
@@ -146,7 +146,7 @@ columns::
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``closed``                       | The state of the table                                                             | ``BOOLEAN`` |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``clustered_by``                 | The routing column used to cluster the table                                       | ``TEXT``    |
+| ``clustered_by``                 | The :ref:`routing column <gloss-routing-column>` used to cluster the table         | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``column_policy``                | Defines whether the table uses a ``STRICT`` or a ``DYNAMIC`` :ref:`column_policy`  | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
@@ -154,15 +154,16 @@ columns::
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``number_of_shards``             | The number of shards the table is currently distributed across                     | ``INTEGER`` |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``partitioned_by``               | The column used to partition the table                                             | ``TEXT``    |
+| ``partitioned_by``               | The :ref:`partition columns <gloss-partition-column>` (used to partition the       | ``TEXT``    |
+|                                  | table)                                                                             |             |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``reference_generation``         | Specifies how values in the self-referencing column are generated                  | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``routing_hash_function``        | The name of the hash function used for internal routing                            | ``TEXT``    |
+| ``routing_hash_function``        | The name of the hash function used for internal :ref:`routing <routing>`           | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``self_referencing_column_name`` | The name of the column that uniquely identifies each row (always ``_id``)          | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``settings``                     | :ref:`with_clause`                                                                 | ``OBJECT``  |
+| ``settings``                     | :ref:`sql-create-table-with`                                                       | ``OBJECT``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``table_catalog``                | Refers to the ``table_schema``                                                     | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
@@ -181,14 +182,15 @@ columns::
 Table settings specify configuration parameters for tables. Some settings can
 be set during Cluster runtime and others are only applied on cluster restart.
 
-This list of table settings in :ref:`with_clause` shows detailed information
-of each parameter.
+This list of table settings in :ref:`sql-create-table-with` shows detailed
+information of each parameter.
 
 Table parameters can be applied with ``CREATE TABLE`` on creation of a table.
 With ``ALTER TABLE`` they can be set on already existing tables.
 
 The following statement creates a new table and sets the refresh interval of
-shards to 500 ms and sets the shard allocation for primary shards only::
+shards to 500 ms and sets the :ref:`shard allocation <gloss-shard-allocation>`
+for primary shards only::
 
     cr> create table parameterized_table (id integer, content text)
     ... with ("refresh_interval"=500, "routing.allocation.enable"='primaries');
@@ -534,13 +536,12 @@ tables:
 ``table_partitions``
 --------------------
 
-This table can be queried to get information about all partitioned tables, Each
-partition of a table is represented as one row. The row contains the
-information table name, schema name, partition ident, and the values of the
-partition. ``values`` is a key-value object with the 'partitioned by column' as
-key(s) and the corresponding value as value(s).
-
-For further information see :ref:`partitioned_tables`.
+This table can be queried to get information about all :ref:`partitioned tables
+<partitioned-tables>`, Each partition of a table is represented as one row. The
+row contains the information table name, schema name, partition ident, and the
+values of the partition. ``values`` is a key-value object with the
+:ref:`partition column <gloss-partition-column>` (or columns) as key(s) and the
+corresponding value as value(s).
 
 .. hide:
 
@@ -563,10 +564,10 @@ For further information see :ref:`partitioned_tables`.
     cr> insert into a_partitioned_table (id, content) values (2, 'content_b');
     INSERT OK, 1 row affected (... sec)
 
-The following example shows a table where the column 'content' of table
-'a_partitioned_table' has been used to partition the table. The table has two
-partitions. The partitions are introduced when data is inserted where 'content'
-is 'content_a', and 'content_b'.::
+The following example shows a table where the column ``content`` of table
+``a_partitioned_table`` has been used to partition the table. The table has two
+partitions. The partitions are introduced when data is inserted where
+``content`` is ``content_a``, and ``content_b``.::
 
     cr> select table_name, table_schema as schema, partition_ident, "values"
     ... from information_schema.table_partitions

@@ -10,6 +10,6 @@ This section of the documentation covers important CrateDB concepts.
     :maxdepth: 1
 
     joins
-    shared-nothing
+    clustering
     storage-consistency
     resiliency

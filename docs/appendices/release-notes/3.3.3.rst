@@ -60,9 +60,9 @@ Fixes
   causing queries on the view to fail and also breaking
   ``information_schema.views``.
 
-- Increased the precedence of the double colon cast operator, so that a
-  statement like ``x::double / y::double`` applies both casts before the
-  division.
+- Increased the precedence of the double colon cast :ref:`operator
+  <gloss-operator>`, so that a statement like ``x::double / y::double`` applies
+  both casts before the division.
 
 - Fixed an issue with the disk watermark sys checks which would incorrectly
   report all of them as failed if

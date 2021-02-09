@@ -30,9 +30,9 @@ Released on 2020/01/15.
 Breaking Changes
 ================
 
-- Changed arithmetic operations ``*``, ``+``, and ``-`` of types ``integer``
-  and ``bigint`` to throw an exception instead of rolling over from positive
-  to negative or the other way around.
+- Changed :ref:`arithmetic operations <arithmetic>` ``*``, ``+``, and ``-`` of
+  types ``integer`` and ``bigint`` to throw an exception instead of rolling over
+  from positive to negative or the other way around.
 
 - Changed how columns of type :ref:`geo_point_data_type` are being communicated
   to PostgreSQL clients.
@@ -63,7 +63,7 @@ Resiliency improvements
 
 - Allow user to limit the number of threads on a single shard that may be
   merging at once via the :ref:`merge.scheduler.max_thread_count
-  <merge.scheduler.max_thread_count>` table parameter.
+  <sql-create-table-merge-scheduler-max-thread-count>` table parameter.
 
 - Some ``ALTER TABLE`` operations now internally invoke a single cluster state
   update instead of multiple cluster state updates. This change improves
@@ -103,7 +103,7 @@ Performance improvements
   efficiently in some cases.
 
 - Allow user to control how table data is stored and accessed on a disk
-  via the :ref:`store.type <table_parameter.store_type>` table parameter and
+  via the :ref:`store.type <sql-create-table-store-type>` table parameter and
   :ref:`node.store.allow_mmap <node.store_allow_mmap>` node setting.
 
 - Changed the default table data store type from ``mmapfs`` to ``hybridfs``.
@@ -134,8 +134,8 @@ Window function extensions
 Functions and operators
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-- Added support for the :ref:`ALL <all_array_comparison>` clause for array and
-  subquery comparisons.
+- Added support for the :ref:`ALL <all_array_comparison>` operator for array
+  and subquery comparisons.
 
 - Added a :ref:`PG_GET_KEYWORDS <pg_catalog.pg_get_keywords>` table function.
 
@@ -175,7 +175,7 @@ Functions and operators
   insensitive complement to ``LIKE``.
 
 - Added support for CIDR notation comparisons through special purpose
-  operator ``<<`` associated with type IP.
+  :ref:`operator <gloss-operator>` ``<<`` associated with type IP.
 
   Statements like ``192.168.0.0 << 192.168.0.1/24`` evaluate as true,
   meaning ``SELECT ip FROM ips_table WHERE ip << 192.168.0.1/24`` returns
@@ -189,8 +189,8 @@ New statements and clauses
   statistical data about the contents of the tables in the CrateDB cluster.
   This data is visible in a newly added :ref:`pg_stats <pg_stats>` table.
 
-- Added a :ref:`PROMOTE REPLICA <alter_table_reroute>` sub command to
-  :ref:`ref-alter-table`.
+- Added a :ref:`PROMOTE REPLICA <sql-alter-table-reroute>` sub command to
+  :ref:`sql-alter-table`.
 
 - Added support for the filter clause in
   :ref:`aggregate expressions <aggregation-expressions>` and
@@ -228,8 +228,8 @@ Observability improvements
 Others
 ------
 
-- Changed the default for :ref:`sql_ref_write_wait_for_active_shards` from
-  ``ALL`` to ``1``. This update improves the out of the box experience by
+- Changed the default for :ref:`sql-create-table-write-wait-for-active-shards`
+  from ``ALL`` to ``1``. This update improves the out of the box experience by
   allowing a subset of nodes to become unavailable without blocking write
   operations. See the documentation linked above for more details about the
   implications.
@@ -240,18 +240,20 @@ Others
   ``haasephonetik``, ``beider_morse``, and ``daitch_mokotoff``.
 
 - Removed a restriction for predicates in the ``WHERE`` clause involving
-  ``PARTITIONED BY`` columns, which could result in a failure response with the
-  message: ``logical conjunction of the conditions in the WHERE clause which
-  involve partitioned columns led to a query that can't be executed``.
+  :ref:`partitioned columns <gloss-partitioned-column>`, which could result in
+  a failure response with the message: ``logical conjunction of the conditions
+  in the WHERE clause which involve partitioned columns led to a query that
+  can't be executed``.
 
 - Support implicit object creation in update statements. For example,
   ``UPDATE t SET obj['x'] = 10`` will now implicitly set ``obj`` to
   ``{obj: {x: 10}}`` on rows where ``obj`` was ``null``.
 
-- Added the :ref:`table_parameter.codec` parameter to :ref:`ref-create-table`
+- Added the :ref:`sql-create-table-codec` parameter to :ref:`sql-create-table`
   to control the compression algorithm used to store data.
 
-- The ``node`` argument of the :ref:`REROUTE <alter_table_reroute>` commands of
-  :ref:`ref-alter-table` can now either be the ID or the name of a node.
+- The ``node`` argument of the :ref:`REROUTE <sql-alter-table-reroute>`
+  commands of :ref:`sql-alter-table` can now either be the ID or the name of a
+  node.
 
 - Added support for the PostgreSQL array string literal notation.

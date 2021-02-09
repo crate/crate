@@ -65,7 +65,7 @@ Performance improvements
   scenarios we saw performance improvements by up to 70%.
 
 - Changed the default for :ref:`soft deletes
-  <table_parameter.soft_deletes.enabled>`. Soft deletes are now enabled by
+  <sql-create-table-soft-deletes-enabled>`. Soft deletes are now enabled by
   default for new tables. This should improve the speed of recovery operations
   when replica shard copies were unavailable for a short period.
 
@@ -103,7 +103,7 @@ Administration
   column of the :ref:`information_schema.tables <information_schema_tables>`
   and :ref:`information_schema.table_partitions <is_table_partitions>` tables.
 
-- Changed :ref:`OPTIMIZE <sql_ref_optimize>` to no longer implicitly refresh a
+- Changed :ref:`OPTIMIZE <sql-optimize>` to no longer implicitly refresh a
   table.
 
 - Changed the privileges for ``KILL``, all users are now allowed to kill their

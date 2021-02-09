@@ -1,5 +1,6 @@
 .. highlight:: psql
-.. _partitioned_tables:
+
+.. _partitioned-tables:
 
 ==================
 Partitioned tables
@@ -10,16 +11,19 @@ Partitioned tables
 .. contents::
    :local:
 
+
+.. _partitioned-intro:
+
 Introduction
 ============
 
 A partitioned table is a virtual table that can be created by naming one or
 more columns by which it is split into separate internal tables, called
-``partitions``.
+*partitions*.
 
 When a record with a new distinct combination of values for the configured
-``PARTITIONED BY`` columns is inserted, a new partition is created and the
-document will be inserted into this partition.
+:ref:`partition columns <gloss-partition-column>` is inserted, a new partition
+is created and the document will be inserted into this partition.
 
 You will end up with separate partitions under the hood that can be queried
 like a single table.
@@ -34,31 +38,36 @@ can be deleted and no expensive query is involved.
 
 .. NOTE::
 
-   Keep in mind that the values of the columns used for partitioning are
-   internally base32 encoded into the partition name (which is a separate
-   table). So for every partition, the partition table name includes:
-   ``(optional)table_schema + table_name + base32 encoded partition column
-   value(s) + an internal overhead of 14 bytes``
+    Keep in mind that the values of the partition columns are internally base32
+    encoded into the partition name (which is a separate table).
 
-   Altogether this must not exceed the 255 bytes length limitation. See
-   :ref:`sql_ddl_naming_restrictions`.
+    So, for every partition, the partition table name includes:
+
+    - The table schema (optional)
+    - The table name
+    - The base32 encoded partition column value(s)
+    - An internal overhead of 14 bytes
+
+    Altogether, the table name length must not exceed the :ref:`255 bytes
+    length limitation <sql_ddl_naming_restrictions>`.
 
 .. CAUTION::
 
-   Every table partition is clustered into as many shards as you configure for
-   the table. Because of this, a good partition configuration depends on good
-   shard allocation.
+    Every table partition is clustered into as many shards as you configure for
+    the table. Because of this, a good partition configuration depends on good
+    :ref:`shard allocation <gloss-shard-allocation>`.
 
-   Well tuned shard allocation is vital. Read the `Sharding Guide`_ to make
-   sure you're getting the best performance out ot CrateDB.
+    Well tuned shard allocation is vital. Read the `sharding guide`_ to make
+    sure you're getting the best performance out ot CrateDB.
 
-.. _Sharding Guide: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html
+
+.. _partitioned-creation:
 
 Creation
 ========
 
-It can be created using the :ref:`ref-create-table` statement using the
-:ref:`partitioned_by_clause`::
+It can be created using the :ref:`sql-create-table` statement using the
+:ref:`sql-create-table-partitioned-by`::
 
     cr> CREATE TABLE parted_table (
     ...   id bigint,
@@ -72,11 +81,12 @@ It can be created using the :ref:`ref-create-table` statement using the
 This creates an empty partitioned table which is not yet backed by real
 partitions. Nonetheless does it behave like a *normal* table.
 
-When the value to partition by references one or more :ref:`ref-base-columns`,
-their values must be supplied upon :ref:`ref-insert` or :ref:`copy_from`. Often
-these values are computed on client side. If this is not possible, a
-:ref:`generated column <ref-generated-columns>` can be used to create a
-suitable partition value from the given values on database-side::
+When the value to partition by references one or more
+:ref:`sql-create-table-base-columns`, their values must be supplied upon
+:ref:`ref-insert` or :ref:`sql-copy-from`. Often these values are computed on
+client side. If this is not possible, a :ref:`generated column
+<sql-create-table-generated-columns>` can be used to create a suitable
+partition value from the given values on database-side::
 
     cr> CREATE TABLE computed_parted_table (
     ...   id bigint,
@@ -85,6 +95,9 @@ suitable partition value from the given values on database-side::
     ...   month timestamp with time zone GENERATED ALWAYS AS date_trunc('month', created_at)
     ... ) PARTITIONED BY (month);
     CREATE OK, 1 row affected (... sec)
+
+
+.. _partitioned-info-schema:
 
 Information schema
 ==================
@@ -143,6 +156,9 @@ the ``information_schema.table_partitions`` table::
 
 As this table is still empty, no partitions have been created.
 
+
+.. _partitioned-insert:
+
 Insert
 ======
 
@@ -165,8 +181,8 @@ Insert
     +--------------------------+------------------------+------------------+
     SELECT 1 row in set (... sec)
 
-On subsequent inserts with the same ``PARTITIONED BY`` column values, no
-additional partition is created::
+On subsequent inserts with the same :ref:`partition column
+<gloss-partition-column>` values, no additional partition is created::
 
     cr> INSERT INTO parted_table (id, title, width, day)
     ... VALUES (2, 'Time is an illusion, lunchtime doubly so', 0.7, '2014-04-08');
@@ -190,20 +206,23 @@ additional partition is created::
     +--------------------------+------------------------+------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _partitioned-update:
+
 Update
 ======
 
-Updating partitioned tables has one big limitation. ``PARTITIONED BY`` columns
-cannot be changed, because this would involve moving all affected documents
-which is no atomic operation and could lead to inconsistent state::
+:ref:`Partition columns <gloss-partition-column>` cannot be changed, because
+this would necessitate moving all affected documents. Such an operation would
+not be atomic and could lead to inconsistent state::
 
     cr> UPDATE parted_table set content = 'now panic!', day = '2014-04-07'
     ... WHERE id = 1;
     ColumnValidationException[Validation failed for day: Updating a partitioned-by column is not supported]
 
-When using a :ref:`generated column <ref-generated-columns>` as ``PARTITIONED
-BY`` column all the columns referenced in its *generation expression* cannot be
-updated as well::
+When using a :ref:`generated column <sql-create-table-generated-columns>` as
+partition column all the columns referenced in its *generation expression*
+cannot be updated either::
 
     cr> UPDATE computed_parted_table set created_at='1970-01-01'
     ... WHERE id = 1;
@@ -230,6 +249,9 @@ updated as well::
     +----+------------------------------------------+------------+-------+---------------+
     SELECT 1 row in set (... sec)
 
+
+.. _partitioned-delete:
+
 Delete
 ======
 
@@ -252,7 +274,8 @@ faster::
     +-----------------+
     SELECT 1 row in set (... sec)
 
-.. _partitioned_tables_querying:
+
+.. _partitioned-querying:
 
 Querying
 ========
@@ -261,9 +284,12 @@ Querying
 as few partitions as possible based on the partitions referenced in the
 ``WHERE`` clause.
 
-The ``WHERE`` clause is analyzed for referenced partitions by checking
-conditions on columns used in the ``PARTITIONED BY`` clause. For example the
-following query will only operate on the partition for ``day=1396915200000``:
+The ``WHERE`` clause is analyzed for partition use by checking the ``WHERE``
+conditions against the values of the :ref:`partition columns
+<gloss-partition-column>`.
+
+For example, the following query will only operate on the partition for
+``day=1396915200000``:
 
 .. Hidden: insert some rows::
 
@@ -315,12 +341,15 @@ list of partitions that need to be accessed.
     cr> DELETE FROM parted_table;
     DELETE OK, -1 rows affected (... sec)
 
-Generated columns in ``PARTITIONED BY``
----------------------------------------
 
-Querying on tables partitioned by generated columns is also optimized to infer
-a minimum list of partitions from the ``PARTITIONED BY`` columns referenced in
-the ``WHERE`` clause:
+.. _partitioned-generated:
+
+Partitioning by generated columns
+---------------------------------
+
+Querying on tables partitioned by generated columns is optimized to infer a
+minimum list of partitions from the :ref:`partition columns
+<gloss-partition-column>` referenced in the ``WHERE`` clause:
 
 .. Hidden: insert some stuff::
 
@@ -347,14 +376,15 @@ the ``WHERE`` clause:
     +----+---------+
     SELECT 1 row in set (... sec)
 
-.. _partitioned_tables_alter:
+
+.. _partitioned-alter:
 
 Alter
 =====
 
 Parameters of partitioned tables can be changed as usual (see
 :ref:`sql_ddl_alter_table` for more information on how to alter regular tables)
-with the :ref:`ref-alter-table` statement. Common ``ALTER TABLE`` parameters
+with the :ref:`sql-alter-table` statement. Common ``ALTER TABLE`` parameters
 affect both existing partitions and partitions that will be created in the
 future.
 
@@ -372,6 +402,8 @@ both existing and new partitions of the table.
     cr> ALTER TABLE parted_table ADD COLUMN new_col text
     ALTER OK, -1 rows affected (... sec)
 
+
+.. _partitioned-alter-shards:
 
 Changing the number of shards
 -----------------------------
@@ -426,13 +458,16 @@ table.
     +--------------------------+------------------------+------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _partitioned-alter-single:
+
 Altering a single partition
 ...........................
 
 We also provide the option to change the number of shards that are already
-allocated for an existing partition. This option operates on a partition basis,
-thus a specific partition needs to be specified
-::
+:ref:`allocated <gloss-shard-allocation>` for an existing partition. This
+option operates on a partition basis, thus a specific partition needs to be
+specified::
 
     cr> ALTER TABLE parted_table PARTITION (day=1396915200000) SET ("blocks.write" = true)
     ALTER OK, -1 rows affected (... sec)
@@ -458,25 +493,29 @@ thus a specific partition needs to be specified
 
 .. NOTE::
 
-   The same prerequisites and restrictions as with normal
-   tables apply. See :ref:`alter_change_number_of_shard`.
+   The same prerequisites and restrictions as with normal tables apply. See
+   :ref:`alter-shard-number`.
 
-Alter partitions
-----------------
+
+.. _partitioned-alter-parameters:
+
+Alter table parameters
+----------------------
 
 It is also possible to alter parameters of single partitions of a partitioned
 table. However, unlike with partitioned tables, it is not possible to alter the
 schema information of single partitions.
 
 To change table parameters such as ``number_of_replicas`` or other table
-settings use the :ref:`ref-alter-table-partition-clause`.
+settings use the :ref:`sql-alter-table-partition`.
 
 ::
 
     cr> ALTER TABLE parted_table PARTITION (day=1396915200000) RESET (number_of_replicas)
     ALTER OK, -1 rows affected (... sec)
 
-.. _partitioned_tables_alter_table_only:
+
+.. _partitioned-alter-table:
 
 Alter table ``ONLY``
 --------------------
@@ -489,6 +528,9 @@ affect new partitions and not existing ones. This can be done by using the
 
     cr> ALTER TABLE ONLY parted_table SET (number_of_replicas = 1);
     ALTER OK, -1 rows affected (... sec)
+
+
+.. _partitioned-alter-close-open:
 
 Closing and opening a partition
 -------------------------------
@@ -505,12 +547,17 @@ This will all operations beside ``ALTER TABLE ... OPEN`` to fail on this
 partition. The partition will also not be included in any query on the
 partitioned table.
 
+
+.. _partitioned-limitations:
+
 Limitations
 ===========
 
-* ``PARTITIONED BY`` columns cannot be updated
 * ``WHERE`` clauses cannot contain queries like ``partitioned_by_column='x' OR
   normal_column=x``
+
+
+.. _partitioned-consistency:
 
 Consistency notes related to concurrent DML statement
 =====================================================
@@ -530,3 +577,6 @@ inserted/updated documents.
 
     cr> DROP TABLE computed_parted_table;
     DROP OK, 1 row affected (... sec)
+
+
+.. _sharding guide: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html

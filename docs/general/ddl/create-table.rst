@@ -12,7 +12,7 @@ Creating tables
 Basics
 ======
 
-To create a table use the :ref:`ref-create-table` command. You must at least
+To create a table use the :ref:`sql-create-table` command. You must at least
 specify a name for the table and names and types of the columns.
 
 See :ref:`data-types` for information about the supported data types.
@@ -152,9 +152,10 @@ Advanced use
 
 Tables can be:
 
-- :ref:`Clustered <ref_clustered_clause>` into multiple :ref:`shards <sql_ddl_sharding>`
-- :ref:`Partitioned <partitioned_by_clause>` by column (to create
-  :ref:`partitioned tables <partitioned_tables>`)
-- Fine-tuned with :ref:`table paramaters <with_clause>` (e.g., to configure
-  :ref:`replication <replication>`)
+- :ref:`Clustered <sql-create-table-clustered>` into multiple :ref:`shards
+  <sql_ddl_sharding>`
+- :ref:`sql-create-table-partitioned-by` one or more columns (to create
+  :ref:`partitioned tables <partitioned-tables>`)
+- Fine-tuned with :ref:`table paramaters <sql-create-table-with>` (e.g., to
+  configure :ref:`replication <replication>`)
 
