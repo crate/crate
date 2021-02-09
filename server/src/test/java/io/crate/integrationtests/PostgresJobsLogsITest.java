@@ -37,6 +37,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
@@ -47,6 +48,8 @@ import static org.hamcrest.core.Is.is;
 @UseRandomizedSchema(random = false) // Avoid set session stmt to interfere with tests
 @UseHashJoins(1) // Avoid set session stmt to interfere with tests
 public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
+
+    Properties properties = new Properties();
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
@@ -59,7 +62,8 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Before
     public void initDriverAndStats() throws Exception {
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
+        properties.setProperty("user", "crate");
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             ResultSet rs = conn.createStatement().executeQuery("select stmt from sys.jobs");
             assertTrue("sys.jobs must contain statement", rs.next());
             assertEquals(rs.getString(1), "select stmt from sys.jobs");
@@ -68,14 +72,14 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @After
     public void resetStats() throws Exception {
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             conn.createStatement().execute("reset global stats.enabled");
         }
     }
 
     @Test
     public void testFailingStatementIsRemovedFromSysJobs() throws Exception {
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             try {
                 conn.createStatement().execute("set global 'foo.logger' = 'TRACE'");
             } catch (PSQLException e) {
@@ -89,7 +93,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testStatsTableSuccess() throws Exception {
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             conn.setAutoCommit(true);
             ensureGreen();
 
@@ -103,7 +107,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testBatchOperationStatsTableSuccess() throws Exception {
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             conn.setAutoCommit(true);
             conn.createStatement().executeUpdate("create table t (x string) with (number_of_replicas = 0)");
             ensureGreen();
@@ -123,7 +127,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testStatsTableFailure() throws Exception {
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             conn.setAutoCommit(true);
             conn.createStatement().executeUpdate("create table t (a integer not null, b string) " +
                                                  "with (number_of_replicas = 0)");
@@ -142,7 +146,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testBatchOperationStatsTableFailure() throws Exception {
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             conn.setAutoCommit(true);
             conn.createStatement().executeUpdate("create table t (a integer not null, x string) " +
                                                  "with (number_of_replicas = 0)");

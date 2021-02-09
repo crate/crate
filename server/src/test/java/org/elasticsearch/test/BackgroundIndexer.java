@@ -28,6 +28,7 @@ import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -106,7 +107,9 @@ public class BackgroundIndexer implements AutoCloseable {
                 public void run() {
                     long id = -1;
                     var textGenerator = DataTypeTesting.getDataGenerator(DataTypes.STRING);
-                    try (Connection conn = DriverManager.getConnection(pgUrl)) {
+                    Properties properties = new Properties();
+                    properties.setProperty("user", "crate");
+                    try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                         PreparedStatement insertValues = conn.prepareStatement(String.format(
                             Locale.ENGLISH,
                             "insert into %s (id, %s) values (?, ?) returning _id",

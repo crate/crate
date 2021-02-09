@@ -28,7 +28,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.auth.user.AccessControl;
+import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.types.PGType;
 import io.netty.channel.Channel;

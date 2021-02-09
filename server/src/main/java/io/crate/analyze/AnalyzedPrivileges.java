@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.user.Privilege;
+import io.crate.user.Privilege;
 import io.crate.expression.symbol.Symbol;
 
 import java.util.List;

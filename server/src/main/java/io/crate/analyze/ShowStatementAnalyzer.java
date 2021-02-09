@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;

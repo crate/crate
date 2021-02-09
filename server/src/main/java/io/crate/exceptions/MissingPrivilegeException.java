@@ -22,7 +22,7 @@
 
 package io.crate.exceptions;
 
-import io.crate.analyze.user.Privilege;
+import io.crate.user.Privilege;
 
 import java.util.Locale;
 

@@ -52,7 +52,7 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.Relations;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.auth.user.AccessControl;
+import io.crate.auth.AccessControl;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;

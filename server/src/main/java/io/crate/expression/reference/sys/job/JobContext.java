@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys.job;
 
-import io.crate.auth.user.User;
+import io.crate.user.User;
 import io.crate.planner.operators.StatementClassifier.Classification;
 
 import javax.annotation.Nullable;
