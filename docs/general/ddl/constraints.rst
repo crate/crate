@@ -1,3 +1,5 @@
+.. _constraints:
+
 ===========
 Constraints
 ===========
@@ -9,11 +11,15 @@ Columns can be constrained in three ways:
 
 The values of a constrained column must comply with the constraint.
 
+
+.. _constraints-primary-key:
+
 Primary key
 ===========
 
 The primary key constraint combines a unique constraint and a not-null
-constraint. It also defines the default routing value used for sharding.
+constraint. It also defines the default :ref:`routing value
+<gloss-routing-column>` used for sharding.
 
 Example::
 
@@ -51,6 +57,9 @@ Or using a alternate syntax::
 
    For further details see :ref:`primary_key_constraint`.
 
+
+.. _constraints-not-null:
+
 Not null
 ========
 
@@ -68,6 +77,9 @@ Example::
 .. NOTE::
 
    For further details see :ref:`not_null_constraint`.
+
+
+.. _constraints-check:
 
 Check
 =====

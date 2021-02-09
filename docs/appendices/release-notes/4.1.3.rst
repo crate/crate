@@ -39,7 +39,7 @@ Fixes
   ``<literalValue>`` expressions are equal.
 
 - Fixed an issue that led to a ``NullPointerException`` when using ``GROUP BY``
-  on a nested ``PARTITIONED BY`` column.
+  on a nested :ref:`partition column <gloss-partition-column>`.
 
 - Fixed an issue that led to an ``ArrayIndexOutOfBoundsException`` if using
   ``ON CONFLICT (...) UPDATE SET`` in an ``INSERT`` statement.

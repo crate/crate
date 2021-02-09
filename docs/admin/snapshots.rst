@@ -52,7 +52,7 @@ Creating a snapshot
 ...................
 
 Snapshots are created inside a repository and can contain any number of tables.
-The :ref:`ref-create-snapshot` statement is used to create a snapshots::
+The :ref:`sql-create-snapshot` statement is used to create a snapshots::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot1 ALL
     ... WITH (wait_for_completion=true, ignore_unavailable=true);
@@ -83,7 +83,7 @@ listing them explicitly::
     cr> REFRESH TABLE parted_table;
     REFRESH OK, 2 rows affected (... sec)
 
-Even single partition of :ref:`partitioned_tables` can be selected for backup.
+Even single partition of :ref:`partitioned-tables` can be selected for backup.
 This is especially useful if old partitions need to be deleted but it should be
 possible to restore them if needed::
 
@@ -135,7 +135,7 @@ To restore a table from a snapshot we have to drop it beforehand::
     cr> DROP TABLE quotes;
     DROP OK, 1 row affected (... sec)
 
-Restoring a snapshot using the :ref:`ref-restore-snapshot` statement.::
+Restoring a snapshot using the :ref:`sql-restore-snapshot` statement.::
 
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2
     ... TABLE quotes

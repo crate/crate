@@ -1,16 +1,17 @@
 .. highlight:: psql
+
 .. _sql_array_comparisons:
 
 Array comparisons
 =================
 
-This section contains several constructs that can be used to make comparisons
-between a list of values. Comparison operations result in a boolean value
-(``true``/``false``) or ``null``.
+An array comparison :ref:`operator <gloss-operator>` tests the relationship
+between two arrays and returns a corresponding value of ``true``, ``false``, or
+``NULL``.
 
-These operators are supported for doing array comparisons.
+.. SEEALSO::
 
-For additional examples of row comparisons, see :ref:`sql_subquery_expressions`.
+    :ref:`sql_subquery_expressions`
 
 .. rubric:: Table of contents
 
@@ -28,12 +29,6 @@ Syntax:
 
     expression IN (value [, ...])
 
-The binary operator ``IN`` allows you to verify the membership of the left-hand
-operand in the right-hand parenthesized list of scalar expressions.
-
-Returns ``true`` if any of the right-hand expression is found in the result of
-the left-hand expression. It returns ``false`` otherwise.
-
 Here's an example::
 
     cr> select 1 in (1,2,3) AS a, 4 in (1,2,3) AS b;
@@ -44,12 +39,16 @@ Here's an example::
     +------+-------+
     SELECT 1 row in set (... sec)
 
-The result of the ``IN`` construct yields ``null`` if:
+The ``IN`` :ref:`operator <gloss-operator>` returns ``true`` if any of the
+right-hand values matches the left-hand operand. Otherwise, it returns
+``false`` (including the case where there are no right-hand values).
 
-- The left-hand expression evaluates to ``null``, and
+The operator returns ``NULL`` if:
 
-- There are no equal right-hand values and at least one right-hand value yields
-  ``null``
+- The left-hand expression evaluates to ``NULL``
+
+- There are no matching right-hand values and at least one right-hand value is
+  ``NULL``
 
 
 .. _sql_any_array_comparison:
@@ -61,14 +60,13 @@ Syntax:
 
 .. code-block:: sql
 
-    expression operator ANY | SOME (array expression)
+    expression comparison ANY | SOME (array_expression)
 
-The ``ANY`` construct returns ``true`` if the defined comparison is ``true``
-for any of the values on the right-hand side array expression. It returns
-``false`` if the values in the array expression do not match with the provided
-comparison.
+Here, ``comparison`` can be any :ref:`basic comparison operator
+<comparison-operators-basic>`. Objects and arrays of objects are not supported
+for either operand.
 
-For example::
+Here's an example::
 
     cr> select 1 = any ([1,2,3]) AS a, 4 = any ([1,2,3]) AS b;
     +------+-------+
@@ -78,51 +76,44 @@ For example::
     +------+-------+
     SELECT 1 row in set (... sec)
 
+The ``ANY`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
+comparison is ``true`` for any of the values in the right-hand array
+expression.
 
-The result of the ``ANY`` construct yields ``null`` if:
+The operator returns ``false`` if the comparison returns ``false`` for all
+right-hand values or there are no right-hand values.
 
-- Either the expression or the array is ``null``, and
+The operator returns ``NULL`` if:
 
-- No ``true`` comparison is obtained and any element of the array is ``null``
+- The left-hand expression evaluates to ``NULL``
 
-.. NOTE::
-
-    The following is not supported by the ``ANY`` operator:
-
-    - ``is null`` and ``is not null`` as ``operator``
-
-    - Arrays of type ``object``
-
-    - Objects as ``expressions``
+- There are no matching right-hand values and at least one right-hand value is
+  ``NULL``
 
 .. TIP::
 
-    When using ``NOT <value> = ANY(<array_col>)`` the performance of the query
-    could be quite bad, because special handling is required to implement the
-    `3-valued logic`_. To achieve better performance, consider using the
-    :ref:`ignore3vl function<ignore3vl>`.
+    When doing ``NOT <value> = ANY(<array_col>)``, query performance may be
+    degraded because special handling is required to implement the `3-valued
+    logic`_. To achieve better performance, consider using the :ref:`ignore3vl
+    function<ignore3vl>`.
 
 
 .. _all_array_comparison:
 
-``ALL (array expression)``
+``ALL (array_expression)``
 --------------------------
 
 Syntax:
 
 .. code-block:: sql
 
-    value operator ALL (array)
+    value comparison ALL (array_expression)
 
-The left-hand expression is evaluated and compared against each element of the
-right-hand array using the supplied operator. The result of ``ALL`` is ``true``
-if all comparisons yield ``true``. The result is ``false`` if the comparison of
-at least one element does not match.
+Here, ``comparison`` can be any :ref:`basic comparison operator
+<comparison-operators-basic>`. Objects and arrays of objects are not supported
+for either operand.
 
-The result is ``NULL`` if either the value or the array is ``NULL`` or if no
-comparison is ``false`` and at least one comparison returns ``NULL``.
-
-::
+Here's an example::
 
     cr> SELECT 1 <> ALL(ARRAY[2, 3, 4]) AS x;
     +------+
@@ -133,14 +124,17 @@ comparison is ``false`` and at least one comparison returns ``NULL``.
     SELECT 1 row in set (... sec)
 
 
-Supported operators are:
+The ``ALL`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
+comparison is ``true`` for all values in the right-hand array expression.
 
-- ``=``
-- ``>=``
-- ``>``
-- ``<=``
-- ``<``
-- ``<>``
+The operator returns ``false`` if the comparison returns ``false`` for all
+right-hand values.
+
+The operator returns ``NULL`` if:
+
+- The left-hand expression evaluates to ``NULL``
+
+- No comparison returns ``false`` and at least one right-hand value is ``NULL``
 
 
-.. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
+.. _3-valued logic: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)

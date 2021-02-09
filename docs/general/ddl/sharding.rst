@@ -12,7 +12,7 @@ Sharding
 Introduction
 ============
 
-Every table partition (see :ref:`partitioned_tables`) is split into a
+Every table partition (see :ref:`partitioned-tables`) is split into a
 configured number of shards. Shards are then distributed across the cluster. As
 nodes are added to the cluster, CrateDB will move shards around to achieve
 maximum possible distribution.
@@ -28,6 +28,9 @@ think about shards when querying a table.
 Read requests are broken down and executed in parallel across multiple shards
 on multiple nodes, massively improving read performance.
 
+
+.. _number-of-shards:
+
 Number of shards
 ================
 
@@ -42,22 +45,24 @@ Example::
     CREATE OK, 1 row affected (... sec)
 
 If the number of shards is not defined explicitly, the sensible default value
-is applied, (see :ref:`ref_clustered_clause`).
+is applied, (see :ref:`sql-create-table-clustered`).
 
 .. NOTE::
 
-   The number of shards :ref:`can be changed <alter_change_number_of_shard>`
-   after table creation, providing the value is a multiple of
-   :ref:`number_of_routing_shards <sql_ref_number_of_routing_shards>` (set at
-   table-creation time). Altering the number of shards will put the table into
-   a read-only state until the operation has completed.
+   The number of shards :ref:`can be changed <alter-shard-number>` after table
+   creation, providing the value is a multiple of
+   :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`
+   (set at table-creation time). Altering the number of shards will put the
+   table into a read-only state until the operation has completed.
 
 .. CAUTION::
 
-   Well tuned shard allocation is vital. Read the `Sharding Guide`_ to make
-   sure you're getting the best performance out ot CrateDB.
+   Well tuned :ref:`shard allocation <sql_ddl_sharding>` is vital. Read the
+   `Sharding Guide`_ to make sure you're getting the best performance out ot
+   CrateDB.
 
 .. _Sharding Guide: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html
+
 
 .. _routing:
 
@@ -65,7 +70,7 @@ Routing
 =======
 
 Given a fixed number of primary shards, individual rows can be routed to a
-fixed shard number using a simple formula:
+fixed shard number with a simple formula:
 
 *shard number = hash(routing column) % total primary shards*
 
@@ -73,8 +78,9 @@ When hash values are distributed evenly (which will be approximately true in
 most cases), rows will be distributed evenly amongst the fixed amount of
 available shards.
 
-The routing column can be specified with the ``CLUSTERED BY (<column>)``
-statement. If no column is specified, the internal document ID is used.
+The :ref:`routing column <gloss-routing-column>` can be specified with the
+``CLUSTERED BY (<column>)`` statement. If no column is specified, the
+:ref:`internal document ID <sql_administration_system_column_id>` is used.
 
 Example::
 
@@ -85,8 +91,9 @@ Example::
     CREATE OK, 1 row affected (... sec)
 
 
-If primary key constraints are defined, the routing column definition can be
-omitted as primary key columns are always used for routing by default.
+If :ref:`primary key constraints <constraints-primary-key>` are defined, the
+routing column definition can be omitted as primary key columns are always used
+for routing by default.
 
 If the routing column is defined explicitly, it must match a primary key
 column::

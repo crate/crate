@@ -789,6 +789,8 @@ flag::
    Updates on this column are transient, so changed values are lost after the
    affected node is restarted.
 
+.. _sys-node-checks-settings:
+
 Description of checked node settings
 ------------------------------------
 
@@ -797,8 +799,8 @@ Recovery expected nodes
 
 The check for the :ref:`gateway.expected_nodes <gateway.expected_nodes>`
 setting checks that the number of nodes that should be waited for the immediate
-cluster state recovery, must be equal to the maximum number of data and master
-nodes in the cluster.
+cluster state :ref:`recovery <gloss-shard-recovery>`. This value must be equal
+to the maximum number of data and master nodes in the cluster.
 
 Recovery after nodes
 ....................
@@ -806,14 +808,14 @@ Recovery after nodes
 The check for the :ref:`gateway.recover_after_nodes
 <gateway.recover_after_nodes>` verifies that the number of started nodes before
 the cluster starts must be greater than the half of the expected number of
-nodes and equal/less than number of nodes in the cluster.
+nodes and equal to or less than number of nodes in the cluster.
 
 ::
 
   (E / 2) < R <= E
 
-where ``R`` is the number of recovery nodes, ``E`` is the number of expected
-nodes.
+Here, ``R`` is the number of :ref:`recovery <gloss-shard-recovery>` nodes and
+``E`` is the number of expected nodes.
 
 Recovery after time
 ...................
@@ -901,11 +903,7 @@ Table schema
       - Indicates if this shard is the primary shard.
       - ``BOOLEAN``
     * - ``recovery``
-      - Recovery statistics of a shard.
-
-        Recovery is the process of moving a shard to a different node or
-        loading a shard from disk, e.g. during node startup or snapshot
-        recovery.
+      - :ref:`Recovery <gloss-shard-recovery>` statistics for a shard.
       - ``OBJECT``
     * - ``recovery['files']``
       - File recovery statistics
@@ -1312,7 +1310,7 @@ Classification
 
 Certain statement types (such as ``SELECT`` statements) have additional labels
 in their classification. These labels are the names of the logical plan
-operators that are involved in the query.
+:ref:`operators <gloss-operator>` that are involved in the query.
 
 For example, the following ``UNION`` statement::
 
@@ -1548,7 +1546,7 @@ Current Checks
 Number of partitions
 ....................
 
-This check warns if any :ref:`partitioned table <partitioned_tables>` has more
+This check warns if any :ref:`partitioned table <partitioned-tables>` has more
 than 1000 partitions to detect the usage of a high cardinality field for
 partitioning.
 
@@ -1605,18 +1603,18 @@ Avoiding reindex using partitioned tables
 
 Reindexing tables is an expensive operation which can take a long time. If you
 are storing time series data for a certain retention period and intend to
-delete old data, it is possible to use the :ref:`partitioned_tables` feature to
-avoid reindex operations.
+delete old data, it is possible to use the :ref:`partitioned tables
+<partitioned-tables>` to avoid reindex operations.
 
-You will have to partition a table by a column that denotes time. For example,
-if you have a retention period of nine months, you could partition a table by a
-``month`` column. Then, every month, the system will create a new partition.
-This new partition is created using the active CrateDB version and is
-compatible with the next major CrateDB version. Now to achieve your goal of
-avoiding a reindex, you must manually delete any partition older than nine
-months. If you do that, then after nine months you rolled through all
-partitions and the remaining nine are compatible with the next major CrateDB
-version.
+You will have to use a :ref:`partition column <gloss-partition-column>` that
+denotes time. For example, if you have a retention period of nine months, you
+could partition a table by a ``month`` column. Then, every month, the system
+will create a new partition. This new partition is created using the active
+CrateDB version and is compatible with the next major CrateDB version. Now to
+achieve your goal of avoiding a reindex, you must manually delete any partition
+older than nine months. If you do that, then after nine months you rolled
+through all partitions and the remaining nine are compatible with the next
+major CrateDB version.
 
 
 How to reindex
@@ -2062,7 +2060,7 @@ Allocations
 ===========
 
 The ``sys.allocations`` table contains information about shards and their
-allocation state. The table contains:
+:ref:`allocation <gloss-shard-allocation>` state. The table contains:
 
 * shards that are unassigned and why they are unassigned
 * shards that are assigned but cannot be moved or rebalanced and why they

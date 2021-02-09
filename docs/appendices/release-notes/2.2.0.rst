@@ -44,7 +44,8 @@ Breaking Changes
    real column will no longer fail as the real column will be used in the
    ``GROUP BY`` clause (this will not be ambiguous anymore).
 
- - Change semantics of ``IN`` operator to behave like ``= ANY``.
+ - Change semantics of ``IN`` :ref:`operator <gloss-operator>` to behave
+   like ``= ANY``.
 
    The argument list for ``IN`` now has to be comprised of the same type. For
    example, this is now an illegal ``IN`` query because the list mixes integer

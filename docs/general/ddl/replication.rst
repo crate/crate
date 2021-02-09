@@ -11,7 +11,7 @@ better read performance and high availability.
 If not specified, CrateDB creates zero to one replica depending on the number
 of available nodes at the cluster. At a single-node cluster, replicas are set
 to zero to allow fast write operations with the default setting of
-:ref:`sql_ref_write_wait_for_active_shards`.
+:ref:`sql-create-table-write-wait-for-active-shards`.
 
 .. rubric:: Table of contents
 
@@ -21,8 +21,8 @@ to zero to allow fast write operations with the default setting of
 Configuration
 =============
 
-Defining the number of replicas is done using the ``number_of_replicas``
-property.
+Defining the number of replicas is done using the
+:ref:`sql-create-table-number-of-replicas` property.
 
 Example::
 
@@ -58,11 +58,12 @@ Range Explanation
 0-all Will expand the number of replicas to the available number of nodes.
 ===== =========================================================================
 
-For details of the range syntax refer to :ref:`number_of_replicas`.
+For details of the range syntax refer to :ref:`the CREATE TABLE
+documentation <sql-create-table-number-of-replicas>`.
 
 .. NOTE::
 
-  The number of replicas can be changed at any time.
+    The number of replicas can be changed at any time.
 
 .. SEEALSO::
 

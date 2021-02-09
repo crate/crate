@@ -6,33 +6,20 @@
 Arithmetic operators
 ====================
 
-Arithmetic operators perform mathematical operations on two expressions of
-numeric data types or timestamps.
-
-.. NOTE::
-
-    The same restrictions that apply to scalar functions also apply to
-    arithmetic operators. See :ref:`scalar`.
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-Supported operators
--------------------
+Arithmetic :ref:`operators <gloss-operator>` perform mathematical operations on
+numeric values (including timestamps):
 
 ========   =========================================================
-operator   description
+Operator   Description
 ========   =========================================================
-\+         add one number to another
-\-         subtract the second number from the first
-\*         multiply the first number with the second
-/          divide the first number by the second
-%          finds the remainder of division of one number by another
+``+``      Add one number to another
+``-``      Subtract the second number from the first
+``*``      Multiply the first number with the second
+``/``      Divide the first number by the second
+``%``      Finds the remainder of division of one number by another
 ========   =========================================================
 
-Below is an example using all available arithmetic operators::
+Here's an example that uses all of the available arithmetic operators::
 
     cr> select ((2 * 4.0 - 2 + 1) / 2) % 3 AS n;
     +-----+
@@ -42,13 +29,11 @@ Below is an example using all available arithmetic operators::
     +-----+
     SELECT 1 row in set (... sec)
 
-Result types
-------------
-
 Arithmetic operators always return the data type of the argument with the
-higher precision. In the case of ``divide`` this means that if both arguments
-are of type integer the result will also be an integer with the fractional part
-truncated::
+higher precision.
+
+In the case of devision, if both arguments are integers, the result will also
+be an integer with the fractional part truncated::
 
     cr> select 5 / 2 AS a,  5 / 2.0 AS b;
     +---+-----+
@@ -57,3 +42,9 @@ truncated::
     | 2 | 2.5 |
     +---+-----+
     SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    The same restrictions that apply to :ref:`scalar functions <scalar>` also
+    apply to arithmetic operators.
+

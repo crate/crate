@@ -40,7 +40,7 @@ Fixes
   bound exception.
 
 - Fixed a regression that caused ``INSERT INTO`` statements in tables with a
-  nested ``CLUSTERED BY`` column to fail.
+  nested :ref:`CLUSTERED BY column <gloss-clustered-by-column>` to fail.
 
 - Fixed a regression introduced in 4.2.0 that caused subscript lookups on
   ignored object columns to raise an error instead of a null value if the key
@@ -57,8 +57,8 @@ Fixes
   virtual table, and both a ``ORDER BY`` and ``LIMIT`` clause to fail.
 
 - Fixed a regression introduced in 4.2.0 that resulted in ``NULL`` values being
-  returned for columns used in the ``PARTITIONED BY`` clause instead of the
-  actual values.
+  returned for :ref:`partition columns <gloss-partition-column>` instead of
+  the actual values.
 
 - Allow all users to execute ``DISCARD`` and ``SET TRANSACTION`` statement.
   These are session local statements and shouldn't require special privileges.

@@ -136,7 +136,7 @@ General
   are registered as aliases for backward comparability.
 
 - Changed the ordering of columns to be based on their position in the
-  :ref:`CREATE TABLE <ref-create-table>` statement. This was done to improve
+  :ref:`CREATE TABLE <sql-create-table>` statement. This was done to improve
   compatibility with PostgreSQL and will affect queries like ``SELECT * FROM``
   or ``INSERT INTO <table> VALUES (...)``
 
@@ -281,7 +281,8 @@ SQL Standard and PostgreSQL compatibility improvements
 - Added support for using relation aliases with column aliases. Example:
   ``SELECT x, y from unnest([1], ['a']) as u(x, y)``
 
-- Added support for column :ref:`ref-default-clause` for :ref:`ref-create-table`.
+- Added support for column :ref:`sql-create-table-default-clause` for
+  :ref:`sql-create-table`.
 
 - Extended the support for window functions. The ``PARTITION BY`` definition
   and the ``CURRENT ROW -> UNBOUNDED FOLLOWING`` frame definitions are now
@@ -300,7 +301,8 @@ SQL Standard and PostgreSQL compatibility improvements
   :ref:`TIMESTAMP WITH TIME ZONE <datetime-with-time-zone>` data type.
 
 - Added support for the :ref:`type 'string' <type_cast_from_string_literal>`
-  cast operator, which is used to initialize a constant of an arbitrary type.
+  cast :ref:`operator <gloss-operator>`, which is used to initialize a constant
+  of an arbitrary type.
 
 - Added the :ref:`pg_get_userbyid` scalar function to enhance PostgreSQL
   compatibility.
@@ -365,7 +367,7 @@ Repositories and Snapshots
   ``compress``, to ``true``. See
   :ref:`fs repository parameters<ref-create-repository-types-fs>`.
 
-- Improved resiliency of the :ref:`ref-create-snapshot` operation.
+- Improved resiliency of the :ref:`sql-create-snapshot` operation.
 
 
 Performance and resiliency improvements

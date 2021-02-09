@@ -7,7 +7,7 @@ Data types
 ==========
 
 Data can be stored in different formats. CrateDB has different types that can
-be specified if a table is created using the the :ref:`ref-create-table`
+be specified if a table is created using the the :ref:`sql-create-table`
 statement. Data types play a central role as they limit what kind of data can
 be inserted, how it is stored and they also influence the behaviour when the
 records are queried.
@@ -358,9 +358,10 @@ Example::
     ... values ('localhost', 'not.a.real.ip');
     SQLParseException[Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
 
-Ip addresses support the binary operator `<<`, which checks for subnet inclusion
-using `CIDR notation`_ [ip address/prefix_length]. The left operand must be of
-type ``ip`` and the right of ``text`` e.g. `'192.168.1.5' << '192.168.1/24'`.
+IP addresses support the :ref:`operator <gloss-operator>` ``<<``, which checks
+for subnet inclusion using `CIDR notation`_. The left-hand operand must be of
+type :ref:`ip <ip-type>` and the right-hand must be of type :ref:`text
+<data-type-text>` (e.g., ``'192.168.1.5' << '192.168.1/24'``).
 
 .. _date-time-types:
 
@@ -714,20 +715,20 @@ For example::
 Temporal arithmetic
 -------------------
 
-The following table specifies the declared types of
-:ref:`arithmetic <arithmetic>` expressions that involves temporal operands.
+The following table specifies the declared types of :ref:`arithmetic
+<arithmetic>` expressions that involves temporal operands.
 
-+---------------+----------+---------------+
-|       Operand | Operator |       Operand |
-+===============+==========+===============+
-| ``timestamp`` |       \- | ``timestamp`` |
-+---------------+----------+---------------+
-|  ``interval`` |       \+ | ``timestamp`` |
-+---------------+----------+---------------+
-| ``timestamp`` | \+ or \- |  ``interval`` |
-+---------------+----------+---------------+
-|  ``interval`` | \+ or \- |  ``interval`` |
-+---------------+----------+---------------+
++---------------+----------------+---------------+
+|       Operand | Operator       |       Operand |
++===============+================+===============+
+| ``timestamp`` |          ``-`` | ``timestamp`` |
++---------------+----------------+---------------+
+|  ``interval`` |          ``+`` | ``timestamp`` |
++---------------+----------------+---------------+
+| ``timestamp`` | ``+`` or ``-`` |  ``interval`` |
++---------------+----------------+---------------+
+|  ``interval`` | ``+`` or ``-`` |  ``interval`` |
++---------------+----------------+---------------+
 
 
 .. _geo_point_data_type:
@@ -893,8 +894,8 @@ Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
 
     It is not possible to detect a geo_shape type for a dynamically created
     column. Like with :ref:`geo_point_data_type` type, geo_shape columns need
-    to be created explicitly using either :ref:`ref-create-table` or
-    :ref:`ref-alter-table`.
+    to be created explicitly using either :ref:`sql-create-table` or
+    :ref:`sql-alter-table`.
 
 .. _object_data_type:
 
@@ -1157,8 +1158,8 @@ Nested object::
 
     { nested_obj_colmn = { int_col = 1234, str_col = 'text value' } }
 
-You can even specify a :ref:`placeholder parameter <expression-parameter>` for
-a value::
+You can even specify a :ref:`placeholder parameter <sql-parameter-reference>`
+for a value::
 
     { my_other_column = ? }
 
@@ -1223,8 +1224,8 @@ Nested object::
 
 .. NOTE::
 
-    You cannot use :ref:`placeholder parameters <expression-parameter>` inside
-    a JSON string.
+    You cannot use :ref:`placeholder parameters <sql-parameter-reference>`
+    inside a JSON string.
 
 
 .. _data-type-array:

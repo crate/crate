@@ -45,7 +45,8 @@ Fixes
 
 - Fixed an issue that caused an error to be thrown when filtering on a
   partitioned table using a column which is a source column for a ``GENERATED``
-  column which in turn is used for partitioning. E.g.::
+  column which in turn is used as :ref:`partition column
+  <gloss-partition-column>`. E.g.::
 
     CREATE TABLE parted_t(
         t TIMESTAMP,

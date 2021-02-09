@@ -1,21 +1,17 @@
 .. highlight:: psql
+
 .. _sql_subquery_expressions:
 
 Subquery expressions
 ====================
 
-The following operators can be used with a subquery to form a subquery
-expression that results in a boolean value (``true``/``false``) or ``null``.
+Some :ref:`operators <gloss-operator>` can be used with an :ref:`uncorrelated
+subquery <gloss-uncorrelated-subquery>` to form a *subquery expression* that
+returns a boolean value (i.e., ``true`` or ``false``) or ``NULL``.
 
-.. NOTE::
+.. SEEALSO::
 
-    The used subquery has to be uncorrelated which means that the subquery does
-    not contain references to relations in a parent statement.
-
-These operators are supported for subquery expressions.
-
-To compare a list of values other than subqueries, see
-:ref:`sql_array_comparisons`.
+    :ref:`sql_array_comparisons`
 
 .. rubric:: Table of contents
 
@@ -33,15 +29,9 @@ Syntax:
 
     expression IN (subquery)
 
-The binary operator ``IN``, which allows you to verify the membership of
-left-hand operand in the right-hand side subquery that returns exactly one
-column.
+The ``subquery`` must produce result rows with a single column only.
 
-Returns ``true`` if any equal subquery row equals the left-hand operand.
-Returns ``false`` otherwise (including the case where the subquery returns no
-rows).
-
-For example::
+Here's an example::
 
     cr> select name, surname, sex from employees
     ... where dept_id in (select id from departments where name = 'Marketing')
@@ -56,17 +46,20 @@ For example::
     +--------+----------+-----+
     SELECT 4 rows in set (... sec)
 
-The result of the ``IN`` construct yields to ``null`` if:
+The ``IN`` :ref:`operator <gloss-operator>` returns ``true`` if any subquery
+row equals the left-hand operand. Otherwise, it returns ``false`` (including
+the case where the subquery returns no rows).
 
-- The left-hand expression evaluates to ``null``
+The operator returns ``NULL`` if:
 
-- There are no equal right-hand values and at least one right-hand value yields
-  ``null``
+- The left-hand expression evaluates to ``NULL``
+
+- There are no matching right-hand values and at least one right-hand value is
+  ``NULL``
 
 .. NOTE::
 
-    ``IN (subquery)`` is an alias for ``= ANY (subquery)`` and therefore their
-    results are equivalent.
+    ``IN (subquery)`` is an alias for ``= ANY (subquery)``
 
 
 .. _sql_any_subquery_expression:
@@ -78,16 +71,16 @@ Syntax:
 
 .. code-block:: sql
 
-    expression operator ANY | SOME (subquery)
+    expression comparison ANY | SOME (subquery)
 
-The ``ANY`` construct returns ``true`` if the defined comparison is ``true``
-for any of the values in the column that is returned by the subquery.
+Here, ``comparison`` can be any :ref:`basic comparison operator
+<comparison-operators-basic>`. The ``subquery`` must produce result rows with a
+single column only.
 
-It returns ``false`` if the subquery does not match with the provided comparison
-or the subquery returns no rows::
+Here's an example::
 
     cr> select name, population from countries
-    ... where population > any (select * from unnest([8000000, 22000000, null]))
+    ... where population > any (select * from unnest([8000000, 22000000, NULL]))
     ... order by population, name;
     +--------------+------------+
     | name         | population |
@@ -100,23 +93,27 @@ or the subquery returns no rows::
     +--------------+------------+
     SELECT 5 rows in set (... sec)
 
+The ``ANY`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
+comparison is ``true`` for any of the result rows of the right-hand subquery.
 
-The result of the ``ANY`` construct yields ``null`` if:
+The operator returns ``false`` if the comparison returns ``false`` for all
+result rows of the subquery or if the subquery returns no rows.
 
-- Either the expression or the array is ``null``, and
+The operator returns ``NULL`` if:
 
-- No ``true`` comparison is obtained and any element of the array is ``null``
+- The left-hand expression evaluates to ``NULL``
+
+- There are no matching right-hand values and at least one right-hand value is
+  ``NULL``
 
 .. NOTE::
 
-    The following is not supported by the ``ANY`` operator:
+    The following is not supported:
 
-    - ``is null`` and ``is not null`` as ``operator``
+    - ``IS NULL`` or ``IS NOT NULL`` as ``comparison``
 
     - Matching as many columns as there are expressions on the left-hand row
       e.g. ``(x,y) = ANY (select x, y from t)``
-
-      Only single-column subqueries are supported
 
 
 ``ALL (subquery)``
@@ -126,23 +123,13 @@ Syntax:
 
 .. code-block:: sql
 
-    value operator ALL (subquery)
+    value comparison ALL (subquery)
 
+Here, ``comparison`` can be any :ref:`basic comparison operator
+<comparison-operators-basic>`. The ``subquery`` must produce result rows with a
+single column only.
 
-This is like :ref:`ALL for array comparisons <all_array_comparison>` except for
-subqueries.
-
-The left-hand expression is evaluated and compared against each row of the
-right-hand subquery using the supplied operator. The result of ``ALL`` is ``true``
-if all comparisons yield ``true``. The result is ``false`` if the comparison of
-at least one element does not match.
-
-The result is ``NULL`` if either the value or the array is ``NULL`` or if no
-comparison is ``false`` and at least one comparison returns ``NULL``.
-
-The subquery must return a single column.
-
-::
+Here's an example::
 
     cr> select 100 <> ALL (select height from sys.summits) AS x;
     +------+
@@ -152,12 +139,14 @@ The subquery must return a single column.
     +------+
     SELECT 1 row in set (... sec)
 
+The ``ALL`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
+comparison is ``true`` for all of the result rows of the right-hand subquery.
 
-Supported operators are:
+The operator returns ``false`` if the comparison returns ``false`` for any
+result rows of the subquery.
 
-- ``=``
-- ``>=``
-- ``>``
-- ``<=``
-- ``<``
-- ``<>``
+The operator returns ``NULL`` if:
+
+- The left-hand expression evaluates to ``NULL``
+
+- No comparison returns ``false`` and at least one right-hand value is ``NULL``

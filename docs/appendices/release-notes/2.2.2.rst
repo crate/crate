@@ -54,7 +54,8 @@ Fixes
 - Fixed an issue that prevented the complete graceful shutdown of CrateDB node.
 
 - Fixed an issue that caused a ``NullPointerException`` for queries that use
-  the ``IN`` or ``ANY`` operator on timestamp fields.
+  the ``IN`` or ``ANY`` :ref:`operators <gloss-operator>` on timestamp
+  fields.
 
 - Improves resiliency of ``COPY FROM`` and ``INSERT FROM SUBQUERY`` statements
   when lot of new partitions will be created.
@@ -73,4 +74,4 @@ Fixes
 
 - Fixed an issue that caused an error ``Primary key value must not be NULL``
   to be thrown when trying to insert rows in a table that has a generated
-  column which is used both in ``PARTITION_BY`` and ``PRIMARY KEY``.
+  column which is used both in ``PARTITION BY`` and ``PRIMARY KEY``.

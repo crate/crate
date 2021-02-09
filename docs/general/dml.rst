@@ -21,7 +21,7 @@ Inserting data to CrateDB is done by using the SQL ``INSERT`` statement.
 .. NOTE::
 
     The column list is always ordered based on the column position
-    in the :ref:`ref-create-table` statement of the table. If the insert
+    in the :ref:`sql-create-table` statement of the table. If the insert
     columns are omitted, the values in the ``VALUES`` clauses must
     correspond to the table columns in that order.
 
@@ -67,9 +67,10 @@ When inserting multiple rows, if an error occurs for some of these rows there
 is no error returned but instead the number of rows affected would be decreased
 by the number of rows that failed to be inserted.
 
-When inserting into tables containing :ref:`ref-generated-columns`
-or :ref:`ref-base-columns` having the :ref:`ref-default-clause` specified,
-their values can be safely omitted. They are *generated* upon insert:
+When inserting into tables containing :ref:`sql-create-table-generated-columns`
+or :ref:`sql-create-table-base-columns` having the
+:ref:`sql-create-table-default-clause` specified, their values can be safely
+omitted. They are *generated* upon insert:
 
 ::
 
@@ -103,8 +104,9 @@ their values can be safely omitted. They are *generated* upon insert:
     +-------------------+-----------+-----------+-----------+-------+
     SELECT 1 row in set (... sec)
 
-For :ref:`ref-generated-columns`, if the value is given, it is validated
-against the *generation clause* of the column and the currently inserted row::
+For :ref:`sql-create-table-generated-columns`, if the value is given, it is
+validated against the *generation clause* of the column and the currently
+inserted row::
 
     cr> insert into debit_card (owner, num_part1, num_part2, check_sum) values
     ... ('Arthur Dent', 9876, 5432, 642935);
@@ -414,9 +416,9 @@ Using the ``COPY FROM`` statement, CrateDB nodes can import data from local
 files or files that are available over the network.
 
 The supported data formats are JSON and CSV. The format is inferred from the
-file extension, if possible. Alternatively the format can also be provided as an
-option (see :ref:`with_option`). If the format is not provided and cannot be
-inferred from the file extension, it will be processed as JSON.
+file extension, if possible. Alternatively the format can also be provided as
+an option (see :ref:`sql-copy-from-with`). If the format is not provided and
+cannot be inferred from the file extension, it will be processed as JSON.
 
 JSON files must contain a single JSON object per line.
 
@@ -445,7 +447,7 @@ Example CSV data::
     they were quoted in a SQL statement).
 
 For further information, including how to import data to
-:ref:`partitioned_tables`, take a look at the :ref:`copy_from` reference.
+:ref:`partitioned-tables`, take a look at the :ref:`sql-copy-from` reference.
 
 Example
 .......
@@ -474,7 +476,7 @@ uses it to create a table named ``quotes``.
     ``COPY FROM``, you must first transfer the file to one of the CrateDB
     nodes.
 
-    Consult the :ref:`copy_from` reference for additional information.
+    Consult the :ref:`sql-copy-from` reference for additional information.
 
 .. Hidden: delete imported data
 
@@ -560,7 +562,7 @@ If an error happens while processing the URI in general, the ``error_count`` and
     +--...--+-----------...---------+---------------+-------------+------------------------...------------------------+
    COPY 1 row in set (... sec)
 
-See :ref:`copy_from` for more information.
+See :ref:`sql-copy-from` for more information.
 
 .. _exporting_data:
 
@@ -600,7 +602,7 @@ exported::
     cr> COPY quotes WHERE match(quote_ft, 'time') TO DIRECTORY '/tmp/' WITH (compression='gzip');
     COPY OK, 2 rows affected ...
 
-For further details see :ref:`copy_to`.
+For further details see :ref:`sql-copy-to`.
 
 .. _crate-python: https://pypi.python.org/pypi/crate/
 .. _PCRE: https://www.pcre.org/

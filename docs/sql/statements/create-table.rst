@@ -1,16 +1,20 @@
 .. highlight:: psql
-.. _ref-create-table:
+
+.. _sql-create-table:
 
 ================
 ``CREATE TABLE``
 ================
 
-Define a new table.
+Create a new table.
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
+
+.. _sql-create-table-synopsis:
 
 Synopsis
 ========
@@ -60,10 +64,13 @@ and ``table_constraint`` is::
            [ WITH ( analyzer = analyzer_name ) ]
     }
 
+
+.. _sql-create-table-description:
+
 Description
 ===========
 
-CREATE TABLE will create a new, initially empty table.
+``CREATE TABLE`` will create a new, initially empty table.
 
 If the ``table_ident`` does not contain a schema, the table is created in the
 ``doc`` schema. Otherwise it is created in the given schema, which is
@@ -84,10 +91,18 @@ encompass more than one column. Every column constraint can also be written as
 a table constraint; a column constraint is only a notational convenience for
 use when the constraint only affects one column.
 
+.. SEEALSO::
+
+    :ref:`sql_ddl_create`
+
+
+.. _sql-create-table-elements:
+
 Table elements
 --------------
 
-.. _ref-base-columns:
+
+.. _sql-create-table-base-columns:
 
 Base Columns
 ~~~~~~~~~~~~
@@ -100,7 +115,8 @@ Base columns are readable and writable (if the table itself is writable).
 Values for base columns are given in DML statements explicitly or omitted, in
 which case their value is null.
 
-.. _ref-default-clause:
+
+.. _sql-create-table-default-clause:
 
 Default clause
 ^^^^^^^^^^^^^^
@@ -112,7 +128,8 @@ contain an explicit value for it.
 The default clause expression is variable-free, it means that subqueries and
 cross-references to other columns are not allowed.
 
-.. _ref-generated-columns:
+
+.. _sql-create-table-generated-columns:
 
 Generated columns
 ~~~~~~~~~~~~~~~~~
@@ -130,7 +147,10 @@ The ``GENERATED ALWAYS`` part of the syntax is optional.
 
 .. SEEALSO::
 
-   For more information, see :ref:`sql-ddl-generated-columns`.
+   For more information, see :ref:`ddl-generated-columns`.
+
+
+.. _sql-create-table-table-constraints:
 
 Table constraints
 ~~~~~~~~~~~~~~~~~
@@ -140,6 +160,9 @@ to the table as a whole.
 
 For further details see :ref:`table_constraints`.
 
+
+.. _sql-create-table-column-constraints:
+
 Column constraints
 ~~~~~~~~~~~~~~~~~~
 
@@ -148,12 +171,18 @@ separately.
 
 For further details see :ref:`column_constraints`.
 
+
+.. _sql-create-table-storage-options:
+
 Storage options
 ~~~~~~~~~~~~~~~
 
 Storage options can be applied on each column of the table separately.
 
 For further details and available options see :ref:`ddl-storage`.
+
+
+.. _sql-create-table-parameters:
 
 Parameters
 ==========
@@ -175,19 +204,27 @@ Parameters
   supported. The generation expression is evaluated each time a row is
   inserted or the referenced base columns are updated.
 
+
+.. _sql-create-table-if-not-exists:
+
 ``IF NOT EXISTS``
 =================
 
 If the optional IF NOT EXISTS clause is used this statement won't do anything
 if the table exists already.
 
-.. _ref_clustered_clause:
+
+.. _sql-create-table-clustered:
 
 ``CLUSTERED``
 =============
 
 The optional CLUSTERED clause specifies how a table should be distributed
 accross a cluster.
+
+::
+
+    [ CLUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
 
 :num_shards:
   Specifies the number of :ref:`shards <sql_ddl_sharding>` a table is stored
@@ -204,52 +241,53 @@ accross a cluster.
      minimum value to each table or partition as default.
 
 :routing_column:
-  Allows to explicitly specify a column or field on which basis rows are
-  sharded. All rows having the same value in ``routing_column`` are
-  stored in the same shard. The default is the primary key if specified,
-  otherwise the internal ``_id`` column.
+  Specify a :ref:`routing column <gloss-routing-column>` on which basis rows
+  are sharded. All rows having the same value in ``routing_column`` are stored
+  in the same shard. The default is the primary key if specified, otherwise the
+  internal ``_id`` column.
 
 .. SEEALSO::
 
     :ref:`sql_ddl_sharding`
 
 
-.. _partitioned_by_clause:
+.. _sql-create-table-partitioned-by:
 
 ``PARTITIONED BY``
 ==================
 
 The ``PARTITIONED`` clause splits the created table into separate
-:ref:`partitions <partitioned_tables>` for every distinct combination of values
-in the listed columns.
+:ref:`partitions <partitioned-tables>` for every distinct combination of row
+values in the specified :ref:`partition columns <gloss-partition-column>`.
 
 ::
 
     [ PARTITIONED BY ( column_name [ , ... ] ) ]
 
 :column_name:
-  A column from the table definition this table gets partitioned by.
-
-Several restrictions apply to columns that can be used here:
-
-* columns may not be part of :ref:`ref_clustered_clause`.
-* columns must have a :ref:`primitive type <sql_ddl_datatypes_primitives>`.
-* columns may not be inside an object array.
-* columns may not be indexed with a :ref:`sql_ddl_index_fulltext`.
-* if the table has a :ref:`primary_key_constraint` the columns in PARTITIONED
-  clause have to be part of it
-
-.. NOTE::
-
-   Columns referenced in the PARTITIONED clause cannot be altered by an
-   ``UPDATE`` statement.
-
-.. SEEALSO::
-
-    :ref:`partitioned_tables`
+  The name of a column to be used for partitioning. Multiple columns names can
+  be specified inside the parentheses and must be separated by commas.
 
 
-.. _with_clause:
+The following restrictions apply:
+
+* Partition columns may not be part of the :ref:`sql-create-table-clustered`
+  clause
+* Partition columns must only contain :ref:`primitive types
+  <sql_ddl_datatypes_primitives>`
+* Partition columns may not be inside an object array
+* Partition columns may not be indexed with a :ref:`fulltext index with
+  analyzer <sql_ddl_index_fulltext>`
+* If the table has a :ref:`primary_key_constraint` constraint, all of the
+  partition columns must be included in the primary key definition
+
+.. CAUTION::
+
+    Partition columns :ref:`cannot be altered <partitioned-update>` by an
+    ``UPDATE`` statement.
+
+
+.. _sql-create-table-with:
 
 ``WITH``
 ========
@@ -265,13 +303,18 @@ The optional WITH clause can specify parameters for tables.
 
 .. NOTE::
 
-   Some parameters are nested, and therefore need to be wrapped in double quotes in order to be set:
-   ``WITH ("allocation.max_retries" = 5)``.
-   Nested parameters are those that contain a ``.`` between parameter names, e.g. ``write.wait_for_active_shards``.
+   Some parameters are nested, and therefore need to be wrapped in double
+   quotes in order to be set. For example::
+
+       WITH ("allocation.max_retries" = 5)
+
+   Nested parameters are those that contain a ``.`` between parameter names
+   (e.g. ``write.wait_for_active_shards``).
 
 Available parameters are:
 
-.. _number_of_replicas:
+
+.. _sql-create-table-number-of-replicas:
 
 ``number_of_replicas``
 ----------------------
@@ -295,7 +338,8 @@ The number of replicas is defined like this::
 
 For further details and examples see :ref:`replication`.
 
-.. _sql_ref_number_of_routing_shards:
+
+.. _sql-create-table-number-of-routing-shards:
 
 ``number_of_routing_shards``
 ----------------------------
@@ -304,10 +348,10 @@ This number specifies the hashing space that is used internally to distribute
 documents across shards.
 
 This is an optional setting that enables users to later on increase the number
-of shards using :ref:`ref-alter-table`.
+of shards using :ref:`sql-alter-table`.
 
 
-.. _sql_ref_refresh_interval:
+.. _sql-create-table-refresh-interval:
 
 ``refresh_interval``
 --------------------
@@ -326,9 +370,12 @@ to 1000 milliseconds.
    visible to subsequent reads. Only the periodic refresh is disabled. There
    are other internal factors that might trigger a refresh.
 
-For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
+For further details see :ref:`refresh_data` or :ref:`sql-refresh`.
 
-.. _sql_ref_write_wait_for_active_shards:
+
+.. _sql-create-table-write-wait:
+
+.. _sql-create-table-write-wait-for-active-shards:
 
 ``write.wait_for_active_shards``
 --------------------------------
@@ -359,9 +406,9 @@ system eventually, but in case a node holding the primary copy has a system
 failure, the replica copy couldn't be promoted automatically as it would lead
 to data loss since the system is aware that the replica shard didn't receive
 all writes. In such a scenario, :ref:`ALTER TABLE .. REROUTE PROMOTE REPLICA
-<alter-table-reroute-promote-replica>` can be used to force the allocation of a
-stale replica copy to at least recover the data that is available in the stale
-replica copy.
+<alter-table-reroute-promote-replica>` can be used to force the
+:ref:`allocation <gloss-shard-recovery>` of a stale replica copy to at least
+recover the data that is available in the stale replica copy.
 
 Say you've a 3 node cluster and a table with 1 configured replica. With
 ``write.wait_for_active_shards=1`` and ``number_of_replicas=1`` a node in the
@@ -374,7 +421,9 @@ again or the write operations would timeout in case the replication is not fast
 enough.
 
 
-.. _table-settings-blocks.read_only:
+.. _sql-create-table-blocks:
+
+.. _sql-create-table-blocks-read-only:
 
 ``blocks.read_only``
 --------------------
@@ -385,7 +434,8 @@ Allows to have a read only table.
   Table is read only if value set to ``true``. Allows writes and table
   settings changes if set to ``false``.
 
-.. _table-settings-blocks.read_only_allow_delete:
+
+.. _sql-create-table-blocks-read-only-allow-delete:
 
 ``blocks.read_only_allow_delete``
 ---------------------------------
@@ -406,6 +456,9 @@ Allows to have a read only table that additionally can be deleted.
 
     :ref:`Disk-based shard allocation <cluster.routing.allocation.disk>`
 
+
+.. _sql-create-table-blocks-read:
+
 ``blocks.read``
 ---------------
 
@@ -415,7 +468,8 @@ Allows to have a read only table that additionally can be deleted.
   Set to ``true`` to disable all read operations for a table, otherwise
   set ``false``.
 
-.. _table-settings-blocks.write:
+
+.. _sql-create-table-blocks-write:
 
 ``blocks.write``
 ----------------
@@ -426,6 +480,9 @@ Allows to have a read only table that additionally can be deleted.
   Set to ``true`` to disable all write operations and table settings
   modifications, otherwise set ``false``.
 
+
+.. _sql-create-table-blocks-metadata:
+
 ``blocks.metadata``
 -------------------
 
@@ -435,7 +492,10 @@ Allows to have a read only table that additionally can be deleted.
   Disables the table settings modifications if set to ``true``, if set
   to ``false`` — table settings modifications are enabled.
 
-.. _table_parameter.soft_deletes.enabled:
+
+.. _sql-create-table-soft-deletes:
+
+.. _sql-create-table-soft-deletes-enabled:
 
 ``soft_deletes.enabled``
 ------------------------
@@ -443,7 +503,8 @@ Allows to have a read only table that additionally can be deleted.
 Indicates whether soft deletes are enabled or disabled.
 
 Soft deletes allow CrateDB to preserve recent deletions within the Lucene
-index. This information is used for shard recovery.
+index. This information is used for :ref:`shard recovery
+<gloss-shard-recovery>`.
 
 Before the introduction of soft deletes, CrateDB had to retain the information
 in the :ref:`Translog <durability>`. Using soft deletes uses less storage than
@@ -454,12 +515,11 @@ cannot be changed using ``ALTER TABLE``.
 
 Soft deletes will become mandatory in CrateDB 5.0.
 
-
 :value:
   Defaults to ``true``. Set to ``false`` to disable soft deletes.
 
 
-.. _table_parameter.soft_deletes.retention_lease.period:
+.. _sql-create-table-soft-deletes-retention-lease-period:
 
 ``soft_deletes.retention_lease.period``
 ---------------------------------------
@@ -498,7 +558,7 @@ has expired, CrateDB will fall back to copying the whole index since it can no
 longer replay the missing history.
 
 
-.. _table_parameter.codec:
+.. _sql-create-table-codec:
 
 ``codec``
 ---------
@@ -510,7 +570,10 @@ the expense of slower column value lookups.
 :values:
   ``default`` or ``best_compression``
 
-.. _table_parameter.store_type:
+
+.. _sql-create-table-store:
+
+.. _sql-create-table-store-type:
 
 ``store.type``
 --------------
@@ -550,6 +613,11 @@ and accessed on disk. The following storage types are supported:
 It is possible to restrict the use of the ``mmapfs`` and ``hybridfs`` store
 type via the :ref:`node.store.allow_mmap <node.store_allow_mmap>` node setting.
 
+
+.. _sql-create-table-mapping:
+
+.. _sql-create-table-mapping-total-fields-limit:
+
 ``mapping.total_fields.limit``
 ------------------------------
 
@@ -559,6 +627,11 @@ Sets the maximum number of columns that is allowed for a table. Default is ``100
   Maximum amount of fields in the Lucene index mapping. This includes
   both the user facing mapping (columns) and internal fields.
 
+
+.. _sql-create-table-translog:
+
+.. _sql-create-table-translog-flush-threshold-size:
+
 ``translog.flush_threshold_size``
 ---------------------------------
 
@@ -566,6 +639,9 @@ Sets size of transaction log prior to flushing.
 
 :value:
   Size (bytes) of translog.
+
+
+.. _sql-create-table-translog-disable-flush:
 
 ``translog.disable_flush``
 --------------------------
@@ -579,6 +655,9 @@ Sets size of transaction log prior to flushing.
 
    It is recommended to use ``disable_flush`` only for short periods of time.
 
+
+.. _sql-create-table-translog-interval:
+
 ``translog.interval``
 ---------------------
 
@@ -587,7 +666,8 @@ Sets frequency of flush necessity check.
 :value:
   Frequency in milliseconds.
 
-.. _translog_sync_interval:
+
+.. _sql-create-table-translog-sync-interval:
 
 ``translog.sync_interval``
 --------------------------
@@ -596,36 +676,49 @@ How often the translog is fsynced to disk. Defaults to 5s.
 When setting this interval, please keep in mind that changes logged
 during this interval and not synced to disk may get lost in case of a
 failure. This setting only takes effect if :ref:`translog.durability
-<translog_durability>` is set to ``ASYNC``.
+<sql-create-table-translog-durability>` is set to ``ASYNC``.
 
 :value:
   Interval in milliseconds.
 
-.. _translog_durability:
+
+.. _sql-create-table-translog-durability:
 
 ``translog.durability``
 -----------------------
 
-If set to ``ASYNC`` the translog gets flushed to disk in the background
-every :ref:`translog.sync_interval <translog_sync_interval>`. If set to
-``REQUEST`` the flush happens after every operation.
+If set to ``ASYNC`` the translog gets flushed to disk in the background every
+:ref:`translog.sync_interval <sql-create-table-translog-sync-interval>`. If set
+to ``REQUEST`` the flush happens after every operation.
 
 :value:
   ``REQUEST`` (default), ``ASYNC``
+
+
+.. _sql-create-table-routing:
+
+.. _sql-create-table-routing-allocation:
+
+.. _sql-create-table-routing-allocation.total-shards-per-node:
 
 ``routing.allocation.total_shards_per_node``
 --------------------------------------------
 
 Controls the total number of shards (replicas and primaries) allowed to be
-allocated on a single node. Defaults to unbounded (-1).
+:ref:`allocated <gloss-shard-allocation>` on a single node. Defaults to
+unbounded (-1).
 
 :value:
   Number of shards per node.
 
+
+.. _sql-create-table-routing-allocation-enable:
+
 ``routing.allocation.enable``
 -----------------------------
 
-Controls shard allocation for a specific table. Can be set to:
+Controls shard :ref:`allocation <gloss-shard-allocation>` for a specific table.
+Can be set to:
 
 :all:
   Allows shard allocation for all shards. (Default)
@@ -639,62 +732,76 @@ Controls shard allocation for a specific table. Can be set to:
 :none:
   No shard allocation allowed.
 
-.. _allocation_max_retries:
+
+.. _sql-create-table-routing-allocation-max-retries:
 
 ``routing.allocation.max_retries``
 ----------------------------------
 
-Defines the number of attempts to allocate a shard before giving up and leaving
-the shard unallocated.
+Defines the number of attempts to :ref:`allocate <gloss-shard-allocation>` a
+shard before giving up and leaving the shard unallocated.
 
 :value:
   Number of retries to allocate a shard. Defaults to 5.
+
+
+.. _sql-create-table-routing-allocation-include:
 
 ``routing.allocation.include.{attribute}``
 ------------------------------------------
 
 Assign the table to a node whose ``{attribute}`` has at least one of the
 comma-separated values.
-See :ref:`ddl_shard_allocation` for details.
+
+.. SEEALSO::
+
+    :ref:`ddl_shard_allocation`
+
+
+.. _sql-create-table-routing-allocation-require:
 
 ``routing.allocation.require.{attribute}``
 ------------------------------------------
 
 Assign the table to a node whose ``{attribute}`` has all of the comma-separated
 values.
-See :ref:`ddl_shard_allocation` for details.
+
+.. SEEALSO::
+
+    :ref:`ddl_shard_allocation`
+
+
+.. _sql-create-table-routing-allocation-exclude:
 
 ``routing.allocation.exclude.{attribute}``
 ------------------------------------------
 
-Assign the table to a node whose ``{attribute}`` has none of the comma-separated
-values.
-See :ref:`ddl_shard_allocation` for details.
+Assign the table to a node whose ``{attribute}`` has none of the
+comma-separated values.
 
-``warming.enable``
-------------------
+.. SEEALSO::
 
-``disable``/``enable`` table warming.
+    :ref:`ddl_shard_allocation`
 
-Table warming allows to run registered queries to warm up the table before it
-is available.
 
-Enabled by default.
+.. _sql-create-table-unassigned:
 
-:value:
-  `true`` to enable warming up, otherwise ``false``
+.. _sql-create-table-unassigned.node-left:
+
+.. _sql-create-table-unassigned.node-left-delayed-timeout:
 
 ``unassigned.node_left.delayed_timeout``
 ----------------------------------------
 
-Delay the allocation of replica shards which have become unassigned because a
-node has left. It defaults to ``1m`` to give a node time to restart
-completely (which can take some time when the node has lots of shards).
-Setting the timeout to ``0`` will start allocation immediately. This setting
-can be changed on runtime in order to increase/decrease the delayed
-allocation if needed.
+Delay the :ref:`allocation <gloss-shard-allocation>` of replica shards which
+have become unassigned because a node has left. It defaults to ``1m`` to give a
+node time to restart completely (which can take some time when the node has
+lots of shards). Setting the timeout to ``0`` will start allocation
+immediately. This setting can be changed on runtime in order to
+increase/decrease the delayed allocation if needed.
 
-.. _sql_ref_column_policy:
+
+.. _sql-create-table-column-policy:
 
 ``column_policy``
 -----------------
@@ -718,11 +825,17 @@ The column policy is defined like this::
 
 For further details and examples see :ref:`column_policy` or :ref:`config`.
 
+
+.. _sql-create-table-max-ngram-diff:
+
 ``max_ngram_diff``
 ------------------
 
 Specifies the maximum difference between max_ngram and min_ngram when using
 the NGramTokenizer or the NGramTokenFilter. The default is 1.
+
+
+.. _sql-create-table-max-shingle-diff:
 
 ``max_shingle_diff``
 --------------------
@@ -731,7 +844,11 @@ Specifies the maximum difference between min_shingle_size and max_shingle_size
 when using the ShingleTokenFilter. The default is 3.
 
 
-.. _merge.scheduler.max_thread_count:
+.. _sql-create-table-merge:
+
+.. _sql-create-table-merge-scheduler:
+
+.. _sql-create-table-merge-scheduler-max-thread-count:
 
 ``merge.scheduler.max_thread_count``
 ------------------------------------

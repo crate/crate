@@ -32,7 +32,8 @@ In order to set a parameter to its default value use ``reset``::
     cr> alter table my_table reset (number_of_replicas);
     ALTER OK, -1 rows affected (... sec)
 
-.. _alter_change_number_of_shard:
+
+.. _alter-shard-number:
 
 Changing the number of shards
 -----------------------------
@@ -54,6 +55,9 @@ Changing the number of shards in general works in the following steps.
 To change the number of primary shards of a table, it is necessary to first
 satisfy certain conditions.
 
+
+.. _alter-shard-number-decrease:
+
 Decreasing the number of shards
 ...............................
 
@@ -62,8 +66,9 @@ two conditions:
 
 First, a (primary or replica) copy of every shard of the table must be present
 on the **same** node. The user can choose the most suitable node for this
-operation and then restrict table shard allocation on that node using the
-:ref:`ddl_shard_allocation`.
+operation and then restrict table :ref:`shard allocation
+<gloss-shard-allocation>` on that node using the :ref:`shard allocation
+filtering <ddl_shard_allocation>`.
 
 The second condition for decreasing a table's number of shards is to block write
 operations to the table::
@@ -85,6 +90,9 @@ The user should then revert the restrictions applied on the table, for instance
 It is necessary to use a factor of the current number of primary shards as
 the target number of shards. For example, a table with 8 shards can be shrunk
 into 4, 2 or 1 primary shards.
+
+
+.. _alter-shard-number-increase:
 
 Increase the number of shards
 .............................
@@ -112,7 +120,7 @@ for instance::
     cr> alter table my_table set ("blocks.write" = false);
     ALTER OK, -1 rows affected (... sec)
 
-Read :ref:`Alter Partitioned Tables <partitioned_tables_alter>` to see how to
+Read :ref:`Alter Partitioned Tables <partitioned-alter>` to see how to
 alter parameters of partitioned tables.
 
 Adding columns
@@ -169,7 +177,7 @@ clause::
 
 .. NOTE::
 
-    This setting is *not* the same as :ref:`table-settings-blocks.read_only`.
+    This setting is *not* the same as :ref:`sql-create-table-blocks-read-only`.
     Closing and opening a table will preserve these settings if they are
     already set.
 
@@ -188,10 +196,11 @@ During the rename operation the shards of the table become temporarily unavailab
 Reroute shards
 ==============
 
-With the ``REROUTE`` command it is possible to control the allocations of
-shards. This gives you the ability to re-balance the cluster state manually.
-The supported reroute options are listed in the reference documentation of
-:ref:`ALTER TABLE REROUTE <alter_table_reroute>`.
+With the ``REROUTE`` command it is possible to control the :ref:`allocations
+<gloss-shard-allocation>` of shards. This gives you the ability to re-balance
+the cluster state manually. The supported reroute options are listed in the
+reference documentation of :ref:`ALTER TABLE REROUTE
+<sql-alter-table-reroute>`.
 
 Shard rerouting can help solve several problems:
 

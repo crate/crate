@@ -52,8 +52,9 @@ Logging Configuration Changes
 -----------------------------
 
 The default logging configuration for CrateDB in ``log4j2.properties`` has been
-changed. If you have customised this :ref:`logging configuration <conf-logging-log4j>`,
-you should replace the ``$marker`` entry with ``[%node_name] %marker``.
+changed. If you have customised this :ref:`logging configuration
+<conf-logging-log4j>`, you should replace the ``$marker`` entry with
+``[%node_name] %marker``.
 
 Deprecated Settings and Features
 --------------------------------
@@ -69,8 +70,8 @@ The ``http.enabled`` setting has been deprecated, and will be removed in the
 future.
 
 The ``delimited_payload_filter`` built-in token filter for fulltext analyzers
-has been renamed to ``delimited_payload``. The ``delimited_payload_filter`` name
-can still be used, but is deprecated, and will be removed in the future.
+has been renamed to ``delimited_payload``. The ``delimited_payload_filter``
+name can still be used, but is deprecated, and will be removed in the future.
 
 Changelog
 =========
@@ -121,10 +122,9 @@ SQL Improvements
   :ref:`ARRAY(subquery) <sql_expressions_array_subquery>` expression,
   which can turn the result from a subquery into an array.
 
-- The :ref:`= ANY <sql_dql_any_array>` operator now also supports
-  operations on object arrays or
-  nested arrays. This enables queries like ``WHERE ['foo', 'bar'] =
-  ANY(object_array(string_array))``.
+- The :ref:`= ANY <sql_dql_any_array>` :ref:`operator <gloss-operator>` now
+  also supports operations on object arrays or nested arrays. This enables
+  queries like ``WHERE ['foo', 'bar'] = ANY(object_array(string_array))``.
 
 - Added support for :ref:`SHOW parameter_name | ALL <ref-show>` to retrieve
   one or all session setting value(s).
@@ -140,13 +140,13 @@ SQL Improvements
 - Functions like :ref:`CURRENT_SCHEMA <scalar_current_schema>` and
   :ref:`CURRENT_USER <current_user>` which depend on the
   active session can now be used as
-  :ref:`generated columns <sql-ddl-generated-columns>`.
+  :ref:`generated columns <ddl-generated-columns>`.
 
 - Added support for using :ref:`table functions <ref-table-functions>` in the
   select list of a query.
 
-- :ref:`geo_shape <geo_shape_data_type>` columns can now be casted to ``object``
-  with ``cast`` in addition to ``try_cast``.
+- :ref:`geo_shape <geo_shape_data_type>` columns can now be casted to
+  ``object`` with ``cast`` in addition to ``try_cast``.
 
 - Improved the handling of function expressions inside subscripts used on
   object columns. This allows expressions like ``obj['x' || 'x']`` to be used.
@@ -154,9 +154,9 @@ SQL Improvements
 - ``<object_column> = <object_literal>`` comparisons now try to utilize the
   index for the objects contents and can therefore run much faster.
 
-- Values of byte-size and time based configuration setting do not require a unit
-  suffix anymore. Without a unit time values are treat as milliseconds since
-  epoch and byte size values are treat as bytes.
+- Values of byte-size and time based configuration setting do not require a
+  unit suffix anymore. Without a unit time values are treat as milliseconds
+  since epoch and byte size values are treat as bytes.
 
 - Added support of using units inside byte-size or time bases statement
   parameters values. E.g. '1mb' for 1 MegaByte or '1s' for 1 Second.
@@ -189,22 +189,22 @@ Database Administration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for changing the number of shards on an existing table or
-  partition using the :ref:`ALTER TABLE SET <alter_table_set_reset>`
+  partition using the :ref:`ALTER TABLE SET <sql-alter-table-set-reset>`
   statement.
 
-- Improved resiliency of the :ref:`ALTER TABLE RENAME <alter_table_rename>`
-  operation by making it an atomic operation.
+- Improved resiliency of the :ref:`ALTER TABLE: RENAME TO
+  <sql-alter-table-rename-to>` operation by making it an atomic operation.
 
 - Added an :ref:`ALTER CLUSTER SWAP TABLE <alter_cluster_swap_table>`
   statement that can be used to switch the names of two tables.
 
-- Added a :ref:`ALTER CLUSTER GC DANGLING ARTIFACTS <alter_cluster_gc_dangling_artifacts>`
-  statement that can be used to
-  clean up internal structures that weren't properly cleaned up due to cluster
-  failures during operations which create such temporary artifacts.
+- Added a :ref:`ALTER CLUSTER GC DANGLING ARTIFACTS
+  <alter_cluster_gc_dangling_artifacts>` statement that can be used to clean up
+  internal structures that weren't properly cleaned up due to cluster failures
+  during operations which create such temporary artifacts.
 
-- Added support for per-table
-  :ref:`shard allocation filtering <ddl_shard_allocation>`.
+- Added support for per-table :ref:`shard allocation filtering
+  <ddl_shard_allocation>`.
 
 Admin UI Upgrade to 1.11.3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -232,8 +232,8 @@ Deprecations
 Other
 ~~~~~
 
-- Upgraded to Elasticsearch 6.5.1, which includes changes to the default logging
-  configuration.
+- Upgraded to Elasticsearch 6.5.1, which includes changes to the default
+  logging configuration.
 
 - Added a :ref:`remove_duplicates <analyzers_remove_duplicates>` token
   filter.
@@ -246,5 +246,6 @@ Other
 
 For further information on CrateDB 3.2.0 see our
 `announcement blogpost <blogpost_>`__.
+
 
 .. _blogpost: https://crate.io/a/cratedb-3-2-stable-available-now/

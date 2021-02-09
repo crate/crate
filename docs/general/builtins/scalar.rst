@@ -35,7 +35,7 @@ Returns: ``text``
     +--------+
     SELECT 1 row in set (... sec)
 
-You can also use the ``||`` operator::
+You can also use the ``||`` :ref:`operator <gloss-operator>`::
 
     cr> select 'foo' || 'bar' AS col;
     +--------+
@@ -930,9 +930,9 @@ fractional seconds (milliseconds) are given.
 .. NOTE::
 
     If the ``CURRENT_TIMESTAMP`` function is used in
-    :ref:`sql-ddl-generated-columns` it behaves slightly different in
-    ``UPDATE`` operations. In such a case the actual timestamp of each row
-    update is returned.
+    :ref:`ddl-generated-columns` it behaves slightly different in ``UPDATE``
+    operations. In such a case the actual timestamp of each row update is
+    returned.
 
     The return value of expressions ``CURRENT_TIMESTAMP`` and ``CURRENT_TIME``
     depends on the system clock and the JVM implementation.
@@ -1932,12 +1932,12 @@ Regular expression functions
 
 The regular expression functions in CrateDB use `Java Regular Expressions`_.
 
-See the api documentation for more details.
+See the API documentation for more details.
 
 .. NOTE::
 
    Be aware that, in contrast to the functions, the :ref:`regular expression
-   operator <sql_ddl_regexp>` is using `Lucene Regular Expressions`_.
+   operator <sql_ddl_regexp>` uses `Lucene Regular Expressions`_.
 
 .. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 
@@ -2100,9 +2100,8 @@ It can be used to append elements to array fields
    are made by fetching the newest version again and if they all fail, the
    query fails.
 
-You can also use the concat operator ``||`` with arrays
-
-::
+You can also use the concat :ref:`operator <gloss-operator>` ``||`` with
+arrays::
 
     cr> select [1,2,3] || [4,5,6] || [7,8,9] AS arr;
     +-----------------------------+
@@ -3005,9 +3004,9 @@ Special functions
 ----------------------
 
 The ``ignore3vl`` function operates on a boolean argument and eliminates the
-`3-valued logic`_ on the whole tree of operators beneath it. More specifically,
-``FALSE`` is evaluated to ``FALSE``, ``TRUE`` to ``TRUE`` and ``NULL`` to
-``FALSE``.
+`3-valued logic`_ on the whole tree of :ref:`operators <gloss-operator>`
+beneath it. More specifically, ``FALSE`` is evaluated to ``FALSE``, ``TRUE`` to
+``TRUE`` and ``NULL`` to ``FALSE``.
 
 Returns: ``boolean``
 

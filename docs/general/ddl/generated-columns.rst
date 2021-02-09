@@ -1,4 +1,4 @@
-.. _sql-ddl-generated-columns:
+.. _ddl-generated-columns:
 
 =================
 Generated columns
@@ -7,6 +7,17 @@ Generated columns
 It is possible to define columns whose value is computed by applying a
 *generation expression* in the context of the current row. The generation
 expression can reference the values of other columns.
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+.. _ddl-generated-columns-expressions:
+
+Generation expressions
+======================
 
 Generated columns are defined by providing a generation expression. Providing
 a data type is optional. It is inferred by the return type of the supplied
@@ -21,7 +32,7 @@ expression if omitted::
 
 .. SEEALSO::
 
-   For a full syntax description, see :ref:`ref-create-table`.
+   For a full syntax description, see :ref:`sql-create-table`.
 
 Generated columns are read-only. Their values are computed as needed for every
 ``INSERT`` and ``UPDATE`` operation.
@@ -70,6 +81,12 @@ against the result of applying the generation expression::
    Supplied values for generated columns are not validated when they are
    imported using ``COPY FROM``.
 
+
+.. _ddl-generated-columns-last-modified:
+
+Last modified dates
+===================
+
 Because :ref:`current_timestamp` is non-deterministic, you can use this
 expression to record a last modified date that is set when the row is first
 inserted, and subsequently updated every time the row is updated::
@@ -80,8 +97,15 @@ inserted, and subsequently updated every time the row is updated::
     ... )
     CREATE OK, 1 row affected (... sec)
 
-They can also be used in the :ref:`partitioned_by_clause` in order to compute
-the value to partition by from existing columns in the table::
+
+.. _ddl-generated-columns-partitioning:
+
+Partitioning
+============
+
+Generated columns can be used with the :ref:`sql-create-table-partitioned-by`
+clause to compute the :ref:`partition column <gloss-partition-column>` value
+from existing columns in the table::
 
     cr> CREATE TABLE computed_and_partitioned (
     ...   huge_cardinality bigint,
@@ -89,6 +113,10 @@ the value to partition by from existing columns in the table::
     ...   partition_value GENERATED ALWAYS AS (huge_cardinality % 10)
     ... ) PARTITIONED BY (partition_value);
     CREATE OK, 1 row affected (... sec)
+
+.. SEEALSO::
+
+    :ref:`Partitioned tables: Generated columns <partitioned-generated>`
 
 .. Hidden: drop tables::
 

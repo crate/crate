@@ -1,16 +1,20 @@
 .. highlight:: psql
-.. _ref-create-blob-table:
+
+.. _sql-create-blob-table:
 
 =====================
 ``CREATE BLOB TABLE``
 =====================
 
-Define a new table for storing binary large objects.
+Create a new table for storing *Binary Large OBjects* (BLOBS).
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
+
+.. _sql-create-blob-table-synopsis:
 
 Synopsis
 ========
@@ -21,22 +25,47 @@ Synopsis
     [CUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
     [ WITH ( storage_parameter [= value] [, ... ] ) ]
 
+
+.. _sql-create-blob-table-description:
+
 Description
 ===========
 
-CREATE BLOB TABLE will create a new table for holding BLOBS. For details and
-examples see :ref:`blob_support`.
+``CREATE BLOB TABLE`` will create a new table for holding BLOBS.
 
-The CLUSTERED and WITH clauses follow the same semantics described under
-:ref:`ref_clustered_clause` and :ref:`with_clause`.
+.. SEEALSO::
 
-Additional to the storage parameter described at :ref:`with_clause`, following
-parameters are supported here:
+    :ref:`BLOB support <blob_support>`
 
-.. _ref-blobs-path:
+
+.. _sql-create-blob-table-clauses:
+
+Clauses
+=======
+
+
+.. _sql-create-blob-table-clustered:
+
+``CLUSTERED``
+-------------
+
+Follows the same syntax as the :ref:`CREATE TABLE ... CLUSTERED
+<sql-create-table-clustered>` clause.
+
+
+.. _sql-create-blob-table-with:
+
+``WITH``
+--------
+
+Follows the same syntax as the :ref:`CREATE TABLE ... WITH
+<sql-create-table-with>` clause with the following additional parameter.
+
+
+.. _sql-create-blob-table-blobs-path:
 
 ``blobs_path``
---------------
+..............
 
 Specifies a custom path for storing blob data of a blob table.
 

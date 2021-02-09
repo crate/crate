@@ -1,5 +1,6 @@
 .. highlight:: psql
-.. _sql_reference_expression:
+
+.. _sql-value-expressions:
 
 =================
 Value expressions
@@ -13,6 +14,9 @@ They can be used in many contexts of many statements.
 
 .. contents::
    :local:
+
+
+.. _sql-literal-value:
 
 Literal value
 =============
@@ -30,6 +34,9 @@ Different types have different notations. The simplest forms are:
 
     - :ref:`sql_lexical`
     - :ref:`data-types`
+
+
+.. _sql-column-reference:
 
 Column reference
 ================
@@ -51,7 +58,8 @@ multiple alias or table definitions::
 
     :ref:`sql_lexical`
 
-.. _expression-parameter:
+
+.. _sql-parameter-reference:
 
 Parameter reference
 ===================
@@ -66,10 +74,14 @@ Parameter references can either be unnumbered or numbered:
 
 - ``$n`` as numbered placeholder: ``select * from t where x = $1 or x = $2``
 
+
+.. _sql-operator-invocation:
+
 Operator invocation
 ===================
 
-There are two different types of operators in CrateDB:
+An :ref:`operator <gloss-operator>` can be invoked as a value expression in two
+ways:
 
 - Binary: ``expression operator expression``
 
@@ -77,16 +89,16 @@ There are two different types of operators in CrateDB:
 
 .. SEEALSO::
 
-    - :ref:`sql_dql_where_clause`
-    - :ref:`arithmetic`
+    :ref:`comparison-operators`
 
-.. _sql_expressions_subscript:
+.. _sql-subscripts:
 
-Subscript expression
-====================
+Subscripts
+==========
 
-A subscript expression is an expression which contains a subscript operator
-(``[ ]``). It can be used to access a sub value of a composite type value.
+A subscript expression is an expression which contains a subscript
+:ref:`operator <gloss-operator>` (``[ ]``). It can be used to access a sub
+value of a composite type value.
 
 Array subscript
 ---------------
@@ -103,7 +115,8 @@ the array which should be retrieved.
 
     :ref:`sql_dql_object_arrays`
 
-.. _object-subscript:
+
+.. _sql-object-subscript:
 
 Object subscript
 ----------------
@@ -120,13 +133,14 @@ should be retrieved.
 
     :ref:`sql_dql_objects`
 
-.. _record-subscript:
+
+.. _sql-record-subscript:
 
 Record subscript
 ----------------
 
 Record subscript retrieves the value of a field within a record or object. This
-is similar to :ref:`object subscripts <object-subscript>`.
+is similar to :ref:`object subscripts <sql-object-subscript>`.
 
 
 Synopsis:
@@ -152,6 +166,8 @@ Example::
 an identifier that must refer to a field of the record.
 
 
+.. _sql-function-call:
+
 Function call
 =============
 
@@ -166,6 +182,9 @@ parentheses::
     - :ref:`scalar`
     - :ref:`aggregation`
     - :ref:`window-functions`
+
+
+.. _sql-type-cast:
 
 Type cast
 =========
@@ -183,6 +202,9 @@ this returns ``null`` if a value cannot be converted to the given type::
 
     :ref:`data-types`
 
+
+.. _sql-object-constructor:
+
 Object constructor
 ==================
 
@@ -197,6 +219,9 @@ enclosed in curly brackets::
 .. SEEALSO::
 
     :ref:`data-type-object-literals`
+
+
+.. _sql-array-constructor:
 
 Array constructor
 =================
@@ -232,6 +257,9 @@ Example::
 .. NOTE::
 
     Array constructor only supports subqueries returning a single column.
+
+
+.. _sql-scalar-subquery:
 
 Scalar subquery
 ===============

@@ -4,8 +4,9 @@
  Shard allocation filtering
 ============================
 
-Shard allocation filters allows to configure shard and replicas allocation per
-table across generic attributes associated with nodes.
+:ref:`Shard allocation <gloss-shard-allocation>` filters allows to configure
+shard and replicas allocation per table across generic attributes associated
+with nodes.
 
 .. NOTE::
 
@@ -21,9 +22,9 @@ table to a particular group of nodes.
 Settings
 ========
 
-The following settings are dynamic, allowing tables to be allocated (when
-defined on table creation) or moved (when defined by altering a table) from one
-set of nodes to another:
+The following settings are dynamic, allowing tables to be :ref:`allocated
+<gloss-shard-allocation>` (when defined on table creation) or moved (when
+defined by altering a table) from one set of nodes to another:
 
 :routing.allocation.include.{attribute}:
    Assign the table to a node whose *{attribute}* has **at least one** of the

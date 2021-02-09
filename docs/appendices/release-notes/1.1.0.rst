@@ -89,7 +89,8 @@ Changes
 
  - Added support for filtering and ordering on ``ignored`` object columns.
 
- - Added support for the double colon (``::``) cast operator.
+ - Added support for the double colon (``::``) cast :ref:`operator
+   <gloss-operator>`.
 
  - Upgraded the parser from ANTLR3 to ANTLR4.
 
