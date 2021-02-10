@@ -65,15 +65,7 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
 
     @Override
     protected void doStart() {
-        ArrayList<FingerPrint> filesToWatch = new ArrayList<>();
-        var keystorePath = SslConfigSettings.SSL_KEYSTORE_FILEPATH.setting().get(settings);
-        if (!keystorePath.isEmpty()) {
-            filesToWatch.add(FingerPrint.create(Paths.get(keystorePath)));
-        }
-        var trustStorePath = SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting().get(settings);
-        if (!trustStorePath.isEmpty()) {
-            filesToWatch.add(FingerPrint.create(Paths.get(trustStorePath)));
-        }
+        List<FingerPrint> filesToWatch = createFilesToWatch();
         if (filesToWatch.isEmpty()) {
             return;
         }
@@ -85,7 +77,20 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
         );
     }
 
-    private void pollForChanges(List<FingerPrint> fingerPrints) {
+    List<FingerPrint> createFilesToWatch() {
+        ArrayList<FingerPrint> filesToWatch = new ArrayList<>();
+        var keystorePath = SslConfigSettings.SSL_KEYSTORE_FILEPATH.setting().get(settings);
+        if (!keystorePath.isEmpty()) {
+            filesToWatch.add(FingerPrint.create(Paths.get(keystorePath)));
+        }
+        var trustStorePath = SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting().get(settings);
+        if (!trustStorePath.isEmpty()) {
+            filesToWatch.add(FingerPrint.create(Paths.get(trustStorePath)));
+        }
+        return filesToWatch;
+    }
+
+    void pollForChanges(List<FingerPrint> fingerPrints) {
         for (FingerPrint fingerPrint : fingerPrints) {
             try {
                 if (fingerPrint.didChange()) {
@@ -115,7 +120,7 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
 
         private final Path path;
         private FileTime lastModifiedTime;
-        private long checksum;
+        long checksum;
 
         public FingerPrint(Path path, FileTime lastModifiedTime, long checksum) {
             this.path = path;
@@ -125,6 +130,7 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
 
         public static FingerPrint create(Path path) {
             try (var in = new BufferedChecksumStreamInput(new InputStreamStreamInput(Files.newInputStream(path)), path.toString())) {
+                in.skip(in.available());
                 long checksum = in.getChecksum();
                 FileTime lastModifiedTime = Files.getLastModifiedTime(path);
                 return new FingerPrint(path, lastModifiedTime, checksum);
@@ -141,6 +147,7 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
                 changed = true;
             }
             try (var in = new BufferedChecksumStreamInput(new InputStreamStreamInput(Files.newInputStream(path)), path.toString())) {
+                in.skip(in.available());
                 long checksum = in.getChecksum();
                 if (checksum != this.checksum) {
                     this.checksum = checksum;
