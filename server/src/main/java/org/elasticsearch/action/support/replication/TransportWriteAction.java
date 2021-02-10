@@ -37,7 +37,6 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.Translog.Location;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -136,12 +135,9 @@ public abstract class TransportWriteAction<
      * NOTE: public for testing
      */
     public static class WritePrimaryResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>,
-            Response extends ReplicationResponse> extends PrimaryResult<ReplicaRequest, Response>
-            implements RespondingWriteResult {
-        boolean finishedAsyncActions;
+            Response extends ReplicationResponse> extends PrimaryResult<ReplicaRequest, Response> {
         public final Location location;
         public final IndexShard primary;
-        ActionListener<Response> listener = null;
 
         public WritePrimaryResult(ReplicaRequest request,
                                   @Nullable Response finalResponse,
@@ -154,45 +150,30 @@ public abstract class TransportWriteAction<
             assert location == null || operationFailure == null
                     : "expected either failure to be null or translog location to be null, " +
                     "but found: [" + location + "] translog location and [" + operationFailure + "] failure";
-            if (operationFailure != null) {
-                this.finishedAsyncActions = true;
+        }
+
+        @Override
+        public void runPostReplicationActions(ActionListener<Void> listener) {
+            if (finalFailure != null) {
+                listener.onFailure(finalFailure);
             } else {
                 /*
-                 * We call this before replication because this might wait for a refresh and that can take a while.
+                 * We call this after replication because this might wait for a refresh and that can take a while.
                  * This way we wait for the refresh in parallel on the primary and on the replica.
                  */
-                new AsyncAfterWriteAction(primary, location, this).run();
+                new AsyncAfterWriteAction(primary, location, new RespondingWriteResult() {
+                    @Override
+                    public void onSuccess(boolean forcedRefresh) {
+                        // finalResponseIfSuccessful.setForcedRefresh(forcedRefresh);
+                        listener.onResponse(null);
+                    }
+
+                    @Override
+                    public void onFailure(Exception ex) {
+                        listener.onFailure(ex);
+                    }
+                }).run();
             }
-        }
-
-        @Override
-        public synchronized void respond(ActionListener<Response> listener) {
-            this.listener = listener;
-            respondIfPossible(null);
-        }
-
-        /**
-         * Respond if the refresh has occurred and the listener is ready. Always called while synchronized on {@code this}.
-         */
-        protected void respondIfPossible(Exception ex) {
-            if (finishedAsyncActions && listener != null) {
-                if (ex == null) {
-                    super.respond(listener);
-                } else {
-                    listener.onFailure(ex);
-                }
-            }
-        }
-
-        public synchronized void onFailure(Exception exception) {
-            finishedAsyncActions = true;
-            respondIfPossible(exception);
-        }
-
-        @Override
-        public synchronized void onSuccess(boolean forcedRefresh) {
-            finishedAsyncActions = true;
-            respondIfPossible(null);
         }
     }
 
@@ -202,49 +183,46 @@ public abstract class TransportWriteAction<
     public static class WriteReplicaResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>>
             extends ReplicaResult implements RespondingWriteResult {
         public final Location location;
-        boolean finishedAsyncActions;
-        private ActionListener<TransportResponse.Empty> listener;
+        private final ReplicaRequest request;
+        private final IndexShard replica;
+        private final Logger logger;
 
         public WriteReplicaResult(ReplicaRequest request, @Nullable Location location,
                                   @Nullable Exception operationFailure, IndexShard replica, Logger logger) {
             super(operationFailure);
             this.location = location;
-            if (operationFailure != null) {
-                this.finishedAsyncActions = true;
+            this.request = request;
+            this.replica = replica;
+            this.logger = logger;
+        }
+
+        @Override
+        public void runPostReplicaActions(ActionListener<Void> listener) {
+            if (finalFailure != null) {
+                listener.onFailure(finalFailure);
             } else {
-                new AsyncAfterWriteAction(replica, location, this).run();
+                new AsyncAfterWriteAction(replica, location, new RespondingWriteResult() {
+                    @Override
+                    public void onSuccess(boolean forcedRefresh) {
+                        listener.onResponse(null);
+                    }
+
+                    @Override
+                    public void onFailure(Exception ex) {
+                        listener.onFailure(ex);
+                    }
+                }).run();
             }
         }
 
         @Override
-        public void respond(ActionListener<TransportResponse.Empty> listener) {
-            this.listener = listener;
-            respondIfPossible(null);
-        }
+        public void onSuccess(boolean forcedRefresh) {
 
-        /**
-         * Respond if the refresh has occurred and the listener is ready. Always called while synchronized on {@code this}.
-         */
-        protected void respondIfPossible(Exception ex) {
-            if (finishedAsyncActions && listener != null) {
-                if (ex == null) {
-                    super.respond(listener);
-                } else {
-                    listener.onFailure(ex);
-                }
-            }
         }
 
         @Override
         public void onFailure(Exception ex) {
-            finishedAsyncActions = true;
-            respondIfPossible(ex);
-        }
 
-        @Override
-        public synchronized void onSuccess(boolean forcedRefresh) {
-            finishedAsyncActions = true;
-            respondIfPossible(null);
         }
     }
 

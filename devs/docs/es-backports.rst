@@ -559,7 +559,7 @@ should be crossed out as well.
 - [ ] 8c2dda90c0f Add int indicating size of transport header (#48884)
 - [ ] fb293adb0f5 Ensure remote strategy settings can be updated (#49772)
 - [ ] de5eb04f050 Silence lint warnings in server project - part 2 (#49728)
-- [ ] 8c165e04a1c Replicate write actions before fsyncing them (#49746)
+- [x] 8c165e04a1c Replicate write actions before fsyncing them (#49746)
 - [x] 944c681680d Make Snapshot Metadata Javadocs Clearer (#49697)
 - [x] f8e39d2ff18 New setting to prevent automatically importing dangling indices (#49174)
 - [x] 3ad8aa6d465 Remove obsolete resolving logic from TRA (#49685)
