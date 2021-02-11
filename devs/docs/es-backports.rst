@@ -571,6 +571,7 @@ should be crossed out as well.
 - [x] ba5b4f14131 ESIntegTestCase always cleans up static fields (#49105)
 - [x] 5ba4f5fb3c9 Use dynamic port ranges for ExternalTestCluster (#45601)
 - [x] 29235a637f7 Wait for events in waitForRelocation (#45074)
+- [x] f20414dd7d9 Optimize some StreamOutput Operations (#44660)
 - [x] f00b658130d Remove RemoteClusterConnection.ConnectedNodes (#44235)
 - [x] 433b3458522 Fix port range allocation with large worker IDs (#44213)
 - [x] c40b77b771b Simplify port usage in transport tests (#44157)
