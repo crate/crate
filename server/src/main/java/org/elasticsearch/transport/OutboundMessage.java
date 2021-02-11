@@ -25,14 +25,12 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.CompositeBytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 import java.io.IOException;
-import java.util.Set;
 
-abstract class OutboundMessage extends NetworkMessage implements Writeable {
+abstract class OutboundMessage extends NetworkMessage {
 
     private final Writeable message;
 
@@ -50,7 +48,6 @@ abstract class OutboundMessage extends NetworkMessage implements Writeable {
         try (CompressibleBytesOutputStream stream = new CompressibleBytesOutputStream(bytesStream, TransportStatus.isCompress(status))) {
             stream.setVersion(version);
             ThreadContext.bwcWriteHeaders(stream);
-            writeTo(stream);
             reference = writeMessage(stream);
         }
         bytesStream.seek(0);
@@ -58,7 +55,7 @@ abstract class OutboundMessage extends NetworkMessage implements Writeable {
         return reference;
     }
 
-    private BytesReference writeMessage(CompressibleBytesOutputStream stream) throws IOException {
+    protected BytesReference writeMessage(CompressibleBytesOutputStream stream) throws IOException {
         final BytesReference zeroCopyBuffer;
         if (message instanceof BytesTransportRequest) {
             BytesTransportRequest bRequest = (BytesTransportRequest) message;
@@ -99,11 +96,12 @@ abstract class OutboundMessage extends NetworkMessage implements Writeable {
         }
 
         @Override
-        public void writeTo(StreamOutput out) throws IOException {
+        protected BytesReference writeMessage(CompressibleBytesOutputStream out) throws IOException {
             if (version.before(Version.V_4_3_0)) {
                 out.writeStringArray(Strings.EMPTY_ARRAY);
             }
             out.writeString(action);
+            return super.writeMessage(out);
         }
 
         private static byte setStatus(boolean compress, boolean isHandshake, Writeable message) {
@@ -128,13 +126,6 @@ abstract class OutboundMessage extends NetworkMessage implements Writeable {
                  boolean isHandshake,
                  boolean compress) {
             super(version, setStatus(compress, isHandshake, message), requestId, message);
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            if (version.before(Version.V_4_3_0)) {
-                out.setFeatures(Set.of());
-            }
         }
 
         private static byte setStatus(boolean compress, boolean isHandshake, Writeable message) {
