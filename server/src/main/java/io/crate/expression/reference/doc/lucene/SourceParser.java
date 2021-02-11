@@ -21,27 +21,10 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentParser.Token;
-import org.elasticsearch.common.xcontent.XContentType;
-
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.ArrayType;
+import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
@@ -51,6 +34,22 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentParser.Token;
+import org.elasticsearch.common.xcontent.XContentType;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class SourceParser {
 
@@ -147,6 +146,12 @@ public final class SourceParser {
         }
     }
 
+    /**
+     * Parsing should preferable happen based on a non-null given data type even if the value is a string
+     * inside the source.
+     * Non-string values could be stored as strings inside the _source because we do not sanitize
+     * the input on COPY FROM.
+     */
     private static Object parseValue(XContentParser parser,
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns) throws IOException {
@@ -154,9 +159,9 @@ public final class SourceParser {
             case VALUE_NULL -> null;
             case START_ARRAY -> parseArray(parser, type, requiredColumns);
             case START_OBJECT -> parseObject(parser, type, requiredColumns);
-            case VALUE_STRING -> parser.text();
-            case VALUE_NUMBER -> parseNumber(parser, type);
-            case VALUE_BOOLEAN -> parser.booleanValue();
+            case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
+            case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
+            case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);
             case VALUE_EMBEDDED_OBJECT -> parser.binaryValue();
             default -> {
                 throw new UnsupportedOperationException("Unsupported token encountered, expected a value, got " + parser.currentToken());
@@ -164,21 +169,21 @@ public final class SourceParser {
         };
     }
 
-    private static Object parseNumber(XContentParser parser, @Nullable DataType<?> type) throws IOException {
-        if (type == null) {
-            return parser.numberValue();
-        }
+    private static Object parseByType(XContentParser parser, DataType<?> type) throws IOException {
+        assert type != null : "Type must no be null when parsing data type aware";
+
         // Type could be an array if traversed into an object array → unnest to get the inner type
         return switch (ArrayType.unnest(type).id()) {
+            case BooleanType.ID -> parser.booleanValue();
             case ByteType.ID -> (byte) parser.intValue();
-            case ShortType.ID -> parser.shortValue(false);
+            case ShortType.ID -> parser.shortValue(true);
             case IntegerType.ID -> parser.intValue();
             case LongType.ID -> parser.longValue();
             case TimestampType.ID_WITH_TZ -> parser.longValue();
             case TimestampType.ID_WITHOUT_TZ -> parser.longValue();
             case FloatType.ID -> parser.floatValue();
             case DoubleType.ID -> parser.doubleValue();
-            default -> parser.numberValue();
+            default -> parser.text();
         };
     }
 }

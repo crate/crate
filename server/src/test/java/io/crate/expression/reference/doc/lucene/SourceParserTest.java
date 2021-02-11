@@ -22,23 +22,19 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
+import io.crate.common.collections.Maps;
+import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.common.collections.Maps;
-import io.crate.metadata.ColumnIdent;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
+import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.CoreMatchers.is;
 
 public class SourceParserTest extends ESTestCase {
 
@@ -91,5 +87,41 @@ public class SourceParserTest extends ESTestCase {
         """));
 
         assertThat(result.get("obj"), is(Map.of("x", 1, "y", 2)));
+    }
+
+    @Test
+    public void test_string_encoded_numbers_will_be_parsed_by_data_type() {
+        SourceParser sourceParser = new SourceParser();
+        sourceParser.register(new ColumnIdent("_doc", List.of("i")), DataTypes.INTEGER);
+        sourceParser.register(new ColumnIdent("_doc", List.of("l")), DataTypes.LONG);
+        sourceParser.register(new ColumnIdent("_doc", List.of("f")), DataTypes.FLOAT);
+        sourceParser.register(new ColumnIdent("_doc", List.of("d")), DataTypes.DOUBLE);
+        sourceParser.register(new ColumnIdent("_doc", List.of("s")), DataTypes.SHORT);
+        sourceParser.register(new ColumnIdent("_doc", List.of("b")), DataTypes.BYTE);
+        sourceParser.register(new ColumnIdent("_doc", List.of("ts")), DataTypes.TIMESTAMP);
+        sourceParser.register(new ColumnIdent("_doc", List.of("tsz")), DataTypes.TIMESTAMPZ);
+        Map<String, Object> result = sourceParser.parse(new BytesArray("""
+            {"i": "1", "l": "2", "f": "0.12", "d": "0.23", "s": "4", "b": "5", "ts": "915757200000", "tsz": "915757200000"}
+        """));
+
+        assertThat(result.get("i"), is(1));
+        assertThat(result.get("l"), is(2L));
+        assertThat(result.get("f"), is(0.12f));
+        assertThat(result.get("d"), is(0.23d));
+        assertThat(result.get("s"), is((short) 4));
+        assertThat(result.get("b"), is((byte) 5));
+        assertThat(result.get("ts"), is(915757200000L));
+        assertThat(result.get("tsz"), is(915757200000L));
+    }
+
+    @Test
+    public void test_string_encoded_boolean_will_be_parsed_by_data_type() {
+        SourceParser sourceParser = new SourceParser();
+        sourceParser.register(new ColumnIdent("_doc", List.of("b")), DataTypes.BOOLEAN);
+        Map<String, Object> result = sourceParser.parse(new BytesArray("""
+            {"b": "true"}
+        """));
+
+        assertThat(result.get("b"), is(true));
     }
 }
