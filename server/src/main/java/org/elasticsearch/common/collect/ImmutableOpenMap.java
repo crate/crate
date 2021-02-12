@@ -180,6 +180,7 @@ public final class ImmutableOpenMap<KType, VType> implements Iterable<ObjectObje
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -196,7 +197,7 @@ public final class ImmutableOpenMap<KType, VType> implements Iterable<ObjectObje
         return map.hashCode();
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static final ImmutableOpenMap EMPTY = new ImmutableOpenMap(new ObjectObjectHashMap());
 
     @SuppressWarnings("unchecked")
@@ -228,8 +229,8 @@ public final class ImmutableOpenMap<KType, VType> implements Iterable<ObjectObje
     public static class Builder<KType, VType> implements ObjectObjectMap<KType, VType> {
         private ObjectObjectHashMap<KType, VType> map;
 
+        @SuppressWarnings("unchecked")
         public Builder() {
-            //noinspection unchecked
             this(EMPTY);
         }
 
