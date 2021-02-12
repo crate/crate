@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -544,10 +545,36 @@ public class Setting<T> implements ToXContentObject {
     }
 
     /**
+     * Allows a setting to declare a dependency on another setting being set. Optionally, a setting can validate the value of the dependent
+     * setting.
+     */
+    public interface SettingDependency {
+
+        /**
+         * The setting to declare a dependency on.
+         *
+         * @return the setting
+         */
+        Setting getSetting();
+
+        /**
+         * Validates the dependent setting value.
+         *
+         * @param key        the key for this setting
+         * @param value      the value of this setting
+         * @param dependency the value of the dependent setting
+         */
+        default void validate(String key, Object value, Object dependency) {
+
+        }
+
+    }
+
+    /**
      * Returns a set of settings that are required at validation time. Unless all of the dependencies are present in the settings
      * object validation of setting must fail.
      */
-    public Set<Setting<?>> getSettingsDependencies(String key) {
+    public Set<SettingDependency> getSettingsDependencies(final String key) {
         return Collections.emptySet();
     }
 
@@ -654,12 +681,23 @@ public class Setting<T> implements ToXContentObject {
         };
     }
 
+    /**
+     * Allows an affix setting to declare a dependency on another affix setting.
+     */
+    public interface AffixSettingDependency extends SettingDependency {
+
+        @Override
+        AffixSetting getSetting();
+
+    }
+
     public static class AffixSetting<T> extends Setting<T> {
         private final AffixKey key;
-        private final Function<String, Setting<T>> delegateFactory;
-        private final Set<AffixSetting> dependencies;
+        private final BiFunction<String, String, Setting<T>> delegateFactory;
+        private final Set<AffixSettingDependency> dependencies;
 
-        public AffixSetting(AffixKey key, Setting<T> delegate, Function<String, Setting<T>> delegateFactory, AffixSetting... dependencies) {
+        public AffixSetting(AffixKey key, Setting<T> delegate, BiFunction<String, String, Setting<T>> delegateFactory,
+                            AffixSettingDependency... dependencies) {
             super(key, delegate.defaultValue, delegate.parser, delegate.properties.toArray(new Property[0]));
             this.key = key;
             this.delegateFactory = delegateFactory;
@@ -674,12 +712,28 @@ public class Setting<T> implements ToXContentObject {
             return settings.keySet().stream().filter(this::match).map(key::getConcreteString);
         }
 
-        public Set<Setting<?>> getSettingsDependencies(String settingsKey) {
+        @Override
+        public Set<SettingDependency> getSettingsDependencies(String settingsKey) {
             if (dependencies.isEmpty()) {
                 return Collections.emptySet();
             } else {
                 String namespace = key.getNamespace(settingsKey);
-                return dependencies.stream().map(s -> (Setting<?>)s.getConcreteSettingForNamespace(namespace)).collect(Collectors.toSet());
+                return dependencies.stream()
+                    .map(s ->
+                        new SettingDependency() {
+                            @Override
+                            public Setting<Object> getSetting() {
+                                return s.getSetting().getConcreteSettingForNamespace(namespace);
+                            }
+
+                            @Override
+                            public void validate(final String key, final Object value, final Object dependency) {
+                                s.validate(key, value, dependency);
+                            }
+
+                            ;
+                        })
+                    .collect(Collectors.toSet());
             }
         }
 
@@ -771,7 +825,8 @@ public class Setting<T> implements ToXContentObject {
         @Override
         public Setting<T> getConcreteSetting(String key) {
             if (match(key)) {
-                return delegateFactory.apply(key);
+                String namespace = this.key.getNamespace(key);
+                return delegateFactory.apply(namespace, key);
             } else {
                 throw new IllegalArgumentException("key [" + key + "] must match [" + getKey() + "] but didn't.");
             }
@@ -824,7 +879,7 @@ public class Setting<T> implements ToXContentObject {
                 if (matcher.matches()) {
                     String concreteKey = matcher.group(1);
                     String namespace = matcher.group(2);
-                    Setting<T> concreteSetting = delegateFactory.apply(concreteKey);
+                    Setting<T> concreteSetting = delegateFactory.apply(namespace, concreteKey);
                     map.put(namespace, concreteSetting.get(settings));
                 }
             }
@@ -1500,7 +1555,8 @@ public class Setting<T> implements ToXContentObject {
      * {@link #getConcreteSetting(String)} is used to pull the updater.
      */
     public static <T> AffixSetting<T> prefixKeySetting(String prefix, Function<String, Setting<T>> delegateFactory) {
-        return affixKeySetting(new AffixKey(prefix), delegateFactory);
+        BiFunction<String, String, Setting<T>> delegateFactoryWithNamespace = (ns, k) -> delegateFactory.apply(k);
+        return affixKeySetting(new AffixKey(prefix), delegateFactoryWithNamespace);
     }
 
     /**
@@ -1509,13 +1565,20 @@ public class Setting<T> implements ToXContentObject {
      * out of the box unless {@link #getConcreteSetting(String)} is used to pull the updater.
      */
     public static <T> AffixSetting<T> affixKeySetting(String prefix, String suffix, Function<String, Setting<T>> delegateFactory,
-                                                      AffixSetting... dependencies) {
-        return affixKeySetting(new AffixKey(prefix, suffix), delegateFactory, dependencies);
+                                                      AffixSettingDependency... dependencies) {
+        BiFunction<String, String, Setting<T>> delegateFactoryWithNamespace = (ns, k) -> delegateFactory.apply(k);
+        return affixKeySetting(new AffixKey(prefix, suffix), delegateFactoryWithNamespace, dependencies);
     }
 
-    private static <T> AffixSetting<T> affixKeySetting(AffixKey key, Function<String, Setting<T>> delegateFactory,
-                                                       AffixSetting... dependencies) {
-        Setting<T> delegate = delegateFactory.apply("_na_");
+    public static <T> AffixSetting<T> affixKeySetting(String prefix, String suffix, BiFunction<String, String, Setting<T>> delegateFactory,
+                                                      AffixSettingDependency... dependencies) {
+        Setting<T> delegate = delegateFactory.apply("_na_", "_na_");
+        return new AffixSetting<>(new AffixKey(prefix, suffix), delegate, delegateFactory, dependencies);
+    }
+
+    private static <T> AffixSetting<T> affixKeySetting(AffixKey key, BiFunction<String, String, Setting<T>> delegateFactory,
+                                                       AffixSettingDependency... dependencies) {
+        Setting<T> delegate = delegateFactory.apply("_na_", "_na_");
         return new AffixSetting<>(key, delegate, delegateFactory, dependencies);
     }
 
