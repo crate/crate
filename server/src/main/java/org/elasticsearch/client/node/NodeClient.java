@@ -37,12 +37,14 @@ import org.elasticsearch.transport.TransportResponse;
  */
 public class NodeClient extends AbstractClient {
 
+    @SuppressWarnings("rawtypes")
     private Map<ActionType, TransportAction> actions;
 
     public NodeClient(Settings settings, ThreadPool threadPool) {
         super(settings, threadPool);
     }
 
+    @SuppressWarnings("rawtypes")
     public void initialize(Map<ActionType, TransportAction> actions) {
         this.actions = actions;
     }

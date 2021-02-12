@@ -129,6 +129,7 @@ public class TypeParsers {
      * Parse text field attributes. In addition to {@link #parseField common attributes}
      * this will parse analysis and term-vectors related settings.
      */
+    @SuppressWarnings("unchecked")
     public static void parseTextField(FieldMapper.Builder builder, String name, Map<String, Object> fieldNode,
                                       Mapper.TypeParser.ParserContext parserContext) {
         parseField(builder, name, fieldNode, parserContext);
