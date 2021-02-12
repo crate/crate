@@ -21,12 +21,12 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.io.IOException;
-import java.util.Map;
-
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
+
+import java.io.IOException;
+import java.util.Map;
 
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
@@ -94,10 +94,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public Object value() {
-            // need to make sure it has the correct type;
-            // for example:
-            //      sourceExtractor might read byte as int and
-            //      then eq(byte, byte) would get eq(byte, int) and fail
+            // correct type detection is ensured by the source parser
             return sourceLookup.get(ref.column().path());
         }
     }
