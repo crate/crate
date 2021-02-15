@@ -71,6 +71,11 @@ public class PgArrayParserTest {
     }
 
     @Test
+    public void test_string_array_with_digits_and_no_quotes() throws Exception {
+        assertThat(parse("{23ab-38cd,42xy}", String::new), is(Arrays.asList("23ab-38cd", "42xy")));
+    }
+
+    @Test
     public void test_dash_and_underline_are_allowed_in_unquoted_strings() {
         assertThat(parse("{catalog_name,end-exec}", String::new), contains("catalog_name","end-exec"));
     }

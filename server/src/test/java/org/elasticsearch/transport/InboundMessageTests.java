@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collections;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -29,6 +30,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+import org.elasticsearch.test.VersionUtils;
+import org.hamcrest.Matchers;
+
 
 public class InboundMessageTests extends ESTestCase {
 
@@ -115,6 +119,50 @@ public class InboundMessageTests extends ESTestCase {
         assertFalse(inboundMessage.isRequest());
         assertTrue(inboundMessage.isError());
         assertEquals("[error]", inboundMessage.getStreamInput().readException().getMessage());
+    }
+
+    public void testEnsureVersionCompatibility() throws IOException {
+        testVersionIncompatibility(VersionUtils.randomVersionBetween(random(), Version.CURRENT.minimumCompatibilityVersion(),
+            Version.CURRENT), Version.CURRENT, randomBoolean());
+    }
+
+    public void testThrowOnNotCompressed() throws Exception {
+        OutboundMessage.Response request = new OutboundMessage.Response(new Message(randomAlphaOfLength(10)),
+                                                                        Version.CURRENT,
+                                                                        randomLong(),
+                                                                        false,
+                                                                        false);
+        BytesReference reference;
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
+            reference = request.serialize(streamOutput);
+        }
+        final byte[] serialized = BytesReference.toBytes(reference);
+        final int statusPosition = TcpHeader.headerSize(Version.CURRENT) - TcpHeader.VERSION_ID_SIZE - TcpHeader.VARIABLE_HEADER_SIZE - 1;
+        // force status byte to signal compressed on the otherwise uncompressed message
+        serialized[statusPosition] = TransportStatus.setCompress(serialized[statusPosition]);
+        reference = new BytesArray(serialized);
+        InboundMessage.Reader reader = new InboundMessage.Reader(Version.CURRENT, registry);
+        BytesReference sliced = reference.slice(6, reference.length() - 6);
+        final IllegalStateException iste = expectThrows(IllegalStateException.class, () -> reader.deserialize(sliced));
+        assertThat(iste.getMessage(), Matchers.equalTo("stream marked as compressed, but is missing deflate header"));
+    }
+
+    private void testVersionIncompatibility(Version version, Version currentVersion, boolean isHandshake) throws IOException {
+        String value = randomAlphaOfLength(10);
+        Message message = new Message(value);
+        String action = randomAlphaOfLength(10);
+        long requestId = randomLong();
+        boolean compress = randomBoolean();
+        OutboundMessage.Request request = new OutboundMessage.Request(message, version, action, requestId,
+            isHandshake, compress);
+        BytesReference reference;
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
+            reference = request.serialize(streamOutput);
+        }
+
+        BytesReference sliced = reference.slice(6, reference.length() - 6);
+        InboundMessage.Reader reader = new InboundMessage.Reader(currentVersion, registry);
+        reader.deserialize(sliced);
     }
 
     private static final class Message extends TransportMessage {

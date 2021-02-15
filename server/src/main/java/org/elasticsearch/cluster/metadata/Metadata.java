@@ -45,6 +45,7 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.CollectionUtil;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.DiffableUtils;
@@ -562,6 +563,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return custom(IndexGraveyard.TYPE);
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends Custom> T custom(String type) {
         return (T) customs.get(type);
     }
@@ -681,7 +683,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
     }
 
     public static Metadata fromXContent(XContentParser parser) throws IOException {
-        return Builder.fromXContent(parser);
+        return Builder.fromXContent(parser, false);
     }
 
     @Override
@@ -1172,7 +1174,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             builder.endObject();
         }
 
-        public static Metadata fromXContent(XContentParser parser) throws IOException {
+        public static Metadata fromXContent(XContentParser parser, boolean preserveUnknownCustoms) throws IOException {
             Builder builder = new Builder();
 
             // we might get here after the meta-data element, or on a fresh parser
@@ -1220,8 +1222,13 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
                             Custom custom = parser.namedObject(Custom.class, currentFieldName, null);
                             builder.putCustom(custom.getWriteableName(), custom);
                         } catch (NamedObjectNotFoundException ex) {
-                            LOGGER.warn("Skipping unknown custom object with type {}", currentFieldName);
-                            parser.skipChildren();
+                            if (preserveUnknownCustoms) {
+                                LOGGER.warn("Adding unknown custom object with type {}", currentFieldName);
+                                builder.putCustom(currentFieldName, new UnknownGatewayOnlyCustom(parser.mapOrdered()));
+                            } else {
+                                LOGGER.warn("Skipping unknown custom object with type {}", currentFieldName);
+                                parser.skipChildren();
+                            }
                         }
                     }
                 } else if (token.isValue()) {
@@ -1242,6 +1249,45 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         }
     }
 
+    public static class UnknownGatewayOnlyCustom implements Custom {
+
+        private final Map<String, Object> contents;
+
+        UnknownGatewayOnlyCustom(Map<String, Object> contents) {
+            this.contents = contents;
+        }
+
+        @Override
+        public EnumSet<XContentContext> context() {
+            return EnumSet.of(Metadata.XContentContext.API, Metadata.XContentContext.GATEWAY);
+        }
+
+        @Override
+        public Diff<Custom> diff(Custom previousState) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getWriteableName() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Version getMinimalSupportedVersion() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            return builder.mapContents(contents);
+        }
+    }
+
     private static final ToXContent.Params FORMAT_PARAMS;
 
     static {
@@ -1254,16 +1300,26 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
     /**
      * State format for {@link Metadata} to write to and load from disk
      */
-    public static final MetadataStateFormat<Metadata> FORMAT = new MetadataStateFormat<Metadata>(GLOBAL_STATE_FILE_PREFIX) {
 
-        @Override
-        public void toXContent(XContentBuilder builder, Metadata state) throws IOException {
-            Builder.toXContent(state, builder, FORMAT_PARAMS);
-        }
+    public static final MetadataStateFormat<Metadata> FORMAT = createMetaDataStateFormat(false);
 
-        @Override
-        public Metadata fromXContent(XContentParser parser) throws IOException {
-            return Builder.fromXContent(parser);
-        }
-    };
+    /**
+     * Special state format for {@link Metadata} to write to and load from disk, preserving unknown customs
+     */
+    public static final MetadataStateFormat<Metadata> FORMAT_PRESERVE_CUSTOMS = createMetaDataStateFormat(true);
+
+    private static MetadataStateFormat<Metadata> createMetaDataStateFormat(boolean preserveUnknownCustoms) {
+        return new MetadataStateFormat<Metadata>(GLOBAL_STATE_FILE_PREFIX) {
+
+            @Override
+            public void toXContent(XContentBuilder builder, Metadata state) throws IOException {
+                Builder.toXContent(state, builder, FORMAT_PARAMS);
+            }
+
+            @Override
+            public Metadata fromXContent(XContentParser parser) throws IOException {
+                return Builder.fromXContent(parser, preserveUnknownCustoms);
+            }
+        };
+    }
 }
