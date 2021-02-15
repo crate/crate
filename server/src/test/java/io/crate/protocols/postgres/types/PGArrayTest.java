@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 
 public class PGArrayTest extends BasePGTypeTest<PGArray> {
@@ -109,6 +110,26 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         s = new String(bytes, StandardCharsets.UTF_8);
         assertThat(s, is("{\"{\\\"names\\\":[\\\"Arthur\\\",\\\"Trillian\\\"]}\"," +
                          "\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"}"));
+    }
+
+    @Test
+    public void test_can_decode_unquoted_strings_which_contain_numbers() throws Exception {
+        String s = "{33a10b73-377d-4788-bbd3-9f0a0db4d595,2ea0876d-a290-438b-9816-cb4d63f48f77}";
+        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        assertThat(values, contains(
+            "33a10b73-377d-4788-bbd3-9f0a0db4d595",
+            "2ea0876d-a290-438b-9816-cb4d63f48f77"
+        ));
+    }
+
+    @Test
+    public void test_can_decode_unquoted_strings_which_do_not_contain_numbers() throws Exception {
+        String s = "{foo,bar}";
+        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        assertThat(values, contains(
+            "foo",
+            "bar"
+        ));
     }
 
     @Test
