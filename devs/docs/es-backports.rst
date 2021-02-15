@@ -552,7 +552,7 @@ should be crossed out as well.
 - [ ] c5ecbee224f Update TcpHeader version constant for backport (#50086)
 - [ ] 1329acc094c Upgrade to lucene 8.4.0-snapshot-662c455. (#50016)
 - [ ] 0062d5f301a [DOCS] Remove shadow replica reference (#50029)
-- [ ] 678aeb747ea Make elasticsearch-node tools custom metadata-aware (#48390)
+- [x] 678aeb747ea Make elasticsearch-node tools custom metadata-aware (#48390)
 - [x] 87517d96f62 Enable dependent settings values to be validated (#49942)
 - [s] fc3454b10bb Randomly run CCR tests with _source disabled (#49922)
 - [s] 7f1e1c51a47 Cleanup some in o.e.transport (#49901)
