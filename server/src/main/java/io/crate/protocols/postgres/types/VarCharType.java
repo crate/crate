@@ -66,10 +66,12 @@ class VarCharType extends PGType<Object> {
 
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        byte[] bytes = DataTypes.STRING.implicitCast(value).getBytes(StandardCharsets.UTF_8);
-        buffer.writeInt(bytes.length);
-        buffer.writeBytes(bytes);
-        return INT32_BYTE_SIZE + bytes.length;
+        String string = DataTypes.STRING.implicitCast(value);
+        int writerIndex = buffer.writerIndex();
+        buffer.writeInt(0);
+        int bytesWritten = buffer.writeCharSequence(string, StandardCharsets.UTF_8);
+        buffer.setInt(writerIndex, bytesWritten);
+        return INT32_BYTE_SIZE + bytesWritten;
     }
 
     @Override
@@ -83,10 +85,15 @@ class VarCharType extends PGType<Object> {
     }
 
     @Override
+    public String readTextValue(ByteBuf buffer, int valueLength) {
+        return readBinaryValue(buffer, valueLength);
+    }
+
+    @Override
     public String readBinaryValue(ByteBuf buffer, int valueLength) {
-        byte[] utf8 = new byte[valueLength];
-        buffer.readBytes(utf8);
-        return new String(utf8, StandardCharsets.UTF_8);
+        int readerIndex = buffer.readerIndex();
+        buffer.readerIndex(readerIndex + valueLength);
+        return buffer.toString(readerIndex, valueLength, StandardCharsets.UTF_8);
     }
 
     @Override
