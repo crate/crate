@@ -216,9 +216,15 @@ Ports
 Paths
 =====
 
+.. NOTE::
+
+    Relative paths are relative to :ref:`CRATE_HOME <conf-env-crate-home>`.
+    Absolute paths override this behavior.
+
 .. _path.conf:
 
 **path.conf**
+  | *Default:* ``config``
   | *Runtime:* ``no``
 
   Filesystem path to the directory containing the configuration files
@@ -227,19 +233,27 @@ Paths
 .. _path.data:
 
 **path.data**
+  | *Default:* ``data``
   | *Runtime:* ``no``
 
   Filesystem path to the directory where this CrateDB node stores its data
   (table data and cluster metadata).
 
   Multiple paths can be set by using a comma separated list and each of these
-  paths will hold full shards (instead of striping data across them). In case
-  CrateDB finds striped shards at the provided locations (from CrateDB
+  paths will hold full shards (instead of striping data across them). For
+  example:
+
+  .. code-block:: yaml
+
+      path.data: /path/to/data1,/path/to/data2
+
+  When CrateDB finds striped shards at the provided locations (from CrateDB
   <0.55.0), these shards will be migrated automatically on startup.
 
 .. _path.logs:
 
 **path.logs**
+  | *Default:* ``logs``
   | *Runtime:* ``no``
 
   Filesystem path to a directory where log files should be stored.
@@ -269,6 +283,10 @@ Paths
 
   See also :ref:`location <ref-create-repository-types-fs-location>` setting of
   repository type ``fs``.
+
+.. SEEALSO::
+
+    :ref:`blobs.path <blobs.path>`
 
 Plug-ins
 ========
@@ -751,3 +769,6 @@ You can create any attribute you want under this namespace, like
 distinguish them from core node attribute like ``node.name``.
 
 Custom attributes are not validated by CrateDB, unlike core node attributes.
+
+
+.. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
