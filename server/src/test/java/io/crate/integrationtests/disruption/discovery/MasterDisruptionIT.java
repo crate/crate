@@ -56,7 +56,6 @@ import static org.hamcrest.Matchers.not;
 /**
  * Tests relating to the loss of the master.
  */
-@TestLogging("_root:DEBUG,org.elasticsearch.cluster.service:TRACE")
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 @SQLTransportIntegrationTest.Slow
 public class MasterDisruptionIT extends AbstractDisruptionTestCase {
