@@ -79,6 +79,7 @@ public class WindowFunctionsITest extends SQLTransportIntegrationTest {
             "   \"write.wait_for_active_shards\" = '1' " +
             ")"
         );
+        waitNoPendingTasksOnAll();
 
         // This led to a "ScopedSymbol cannot be streamed error"
         execute(
