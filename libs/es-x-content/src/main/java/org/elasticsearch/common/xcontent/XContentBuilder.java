@@ -867,28 +867,27 @@ public final class XContentBuilder implements Closeable, Flushable {
     }
 
     public XContentBuilder map(Map<String, ?> values) throws IOException {
-        if (values == null) {
-            return nullValue();
-        }
-        startObject();
-        for (Map.Entry<String, ?> value : values.entrySet()) {
-            field(value.getKey());
-            unknownValue(value.getValue());
-        }
-        endObject();
-        return this;
+        return mapContents(values, true);
     }
 
-    /**
-     * writes a map without the start object and end object headers
-     */
     public XContentBuilder mapContents(Map<String, ?> values) throws IOException {
+        return mapContents(values, false);
+    }
+
+    private XContentBuilder mapContents(Map<String, ?> values, boolean writeStartAndEndHeaders) throws IOException {
         if (values == null) {
             return nullValue();
+        }
+
+        if (writeStartAndEndHeaders) {
+            startObject();
         }
         for (Map.Entry<String, ?> value : values.entrySet()) {
             field(value.getKey());
             unknownValue(value.getValue());
+        }
+        if (writeStartAndEndHeaders) {
+            endObject();
         }
         return this;
     }

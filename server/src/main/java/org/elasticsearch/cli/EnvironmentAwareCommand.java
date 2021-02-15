@@ -26,7 +26,6 @@ import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.InternalSettingsPreparer;
-import org.elasticsearch.node.NodeNames;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -84,16 +83,19 @@ public abstract class EnvironmentAwareCommand extends Command {
 
     /** Create an {@link Environment} for the command to use. Overrideable for tests. */
     protected Environment createEnv(final Map<String, String> settings) throws UserException {
-        String esPathConf = System.getProperty("es.path.conf");
-        if (esPathConf == null) {
-            esPathConf = settings.get("path.conf");
-        }
+        return createEnv(Settings.EMPTY, settings);
+    }
+
+    /** Create an {@link Environment} for the command to use. Overrideable for tests. */
+    protected final Environment createEnv(final Settings baseSettings, final Map<String, String> settings) throws UserException {
+        final String esPathConf = System.getProperty("es.path.conf");
         if (esPathConf == null) {
             throw new UserException(ExitCodes.CONFIG, "the system property [es.path.conf] must be set. Specify with -Cpath.conf=<path>");
         }
-        return InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings,
-                                                           getConfigPath(esPathConf),
-                                                           NodeNames::randomNodeName);
+        return InternalSettingsPreparer.prepareEnvironment(baseSettings, settings,
+            getConfigPath(esPathConf),
+            // HOSTNAME is set by elasticsearch-env and elasticsearch-env.bat so it is always available
+            () -> System.getenv("HOSTNAME"));
     }
 
     @SuppressForbidden(reason = "need path to construct environment")
