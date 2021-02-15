@@ -58,6 +58,9 @@ None
 Fixes
 =====
 
+- Fixed an issue in the PostgreSQL wire protocol that would cause
+  de-serialization of arrays to fail if they contained unquoted strings
+  starting with digits.
 
 - Fixed an issue that could lead to a serialization error when streaming values
   of the ``TIMESTAMP WITHOUT TIME ZONE`` type in text format using the
