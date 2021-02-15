@@ -551,7 +551,7 @@ should be crossed out as well.
 - [ ] 70af176dea3 Improve DateFieldMapper `ignore_malformed` handling (#50090)
 - [ ] c5ecbee224f Update TcpHeader version constant for backport (#50086)
 - [ ] 1329acc094c Upgrade to lucene 8.4.0-snapshot-662c455. (#50016)
-- [ ] 0062d5f301a [DOCS] Remove shadow replica reference (#50029)
+- [x] 0062d5f301a [DOCS] Remove shadow replica reference (#50029)
 - [x] 678aeb747ea Make elasticsearch-node tools custom metadata-aware (#48390)
 - [x] 87517d96f62 Enable dependent settings values to be validated (#49942)
 - [s] fc3454b10bb Randomly run CCR tests with _source disabled (#49922)
