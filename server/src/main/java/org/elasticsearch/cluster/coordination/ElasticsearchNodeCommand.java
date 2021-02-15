@@ -91,7 +91,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
 
     protected Tuple<Manifest, Metadata> loadMetadata(Terminal terminal, Path[] dataPaths) throws IOException {
         terminal.println(Terminal.Verbosity.VERBOSE, "Loading manifest file");
-        final Manifest manifest = Manifest.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, dataPaths);
+        final Manifest manifest = Manifest.FORMAT.loadLatestState(LOGGER, NamedXContentRegistry.EMPTY, dataPaths);
 
         if (manifest == null) {
             throw new ElasticsearchException(NO_MANIFEST_FILE_FOUND_MSG);
@@ -100,8 +100,8 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
             throw new ElasticsearchException(GLOBAL_GENERATION_MISSING_MSG);
         }
         terminal.println(Terminal.Verbosity.VERBOSE, "Loading global metadata file");
-        final Metadata metadata = Metadata.FORMAT.loadGeneration(LOGGER, namedXContentRegistry, manifest.getGlobalGeneration(),
-                dataPaths);
+        final Metadata metadata = Metadata.FORMAT_PRESERVE_CUSTOMS.loadGeneration(
+            LOGGER, NamedXContentRegistry.EMPTY, manifest.getGlobalGeneration(), dataPaths);
         if (metadata == null) {
             throw new ElasticsearchException(NO_GLOBAL_METADATA_MSG + " [generation = " + manifest.getGlobalGeneration() + "]");
         }
