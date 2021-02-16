@@ -22,13 +22,16 @@
 
 package io.crate.protocols.postgres.types;
 
-import com.google.common.primitives.Bytes;
-import io.crate.protocols.postgres.parser.PgArrayParser;
-import io.netty.buffer.ByteBuf;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.List;
+
+import com.carrotsearch.hppc.ByteArrayList;
+
+import io.crate.protocols.postgres.parser.PgArrayParser;
+import io.netty.buffer.ByteBuf;
 
 public class PGArray extends PGType<List<Object>> {
 
@@ -161,15 +164,13 @@ public class PGArray extends PGType<List<Object>> {
     @Override
     byte[] encodeAsUTF8Text(@Nonnull List<Object> array) {
         boolean isJson = JsonType.OID == innerType.oid();
-        List<Byte> encodedValues = new ArrayList<>();
+        ByteArrayList encodedValues = new ByteArrayList();
         encodedValues.add((byte) '{');
         for (int i = 0; i < array.size(); i++) {
             Object o = array.get(i);
             if (o instanceof List) { // Nested Array -> recursive call
                 byte[] bytes = encodeAsUTF8Text((List) o);
-                for (byte b : bytes) {
-                    encodedValues.add(b);
-                }
+                encodedValues.add(bytes);
                 if (i == 0) {
                     encodedValues.add((byte) ',');
                 }
@@ -179,10 +180,7 @@ public class PGArray extends PGType<List<Object>> {
                 }
                 byte[] bytes;
                 if (o == null) {
-                    bytes = NULL_BYTES;
-                    for (byte aByte : bytes) {
-                        encodedValues.add(aByte);
-                    }
+                    encodedValues.add(NULL_BYTES);
                 } else {
                     bytes = ((PGType) innerType).encodeAsUTF8Text(o);
 
@@ -197,16 +195,14 @@ public class PGArray extends PGType<List<Object>> {
                             encodedValues.add(aByte);
                         }
                     } else {
-                        for (byte aByte : bytes) {
-                            encodedValues.add(aByte);
-                        }
+                        encodedValues.add(bytes);
                     }
                     encodedValues.add((byte) '"');
                 }
             }
         }
         encodedValues.add((byte) '}');
-        return Bytes.toArray(encodedValues);
+        return Arrays.copyOfRange(encodedValues.buffer, 0, encodedValues.elementsCount);
     }
 
     @Override
