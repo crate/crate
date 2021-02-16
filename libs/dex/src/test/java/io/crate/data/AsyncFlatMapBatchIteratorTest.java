@@ -22,6 +22,7 @@
 
 package io.crate.data;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 
@@ -57,6 +58,17 @@ public class AsyncFlatMapBatchIteratorTest {
             new Integer[] {3, 3},
             new Integer[] {3, 3}
         ));
+    }
+
+    @Test
+    public void test_async_flatMap_does_not_fail_if_consumer_calls_moveNext_after_negative_moveNext_result() throws Exception {
+        InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
+        var asyncFlatMap = new AsyncFlatMapBatchIterator<>(
+            source,
+            (x, isLast) -> CompletableFuture.completedFuture(Arrays.asList(new Integer[] {x, x}, new Integer[] {x, x}).iterator())
+        );
+        assertThat("first moveNext must return false, because the async-mapper must run next", asyncFlatMap.moveNext(), is(false));
+        assertThat("Calling moveNext again must not fail", asyncFlatMap.moveNext(), is(false));
     }
 
     @Test

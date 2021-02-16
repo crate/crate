@@ -73,6 +73,10 @@ public final class AsyncFlatMapBatchIterator<I, O> implements BatchIterator<O> {
                 }
                 return false;
             } else {
+                if (mappedElements == null) {
+                    // This is the case if a consumer didn't call loadNextBatch after a previous moveNext call returned false
+                    return false;
+                }
                 if (mappedElements.hasNext()) {
                     current = mappedElements.next();
                     return true;

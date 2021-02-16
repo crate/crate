@@ -58,6 +58,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that could lead to a ``NullPointerException`` when using a
+  SELECT statement containing an INNER JOIN.
+
 - Fixed an issue in the PostgreSQL wire protocol that would cause
   de-serialization of arrays to fail if they contained unquoted strings
   starting with digits.
