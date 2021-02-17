@@ -297,6 +297,11 @@ public class PostgresWireProtocol {
         }
 
         @Override
+        public boolean acceptInboundMessage(Object msg) throws Exception {
+            return true;
+        }
+
+        @Override
         public void channelRead0(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
             assert channel != null : "Channel must be initialized";
             try {
