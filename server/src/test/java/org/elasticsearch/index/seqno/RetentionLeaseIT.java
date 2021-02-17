@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.equalTo;
 import java.io.Closeable;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
@@ -42,6 +43,7 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -95,7 +97,7 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
             final CountDownLatch latch = new CountDownLatch(1);
             final ActionListener<ReplicationResponse> listener = ActionListener.wrap(r -> latch.countDown(), e -> fail(e.toString()));
             // simulate a peer recovery which locks the soft deletes policy on the primary
-            final Closeable retentionLock = randomBoolean() ? primary.acquireRetentionLock() : () -> {};
+            final Closeable retentionLock = randomBoolean() ? primary.acquireHistoryRetentionLock(Engine.HistorySource.INDEX) : () -> {};
             currentRetentionLeases.put(id, primary.addRetentionLease(id, retainingSequenceNumber, source, listener));
             latch.await();
             retentionLock.close();
@@ -118,6 +120,67 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
                 // check retention leases have been written on the replica
                 assertThat(currentRetentionLeases,
                     equalTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases())));
+            }
+        }
+    }
+
+    @Test
+    public void testRetentionLeaseSyncedOnRemove() throws Exception {
+        final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
+        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
+
+        execute("create table doc.tbl (x int) clustered into 1 shards with (number_of_replicas = ?)",
+                new Object[]{numberOfReplicas});
+
+        ensureGreen("tbl");
+        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+        final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
+        final IndexShard primary = internalCluster()
+            .getInstance(IndicesService.class, primaryShardNodeName)
+            .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+        final int length = randomIntBetween(1, 8);
+        final Map<String, RetentionLease> currentRetentionLeases = new LinkedHashMap<>();
+        for (int i = 0; i < length; i++) {
+            final String id = randomValueOtherThanMany(currentRetentionLeases.keySet()::contains, () -> randomAlphaOfLength(8));
+            final long retainingSequenceNumber = randomLongBetween(0, Long.MAX_VALUE);
+            final String source = randomAlphaOfLength(8);
+            final CountDownLatch latch = new CountDownLatch(1);
+            final ActionListener<ReplicationResponse> listener = countDownLatchListener(latch);
+            // simulate a peer recovery which locks the soft deletes policy on the primary
+            final Closeable retentionLock = randomBoolean() ? primary.acquireHistoryRetentionLock(Engine.HistorySource.INDEX) : () -> {};
+            currentRetentionLeases.put(id, primary.addRetentionLease(id, retainingSequenceNumber, source, listener));
+            latch.await();
+            retentionLock.close();
+        }
+
+        for (int i = 0; i < length; i++) {
+            final String id = randomFrom(currentRetentionLeases.keySet());
+            final CountDownLatch latch = new CountDownLatch(1);
+            primary.removeRetentionLease(id, countDownLatchListener(latch));
+            // simulate a peer recovery which locks the soft deletes policy on the primary
+            final Closeable retentionLock = randomBoolean() ? primary.acquireHistoryRetentionLock(Engine.HistorySource.INDEX) : () -> {};
+            currentRetentionLeases.remove(id);
+            latch.await();
+            retentionLock.close();
+
+            // check retention leases have been written on the primary
+            assertThat(currentRetentionLeases,
+                       equalTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases())));
+
+            // check current retention leases have been synced to all replicas
+            for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
+                final String replicaShardNodeId = replicaShard.currentNodeId();
+                final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
+                final IndexShard replica = internalCluster()
+                    .getInstance(IndicesService.class, replicaShardNodeName)
+                    .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                final Map<String, RetentionLease> retentionLeasesOnReplica =
+                    RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases());
+                assertThat(retentionLeasesOnReplica, equalTo(currentRetentionLeases));
+
+                // check retention leases have been written on the replica
+                assertThat(currentRetentionLeases,
+                           equalTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases())));
             }
         }
     }
@@ -542,6 +605,14 @@ public class RetentionLeaseIT extends SQLTransportIntegrationTest  {
         // We sleep long enough for the retention leases background sync to be triggered
         Thread.sleep(Math.max(0, randomIntBetween(2, 3) * syncIntervalSetting.millis() - TimeUnit.NANOSECONDS.toMillis(syncEnd - start)));
         assertFalse("retention leases background sync must be a noop if soft deletes is disabled", backgroundSyncRequestSent.get());
+    }
+
+    private static void failWithException(Exception e) {
+        throw new AssertionError("unexpected", e);
+    }
+
+    private static ActionListener<ReplicationResponse> countDownLatchListener(CountDownLatch latch) {
+        return ActionListener.wrap(r -> latch.countDown(), RetentionLeaseIT::failWithException);
     }
 
 }

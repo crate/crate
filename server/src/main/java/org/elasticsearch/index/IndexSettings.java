@@ -184,21 +184,23 @@ public final class IndexSettings {
      * Controls how long translog files that are no longer needed for persistence reasons
      * will be kept around before being deleted. Keeping more files is useful to increase
      * the chance of ops based recoveries for indices with soft-deletes disabled.
-     * This setting will be ignored if soft-deletes is enabled.
+     * This setting will be ignored if soft-deletes is used in peer recoveries (default in CrateDB 4.3).
      **/
     public static final Setting<TimeValue> INDEX_TRANSLOG_RETENTION_AGE_SETTING =
-        Setting.timeSetting("index.translog.retention.age", TimeValue.timeValueHours(12), TimeValue.timeValueMillis(-1), Property.Dynamic,
-            Property.IndexScope);
+        Setting.timeSetting("index.translog.retention.age",
+            settings -> shouldDisableTranslogRetention(settings) ? TimeValue.MINUS_ONE : TimeValue.timeValueHours(12),
+            TimeValue.MINUS_ONE, Property.Dynamic, Property.IndexScope);
 
     /**
      * Controls how many translog files that are no longer needed for persistence reasons
      * will be kept around before being deleted. Keeping more files is useful to increase
      * the chance of ops based recoveries for indices with soft-deletes disabled.
-     * This setting will be ignored if soft-deletes is enabled.
+     * This setting will be ignored if soft-deletes is used in peer recoveries (default in CrateDB 4.3).
      **/
     public static final Setting<ByteSizeValue> INDEX_TRANSLOG_RETENTION_SIZE_SETTING =
-        Setting.byteSizeSetting("index.translog.retention.size", new ByteSizeValue(512, ByteSizeUnit.MB), Property.Dynamic,
-            Property.IndexScope);
+        Setting.byteSizeSetting("index.translog.retention.size",
+            settings -> shouldDisableTranslogRetention(settings) ? "-1" : "512MB",
+            Property.Dynamic, Property.IndexScope);
 
     /**
      * Controls the number of translog files that are no longer needed for persistence reasons will be kept around before being deleted.
@@ -423,7 +425,7 @@ public final class IndexSettings {
     }
 
     private void setTranslogRetentionSize(ByteSizeValue byteSizeValue) {
-        if (softDeleteEnabled && byteSizeValue.getBytes() >= 0) {
+        if (shouldDisableTranslogRetention(settings) && byteSizeValue.getBytes() >= 0) {
             // ignore the translog retention settings if soft-deletes enabled
             this.translogRetentionSize = new ByteSizeValue(-1);
         } else {
@@ -432,7 +434,7 @@ public final class IndexSettings {
     }
 
     private void setTranslogRetentionAge(TimeValue age) {
-        if (softDeleteEnabled && age.millis() >= 0) {
+        if (shouldDisableTranslogRetention(settings) && age.millis() >= 0) {
             // ignore the translog retention settings if soft-deletes enabled
             this.translogRetentionAge = TimeValue.MINUS_ONE;
         } else {
@@ -629,7 +631,7 @@ public final class IndexSettings {
      * Returns the transaction log retention size which controls how much of the translog is kept around to allow for ops based recoveries
      */
     public ByteSizeValue getTranslogRetentionSize() {
-        assert softDeleteEnabled == false || translogRetentionSize.getBytes() == -1L : translogRetentionSize;
+        assert shouldDisableTranslogRetention(settings) == false || translogRetentionSize.getBytes() == -1L : translogRetentionSize;
         return translogRetentionSize;
     }
 
@@ -637,7 +639,7 @@ public final class IndexSettings {
      * Returns the transaction log retention age which controls the maximum age (time from creation) that translog files will be kept around
      */
     public TimeValue getTranslogRetentionAge() {
-        assert softDeleteEnabled == false || translogRetentionAge.millis() == -1L : translogRetentionSize;
+        assert shouldDisableTranslogRetention(settings) == false || translogRetentionAge.millis() == -1L : translogRetentionSize;
         return translogRetentionAge;
     }
 
@@ -647,6 +649,11 @@ public final class IndexSettings {
      */
     public int getTranslogRetentionTotalFiles() {
         return INDEX_TRANSLOG_RETENTION_TOTAL_FILES_SETTING.get(getSettings());
+    }
+
+    private static boolean shouldDisableTranslogRetention(Settings settings) {
+        return INDEX_SOFT_DELETES_SETTING.get(settings)
+            && IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings).onOrAfter(Version.V_4_3_0);
     }
 
     /**
