@@ -33,6 +33,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -40,10 +41,12 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +86,7 @@ import java.util.function.ToLongBiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
+import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -110,6 +114,7 @@ import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
+import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SoftDeletesRetentionMergePolicy;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -368,7 +373,8 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(segments.get(1).getDeletedDocs(), equalTo(0));
             assertThat(segments.get(1).isCompound(), equalTo(true));
 
-            engine.onSettingsChanged();
+            engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
+                                     indexSettings.getSoftDeleteRetentionOperations());
             ParsedDocument doc4 = testParsedDocument("4", null, testDocumentWithTextField(), B_3, null);
             engine.index(indexForDoc(doc4));
             engine.refresh("test");
@@ -1431,6 +1437,198 @@ public class InternalEngineTests extends EngineTestCase {
         indexResult = replicaEngine.index(index);
         assertThat(indexResult.getVersion(), equalTo(1L));
     }
+
+    @Test
+    public void testForceMergeWithSoftDeletesRetention() throws Exception {
+        final long retainedExtraOps = randomLongBetween(0, 10);
+        Settings.Builder settings = Settings.builder()
+            .put(defaultSettings.getSettings())
+            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
+            .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), retainedExtraOps);
+        final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
+        final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
+        final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
+        final MapperService mapperService = createMapperService("test");
+        final Set<String> liveDocs = new HashSet<>();
+        try (Store store = createStore();
+             InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), newMergePolicy(), null,
+                                                         null, globalCheckpoint::get))) {
+            int numDocs = scaledRandomIntBetween(10, 100);
+            for (int i = 0; i < numDocs; i++) {
+                ParsedDocument doc = testParsedDocument(Integer.toString(i), null, testDocument(), B_1, null);
+                engine.index(indexForDoc(doc));
+                liveDocs.add(doc.id());
+            }
+            for (int i = 0; i < numDocs; i++) {
+                ParsedDocument doc = testParsedDocument(Integer.toString(i), null, testDocument(), B_1, null);
+                if (randomBoolean()) {
+                    engine.delete(new Engine.Delete(doc.id(), newUid(doc.id()), primaryTerm.get()));
+                    liveDocs.remove(doc.id());
+                }
+                if (randomBoolean()) {
+                    engine.index(indexForDoc(doc));
+                    liveDocs.add(doc.id());
+                }
+                if (randomBoolean()) {
+                    engine.flush(randomBoolean(), true);
+                }
+            }
+            engine.flush();
+
+            long localCheckpoint = engine.getProcessedLocalCheckpoint();
+            globalCheckpoint.set(randomLongBetween(0, localCheckpoint));
+            engine.syncTranslog();
+            final long safeCommitCheckpoint;
+            try (Engine.IndexCommitRef safeCommit = engine.acquireSafeIndexCommit()) {
+                safeCommitCheckpoint = Long.parseLong(safeCommit.getIndexCommit().getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));
+            }
+            engine.forceMerge(true, 1, false, false, false, UUIDs.randomBase64UUID());
+            assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, mapperService);
+            Map<Long, Translog.Operation> ops = readAllOperationsInLucene(engine, mapperService)
+                .stream().collect(Collectors.toMap(Translog.Operation::seqNo, Function.identity()));
+            for (long seqno = 0; seqno <= localCheckpoint; seqno++) {
+                long minSeqNoToRetain = Math.min(globalCheckpoint.get() + 1 - retainedExtraOps,
+                                                 safeCommitCheckpoint + 1);
+                String msg = "seq# [" + seqno + "], global checkpoint [" + globalCheckpoint + "], retained-ops [" +
+                             retainedExtraOps + "]";
+                if (seqno < minSeqNoToRetain) {
+                    Translog.Operation op = ops.get(seqno);
+                    if (op != null) {
+                        assertThat(op, instanceOf(Translog.Index.class));
+                        assertThat(msg, ((Translog.Index) op).id(), isIn(liveDocs));
+                        assertEquals(msg, ((Translog.Index) op).source(), B_1);
+                    }
+                } else {
+                    assertThat(msg, ops.get(seqno), notNullValue());
+                }
+            }
+            settings.put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), 0);
+            indexSettings.updateIndexMetadata(IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(
+                settings).build());
+            engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
+                                     indexSettings.getSoftDeleteRetentionOperations());
+            globalCheckpoint.set(localCheckpoint);
+            engine.syncTranslog();
+
+            engine.forceMerge(true, 1, false, false, false, UUIDs.randomBase64UUID());
+            assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, mapperService);
+            assertThat(readAllOperationsInLucene(engine, mapperService), hasSize(liveDocs.size()));
+        }
+    }
+
+    @Test
+    public void testForceMergeWithSoftDeletesRetentionAndRecoverySource() throws Exception {
+        final long retainedExtraOps = randomLongBetween(0, 10);
+        Settings.Builder settings = Settings.builder()
+            .put(defaultSettings.getSettings())
+            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
+            .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), retainedExtraOps);
+        final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
+        final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
+        final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
+        final MapperService mapperService = createMapperService("test");
+        final boolean omitSourceAllTheTime = randomBoolean();
+        final Set<String> liveDocs = new HashSet<>();
+        final Set<String> liveDocsWithSource = new HashSet<>();
+        try (Store store = createStore();
+             InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), newMergePolicy(), null,
+                                                         null,
+                                                         globalCheckpoint::get))) {
+            int numDocs = scaledRandomIntBetween(10, 100);
+            for (int i = 0; i < numDocs; i++) {
+                boolean useRecoverySource = randomBoolean() || omitSourceAllTheTime;
+                ParsedDocument doc = testParsedDocument(Integer.toString(i), null, testDocument(), B_1, null,
+                                                        useRecoverySource);
+                engine.index(indexForDoc(doc));
+                liveDocs.add(doc.id());
+                if (useRecoverySource == false) {
+                    liveDocsWithSource.add(Integer.toString(i));
+                }
+            }
+            for (int i = 0; i < numDocs; i++) {
+                boolean useRecoverySource = randomBoolean() || omitSourceAllTheTime;
+                ParsedDocument doc = testParsedDocument(Integer.toString(i), null, testDocument(), B_1, null,
+                                                        useRecoverySource);
+                if (randomBoolean()) {
+                    engine.delete(new Engine.Delete(doc.id(), newUid(doc.id()), primaryTerm.get()));
+                    liveDocs.remove(doc.id());
+                    liveDocsWithSource.remove(doc.id());
+                }
+                if (randomBoolean()) {
+                    engine.index(indexForDoc(doc));
+                    liveDocs.add(doc.id());
+                    if (useRecoverySource == false) {
+                        liveDocsWithSource.add(doc.id());
+                    } else {
+                        liveDocsWithSource.remove(doc.id());
+                    }
+                }
+                if (randomBoolean()) {
+                    engine.flush(randomBoolean(), true);
+                }
+            }
+            engine.flush();
+            globalCheckpoint.set(randomLongBetween(0, engine.getPersistedLocalCheckpoint()));
+            engine.syncTranslog();
+            final long minSeqNoToRetain;
+            try (Engine.IndexCommitRef safeCommit = engine.acquireSafeIndexCommit()) {
+                long safeCommitLocalCheckpoint = Long.parseLong(
+                    safeCommit.getIndexCommit().getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));
+                minSeqNoToRetain = Math.min(globalCheckpoint.get() + 1 - retainedExtraOps,
+                                            safeCommitLocalCheckpoint + 1);
+            }
+            engine.forceMerge(true, 1, false, false, false, UUIDs.randomBase64UUID());
+            assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, mapperService);
+            Map<Long, Translog.Operation> ops = readAllOperationsInLucene(engine, mapperService)
+                .stream().collect(Collectors.toMap(Translog.Operation::seqNo, Function.identity()));
+            for (long seqno = 0; seqno <= engine.getPersistedLocalCheckpoint(); seqno++) {
+                String msg = "seq# [" + seqno + "], global checkpoint [" + globalCheckpoint + "], retained-ops [" +
+                             retainedExtraOps + "]";
+                if (seqno < minSeqNoToRetain) {
+                    Translog.Operation op = ops.get(seqno);
+                    if (op != null) {
+                        assertThat(op, instanceOf(Translog.Index.class));
+                        assertThat(msg, ((Translog.Index) op).id(), isIn(liveDocs));
+                    }
+                } else {
+                    Translog.Operation op = ops.get(seqno);
+                    assertThat(msg, op, notNullValue());
+                    if (op instanceof Translog.Index) {
+                        assertEquals(msg, ((Translog.Index) op).source(), B_1);
+                    }
+                }
+            }
+            settings.put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), 0);
+            indexSettings.updateIndexMetadata(IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(
+                settings).build());
+            engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
+                                     indexSettings.getSoftDeleteRetentionOperations());
+            // If we already merged down to 1 segment, then the next force-merge will be a noop. We need to add an extra segment to make
+            // merges happen so we can verify that _recovery_source are pruned. See: https://github.com/elastic/elasticsearch/issues/41628.
+            final int numSegments;
+            try (Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
+                numSegments = searcher.getDirectoryReader().leaves().size();
+            }
+            if (numSegments == 1) {
+                boolean useRecoverySource = randomBoolean() || omitSourceAllTheTime;
+                ParsedDocument doc = testParsedDocument("dummy", null, testDocument(), B_1, null, useRecoverySource);
+                engine.index(indexForDoc(doc));
+                if (useRecoverySource == false) {
+                    liveDocsWithSource.add(doc.id());
+                }
+                engine.syncTranslog();
+                globalCheckpoint.set(engine.getPersistedLocalCheckpoint());
+                engine.flush(randomBoolean(), true);
+            } else {
+                globalCheckpoint.set(engine.getPersistedLocalCheckpoint());
+                engine.syncTranslog();
+            }
+            engine.forceMerge(true, 1, false, false, false, UUIDs.randomBase64UUID());
+            assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, mapperService);
+            assertThat(readAllOperationsInLucene(engine, mapperService), hasSize(liveDocsWithSource.size()));
+        }
+    }
+
 
     @Test
     public void testForceMergeAndClose() throws IOException, InterruptedException {
@@ -4862,6 +5060,64 @@ public class InternalEngineTests extends EngineTestCase {
     }
 
     @Test
+    public void testShouldPeriodicallyFlush() throws Exception {
+        assertThat("Empty engine does not need flushing", engine.shouldPeriodicallyFlush(), equalTo(false));
+        // A new engine may have more than one empty translog files - the test should account this extra.
+        final Translog translog = engine.getTranslog();
+        final long extraTranslogSizeInNewEngine =
+            engine.getTranslog().stats().getUncommittedSizeInBytes() - Translog.DEFAULT_HEADER_SIZE_IN_BYTES;
+        int numDocs = between(10, 100);
+        for (int id = 0; id < numDocs; id++) {
+            final ParsedDocument doc =
+                testParsedDocument(Integer.toString(id), null, testDocumentWithTextField(), SOURCE, null);
+            engine.index(indexForDoc(doc));
+        }
+        assertThat("Not exceeded translog flush threshold yet", engine.shouldPeriodicallyFlush(), equalTo(false));
+        long flushThreshold = RandomNumbers.randomLongBetween(random(), 120,
+            engine.getTranslog().stats().getUncommittedSizeInBytes()- extraTranslogSizeInNewEngine);
+        final IndexSettings indexSettings = engine.config().getIndexSettings();
+        final IndexMetadata indexMetadata = IndexMetadata.builder(indexSettings.getIndexMetadata())
+            .settings(Settings.builder().put(indexSettings.getSettings())
+                .put(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey(), flushThreshold + "b")).build();
+        indexSettings.updateIndexMetadata(indexMetadata);
+        engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
+            indexSettings.getSoftDeleteRetentionOperations());
+        assertThat(engine.getTranslog().stats().getUncommittedOperations(), equalTo(numDocs));
+        assertThat(engine.shouldPeriodicallyFlush(), equalTo(true));
+        engine.flush();
+        assertThat(engine.getTranslog().stats().getUncommittedOperations(), equalTo(0));
+        // Stale operations skipped by Lucene but added to translog - still able to flush
+        for (int id = 0; id < numDocs; id++) {
+            final ParsedDocument doc =
+                testParsedDocument(Integer.toString(id), null, testDocumentWithTextField(), SOURCE, null);
+            final Engine.IndexResult result = engine.index(replicaIndexForDoc(doc, 1L, id, false));
+            assertThat(result.isCreated(), equalTo(false));
+        }
+        SegmentInfos lastCommitInfo = engine.getLastCommittedSegmentInfos();
+        assertThat(engine.getTranslog().stats().getUncommittedOperations(), equalTo(numDocs));
+        assertThat(engine.shouldPeriodicallyFlush(), equalTo(true));
+        engine.flush(false, false);
+        assertThat(engine.getLastCommittedSegmentInfos(), not(sameInstance(lastCommitInfo)));
+        assertThat(engine.getTranslog().stats().getUncommittedOperations(), equalTo(0));
+        // If the new index commit still points to the same translog generation as the current index commit,
+        // we should not enable the periodically flush condition; otherwise we can get into an infinite loop of flushes.
+        generateNewSeqNo(engine); // create a gap here
+        for (int id = 0; id < numDocs; id++) {
+            if (randomBoolean()) {
+                translog.rollGeneration();
+            }
+            final ParsedDocument doc =
+                testParsedDocument("new" + id, null, testDocumentWithTextField(), SOURCE, null);
+            engine.index(replicaIndexForDoc(doc, 2L, generateNewSeqNo(engine), false));
+            if (engine.shouldPeriodicallyFlush()) {
+                engine.flush();
+                assertThat(engine.getLastCommittedSegmentInfos(), not(sameInstance(lastCommitInfo)));
+                assertThat(engine.shouldPeriodicallyFlush(), equalTo(false));
+            }
+        }
+    }
+
+    @Test
     public void testStressShouldPeriodicallyFlush() throws Exception {
         final long flushThreshold = randomLongBetween(120, 5000);
         final long generationThreshold = randomLongBetween(1000, 5000);
@@ -4871,7 +5127,8 @@ public class InternalEngineTests extends EngineTestCase {
                           .put(IndexSettings.INDEX_TRANSLOG_GENERATION_THRESHOLD_SIZE_SETTING.getKey(), generationThreshold + "b")
                           .put(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey(), flushThreshold + "b")).build();
         indexSettings.updateIndexMetadata(indexMetadata);
-        engine.onSettingsChanged();
+        engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
+            indexSettings.getSoftDeleteRetentionOperations());
         final int numOps = scaledRandomIntBetween(100, 10_000);
         for (int i = 0; i < numOps; i++) {
             final long localCheckPoint = engine.getProcessedLocalCheckpoint();
@@ -4900,7 +5157,8 @@ public class InternalEngineTests extends EngineTestCase {
                     .settings(Settings.builder().put(indexSettings.getSettings())
                                   .put(IndexSettings.INDEX_GC_DELETES_SETTING.getKey(), TimeValue.timeValueMillis(1))).build();
                 engine.engineConfig.getIndexSettings().updateIndexMetadata(indexMetadata);
-                engine.onSettingsChanged();
+                engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
+                    indexSettings.getSoftDeleteRetentionOperations());
                 ParsedDocument document = testParsedDocument(Integer.toString(0), null, testDocumentWithTextField(), SOURCE, null);
                 final Engine.Index doc = new Engine.Index(newUid(document), document, UNASSIGNED_SEQ_NO, 0,
                     Versions.MATCH_ANY, VersionType.INTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(),
@@ -5188,7 +5446,8 @@ public class InternalEngineTests extends EngineTestCase {
             if (rarely()) {
                 settings.put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), randomLongBetween(0, 10));
                 indexSettings.updateIndexMetadata(IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build());
-                engine.onSettingsChanged();
+                engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
+                    indexSettings.getSoftDeleteRetentionOperations());
             }
             if (rarely()) {
                 engine.refresh("test");
@@ -5201,7 +5460,7 @@ public class InternalEngineTests extends EngineTestCase {
             if (rarely()) {
                 engine.forceMerge(randomBoolean(), 1, false, false, false, UUIDs.randomBase64UUID());
             }
-            try (Closeable ignored = engine.acquireRetentionLock()) {
+            try (Closeable ignored = engine.acquireHistoryRetentionLock(Engine.HistorySource.INDEX)) {
                 long minRetainSeqNos = engine.getMinRetainedSeqNo();
                 assertThat(minRetainSeqNos, lessThanOrEqualTo(globalCheckpoint.get() + 1));
                 Long[] expectedOps = existingSeqNos.stream().filter(seqno -> seqno >= minRetainSeqNos).toArray(Long[]::new);
@@ -5446,10 +5705,13 @@ public class InternalEngineTests extends EngineTestCase {
             .settings(Settings.builder().put(indexSettings.getSettings())
                           .put(IndexSettings.INDEX_FLUSH_AFTER_MERGE_THRESHOLD_SIZE_SETTING.getKey(),  "0b")).build();
         indexSettings.updateIndexMetadata(indexMetadata);
-        engine.onSettingsChanged();
+        engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
+                                 indexSettings.getSoftDeleteRetentionOperations());
+        assertThat(engine.getTranslog().stats().getUncommittedOperations(), equalTo(1));
         assertThat(engine.shouldPeriodicallyFlush(), equalTo(false));
         doc = testParsedDocument(Integer.toString(1), null, testDocumentWithTextField(), SOURCE, null);
         engine.index(indexForDoc(doc));
+        assertThat(engine.getTranslog().stats().getUncommittedOperations(), equalTo(2));
         engine.refresh("test");
         engine.forceMerge(false, 1, false, false, false, UUIDs.randomBase64UUID());
         assertBusy(() -> {
@@ -5498,6 +5760,20 @@ public class InternalEngineTests extends EngineTestCase {
             expectThrows(IOException.class, () -> engine.index(index));
             assertTrue(engine.isClosed.get());
             assertNotNull(engine.failedEngine.get());
+        }
+    }
+
+    @Test
+    public void testRequireSoftDeletesWhenAccessingChangesSnapshot() throws Exception {
+        try (Store store = createStore()) {
+            final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
+                IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(Settings.builder().
+                    put(defaultSettings.getSettings()).put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), false)).build());
+            try (InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), newMergePolicy(), null))) {
+                AssertionError error = expectThrows(AssertionError.class,
+                                                    () -> engine.newChangesSnapshot("test", createMapperService("test"), 0, randomNonNegativeLong(), randomBoolean()));
+                assertThat(error.getMessage(), containsString("does not have soft-deletes enabled"));
+            }
         }
     }
 

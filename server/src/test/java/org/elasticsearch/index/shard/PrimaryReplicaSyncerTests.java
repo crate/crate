@@ -41,6 +41,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.TestTranslog;
@@ -48,6 +49,11 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.tasks.TaskManager;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doReturn;
 
 public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
 
@@ -219,7 +225,9 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
             operations.add(new Translog.Index(
                 Integer.toString(i), randomBoolean() ? SequenceNumbers.UNASSIGNED_SEQ_NO : i, primaryTerm, new byte[]{1}));
         }
-        Mockito.doReturn(TestTranslog.newSnapshotFromOperations(operations)).when(shard).getHistoryOperations(Mockito.anyString(), Mockito.anyLong());
+        Engine.HistorySource source =
+            shard.indexSettings.isSoftDeleteEnabled() ? Engine.HistorySource.INDEX : Engine.HistorySource.TRANSLOG;
+        doReturn(TestTranslog.newSnapshotFromOperations(operations)).when(shard).getHistoryOperations(anyString(), eq(source), anyLong());
         TaskManager taskManager = new TaskManager(Settings.EMPTY, threadPool);
         List<Translog.Operation> sentOperations = new ArrayList<>();
         PrimaryReplicaSyncer.SyncAction syncAction = (request, parentTask, allocationId, primaryTerm, listener) -> {
