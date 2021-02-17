@@ -117,8 +117,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         // resized upon block size calculation
         this.buffer = new IntObjectHashMap<>();
         resetBuffer();
-        // initially 1 page/batch is loaded
-        numberOfLeftBatchesLoadedForBlock = 1;
+        numberOfLeftBatchesLoadedForBlock = 0;
         this.activeIt = left;
     }
 
