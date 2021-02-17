@@ -298,7 +298,7 @@ public class ReadOnlyEngine extends Engine {
     }
 
     @Override
-    public Closeable acquireRetentionLock() {
+    public Closeable acquireHistoryRetentionLock(HistorySource historySource) {
         return () -> {};
     }
 
@@ -308,21 +308,24 @@ public class ReadOnlyEngine extends Engine {
         if (engineConfig.getIndexSettings().isSoftDeleteEnabled() == false) {
             throw new IllegalStateException("accessing changes snapshot requires soft-deletes enabled");
         }
-        return readHistoryOperations(source, mapperService, fromSeqNo);
-    }
-
-    @Override
-    public Translog.Snapshot readHistoryOperations(String source, MapperService mapperService, long startingSeqNo) throws IOException {
         return newEmptySnapshot();
     }
 
     @Override
-    public int estimateNumberOfHistoryOperations(String source, MapperService mapperService, long startingSeqNo) throws IOException {
+    public Translog.Snapshot readHistoryOperations(String reason, HistorySource historySource,
+                                                   MapperService mapperService, long startingSeqNo) {
+        return newEmptySnapshot();
+    }
+
+    @Override
+    public int estimateNumberOfHistoryOperations(String reason, HistorySource historySource,
+                                                 MapperService mapperService, long startingSeqNo) {
         return 0;
     }
 
     @Override
-    public boolean hasCompleteOperationHistory(String source, MapperService mapperService, long startingSeqNo) throws IOException {
+    public boolean hasCompleteOperationHistory(String reason, HistorySource historySource,
+                                               MapperService mapperService, long startingSeqNo) {
         // we can do operation-based recovery if we don't have to replay any operation.
         return startingSeqNo > seqNoStats.getMaxSeqNo();
     }
