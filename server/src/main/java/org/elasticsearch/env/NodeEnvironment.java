@@ -27,6 +27,7 @@ import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.store.Directory;
@@ -486,7 +487,7 @@ public final class NodeEnvironment implements Closeable {
         acquireFSLockForPaths(indexSettings, paths);
         IOUtils.rm(paths);
         if (indexSettings.hasCustomDataPath()) {
-            Path customLocation = resolveCustomLocation(indexSettings, shardId);
+            Path customLocation = resolveCustomLocation(indexSettings.customDataPath(), shardId);
             logger.trace("acquiring lock for {}, custom path: [{}]", shardId, customLocation);
             acquireFSLockForPaths(indexSettings, customLocation);
             logger.trace("deleting custom shard {} directory [{}]", shardId, customLocation);
@@ -563,7 +564,7 @@ public final class NodeEnvironment implements Closeable {
         logger.trace("deleting index {} directory, paths({}): [{}]", index, indexPaths.length, indexPaths);
         IOUtils.rm(indexPaths);
         if (indexSettings.hasCustomDataPath()) {
-            Path customLocation = resolveIndexCustomLocation(indexSettings);
+            Path customLocation = resolveIndexCustomLocation(indexSettings.customDataPath(), index.getUUID());
             logger.trace("deleting custom index {} directory [{}]", index, customLocation);
             IOUtils.rm(customLocation);
         }
@@ -828,7 +829,7 @@ public final class NodeEnvironment implements Closeable {
      * returned paths. The returned array may contain paths to non-existing directories.
      *
      * @see IndexSettings#hasCustomDataPath()
-     * @see #resolveCustomLocation(IndexSettings, ShardId)
+     * @see #resolveCustomLocation(String, ShardId)
      *
      */
     public Path[] availableShardPaths(ShardId shardId) {
@@ -1128,17 +1129,12 @@ public final class NodeEnvironment implements Closeable {
 
     /**
      * Resolve the custom path for a index's shard.
-     * Uses the {@code IndexMetadata.SETTING_DATA_PATH} setting to determine
-     * the root path for the index.
-     *
-     * @param indexSettings settings for the index
      */
-    public static Path resolveBaseCustomLocation(IndexSettings indexSettings, Path sharedDataPath, int nodeLockId) {
-        String customDataDir = indexSettings.customDataPath();
-        if (customDataDir != null) {
-            // This assert is because this should be caught by MetadataCreateIndexService
+    public static Path resolveBaseCustomLocation(String customDataPath, Path sharedDataPath) {
+        if (Strings.isNotEmpty(customDataPath)) {
+            // This assert is because this should be caught by MetaDataCreateIndexService
             assert sharedDataPath != null;
-            return sharedDataPath.resolve(customDataDir).resolve(Integer.toString(nodeLockId));
+            return sharedDataPath.resolve(customDataPath).resolve("0");
         } else {
             throw new IllegalArgumentException("no custom " + IndexMetadata.SETTING_DATA_PATH + " setting available");
         }
@@ -1149,14 +1145,14 @@ public final class NodeEnvironment implements Closeable {
      * Uses the {@code IndexMetadata.SETTING_DATA_PATH} setting to determine
      * the root path for the index.
      *
-     * @param indexSettings settings for the index
+     * @param customDataPath the custom data path
      */
-    private Path resolveIndexCustomLocation(IndexSettings indexSettings) {
-        return resolveIndexCustomLocation(indexSettings, sharedDataPath, nodeLockId);
+    private Path resolveIndexCustomLocation(String customDataPath, String indexUUID) {
+        return resolveIndexCustomLocation(customDataPath, indexUUID, sharedDataPath);
     }
 
-    private static Path resolveIndexCustomLocation(IndexSettings indexSettings, Path sharedDataPath, int nodeLockId) {
-        return resolveBaseCustomLocation(indexSettings, sharedDataPath, nodeLockId).resolve(indexSettings.getUUID());
+    private static Path resolveIndexCustomLocation(String customDataPath, String indexUUID, Path sharedDataPath) {
+        return resolveBaseCustomLocation(customDataPath, sharedDataPath).resolve(indexUUID);
     }
 
     /**
@@ -1164,15 +1160,16 @@ public final class NodeEnvironment implements Closeable {
      * Uses the {@code IndexMetadata.SETTING_DATA_PATH} setting to determine
      * the root path for the index.
      *
-     * @param indexSettings settings for the index
+     * @param customDataPath the custom data path
      * @param shardId shard to resolve the path to
      */
-    public Path resolveCustomLocation(IndexSettings indexSettings, final ShardId shardId) {
-        return resolveCustomLocation(indexSettings, shardId, sharedDataPath, nodeLockId);
+    public Path resolveCustomLocation(String customDataPath, final ShardId shardId) {
+        return resolveCustomLocation(customDataPath, shardId, sharedDataPath);
     }
 
-    public static Path resolveCustomLocation(IndexSettings indexSettings, final ShardId shardId, Path sharedDataPath, int nodeLockId) {
-        return resolveIndexCustomLocation(indexSettings, sharedDataPath, nodeLockId).resolve(Integer.toString(shardId.id()));
+    public static Path resolveCustomLocation(String customDataPath, final ShardId shardId, Path sharedDataPath) {
+        return resolveIndexCustomLocation(customDataPath, shardId.getIndex().getUUID(),
+            sharedDataPath).resolve(Integer.toString(shardId.id()));
     }
 
     /**
