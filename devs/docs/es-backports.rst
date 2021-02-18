@@ -538,9 +538,9 @@ should be crossed out as well.
 - [ ] cec6678587e Use peer recovery retention leases for indices without soft-deletes (#50351)
 - [ ] 3b8f5d9ea18 Modify proxy mode to support a single address (#50391)
 - [ ] 342a2920a96 Rename the remote connection mode simple to proxy (#50291)
-- [ ] 2d627ba7574 Add per-field metadata. (#49419)
-- [ ] 012746dd816 Send hostname in SNI header in simple remote mode (#50247)
-- [ ] ee92253f775 Adapt BWC after backporting #50214
+- [x] 2d627ba7574 Add per-field metadata. (#49419)
+- [s] 012746dd816 Send hostname in SNI header in simple remote mode (#50247)
+- [s] ee92253f775 Adapt BWC after backporting #50214
 - [x] 74ff50f814a Omit loading IndexMetaData when inspecting shards (#50214)
 - [s] 7b863dc25b3 Recovery buffer size 16B smaller (#50100)
 - [s] 972b81f8a9d Account trimAboveSeqNo in committed translog generation (#50205)
