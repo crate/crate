@@ -21,16 +21,6 @@
 
 package io.crate.analyze;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
-
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
@@ -74,6 +64,15 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.function.Function;
+
 
 public class MetadataToASTNodeResolver {
 
@@ -90,12 +89,28 @@ public class MetadataToASTNodeResolver {
         return fqn;
     }
 
-    static ColumnType<Expression> dataTypeToColumnType(ColumnIdent column,
+    static ColumnType<Expression> dataTypeToColumnType(@Nullable ColumnIdent column,
                                                        DataType<?> type,
                                                        ColumnPolicy columnPolicy,
-                                                       Function<ColumnIdent, List<ColumnDefinition<Expression>>> convertChildColumn) {
+                                                       @Nullable Function<ColumnIdent, List<ColumnDefinition<Expression>>> convertChildColumn) {
         if (type.id() == ObjectType.ID) {
-            return new ObjectColumnType<>(columnPolicy.name(), convertChildColumn.apply(column));
+            if (convertChildColumn != null) {
+                return new ObjectColumnType<>(columnPolicy.name(), convertChildColumn.apply(column));
+            }
+            List<ColumnDefinition<Expression>> childColumns = new ArrayList<>();
+            ((ObjectType) type).innerTypes().forEach(
+                (childName, childDataType) -> {
+                    childColumns.add(
+                        new ColumnDefinition<>(
+                            childName,
+                            null,
+                            null,
+                            dataTypeToColumnType(null, childDataType, columnPolicy, null),
+                            List.of())
+                    );
+                }
+            );
+            return new ObjectColumnType<>(columnPolicy.name(), childColumns);
         } else if (type.id() == ArrayType.ID) {
             DataType<?> innerType = ((ArrayType<?>) type).innerType();
             return new CollectionColumnType<>(dataTypeToColumnType(
@@ -109,7 +124,7 @@ public class MetadataToASTNodeResolver {
             if (stringType.unbound()) {
                 return new ColumnType<>(type.getName());
             } else {
-                return new ColumnType<>("VARCHAR", List.of(stringType.lengthLimit()));
+                return new ColumnType<>("varchar", List.of(stringType.lengthLimit()));
             }
         } else {
             return new ColumnType<>(type.getName());
@@ -134,7 +149,9 @@ public class MetadataToASTNodeResolver {
             elements.addAll(extractColumnDefinitions(null));
             // primary key constraint
             PrimaryKeyConstraint pk = extractPrimaryKeyConstraint();
-            if (pk != null) elements.add(pk);
+            if (pk != null) {
+                elements.add(pk);
+            }
             // index definitions
             elements.addAll(extractIndexDefinitions());
             tableInfo.checkConstraints()
@@ -154,11 +171,19 @@ public class MetadataToASTNodeResolver {
             while (referenceIterator.hasNext()) {
                 Reference info = referenceIterator.next();
                 ColumnIdent ident = info.column();
-                if (ident.isSystemColumn()) continue;
-                if (parent != null && !ident.isChildOf(parent)) continue;
-                if (parent == null && !ident.path().isEmpty()) continue;
+                if (ident.isSystemColumn()) {
+                    continue;
+                }
+                if (parent != null && !ident.isChildOf(parent)) {
+                    continue;
+                }
+                if (parent == null && !ident.path().isEmpty()) {
+                    continue;
+                }
                 if (parent != null) {
-                    if (ident.getParent().compareTo(parent) > 0) continue;
+                    if (ident.getParent().compareTo(parent) > 0) {
+                        continue;
+                    }
                 }
 
                 final ColumnType<Expression> columnType = dataTypeToColumnType(
@@ -180,20 +205,24 @@ public class MetadataToASTNodeResolver {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
                     GenericProperties<Expression> properties = new GenericProperties<>();
                     if (analyzer != null) {
-                        properties.add(new GenericProperty<>(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
+                        properties.add(new GenericProperty<>(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
+                                                             new StringLiteral(analyzer)));
                     }
                     constraints.add(new IndexColumnConstraint<>("fulltext", properties));
                 } else if (info.valueType().equals(DataTypes.GEO_SHAPE)) {
                     GeoReference geoReference = (GeoReference) info;
                     GenericProperties<Expression> properties = new GenericProperties<>();
                     if (geoReference.distanceErrorPct() != null) {
-                        properties.add(new GenericProperty<>("distance_error_pct", StringLiteral.fromObject(geoReference.distanceErrorPct())));
+                        properties.add(new GenericProperty<>("distance_error_pct",
+                                                             StringLiteral.fromObject(geoReference.distanceErrorPct())));
                     }
                     if (geoReference.precision() != null) {
-                        properties.add(new GenericProperty<>("precision", StringLiteral.fromObject(geoReference.precision())));
+                        properties.add(new GenericProperty<>("precision",
+                                                             StringLiteral.fromObject(geoReference.precision())));
                     }
                     if (geoReference.treeLevels() != null) {
-                        properties.add(new GenericProperty<>("tree_levels", StringLiteral.fromObject(geoReference.treeLevels())));
+                        properties.add(new GenericProperty<>("tree_levels",
+                                                             StringLiteral.fromObject(geoReference.treeLevels())));
                     }
                     constraints.add(new IndexColumnConstraint<>(geoReference.geoTree(), properties));
                 }
@@ -250,7 +279,8 @@ public class MetadataToASTNodeResolver {
                         String analyzer = indexRef.analyzer();
                         GenericProperties<Expression> properties = new GenericProperties<>();
                         if (analyzer != null) {
-                            properties.add(new GenericProperty<>(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
+                            properties.add(new GenericProperty<>(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
+                                                                 new StringLiteral(analyzer)));
                         }
                         elements.add(new IndexDefinition<>(name, "fulltext", columns, properties));
                     } else if (indexRef.indexType().equals(Reference.IndexType.NOT_ANALYZED)) {

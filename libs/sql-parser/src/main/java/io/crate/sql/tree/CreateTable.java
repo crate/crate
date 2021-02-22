@@ -78,16 +78,30 @@ public final class CreateTable<T> extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         CreateTable that = (CreateTable) o;
 
-        if (ifNotExists != that.ifNotExists) return false;
-        if (!name.equals(that.name)) return false;
-        if (!tableElements.equals(that.tableElements)) return false;
-        if (!partitionedBy.equals(that.partitionedBy)) return false;
-        if (!clusteredBy.equals(that.clusteredBy)) return false;
+        if (ifNotExists != that.ifNotExists) {
+            return false;
+        }
+        if (!name.equals(that.name)) {
+            return false;
+        }
+        if (!tableElements.equals(that.tableElements)) {
+            return false;
+        }
+        if (!partitionedBy.equals(that.partitionedBy)) {
+            return false;
+        }
+        if (!clusteredBy.equals(that.clusteredBy)) {
+            return false;
+        }
         return properties.equals(that.properties);
     }
 

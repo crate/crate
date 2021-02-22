@@ -546,7 +546,7 @@ should be crossed out as well.
 - [ ] 972b81f8a9d Account trimAboveSeqNo in committed translog generation (#50205)
 - [ ] e0e7f1f89a4 Disk threshold decider is enabled by default (#50222)
 - [ ] 34f83904cc8 Adjust bwc for #48430
-- [ ] b9fbc8dc748 Migrate peer recovery from translog to retention lease (#49448)
+- [x] b9fbc8dc748 Migrate peer recovery from translog to retention lease (#49448)
 - [ ] 0cedb9e2517 Update remote cluster stats to support simple mode (#49961)
 - [ ] 70af176dea3 Improve DateFieldMapper `ignore_malformed` handling (#50090)
 - [ ] c5ecbee224f Update TcpHeader version constant for backport (#50086)

@@ -657,4 +657,33 @@ public class IndexSettingsTests extends ESTestCase {
         assertThat(indexSettings.getTranslogRetentionAge(), equalTo(ageSetting));
         assertThat(indexSettings.getTranslogRetentionSize(), equalTo(sizeSetting));
     }
+
+    @Test
+    public void testIgnoreTranslogRetentionSettingsIfSoftDeletesEnabled() {
+        Settings.Builder settings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, VersionUtils.randomVersionBetween(random(), Version.V_4_3_0, Version.CURRENT));
+        if (randomBoolean()) {
+            settings.put(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey(), randomPositiveTimeValue());
+        }
+        if (randomBoolean()) {
+            settings.put(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey(), between(1, 1024) + "b");
+        }
+        IndexMetadata metaData = newIndexMeta("index", settings.build());
+        IndexSettings indexSettings = new IndexSettings(metaData, Settings.EMPTY);
+        assertThat(indexSettings.getTranslogRetentionAge().millis(), equalTo(-1L));
+        assertThat(indexSettings.getTranslogRetentionSize().getBytes(), equalTo(-1L));
+
+        Settings.Builder newSettings = Settings.builder().put(settings.build());
+        if (randomBoolean()) {
+            newSettings.put(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey(), randomPositiveTimeValue());
+        }
+        if (randomBoolean()) {
+            newSettings.put(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey(), between(1, 1024) + "b");
+        }
+        indexSettings.updateIndexMetadata(newIndexMeta("index", newSettings.build()));
+        assertThat(indexSettings.getTranslogRetentionAge().millis(), equalTo(-1L));
+        assertThat(indexSettings.getTranslogRetentionSize().getBytes(), equalTo(-1L));
+    }
+
+
 }

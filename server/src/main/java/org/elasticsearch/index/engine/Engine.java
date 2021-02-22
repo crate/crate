@@ -44,6 +44,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.DirectoryReader;
@@ -75,6 +76,7 @@ import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVersion;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.mapper.MapperService;
@@ -640,7 +642,7 @@ public abstract class Engine implements Closeable {
     /**
      * Acquires a lock on the translog files and Lucene soft-deleted documents to prevent them from being trimmed
      */
-    public abstract Closeable acquireRetentionLock();
+    public abstract Closeable acquireHistoryRetentionLock(HistorySource historySource);
 
     /**
      * Creates a new history snapshot from Lucene for reading operations whose seqno in the requesting seqno range (both inclusive)
@@ -652,17 +654,20 @@ public abstract class Engine implements Closeable {
      * Creates a new history snapshot for reading operations since {@code startingSeqNo} (inclusive).
      * The returned snapshot can be retrieved from either Lucene index or translog files.
      */
-    public abstract Translog.Snapshot readHistoryOperations(String source, MapperService mapperService, long startingSeqNo) throws IOException;
+    public abstract Translog.Snapshot readHistoryOperations(String reason, HistorySource historySource,
+                                                            MapperService mapperService, long startingSeqNo) throws IOException;
 
     /**
      * Returns the estimated number of history operations whose seq# at least {@code startingSeqNo}(inclusive) in this engine.
      */
-    public abstract int estimateNumberOfHistoryOperations(String source, MapperService mapperService, long startingSeqNo) throws IOException;
+    public abstract int estimateNumberOfHistoryOperations(String reason, HistorySource historySource,
+                                                          MapperService mapperService, long startingSeqNo) throws IOException;
 
     /**
      * Checks if this engine has every operations since  {@code startingSeqNo}(inclusive) in its history (either Lucene or translog)
      */
-    public abstract boolean hasCompleteOperationHistory(String source, MapperService mapperService, long startingSeqNo) throws IOException;
+    public abstract boolean hasCompleteOperationHistory(String reason, HistorySource historySource,
+                                                        MapperService mapperService, long startingSeqNo) throws IOException;
 
     /**
      * Gets the minimum retained sequence number for this engine.
@@ -1573,7 +1578,8 @@ public abstract class Engine implements Closeable {
         }
     }
 
-    public void onSettingsChanged() {
+    public void onSettingsChanged(TimeValue translogRetentionAge, ByteSizeValue translogRetentionSize, long softDeletesRetentionOps) {
+
     }
 
     /**
@@ -1695,4 +1701,11 @@ public abstract class Engine implements Closeable {
      * to advance this marker to at least the given sequence number.
      */
     public abstract void advanceMaxSeqNoOfUpdatesOrDeletes(long maxSeqNoOfUpdatesOnPrimary);
+
+    /**
+     * Whether we should read history operations from translog or Lucene index
+     */
+    public enum HistorySource {
+        TRANSLOG, INDEX
+    }
 }

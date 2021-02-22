@@ -478,6 +478,7 @@ createStmt
     : CREATE TABLE (IF NOT EXISTS)? table
         '(' tableElement (',' tableElement)* ')'
          partitionedByOrClusteredInto withProperties?                                #createTable
+    | CREATE TABLE table AS insertSource                                             #createTableAs
     | CREATE BLOB TABLE table numShards=blobClusteredInto? withProperties?           #createBlobTable
     | CREATE REPOSITORY name=ident TYPE type=ident withProperties?                   #createRepository
     | CREATE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?        #createSnapshot

@@ -21,19 +21,13 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.NodeContext;
-import io.crate.sql.tree.SetSessionAuthorizationStatement;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
-
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.user.UserManager;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.sql.tree.AlterBlobTable;
@@ -56,6 +50,7 @@ import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
@@ -84,6 +79,7 @@ import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.SetTransactionStatement;
 import io.crate.sql.tree.ShowColumns;
@@ -95,6 +91,10 @@ import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 @Singleton
 public class Analyzer {
@@ -105,6 +105,7 @@ public class Analyzer {
     private final DropTableAnalyzer dropTableAnalyzer;
     private final DropCheckConstraintAnalyzer dropCheckConstraintAnalyzer;
     private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
+    private final CreateTableAsAnalyzer createTableAsAnalyzer;
     private final ExplainStatementAnalyzer explainStatementAnalyzer;
     private final ShowStatementAnalyzer showStatementAnalyzer;
     private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
@@ -165,6 +166,7 @@ public class Analyzer {
         this.updateAnalyzer = new UpdateAnalyzer(nodeCtx, relationAnalyzer);
         this.deleteAnalyzer = new DeleteAnalyzer(nodeCtx, relationAnalyzer);
         this.insertAnalyzer = new InsertAnalyzer(nodeCtx, schemas, relationAnalyzer);
+        this.createTableAsAnalyzer = new CreateTableAsAnalyzer(createTableStatementAnalyzer, insertAnalyzer, relationAnalyzer);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, nodeCtx);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, nodeCtx);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
@@ -365,6 +367,14 @@ public class Analyzer {
         public AnalyzedStatement visitCreateTable(CreateTable node, Analysis analysis) {
             return createTableStatementAnalyzer.analyze(
                 (CreateTable<Expression>) node,
+                analysis.paramTypeHints(),
+                analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateTableAs(CreateTableAs node, Analysis analysis) {
+            return createTableAsAnalyzer.analyze(
+                node,
                 analysis.paramTypeHints(),
                 analysis.transactionContext());
         }
