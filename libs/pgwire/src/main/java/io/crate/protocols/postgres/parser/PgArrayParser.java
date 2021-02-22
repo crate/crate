@@ -22,7 +22,12 @@
 
 package io.crate.protocols.postgres.parser;
 
-import io.crate.protocols.postgres.antlr.v4.PgArrayLexer;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -32,11 +37,7 @@ import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.function.Function;
+import io.crate.protocols.postgres.antlr.v4.PgArrayLexer;
 
 public class PgArrayParser {
 
@@ -90,8 +91,7 @@ public class PgArrayParser {
                 parser.getInterpreter().setPredictionMode(PredictionMode.LL);
                 tree = parseFunction.apply(parser);
             }
-
-            return new PgArrayASTVisitor(convert).visit(tree);
+            return tree.accept(new PgArrayASTVisitor(convert));
         } catch (StackOverflowError e) {
             throw new PgArrayParsingException("stack overflow while parsing: " + e.getLocalizedMessage());
         } catch (IOException e) {
