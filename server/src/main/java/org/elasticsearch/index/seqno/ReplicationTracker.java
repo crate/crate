@@ -895,10 +895,12 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         this.pendingInSync = new HashSet<>();
         this.routingTable = null;
         this.replicationGroup = null;
-        this.hasAllPeerRecoveryRetentionLeases = indexSettings.isSoftDeleteEnabled() &&
-            (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_4_0) ||
-            (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_3_0) &&
-                indexSettings.getIndexMetadata().getState() == IndexMetadata.State.OPEN));
+        this.hasAllPeerRecoveryRetentionLeases = indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_5_0)
+            || (indexSettings.isSoftDeleteEnabled() &&
+               (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_4_0) ||
+               (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_3_0) &&
+                indexSettings.getIndexMetadata().getState() == IndexMetadata.State.OPEN)));
+
         this.fileBasedRecoveryThreshold = IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING.get(indexSettings.getSettings());
         this.safeCommitInfoSupplier = safeCommitInfoSupplier;
         assert Version.V_EMPTY.equals(indexSettings.getIndexVersionCreated()) == false;
@@ -994,10 +996,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         updateLocalCheckpoint(shardAllocationId, checkpoints.get(shardAllocationId), localCheckpoint);
         updateGlobalCheckpointOnPrimary();
 
-        if (indexSettings.isSoftDeleteEnabled()) {
-            addPeerRecoveryRetentionLeaseForSolePrimary();
-        }
-
+        addPeerRecoveryRetentionLeaseForSolePrimary();
         assert invariant();
     }
 
@@ -1364,7 +1363,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
      * prior to {@link Version#V_4_3_0} that does not create peer-recovery retention leases.
      */
     public synchronized void createMissingPeerRecoveryRetentionLeases(ActionListener<Void> listener) {
-        if (indexSettings().isSoftDeleteEnabled() && hasAllPeerRecoveryRetentionLeases == false) {
+        if (hasAllPeerRecoveryRetentionLeases == false) {
             final List<ShardRouting> shardRoutings = routingTable.assignedShards();
             final GroupedActionListener<ReplicationResponse> groupedActionListener = new GroupedActionListener<>(ActionListener.wrap(vs -> {
                 setHasAllPeerRecoveryRetentionLeases();
