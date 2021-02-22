@@ -16,47 +16,42 @@ representations. E.g.:
     {\"{\\\"x\\\": 10}\", \"{\\\"y\\\": 20}\"}
 */
 
+
+
 array
-   : '{' item (',' item)* '}'
-   | '{' '}'
-   ;
-
-item
-   : string         #value
-   | NUMBER         #value
-   | array          #noop
-   | 'true'         #value
-   | 'false'        #value
-   | 'NULL'         #null
-   ;
-
-
-string
-    : STRING        #quotedString
-    | QSTRING       #unquotedString
+    : '{' item (',' item)* '}'
+    | '{' '}'
     ;
 
-STRING
+item
+    : string
+    | array
+    ;
+
+string
+    : QUOTED_STRING     #quotedString
+    | NULL              #null
+    | UNQUOTED_STRING   #unquotedString
+    ;
+
+
+NULL
+    : [nN] [uU] [lL] [lL]
+    ;
+
+
+QUOTED_STRING
     : '"' (ESC | ~["\\])* '"'
     ;
 
-
-QSTRING
-    : DIGIT* CHAR+
+UNQUOTED_STRING
+    : CHAR+ (' ')* CHAR+
+    | CHAR+
     ;
 
-CHAR
-    : [a-zA-Z]
-    | [!-+]
-    | '-'
-    | '_'
-    | DIGIT
+fragment CHAR
+    : ~[,"\\{} \t\n\r]
     ;
-
-NUMBER
-    : '-'? DIGIT ('.' [0-9] +)? EXP?
-    ;
-
 
 fragment ESC
     : '\\' (["\\/bfnrt] | UNICODE)
@@ -70,14 +65,4 @@ fragment HEX
     : [0-9a-fA-F]
     ;
 
-fragment DIGIT
-    : '0' | [1-9] [0-9]*
-    ;
-
-fragment EXP
-    : [Ee] [+\-]? DIGIT
-    ;
-
-WS
-   : [ \t\n\r] + -> skip
-   ;
+WS: [ \t\n\r]+ -> skip;
