@@ -535,9 +535,9 @@ should be crossed out as well.
 - [ ] f4989c54c45 Revert "serialize initial_connect_timeout as xcontent correctly"
 - [ ] ae64eaabdae serialize initial_connect_timeout as xcontent correctly
 - [ ] fa1a7c57b8e Add remote info to the HLRC (#49657)
-- [ ] cec6678587e Use peer recovery retention leases for indices without soft-deletes (#50351)
-- [ ] 3b8f5d9ea18 Modify proxy mode to support a single address (#50391)
-- [ ] 342a2920a96 Rename the remote connection mode simple to proxy (#50291)
+- [x] cec6678587e Use peer recovery retention leases for indices without soft-deletes (#50351)
+- [s] 3b8f5d9ea18 Modify proxy mode to support a single address (#50391)
+- [s] 342a2920a96 Rename the remote connection mode simple to proxy (#50291)
 - [x] 2d627ba7574 Add per-field metadata. (#49419)
 - [s] 012746dd816 Send hostname in SNI header in simple remote mode (#50247)
 - [s] ee92253f775 Adapt BWC after backporting #50214
