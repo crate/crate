@@ -22,14 +22,17 @@
 
 package io.crate.protocols.postgres.parser;
 
-import com.carrotsearch.hppc.ByteArrayList;
-import io.crate.protocols.postgres.antlr.v4.PgArrayBaseVisitor;
-import io.crate.protocols.postgres.antlr.v4.PgArrayParser;
-
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.function.Function;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import com.carrotsearch.hppc.ByteArrayList;
+
+import io.crate.protocols.postgres.antlr.v4.PgArrayBaseVisitor;
+import io.crate.protocols.postgres.antlr.v4.PgArrayParser;
+import io.crate.protocols.postgres.antlr.v4.PgArrayParser.NullContext;
+import io.crate.protocols.postgres.antlr.v4.PgArrayParser.QuotedStringContext;
+import io.crate.protocols.postgres.antlr.v4.PgArrayParser.UnquotedStringContext;
 
 class PgArrayASTVisitor extends PgArrayBaseVisitor<Object> {
 
@@ -43,56 +46,42 @@ class PgArrayASTVisitor extends PgArrayBaseVisitor<Object> {
     public Object visitArray(PgArrayParser.ArrayContext ctx) {
         ArrayList<Object> array = new ArrayList<>();
         for (var value : ctx.item()) {
-            array.add(visit(value));
+            array.add(value.accept(this));
         }
         return array;
     }
 
     @Override
-    public Object visitValue(PgArrayParser.ValueContext ctx) {
-        PgArrayParser.StringContext stringContext = ctx.string();
-        if (stringContext == null) {
-            return convert.apply(processArrayItem(ctx.getText().getBytes(UTF_8)));
-        }
-        Object value = visit(stringContext);
-        if (value == null) {
-            return null;
-        } else {
-            return convert.apply(processArrayItem(((String) value).getBytes(UTF_8)));
-        }
-    }
-
-    @Override
-    public Object visitQuotedString(PgArrayParser.QuotedStringContext ctx) {
+    public Object visitUnquotedString(UnquotedStringContext ctx) {
         String text = ctx.getText();
-        // Drop the quotes
-        return text.substring(1, text.length() - 1);
+        return convert.apply(text.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
-    public Object visitUnquotedString(PgArrayParser.UnquotedStringContext ctx) {
-        String text = ctx.getText();
-        return "null".equalsIgnoreCase(text) ? null : text;
-    }
-
-    @Override
-    public Object visitNull(PgArrayParser.NullContext ctx) {
+    public Object visitNull(NullContext ctx) {
         return null;
     }
 
+    @Override
+    public Object visitQuotedString(QuotedStringContext ctx) {
+        String text = ctx.getText();
+        String withoutQuotes = text.substring(1, text.length() - 1);
+        return convert.apply(removeEscapes(withoutQuotes.getBytes(StandardCharsets.UTF_8)));
+    }
+
     /**
-     * Processes an array's item by skipping escape characters
-     * and unquoting the item if it is needed.
-     *
      * @param bytes {@code byte[]} that represent an array's item.
      */
-    private static byte[] processArrayItem(byte[] bytes) {
-        var itemBytes = new ByteArrayList();
-        int start = 0, end = bytes.length - 1;
-        for (int i = start; i <= end; i++) {
-            if (i < end && (char) bytes[i] == '\\'
-                && ((char) bytes[i + 1] == '\\' || (char) bytes[i + 1] == '\"')) {
-                i++;
+    private static byte[] removeEscapes(byte[] bytes) {
+        var itemBytes = new ByteArrayList(bytes.length);
+        int end = bytes.length - 1;
+        for (int i = 0; i <= end; i++) {
+            char c = (char) bytes[i];
+            if (i < end) {
+                char next = (char) bytes[i + 1];
+                if (c == '\\' && (next == '\\' || next == '\"')) {
+                    i++;
+                }
             }
             itemBytes.add(bytes[i]);
         }
