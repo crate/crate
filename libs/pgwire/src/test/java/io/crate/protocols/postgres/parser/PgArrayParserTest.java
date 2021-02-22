@@ -71,6 +71,11 @@ public class PgArrayParserTest {
     }
 
     @Test
+    public void test_quoted_string_can_contain_curly_brackets() throws Exception {
+        assertThat(parse("{\"}}}{{{\"}", String::new), is(List.of("}}}{{{")));
+    }
+
+    @Test
     public void test_string_array_with_digits_and_no_quotes() throws Exception {
         assertThat(parse("{23ab-38cd,42xy}", String::new), is(Arrays.asList("23ab-38cd", "42xy")));
     }
@@ -129,7 +134,22 @@ public class PgArrayParserTest {
 
     @Test
     public void test_bool_array_with_quoted_items() {
-        assertThat(parse("{\"false\", \"true\"}", toBoolean), is(List.of(false, true)));
+        assertThat(parse("{\"false\",\"true\"}", toBoolean), is(List.of(false, true)));
+    }
+
+    @Test
+    public void test_unquoted_string_can_contain_whitespace() throws Exception {
+        assertThat(parse("{foo bar}", String::new), is(List.of("foo bar")));
+    }
+
+    @Test
+    public void test_unquoted_string_trailing_whitespace_is_removed() throws Exception {
+        assertThat(parse("{foo  }", String::new), is(List.of("foo")));
+    }
+
+    @Test
+    public void test_unquoted_string_leading_whitespace_is_removed() throws Exception {
+        assertThat(parse("{  foo}", String::new), is(List.of("foo")));
     }
 
     @Test
@@ -183,5 +203,16 @@ public class PgArrayParserTest {
         assertThat(
             parse("{\"(1.3, 2.1)\", \"(3.4, 5.1)\"}", String::new),
             is(List.of("(1.3, 2.1)", "(3.4, 5.1)")));
+    }
+
+    @Test
+    public void test_unquoted_item_can_contain_dots() throws Exception {
+        assertThat(
+            parse("{foo.bar,two}", String::new),
+            is(List.of(
+                "foo.bar",
+                "two"
+            ))
+        );
     }
 }
