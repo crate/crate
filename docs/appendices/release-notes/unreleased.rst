@@ -58,6 +58,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could lead to an ``OutOfMemoryError`` when retrieving
+  large result sets with large individual records.
+
 - Fixed an issue that could lead to a ``NullPointerException`` when using a
   SELECT statement containing an INNER JOIN.
 

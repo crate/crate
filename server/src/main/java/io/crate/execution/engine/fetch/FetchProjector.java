@@ -22,6 +22,13 @@
 
 package io.crate.execution.engine.fetch;
 
+import java.util.function.LongSupplier;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+
+import io.crate.breaker.EstimateCellsSize;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.AsyncFlatMapBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -33,7 +40,22 @@ import io.crate.metadata.TransactionContext;
 
 public final class FetchProjector {
 
+    private static final long MIN_BYTES_PER_BUCKETS = ByteSizeUnit.KB.toBytes(64);
+
+    // We only know the memory of the incoming rows up-front, so the percentage is low
+    // to leave space for the cells being fetched.
+    private static final double BREAKER_LIMIT_PERCENTAGE = 0.20d;
+
+    public static long computeReaderBucketsByteThreshold(CircuitBreaker circuitBreaker) {
+        return Math.max(
+            (long) (circuitBreaker.getFree() * BREAKER_LIMIT_PERCENTAGE),
+            MIN_BYTES_PER_BUCKETS
+        );
+    }
+
     public static Projector create(FetchProjection projection,
+                                   RamAccounting ramAccounting,
+                                   LongSupplier getBucketsBytesThreshold,
                                    TransactionContext txnCtx,
                                    NodeContext nodeCtx,
                                    FetchOperation fetchOperation) {
@@ -43,13 +65,15 @@ public final class FetchProjector {
             projection.fetchSources(),
             projection.outputSymbols()
         );
+        EstimateCellsSize estimateRowSize = new EstimateCellsSize(projection.inputTypes());
         return (BatchIterator<Row> source) -> {
+            final long maxBucketsSizeInBytes = getBucketsBytesThreshold.getAsLong();
             BatchIterator<ReaderBuckets> buckets = BatchIterators.partition(
                 source,
                 projection.getFetchSize(),
-                () -> new ReaderBuckets(fetchRows),
+                () -> new ReaderBuckets(fetchRows, projection::getFetchSourceByReader, estimateRowSize, ramAccounting),
                 ReaderBuckets::add,
-                x -> false
+                readerBuckets -> readerBuckets.ramBytesUsed() > maxBucketsSizeInBytes
             );
             return new AsyncFlatMapBatchIterator<>(
                 buckets,

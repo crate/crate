@@ -38,6 +38,7 @@ import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.planner.ExecutionPlan;
@@ -47,6 +48,7 @@ import io.crate.planner.ReaderAllocations;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.statistics.TableStats;
+import io.crate.types.DataType;
 
 /**
  * <p>
@@ -147,12 +149,14 @@ public final class Fetch extends ForwardingLogicalPlan {
                 boundOutputs.add(paramBinder.apply(value));
             }
         }
+        List<DataType<?>> inputTypes = Symbols.typeView(source.outputs());
         List<Symbol> fetchOutputs = InputColumns.create(boundOutputs, new InputColumns.SourceSymbols(source.outputs()));
         FetchProjection fetchProjection = new FetchProjection(
             fetchPhase.phaseId(),
             plannerContext.fetchSize(),
             fetchSourceByRelation,
             fetchOutputs,
+            inputTypes,
             readerAllocations.nodeReaders(),
             readerAllocations.indices(),
             readerAllocations.indicesToIdents()
