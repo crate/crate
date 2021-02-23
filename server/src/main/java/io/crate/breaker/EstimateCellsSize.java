@@ -20,15 +20,33 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.breaker;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.ToLongFunction;
 
-public interface AsyncFlatMapper<I, O> extends AutoCloseable {
+import io.crate.common.collections.Lists2;
+import io.crate.types.DataType;
 
-    CompletableFuture<? extends CloseableIterator<O>> apply(I item, boolean isLastCall);
+public final class EstimateCellsSize implements ToLongFunction<Object[]> {
+
+    private final List<SizeEstimator<Object>> estimators;
+
+    public EstimateCellsSize(Collection<? extends DataType<?>> columnTypes) {
+        this.estimators = Lists2.map(columnTypes, SizeEstimatorFactory::create);
+    }
 
     @Override
-    default void close() throws Exception {
+    public long applyAsLong(Object[] cells) {
+        assert estimators.size() == cells.length
+            : "Size of incoming cells must match number of estimators. "
+                + "Cells=" + cells.length
+                + " estimators=" + estimators.size();
+        long size = 0;
+        for (int i = 0; i < cells.length; i++) {
+            size += estimators.get(i).estimateSize(cells[i]);
+        }
+        return size;
     }
 }

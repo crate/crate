@@ -37,6 +37,8 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.fetch.FetchSource;
+import io.crate.types.DataType;
+
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
@@ -44,6 +46,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 public class FetchProjection extends Projection {
@@ -58,11 +61,13 @@ public class FetchProjection extends Projection {
     private final Map<String, IntSet> nodeReaders;
     private final TreeMap<Integer, String> readerIndices;
     private final Map<String, RelationName> indicesToIdents;
+    private final List<DataType<?>> inputTypes;
 
     public FetchProjection(int fetchPhaseId,
                            int suppliedFetchSize,
                            Map<RelationName, FetchSource> fetchSources,
                            List<Symbol> outputSymbols,
+                           List<DataType<?>> inputTypes,
                            Map<String, IntSet> nodeReaders,
                            TreeMap<Integer, String> readerIndices,
                            Map<String, RelationName> indicesToIdents) {
@@ -72,6 +77,7 @@ public class FetchProjection extends Projection {
         this.fetchPhaseId = fetchPhaseId;
         this.fetchSources = fetchSources;
         this.outputSymbols = outputSymbols;
+        this.inputTypes = inputTypes;
         this.nodeReaders = nodeReaders;
         this.readerIndices = readerIndices;
         this.indicesToIdents = indicesToIdents;
@@ -120,6 +126,10 @@ public class FetchProjection extends Projection {
 
     public List<Symbol> outputSymbols() {
         return outputSymbols;
+    }
+
+    public List<DataType<?>> inputTypes() {
+        return inputTypes;
     }
 
     public Map<String, IntSet> nodeReaders() {
@@ -188,5 +198,14 @@ public class FetchProjection extends Projection {
             }
         }
         return streamersByReaderByNode;
+    }
+
+    public FetchSource getFetchSourceByReader(int readerId) {
+        String index = readerIndices.floorEntry(readerId).getValue();
+        RelationName relationName = indicesToIdents.get(index);
+        assert relationName != null : "Must have a relationName for readerId=" + readerId;
+        FetchSource fetchSource = fetchSources.get(relationName);
+        assert fetchSource != null : "Must have a fetchSource for relationName=" + relationName;
+        return fetchSource;
     }
 }

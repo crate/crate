@@ -29,15 +29,24 @@ import java.util.Locale;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
+import io.crate.breaker.EstimateCellsSize;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Symbols;
+import io.crate.planner.node.fetch.FetchSource;
 
 class ReaderBucket {
 
     private final IntObjectHashMap<Object[]> docs = new IntObjectHashMap<>();
+    private final RamAccounting ramAccounting;
+    private final EstimateCellsSize estimateCellsSize;
+
     private IntArrayList sortedDocs;
 
-    ReaderBucket() {
+    ReaderBucket(RamAccounting ramAccounting, FetchSource fetchSource) {
+        this.ramAccounting = ramAccounting;
+        this.estimateCellsSize = new EstimateCellsSize(Symbols.typeView(fetchSource.references()));
     }
 
     void require(int doc) {
@@ -62,17 +71,30 @@ class ReaderBucket {
         return sortedDocs;
     }
 
-    void fetched(Bucket bucket) {
+    /**
+     * @return the bytes added to the ramAccounting instance
+     **/
+    long fetched(Bucket bucket) {
         assert bucket.size() == docs.size()
             : String.format(Locale.ENGLISH, "requested %d docs but got %d", docs.size(), bucket.size());
         assert sortedDocs != null : "sortedDocs() must have been called before fetched()";
 
         Iterator<Row> rowIterator = bucket.iterator();
+        long bytesAccounted = 0;
         for (var cursor : sortedDocs) {
-            docs.put(cursor.value, rowIterator.next().materialize());
+            Object[] cells = rowIterator.next().materialize();
+            bytesAccounted += accountMemory(cells);
+            docs.put(cursor.value, cells);
         }
         sortedDocs = null;
         assert !rowIterator.hasNext() : "no more rows should exist";
+        return bytesAccounted;
+    }
+
+    private long accountMemory(Object[] cells) {
+        long bytes = estimateCellsSize.applyAsLong(cells);
+        ramAccounting.addBytes(bytes);
+        return bytes;
     }
 
     public boolean isEmpty() {
