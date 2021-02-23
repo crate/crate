@@ -594,6 +594,10 @@ public class ProjectionToProjectorVisitor
     public Projector visitFetchProjection(FetchProjection projection, Context context) {
         return FetchProjector.create(
             projection,
+            context.ramAccounting,
+            () -> FetchProjector.computeReaderBucketsByteThreshold(
+                circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY)
+            ),
             context.txnCtx,
             nodeCtx,
             new TransportFetchOperation(

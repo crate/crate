@@ -23,9 +23,10 @@
 package io.crate.execution.engine.fetch;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.IntFunction;
+import java.util.function.ToLongFunction;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
@@ -34,8 +35,13 @@ import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
+import org.apache.lucene.util.Accountable;
+
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
+import io.crate.data.CloseableIterator;
 import io.crate.data.Row;
+import io.crate.planner.node.fetch.FetchSource;
 
 /**
  * Stores incoming rows and partitions them based on the _fetchIds in the rows into buckets per readerId.
@@ -51,18 +57,32 @@ import io.crate.data.Row;
  *  result = readerBuckets.getOutputRows(listOfBucketByReader)
  * </pre>
  */
-public class ReaderBuckets {
+public class ReaderBuckets implements Accountable {
 
     private final IntObjectHashMap<ReaderBucket> readerBuckets = new IntObjectHashMap<>();
     private final ArrayList<Object[]> rows = new ArrayList<>();
     private final FetchRows fetchRows;
+    private final ToLongFunction<Object[]> estimateRow;
+    private final RamAccounting ramAccounting;
+    private final IntFunction<FetchSource> getFetchSource;
 
-    public ReaderBuckets(FetchRows fetchRows) {
+    private long usedMemoryEstimateInBytes;
+
+    public ReaderBuckets(FetchRows fetchRows,
+                         IntFunction<FetchSource> getFetchSource,
+                         ToLongFunction<Object[]> estimateRow,
+                         RamAccounting ramAccounting) {
         this.fetchRows = fetchRows;
+        this.getFetchSource = getFetchSource;
+        this.estimateRow = estimateRow;
+        this.ramAccounting = ramAccounting;
     }
 
     public void add(Row row) {
         Object[] cells = row.materialize();
+        long size = estimateRow.applyAsLong(cells);
+        ramAccounting.addBytes(size);
+        usedMemoryEstimateInBytes += size;
         rows.add(cells);
         for (int i : fetchRows.fetchIdPositions()) {
             Object fetchId = cells[i];
@@ -78,13 +98,13 @@ public class ReaderBuckets {
         int docId = FetchId.decodeDocId(fetchId);
         ReaderBucket readerBucket = readerBuckets.get(readerId);
         if (readerBucket == null) {
-            readerBucket = new ReaderBucket();
+            readerBucket = new ReaderBucket(ramAccounting, getFetchSource.apply(readerId));
             readerBuckets.put(readerId, readerBucket);
         }
         readerBucket.require(docId);
     }
 
-    public Iterator<Row> getOutputRows(List<IntObjectMap<? extends Bucket>> resultsByReader) {
+    public CloseableIterator<Row> getOutputRows(List<IntObjectMap<? extends Bucket>> resultsByReader) {
         for (IntObjectMap<? extends Bucket> result : resultsByReader) {
             if (result == null) {
                 continue;
@@ -93,10 +113,11 @@ public class ReaderBuckets {
                 ReaderBucket readerBucket = readerBuckets.get(cursor.key);
                 assert readerBucket != null
                     : "If we get a result for a reader, there must be a readerBucket for it";
-                readerBucket.fetched(cursor.value);
+                usedMemoryEstimateInBytes += readerBucket.fetched(cursor.value);
+                cursor.value = null;
             }
         }
-        return new Iterator<Row>() {
+        return new CloseableIterator<Row>() {
 
             int idx = 0;
 
@@ -114,6 +135,14 @@ public class ReaderBuckets {
                 idx++;
                 return fetchRows.updatedOutputRow(row, readerBuckets::get);
             }
+
+            @Override
+            public void close() throws RuntimeException {
+                rows.clear();
+                readerBuckets.release();
+                ramAccounting.addBytes(- usedMemoryEstimateInBytes);
+                usedMemoryEstimateInBytes = 0;
+            }
         };
     }
 
@@ -126,5 +155,10 @@ public class ReaderBuckets {
             }
         }
         return toFetch;
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return usedMemoryEstimateInBytes;
     }
 }

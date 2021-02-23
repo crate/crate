@@ -19,14 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
+
 package io.crate.execution.engine.fetch;
+
+import static org.hamcrest.CoreMatchers.is;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.ArrayBucket;
+import org.junit.Test;
+
+import io.crate.breaker.BlockBasedRamAccounting;
+import io.crate.breaker.EstimateCellsSize;
 import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
@@ -35,74 +47,64 @@ import io.crate.metadata.Reference;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static org.hamcrest.Matchers.is;
-
-public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
+public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void test_fetch_rows_can_map_inputs_and_buckets_to_outputs() throws Exception {
+    public void test_reader_bucket_accounts_memory_for_added_rows() throws Exception {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x text)")
-            .addTable("create table t2 (y text, z int)")
             .build();
         var t1 = e.resolveTableInfo("t1");
         var x = (Reference) e.asSymbol("x");
-        var fetchSource1 = new FetchSource();
-        fetchSource1.addFetchIdColumn(new InputColumn(0, DataTypes.LONG));
-        fetchSource1.addRefToFetch(x);
-
-        var t2 = e.resolveTableInfo("t2");
-        var y = (Reference) e.asSymbol("y");
-        var fetchSource2 = new FetchSource();
-        fetchSource2.addFetchIdColumn(new InputColumn(1, DataTypes.LONG));
-        fetchSource2.addRefToFetch(y);
-
-        var fetchSources = Map.of(
-            t1.ident(), fetchSource1,
-            t2.ident(), fetchSource2
-        );
+        var fetchSource = new FetchSource();
+        fetchSource.addFetchIdColumn(new InputColumn(0, DataTypes.LONG));
+        fetchSource.addRefToFetch(x);
         var fetchRows = FetchRows.create(
             CoordinatorTxnCtx.systemTransactionContext(),
-            createNodeContext(),
-            fetchSources,
+            TestingHelpers.createNodeContext(),
+            Map.of(t1.ident(), fetchSource),
             List.of(
                 new FetchReference(new InputColumn(0, DataTypes.LONG), x),
-                new FetchReference(new InputColumn(1, DataTypes.LONG), y),
-                new InputColumn(2, DataTypes.INTEGER)
+                new InputColumn(1, DataTypes.INTEGER)
             )
         );
-        long fetchIdRel1 = FetchId.encode(1, 1);
-        long fetchIdRel2 = FetchId.encode(2, 1);
+        var bytesAccounted = new AtomicLong();
+        var ramAccounting = new BlockBasedRamAccounting(
+            bytes -> bytesAccounted.addAndGet(bytes),
+            1024
+        );
+        int readerId = 1;
         var readerBuckets = new ReaderBuckets(
             fetchRows,
-            reader -> reader == 1 ? fetchSource1 : fetchSource2,
-            cells -> 0,
-            RamAccounting.NO_ACCOUNTING
+            reader -> fetchSource,
+            new EstimateCellsSize(List.of(DataTypes.LONG, DataTypes.INTEGER)),
+            ramAccounting
         );
+        long fetchId = FetchId.encode(readerId, 1);
+        readerBuckets.add(new RowN(fetchId, 42));
+
+        assertThat(bytesAccounted.get(), is(1024L));
+        assertThat(readerBuckets.ramBytesUsed(), is(40L));
+
+        IntObjectHashMap<Bucket> bucketsByReader = new IntObjectHashMap<>();
+        bucketsByReader.put(readerId, new CollectionBucket(List.<Object[]>of(
+            new Object[] {"I eat memory for breakfast"}
+        )));
         IntHashSet readerIds = new IntHashSet(2);
-        readerIds.add(1);
-        readerIds.add(2);
-        readerBuckets.add(new RowN(fetchIdRel1, fetchIdRel2, 42));
+        readerIds.add(readerId);
         readerBuckets.generateToFetch(readerIds);
-        IntObjectHashMap<Bucket> results = new IntObjectHashMap<>();
-        results.put(1, new ArrayBucket($$($("Arthur"))));
-        results.put(2, new ArrayBucket($$($("Trillian"))));
+        try (var outputRows = readerBuckets.getOutputRows(List.of(bucketsByReader))) {
+            assertThat(bytesAccounted.get(), is(1024L));
+            assertThat(readerBuckets.ramBytesUsed(), is(136L));
+        }
 
-        var it = readerBuckets.getOutputRows(List.of(results));
-        assertThat(it.hasNext(), is(true));
-        var outputRow = it.next();
-
-        assertThat(outputRow.get(0), is("Arthur"));
-        assertThat(outputRow.get(1), is("Trillian"));
-        assertThat(outputRow.get(2), is(42));
+        assertThat(
+            "After outputRows are closed the readerBuckets are released",
+            readerBuckets.ramBytesUsed(),
+            is(0L)
+        );
     }
 }

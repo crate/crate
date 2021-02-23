@@ -22,7 +22,6 @@
 
 package io.crate.data;
 
-import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
 
 import io.crate.exceptions.Exceptions;
@@ -34,7 +33,7 @@ public final class AsyncFlatMapBatchIterator<I, O> implements BatchIterator<O> {
 
     private NextAction nextAction = NextAction.SOURCE;
     private O current = null;
-    private Iterator<O> mappedElements;
+    private CloseableIterator<O> mappedElements;
     private boolean sourceExhausted = false;
 
     private enum NextAction {
@@ -81,6 +80,11 @@ public final class AsyncFlatMapBatchIterator<I, O> implements BatchIterator<O> {
                     current = mappedElements.next();
                     return true;
                 } else {
+                    // Make sure objects can be GCd early;
+                    // Otherwise it would have to wait for the next loadNextBatch call+completion of the async operation
+                    mappedElements.close();
+                    mappedElements = null;
+
                     nextAction = NextAction.SOURCE;
                     continue;
                 }
@@ -90,6 +94,10 @@ public final class AsyncFlatMapBatchIterator<I, O> implements BatchIterator<O> {
 
     @Override
     public void close() {
+        if (mappedElements != null) {
+            mappedElements.close();
+            mappedElements = null;
+        }
         source.close();
         try {
             mapper.close();
