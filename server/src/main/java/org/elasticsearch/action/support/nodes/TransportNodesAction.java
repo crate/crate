@@ -124,7 +124,7 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
      */
     protected abstract NodesResponse newResponse(NodesRequest request, List<NodeResponse> responses, List<FailedNodeException> failures);
 
-    protected abstract NodeRequest newNodeRequest(String nodeId, NodesRequest request);
+    protected abstract NodeRequest newNodeRequest(NodesRequest request);
 
     protected abstract NodeResponse read(StreamInput in) throws IOException;
 
@@ -162,7 +162,7 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
                 final DiscoveryNode node = nodes[i];
                 final String nodeId = node.getId();
                 try {
-                    TransportRequest nodeRequest = newNodeRequest(nodeId, request);
+                    TransportRequest nodeRequest = newNodeRequest(request);
                     if (task != null) {
                         nodeRequest.setParentTask(clusterService.localNode().getId(), task.getId());
                     }
