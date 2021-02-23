@@ -22,26 +22,34 @@
 
 package io.crate.execution.engine.join;
 
-import io.crate.breaker.RowAccounting;
-import io.crate.data.BatchIterator;
-import io.crate.data.Paging;
-import io.crate.data.Row;
-import io.crate.data.join.CombinedRow;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingRowConsumer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import io.crate.breaker.RowAccounting;
+import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Paging;
+import io.crate.data.Row;
+import io.crate.data.SentinelRow;
+import io.crate.data.join.CombinedRow;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingRowConsumer;
+import static org.mockito.Mockito.times;
 
 public class HashInnerJoinBatchIteratorBehaviouralTest {
 
@@ -109,5 +117,45 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
         consumer.accept(batchIterator, null);
         List<Object[]> result = consumer.getResult();
         assertThat(result, contains(new Object[]{2, 2}, new Object[]{4, 4}));
+    }
+
+
+    @Test
+    public void test_hash_join_stops_after_first_buffer_is_built_if_right_side_is_empty() throws Exception {
+        var left = Mockito.spy(TestingBatchIterators.range(0, 5));
+        var right = Mockito.spy(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
+        HashInnerJoinBatchIterator bi = new HashInnerJoinBatchIterator(
+            left,
+            right,
+            mock(RowAccounting.class),
+            new CombinedRow(1, 1),
+            row -> Objects.equals(row.get(0), row.get(1)),
+            row -> Objects.hash(row.get(0)),
+            row -> Objects.hash(row.get(0)),
+            () -> 2
+        );
+        BatchIterators.collect(bi, Collectors.toList()).get(5, TimeUnit.SECONDS);
+        Mockito.verify(left, times(2)).moveNext();
+        Mockito.verify(right, times(1)).moveNext();
+    }
+
+    @Test
+    public void test_right_side_is_not_consumed_if_left_is_empty() throws Exception {
+        var left = Mockito.spy(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
+        var right = Mockito.spy(TestingBatchIterators.range(0, 5));
+        HashInnerJoinBatchIterator bi = new HashInnerJoinBatchIterator(
+            left,
+            right,
+            mock(RowAccounting.class),
+            new CombinedRow(1, 1),
+            row -> Objects.equals(row.get(0), row.get(1)),
+            row -> Objects.hash(row.get(0)),
+            row -> Objects.hash(row.get(0)),
+            () -> 2
+        );
+        BatchIterators.collect(bi, Collectors.toList()).get(5, TimeUnit.SECONDS);
+        Mockito.verify(left, times(1)).moveNext();
+        Mockito.verify(right, times(0)).moveNext();
+
     }
 }

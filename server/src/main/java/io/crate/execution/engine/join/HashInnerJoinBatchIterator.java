@@ -95,6 +95,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
 
     private int blockSize;
     private int numberOfRowsInBuffer = 0;
+    private long rightRows = 0;
     private boolean leftBatchHasItems = false;
     private int numberOfLeftBatchesForBlock;
     private int numberOfLeftBatchesLoadedForBlock;
@@ -131,6 +132,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         left.moveToStart();
         right.moveToStart();
         activeIt = left;
+        rightRows = 0;
         resetBuffer();
         leftMatchingRowsIterator = null;
     }
@@ -146,6 +148,9 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     @Override
     public boolean moveNext() {
         while (buildBufferAndMatchRight() == false) {
+            if (activeIt == right && right.allLoaded() && rightRows == 0L) {
+                return false;
+            }
             if (right.allLoaded() && leftBatchHasItems == false && left.allLoaded()) {
                 // both sides are fully loaded, we're done here
                 return false;
@@ -199,6 +204,9 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
                 activeIt = right;
             }
         }
+        if (!leftBatchHasItems && left.allLoaded()) {
+            return false;
+        }
 
         // In case of multiple matches on the left side (duplicate values or hash collisions)
         if (leftMatchingRowsIterator != null && findMatchingRows()) {
@@ -206,6 +214,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         }
         leftMatchingRowsIterator = null;
         while (right.moveNext()) {
+            rightRows++;
             int rightHash = hashBuilderForRight.applyAsInt(right.currentElement());
             List<Object[]> leftMatchingRows = buffer.get(rightHash);
             if (leftMatchingRows != null) {
