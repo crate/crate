@@ -58,6 +58,10 @@ None
 Fixes
 =====
 
+- Fixed a regression that led to ``max`` aggregations on columns of type
+  ``double precision`` or ``real`` to return ``null`` instead of ``0.0`` if all
+  aggregated values are ``0.0``.
+
 - Fixed an issue that could lead to an ``OutOfMemoryError`` when retrieving
   large result sets with large individual records.
 
