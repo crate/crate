@@ -531,7 +531,7 @@ should be crossed out as well.
 - [ ] 77fd51f30ba Remove some Dead Code from Discovery Plugins (#50592)
 - [ ] 671fefaf59e Enhance TransportReplicationAction assertions (#49081)
 - [ ] 424ed93e38b Always use soft-deletes in InternalEngine (#50415)
-- [ ] d02afccd983 Ensure relocating shards establish peer recovery retention leases (#50486)
+- [x] d02afccd983 Ensure relocating shards establish peer recovery retention leases (#50486)
 - [ ] 50bd5842c3c Fix testCancelRecoveryDuringPhase1 (#50449)
 - [ ] 5e0030e1306 Adjust BWC for peer recovery retention leases (#50351)
 - [ ] a48d19d73a8 Add remote info to the HLRC (#50482)
