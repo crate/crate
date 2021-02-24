@@ -85,6 +85,24 @@ public class MaximumAggregationTest extends AggregationTest {
     }
 
     @Test
+    public void test_aggregate_min_float() throws Exception {
+        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{- Float.MAX_VALUE}, {- Float.MAX_VALUE}});
+        assertThat(result, is(- Float.MAX_VALUE));
+    }
+
+    @Test
+    public void test_aggregate_min_double() throws Exception {
+        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{- Double.MAX_VALUE}, {- Double.MAX_VALUE}});
+        assertThat(result, is(- Double.MAX_VALUE));
+    }
+
+    @Test
+    public void test_aggregate_min_long() throws Exception {
+        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{Long.MIN_VALUE}, {Long.MIN_VALUE}});
+        assertThat(result, is(Long.MIN_VALUE));
+    }
+
+    @Test
     public void testLong() throws Exception {
         Object result = executeAggregation(DataTypes.LONG, new Object[][]{{8L}, {3L}});
 

@@ -103,7 +103,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         public void apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 long value = values.nextValue();
-                if (value > state.value()) {
+                if (value >= state.value()) {
                     state.setValue(value);
                 }
             }
@@ -144,7 +144,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         public void apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 double value = NumericUtils.sortableLongToDouble(values.nextValue());
-                if (value > state.value()) {
+                if (value >= state.value()) {
                     state.setValue(value);
                 }
             }
@@ -185,7 +185,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         public void apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                if (value > state.value()) {
+                if (value >= state.value()) {
                     state.setValue(value);
                 }
             }
