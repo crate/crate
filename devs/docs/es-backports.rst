@@ -61,6 +61,10 @@ should be crossed out as well.
 - ``x`` to mark applied patches
 - ``s`` for skipped patches if they are not applicable (for example, if the
   functionality is not present in CrateDB)
+- ``sn`` for skipped patches which have no effect because the related sources
+  do not exist anymore
+- ``sa`` for skipped patches which have been applied already
+- ``su`` for skipped patches which are unrelated to CrateDB
 - ``d`` marks a delayed patch - a non-trivial change we should apply that
   does not affect too any components, so delaying it doesn't make applying
   other patches more difficult
