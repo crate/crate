@@ -50,6 +50,7 @@ import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.scalar.CurrentDateFunction;
 import io.crate.expression.scalar.ExtractFunctions;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.scalar.SubscriptFunctions;
@@ -434,6 +435,10 @@ public class ExpressionAnalyzer {
 
                 case TIME:
                     funcName = CurrentTimeFunction.NAME;
+                    break;
+
+                case DATE:
+                    funcName = CurrentDateFunction.NAME;
                     break;
 
                 default:

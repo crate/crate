@@ -65,6 +65,7 @@ public class PGTypesTest extends ESTestCase {
         assertThat(PGTypes.get(DataTypes.LONG), instanceOf(BigIntType.class));
         assertThat(PGTypes.get(DataTypes.FLOAT), instanceOf(RealType.class));
         assertThat(PGTypes.get(DataTypes.DOUBLE), instanceOf(DoubleType.class));
+        assertThat(PGTypes.get(DataTypes.DATE), instanceOf(DateType.class));
         assertThat("Crate IP type is mapped to PG varchar", PGTypes.get(DataTypes.IP),
             instanceOf(VarCharType.class));
         assertThat(PGTypes.get(DataTypes.NUMERIC), instanceOf(NumericType.class));
@@ -118,6 +119,7 @@ public class PGTypesTest extends ESTestCase {
         assertThat(PGTypes.fromOID(PGArray.BOOL_ARRAY.oid()), instanceOf(ArrayType.class));
         assertThat(PGTypes.fromOID(PGArray.TIMESTAMPZ_ARRAY.oid()), instanceOf(ArrayType.class));
         assertThat(PGTypes.fromOID(PGArray.TIMESTAMP_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.DATE_ARRAY.oid()), instanceOf(ArrayType.class));
         assertThat(PGTypes.fromOID(PGArray.VARCHAR_ARRAY.oid()), instanceOf(ArrayType.class));
         assertThat(PGTypes.fromOID(PGArray.JSON_ARRAY.oid()), instanceOf(ArrayType.class));
     }
