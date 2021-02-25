@@ -22,12 +22,11 @@
 
 package io.crate.data;
 
-import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 
 public interface AsyncFlatMapper<I, O> extends AutoCloseable {
 
-    CompletableFuture<? extends Iterator<O>> apply(I item, boolean isLastCall);
+    CompletableFuture<? extends CloseableIterator<O>> apply(I item, boolean isLastCall);
 
     @Override
     default void close() throws Exception {

@@ -103,7 +103,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         public void apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 long value = values.nextValue();
-                if (value > state.value()) {
+                if (value >= state.value()) {
                     state.setValue(value);
                 }
             }
@@ -132,7 +132,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Override
         public MutableDouble initialState(RamAccounting ramAccounting) {
             ramAccounting.addBytes(DataTypes.DOUBLE.fixedSize());
-            return new MutableDouble(Double.MIN_VALUE);
+            return new MutableDouble(- Double.MAX_VALUE);
         }
 
         @Override
@@ -144,7 +144,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         public void apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 double value = NumericUtils.sortableLongToDouble(values.nextValue());
-                if (value > state.value()) {
+                if (value >= state.value()) {
                     state.setValue(value);
                 }
             }
@@ -173,7 +173,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Override
         public MutableFloat initialState(RamAccounting ramAccounting) {
             ramAccounting.addBytes(DataTypes.FLOAT.fixedSize());
-            return new MutableFloat(Float.MIN_VALUE);
+            return new MutableFloat(- Float.MAX_VALUE);
         }
 
         @Override
@@ -185,7 +185,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         public void apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                if (value > state.value()) {
+                if (value >= state.value()) {
                     state.setValue(value);
                 }
             }

@@ -20,37 +20,33 @@
  * agreement.
  */
 
-package io.crate.planner.operators;
+package io.crate.breaker;
 
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.FunctionCopyVisitor;
-import io.crate.expression.symbol.Symbol;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.ToLongFunction;
 
-import java.util.Map;
+import io.crate.common.collections.Lists2;
+import io.crate.types.DataType;
 
-public final class MapBackedSymbolReplacer extends FunctionCopyVisitor<Map<Symbol, Symbol>> {
+public final class EstimateCellsSize implements ToLongFunction<Object[]> {
 
-    private static final MapBackedSymbolReplacer INSTANCE = new MapBackedSymbolReplacer();
+    private final List<SizeEstimator<Object>> estimators;
 
-    private MapBackedSymbolReplacer() {
-    }
-
-    public static Symbol convert(Symbol symbol, Map<Symbol, Symbol> replacements) {
-        return replacements.getOrDefault(symbol, symbol.accept(INSTANCE, replacements));
-    }
-
-    @Override
-    protected Symbol visitSymbol(Symbol symbol, Map<Symbol, Symbol> map) {
-        return map.getOrDefault(symbol, symbol);
+    public EstimateCellsSize(Collection<? extends DataType<?>> columnTypes) {
+        this.estimators = Lists2.map(columnTypes, SizeEstimatorFactory::create);
     }
 
     @Override
-    public Symbol visitFunction(Function func, Map<Symbol, Symbol> map) {
-        Symbol mappedFunc = map.get(func);
-        if (mappedFunc == null) {
-            return processAndMaybeCopy(func, map);
-        } else {
-            return mappedFunc;
+    public long applyAsLong(Object[] cells) {
+        assert estimators.size() == cells.length
+            : "Size of incoming cells must match number of estimators. "
+                + "Cells=" + cells.length
+                + " estimators=" + estimators.size();
+        long size = 0;
+        for (int i = 0; i < cells.length; i++) {
+            size += estimators.get(i).estimateSize(cells[i]);
         }
+        return size;
     }
 }

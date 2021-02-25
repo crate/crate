@@ -66,6 +66,18 @@ public class MinimumAggregationTest extends AggregationTest {
     }
 
     @Test
+    public void test_aggregate_double_zero() throws Exception {
+        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.0}, {0.0}});
+        assertThat(result, is(0.0d));
+    }
+
+    @Test
+    public void test_aggregate_float_zero() throws Exception {
+        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.0f}, {0.0f}});
+        assertThat(result, is(0.0f));
+    }
+
+    @Test
     public void testInteger() throws Exception {
         Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{8}, {3}});
 

@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -43,6 +44,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.SymbolMatchers.isAlias;
 import static io.crate.testing.SymbolMatchers.isFetchMarker;
 import static io.crate.testing.SymbolMatchers.isFetchStub;
 import static io.crate.testing.SymbolMatchers.isField;
@@ -130,6 +132,33 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
             "FetchStub fetchMarker must be changed to the aliased marker",
             fetchStub.fetchMarker(),
             Matchers.sameInstance(newRename.outputs().get(0))
+        );
+    }
+
+    @Test
+    public void test_fetchrewrite_on_eval_with_nested_source_outputs() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+
+        DocTableInfo tableInfo = e.resolveTableInfo("tbl");
+        var x = new AliasSymbol("x_alias", e.asSymbol("x"));
+        var relation = new DocTableRelation(tableInfo);
+        var collect = new Collect(false, relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var eval = new Eval(
+            collect,
+            List.of(x)
+        );
+
+        FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
+        assertThat(fetchRewrite, Matchers.notNullValue());
+        assertThat(fetchRewrite.newPlan(), isPlan("Collect[doc.tbl | [_fetchid] | true]"));
+        assertThat(
+            fetchRewrite.replacedOutputs(),
+            Matchers.hasEntry(
+                is(x),
+                isAlias("x_alias", isFetchStub("_doc['x']"))
+            )
         );
     }
 }

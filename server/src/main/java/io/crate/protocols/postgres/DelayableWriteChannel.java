@@ -38,6 +38,7 @@ import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoop;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
+import io.netty.util.ReferenceCountUtil;
 
 /**
  * Channel implementation that allows to delay writes with `blockWritesUntil`
@@ -83,7 +84,9 @@ public class DelayableWriteChannel implements Channel {
 
     @Override
     public ChannelFuture close() {
-        return delegate.close();
+        ChannelFuture close = delegate.close();
+        delay.releaseAll();
+        return close;
     }
 
     @Override
@@ -125,7 +128,7 @@ public class DelayableWriteChannel implements Channel {
     public ChannelFuture write(Object msg) {
         if (delay != null) {
             ChannelPromise newPromise = newPromise();
-            delay.add(() -> delegate.write(msg, newPromise));
+            delay.add(msg, () -> delegate.write(msg, newPromise));
             return newPromise;
         }
         return delegate.write(msg);
@@ -134,7 +137,7 @@ public class DelayableWriteChannel implements Channel {
     @Override
     public ChannelFuture write(Object msg, ChannelPromise promise) {
         if (delay != null) {
-            delay.add(() -> delegate.write(msg, promise));
+            delay.add(msg, () -> delegate.write(msg, promise));
             return promise;
         }
         return delegate.write(msg, promise);
@@ -143,7 +146,7 @@ public class DelayableWriteChannel implements Channel {
     @Override
     public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
         if (delay != null) {
-            delay.add(() -> delegate.writeAndFlush(msg, promise));
+            delay.add(msg, () -> delegate.writeAndFlush(msg, promise));
             return promise;
         }
         return delegate.writeAndFlush(msg, promise);
@@ -153,7 +156,7 @@ public class DelayableWriteChannel implements Channel {
     public ChannelFuture writeAndFlush(Object msg) {
         if (delay != null) {
             ChannelPromise promise = newPromise();
-            delay.add(() -> delegate.writeAndFlush(msg, promise));
+            delay.add(msg, () -> delegate.writeAndFlush(msg, promise));
             return promise;
         }
         return delegate.writeAndFlush(msg);
@@ -304,26 +307,45 @@ public class DelayableWriteChannel implements Channel {
         });
     }
 
+    static class DelayedMsg {
+        final Runnable runnable;
+        final Object msg;
+
+        public DelayedMsg(Object msg, Runnable runnable) {
+            this.runnable = runnable;
+            this.msg = msg;
+        }
+    }
+
     static class DelayedWrites {
 
-        private final ArrayDeque<Runnable> delayed = new ArrayDeque<>();
+        private final ArrayDeque<DelayedMsg> delayed = new ArrayDeque<>();
         private final CompletableFuture<?> future;
 
         public DelayedWrites(CompletableFuture<?> future) {
             this.future = future;
         }
 
-        public void add(Runnable runnable) {
+        public void releaseAll() {
+            DelayedMsg delayedMsg;
             synchronized (delayed) {
-                delayed.add(runnable);
+                while ((delayedMsg = delayed.poll()) != null) {
+                    ReferenceCountUtil.safeRelease(delayedMsg.msg);
+                }
+            }
+        }
+
+        public void add(Object msg, Runnable runnable) {
+            synchronized (delayed) {
+                delayed.add(new DelayedMsg(msg, runnable));
             }
         }
 
         private void runDelayed() {
-            Runnable runnable;
+            DelayedMsg delayedMsg;
             synchronized (delayed) {
-                while ((runnable = delayed.poll()) != null) {
-                    runnable.run();
+                while ((delayedMsg = delayed.poll()) != null) {
+                    delayedMsg.runnable.run();
                 }
             }
         }

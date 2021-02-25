@@ -42,12 +42,17 @@ import io.crate.testing.TestingBatchIterators;
 
 public class AsyncFlatMapBatchIteratorTest {
 
+    @SafeVarargs
+    private final static <T> CloseableIterator<T> mkIter(T... rows) {
+        return CloseableIterator.fromIterator(Arrays.asList(rows).iterator());
+    }
+
     @Test
     public void test_async_flat_map_on_fully_loaded_source() throws Exception {
         InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
         AsyncFlatMapBatchIterator<Integer, Integer[]> twiceAsArray = new AsyncFlatMapBatchIterator<>(
             source,
-            (x, isLast) -> CompletableFuture.completedFuture(Arrays.asList(new Integer[] {x, x}, new Integer[] {x, x}).iterator())
+            (x, isLast) -> CompletableFuture.completedFuture(mkIter(new Integer[] {x, x}, new Integer[] {x, x}))
         );
         List<Integer[]> integers = BatchIterators.collect(twiceAsArray, Collectors.toList()).get(1, TimeUnit.SECONDS);
         assertThat(integers, contains(
@@ -65,7 +70,7 @@ public class AsyncFlatMapBatchIteratorTest {
         InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
         var asyncFlatMap = new AsyncFlatMapBatchIterator<>(
             source,
-            (x, isLast) -> CompletableFuture.completedFuture(Arrays.asList(new Integer[] {x, x}, new Integer[] {x, x}).iterator())
+            (x, isLast) -> CompletableFuture.completedFuture(mkIter(new Integer[] {x, x}, new Integer[] {x, x}))
         );
         assertThat("first moveNext must return false, because the async-mapper must run next", asyncFlatMap.moveNext(), is(false));
         assertThat("Calling moveNext again must not fail", asyncFlatMap.moveNext(), is(false));
@@ -83,7 +88,7 @@ public class AsyncFlatMapBatchIteratorTest {
         try {
             AsyncFlatMapBatchIterator<Integer, Integer[]> twiceAsArray = new AsyncFlatMapBatchIterator<>(
                 source,
-                (x, istLast) -> CompletableFuture.completedFuture(Arrays.asList(new Integer[] {x, x}, new Integer[] {x, x}).iterator())
+                (x, istLast) -> CompletableFuture.completedFuture(mkIter(new Integer[] {x, x}, new Integer[] {x, x}))
             );
             List<Integer[]> integers = BatchIterators.collect(twiceAsArray, Collectors.toList()).get(1, TimeUnit.SECONDS);
             assertThat(integers, contains(
@@ -103,10 +108,10 @@ public class AsyncFlatMapBatchIteratorTest {
     @Test
     public void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
         AsyncFlatMapper<Row, Row> duplicateRow = (row, isLast) ->
-            CompletableFuture.completedFuture(Arrays.<Row>asList(
+            CompletableFuture.completedFuture(mkIter(
                 new RowN(row.materialize()),
                 new RowN(row.materialize())
-            ).iterator()
+            )
         );
         BatchIteratorTester tester = new BatchIteratorTester(() -> {
             BatchIterator<Row> source = TestingBatchIterators.range(1, 4);

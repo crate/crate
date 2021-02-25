@@ -20,37 +20,28 @@
  * agreement.
  */
 
-package io.crate.planner.operators;
+package io.crate.data;
 
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.FunctionCopyVisitor;
-import io.crate.expression.symbol.Symbol;
+import java.util.Iterator;
 
-import java.util.Map;
+public interface CloseableIterator<T> extends Iterator<T>, AutoCloseable {
 
-public final class MapBackedSymbolReplacer extends FunctionCopyVisitor<Map<Symbol, Symbol>> {
+    static <T> CloseableIterator<T> fromIterator(Iterator<T> it) {
+        return new CloseableIterator<T>() {
 
-    private static final MapBackedSymbolReplacer INSTANCE = new MapBackedSymbolReplacer();
+            @Override
+            public boolean hasNext() {
+                return it.hasNext();
+            }
 
-    private MapBackedSymbolReplacer() {
-    }
-
-    public static Symbol convert(Symbol symbol, Map<Symbol, Symbol> replacements) {
-        return replacements.getOrDefault(symbol, symbol.accept(INSTANCE, replacements));
-    }
-
-    @Override
-    protected Symbol visitSymbol(Symbol symbol, Map<Symbol, Symbol> map) {
-        return map.getOrDefault(symbol, symbol);
+            @Override
+            public T next() {
+                return it.next();
+            }
+        };
     }
 
     @Override
-    public Symbol visitFunction(Function func, Map<Symbol, Symbol> map) {
-        Symbol mappedFunc = map.get(func);
-        if (mappedFunc == null) {
-            return processAndMaybeCopy(func, map);
-        } else {
-            return mappedFunc;
-        }
+    default void close() throws RuntimeException {
     }
 }

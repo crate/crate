@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.AsyncFlatMapper;
 import io.crate.data.Bucket;
+import io.crate.data.CloseableIterator;
 import io.crate.data.Row;
 
 public class FetchMapper implements AsyncFlatMapper<ReaderBuckets, Row> {
@@ -54,7 +55,7 @@ public class FetchMapper implements AsyncFlatMapper<ReaderBuckets, Row> {
     }
 
     @Override
-    public CompletableFuture<? extends Iterator<Row>> apply(ReaderBuckets readerBuckets, boolean isLastCall) {
+    public CompletableFuture<? extends CloseableIterator<Row>> apply(ReaderBuckets readerBuckets, boolean isLastCall) {
         List<CompletableFuture<IntObjectMap<? extends Bucket>>> futures = new ArrayList<>();
         Iterator<Map.Entry<String, IntSet>> it = readerIdsByNode.entrySet().iterator();
         while (it.hasNext()) {
