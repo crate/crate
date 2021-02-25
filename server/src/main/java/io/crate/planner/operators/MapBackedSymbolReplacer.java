@@ -36,7 +36,7 @@ public final class MapBackedSymbolReplacer extends FunctionCopyVisitor<Map<Symbo
     }
 
     public static Symbol convert(Symbol symbol, Map<Symbol, Symbol> replacements) {
-        return symbol.accept(INSTANCE, replacements);
+        return replacements.getOrDefault(symbol, symbol.accept(INSTANCE, replacements));
     }
 
     @Override
