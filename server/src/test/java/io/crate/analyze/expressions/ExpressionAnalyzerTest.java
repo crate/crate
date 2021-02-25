@@ -103,10 +103,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testUnsupportedExpressionCurrentDate() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unsupported expression current_date");
-        expressions.asSymbol("current_date");
+    public void testExpressionCurrentDateWorks() {
+        var symbol = expressions.asSymbol("current_date");
+
+        assertThat(symbol.valueType(), is(DataTypes.DATE));
     }
 
     @Test

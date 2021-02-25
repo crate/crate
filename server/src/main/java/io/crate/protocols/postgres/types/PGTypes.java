@@ -56,6 +56,7 @@ public class PGTypes {
         .put(DataTypes.TIMETZ, TimeTZType.INSTANCE)
         .put(DataTypes.TIMESTAMPZ, TimestampZType.INSTANCE)
         .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
+        .put(DataTypes.DATE, DateType.INSTANCE)
         .put(DataTypes.IP, VarCharType.INSTANCE) // postgres has no IP type, so map it to varchar - it matches the client representation
         .put(DataTypes.UNDEFINED, VarCharType.INSTANCE)
         .put(DataTypes.GEO_SHAPE, JsonType.INSTANCE)
@@ -73,6 +74,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMESTAMPZ), PGArray.TIMESTAMPZ_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMESTAMP), PGArray.TIMESTAMP_ARRAY)
+        .put(new ArrayType<>(DataTypes.DATE), PGArray.DATE_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMETZ), PGArray.TIMETZ_ARRAY)
         .put(new ArrayType<>(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.IP), PGArray.VARCHAR_ARRAY)

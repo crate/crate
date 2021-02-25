@@ -133,6 +133,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         NowFunction.register(this);
         TimezoneFunction.register(this);
         DateFormatFunction.register(this);
+        CurrentDateFunction.register(this);
 
         ToCharFunction.register(this);
 

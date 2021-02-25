@@ -940,6 +940,33 @@ fractional seconds (milliseconds) are given.
     depends on the system clock and the JVM implementation.
 
 
+.. _curdate:
+
+``CURDATE()``
+----------------
+
+The ``CURDATE()`` scalar function is an alias of the :ref:`current_date`
+expression. See :ref:`current_date`.
+
+synopsis::
+
+    CURDATE()
+
+.. _current_date:
+
+``CURRENT_DATE``
+----------------
+
+The ``CURRENT_DATE`` expression returns the date in UTC timezone
+at the time the SQL statement was handled.
+Clock time is looked up at most once within the scope of a single query, to
+ensure that multiple occurrences of ``CURRENT_DATE`` evaluate to the
+same value.
+
+synopsis::
+
+    CURRENT_DATE
+
 .. _now:
 
 ``now()``
