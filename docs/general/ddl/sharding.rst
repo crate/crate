@@ -79,8 +79,11 @@ most cases), rows will be distributed evenly amongst the fixed amount of
 available shards.
 
 The :ref:`routing column <gloss-routing-column>` can be specified with the
-``CLUSTERED BY (<column>)`` statement. If no column is specified, the
-:ref:`internal document ID <sql_administration_system_column_id>` is used.
+:ref:`CLUSTERED <sql-create-table-clustered>` clause when creating the table.
+All rows that have the same routing column row value are stored in the same
+shard. If a :ref:`primary key <primary_key_constraint>` has been defined, it
+will be used as the default routing column, otherwise the :ref:`internal
+document ID <sql_administration_system_column_id>` is used.
 
 Example::
 

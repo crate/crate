@@ -180,6 +180,9 @@ R
 
     Also known as the :ref:`CLUSTERED BY column <gloss-clustered-by-column>`.
 
+    All rows that have the same routing column row value are stored in the same
+    shard.
+
     .. NOTE::
 
         The routing of rows to a specific shard is not the same as the routing
