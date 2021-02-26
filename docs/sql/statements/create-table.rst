@@ -241,10 +241,13 @@ accross a cluster.
      minimum value to each table or partition as default.
 
 :routing_column:
-  Specify a :ref:`routing column <gloss-routing-column>` on which basis rows
-  are sharded. All rows having the same value in ``routing_column`` are stored
-  in the same shard. The default is the primary key if specified, otherwise the
-  internal ``_id`` column.
+  Specify a :ref:`routing column <gloss-routing-column>` that :ref:`determines
+  <routing>` how rows are sharded.
+
+  All rows that have the same ``routing_column`` row value are stored in the
+  same shard. If a :ref:`primary key <primary_key_constraint>` has been
+  defined, it will be used as the default routing column, otherwise the
+  :ref:`internal document ID <sql_administration_system_column_id>` is used.
 
 .. SEEALSO::
 
