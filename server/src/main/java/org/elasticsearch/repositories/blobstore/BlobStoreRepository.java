@@ -881,12 +881,18 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 return seed;
             }
         } catch (Exception e) {
-            throw new RepositoryVerificationException(metadata.name(),
-                        String.format(Locale.ENGLISH,
-                                      "Unable to verify the repository, [%s] is not accessible on master node: %s '%s'",
-                                      metadata.name(),
-                                      e.getCause().getClass().getSimpleName(),
-                                      e.getCause().getMessage()));
+            Throwable cause = e.getCause();
+            Throwable errorInfo = cause == null ? e : cause;
+            throw new RepositoryVerificationException(
+                metadata.name(),
+                String.format(
+                    Locale.ENGLISH,
+                    "Unable to verify the repository, [%s] is not accessible on master node: %s '%s'",
+                    metadata.name(),
+                    errorInfo.getClass().getSimpleName(),
+                    errorInfo.getMessage()
+                )
+            );
         }
     }
 
