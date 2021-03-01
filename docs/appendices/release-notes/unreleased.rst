@@ -58,6 +58,10 @@ None
 Fixes
 =====
 
+- Fixed an issue in the error handling of ``CREATE REPOSITORY`` statements
+  which could lead to a ``NullPointerException`` instead of a more meaningful
+  error message.
+
 - Fixed an issue that could lead to a ``Can't handle Symbol`` error when
   using views which are defined with column aliases.
 
