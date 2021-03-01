@@ -45,6 +45,7 @@ public class CountTask extends AbstractTask {
     private final RowConsumer consumer;
     private final Map<String, IntIndexedContainer> indexShardMap;
     private CompletableFuture<Long> countFuture;
+    private volatile Throwable killReason;
 
     CountTask(CountPhase countPhase,
               TransactionContext txnCtx,
@@ -68,12 +69,14 @@ public class CountTask extends AbstractTask {
             return;
         }
         countFuture.whenComplete((rowCount, failure) -> {
-            if (rowCount == null) {
-                consumer.accept(null, failure);
-                kill(failure);
-            } else {
+            Throwable killed = killReason;  // 1 volatile read
+            failure = killed == null ? failure : killed;
+            if (failure == null) {
                 consumer.accept(InMemoryBatchIterator.of(new Row1(rowCount), SENTINEL), null);
                 close();
+            } else {
+                consumer.accept(null, failure);
+                kill(failure);
             }
         });
     }
@@ -83,6 +86,7 @@ public class CountTask extends AbstractTask {
         if (countFuture == null) {
             consumer.accept(null, throwable);
         } else {
+            killReason = throwable;
             countFuture.cancel(true);
         }
     }
