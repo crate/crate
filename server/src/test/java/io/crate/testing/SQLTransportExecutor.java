@@ -100,7 +100,7 @@ public class SQLTransportExecutor {
     private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
 
     public static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
-        Objects.requireNonNullElse(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
+        Objects.requireNonNullElse(System.getenv(SQL_REQUEST_TIMEOUT), "10")), TimeUnit.SECONDS);
 
     private static final Logger LOGGER = LogManager.getLogger(SQLTransportExecutor.class);
 
