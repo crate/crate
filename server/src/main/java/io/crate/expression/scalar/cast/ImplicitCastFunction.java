@@ -66,6 +66,8 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         var targetType = targetTypeSignature.createType();
         try {
             return targetType.implicitCast(args[0].value());
+        } catch (ConversionException e) {
+            throw e;
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new ConversionException(args[0].value(), targetType);
         }
@@ -98,6 +100,8 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
             Object value = ((Input<?>) argument).value();
             try {
                 return Literal.ofUnchecked(targetType, targetType.implicitCast(value));
+            } catch (ConversionException e) {
+                throw e;
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new ConversionException(argument, targetType);
             }
