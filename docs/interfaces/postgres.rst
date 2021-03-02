@@ -122,21 +122,22 @@ a ``BackendKeyData`` message during connection initialization.
 For improved compatibility, the ``pg_catalog`` schema is implemented containing
 following tables:
 
- - `pg_type`_
- - `pg_database <pgsql_pg_database_>`__
- - `pg_class <pgsql_pg_class_>`__
- - `pg_proc <pgsql_pg_proc_>`__
- - `pg_namespace <pgsql_pg_namespace_>`__
- - `pg_attribute <pgsql_pg_attribute_>`__
- - `pg_attrdef <pgsql_pg_attrdef_>`__
- - `pg_index <pgsql_pg_index_>`__
- - `pg_constraint <pgsql_pg_constraint_>`__
- - `pg_settings <pgsql_pg_settings_>`__
- - `pg_description`_
- - `pg_range`_
- - `pg_enum`_
- - `pg_roles`_
  - `pg_am`_
+ - `pg_attrdef <pgsql_pg_attrdef_>`__
+ - `pg_attribute <pgsql_pg_attribute_>`__
+ - `pg_class <pgsql_pg_class_>`__
+ - `pg_constraint <pgsql_pg_constraint_>`__
+ - `pg_database <pgsql_pg_database_>`__
+ - `pg_description`_
+ - `pg_enum`_
+ - `pg_index <pgsql_pg_index_>`__
+ - `pg_namespace <pgsql_pg_namespace_>`__
+ - `pg_proc <pgsql_pg_proc_>`__
+ - `pg_range`_
+ - `pg_roles`_
+ - `pg_settings <pgsql_pg_settings_>`__
+ - `pg_tablespace`_
+ - `pg_type`_
 
 
 .. _postgres_pg_type:
@@ -405,12 +406,13 @@ either because of the table is empty or by a not matching where clause.
 .. _Arrays: https://www.postgresql.org/docs/current/static/arrays.html
 .. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
 .. _Github: https://github.com/crate/crate
+.. _pg_am: https://www.postgresql.org/docs/10/catalog-pg-am.html
 .. _pg_description: https://www.postgresql.org/docs/10/catalog-pg-description.html
 .. _pg_enum: https://www.postgresql.org/docs/10/catalog-pg-enum.html
-.. _pgjdbc: https://github.com/pgjdbc/pgjdbc
-.. _pg_am: https://www.postgresql.org/docs/10/catalog-pg-am.html
 .. _pg_range: https://www.postgresql.org/docs/10/catalog-pg-range.html
 .. _pg_roles: https://www.postgresql.org/docs/10/view-pg-roles.html
+.. _pg_tablespace: https://www.postgresql.org/docs/13/catalog-pg-tablespace.html
+.. _pgjdbc: https://github.com/pgjdbc/pgjdbc
 .. _pgsql_pg_attrdef: https://www.postgresql.org/docs/10/static/catalog-pg-attrdef.html
 .. _pgsql_pg_attribute: https://www.postgresql.org/docs/10/static/catalog-pg-attribute.html
 .. _pgsql_pg_class: https://www.postgresql.org/docs/10/static/catalog-pg-class.html
