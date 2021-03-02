@@ -85,14 +85,27 @@ M
 O
 -
 
+.. _gloss-operand:
+
+**Operand**
+    See :ref:`operator <gloss-operator>`.
+
+.. _gloss-operation:
+
+**Operation**
+    See :ref:`operator <gloss-operator>`.
+
 .. _gloss-operator:
 
 **Operator**
     A reserved keyword (e.g., :ref:`IN <sql_in_array_comparison>`) or sequence
     of symbols (e.g., :ref:`>= <comparison-operators-basic>`) that can be used
-    in an SQL statement to manipulate one or more expressions and returns a
+    in an SQL statement to manipulate one or more expressions and return a
     result (e.g., ``true`` or ``false``). This process is known as an
-    *operation* and the expressions can be called operands or arguments.
+    *operation* and the expressions can be called *operands* or *arguments*.
+
+    An operator that takes one operand is known as a *unary operator* and an
+    operator that takes two is known as a *binary operator*.
 
     .. SEEALSO::
 
@@ -103,6 +116,7 @@ O
         :ref:`sql_array_comparisons`
 
         :ref:`sql_subquery_expressions`
+
 
 
 .. _gloss-p:

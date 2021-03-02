@@ -359,9 +359,10 @@ Example::
     SQLParseException[Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
 
 IP addresses support the :ref:`operator <gloss-operator>` ``<<``, which checks
-for subnet inclusion using `CIDR notation`_. The left-hand operand must be of
-type :ref:`ip <ip-type>` and the right-hand must be of type :ref:`text
-<data-type-text>` (e.g., ``'192.168.1.5' << '192.168.1/24'``).
+for subnet inclusion using `CIDR notation`_. The left-hand :ref:`operand
+<gloss-operand>` must be of type :ref:`ip <ip-type>` and the right-hand must be
+of type :ref:`text <data-type-text>` (e.g., ``'192.168.1.5' <<
+'192.168.1/24'``).
 
 .. _date-time-types:
 
@@ -716,7 +717,9 @@ Temporal arithmetic
 -------------------
 
 The following table specifies the declared types of :ref:`arithmetic
-<arithmetic>` expressions that involves temporal operands.
+<arithmetic>` expressions that involves temporal :ref:`operands
+<gloss-operand>`:
+
 
 +---------------+----------------+---------------+
 |       Operand | Operator       |       Operand |

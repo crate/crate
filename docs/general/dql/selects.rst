@@ -466,9 +466,10 @@ CrateDB supports a variety of :ref:`array comparisons <sql_array_comparisons>`.
 ------
 
 CrateDB supports the :ref:`operator <gloss-operator>` ``IN`` which allows you
-to verify the membership of the left-hand operand in a right-hand set of
-expressions. Returns ``true`` if any evaluated expression value from a
-right-hand set equals left-hand operand. Returns ``false`` otherwise::
+to verify the membership of the left-hand :ref:`operator <gloss-operand>`
+operand in a right-hand set of expressions. Returns ``true`` if any evaluated
+expression value from a right-hand set equals left-hand operand. Returns
+``false`` otherwise::
 
     cr> select name, kind from locations
     ... where (kind in ('Star System', 'Planet'))  order by name asc;
