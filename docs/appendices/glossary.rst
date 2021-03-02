@@ -211,8 +211,9 @@ S
 
     .. NOTE::
 
-        Shard allocation is also known as *shard routing*, which is not to be
-        confused with :ref:`row routing <gloss-routing-column>`.
+        Shard allocation is sometimes referred to as :ref:`shard routing
+        <gloss-shard-routing>`, which is not to be confused with :ref:`row
+        routing <gloss-routing-column>`.
 
     .. SEEALSO::
 
@@ -247,6 +248,11 @@ S
 
         :ref:`System information: Checked node settings
         <sys-node-checks-settings>`
+
+.. _gloss-shard-routing:
+
+**Shard routing**
+    Properly known as :ref:`shard allocation <gloss-shard-allocation>`.
 
 
 .. _gloss-t:
