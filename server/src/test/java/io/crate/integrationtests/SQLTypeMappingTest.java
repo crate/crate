@@ -314,11 +314,14 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("insert into t1 values ({a='abc'})");
         waitForMappingUpdateOnAll("t1", "o.a");
 
-        assertThrows(() -> execute("insert into t1 values ({a=['123', '456']})"),
-                     isSQLError(is("Cannot cast `{\"a\"=['123', '456']}` of type `object` to type `object`"),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4000));
+        assertThrows(
+            () -> execute("insert into t1 values ({a=['123', '456']})"),
+            isSQLError(
+                is("Cannot cast object element `a` with value `[123, 456]` to type `text`"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000)
+        );
     }
 
     /**

@@ -53,6 +53,8 @@ None
 Changes
 =======
 
+- Improved the error messages for cast errors for values of type ``object``.
+
 - Added support for the :ref:`CREATE TABLE AS <ref-create-table-as>` statement.
 
 Fixes

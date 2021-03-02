@@ -23,6 +23,8 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.common.collections.MapComparator;
+import io.crate.exceptions.ConversionException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -152,13 +154,16 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         HashMap<String, Object> newMap = new HashMap<>(map);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey();
-            newMap.put(
-                key,
-                innerType.apply(
-                    innerTypes.getOrDefault(key, UndefinedType.INSTANCE),
-                    entry.getValue()
-                )
-            );
+            DataType<?> targetType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
+
+            Object sourceValue = entry.getValue();
+            Object convertedInnerValue;
+            try {
+                convertedInnerValue = innerType.apply(targetType, sourceValue);
+            } catch (ClassCastException | IllegalArgumentException e) {
+                throw ConversionException.forObjectChild(key, sourceValue, targetType);
+            }
+            newMap.put(key, convertedInnerValue);
         }
         return newMap;
     }

@@ -21,11 +21,11 @@
 
 package io.crate.exceptions;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.types.DataType;
-
 import java.util.Arrays;
 import java.util.Locale;
+
+import io.crate.expression.symbol.Symbol;
+import io.crate.types.DataType;
 
 public class ConversionException extends IllegalArgumentException {
 
@@ -55,5 +55,19 @@ public class ConversionException extends IllegalArgumentException {
             sourceValue.getClass().isArray() ? Arrays.deepToString((Object[]) sourceValue) : sourceValue,
             targetType.getName()
         ));
+    }
+
+    public static ConversionException forObjectChild(String key, Object sourceValue, DataType<?> targetType) {
+        return new ConversionException(String.format(
+            Locale.ENGLISH,
+            "Cannot cast object element `%s` with value `%s` to type `%s`",
+            key,
+            sourceValue,
+            targetType
+        ));
+    }
+
+    private ConversionException(String message) {
+        super(message);
     }
 }
