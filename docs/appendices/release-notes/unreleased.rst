@@ -58,27 +58,4 @@ None
 Fixes
 =====
 
-- Fixed an issue in the error handling of ``CREATE REPOSITORY`` statements
-  which could lead to a ``NullPointerException`` instead of a more meaningful
-  error message.
-
-- Fixed an issue that could lead to a ``Can't handle Symbol`` error when
-  using views which are defined with column aliases.
-
-- Fixed a regression that led to ``max`` aggregations on columns of type
-  ``double precision`` or ``real`` to return ``null`` instead of ``0.0`` if all
-  aggregated values are ``0.0``.
-
-- Fixed an issue that could lead to an ``OutOfMemoryError`` when retrieving
-  large result sets with large individual records.
-
-- Fixed an issue that could lead to a ``NullPointerException`` when using a
-  SELECT statement containing an INNER JOIN.
-
-- Fixed an issue in the PostgreSQL wire protocol that would cause
-  de-serialization of arrays to fail if they contained unquoted strings
-  starting with digits.
-
-- Fixed an issue that could lead to a serialization error when streaming values
-  of the ``TIMESTAMP WITHOUT TIME ZONE`` type in text format using the
-  PostgreSQL wire protocol.
+None
