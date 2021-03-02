@@ -53,6 +53,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.types.DataTypes;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 public class ReplicaShardAllocatorIT extends SQLTransportIntegrationTest {
@@ -330,7 +331,10 @@ public class ReplicaShardAllocatorIT extends SQLTransportIntegrationTest {
             List<Map<String, Object>> rentetionLease = (List<Map<String, Object>>) response.rows()[0][2];
             assertThat(rentetionLease.size(), is(activeRetentionLeaseIds.size()));
             for (var activeRetentionLease : rentetionLease) {
-                assertThat(activeRetentionLease.get("retaining_seq_no"), is(globalCheckPoint + 1));
+                assertThat(
+                    DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no")),
+                    is(globalCheckPoint + 1L)
+                );
             }
         });
     }
