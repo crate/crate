@@ -75,6 +75,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
+import io.crate.types.Regclass;
 import io.crate.types.Regproc;
 
 public class InformationSchemaIterables implements ClusterStateListener {
@@ -185,7 +186,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     private PgClassTable.Entry relationToPgClassEntry(RelationInfo info) {
         return new PgClassTable.Entry(
-            OidHash.relationOid(info),
+            Regclass.relationOid(info),
             OidHash.schemaOid(info.ident().schema()),
             info.ident(),
             info.ident().name(),
@@ -196,7 +197,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     private PgClassTable.Entry primaryKeyToPgClassEntry(RelationInfo info) {
         return new PgClassTable.Entry(
-            OidHash.primaryKeyOid(info),
+            Regclass.primaryOid(info),
             OidHash.schemaOid(info.ident().schema()),
             info.ident(),
             info.ident().name() + "_pkey",
@@ -205,15 +206,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
             info.primaryKey().size() > 0);
     }
 
-    private PgClassTable.Entry.Type toEntryType(RelationInfo.RelationType type) {
-        switch (type) {
-            case BASE_TABLE:
-                return PgClassTable.Entry.Type.RELATION;
-            case VIEW:
-                return PgClassTable.Entry.Type.VIEW;
-            default:
-                return null;
-        }
+    private static PgClassTable.Entry.Type toEntryType(RelationInfo.RelationType type) {
+        return switch (type) {
+            case BASE_TABLE -> PgClassTable.Entry.Type.RELATION;
+            case VIEW -> PgClassTable.Entry.Type.VIEW;
+        };
     }
 
     private PgIndexTable.Entry pgIndex(TableInfo tableInfo) {
@@ -225,7 +222,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
             var position = pkRef.position();
             positions.add(position);
         }
-        return new PgIndexTable.Entry(OidHash.relationOid(tableInfo), OidHash.primaryKeyOid(tableInfo), positions);
+        return new PgIndexTable.Entry(
+            Regclass.relationOid(tableInfo),
+            Regclass.primaryOid(tableInfo),
+            positions
+        );
     }
 
     private PgProcTable.Entry pgProc(FunctionProvider resolver) {

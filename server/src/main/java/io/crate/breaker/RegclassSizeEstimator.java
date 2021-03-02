@@ -20,27 +20,28 @@
  * agreement.
  */
 
-package io.crate.metadata.pgcatalog;
+package io.crate.breaker;
 
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.REGCLASS;
+import io.crate.types.DataTypes;
+import io.crate.types.Regclass;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
+import javax.annotation.Nullable;
 
+public final class RegclassSizeEstimator extends SizeEstimator<Regclass> {
 
-public class PgAttrDefTable {
+    public static final RegclassSizeEstimator INSTANCE = new RegclassSizeEstimator();
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attrdef");
+    private final SizeEstimator<Integer> oidEstimator;
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("oid", INTEGER, x -> 0)
-            .add("adrelid", REGCLASS, x -> null)
-            .add("adnum", INTEGER, x -> 0)
-            .add("adbin", STRING, x -> null)
-            .add("adsrc", STRING, x -> null)
-            .build();
+    public RegclassSizeEstimator() {
+        this.oidEstimator = SizeEstimatorFactory.create(DataTypes.INTEGER);
+    }
+
+    @Override
+    public long estimateSize(@Nullable Regclass value) {
+        if (value == null) {
+            return 8;
+        }
+        return StringSizeEstimator.estimate(value.name()) + oidEstimator.estimateSize(value.oid());
     }
 }

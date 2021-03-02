@@ -24,14 +24,15 @@ package io.crate.metadata.pgcatalog;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
+import io.crate.types.Regclass;
 
 import java.util.List;
 
 import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.INTEGER_ARRAY;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.SHORT_ARRAY;
+import static io.crate.types.DataTypes.REGCLASS;
 
 public class PgIndexTable {
 
@@ -39,8 +40,8 @@ public class PgIndexTable {
 
     public static SystemTable<Entry> create() {
         return SystemTable.<Entry>builder(IDENT)
-            .add("indrelid", INTEGER, x -> x.indRelId)
-            .add("indexrelid", INTEGER, x -> x.indexRelId)
+            .add("indrelid", REGCLASS, x -> x.indRelId)
+            .add("indexrelid", REGCLASS, x -> x.indexRelId)
             .add("indnatts", SHORT, x -> (short) 0)
             .add("indisunique", BOOLEAN, x -> false)
             .add("indisprimary", BOOLEAN, x -> true)
@@ -65,11 +66,11 @@ public class PgIndexTable {
 
     public static final class Entry {
 
-        final int indRelId;
-        final int indexRelId;
+        final Regclass indRelId;
+        final Regclass indexRelId;
         final List<Integer> indKey;
 
-        public Entry(int indRelId, int indexRelId, List<Integer> indKey) {
+        public Entry(Regclass indRelId, Regclass indexRelId, List<Integer> indKey) {
             this.indRelId = indRelId;
             this.indexRelId = indexRelId;
             this.indKey = indKey;

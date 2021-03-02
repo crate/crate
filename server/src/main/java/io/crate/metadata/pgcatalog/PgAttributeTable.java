@@ -28,12 +28,13 @@ import io.crate.metadata.SystemTable;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.Regclass;
 
-import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.REGCLASS;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.isArray;
 
@@ -43,7 +44,7 @@ public class PgAttributeTable {
 
     public static SystemTable<ColumnContext> create() {
         return SystemTable.<ColumnContext>builder(IDENT)
-            .add("attrelid", INTEGER, c -> relationOid(c.tableInfo))
+            .add("attrelid", REGCLASS, c -> Regclass.relationOid(c.tableInfo))
             .add("attname", STRING, c -> c.info.column().sqlFqn())
             .add("atttypid", INTEGER, c -> PGTypes.get(c.info.valueType()).oid())
             .add("attstattarget", INTEGER, c -> 0)
