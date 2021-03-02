@@ -390,7 +390,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                         execute("insert into t (id, x) values (?, ?)", new Object[]{id, randomInt(5000)});
                         logger.info("--> index id={}", id);
                         ackedDocs.add(id);
-                    } catch (ElasticsearchException ignore) {
+                    } catch (Exception ignore) {
                         logger.info("--> fail to index id={}", id);
                     }
                 }
