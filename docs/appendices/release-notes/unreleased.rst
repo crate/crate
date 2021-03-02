@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Added an empty ``pg_tablespace`` table in the ``pg_catalog`` schema for
+  improved support for PostgreSQL tools.
+
 - Improved the error messages for cast errors for values of type ``object``.
 
 - Added support for the :ref:`CREATE TABLE AS <ref-create-table-as>` statement.
