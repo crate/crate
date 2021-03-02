@@ -94,6 +94,7 @@ public final class DataTypes {
     public static final ObjectType UNTYPED_OBJECT = ObjectType.UNTYPED;
 
     public static final RegprocType REGPROC = RegprocType.INSTANCE;
+    public static final RegclassType REGCLASS = RegclassType.INSTANCE;
 
     public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
         TIMESTAMPZ.getName(),
@@ -127,6 +128,7 @@ public final class DataTypes {
         INTERVAL,
         TIMETZ,
         OIDVECTOR,
+        REGCLASS,
         NUMERIC
     );
 
@@ -172,6 +174,7 @@ public final class DataTypes {
             entry(IntervalType.ID, in -> INTERVAL),
             entry(RowType.ID, RowType::new),
             entry(RegprocType.ID, in -> REGPROC),
+            entry(RegclassType.ID, in -> REGCLASS),
             entry(OidVectorType.ID, in -> OIDVECTOR)
         )
     );
@@ -188,16 +191,17 @@ public final class DataTypes {
         entry(SHORT.id(), NUMBER_CONVERSIONS),
         entry(INTEGER.id(), Stream.concat(
             NUMBER_CONVERSIONS.stream(),
-            Stream.of(RegprocType.ID))
-            .collect(Collectors.toUnmodifiableSet())),
+            Stream.of(RegprocType.ID, RegclassType.ID)
+        ).collect(Collectors.toUnmodifiableSet())),
         entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id())),
+        entry(REGCLASS.id(), Set.of(STRING.id(), INTEGER.id())),
         entry(LONG.id(), NUMBER_CONVERSIONS),
         entry(NUMERIC.id(), NUMBER_CONVERSIONS),
         entry(FLOAT.id(), NUMBER_CONVERSIONS),
         entry(DOUBLE.id(), NUMBER_CONVERSIONS),
         entry(BOOLEAN.id(), Set.of(STRING.id())),
         entry(STRING.id(), Stream.concat(
-            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID, RegprocType.ID, TimeTZType.ID),
+            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID, RegprocType.ID, RegclassType.ID, TimeTZType.ID),
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
         entry(IP.id(), Set.of(STRING.id())),
@@ -357,6 +361,7 @@ public final class DataTypes {
         entry(GEO_POINT.getName(), GEO_POINT),
         entry(GEO_SHAPE.getName(), GEO_SHAPE),
         entry(REGPROC.getName(), REGPROC),
+        entry(REGCLASS.getName(), REGCLASS),
         entry(OIDVECTOR.getName(), OIDVECTOR),
         entry("int2", SHORT),
         entry("int", INTEGER),

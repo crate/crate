@@ -55,6 +55,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         TIMETZ,
         INTEGER,
         REGPROC,
+        REGCLASS,
         INTERVAL,
         TIMESTAMP_WITH_TIME_ZONE,
         TIMESTAMP,
@@ -70,7 +71,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         OBJECT,
         UNCHECKED_OBJECT,
         GEO_SHAPE,
-        CUSTOM
+        CUSTOM,
     }
 
     public abstract int id();
@@ -100,7 +101,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      *                                  violates pre-conditions of the target type.
      */
     public T implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        throw new UnsupportedOperationException("The cast operation is not supported.");
+        throw new UnsupportedOperationException("The cast operation for type `" + getName() + "` is not supported.");
     }
 
     /**

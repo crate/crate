@@ -31,6 +31,7 @@ import io.crate.types.IpType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.OidVectorType;
+import io.crate.types.RegclassType;
 import io.crate.types.RegprocType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
@@ -70,6 +71,9 @@ public class SizeEstimatorFactory {
 
             case RegprocType.ID:
                 return (SizeEstimator<T>) RegprocSizeEstimator.INSTANCE;
+
+            case RegclassType.ID:
+                return (SizeEstimator<T>) RegclassSizeEstimator.INSTANCE;
 
             case NumericType.ID:
                 return (SizeEstimator<T>) NumericSizeEstimator.INSTANCE;

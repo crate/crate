@@ -83,6 +83,8 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
                 throw new IllegalArgumentException("integer value out of range: " + longVal);
             }
             return ((Number) value).intValue();
+        } else if (value instanceof Regclass) {
+            return ((Regclass) value).oid();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }

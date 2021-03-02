@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Added the ``regclass`` data type for improved compatibility with PostgreSQL
+  tools.
+
 - Relicensed all enterprise features under the Apache License 2.0 and removed
   licensing related code. The ``SET LICENSE`` statement can still be used, but
   it won't have any effect.

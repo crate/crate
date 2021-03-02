@@ -40,6 +40,8 @@ import io.crate.types.IntervalType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
+import io.crate.types.Regclass;
+import io.crate.types.RegclassType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
@@ -106,6 +108,12 @@ public class DataTypeTesting {
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return () -> (T) (Long) random.nextLong();
+
+            case RegclassType.ID:
+                return () -> {
+                    int oid = random.nextInt();
+                    return (T) new Regclass(oid, String.valueOf(oid));
+                };
 
             case GeoPointType.ID:
                 return () -> (T) new PointImpl(

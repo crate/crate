@@ -25,6 +25,7 @@ package io.crate.metadata.pgcatalog;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.statistics.TableStats;
+import io.crate.types.Regclass;
 
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.FLOAT;
@@ -32,6 +33,7 @@ import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.REGCLASS;
 
 public class PgClassTable {
 
@@ -40,7 +42,7 @@ public class PgClassTable {
 
     public static SystemTable<Entry> create(TableStats tableStats) {
         return SystemTable.<Entry>builder(IDENT)
-            .add("oid", INTEGER, x -> x.oid)
+            .add("oid", REGCLASS, x -> x.oid)
             .add("relname", STRING, x -> x.name)
             .add("relnamespace", INTEGER, x -> x.schemaOid)
             .add("reltype", INTEGER, x -> 0)
@@ -93,7 +95,7 @@ public class PgClassTable {
             }
         }
 
-        final int oid;
+        final Regclass oid;
         final boolean hasPrimaryKey;
         final int schemaOid;
         final RelationName ident;
@@ -101,7 +103,7 @@ public class PgClassTable {
         final int numberOfAttributes;
         final String name;
 
-        public Entry(int oid,
+        public Entry(Regclass oid,
                      int schemaOid,
                      RelationName ident,
                      String name,

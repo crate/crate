@@ -158,6 +158,8 @@ public class StringType extends DataType<String> implements Streamer<String> {
             return ((TimeValue) value).getStringRep();
         } else if (value instanceof Regproc) {
             return ((Regproc) value).name();
+        } else if (value instanceof Regclass) {
+            return ((Regclass) value).name();
         } else {
             return value.toString();
         }

@@ -21,13 +21,16 @@
 
 package io.crate.analyze.validator;
 
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.types.DataTypes;
-
-import java.util.Locale;
 
 /**
  * rudimentary sort symbol validation that can be used during analysis.
@@ -37,6 +40,13 @@ import java.util.Locale;
 public class SemanticSortValidator {
 
     private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
+    private static final Set<Integer> SUPPORTED_TYPES = Stream.concat(
+        DataTypes.PRIMITIVE_TYPES.stream(),
+        Stream.of(
+            DataTypes.REGCLASS,
+            DataTypes.REGPROC
+        )
+    ).map(x -> x.id()).collect(Collectors.toSet());
 
     public static void validate(Symbol symbol) throws UnsupportedOperationException {
         symbol.accept(INNER_VALIDATOR, new SortContext("ORDER BY"));
@@ -67,7 +77,7 @@ public class SemanticSortValidator {
 
         @Override
         public Void visitFunction(Function symbol, SortContext context) {
-            if (!context.inFunction && !DataTypes.isPrimitive(symbol.valueType())) {
+            if (!context.inFunction && !SUPPORTED_TYPES.contains(symbol.valueType().id())) {
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH,
                                   "Cannot %s '%s': invalid return type '%s'.",
@@ -98,7 +108,7 @@ public class SemanticSortValidator {
         public Void visitSymbol(Symbol symbol, SortContext context) {
             // if we are in a function, we do not need to check the data type.
             // the function will do that for us.
-            if (!context.inFunction && !DataTypes.isPrimitive(symbol.valueType())) {
+            if (!context.inFunction && !SUPPORTED_TYPES.contains(symbol.valueType().id())) {
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH,
                                   "Cannot %s '%s': invalid data type '%s'.",
