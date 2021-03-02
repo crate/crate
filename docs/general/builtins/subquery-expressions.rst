@@ -47,8 +47,8 @@ Here's an example::
     SELECT 4 rows in set (... sec)
 
 The ``IN`` :ref:`operator <gloss-operator>` returns ``true`` if any subquery
-row equals the left-hand operand. Otherwise, it returns ``false`` (including
-the case where the subquery returns no rows).
+row equals the left-hand :ref:`operand <gloss-operand>`. Otherwise, it returns
+``false`` (including the case where the subquery returns no rows).
 
 The operator returns ``NULL`` if:
 
