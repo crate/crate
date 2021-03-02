@@ -1,0 +1,59 @@
+.. _version_4.4.2:
+
+=============
+Version 4.4.2
+=============
+
+Released on 2021-03-02.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.4.2.
+
+    We recommend that you upgrade to the latest 4.3 release before moving to
+    4.4.2.
+
+    A rolling upgrade from 4.3.0+ to 4.4.2 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_4.4.0` release notes for a full list of changes in the
+4.4 series.
+
+Fixes
+=====
+
+- Fixed an issue in the error handling of ``CREATE REPOSITORY`` statements
+  which could lead to a ``NullPointerException`` instead of a more meaningful
+  error message.
+
+- Fixed an issue that could lead to a ``Can't handle Symbol`` error when
+  using views which are defined with column aliases.
+
+- Fixed a regression that led to ``max`` aggregations on columns of type
+  ``double precision`` or ``real`` to return ``null`` instead of ``0.0`` if all
+  aggregated values are ``0.0``.
+
+- Fixed an issue that could lead to an ``OutOfMemoryError`` when retrieving
+  large result sets with large individual records.
+
+- Fixed an issue that could lead to a ``NullPointerException`` when using a
+  SELECT statement containing an INNER JOIN.
+
+- Fixed an issue in the PostgreSQL wire protocol that would cause
+  de-serialization of arrays to fail if they contained unquoted strings
+  starting with digits.
+
+- Fixed an issue that could lead to a serialization error when streaming values
+  of the ``TIMESTAMP WITHOUT TIME ZONE`` type in text format using the
+  PostgreSQL wire protocol.
