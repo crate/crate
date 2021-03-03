@@ -111,7 +111,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                         public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
                             return processRequestItems(primary, request, killed);
                         }
-                };
+                    };
                 return wrapOperationInKillable(request, callable);
             }
         );
@@ -125,7 +125,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                 public WriteReplicaResult<Request> call() throws Exception {
                     return processRequestItemsOnReplica(indexShard, replicaRequest);
                 }
-        };
+            };
         return wrapOperationInKillable(replicaRequest, callable);
     }
 

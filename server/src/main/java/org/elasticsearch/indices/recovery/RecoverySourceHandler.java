@@ -645,10 +645,16 @@ public class RecoverySourceHandler {
                 logger.trace("cloning primary's retention lease");
                 try {
                     final StepListener<ReplicationResponse> cloneRetentionLeaseStep = new StepListener<>();
-                    final RetentionLease clonedLease
-                        = shard.cloneLocalPeerRecoveryRetentionLease(request.targetNode().getId(),
-                        new ThreadedActionListener<>(logger, shard.getThreadPool(),
-                            ThreadPool.Names.GENERIC, cloneRetentionLeaseStep, false));
+                    final RetentionLease clonedLease = shard.cloneLocalPeerRecoveryRetentionLease(
+                        request.targetNode().getId(),
+                        new ThreadedActionListener<>(
+                            logger,
+                            shard.getThreadPool(),
+                            ThreadPool.Names.GENERIC,
+                            cloneRetentionLeaseStep,
+                            false
+                        )
+                    );
                     logger.trace("cloned primary's retention lease as [{}]", clonedLease);
                     cloneRetentionLeaseStep.whenComplete(rr -> listener.onResponse(clonedLease), listener::onFailure);
                 } catch (RetentionLeaseNotFoundException e) {
