@@ -128,6 +128,11 @@ public class PgCatalogTableDefinitions {
             PgAmTable.create().expressions(),
             false
         ));
+        tableDefinitions.put(PgTablespaceTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgTablespaceTable.create().expressions(),
+            false
+        ));
         Iterable<NamedSessionSetting> sessionSettings =
             () -> sessionSettingRegistry.settings().entrySet().stream()
                 .map(s -> new NamedSessionSetting(s.getKey(), s.getValue()))
