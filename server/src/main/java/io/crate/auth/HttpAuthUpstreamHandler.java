@@ -106,7 +106,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,
-                "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\"",
+                "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\". Did you enable TLS in your client?",
                 address.getHostAddress(), username, Protocol.HTTP.toString());
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {

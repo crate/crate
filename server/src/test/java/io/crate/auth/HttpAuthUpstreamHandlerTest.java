@@ -134,7 +134,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
         assertUnauthorized(
             ch.readOutbound(),
-            "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"Aladdin\", protocol \"http\"\n");
+            "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"Aladdin\", protocol \"http\". Did you enable TLS in your client?\n");
     }
 
     @Test

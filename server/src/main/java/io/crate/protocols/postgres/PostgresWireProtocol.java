@@ -429,7 +429,7 @@ public class PostgresWireProtocol {
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,
-                "No valid auth.host_based entry found for host \"%s\", user \"%s\"",
+                "No valid auth.host_based entry found for host \"%s\", user \"%s\". Did you enable TLS in your client?",
                 address.getHostAddress(), userName
             );
             Messages.sendAuthenticationError(channel, errorMessage);
