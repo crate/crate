@@ -53,6 +53,10 @@ None
 Changes
 =======
 
+- Relicensed all enterprise features under the Apache License 2.0 and removed
+  licensing related code. The ``SET LICENSE`` statement can still be used, but
+  it won't have any effect.
+
 - Added an empty ``pg_tablespace`` table in the ``pg_catalog`` schema for
   improved support for PostgreSQL tools.
 
