@@ -87,7 +87,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         @Nullable Reference[] insertColumns,
         @Nullable Symbol[] returnValues) {
         super(shardId, jobId);
-        assert updateColumns != null || insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
+//        assert updateColumns != null || insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
         this.continueOnError = continueOnError;
         this.validateConstraints = validateConstraints;
         this.duplicateKeyAction = duplicateKeyAction;

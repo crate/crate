@@ -21,6 +21,7 @@
  */
 package org.elasticsearch.index.shard;
 
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;
@@ -375,6 +376,27 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   String nodeId,
                                   IndexMetadata indexMetadata) throws IOException {
         return newShard(shardId, primary, nodeId, indexMetadata, () -> {});
+    }
+
+    /**
+     * creates a new initializing shard. The shard will will be put in its proper path under the
+     * current node id the shard is assigned to.
+     * @param routing                shard routing to use
+     * @param indexMetaData          indexMetaData for the shard, including any mapping
+     * @param indexReaderWrapper     an optional wrapper to be used during search
+     * @param globalCheckpointSyncer callback for syncing global checkpoints
+     * @param listeners              an optional set of listeners to add to the shard
+     */
+    protected IndexShard newShard(ShardRouting routing, IndexMetadata indexMetaData,
+                                  @Nullable EngineFactory engineFactory, Runnable globalCheckpointSyncer, RetentionLeaseSyncer retentionLeaseSyncer,
+                                  IndexingOperationListener... listeners)
+        throws IOException {
+        // add node id as name to settings for proper logging
+        final ShardId shardId = routing.shardId();
+        final NodeEnvironment.NodePath nodePath = new NodeEnvironment.NodePath(createTempDir());
+        ShardPath shardPath = new ShardPath(false, nodePath.resolve(shardId), nodePath.resolve(shardId), shardId);
+        return newShard(routing, shardPath, indexMetaData, null, engineFactory, globalCheckpointSyncer,
+                        retentionLeaseSyncer, EMPTY_EVENT_LISTENER, listeners);
     }
 
     /**
@@ -810,6 +832,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         }
     }
 
+
     protected void startReplicaAfterRecovery(IndexShard replica, IndexShard primary, Set<String> inSyncIds,
                                              IndexShardRoutingTable routingTable) throws IOException {
         ShardRouting initializingReplicaRouting = replica.routingEntry();
@@ -820,34 +843,23 @@ public abstract class IndexShardTestCase extends ESTestCase {
                     .addShard(replica.routingEntry())
                     .build() :
                 new IndexShardRoutingTable.Builder(routingTable)
-                .removeShard(initializingReplicaRouting)
-                .addShard(replica.routingEntry())
-                .build();
+                    .removeShard(initializingReplicaRouting)
+                    .addShard(replica.routingEntry())
+                    .build();
         Set<String> inSyncIdsWithReplica = new HashSet<>(inSyncIds);
         inSyncIdsWithReplica.add(replica.routingEntry().allocationId().getId());
         // update both primary and replica shard state
-        primary.updateShardState(
-            primary.routingEntry(),
-            primary.getPendingPrimaryTerm(),
-            null,
-            currentClusterStateVersion.incrementAndGet(),
-            inSyncIdsWithReplica,
-            newRoutingTable
-        );
-        replica.updateShardState(
-            replica.routingEntry().moveToStarted(),
-            replica.getPendingPrimaryTerm(),
-            null,
-            currentClusterStateVersion.get(),
-            inSyncIdsWithReplica,
-            newRoutingTable
-        );
+        primary.updateShardState(primary.routingEntry(), primary.getPendingPrimaryTerm(), null,
+                                 currentClusterStateVersion.incrementAndGet(), inSyncIdsWithReplica, newRoutingTable);
+        replica.updateShardState(replica.routingEntry().moveToStarted(), replica.getPendingPrimaryTerm(), null,
+                                 currentClusterStateVersion.get(), inSyncIdsWithReplica, newRoutingTable);
     }
 
 
-    /**
-     * promotes a replica to primary, incrementing it's term and starting it if needed
-     */
+
+                                 /**
+                                  * promotes a replica to primary, incrementing it's term and starting it if needed
+                                  */
     protected void promoteReplica(IndexShard replica, Set<String> inSyncIds, IndexShardRoutingTable routingTable) throws IOException {
         assertThat(inSyncIds, contains(replica.routingEntry().allocationId().getId()));
         final ShardRouting routingEntry = newShardRouting(

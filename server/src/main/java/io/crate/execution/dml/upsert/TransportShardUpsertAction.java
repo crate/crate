@@ -42,6 +42,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -60,9 +61,11 @@ import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -77,6 +80,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
 import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
 
@@ -121,7 +125,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
-        ShardResponse shardResponse = new ShardResponse(request.returnValues());
+    return processRequestItems(indexShard, request, killed, schemas, nodeCtx, logger, mappingUpdate);
+    }
+
+    public static WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(
+        IndexShard indexShard,
+        ShardUpsertRequest request,
+        AtomicBoolean killed,
+        Schemas schemas,
+        NodeContext nodeCtx,
+        Logger logger,
+        BiConsumer<Mapping, ShardId> mappingUpdate
+    ) {
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
         Reference[] insertColumns = request.insertColumns();
@@ -145,6 +160,22 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             ? null
             : new ReturnValueGen(txnCtx, nodeCtx, tableInfo, request.returnValues());
 
+        return processRequestItems(indexShard, request, killed, logger, mappingUpdate, updateSourceGen, insertSourceGen, returnValueGen);
+    }
+
+    public static WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(
+        IndexShard indexShard,
+        ShardUpsertRequest request,
+        AtomicBoolean killed,
+        Logger logger,
+        BiConsumer<Mapping, ShardId> mappingUpdate,
+        @Nullable UpdateSourceGen updateSourceGen,
+        @Nullable InsertSourceGen insertSourceGen,
+        @Nullable ReturnValueGen returnValueGen
+    ) {
+
+        ShardResponse shardResponse = new ShardResponse(request.returnValues());
+
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
             int location = item.location();
@@ -162,7 +193,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     indexShard,
                     updateSourceGen,
                     insertSourceGen,
-                    returnValueGen
+                    returnValueGen,
+                    logger,
+                    mappingUpdate
                 );
                 if (indexItemResponse != null) {
                     if (indexItemResponse.translog != null) {
@@ -199,8 +232,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
     }
 
+
+
+
     @Override
     protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
+        return processOnReplica(indexShard, request, logger);
+    }
+
+    public static WriteReplicaResult<ShardUpsertRequest> processOnReplica(IndexShard indexShard, ShardUpsertRequest request, Logger logger) throws IOException {
         Translog.Location location = null;
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.source() == null) {
@@ -242,13 +282,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return new WriteReplicaResult<>(request, location, null, indexShard, logger);
     }
 
-    @Nullable
-    private IndexItemResponse indexItem(ShardUpsertRequest request,
-                                        ShardUpsertRequest.Item item,
-                                        IndexShard indexShard,
-                                        @Nullable UpdateSourceGen updateSourceGen,
-                                        @Nullable InsertSourceGen insertSourceGen,
-                                        @Nullable ReturnValueGen returnValueGen) throws Exception {
+    public static IndexItemResponse indexItem(ShardUpsertRequest request,
+                                       ShardUpsertRequest.Item item,
+                                       IndexShard indexShard,
+                                       @Nullable UpdateSourceGen updateSourceGen,
+                                       @Nullable InsertSourceGen insertSourceGen,
+                                       @Nullable ReturnValueGen returnValueGen,
+                                       Logger logger,
+                                       BiConsumer<Mapping, ShardId> mappingUpdate) throws Exception {
         VersionConflictEngineException lastException = null;
         boolean tryInsertFirst = item.insertValues() != null;
         boolean isRetry;
@@ -256,9 +297,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             try {
                 isRetry = retryCount > 0;
                 if (tryInsertFirst) {
-                    return insert(request, item, indexShard, isRetry, returnValueGen, insertSourceGen);
+                    return insert(request, item, indexShard, isRetry, returnValueGen, insertSourceGen, logger, mappingUpdate);
                 } else {
-                    return update(item, indexShard, isRetry, returnValueGen, updateSourceGen);
+                    return update(item, indexShard, isRetry, returnValueGen, updateSourceGen, logger, mappingUpdate);
                 }
             } catch (VersionConflictEngineException e) {
                 lastException = e;
@@ -308,6 +349,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        boolean isRetry,
                                        @Nullable ReturnValueGen returnGen,
                                        InsertSourceGen insertSourceGen) throws Exception {
+        return insert(request, item, indexShard, isRetry, returnGen, insertSourceGen, logger, mappingUpdate);
+    }
+
+    public static IndexItemResponse insert(ShardUpsertRequest request,
+                                    ShardUpsertRequest.Item item,
+                                    IndexShard indexShard,
+                                    boolean isRetry,
+                                    @Nullable ReturnValueGen returnGen,
+                                    InsertSourceGen insertSourceGen,
+                                    Logger logger,
+                                    BiConsumer<Mapping, ShardId> mappingUpdate) throws Exception {
         assert insertSourceGen != null : "InsertSourceGen must not be null";
         BytesReference rawSource;
         Map<String, Object> source = null;
@@ -329,7 +381,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 
-        Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version);
+        Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version, logger, mappingUpdate);
         Object[] returnvalues = null;
         if (returnGen != null) {
             // This optimizes for the case where the insert value is already string-based, so only parse the source
@@ -359,10 +411,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     protected IndexItemResponse update(ShardUpsertRequest.Item item,
-                                       IndexShard indexShard,
-                                       boolean isRetry,
-                                       @Nullable ReturnValueGen returnGen,
-                                       UpdateSourceGen updateSourceGen) throws Exception {
+                                    IndexShard indexShard,
+                                    boolean isRetry,
+                                    @Nullable ReturnValueGen returnGen,
+                                    UpdateSourceGen updateSourceGen) throws Exception {
+        return update(item, indexShard, isRetry, returnGen, updateSourceGen, logger, mappingUpdate);
+    }
+
+    static IndexItemResponse update(ShardUpsertRequest.Item item,
+                                    IndexShard indexShard,
+                                    boolean isRetry,
+                                    @Nullable ReturnValueGen returnGen,
+                                    UpdateSourceGen updateSourceGen,
+                                    Logger logger,
+                                    BiConsumer<Mapping, ShardId> mappingUpdate) throws Exception {
         assert updateSourceGen != null : "UpdateSourceGen must not be null";
         Doc fetchedDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
         Map<String, Object> source = updateSourceGen.generateSource(
@@ -376,7 +438,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         long primaryTerm = item.primaryTerm();
         long version = Versions.MATCH_ANY;
 
-        Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version);
+        Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version, logger, mappingUpdate);
         Object[] returnvalues = null;
         if (returnGen != null) {
             returnvalues = returnGen.generateReturnValues(
@@ -395,12 +457,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
     }
 
-    private Engine.IndexResult index(ShardUpsertRequest.Item item,
-                                     IndexShard indexShard,
-                                     boolean isRetry,
-                                     long seqNo,
-                                     long primaryTerm,
-                                     long version) throws Exception {
+    static Engine.IndexResult index(ShardUpsertRequest.Item item,
+                                    IndexShard indexShard,
+                                    boolean isRetry,
+                                    long seqNo,
+                                    long primaryTerm,
+                                    long version,
+                                    Logger logger,
+                                    BiConsumer<Mapping, ShardId> mappingUpdate) throws Exception {
         SourceToParse sourceToParse = new SourceToParse(
             indexShard.shardId().getIndexName(),
             item.id(),
@@ -409,6 +473,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         );
 
         Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
+            mappingUpdate,
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
                 version,

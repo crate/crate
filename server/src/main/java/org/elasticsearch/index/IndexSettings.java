@@ -653,8 +653,10 @@ public final class IndexSettings {
     }
 
     private static boolean shouldDisableTranslogRetention(Settings settings) {
-        return INDEX_SOFT_DELETES_SETTING.get(settings)
-            && IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings).onOrAfter(Version.V_4_3_0);
+        Version version = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings);
+        boolean b = INDEX_SOFT_DELETES_SETTING.get(settings)
+                    && version.onOrAfter(Version.V_4_3_0);
+        return b;
     }
 
     /**

@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;

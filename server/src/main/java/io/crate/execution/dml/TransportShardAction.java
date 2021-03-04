@@ -40,6 +40,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -54,6 +55,7 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -65,7 +67,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         implements KillAllListener {
 
     private final ConcurrentHashMap<TaskId, KillableCallable<?>> activeOperations = new ConcurrentHashMap<>();
-    private final MappingUpdatePerformer mappingUpdate;
+    protected final BiConsumer<Mapping, ShardId> mappingUpdate;
 
     protected TransportShardAction(String actionName,
                                    TransportService transportService,
@@ -192,13 +194,14 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         }
     }
 
-    protected <T extends Engine.Result> T executeOnPrimaryHandlingMappingUpdate(ShardId shardId,
-                                                                                CheckedSupplier<T, IOException> execute,
-                                                                                Function<Exception, T> onMappingUpdateError) throws IOException {
+    public static <T extends Engine.Result> T executeOnPrimaryHandlingMappingUpdate(BiConsumer<Mapping, ShardId> mappingUpdate,
+                                                                             ShardId shardId,
+                                                                             CheckedSupplier<T, IOException> execute,
+                                                                             Function<Exception, T> onMappingUpdateError) throws IOException {
         T result = execute.get();
         if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
             try {
-                mappingUpdate.updateMappings(result.getRequiredMappingUpdate(), shardId);
+                mappingUpdate.accept(result.getRequiredMappingUpdate(), shardId);
             } catch (Exception e) {
                 return onMappingUpdateError.apply(e);
             }

@@ -1019,7 +1019,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGeoPointType() throws Exception {
-        DocIndexMetadata md = getDocIndexMetadataFromStatement("create table foo (p geo_point)");
+        DocIndexMetadata md = getDocIndexMetadataFromStatement("create table foo (id integer)");
         assertThat(md.columns().size(), is(1));
         Reference reference = md.columns().iterator().next();
         assertThat(reference.valueType(), equalTo(DataTypes.GEO_POINT));

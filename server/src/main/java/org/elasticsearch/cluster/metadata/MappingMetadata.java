@@ -22,6 +22,7 @@ package org.elasticsearch.cluster.metadata;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 
 import org.elasticsearch.ElasticsearchParseException;
@@ -82,7 +83,7 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
         this.routing = new Routing(docMapper.routingFieldMapper().required());
     }
 
-    public MappingMetadata(CompressedXContent mapping) throws IOException {
+    public MappingMetadata(CompressedXContent mapping) {
         this.source = mapping;
         Map<String, Object> mappingMap = XContentHelper.convertToMap(mapping.compressedReference(), true).v2();
         if (mappingMap.size() != 1) {
@@ -92,10 +93,14 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
         initMappers((Map<String, Object>) mappingMap.get(this.type));
     }
 
-    public MappingMetadata(String type, Map<String, Object> mapping) throws IOException {
+    public MappingMetadata(String type, Map<String, Object> mapping) {
         this.type = type;
-        this.source = new CompressedXContent(
-            (builder, params) -> builder.mapContents(mapping), XContentType.JSON, ToXContent.EMPTY_PARAMS);
+        try {
+            this.source = new CompressedXContent(
+                (builder, params) -> builder.mapContents(mapping), XContentType.JSON, ToXContent.EMPTY_PARAMS);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);  // XContent exception, should never happen
+        }
         Map<String, Object> withoutType = mapping;
         if (mapping.size() == 1 && mapping.containsKey(type)) {
             withoutType = (Map<String, Object>) mapping.get(type);

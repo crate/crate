@@ -240,7 +240,7 @@ public abstract class TransportWriteAction<
      * callback used by {@link AsyncAfterWriteAction} to notify that all post
      * process actions have been executed
      */
-    interface RespondingWriteResult {
+    public interface RespondingWriteResult {
         /**
          * Called on successful processing of all post write actions
          * @param forcedRefresh <code>true</code> iff this write has caused a refresh
@@ -258,7 +258,7 @@ public abstract class TransportWriteAction<
      * translog syncs or waiting for a refresh to happen making the write operation
      * visible.
      */
-    static final class AsyncAfterWriteAction {
+    public static final class AsyncAfterWriteAction {
         private final Location location;
         private final boolean sync;
         private final AtomicInteger pendingOps = new AtomicInteger(1);
@@ -267,7 +267,7 @@ public abstract class TransportWriteAction<
         private final RespondingWriteResult respond;
         private final IndexShard indexShard;
 
-        AsyncAfterWriteAction(final IndexShard indexShard,
+        public AsyncAfterWriteAction(final IndexShard indexShard,
                              @Nullable final Translog.Location location,
                              final RespondingWriteResult respond) {
             this.indexShard = indexShard;
@@ -292,7 +292,7 @@ public abstract class TransportWriteAction<
             assert numPending >= 0 && numPending <= 2 : "numPending must either 2, 1 or 0 but was " + numPending;
         }
 
-        void run() {
+        public void run() {
             /*
              * We either respond immediately (i.e., if we do not fsync per request or wait for
              * refresh), or we there are past async operations and we wait for them to return to

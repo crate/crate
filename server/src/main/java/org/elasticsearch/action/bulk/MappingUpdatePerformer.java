@@ -22,11 +22,12 @@ package org.elasticsearch.action.bulk;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.shard.ShardId;
 
+@FunctionalInterface
 public interface MappingUpdatePerformer {
 
     /**
      * Update the mappings on the master.
      */
-    void updateMappings(Mapping update, ShardId shardId);
+    void accept(Mapping update, ShardId shardId);
 
 }

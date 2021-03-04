@@ -98,7 +98,7 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
         return EMPTY_CLUSTER_SETTINGS;
     }
 
-    protected ClusterService createClusterService(Collection<Setting<?>> additionalClusterSettings, Version version) {
+    public static ClusterService createClusterService(Collection<Setting<?>> additionalClusterSettings, Version version) {
         Set<Setting<?>> clusterSettingsSet = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         clusterSettingsSet.addAll(additionalClusterSettings);
         ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, clusterSettingsSet);
@@ -124,7 +124,7 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
             .localNodeId(NODE_ID)
             .masterNodeId(NODE_ID)
             .build();
-        ClusterState clusterState = ClusterState.builder(new ClusterName(this.getClass().getSimpleName()))
+        ClusterState clusterState = ClusterState.builder(new ClusterName(CrateDummyClusterServiceUnitTest.class.getSimpleName()))
             .nodes(nodes).blocks(ClusterBlocks.EMPTY_CLUSTER_BLOCK).build();
 
         ClusterApplierService clusterApplierService = clusterService.getClusterApplierService();

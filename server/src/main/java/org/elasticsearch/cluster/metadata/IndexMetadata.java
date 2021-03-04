@@ -34,6 +34,8 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.node.DiscoveryNodeFilters;
 import org.elasticsearch.cluster.routing.allocation.IndexMetadataUpdater;
 import javax.annotation.Nullable;
+
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -52,6 +54,7 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 
@@ -66,6 +69,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -876,10 +880,17 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         }
 
         // TODO remove type here
-        public Builder putMapping(String type, String source) throws IOException {
+        public Builder putMapping(String type, Map<String, Object> source) throws IOException {
+            putMapping(new MappingMetadata(type, source));
+            return this;
+        }
+
+        // TODO remove type here
+        public Builder putMapping(String type, String source) {
             putMapping(new MappingMetadata(type, XContentHelper.convertToMap(XContentFactory.xContent(source), source, true)));
             return this;
         }
+
 
         public Builder putMapping(MappingMetadata mappingMd) {
             mappings.clear();

@@ -83,13 +83,8 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
                     newMapping.put(fieldName, fieldNode);
             }
         }
-        try {
-            return new MappingMetadata(
-                Constants.DEFAULT_MAPPING_TYPE, Map.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
-        } catch (IOException e) {
-            logger.error("Failed to upgrade mapping for index '" + indexName + "'", e);
-            return mappingMetadata;
-        }
+        return new MappingMetadata(
+            Constants.DEFAULT_MAPPING_TYPE, Map.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
     }
 
     private static void handleDynamicTemplates(LinkedHashMap<String, Object> newMapping, String fieldName, List<?> fieldNode) {
