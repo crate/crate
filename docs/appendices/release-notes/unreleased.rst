@@ -94,5 +94,7 @@ Fixes
 
 - Adjusted ``crate.bat`` to work with spaces in directory names.
 
+- Adjusted ``crate-node`` auxiliary program to use the bundled Java runtime.
+
 - Fixed a ``NullPointerException`` when trying to kill a job as normal user
   which is no longer running.
