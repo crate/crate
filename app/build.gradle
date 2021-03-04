@@ -369,6 +369,44 @@ task createCrateNodeScripts(type: CreateStartScripts) {
     mainClassName = 'org.elasticsearch.cluster.coordination.NodeToolCli'
     applicationName = 'crate-node'
     classpath = sourceSets.main.runtimeClasspath + files('lib/crate-app.jar')
+
+
+    // Helper functions for manipulating start script contents.
+    ext.insertBefore = { String originalString, String needleString, String insertString ->
+        StringBuilder builder = new StringBuilder(originalString);
+        Integer position = builder.indexOf(needleString);
+        builder.insert(position, insertString);
+        return builder.toString();
+    }
+
+    ext.insertAfter = { String originalString, String needleString, String insertString ->
+        StringBuilder builder = new StringBuilder(originalString);
+        Integer position = builder.indexOf(needleString) + needleString.length();
+        builder.insert(position, insertString);
+        return builder.toString();
+    }
+
+    doLast {
+
+        // Unix: Prevent using the system-wide Java installation.
+        unixScript.text = insertAfter(unixScript.text, '#!/usr/bin/env sh\n', 'unset JAVA_HOME\n');
+
+        // Unix: Use the bundled Java runtime.
+        unixScript.text = unixScript.text.replace('JAVACMD="java"', """
+            if \${darwin}; then
+                JAVACMD="\${APP_HOME}/jdk/Contents/Home/bin/java"
+            else
+                JAVACMD="\${APP_HOME}/jdk"
+            fi
+        """)
+        unixScript.text = unixScript.text.replace('which java', 'which ${JAVACMD}')
+
+        // Windows: Prevent using the system-wide Java installation.
+        windowsScript.text = insertBefore(windowsScript.text, 'if defined JAVA_HOME', 'set JAVA_HOME=\n');
+
+        // Windows: Use the bundled Java runtime.
+        windowsScript.text = windowsScript.text.replace('set JAVA_EXE=java.exe', 'set JAVA_EXE=%APP_HOME%/jdk/bin/java.exe')
+    }
 }
 
 test {
