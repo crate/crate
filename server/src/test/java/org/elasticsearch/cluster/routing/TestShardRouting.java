@@ -22,6 +22,7 @@ package org.elasticsearch.cluster.routing;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
@@ -65,6 +66,12 @@ public class TestShardRouting {
     public static ShardRouting newShardRouting(String index, int shardId, String currentNodeId,
             String relocatingNodeId, boolean primary, ShardRoutingState state, AllocationId allocationId) {
         return newShardRouting(new ShardId(index, IndexMetadata.INDEX_UUID_NA_VALUE, shardId), currentNodeId,
+                relocatingNodeId, primary, state, allocationId);
+    }
+
+    public static ShardRouting newShardRouting(Index index, int shardId, String currentNodeId,
+                                               String relocatingNodeId, boolean primary, ShardRoutingState state, AllocationId allocationId) {
+        return newShardRouting(new ShardId(index, shardId), currentNodeId,
                 relocatingNodeId, primary, state, allocationId);
     }
 
