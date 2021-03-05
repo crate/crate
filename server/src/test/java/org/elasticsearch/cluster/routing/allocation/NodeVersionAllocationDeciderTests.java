@@ -58,6 +58,7 @@ import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,6 +70,7 @@ import static java.util.Collections.shuffle;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.UNASSIGNED;
+import static org.elasticsearch.cluster.routing.UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -445,7 +447,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
                 String toId = r.currentNodeId();
                 logger.trace("From: {} with Version: {} to: {} with Version: {}", fromId,
                              routingNodes.node(fromId).node().getVersion(), toId, routingNodes.node(toId).node().getVersion());
-                assertTrue(routingNodes.node(toId).node().getVersion().onOrAfter(routingNodes.node(fromId).node().getVersion()));
+                assertTrue(routingNodes.node(toId).node().getVersion().onOrAfterMajorMinor(routingNodes.node(fromId).node().getVersion()));
             }
         }
     }
@@ -533,5 +535,63 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         assertThat(decision.type(), is(Decision.Type.YES));
         assertThat(decision.getExplanation(), is("can allocate replica shard to a node with version [" +
                                                  newNode.node().getVersion() + "] since this is equal-or-newer than the primary version [" + oldNode.node().getVersion() + "]"));
+    }
+
+    @Test
+    public void test_primary_and_replica_allocation_on_lower_hotfix_version_is_allowed() {
+        ShardId shard1 = new ShardId("test1", UUIDs.randomBase64UUID(), 0);
+        final DiscoveryNode newNode1 = new DiscoveryNode("newNode1", buildNewFakeTransportAddress(), emptyMap(),
+                                                        MASTER_DATA_ROLES, Version.V_4_4_2);
+        final DiscoveryNode newNode2 = new DiscoveryNode("newNode2", buildNewFakeTransportAddress(), emptyMap(),
+                                                        MASTER_DATA_ROLES, Version.V_4_4_2);
+        final DiscoveryNode oldNode1 = new DiscoveryNode("oldNode1", buildNewFakeTransportAddress(), emptyMap(),
+                                                         MASTER_DATA_ROLES, Version.V_4_4_1);
+        final DiscoveryNode oldNode2 = new DiscoveryNode("oldNode2", buildNewFakeTransportAddress(), emptyMap(),
+                                                         MASTER_DATA_ROLES, Version.V_4_4_1);
+        AllocationId allocationId1P = AllocationId.newInitializing();
+        AllocationId allocationId1R = AllocationId.newInitializing();
+        Metadata metadata = Metadata.builder()
+            .put(IndexMetadata.builder(shard1.getIndexName())
+                     .settings(settings(Version.CURRENT)
+                                   .put(AutoExpandReplicas.SETTING.getKey(), "false")
+                                   .put(IndexMetadata.SETTING_INDEX_UUID, shard1.getIndex().getUUID())
+                                   .put(INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey(), 0))
+                     .numberOfShards(1)
+                     .numberOfReplicas(1)
+                     .putInSyncAllocationIds(0, Sets.newHashSet(allocationId1P.getId(), allocationId1R.getId())))
+            .build();
+        RoutingTable routingTable = RoutingTable.builder()
+            .add(IndexRoutingTable.builder(shard1.getIndex())
+                     .addIndexShard(new IndexShardRoutingTable.Builder(shard1)
+                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndex(), shard1.getId(), newNode1.getId(),
+                                                                                   null, true, ShardRoutingState.STARTED, allocationId1P))
+                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndex(), shard1.getId(), newNode2.getId(),
+                                                                                   null, false, ShardRoutingState.STARTED, allocationId1R))
+                                        .build())
+            )
+            .build();
+
+        AllocationDeciders allocationDeciders = new AllocationDeciders(
+            Collections.singleton(new NodeVersionAllocationDecider()));
+        AllocationService strategy = new MockAllocationService(
+            allocationDeciders,
+            new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), EmptyClusterInfoService.INSTANCE);
+
+        // Test downgrade to same MAJOR.MINOR but lower HOTFIX version
+        logger.trace("Downgrade 1st node");
+        ClusterState state = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY))
+            .metadata(metadata)
+            .routingTable(routingTable)
+            .nodes(DiscoveryNodes.builder().add(oldNode1).add(newNode2)).build();
+        state = stabilize(state, strategy);
+        assertThat(state.routingTable().index(shard1.getIndex()).shardsWithState(STARTED).size(), equalTo(2));
+
+
+        logger.trace("Downgrade 2nd node");
+        state = ClusterState.builder(state)
+            .nodes(DiscoveryNodes.builder().add(oldNode1).add(oldNode2))
+            .build();
+        state = stabilize(state, strategy);
+        assertThat(state.routingTable().index(shard1.getIndex()).shardsWithState(STARTED).size(), equalTo(2));
     }
 }
