@@ -67,7 +67,7 @@ public class NodeVersionAllocationDecider extends AllocationDecider {
     private Decision isVersionCompatibleRelocatePrimary(final RoutingNodes routingNodes, final String sourceNodeId,
                                                         final RoutingNode target, final RoutingAllocation allocation) {
         final RoutingNode source = routingNodes.node(sourceNodeId);
-        if (target.node().getVersion().onOrAfter(source.node().getVersion())) {
+        if (target.node().getVersion().onOrAfterMajorMinor(source.node().getVersion())) {
             return allocation.decision(Decision.YES, NAME,
                 "can relocate primary shard from a node with version [%s] to a node with equal-or-newer version [%s]",
                 source.node().getVersion(), target.node().getVersion());
@@ -81,7 +81,7 @@ public class NodeVersionAllocationDecider extends AllocationDecider {
     private Decision isVersionCompatibleAllocatingReplica(final RoutingNodes routingNodes, final String sourceNodeId,
                                                           final RoutingNode target, final RoutingAllocation allocation) {
         final RoutingNode source = routingNodes.node(sourceNodeId);
-        if (target.node().getVersion().onOrAfter(source.node().getVersion())) {
+        if (target.node().getVersion().onOrAfterMajorMinor(source.node().getVersion())) {
             /* we can allocate if we can recover from a node that is younger or on the same version
              * if the primary is already running on a newer version that won't work due to possible
              * differences in the lucene index format etc.*/
