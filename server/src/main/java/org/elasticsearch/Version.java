@@ -345,6 +345,13 @@ public class Version implements Comparable<Version>, ToXContentFragment {
         return version.internalId > internalId;
     }
 
+    public boolean beforeMajorMinor(Version version) {
+        if (version.major == major) {
+            return version.minor > minor;
+        }
+        return version.major > major;
+    }
+
     public boolean onOrBefore(Version version) {
         return version.internalId >= internalId;
     }
