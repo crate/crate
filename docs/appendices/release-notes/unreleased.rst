@@ -67,4 +67,6 @@ Changes
 Fixes
 =====
 
-None
+- Fixed shard allocation on downgraded nodes where only the ``HOTFIX`` version
+  part differs to fully support rolling downgrades to same ``MAJOR.MINOR``
+  versions.
