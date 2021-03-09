@@ -70,6 +70,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could lead to a stuck ``INNER JOIN`` query involving the
+  ``sys.shards`` table on a cluster without user tables.
+
 - Fixed shard allocation on downgraded nodes where only the ``HOTFIX`` version
   part differs to fully support rolling downgrades to same ``MAJOR.MINOR``
   versions.
