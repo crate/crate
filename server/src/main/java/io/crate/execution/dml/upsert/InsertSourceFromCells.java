@@ -105,7 +105,9 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                 .valueType()
                 .valueForInsert(row.get(i));
             var column = target.column();
-            Maps.mergeInto(source, column.name(), column.path(), valueForInsert, Map::putIfAbsent);
+            if (valueForInsert != null) {
+                Maps.mergeInto(source, column.name(), column.path(), valueForInsert, Map::putIfAbsent);
+            }
         }
         for (int i = 0; i < partitionedByColumns.size(); i++) {
             var pCol = partitionedByColumns.get(i);
