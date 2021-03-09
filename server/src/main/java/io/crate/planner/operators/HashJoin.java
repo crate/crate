@@ -160,6 +160,13 @@ public class HashJoin implements LogicalPlan {
         boolean isDistributed = leftResultDesc.hasRemainingLimitOrOffset() == false
                                 && rightResultDesc.hasRemainingLimitOrOffset() == false;
 
+        if (joinExecutionNodes.isEmpty()) {
+            // The left source might have zero execution nodes, for example in the case of `sys.shards` without any tables
+            // If the join then also uses zero execution nodes, a distributed plan no longer works because
+            // the source operators wouldn't have a downstream node where they can send the results to.
+            // → we switch to non-distributed which results in the join running on the handlerNode.
+            isDistributed = false;
+        }
         if (joinExecutionNodes.size() == 1
             && joinExecutionNodes.equals(rightResultDesc.nodeIds())
             && !rightResultDesc.hasRemainingLimitOrOffset()) {

@@ -1206,4 +1206,37 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
             "    └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]\n"));
         execute(stmt);
     }
+
+
+    @Test
+    @UseHashJoins(1)
+    public void test_inner_join_on_empty_system_tables() throws Exception {
+        String stmt = """
+            SELECT
+                shards.id,
+                table_name,
+                schema_name,
+                partition_ident,
+                state,
+                nodes.id AS node_id,
+                nodes.name AS node_name
+            FROM
+                sys.shards
+                INNER JOIN sys.nodes AS nodes ON shards.node['id'] = nodes.id
+            ORDER BY
+                node_id,
+                shards.id
+            """;
+        execute("EXPLAIN " + stmt);
+        assertThat(printedTable(response.rows()), is(
+            "Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]\n" +
+            "  └ OrderBy[id AS node_id ASC id ASC]\n" +
+            "    └ HashJoin[(node['id'] = id)]\n" +
+            "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]\n" +
+            "      └ Rename[id, name] AS nodes\n" +
+            "        └ Collect[sys.nodes | [id, name] | true]\n"
+        ));
+        execute(stmt);
+        assertThat(response.rowCount(), is(0L));
+    }
 }
