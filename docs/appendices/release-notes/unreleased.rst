@@ -53,6 +53,10 @@ None
 Changes
 =======
 
+- Optimized how ``NULL`` values are stored, reducing the amount of disk space
+  required. This can also improve the performance of value lookups on tables
+  with a lot of null values.
+
 - Added the ``regclass`` data type for improved compatibility with PostgreSQL
   tools.
 
