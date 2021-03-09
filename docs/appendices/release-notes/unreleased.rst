@@ -58,4 +58,5 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that could lead to a stuck ``INNER JOIN`` query involving the
+  ``sys.shards`` table on a cluster without user tables.
