@@ -53,7 +53,7 @@ if NOT DEFINED "%CRATE_DISABLE_GC_LOGGING%" (
 
   SET LOGGC=!GC_LOG_DIR!\gc.log
 
-  SET JAVA_OPTS=!JAVA_OPTS! -Xlog:gc*,gc+age=trace,safepoint:file=\"!LOGGC!\":utctime,pid,tags:filecount=!GC_LOG_FILES!,filesize=!GC_LOG_SIZE!
+  SET JAVA_OPTS=!JAVA_OPTS! -Xlog:gc*,gc+age=trace,safepoint:file="!LOGGC!":utctime,pid,tags:filecount=!GC_LOG_FILES!,filesize=!GC_LOG_SIZE!
 )
 
 REM Disables explicit GC
@@ -104,7 +104,7 @@ for /F "usebackq tokens=* delims= " %%A in (!params!) do (
     )
 )
 
-set JAVA_HOME="%CRATE_HOME%\jdk"
+set JAVA_HOME=%CRATE_HOME%\jdk
 if not exist !JAVA_HOME! (
     ECHO JAVA_HOME environment variable must be set! 1>&2
     EXIT /B 1
