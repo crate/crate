@@ -156,11 +156,11 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
                 logger.trace(
                     "[{}] Adding [{}][{}] to used bytes [new used: [{}], limit: {} [{}]]",
                     this.name,
-                    new ByteSizeValue(bytes),
+                    ByteSizeValue.humanReadableBytes(bytes),
                     label,
-                    new ByteSizeValue(newUsed),
+                    ByteSizeValue.humanReadableBytes(newUsed),
                     memoryBytesLimit,
-                    new ByteSizeValue(memoryBytesLimit)
+                    ByteSizeValue.humanReadableBytes(memoryBytesLimit)
                 );
             }
             if (memoryBytesLimit > 0 && newUsed > memoryBytesLimit) {
@@ -168,10 +168,10 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
                     "[{}] New used memory {} [{}] for data of [{}] would be larger than configured breaker: {} [{}], breaking",
                     this.name,
                     newUsed,
-                    new ByteSizeValue(newUsed),
+                    ByteSizeValue.humanReadableBytes(newUsed),
                     label,
                     memoryBytesLimit,
-                    new ByteSizeValue(memoryBytesLimit)
+                    ByteSizeValue.humanReadableBytes(memoryBytesLimit)
                 );
                 circuitBreak(label, newUsed);
             }

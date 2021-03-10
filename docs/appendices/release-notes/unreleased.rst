@@ -58,6 +58,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that led to ``Values less than -1 bytes`` errors if ``TRACE``
+  logging was activated for the circuit breaker package.
+
 - Fixed shard allocation on downgraded nodes where only the ``HOTFIX`` version
   part differs to fully support rolling downgrades to same ``MAJOR.MINOR``
   versions.
