@@ -58,6 +58,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that led to a ``CircuitBreakingException`` when using the
+  ``ANALYZE`` statement.
+
 - Fixed an issue that led to ``Values less than -1 bytes`` errors if ``TRACE``
   logging was activated for the circuit breaker package.
 
