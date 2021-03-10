@@ -74,6 +74,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that led to ``Values less than -1 bytes`` errors if ``TRACE``
+  logging was activated for the circuit breaker package.
+
 - Fixed an issue that could lead to a stuck ``INNER JOIN`` query involving the
   ``sys.shards`` table on a cluster without user tables.
 
