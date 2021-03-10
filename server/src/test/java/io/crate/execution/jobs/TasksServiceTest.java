@@ -228,7 +228,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_normal_user_cannot_kill_job_of_other_user() throws Exception {
+    public void testNormalUserCannotKillJobOfOtherUser() throws Exception {
         UUID jobId = UUID.randomUUID();
         RootTask.Builder builder = tasksService.newBuilder(jobId, "Arthur", "dummyNode", List.of());
         builder.addTask(new DummyTask());
@@ -236,5 +236,10 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(tasksService.killJobs(List.of(jobId), "Trillian", null).get(5L, TimeUnit.SECONDS), is(0));
         assertThat(tasksService.killJobs(List.of(jobId), "Arthur", null).get(5L, TimeUnit.SECONDS), is(1));
+    }
+
+    @Test
+    public void testKillNonExistingJobForNormalUser() throws Exception {
+        assertThat(tasksService.killJobs(List.of(UUID.randomUUID()), "Arthur", null).get(5L, TimeUnit.SECONDS), is(0));
     }
 }
