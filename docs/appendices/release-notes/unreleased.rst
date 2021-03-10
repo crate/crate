@@ -72,3 +72,6 @@ Fixes
   ``sys.shards`` table on a cluster without user tables.
 
 - Adjusted ``crate.bat`` to work with spaces in directory names.
+
+- Fixed a ``NullPointerException`` when trying to kill a job as normal user
+  which is no longer running.
