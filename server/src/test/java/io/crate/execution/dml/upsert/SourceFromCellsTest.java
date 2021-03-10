@@ -25,6 +25,7 @@ package io.crate.execution.dml.upsert;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Maps;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
@@ -32,6 +33,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
@@ -48,6 +50,7 @@ import java.util.Objects;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.is;
 
 public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
@@ -380,5 +383,25 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'ab ' is too long for the text type of length: 1");
         sourceGen.generateSourceAndCheckConstraints(new Object[]{});
+    }
+
+    @Test
+    public void test_keys_with_null_values_are_excluded_from_source() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table robots (name text not null, model text)")
+            .build();
+        Reference name = (Reference) e.asSymbol("name");
+        Reference model = (Reference) e.asSymbol("model");
+        DocTableInfo robotsTable = e.resolveTableInfo("robots");
+        InsertSourceGen sourceGen = InsertSourceGen.of(
+            txnCtx,
+            e.nodeCtx,
+            robotsTable,
+            robotsTable.concreteIndices()[0],
+            GeneratedColumns.Validation.VALUE_MATCH,
+            List.of(name, model)
+        );
+        Map<String, Object> source = sourceGen.generateSourceAndCheckConstraints(new Object[] { "foo", null });
+        assertThat(source, not(Matchers.hasKey("model")));
     }
 }

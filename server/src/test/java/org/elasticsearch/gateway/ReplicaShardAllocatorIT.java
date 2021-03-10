@@ -22,12 +22,16 @@ package org.elasticsearch.gateway;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
@@ -35,6 +39,7 @@ import org.elasticsearch.action.admin.indices.flush.SyncedFlushResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
@@ -48,6 +53,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.types.DataTypes;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 public class ReplicaShardAllocatorIT extends SQLTransportIntegrationTest {
@@ -58,6 +64,75 @@ public class ReplicaShardAllocatorIT extends SQLTransportIntegrationTest {
         nodePlugins.add(MockTransportService.TestPlugin.class);
         nodePlugins.add(InternalSettingsPlugin.class);
         return nodePlugins;
+    }
+
+    /**
+     * Verify that if we found a new copy where it can perform a no-op recovery,
+     * then we will cancel the current recovery and allocate replica to the new copy.
+     */
+    @Test
+    public void testPreferCopyCanPerformNoopRecovery() throws Exception {
+        String indexName = "test";
+        String nodeWithPrimary = internalCluster().startNode();
+        execute("""
+            create table doc.test (x int)
+            clustered into 1 shards with (
+                "soft_deletes.enabled" = ?,
+                number_of_replicas = 1,
+                "recovery.file_based_threshold" = 1.0,
+                "global_checkpoint_sync.interval" = '100ms',
+                "soft_deletes.retention_lease.sync_interval" = '100ms',
+                "unassigned.node_left.delayed_timeout" = '1ms'
+            )
+        """, new Object[] { randomBoolean() } );
+
+
+        String nodeWithReplica = internalCluster().startDataOnlyNode();
+        Settings nodeWithReplicaSettings = internalCluster().dataPathSettings(nodeWithReplica);
+        ensureGreen(indexName);
+
+        execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(100, 500)});
+
+        if (randomBoolean()) {
+            execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(0, 80)});
+        }
+
+        ensureActivePeerRecoveryRetentionLeasesAdvanced(indexName);
+        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(nodeWithReplica));
+        if (randomBoolean()) {
+            execute("optimize table doc.test with(flush = true)");
+        }
+        CountDownLatch blockRecovery = new CountDownLatch(1);
+        CountDownLatch recoveryStarted = new CountDownLatch(1);
+        MockTransportService transportServiceOnPrimary
+            = (MockTransportService) internalCluster().getInstance(TransportService.class, nodeWithPrimary);
+        transportServiceOnPrimary.addSendBehavior((connection, requestId, action, request, options) -> {
+            if (PeerRecoveryTargetService.Actions.FILES_INFO.equals(action)) {
+                recoveryStarted.countDown();
+                try {
+                    blockRecovery.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            connection.sendRequest(requestId, action, request, options);
+        });
+        try {
+            internalCluster().startDataOnlyNode();
+            recoveryStarted.await();
+            nodeWithReplica = internalCluster().startDataOnlyNode(nodeWithReplicaSettings);
+            // AllocationService only calls GatewayAllocator if there're unassigned shards
+            execute("""
+                create table doc.dummy (x int)
+                with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
+            """);
+            ensureGreen(indexName);
+            assertThat(internalCluster().nodesInclude(indexName), hasItem(nodeWithReplica));
+            assertNoOpRecoveries(indexName);
+            blockRecovery.countDown();
+        } finally {
+            transportServiceOnPrimary.clearAllRules();
+        }
     }
 
     /**
@@ -153,6 +228,121 @@ public class ReplicaShardAllocatorIT extends SQLTransportIntegrationTest {
             }
         } finally {
             transportServiceOnPrimary.clearAllRules();
+        }
+    }
+
+    @Test
+    public void testFullClusterRestartPerformNoopRecovery() throws Exception {
+        int numOfReplicas = randomIntBetween(1, 2);
+        internalCluster().ensureAtLeastNumDataNodes(numOfReplicas + 2);
+        String indexName = "test";
+
+        execute("""
+            create table doc.test (x int)
+            clustered into 1 shards with (
+                number_of_replicas = ?,
+                "soft_deletes.enabled" = ?,
+                "translog.flush_threshold_size" = ?,
+                "recovery.file_based_threshold" = '0.5',
+                "global_checkpoint_sync.interval" = '100ms',
+                "soft_deletes.retention_lease.sync_interval" = '100ms'
+            )
+                """, new Object[] {numOfReplicas, randomBoolean(), randomIntBetween(10, 100) + "kb",  });
+
+        ensureGreen(indexName);
+
+        execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(200, 500)});
+
+        execute("refresh table doc.test");
+
+        execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(0, 80)});
+
+        if (randomBoolean()) {
+            client().admin().indices().prepareForceMerge(indexName).get();
+        }
+        ensureActivePeerRecoveryRetentionLeasesAdvanced(indexName);
+        if (randomBoolean()) {
+            execute("alter table doc.test close");
+        }
+        execute("set global \"cluster.routing.allocation.enable\" = 'primaries'");
+        internalCluster().fullRestart();
+        ensureYellow(indexName);
+        execute("reset global \"cluster.routing.allocation.enable\"");
+        ensureGreen(indexName);
+        assertNoOpRecoveries(indexName);
+    }
+
+    /**
+     * Make sure that we do not repeatedly cancel an ongoing recovery for a noop copy on a broken node.
+     */
+    @Test
+    public void testDoNotCancelRecoveryForBrokenNode() throws Exception {
+        internalCluster().startMasterOnlyNode();
+        String nodeWithPrimary = internalCluster().startDataOnlyNode();
+        String indexName = "test";
+
+        execute("""
+            create table doc.test (x int)
+            clustered into 1 shards with (
+                number_of_replicas = 0,
+                "global_checkpoint_sync.interval" = '100ms',
+                "soft_deletes.retention_lease.sync_interval" = '100ms'
+            )
+                """);
+
+        ensureGreen(indexName);
+        execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(200, 500)});
+
+        String brokenNode = internalCluster().startDataOnlyNode();
+        MockTransportService transportService =
+            (MockTransportService) internalCluster().getInstance(TransportService.class, nodeWithPrimary);
+        CountDownLatch newNodeStarted = new CountDownLatch(1);
+        transportService.addSendBehavior((connection, requestId, action, request, options) -> {
+            if (action.equals(PeerRecoveryTargetService.Actions.TRANSLOG_OPS)) {
+                if (brokenNode.equals(connection.getNode().getName())) {
+                    try {
+                        newNodeStarted.await();
+                    } catch (InterruptedException e) {
+                        throw new AssertionError(e);
+                    }
+                    throw new CircuitBreakingException("not enough memory for indexing", 100, 50);
+                }
+            }
+            connection.sendRequest(requestId, action, request, options);
+        });
+        execute("alter table doc.test set (number_of_replicas=1)");
+        internalCluster().startDataOnlyNode();
+        newNodeStarted.countDown();
+        ensureGreen(indexName);
+        transportService.clearAllRules();
+    }
+
+    private void ensureActivePeerRecoveryRetentionLeasesAdvanced(String indexName) throws Exception {
+        assertBusy(() -> {
+            Set<String> activeRetentionLeaseIds = clusterService().state().routingTable().index(indexName).shard(0).shards().stream()
+                .map(shardRouting -> ReplicationTracker.getPeerRecoveryRetentionLeaseId(shardRouting.currentNodeId()))
+                .collect(Collectors.toSet());
+            execute(
+                "select seq_no_stats['global_checkpoint'], seq_no_stats['max_seq_no'], retention_leases['leases'] from sys.shards where table_name = ?",
+                new Object[]{indexName});
+            long globalCheckPoint = (long) response.rows()[0][0];
+            long maxSeqNo = (long) response.rows()[0][1];
+            assertThat(globalCheckPoint, equalTo(maxSeqNo));
+            List<Map<String, Object>> rentetionLease = (List<Map<String, Object>>) response.rows()[0][2];
+            assertThat(rentetionLease.size(), is(activeRetentionLeaseIds.size()));
+            for (var activeRetentionLease : rentetionLease) {
+                assertThat(
+                    DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no")),
+                    is(globalCheckPoint + 1L)
+                );
+            }
+        });
+    }
+
+    private void assertNoOpRecoveries(String indexName) {
+        execute("select recovery['files'] from sys.shards where table_name = ?", new Object[]{indexName});
+        for (var row : response.rows()) {
+            assertThat((Map<String, Object>) row[0], not(Matchers.anEmptyMap()));
         }
     }
 }

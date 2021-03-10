@@ -19,10 +19,10 @@
 
 package org.elasticsearch.test;
 
-import org.elasticsearch.Version;
-import javax.annotation.Nullable;
 import io.crate.common.collections.Tuple;
+import org.elasticsearch.Version;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -144,12 +144,12 @@ public class VersionUtils {
     }
 
     /**
-     * Get the released version before {@code version}.
+     * Get the released version before {@code version}'s MAJOR.MINOR.
      */
     public static Version getPreviousVersion(Version version) {
         for (int i = RELEASED_VERSIONS.size() - 1; i >= 0; i--) {
             Version v = RELEASED_VERSIONS.get(i);
-            if (v.before(version)) {
+            if (v.beforeMajorMinor(version)) {
                 return v;
             }
         }
@@ -157,7 +157,7 @@ public class VersionUtils {
     }
 
     /**
-     * Get the released version before {@link Version#CURRENT}.
+     * Get the released version before {@link Version#CURRENT}'s MAJOR.MINOR.
      */
     public static Version getPreviousVersion() {
         Version version = getPreviousVersion(Version.CURRENT);

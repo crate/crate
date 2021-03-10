@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.support.nodes;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -27,20 +28,22 @@ import java.io.IOException;
 
 public abstract class BaseNodeRequest extends TransportRequest {
 
-    private final String nodeId;
-
-    protected BaseNodeRequest(String nodeId) {
-        this.nodeId = nodeId;
+    public BaseNodeRequest() {
     }
+
 
     public BaseNodeRequest(StreamInput in) throws IOException {
         super(in);
-        nodeId = in.readString();
+        if (in.getVersion().before(Version.V_4_5_0)) {
+            in.readString(); // previously nodeId
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(nodeId);
+        if (out.getVersion().before(Version.V_4_5_0)) {
+            out.writeString(""); // previously nodeId
+        }
     }
 }

@@ -108,6 +108,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
 
     public static final Version V_4_4_0 = new Version(7_04_00_99, false, org.apache.lucene.util.Version.LUCENE_8_7_0);
     public static final Version V_4_4_1 = new Version(7_04_01_99, false, org.apache.lucene.util.Version.LUCENE_8_7_0);
+    public static final Version V_4_4_2 = new Version(7_04_02_99, false, org.apache.lucene.util.Version.LUCENE_8_7_0);
 
     public static final Version V_4_5_0 = new Version(7_05_00_99, true, org.apache.lucene.util.Version.LUCENE_8_7_0);
 
@@ -329,12 +330,26 @@ public class Version implements Comparable<Version>, ToXContentFragment {
         return version.major < major;
     }
 
+    public boolean onOrAfterMajorMinor(Version version) {
+        if (version.major == major) {
+            return version.minor <= minor;
+        }
+        return version.major <= major;
+    }
+
     public boolean onOrAfter(Version version) {
         return version.internalId <= internalId;
     }
 
     public boolean before(Version version) {
         return version.internalId > internalId;
+    }
+
+    public boolean beforeMajorMinor(Version version) {
+        if (version.major == major) {
+            return version.minor > minor;
+        }
+        return version.major > major;
     }
 
     public boolean onOrBefore(Version version) {

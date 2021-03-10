@@ -1362,6 +1362,18 @@ Casting a column of the ``regproc`` alias data type to ``text`` or
 ``integer`` results in a function name or its ``oid``, respectively.
 
 
+.. _oid_regclass:
+
+Regclass
+--------
+
+A type for the object identifier of the ``pg_class`` table in the
+:ref:`postgres_pg_catalog` table.
+
+Casting a column of the ``regclass`` to ``text`` or ``integer`` results in a
+relation name or its ``oid``, respectively.
+
+
 .. _oidvector_type:
 
 oidvector

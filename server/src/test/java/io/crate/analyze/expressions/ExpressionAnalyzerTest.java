@@ -22,6 +22,27 @@
 package io.crate.analyze.expressions;
 
 
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.joda.time.Period;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
@@ -30,6 +51,7 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.common.collections.Lists2;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
@@ -46,30 +68,11 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import org.joda.time.Period;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.sameInstance;
 
 /**
  * Additional tests for the ExpressionAnalyzer.
@@ -373,5 +376,17 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             Lists2.map(eq.arguments(), Symbol::valueType),
             contains(DataTypes.STRING, DataTypes.STRING));
+    }
+
+    @Test
+    public void test_object_cast_errors_contain_child_information() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (obj object as (x int))")
+            .build();
+        Asserts.assertThrows(
+            () -> e.asSymbol("obj = {x = 'foo'}"),
+            ConversionException.class,
+            "Cannot cast object element `x` with value `foo` to type `integer`"
+        );
     }
 }

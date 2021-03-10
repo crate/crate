@@ -48,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import java.util.function.IntSupplier;
 import java.util.zip.CRC32;
 
@@ -96,7 +95,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.ReplicationTracker;
-import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -543,12 +541,9 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             between(1, 8)) {
 
             @Override
-            public void phase1(IndexCommit snapshot,
-                               Consumer<ActionListener<RetentionLease>> createRetentionLease,
-                               IntSupplier translogOps,
-                               ActionListener<SendFileResult> listener) {
+            void phase1(IndexCommit snapshot, long startingSeqNo, IntSupplier translogOps, ActionListener<SendFileResult> listener) {
                 phase1Called.set(true);
-                super.phase1(snapshot, createRetentionLease, translogOps, listener);
+                super.phase1(snapshot, startingSeqNo, translogOps, listener);
             }
 
             @Override
@@ -840,9 +835,8 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final StepListener<RecoverySourceHandler.SendFileResult> phase1Listener = new StepListener<>();
         try {
             final CountDownLatch latch = new CountDownLatch(1);
-            handler.phase1(
-                DirectoryReader.listCommits(dir).get(0),
-                l -> recoveryExecutor.execute(() -> l.onResponse(null)),
+            handler.phase1(DirectoryReader.listCommits(dir).get(0),
+                0,
                 () -> 0,
                 new LatchedActionListener<>(phase1Listener, latch));
             latch.await();

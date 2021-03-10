@@ -19,6 +19,7 @@
 
 package org.elasticsearch.common.xcontent;
 
+import io.crate.types.Regclass;
 import io.crate.types.Regproc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -111,6 +112,7 @@ public class XContentElasticsearchExtension implements XContentBuilderExtension 
             }
         });
         writers.put(Regproc.class, (b, v) -> b.value(((Regproc) v).name()));
+        writers.put(Regclass.class, (b, v) -> b.value(((Regclass) v).oid()));
         return writers;
     }
 

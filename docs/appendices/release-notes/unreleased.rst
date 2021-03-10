@@ -53,28 +53,35 @@ None
 Changes
 =======
 
+- Optimized how ``NULL`` values are stored, reducing the amount of disk space
+  required. This can also improve the performance of value lookups on tables
+  with a lot of null values.
+
+- Added the ``regclass`` data type for improved compatibility with PostgreSQL
+  tools.
+
+- Relicensed all enterprise features under the Apache License 2.0 and removed
+  licensing related code. The ``SET LICENSE`` statement can still be used, but
+  it won't have any effect.
+
+- Added an empty ``pg_tablespace`` table in the ``pg_catalog`` schema for
+  improved support for PostgreSQL tools.
+
+- Improved the error messages for cast errors for values of type ``object``.
+
 - Added support for the :ref:`CREATE TABLE AS <ref-create-table-as>` statement.
 
 Fixes
 =====
 
-- Fixed an issue that could lead to a ``Can't handle Symbol`` error when
-  using views which are defined with column aliases.
+- Fixed an issue that led to ``Values less than -1 bytes`` errors if ``TRACE``
+  logging was activated for the circuit breaker package.
 
-- Fixed a regression that led to ``max`` aggregations on columns of type
-  ``double precision`` or ``real`` to return ``null`` instead of ``0.0`` if all
-  aggregated values are ``0.0``.
+- Fixed an issue that could lead to a stuck ``INNER JOIN`` query involving the
+  ``sys.shards`` table on a cluster without user tables.
 
-- Fixed an issue that could lead to an ``OutOfMemoryError`` when retrieving
-  large result sets with large individual records.
+- Fixed shard allocation on downgraded nodes where only the ``HOTFIX`` version
+  part differs to fully support rolling downgrades to same ``MAJOR.MINOR``
+  versions.
 
-- Fixed an issue that could lead to a ``NullPointerException`` when using a
-  SELECT statement containing an INNER JOIN.
-
-- Fixed an issue in the PostgreSQL wire protocol that would cause
-  de-serialization of arrays to fail if they contained unquoted strings
-  starting with digits.
-
-- Fixed an issue that could lead to a serialization error when streaming values
-  of the ``TIMESTAMP WITHOUT TIME ZONE`` type in text format using the
-  PostgreSQL wire protocol.
+- Adjusted ``crate.bat`` to work with spaces in directory names.

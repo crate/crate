@@ -115,7 +115,7 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
         Properties properties = new Properties();
         properties.setProperty("user", "me");
         assertThrows(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
-                     isPGError(is("No valid auth.host_based entry found for host \"127.0.0.1\", user \"me\""),
+                     isPGError(is("No valid auth.host_based entry found for host \"127.0.0.1\", user \"me\". Did you enable TLS in your client?"),
                                INVALID_AUTHORIZATION_SPECIFICATION));
 
     }
@@ -134,7 +134,7 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
         Properties properties = new Properties();
         properties.setProperty("user", "foo");
         assertThrows(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
-                     isPGError(is("No valid auth.host_based entry found for host \"127.0.0.1\", user \"foo\""),
+                     isPGError(is("No valid auth.host_based entry found for host \"127.0.0.1\", user \"foo\". Did you enable TLS in your client?"),
                                INVALID_AUTHORIZATION_SPECIFICATION));
     }
 

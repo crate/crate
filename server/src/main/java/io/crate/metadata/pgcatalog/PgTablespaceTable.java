@@ -22,25 +22,23 @@
 
 package io.crate.metadata.pgcatalog;
 
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.REGCLASS;
-
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
+import io.crate.types.DataTypes;
 
+public final class PgTablespaceTable {
 
-public class PgAttrDefTable {
-
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attrdef");
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_tablespace");
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
-            .add("oid", INTEGER, x -> 0)
-            .add("adrelid", REGCLASS, x -> null)
-            .add("adnum", INTEGER, x -> 0)
-            .add("adbin", STRING, x -> null)
-            .add("adsrc", STRING, x -> null)
+            .add("oid", DataTypes.INTEGER, ignored -> null)
+            .add("spcname", DataTypes.STRING, ignored -> null)
+            .add("spcowner", DataTypes.INTEGER, ignored -> null)
+            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L746
+            .add("spcacl", DataTypes.STRING_ARRAY, ignored -> null)
+            .add("spcoptions", DataTypes.STRING_ARRAY, ignored -> null)
             .build();
     }
 }

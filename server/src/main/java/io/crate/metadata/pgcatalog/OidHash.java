@@ -27,6 +27,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.TypeSignature;
 
@@ -37,13 +38,21 @@ import static org.apache.lucene.util.StringHelper.murmurhash3_x86_32;
 
 public final class OidHash {
 
-    enum Type {
+    public enum Type {
         SCHEMA,
         TABLE,
         VIEW,
         CONSTRAINT,
         PRIMARY_KEY,
-        PROC
+        PROC,
+        INDEX;
+
+        public static Type fromRelationType(RelationInfo.RelationType type) {
+            return switch (type) {
+                case BASE_TABLE -> OidHash.Type.TABLE;
+                case VIEW -> OidHash.Type.VIEW;
+            };
+        }
     }
 
     private static int oid(String key) {
@@ -56,13 +65,17 @@ public final class OidHash {
         return oid(t.toString() + relationInfo.ident().fqn());
     }
 
+    public static int relationOid(Type type, RelationName name) {
+        return oid(type.toString() + name.fqn());
+    }
+
     public static int schemaOid(String name) {
         return oid(Type.SCHEMA.toString() + name);
     }
 
-    public static int primaryKeyOid(RelationInfo relationInfo) {
-        var primaryKey = Lists2.joinOn(" ", relationInfo.primaryKey(), ColumnIdent::name);
-        return oid(Type.PRIMARY_KEY.toString() + relationInfo.ident().fqn() + primaryKey);
+    public static int primaryKeyOid(RelationName name, List<ColumnIdent> primaryKeys) {
+        var primaryKey = Lists2.joinOn(" ", primaryKeys, ColumnIdent::name);
+        return oid(Type.PRIMARY_KEY.toString() + name.fqn() + primaryKey);
     }
 
     public static int constraintOid(String relationName, String constraintName, String constraintType) {

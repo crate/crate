@@ -67,6 +67,8 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
     public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         try {
             return returnType.explicitCast(args[0].value());
+        } catch (ConversionException e) {
+            throw e;
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new ConversionException(args[0].value(), returnType);
         }
@@ -95,6 +97,8 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
             Object value = ((Input<?>) argument).value();
             try {
                 return Literal.ofUnchecked(returnType, returnType.explicitCast(value));
+            } catch (ConversionException e) {
+                throw e;
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new ConversionException(argument, returnType);
             }

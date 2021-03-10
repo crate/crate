@@ -298,6 +298,9 @@ IDs of all currently available data types:
    * - 21
      - :ref:`oidvector <oidvector_type>`
      - An array of numbers
+   * - 23
+     - :ref:`regclass <oid_regclass>`
+     - OID, referring the OID of the `pg_class` table. The result is an ``INTEGER``.
    * - 100
      - :ref:`array <data-type-array>`
      - [``integer``, ``integer``] e.g. [100, 9] for a ``array(integer)``

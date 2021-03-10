@@ -141,7 +141,7 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
 
     @Test
     public void test_primary_key_in_pg_index() {
-        execute(" select i.indexrelid, i.indrelid, i.indkey from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid;");
+        execute("select i.indexrelid, i.indrelid, i.indkey from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid;");
         assertThat(printedTable(response.rows()), is("-649073482| 728874843| [1]\n"));
     }
 
@@ -256,6 +256,14 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "1005| _int2| 0| false| NULL| 21| a| 21\n" +
             "1007| _int4| 0| false| NULL| 23| a| 23\n"
+        ));
+    }
+
+    @Test
+    public void test_kepserver_regclass_cast_query() throws Exception {
+        execute("select nspname from pg_namespace n, pg_class c where c.relnamespace=n.oid and c.oid='kepware'::regclass");
+        assertThat(printedTable(response.rows()), is(
+            ""
         ));
     }
 }
