@@ -94,24 +94,8 @@ public class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragm
         return unit.toPB(size);
     }
 
-    public double getKbFrac() {
-        return ((double) getBytes()) / ByteSizeUnit.C1;
-    }
-
     public double getMbFrac() {
         return ((double) getBytes()) / ByteSizeUnit.C2;
-    }
-
-    public double getGbFrac() {
-        return ((double) getBytes()) / ByteSizeUnit.C3;
-    }
-
-    public double getTbFrac() {
-        return ((double) getBytes()) / ByteSizeUnit.C4;
-    }
-
-    public double getPbFrac() {
-        return ((double) getBytes()) / ByteSizeUnit.C5;
     }
 
     /**
@@ -131,26 +115,34 @@ public class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragm
 
     @Override
     public String toString() {
-        long bytes = getBytes();
+        return humanReadableBytes(getBytes());
+    }
+
+    public static String humanReadableBytes(long bytes) {
+        String prefix = "";
+        if (bytes < 0) {
+            bytes = bytes * -1;
+            prefix = "-";
+        }
         double value = bytes;
         String suffix = ByteSizeUnit.BYTES.getSuffix();
         if (bytes >= ByteSizeUnit.C5) {
-            value = getPbFrac();
+            value = ((double) bytes) / ByteSizeUnit.C5;
             suffix = ByteSizeUnit.PB.getSuffix();
         } else if (bytes >= ByteSizeUnit.C4) {
-            value = getTbFrac();
+            value = ((double) bytes) / ByteSizeUnit.C4;
             suffix = ByteSizeUnit.TB.getSuffix();
         } else if (bytes >= ByteSizeUnit.C3) {
-            value = getGbFrac();
+            value = ((double) bytes) / ByteSizeUnit.C3;
             suffix = ByteSizeUnit.GB.getSuffix();
         } else if (bytes >= ByteSizeUnit.C2) {
-            value = getMbFrac();
+            value = ((double) bytes) / ByteSizeUnit.C2;
             suffix = ByteSizeUnit.MB.getSuffix();
         } else if (bytes >= ByteSizeUnit.C1) {
-            value = getKbFrac();
+            value = ((double) bytes) / ByteSizeUnit.C1;
             suffix = ByteSizeUnit.KB.getSuffix();
         }
-        return Strings.format1Decimals(value, suffix);
+        return prefix + Strings.format1Decimals(value, suffix);
     }
 
     public static ByteSizeValue parseBytesSizeValue(String sValue, String settingName) throws ElasticsearchParseException {
