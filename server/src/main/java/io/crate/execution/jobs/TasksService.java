@@ -200,11 +200,13 @@ public class TasksService extends AbstractLifecycleComponent {
         boolean isSuperUser = userName.equals(User.CRATE_USER.name());
         for (UUID jobId : toKill) {
             RootTask ctx = activeTasks.get(jobId);
-            if (!isSuperUser && !ctx.userName().equals(userName)) {
+            if (ctx == null) {
+                // no kill but we need to count down
                 countDownFuture.onSuccess();
                 continue;
             }
-            if (ctx != null) {
+            // superuser can always kill jobs; normal users only their own jobs
+            if (isSuperUser || ctx.userName().equals(userName)) {
                 recentlyFailed.put(jobId, failedSentinel);
                 ctx.completionFuture().whenComplete(countDownFuture);
                 ctx.kill(reason);
