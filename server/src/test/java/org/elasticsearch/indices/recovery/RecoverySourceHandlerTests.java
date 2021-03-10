@@ -95,6 +95,7 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.ReplicationTracker;
+import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -823,14 +824,26 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                 }
             }
         };
+        StartRecoveryRequest startRecoveryRequest = getStartRecoveryRequest();
         final RecoverySourceHandler handler = new RecoverySourceHandler(
             shard,
             recoveryTarget,
             shard.getThreadPool(),
-            getStartRecoveryRequest(),
+            startRecoveryRequest,
             between(1, 16),
             between(1, 4)
-        );
+        ) {
+
+            void createRetentionLease(long startingSeqNo, ActionListener<RetentionLease> listener) {
+                final String leaseId = ReplicationTracker.getPeerRecoveryRetentionLeaseId(startRecoveryRequest.targetNode().getId());
+                listener.onResponse(new RetentionLease(
+                    leaseId,
+                    startingSeqNo,
+                    threadPool.absoluteTimeInMillis(),
+                    ReplicationTracker.PEER_RECOVERY_RETENTION_LEASE_SOURCE));
+            };
+
+        };
         cancelRecovery.set(() -> handler.cancel("test"));
         final StepListener<RecoverySourceHandler.SendFileResult> phase1Listener = new StepListener<>();
         try {
