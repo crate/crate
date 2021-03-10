@@ -22,12 +22,46 @@
 
 package io.crate.statistics;
 
+import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.function.Function;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.ReaderUtil;
+import org.apache.lucene.search.CollectionTerminatedException;
+import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.LeafCollector;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Scorable;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+
 import io.crate.Streamer;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.collect.DocInputFactory;
@@ -46,39 +80,10 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.ReaderUtil;
-import org.apache.lucene.search.CollectionTerminatedException;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.LeafCollector;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.Scorable;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-import java.util.function.Function;
-
-import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 
 public final class ReservoirSampler {
 
+    private static final Logger LOGGER = LogManager.getLogger(ReservoirSampler.class);
     private final ClusterService clusterService;
     private final NodeContext nodeCtx;
     private final Schemas schemas;
@@ -204,18 +209,25 @@ public final class ReservoirSampler {
             }
         }
         var rowAccounting = new RowCellsAccountingWithEstimators(Symbols.typeView(columns), ramAccounting, 0);
-        return new Samples(
-            Lists2.map(fetchIdSamples.samples(), fetchId -> {
-                int readerId = FetchId.decodeReaderId(fetchId);
-                DocIdToRow docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
-                Object[] row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
+        ArrayList<Row> records = new ArrayList<>();
+        for (long fetchId : fetchIdSamples.samples()) {
+            int readerId = FetchId.decodeReaderId(fetchId);
+            DocIdToRow docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
+            Object[] row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
+            try {
                 rowAccounting.accountForAndMaybeBreak(row);
-                return new RowN(row);
-            }),
-            streamers,
-            totalNumDocs,
-            totalSizeInBytes
-        );
+            } catch (CircuitBreakingException e) {
+                LOGGER.info(
+                    "Stopped gathering samples for `ANALYZE` operation because circuit breaker triggered. "
+                        + "Generating statistics with {} instead of {} records",
+                    records.size(),
+                    maxSamples
+                );
+                break;
+            }
+            records.add(new RowN(row));
+        }
+        return new Samples(records, streamers, totalNumDocs, totalSizeInBytes);
     }
 
     static class DocIdToRow implements Function<Integer, Object[]> {
