@@ -6,9 +6,9 @@
 Table functions
 ===============
 
-Table functions are functions that produce a set of rows.
-They can either be used in place of a relation in the ``FROM`` clause,
-or within the select list of a query.
+Table functions are functions that produce a set of rows.  They can either be
+used in place of a relation in the ``FROM`` clause, or within the select list
+of a query.
 
 If used within the select list, the table functions will be evaluated
 per row of the relations in the ``FROM`` clause,
@@ -45,9 +45,9 @@ values will be returned for the functions that are exhausted. An example::
 Scalar functions
 ================
 
-:ref:`scalar`, when used in the ``FROM`` clause in place of a relation,
-will result in a table of one row and one column, containing the value
-returned from the scalar function.
+:ref:`A scalar function <scalar>`, when used in the ``FROM`` clause in place of
+a relation, will result in a table of one row and one column, containing the
+:ref:`scalar value <gloss-scalar>` returned from the function.
 
 ::
 
@@ -183,8 +183,8 @@ This example returns the reversed list of subscripts for the same array:
     +---+
     SELECT 4 rows in set (... sec)
 
-This example works on an array of three dimensions. Each of the elements
-within a given level must be either NULL, or an array of the same size as the other
+This example works on an array of three dimensions. Each of the elements within
+a given level must be either NULL, or an array of the same size as the other
 arrays within the same level.
 
 ::
@@ -303,8 +303,8 @@ not matter.
 Examples
 ........
 
-In this example the ``pattern`` does not match anything in the ``source`` and the result
-is an empty table:
+In this example the ``pattern`` does not match anything in the ``source`` and
+the result is an empty table:
 
 ::
 
@@ -328,8 +328,8 @@ In this example we find the term that follows two digits:
     +-------------+
     SELECT 1 row in set (... sec)
 
-This example shows the use of flag ``g``, splitting ``source`` into a set of arrays, each
-containing two entries:
+This example shows the use of flag ``g``, splitting ``source`` into a set of
+arrays, each containing two entries:
 
 ::
 

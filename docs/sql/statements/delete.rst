@@ -1,4 +1,5 @@
 .. highlight:: psql
+.. _sql_reference_delete:
 
 ==========
 ``DELETE``

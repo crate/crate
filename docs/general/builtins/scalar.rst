@@ -5,7 +5,7 @@
 Scalar functions
 ================
 
-Scalar functions return a single value.
+Scalar functions return :ref:`scalars <gloss-scalar>`.
 
 .. rubric:: Table of contents
 
@@ -348,11 +348,12 @@ Replaces all occurrences of ``from`` in ``text`` with ``to``.
 ``translate(string, from, to)``
 -------------------------------
 
-Performs several single-character, one-to-one translation in one operation.
-It translates ``string`` by replacing the characters in the ``from`` set, one-to-one
-positionally, with their counterparts in the ``to`` set. If ``from`` is longer than
-``to``, the function removes the occurrences of the extra characters in ``from``.
-If there are repeated characters in ``from``, only the first mapping is considered.
+Performs several single-character, one-to-one translation in one operation.  It
+translates ``string`` by replacing the characters in the ``from`` set,
+one-to-one positionally, with their counterparts in the ``to`` set. If ``from``
+is longer than ``to``, the function removes the occurrences of the extra
+characters in ``from``.  If there are repeated characters in ``from``, only the
+first mapping is considered.
 
 Synopsis::
 
@@ -551,8 +552,8 @@ Examples::
 -------------------------------------
 
 Fill up ``string1`` to length ``len`` by prepending the characters ``string2``
-(a space by default). If string1 is already longer than len then it is truncated
-(on the right).
+(a space by default). If string1 is already longer than len then it is
+truncated (on the right).
 
 Synopsis::
 
@@ -673,14 +674,15 @@ Returns: ``text``
 ``split_part(text, text, integer)``
 -----------------------------------
 
-Splits a string into parts using a delimiter and returns the part at the given index.
-The first part is addressed by index ``1``.
+Splits a string into parts using a delimiter and returns the part at the given
+index.  The first part is addressed by index ``1``.
 
 Special Cases:
 
 * Returns the empty string if the index is greater than the number of parts.
 * If any of the arguments is ``NULL``, the result is ``NULL``.
-* If the delimiter is the empty string, the input string is considered as consisting of exactly one part.
+* If the delimiter is the empty string, the input string is considered as
+  consisting of exactly one part.
 
 Returns: ``text``
 
@@ -1066,8 +1068,8 @@ The ``timezone`` will be ``UTC`` if not provided::
 ``timezone(timezone, timestamp)``
 ---------------------------------
 
-The timezone scalar function converts values of ``timestamp`` without time zone to/from
-timestamp with time zone.
+The timezone scalar function converts values of ``timestamp`` without time zone
+to/from timestamp with time zone.
 
 Synopsis
 ........
@@ -1266,8 +1268,8 @@ containing any of the following symbols:
     SELECT 1 row in set (... sec)
 
 For ``interval`` expressions, the formatting string accepts the same tokens as
-``timestamp`` expressions. The function then uses the timestamp of the specified
-interval added to the timestamp of ``0000/01/01 00:00:00``:
+``timestamp`` expressions. The function then uses the timestamp of the
+specified interval added to the timestamp of ``0000/01/01 00:00:00``:
 
 ::
 
@@ -1966,8 +1968,8 @@ Flags
 .....
 
 ``regexp_replace`` supports a number of flags as optional parameters. These
-flags are given as a string containing any of the characters listed below. Order
-does not matter.
+flags are given as a string containing any of the characters listed
+below. Order does not matter.
 
 +-------+---------------------------------------------------------------------+
 | Flag  | Description                                                         |
@@ -2592,12 +2594,11 @@ Example::
 ``CURRENT_SCHEMAS(boolean)``
 ----------------------------
 
-The ``CURRENT_SCHEMAS()`` system information function returns the current stored
-schemas inside the :ref:`search_path <conf-session-search-path>` session
-state, optionally including implicit schemas (e.g. ``pg_catalog``). If no custom
-:ref:`search_path <conf-session-search-path>` is set, this function will return
-the default :ref:`search_path <conf-session-search-path>` schemas.
-
+The ``CURRENT_SCHEMAS()`` system information function returns the current
+stored schemas inside the :ref:`search_path <conf-session-search-path>` session
+state, optionally including implicit schemas (e.g. ``pg_catalog``). If no
+custom :ref:`search_path <conf-session-search-path>` is set, this function will
+return the default :ref:`search_path <conf-session-search-path>` schemas.
 
 Returns: ``array(text)``
 
@@ -2860,9 +2861,8 @@ Example:
 ``pg_function_is_visible``
 --------------------------
 
-The function ``pg_function_is_visible`` returns true for OIDs that refer to a system
-or a user defined function.
-
+The function ``pg_function_is_visible`` returns true for OIDs that refer to a
+system or a user defined function.
 
 Returns: ``boolean``
 

@@ -48,7 +48,7 @@ following data types:
  - :ref:`data-type-text`
 
 For all other :ref:`sql_ddl_datatypes_primitives`, it is enabled by default and
-cannot be disabled. :ref:`sql_ddl_datatypes_compound` and
+cannot be disabled. :ref:`data-types-container` and
 :ref:`sql_ddl_datatypes_geographic` do not support storing values into a
 `Column Store`_ at all.
 

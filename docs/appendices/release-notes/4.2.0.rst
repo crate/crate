@@ -31,9 +31,9 @@ Released on 2020-07-07.
 Breaking Changes
 ================
 
-- Changed the logic how the ``array_unique`` scalar infers the argument types.
-  Previously if the arguments had a different type it used the type of the
-  first argument. For example::
+- Changed the logic how the ``array_unique`` scalar function infers the
+  argument types.  Previously if the arguments had a different type it used the
+  type of the first argument. For example::
 
     cr> select array_unique(['1'], [1.0, 2.0]);
     +---------------------------------+
