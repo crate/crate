@@ -239,7 +239,8 @@ optionally prefixed with ``ARRAY``::
 .. _sql_expressions_array_subquery:
 
 Another way to construct an array is by using an ``ARRAY(subquery)`` expression
-as part of the :ref:`Select list <sql_reference_select_list>` of a ``SELECT`` statement::
+as part of the :ref:`Select list <sql_reference_select_list>` of a ``SELECT``
+statement::
 
     ARRAY '(' subquery ')'
 
@@ -264,17 +265,19 @@ Example::
 Scalar subquery
 ===============
 
-A scalar subquery is a regular SELECT statement in parentheses that returns
-zero or one row with one column.
+A :ref:`scalar <gloss-scalar>` subquery is a subquery that returns a single
+value (i.e., one row with one column).
 
-If zero rows are returned it is treated as null value. In case more than one
-row is returned it is an error.
+If zero rows are returned, it will be treated as null value. In the case that
+more than one row (or more than one column) is returned, CrateDB will treat it
+as an error.
 
 Columns from relations from outside of the subquery cannot be accessed from
-within the subquery. Trying to do so will result in an error which states that
-the column is unknown.
+within the subquery. If you try to do so, CrateDB will treat it as an error,
+stating that the column is unknown.
 
 .. NOTE::
 
-    Scalar subqueries are restricted to SELECT, DELETE and UPDATE statements
-    and cannot be used in other statements.
+    Scalar subqueries are restricted to :ref:`SELECT <sql_reference_select>`,
+    :ref:`DELETE <sql_reference_delete>` and :ref:`UPDATE <ref-update>`
+    statements and cannot be used in other statements.

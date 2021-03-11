@@ -355,7 +355,7 @@ of distinct non-null values using the `HyperLogLog++`_ algorithm.
 The return value data type is always a ``bigint``.
 
 The first argument can be a reference to a column of all
-:ref:`sql_ddl_datatypes_primitives`. :ref:`sql_ddl_datatypes_compound` and
+:ref:`sql_ddl_datatypes_primitives`. :ref:`data-types-container` and
 :ref:`sql_ddl_datatypes_geographic` are not supported.
 
 The optional second argument defines the used ``precision`` for the

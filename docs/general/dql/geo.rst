@@ -273,8 +273,8 @@ into your geographic data::
     cr> DROP TABLE country;
     DROP OK, 1 row affected  (... sec)
 
-Nonetheless these scalars can be used everywhere in a SQL query where scalar
-functions are allowed.
+Nonetheless these :ref:`scalars <gloss-scalar>` can be used everywhere in a SQL
+query where scalar functions are allowed.
 
 .. _GeoJSON: https://geojson.org/
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
