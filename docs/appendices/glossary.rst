@@ -85,7 +85,7 @@ N
 .. _gloss-nonscalar:
 
 **Nonscalar**
-    A :ref:`data type <data-types>` that can have more than one value
+    A :ref:`data type <data-types>` that can have multiple component values
     (e.g., :ref:`arrays <data-type-array>` and :ref:`objects
     <object_data_type>`).
 
