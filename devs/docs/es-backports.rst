@@ -369,7 +369,7 @@ should be crossed out as well.
 - [ ] bb04fbcd969 For constant_keyword, make sure exists query handles missing values. (#55757)
 - [ ] b2b32d7cf85 Retry failed replication due to transient errors (#55633)
 - [ ] b04a6f4766b Improve same-shard allocation explanations (#56010)
-- [ ] a508d3303d5 Ensure no circular reference in translog tragic exception (#55959)
+- [x] a508d3303d5 Ensure no circular reference in translog tragic exception (#55959)
 - [ ] b22a5288f57 Fix NullPointer when message shortcircuited (#55882)
 - [ ] 8200be989a8 Avoid double-recovery when state recovery delayed
 - [ ] 8d276043667 Improve RemoteConnectionManager consistency (#55759)
