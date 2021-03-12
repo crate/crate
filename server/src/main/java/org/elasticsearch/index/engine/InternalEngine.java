@@ -846,14 +846,6 @@ public class InternalEngine extends Engine {
         return true;
     }
 
-    private boolean assertSequenceNumberBeforeIndexing(final Engine.Operation.Origin origin, final long seqNo) {
-        if (origin == Operation.Origin.PRIMARY) {
-            // sequence number should be set when operation origin is primary or when all shards are on new nodes
-            assert seqNo >= 0 : "ops should have an assigned seq no.; origin: " + origin;
-        }
-        return true;
-    }
-
     protected long generateSeqNoForOperationOnPrimary(final Operation operation) {
         assert operation.origin() == Operation.Origin.PRIMARY;
         assert operation.seqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO :
@@ -1092,7 +1084,6 @@ public class InternalEngine extends Engine {
     private IndexResult indexIntoLucene(Index index, IndexingStrategy plan)
         throws IOException {
         assert index.seqNo() >= 0 : "ops should have an assigned seq no.; origin: " + index.origin();
-        assert assertSequenceNumberBeforeIndexing(index.origin(), index.seqNo());
         assert plan.versionForIndexing >= 0 : "version must be set. got " + plan.versionForIndexing;
         assert plan.indexIntoLucene || plan.addStaleOpToLucene;
         /* Update the document's sequence number and primary term; the sequence number here is derived here from either the sequence
@@ -1378,9 +1369,7 @@ public class InternalEngine extends Engine {
             // See testRecoveryWithOutOfOrderDelete for an example of peer recovery
             plan = DeletionStrategy.processButSkipLucene(false, delete.version());
         } else {
-            final OpVsLuceneDocStatus opVsLucene;
-            assert delete.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO : "Sequence number must be initialized";
-            opVsLucene = compareOpToLuceneDocBasedOnSeqNo(delete);
+            final OpVsLuceneDocStatus opVsLucene = compareOpToLuceneDocBasedOnSeqNo(delete);
             if (opVsLucene == OpVsLuceneDocStatus.OP_STALE_OR_EQUAL) {
                 plan = DeletionStrategy.processAsStaleOp(softDeleteEnabled, delete.version());
             } else {

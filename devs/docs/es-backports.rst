@@ -592,6 +592,7 @@ should be crossed out as well.
 - [x] 328ba09f84b Omit non-masters in ClusterFormationFailureHelper (#41344)
 - [x] 2f41b1b64de Remove `Tracer` from `MockTransportService` (#40237)
 - [x] 7624734f14b Added wait_for_metadata_version parameter to cluster state api (#35535)
+- [x] ebb93db0102 Remove pre 6.0.0 support from InternalEngine (#27720)
 
 Below lists deferred patches. In-between patches that we applied or skipped
 are not listed anymore.
