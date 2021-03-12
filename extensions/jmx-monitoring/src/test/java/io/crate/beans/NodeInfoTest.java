@@ -53,6 +53,7 @@ import java.util.UUID;
 
 import static io.crate.testing.MoreMatchers.withFeature;
 import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
+import static org.elasticsearch.test.ESTestCase.settings;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -93,7 +94,7 @@ public class NodeInfoTest {
                                                        ShardRoutingState.UNASSIGNED));
 
         var routingTable = RoutingTable.builder().add(indexRoutingTableBuilder).build();
-        var meta = IndexMetadata.builder(tableName).numberOfShards(1).numberOfReplicas(2);
+        var meta = IndexMetadata.builder(tableName).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(2);
         this.clusterState = ClusterState.builder(new ClusterName("crate")).version(1L).routingTable(routingTable)
             .metadata(Metadata.builder().put(meta));
     }
@@ -224,7 +225,7 @@ public class NodeInfoTest {
 
 
         var routingTable = RoutingTable.builder().add(indexRoutingTableBuilder).build();
-        var meta = IndexMetadata.builder(tableName).numberOfShards(1).numberOfReplicas(2);
+        var meta = IndexMetadata.builder(tableName).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(2);
         var cs = ClusterState.builder(new ClusterName("crate")).version(1L).routingTable(routingTable)
             .metadata(Metadata.builder().put(meta));
 

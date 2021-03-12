@@ -22,6 +22,8 @@
 package org.elasticsearch.common.settings;
 
 import io.crate.common.collections.Tuple;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.AbstractScopedSettings.SettingUpdater;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -1011,4 +1013,22 @@ public class SettingTests extends ESTestCase {
         assertEquals("", value);
     }
 
+    /*
+     * The empty version lookup was not correctly handled and resulted in a wrong lucene version
+     */
+    @Test
+    public void test_empty_version_from_setting() {
+        var emptyVersion = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(Settings.EMPTY);
+        assertThat(emptyVersion, is((Version.V_EMPTY)));
+    }
+
+    /*
+     * The default version handling was broken because it was based on the external id and not the correct
+     * internal id and led to invalid ids.
+     */
+    @Test
+    public void test_default_version_from_setting() {
+        var defaultVersion = Setting.versionSetting(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).get(Settings.EMPTY);
+        assertThat(defaultVersion, is(Version.CURRENT));
+    }
 }
