@@ -22,17 +22,22 @@
 
 package io.crate.execution.support;
 
-import io.crate.exceptions.SQLExceptions;
-import org.elasticsearch.action.ActionListener;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-
 import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
+
 public class RetryListener<TResp> implements ActionListener<TResp> {
+
+    private static final Logger LOGGER = LogManager.getLogger(RetryListener.class);
 
     private final ScheduledExecutorService scheduler;
     private final ActionListener<TResp> delegate;
@@ -58,8 +63,11 @@ public class RetryListener<TResp> implements ActionListener<TResp> {
     public void onFailure(Exception e) {
         Throwable throwable = SQLExceptions.unwrap(e);
         if (throwable instanceof EsRejectedExecutionException && delay.hasNext()) {
-            TimeValue currentDelay = delay.next();
-            scheduler.schedule(retryCommand, currentDelay.millis(), TimeUnit.MILLISECONDS);
+            long currentDelay = delay.next().millis();
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Received RejectedExecutionException, will retry again in {}ms", currentDelay);
+            }
+            scheduler.schedule(retryCommand, currentDelay, TimeUnit.MILLISECONDS);
         } else {
             delegate.onFailure(e);
         }

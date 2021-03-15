@@ -40,7 +40,7 @@ import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
@@ -98,7 +98,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         MockitoAnnotations.initMocks(this);
         visitor = new ProjectionToProjectorVisitor(
             clusterService,
-            new NodeJobsCounter(),
+            new NodeLimits(),
             new NoneCircuitBreakerService(),
             nodeCtx,
             THREAD_POOL,

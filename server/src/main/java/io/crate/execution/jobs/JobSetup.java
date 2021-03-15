@@ -150,7 +150,7 @@ public class JobSetup {
                     Schemas schemas,
                     MapSideDataCollectOperation collectOperation,
                     ClusterService clusterService,
-                    NodeJobsCounter nodeJobsCounter,
+                    NodeLimits nodeJobsCounter,
                     CircuitBreakerService circuitBreakerService,
                     CountOperation countOperation,
                     ThreadPool threadPool,

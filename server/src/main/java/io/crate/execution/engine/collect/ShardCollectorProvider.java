@@ -45,7 +45,7 @@ import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -64,7 +64,7 @@ public abstract class ShardCollectorProvider {
     ShardCollectorProvider(ClusterService clusterService,
                            CircuitBreakerService circuitBreakerService,
                            Schemas schemas,
-                           NodeJobsCounter nodeJobsCounter,
+                           NodeLimits nodeJobsCounter,
                            NodeContext nodeCtx,
                            ThreadPool threadPool,
                            Settings settings,
