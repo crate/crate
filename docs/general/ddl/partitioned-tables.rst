@@ -17,24 +17,71 @@ Partitioned tables
 Introduction
 ============
 
-A partitioned table is a virtual table that can be created by naming one or
-more columns by which it is split into separate internal tables, called
-*partitions*.
+A partitioned table is a virtual table consisting of zero or more partitions. A
+partition is similar to a regular single table and consists of one or more
+shards.
 
-When a record with a new distinct combination of values for the configured
-:ref:`partition columns <gloss-partition-column>` is inserted, a new partition
-is created and the document will be inserted into this partition.
+::
 
-You will end up with separate partitions under the hood that can be queried
-like a single table.
+    partitioned_table
+      |
+      +-- partition 1
+      |     |
+      |     +- shard 0
+      |     |
+      |     +- shard 1
+      |
+      +-- partition 2
+            |
+            +- shard 0
+            |
+            +- shard 1
 
-If you are usually interested in separate partitions of your data only, as
-might be the case for e.g. analyzing time based log data, you can query them
-much much faster because you don't have to iterate over all rows of all
-partitions.
 
-Deletion is faster too if you delete whole partitions at once, as a whole table
-can be deleted and no expensive query is involved.
+A table becomes a partitioned table by defining :ref:`partition columns
+<gloss-partition-column>`.  When a record with a new distinct combination of
+values for the configured :ref:`partition columns <gloss-partition-column>` is
+inserted, a new partition is created and the document will be inserted into
+this partition.
+
+A partitioned table can be queried like a regular table. 
+
+Partitioned tables have the following advantages:
+
+- The number of shards can be changed on the partitioned table, which will then
+  change how many shards will be used for the next partition creation. This
+  enables one to start out with few shards per partition initially, and scale
+  up the number of shards for later partitions once traffic and ingest rates
+  increase with the lifetime of an application.
+
+- Partitions can be backed up and restored individually.
+
+- Queries which contain filters in the ``WHERE`` clause which identify a single
+  partition or a subset of partitions is less expensive than querying all
+  partitions because the shards of the excluded partitions won't have to be
+  accessed.
+
+- Deleting data from a partitioned table is cheap if full partitions are
+  dropped. Full partitions are dropped with ``DELETE`` statements where the
+  optimizer can infer from the ``WHERE`` clause and partition columns that all
+  records of a partition match without having to evaluate against the records.
+
+
+Partitioned tables have the following disadvantages:
+
+
+- If the partition columns are badly chosen you can end up with too many shards
+  in the cluster, affecting the overall stability and performance negatively.
+
+- You may end up with empty, stale partitions if delete operations couldn't be
+  optimized to drop full partitions. You may have to watch out for this and
+  invoke ``DELETE`` statements to target single partitions to clean them up.
+
+- Some optimizations don't apply to partitioned tables. An example for this is
+  a GROUP BY query where the grouping keys match the ``CLUSTERED BY`` columns
+  of a table. This kind of query can be optimized on regular tables, but cannot
+  be optimized on a partitioned table.
+
 
 .. NOTE::
 
