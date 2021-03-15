@@ -74,8 +74,8 @@ Using Docker
 To enable JMX monitoring when running CrateDB in a Docker container you have to
 set the following additional Java system properties::
 
-  -Djava.rmi.server.hostname=<RMI_PORT>
-  -Dcom.sun.management.jmxremote.rmi.port=<RMI_HOSTNAME>
+  -Djava.rmi.server.hostname=<RMI_HOSTNAME>
+  -Dcom.sun.management.jmxremote.rmi.port=<RMI_PORT>
 
 Here, ``<RMI_HOSTNAME>`` is the IP address or hostname of the Docker host and
 ``<RMI_PORT>`` is the statically assigned port of the RMI server. For
@@ -86,15 +86,14 @@ The ``<RMI_HOSTNAME>`` and ``<RMI_PORT>`` can be used by JMX clients (e.g.
 
 Here's an example Docker command::
 
-  sh> docker run -d -e CRATE_JAVA_OPTS='\
+  sh> docker run -d -e CRATE_JAVA_OPTS="\
         -Dcom.sun.management.jmxremote
         -Dcom.sun.management.jmxremote.port=7979 \
         -Dcom.sun.management.jmxremote.ssl=false \
         -Dcom.sun.management.jmxremote.authenticate=false \
-        -Dcom.sun.management.jmxremote.rmi.port=<RMI_HOSTNAME> \
-        -Djava.rmi.server.hostname=7979' \
-        -p 7979:7979 crate \
-        crate -Cnetwork.host=_site_
+        -Dcom.sun.management.jmxremote.rmi.port=7979 \
+        -Djava.rmi.server.hostname=<RMI_HOSTNAME>" \
+        -p 7979:7979 crate -Cnetwork.host=_site_
 
 Here, again, ``<RMI_HOSTNAME>`` is the IP address or hostname of the Docker
 host.
