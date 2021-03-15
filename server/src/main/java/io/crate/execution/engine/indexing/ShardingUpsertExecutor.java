@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.indexing;
 
-import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
 import java.util.Iterator;
 import java.util.List;
@@ -46,7 +45,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -61,14 +59,16 @@ import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.TypeGuessEstimateRowSize;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.limits.ConcurrencyLimit;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
@@ -80,12 +80,11 @@ public class ShardingUpsertExecutor
         "bulk.request_timeout", new TimeValue(1, TimeUnit.MINUTES),
         Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
 
-    private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     private static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
     private static final double BREAKER_LIMIT_PERCENTAGE = 0.50d;
 
     private final GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper;
-    private final NodeJobsCounter nodeJobsCounter;
+    private final NodeLimits nodeLimits;
     private final ScheduledExecutorService scheduler;
     private final Executor executor;
     private final int bulkSize;
@@ -102,7 +101,7 @@ public class ShardingUpsertExecutor
     private volatile boolean createPartitionsRequestOngoing = false;
 
     ShardingUpsertExecutor(ClusterService clusterService,
-                           NodeJobsCounter nodeJobsCounter,
+                           NodeLimits nodeJobsCounter,
                            CircuitBreaker queryCircuitBreaker,
                            RamAccounting ramAccounting,
                            ScheduledExecutorService scheduler,
@@ -121,7 +120,7 @@ public class ShardingUpsertExecutor
                            int targetTableNumReplicas,
                            UpsertResultContext upsertResultContext) {
         this.localNode = clusterService.state().getNodes().getLocalNodeId();
-        this.nodeJobsCounter = nodeJobsCounter;
+        this.nodeLimits = nodeJobsCounter;
         this.queryCircuitBreaker = queryCircuitBreaker;
         this.scheduler = scheduler;
         this.executor = executor;
@@ -200,7 +199,8 @@ public class ShardingUpsertExecutor
             it.remove();
 
             String nodeId = entry.getKey().nodeId;
-            nodeJobsCounter.increment(nodeId);
+            ConcurrencyLimit nodeLimit = nodeLimits.get(nodeId);
+            long startTime = nodeLimit.startSample();
             ActionListener<ShardResponse> listener =
                 new ShardResponseActionListener(
                     nodeId,
@@ -209,18 +209,14 @@ public class ShardingUpsertExecutor
                     upsertResults,
                     resultCollector.accumulator(),
                     requests.rowSourceInfos,
+                    startTime,
                     resultFuture);
 
             listener = new RetryListener<>(
                 scheduler,
-                l -> {
-                    if (isDebugEnabled) {
-                        LOGGER.debug("Executing retry Listener for nodeId: {} request: {}", nodeId, request);
-                    }
-                    requestExecutor.execute(request, l);
-                },
+                l -> requestExecutor.execute(request, l),
                 listener,
-                BACKOFF_POLICY
+                LimitedExponentialBackoff.limitedExponential(nodeLimit)
             );
             requestExecutor.execute(request, listener);
         }
@@ -239,9 +235,16 @@ public class ShardingUpsertExecutor
     private boolean shouldPauseOnTargetNodeJobsCounter(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests) {
         for (ShardLocation shardLocation : requests.itemsByShard.keySet()) {
             String requestNodeId = shardLocation.nodeId;
-            if (nodeJobsCounter.getInProgressJobsForNode(requestNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS) {
+            ConcurrencyLimit nodeLimit = nodeLimits.get(requestNodeId);
+            if (nodeLimit.exceedsLimit()) {
                 if (isDebugEnabled) {
-                    LOGGER.debug("reached maximum concurrent operations for node {}", requestNodeId);
+                    LOGGER.debug(
+                        "reached maximum concurrent operations for node {} (limit={}, rrt={}ms, inflight={})",
+                        requestNodeId,
+                        nodeLimit.getLimit(),
+                        nodeLimit.getLastRtt(TimeUnit.MILLISECONDS),
+                        nodeLimit.numInflight()
+                    );
                 }
                 return true;
             }
@@ -262,7 +265,7 @@ public class ShardingUpsertExecutor
 
     long computeBulkByteThreshold() {
         long minAcceptableBytes = ByteSizeUnit.KB.toBytes(64);
-        long localJobs = Math.max(1, nodeJobsCounter.getInProgressJobsForNode(localNode));
+        long localJobs = Math.max(1, nodeLimits.get(localNode).numInflight());
         double memoryRatio = 1.0 / localJobs;
         long wantedBytes = Math.max(
             (long) (queryCircuitBreaker.getFree() * BREAKER_LIMIT_PERCENTAGE * memoryRatio), minAcceptableBytes);
@@ -272,12 +275,13 @@ public class ShardingUpsertExecutor
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
-        nodeJobsCounter.increment(localNode);
+        final ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
+        long startTime = nodeLimit.startSample();
         long bulkBytesThreshold;
         try {
             bulkBytesThreshold = computeBulkByteThreshold();
         } catch (Throwable t) {
-            nodeJobsCounter.decrement(localNode);
+            nodeLimit.onSample(startTime, true);
             return CompletableFuture.failedFuture(t);
         }
         var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(bulkBytesThreshold);
@@ -308,13 +312,22 @@ public class ShardingUpsertExecutor
                 resultCollector.combiner(),
                 resultCollector.supplier().get(),
                 shouldPause,
-                BACKOFF_POLICY
+                req -> getMaxLastRttInMs(req)
             );
         return executor.consumeIteratorAndExecute()
             .thenApply(upsertResults -> resultCollector.finisher().apply(upsertResults))
             .whenComplete((res, err) -> {
-                nodeJobsCounter.decrement(localNode);
+                nodeLimit.onSample(startTime, err != null);
             });
+    }
+
+    private long getMaxLastRttInMs(ShardedRequests<ShardUpsertRequest, Item> req) {
+        long rtt = 0;
+        for (var shardLocation : req.itemsByShard.keySet()) {
+            String nodeId = shardLocation.nodeId;
+            rtt = Math.max(rtt, nodeLimits.get(nodeId).getLastRtt(TimeUnit.MILLISECONDS));
+        }
+        return rtt;
     }
 
     private class ShardResponseActionListener implements ActionListener<ShardResponse> {
@@ -325,6 +338,7 @@ public class ShardingUpsertExecutor
         private final AtomicInteger numRequests;
         private final AtomicReference<Exception> interrupt;
         private final CompletableFuture<UpsertResults> upsertResultFuture;
+        private final long startTime;
 
         ShardResponseActionListener(String operationNodeId,
                                     AtomicInteger numRequests,
@@ -332,6 +346,7 @@ public class ShardingUpsertExecutor
                                     UpsertResults upsertResults,
                                     UpsertResultCollector.Accumulator resultAccumulator,
                                     List<RowSourceInfo> rowSourceInfos,
+                                    long startTime,
                                     CompletableFuture<UpsertResults> upsertResultFuture) {
             this.operationNodeId = operationNodeId;
             this.numRequests = numRequests;
@@ -339,12 +354,13 @@ public class ShardingUpsertExecutor
             this.upsertResults = upsertResults;
             this.resultAccumulator = resultAccumulator;
             this.rowSourceInfos = rowSourceInfos;
+            this.startTime = startTime;
             this.upsertResultFuture = upsertResultFuture;
         }
 
         @Override
         public void onResponse(ShardResponse shardResponse) {
-            nodeJobsCounter.decrement(operationNodeId);
+            nodeLimits.get(operationNodeId).onSample(startTime, false);
             resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
             maybeSetInterrupt(shardResponse.failure());
             countdown();
@@ -352,7 +368,7 @@ public class ShardingUpsertExecutor
 
         @Override
         public void onFailure(Exception e) {
-            nodeJobsCounter.decrement(operationNodeId);
+            nodeLimits.get(operationNodeId).onSample(startTime, true);
             countdown();
         }
 

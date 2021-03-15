@@ -22,7 +22,45 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntArrayList;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.block.ClusterBlock;
+import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
+import org.elasticsearch.index.IndexNotFoundException;
+
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
 import io.crate.analyze.OrderBy;
@@ -31,6 +69,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.TypeGuessEstimateRowSize;
+import io.crate.concurrent.limits.ConcurrencyLimit;
 import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -55,6 +94,7 @@ import io.crate.execution.engine.indexing.GroupRowsByShard;
 import io.crate.execution.engine.indexing.IndexNameResolver;
 import io.crate.execution.engine.indexing.ShardLocation;
 import io.crate.execution.engine.indexing.ShardedRequests;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
@@ -71,46 +111,9 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.block.ClusterBlock;
-import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
-import org.elasticsearch.index.IndexNotFoundException;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
-
-import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 
 
 public class InsertFromValues implements LogicalPlan {
-
-    private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final TableFunctionRelation tableFunctionRelation;
     private final ColumnIndexWriterProjection writerProjection;
@@ -280,6 +283,8 @@ public class InsertFromValues implements LogicalPlan {
                 shardedRequests,
                 dependencies.clusterService()).values();
             return execute(
+                dependencies.nodeLimits(),
+                dependencies.clusterService().state(),
                 shardUpsertRequests,
                 actionProvider.transportShardUpsertAction(),
                 dependencies.scheduler());
@@ -429,6 +434,8 @@ public class InsertFromValues implements LogicalPlan {
                 shardedRequests,
                 dependencies.clusterService()).values();
             return execute(
+                dependencies.nodeLimits(),
+                dependencies.clusterService().state(),
                 shardUpsertRequests,
                 actionProvider.transportShardUpsertAction(),
                 dependencies.scheduler());
@@ -621,7 +628,9 @@ public class InsertFromValues implements LogicalPlan {
         return shardedRequests.itemsByShard();
     }
 
-    private CompletableFuture<ShardResponse.CompressedResult> execute(Collection<ShardUpsertRequest> shardUpsertRequests,
+    private CompletableFuture<ShardResponse.CompressedResult> execute(NodeLimits nodeLimits,
+                                                                      ClusterState state,
+                                                                      Collection<ShardUpsertRequest> shardUpsertRequests,
                                                                       TransportShardUpsertAction shardUpsertAction,
                                                                       ScheduledExecutorService scheduler) {
         ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
@@ -634,16 +643,24 @@ public class InsertFromValues implements LogicalPlan {
         AtomicReference<Throwable> lastFailure = new AtomicReference<>(null);
 
         for (ShardUpsertRequest request : shardUpsertRequests) {
+            String nodeId = state.routingTable()
+                .shardRoutingTable(request.shardId())
+                .primaryShard()
+                .currentNodeId();
+            final ConcurrencyLimit nodeLimit = nodeLimits.get(nodeId);
+            final long startTime = nodeLimit.startSample();
 
             ActionListener<ShardResponse> listener = new ActionListener<>() {
                 @Override
                 public void onResponse(ShardResponse shardResponse) {
                     Throwable throwable = shardResponse.failure();
                     if (throwable == null) {
+                        nodeLimit.onSample(startTime, false);
                         synchronized (compressedResult) {
                             compressedResult.update(shardResponse);
                         }
                     } else {
+                        nodeLimit.onSample(startTime, true);
                         lastFailure.set(throwable);
                     }
                     countdown();
@@ -651,6 +668,7 @@ public class InsertFromValues implements LogicalPlan {
 
                 @Override
                 public void onFailure(Exception e) {
+                    nodeLimit.onSample(startTime, true);
                     if (!partitionWasDeleted(e, request.index())) {
                         synchronized (compressedResult) {
                             compressedResult.markAsFailed(request.items());
@@ -687,7 +705,7 @@ public class InsertFromValues implements LogicalPlan {
                     scheduler,
                     l -> shardUpsertAction.execute(request, l),
                     listener,
-                    BACK_OFF_POLICY
+                    LimitedExponentialBackoff.limitedExponential(nodeLimit)
                 )
             );
         }

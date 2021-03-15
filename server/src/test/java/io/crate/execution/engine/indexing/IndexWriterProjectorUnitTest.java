@@ -29,7 +29,7 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -99,7 +99,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
         TransportCreatePartitionsAction transportCreatePartitionsAction = mock(TransportCreatePartitionsAction.class);
         IndexWriterProjector indexWriter = new IndexWriterProjector(
             clusterService,
-            new NodeJobsCounter(),
+            new NodeLimits(),
             new NoopCircuitBreaker("dummy"),
             RamAccounting.NO_ACCOUNTING,
             scheduler,

@@ -35,6 +35,7 @@ import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -76,6 +77,7 @@ public class DependencyCarrier {
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final RepositoryService repositoryService;
     private final RepositoryParamValidator repositoryParamValidator;
+    private final NodeLimits nodeLimits;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -85,6 +87,7 @@ public class DependencyCarrier {
                              Schemas schemas,
                              NodeContext nodeCtx,
                              ClusterService clusterService,
+                             NodeLimits nodeLimits,
                              DCLStatementDispatcher dclStatementDispatcher,
                              TransportDropTableAction transportDropTableAction,
                              TransportCreateViewAction createViewAction,
@@ -105,6 +108,7 @@ public class DependencyCarrier {
         this.schemas = schemas;
         this.nodeCtx = nodeCtx;
         this.clusterService = clusterService;
+        this.nodeLimits = nodeLimits;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
         projectionBuilder = new ProjectionBuilder(nodeCtx);
@@ -211,5 +215,9 @@ public class DependencyCarrier {
 
     public TransportAnalyzeAction analyzeAction() {
         return analyzeAction.get();
+    }
+
+    public NodeLimits nodeLimits() {
+        return nodeLimits;
     }
 }

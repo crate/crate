@@ -49,7 +49,7 @@ import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.expression.InputFactory;
@@ -165,7 +165,7 @@ public class ShardCollectSource implements CollectSource {
                               IndicesService indicesService,
                               NodeContext nodeCtx,
                               ClusterService clusterService,
-                              NodeJobsCounter nodeJobsCounter,
+                              NodeLimits nodeJobsCounter,
                               LuceneQueryBuilder luceneQueryBuilder,
                               ThreadPool threadPool,
                               TransportActionProvider transportActionProvider,

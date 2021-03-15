@@ -47,7 +47,7 @@ import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
 import io.crate.execution.engine.sort.LuceneSortGenerator;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -79,7 +79,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     public LuceneShardCollectorProvider(Schemas schemas,
                                         LuceneQueryBuilder luceneQueryBuilder,
                                         ClusterService clusterService,
-                                        NodeJobsCounter nodeJobsCounter,
+                                        NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,

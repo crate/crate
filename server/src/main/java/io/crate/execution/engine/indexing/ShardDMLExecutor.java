@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.indexing;
 
-import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -41,11 +41,12 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
+import io.crate.concurrent.limits.ConcurrencyLimit;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.CollectionBucket;
@@ -55,7 +56,7 @@ import io.crate.exceptions.Exceptions;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
 
 public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
@@ -66,7 +67,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
 
     private static final Logger LOGGER = LogManager.getLogger(ShardDMLExecutor.class);
 
-    private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     public static final int DEFAULT_BULK_SIZE = 10_000;
 
     private final UUID jobId;
@@ -74,13 +74,14 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final ScheduledExecutorService scheduler;
     private final Executor executor;
     private final CollectExpression<Row, ?> uidExpression;
-    private final NodeJobsCounter nodeJobsCounter;
+    private final NodeLimits nodeLimits;
     private final Supplier<TReq> requestFactory;
     private final Function<String, TItem> itemFactory;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
-    private final String localNodeId;
     private final Collector<ShardResponse, TAcc, TResult> collector;
     private int numItems = -1;
+
+    private ClusterService clusterService;
 
     public ShardDMLExecutor(UUID jobId,
                             int bulkSize,
@@ -88,7 +89,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             Executor executor,
                             CollectExpression<Row, ?> uidExpression,
                             ClusterService clusterService,
-                            NodeJobsCounter nodeJobsCounter,
+                            NodeLimits nodeLimits,
                             Supplier<TReq> requestFactory,
                             Function<String, TItem> itemFactory,
                             BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
@@ -99,11 +100,11 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         this.scheduler = scheduler;
         this.executor = executor;
         this.uidExpression = uidExpression;
-        this.nodeJobsCounter = nodeJobsCounter;
+        this.clusterService = clusterService;
+        this.nodeLimits = nodeLimits;
         this.requestFactory = requestFactory;
         this.itemFactory = itemFactory;
         this.operation = transportAction;
-        this.localNodeId = getLocalNodeId(clusterService);
         this.collector = collector;
     }
 
@@ -113,25 +114,39 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         req.add(numItems, itemFactory.apply((String) uidExpression.value()));
     }
 
+    @Nullable
+    private String resolveNodeId(TReq request) {
+        // The primary shard might be moving to another node,
+        // so this is not 100% accurate but good enough for the congestion control purposes.
+        ShardRouting primaryShard = clusterService
+            .state()
+            .routingTable()
+            .shardRoutingTable(request.shardId())
+            .primaryShard();
+        return primaryShard == null ? null : primaryShard.currentNodeId();
+    }
+
     private CompletableFuture<TAcc> executeBatch(TReq request) {
+        ConcurrencyLimit nodeLimit = nodeLimits.get(resolveNodeId(request));
+        long startTime = nodeLimit.startSample();
         FutureActionListener<ShardResponse, TAcc> listener = new FutureActionListener<>((a) -> {
+            nodeLimit.onSample(startTime, false);
             TAcc acc = collector.supplier().get();
             collector.accumulator().accept(acc, a);
             return acc;
         });
-
-        nodeJobsCounter.increment(localNodeId);
-        CompletableFuture<TAcc> result = listener.whenComplete((r, f) -> nodeJobsCounter.decrement(localNodeId));
-        operation.accept(request, withRetry(request, listener));
-        return result;
+        operation.accept(request, withRetry(request, nodeLimit, listener));
+        return listener;
     }
 
-    private RetryListener<ShardResponse> withRetry(TReq request, FutureActionListener<ShardResponse, TAcc> listener) {
+    private RetryListener<ShardResponse> withRetry(TReq request,
+                                                   ConcurrencyLimit nodeLimit,
+                                                   FutureActionListener<ShardResponse, TAcc> listener) {
         return new RetryListener<>(
             scheduler,
             l -> operation.accept(request, l),
             listener,
-            BACKOFF_POLICY
+            LimitedExponentialBackoff.limitedExponential(nodeLimit)
         );
     }
 
@@ -143,10 +158,8 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         // as soon as possible. We do not want to throttle based on the targets node counter in such cases.
         Predicate<TReq> shouldPause = ignored -> true;
         if (batchIterator.hasLazyResultSet()) {
-            shouldPause = ignored ->
-                nodeJobsCounter.getInProgressJobsForNode(localNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS;
+            shouldPause = req -> nodeLimits.get(resolveNodeId(req)).exceedsLimit();
         }
-
         return new BatchIteratorBackpressureExecutor<>(
             jobId,
             scheduler,
@@ -156,7 +169,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             collector.combiner(),
             collector.supplier().get(),
             shouldPause,
-            BACKOFF_POLICY
+            req -> nodeLimits.get(resolveNodeId(req)).getLastRtt(TimeUnit.MILLISECONDS)
         ).consumeIteratorAndExecute()
             .thenApply(collector.finisher());
     }
