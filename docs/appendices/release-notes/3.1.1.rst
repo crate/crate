@@ -14,8 +14,8 @@ Released on 2018/09/25.
     We recommend that you upgrade to the latest 3.0 release before moving to
     3.1.1.
 
-    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-    version will require a `full restart upgrade`_.
+    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to
+    this version will require a `full restart upgrade`_.
 
     When restarting, CrateDB will migrate indexes to a newer format. Depending
     on the amount of data, this may delay node start-up time.
@@ -35,25 +35,28 @@ Released on 2018/09/25.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of contents
 
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Changes
 -------
 
 - Added support for using generated columns inside object columns.
 
+
 Fixes
 -----
 
-- Calling an unknown user defined function now results in an appropriate error
-  message instead of a ``NullPointerException``.
+- Calling an unknown :ref:`user-defined function <user-defined-functions>` now
+  results in an appropriate error message instead of a
+  ``NullPointerException``.
 
 - Fixed processing of the ``endpoint``, ``protocol`` and ``max_retries`` S3
   repository parameters.

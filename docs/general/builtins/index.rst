@@ -1,20 +1,20 @@
 .. highlight:: psql
 
-.. _sql-functions-operators:
+.. _builtins:
 
 ================================
 Built-in functions and operators
 ================================
 
-This chapter provides an overview of built-in functions and :ref:`operators
-<gloss-operator>`.
+This chapter provides an overview of built-in :ref:`functions <gloss-function>`
+and :ref:`operators <gloss-operator>`.
 
 .. rubric:: Table of contents
 
 .. toctree::
   :maxdepth: 2
 
-  scalar
+  scalar-functions
   aggregation
   arithmetic
   table-functions

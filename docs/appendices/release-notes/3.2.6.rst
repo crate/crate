@@ -55,12 +55,12 @@ Fixes
   in a ``JOIN`` statement.
 
 - Fixed an issue which caused a ``NullPointerException`` when executing a
-  :ref:`window function <window-functions>` over an ordered window which
-  contained null values under the ordered column.
+  window function over an ordered window which contained null values under the
+  ordered column.
 
 - Fixed an issue which causes sub-select queries with certain ``ORDER BY``
   constructs to fail.
 
-- Fixed circuit breaker memory accounting of window functions to prevent Out Of
-  Memory exceptions.
+- Fixed circuit breaker memory accounting of window functions to prevent *Out
+  Of Memory* exceptions.
 

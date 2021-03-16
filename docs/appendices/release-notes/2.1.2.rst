@@ -13,8 +13,9 @@ Released on 2017/08/08.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
     number must be :ref:`version_2.1.0`.  If you want to upgrade from a version
-    prior to this, the upgrade will introduce all of the breaking changes listed
-    for :ref:`version_2.1.0`, and will require a `full restart upgrade`_.
+    prior to this, the upgrade will introduce all of the breaking changes
+    listed for :ref:`version_2.1.0`, and will require a `full restart
+    upgrade`_.
 
     Consult the upgrade notes for :ref:`Version 2.1.0
     <version_2.1.0_upgrade_notes>` when upgrading.
@@ -32,11 +33,13 @@ Released on 2017/08/08.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Fixes
 -----
 
- - Fixed an issue where user defined functions were not persisted across node
-   restarts.
+- Fixed an issue where :ref:`user-defined functions <user-defined-functions>`
+  were not persisted across node restarts.

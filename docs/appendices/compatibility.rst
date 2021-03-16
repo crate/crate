@@ -99,7 +99,7 @@ would otherwise require traditional transactions.
 Unsupported features and functions
 ==================================
 
-These **features** of `standard SQL`_ are not supported:
+These *features* of `standard SQL`_ are not supported:
 
 - Stored procedures
 
@@ -119,13 +119,14 @@ These **features** of `standard SQL`_ are not supported:
 
   - Exclusion constraints
 
-These **functions** of `standard SQL`_ are either not supported or only partly supported:
+These *functions* of `standard SQL`_ are either not supported or only partly
+supported:
 
-- Aggregate functions
+- :ref:`Aggregate functions <aggregation-functions>`
 
   - Various functions available (see :ref:`aggregation`)
 
-- Window functions
+- :ref:`Window functions <window-functions>`
 
   - Various functions available (see :ref:`window-functions`)
 
@@ -145,15 +146,16 @@ These **functions** of `standard SQL`_ are either not supported or only partly s
 
 - XML functions
 
-**Note**: The currently supported and unsupported features in CrateDB are
-exposed in the :ref:`information_schema` table (see :ref:`sql_features` for
-usage).
+.. NOTE::
+
+    The currently supported and unsupported features in CrateDB are exposed in
+    the :ref:`information_schema` table (see :ref:`sql_features` for usage).
 
 CrateDB also supports the `PostgreSQL wire protocol`_.
 
-If you have use cases for any missing features, functions, or dialect
-improvements, let us know on `Github`_! We are always improving and extending
-CrateDB and would love to hear your feedback.
+If you have use cases for any missing features, :ref:`functions
+<gloss-function>`, or dialect improvements, let us know on `Github`_! We are
+always improving and extending CrateDB and would love to hear your feedback.
 
 
 .. _Github: https://github.com/crate/crate

@@ -11,11 +11,12 @@ Session settings
 
 Session settings only apply to the currently connected client session.
 
+
 Usage
 =====
 
-To configure a modifiable session setting, use :ref:`SET <ref-set>`,
-for example:
+To configure a modifiable session setting, use :ref:`SET <ref-set>`, for
+example:
 
 .. code-block:: sql
 
@@ -29,7 +30,7 @@ eg:
   SHOW search_path;
 
 Besides using ``SHOW``, it is also possible to use the :ref:`current_setting
-<scalar_current_setting>` scalar function.
+<scalar_current_setting>` :ref:`scalar function <scalar-functions>`.
 
 
 Supported session settings
@@ -55,7 +56,8 @@ Supported session settings
 
      Some :ref:`PostgreSQL clients <postgres_wire_protocol>` require access to
      various tables in the ``pg_catalog`` schema. Usually, this is to extract
-     information about built-in data types or functions.
+     information about built-in data types or :ref:`functions
+     <gloss-function>`.
 
      CrateDB implements the system ``pg_catalog`` schema and it automatically
      includes it in the ``search_path`` *before* the configured schemas, unless
@@ -74,10 +76,9 @@ Supported session settings
   .. NOTE::
 
      It is not always possible or efficient to use the ``HashJoin``
-     implementation. Having this setting enabled, will only add the
-     option of considering it, it will not guaranty it.
-     See also the :ref:`available join algorithms
-     <available-join-algo>` for more insights on this topic.
+     implementation. Having this setting enabled, will only add the option of
+     considering it, it will not guarantee it.  See also the :ref:`available
+     join algorithms <available-join-algo>` for more insights on this topic.
 
 .. _conf-session-max_index_keys:
 
@@ -120,15 +121,16 @@ Supported session settings
   setting e.g. ``SET optimizer_rewrite_collect_to_get = false``.
 
   .. NOTE::
+
    The optimizer setting is for advanced use only and can significantly impact
    the performance behavior of the queries.
-
 
 .. _experimental-warning:
 
 .. WARNING::
 
-  Experimental session settings might be removed in the future
-  even in minor feature releases.
+  Experimental session settings might be removed in the future even in minor
+  feature releases.
+
 
 .. _search_path: https://www.postgresql.org/docs/10/static/ddl-schemas.html#DDL-SCHEMAS-PATH

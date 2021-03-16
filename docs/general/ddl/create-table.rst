@@ -153,7 +153,7 @@ Advanced use
 Tables can be:
 
 - :ref:`Clustered <sql-create-table-clustered>` into multiple :ref:`shards
-  <sql_ddl_sharding>`
+  <ddl-sharding>`
 - :ref:`sql-create-table-partitioned-by` one or more columns (to create
   :ref:`partitioned tables <partitioned-tables>`)
 - Fine-tuned with :ref:`table paramaters <sql-create-table-with>` (e.g., to

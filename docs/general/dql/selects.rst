@@ -6,13 +6,9 @@ Selecting data
 ==============
 
 Selecting (i.e., retrieving) data from CrateDB can be done by using an SQL
-:ref:`SELECT <sql_reference_select>` statement. The response to a ``SELECT``
-query includes the column names of the result, the result rows as a
-two-dimensional array of values, the row count, and the execution time.
-
-.. SEEALSO::
-
-    :ref:`SELECT syntax <sql_reference_select>`
+:ref:`SELECT <sql-select>` statement. The response to a ``SELECT`` query
+includes the column names of the result, the result rows as a two-dimensional
+array of values, the row count, and the execution time.
 
 .. rubric:: Table of contents
 
@@ -58,6 +54,7 @@ Aliases can be used to change the output name of the columns::
     +-------------------+
     SELECT 1 row in set (... sec)
 
+
 .. _sql_dql_from_clause:
 
 ``FROM`` clause
@@ -65,7 +62,7 @@ Aliases can be used to change the output name of the columns::
 
 The ``FROM`` clause is used to reference the relation this select query is
 based upon. Can be a single table, many tables, a view, a :ref:`JOIN
-<sql_joins>` or another :ref:`SELECT <sql_reference_select>` statement.
+<sql-select-joined-relation>` or another :ref:`SELECT <sql-select>` statement.
 
 Tables and views are referenced by schema and table name and can optionally be
 aliased.  If the relation ``t`` is only referenced by name, CrateDB assumes the
@@ -107,6 +104,7 @@ A table can be aliased for the sake of brevity too::
     +-------------------+
     SELECT 1 row in set (... sec)
 
+
 .. _sql_dql_joins:
 
 Joins
@@ -118,13 +116,14 @@ Joins
 
     See the :ref:`sql_joins` for current state.
 
+
 .. _sql_dql_distinct_clause:
 
 ``DISTINCT`` clause
 ===================
 
-If DISTINCT is specified, one unique row is kept. All other duplicate rows are
-removed from the result set::
+If ``DISTINCT`` is specified, one unique row is kept. All other duplicate rows
+are removed from the result set::
 
     cr> select distinct date from locations order by date;
     +---------------+
@@ -138,7 +137,8 @@ removed from the result set::
 
 .. note::
 
-   Using `DISTINCT` is only supported on :ref:`sql_ddl_datatypes_primitives`.
+   Using ``DISTINCT`` is only supported on :ref:`sql_ddl_datatypes_primitives`.
+
 
 .. _sql_dql_where_clause:
 
@@ -165,6 +165,7 @@ Comparison operators
 CrateDB supports a variety of :ref:`comparison operators
 <comparison-operators>` (including basic operators such as ``=``, ``<``, ``>``,
 and so on).
+
 
 .. _sql_ddl_regexp:
 
@@ -221,7 +222,7 @@ expression matching on Lucene terms.
 
 `Lucene Regular Expressions`_ are basically `POSIX Extended Regular
 Expressions`_ without the character classes and with some extensions, like a
-metacharacter ``#``  for the empty string or ``~`` for negation and others. By
+metacharacter ``#`` for the empty string or ``~`` for negation and others. By
 default all Lucene extensions are enabled. See the Lucene documentation for
 more details.
 
@@ -278,8 +279,8 @@ These operators can be used to query for rows where only part of a columns
 value should match something. The only difference is that, in the case of
 ``ILIKE``, the matching is case insensitive.
 
-For example to get all locations where the name starts with 'Ar' the following
-queries can be used::
+For example to get all locations where the name starts with ``Ar`` the
+following queries can be used::
 
     cr> select name from locations where name like 'Ar%' order by name asc;
     +-------------------+
@@ -364,11 +365,11 @@ null        null
 
    CrateDB handles the case of ``NOT (NULL)`` inconsistently. The above is only
    true when the ``NOT`` appears in a ``SELECT`` clause or a ``WHERE`` clause
-   that operates on system tables. The result of ``NOT (NULL)`` in a
-   ``WHERE`` clause that operates on user tables will produce
-   inconsistent but deterministic results (``NULL`` or ``TRUE``)
-   depending on the specifics of the clause. This does not adhere to
-   standard SQL three-valued-logic and will be fixed in a future release.
+   that operates on system tables. The result of ``NOT (NULL)`` in a ``WHERE``
+   clause that operates on user tables will produce inconsistent but
+   deterministic results (``NULL`` or ``TRUE``) depending on the specifics of
+   the clause. This does not adhere to standard SQL three-valued-logic and will
+   be fixed in a future release.
 
 
 .. _sql_dql_is_null:
@@ -587,8 +588,8 @@ element that is not ``netball``::
 
 .. NOTE::
 
-    When using the  ``!= ANY(<array_col>))`` syntax, the default maximum size
-    of the array can be 8192. To be use larger arrays, you must configure the
+    When using the ``!= ANY(<array_col>))`` syntax, the default maximum size of
+    the array can be 8192. To use larger arrays, you must configure the
     :ref:`indices.query.bool.max_clause_count
     <indices.query.bool.max_clause_count>` setting as appropriate on each node.
 
@@ -617,9 +618,9 @@ This behaviour applies to:
     logic`_. For better performance, consider using the :ref:`ignore3vl
     <ignore3vl>` function.
 
-    Additionally, When using ``NOT`` with ``LIKE ANY`` or ``NOT LIKE ANY``,
-    the default maximum size of the array can be 8192. To be use larger arrays,
-    you must configure the :ref:`indices.query.bool.max_clause_count
+    Additionally, When using ``NOT`` with ``LIKE ANY`` or ``NOT LIKE ANY``, the
+    default maximum size of the array can be 8192. To use larger arrays, you
+    must configure the :ref:`indices.query.bool.max_clause_count
     <indices.query.bool.max_clause_count>` setting as appropriate on each node.
 
 
@@ -783,11 +784,11 @@ The query above includes:
 .. rst-class:: open
 
 * An array nested within an object. Specifically, the ``inhabitants`` column
-  contains an *parent object* with an ``interests`` property set to an *child
+  contains an *parent object* with an ``interests`` property set to a *child
   array* of strings (e.g., ``lettuce``).
 
 * Objects nested within an array. Specifically, the ``information`` column
-  contains an *parent array* with two *child objects* (e.g.,
+  contains a *parent array* with two *child objects* (e.g.,
   ``{evolution_level=42, population=1}``).
 
 
@@ -868,9 +869,9 @@ There are two limitations to be aware of:
        ``foo[n1]['bar']``) to a string using the ``<expression>::text`` syntax,
        which is equivalent to ``cast(<expression> as text)``
 
-    2. Creating an temporary :ref:`array <data-type-array>` (in-memory and
-       addressable)  from that string using the ``<expression>[]`` syntax,
-       which is equivalent to ``array(expression``)
+    2. Creating a temporary :ref:`array <data-type-array>` (in-memory and
+       addressable) from that string using the ``<expression>[]`` syntax, which
+       is equivalent to ``array(expression``)
 
     *Note: Because this syntax effectively circumvents the index, it may
     considerably degrade query performance.*
@@ -1059,11 +1060,12 @@ Some examples::
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
+
 Window functions
 ================
 
-CrateDB supports the :ref:`OVER <over>` clause to enable the execution of
-:ref:`window functions <window-functions>`::
+CrateDB supports the :ref:`OVER <window-definition-over>` clause to enable the
+execution of :ref:`window functions <window-functions>`::
 
     cr> select sum(position) OVER() AS pos_sum, name from locations order by name;
     +---------+------------------------------------+
@@ -1088,16 +1090,18 @@ CrateDB supports the :ref:`OVER <over>` clause to enable the execution of
     +---------+------------------------------------+
     SELECT 16 rows in set (... sec)
 
+
 .. _sql_dql_group_by:
 
 ``GROUP BY``
 ============
 
-CrateDB supports the ``group by`` clause. This clause can be used to group the
+CrateDB supports the ``GROUP BY`` clause. This clause can be used to group the
 resulting rows by the value(s) of one or more columns. That means that rows
 that contain duplicate values will be merged.
 
-This is useful if used in conjunction with aggregation functions::
+This is useful if used in conjunction with :ref:`aggregation functions
+<aggregation-functions>`::
 
     cr> select count(*), kind from locations
     ... group by kind order by count(*) desc, kind asc;
@@ -1120,18 +1124,19 @@ This is useful if used in conjunction with aggregation functions::
    shadow the table columns are used.
 
    Grouping on array columns doesn't work, but arrays can be unnested in a
-   subquery using :ref:`unnest`, it is then possible to use GROUP BY on the
-   subquery.
+   subquery using :ref:`unnest <unnest>`, it is then possible to use ``GROUP
+   BY`` on the subquery.
+
 
 .. _sql_dql_having:
 
 ``HAVING``
 ----------
 
-The having clause is the equivalent to the where clause for the resulting rows
-of a group by clause.
+The ``HAVING`` clause is the equivalent to the ``WHERE`` clause for the
+resulting rows of a ``GROUP BY`` clause.
 
-A simple having clause example using an equality :ref:`operator
+A simple ``HAVING`` clause example using an equality :ref:`operator
 <gloss-operator>`::
 
     cr> select count(*), kind from locations
@@ -1143,11 +1148,11 @@ A simple having clause example using an equality :ref:`operator
     +----------+--------+
     SELECT 1 row in set (... sec)
 
-The condition of the having clause can refer to the resulting columns of the
-group by clause.
+The condition of the ``HAVING`` clause can refer to the resulting columns of
+the ``GROUP BY`` clause.
 
-It is also possible to use aggregates in the having clause just like in the
-result columns::
+It is also possible to use :ref:`aggregate functions <aggregation-functions>`
+in the ``HAVING`` clause, like in the result columns::
 
     cr> select count(*), kind from locations
     ... group by kind having min(name) = 'Aldebaran';
@@ -1171,7 +1176,8 @@ result columns::
 
 .. NOTE::
 
-   Aliases are not supported in the having clause.
+   Aliases are not supported in the ``HAVING`` clause.
+
 
 .. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
 .. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html

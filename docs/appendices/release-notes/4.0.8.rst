@@ -9,11 +9,11 @@ Released on 2019/11/07.
 .. NOTE::
 
     Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
-    CrateDB 3.x or earlier.
-    Before upgrading to 4.0.8 you should be running a CrateDB cluster that is
-    at least on 3.0.7.
+    CrateDB 3.x or earlier.  Before upgrading to 4.0.8 you should be running a
+    CrateDB cluster that is at least on 3.0.7.
 
-    We recommend that you upgrade to the latest 3.3 release before moving to 4.0.8.
+    We recommend that you upgrade to the latest 3.3 release before moving to
+    4.0.8.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
     number must be at least :ref:`version_4.0.2`. Any upgrade from a version
@@ -24,8 +24,8 @@ Released on 2019/11/07.
 
 .. WARNING::
 
-    Tables that were created prior CrateDB 3.x will not function with 4.x
-    and must be recreated before moving to 4.x.x.
+    Tables that were created prior CrateDB 3.x will not function with 4.x and
+    must be recreated before moving to 4.x.x.
 
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
@@ -37,12 +37,10 @@ Released on 2019/11/07.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of Contents
 
 .. contents::
    :local:
-
 
 See the :ref:`version_4.0.0` release notes for a full list of changes in the
 4.0 series.
@@ -66,4 +64,5 @@ Fixes
 
 - Fixed an issue resulting in a parsing exception on ``SHOW TABLE`` statements
   when a default expression is implicitly cast to the related column type and
-  the column type contains a ``SPACE`` character (like e.g. ``double precision``).
+  the column type contains a ``SPACE`` character (like e.g. ``double
+  precision``).

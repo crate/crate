@@ -1,16 +1,19 @@
 .. highlight:: psql
-.. _scalar:
+
+.. _scalar-functions:
 
 ================
 Scalar functions
 ================
 
-Scalar functions return :ref:`scalars <gloss-scalar>`.
+Scalar functions are :ref:`functions <gloss-function>` that return
+:ref:`scalars <gloss-scalar>`.
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
 
 String functions
 ================
@@ -701,6 +704,8 @@ Example::
    SELECT 1 row in set (... sec)
 
 
+.. _scalar-date-time:
+
 Date and time functions
 =======================
 
@@ -736,8 +741,8 @@ Valid values for ``timezone`` are either the name of a time zone (for example
 get a complete overview of all possible values take a look at the `available
 time zones`_ supported by `Joda-Time`_.
 
-The following example shows how to use the date_trunc function to generate a
-day based histogram in the ``Europe/Moscow`` timezone::
+The following example shows how to use the ``date_trunc`` function to generate
+a day based histogram in the ``Europe/Moscow`` timezone::
 
     cr> select
     ... date_trunc('day', 'Europe/Moscow', date) as day,
@@ -1309,7 +1314,6 @@ specified interval added to the timestamp of ``0000/01/01 00:00:00``:
     SELECT 1 row in set (... sec)
 
 
-
 Geo functions
 =============
 
@@ -1344,14 +1348,14 @@ the other argument must be a column reference.
 
 .. NOTE::
 
-   The algorithm of the calculation which is used when the distance
-   function is used as part of the result column list has a different
-   precision than what is stored inside the index which is utilized if
-   the distance function is part of a WHERE clause.
+   The algorithm of the calculation which is used when the distance function is
+   used as part of the result column list has a different precision than what
+   is stored inside the index which is utilized if the distance function is
+   part of a WHERE clause.
 
-   For example if ``select distance(...)`` returns 0.0 an equality check
-   with ``where distance(...) = 0`` might not yield anything at all due
-   to the precision difference.
+   For example if ``select distance(...)`` returns 0.0 an equality check with
+   ``where distance(...) = 0`` might not yield anything at all due to the
+   precision difference.
 
 .. _scalar_within:
 
@@ -1366,8 +1370,8 @@ that is not the case false is returned.
 ``shape1`` can either be a ``geo_shape`` or a ``geo_point``. ``shape2`` must be
 a ``geo_shape``.
 
-Below is an example of the within function which makes use of the implicit type
-casting from strings to geo point and geo shapes::
+Below is an example of the ``within`` function which makes use of the implicit
+type casting from strings in WKT representation to geo point and geo shapes::
 
     cr> select within(
     ...   'POINT (10 10)',
@@ -1419,7 +1423,7 @@ Example::
     SELECT 1 row in set (... sec)
 
 Due to a limitation on the :ref:`geo_shape_data_type` datatype this function
-cannot be used in the :ref:`sql_reference_order_by`.
+cannot be used in the :ref:`ORDER BY <sql-select-order-by>` clause.
 
 ``latitude(geo_point)`` and ``longitude(geo_point)``
 ----------------------------------------------------
@@ -2243,8 +2247,8 @@ It can be used to remove elements from array fields.
 ``array(subquery)``
 -------------------
 
-The ``array(subquery)`` expression is an array constructor function
-which operates on the result of the ``subquery``.
+The ``array(subquery)`` expression is an array constructor function which
+operates on the result of the ``subquery``.
 
 Returns: ``array``
 
@@ -2256,6 +2260,7 @@ Returns: ``array``
 
 ``array_upper(anyarray, dimension)``
 ------------------------------------
+
 The ``array_upper`` function returns the number of elements in the requested
 array dimension (the upper bound of the dimension).
 
@@ -2295,6 +2300,7 @@ Returns: ``integer``
 
 ``array_lower(anyarray, dimension)``
 ------------------------------------
+
 The ``array_lower`` function returns the lower bound of the requested array
 dimension (which is ``1`` if the dimension is valid and has at least one
 element).
@@ -3076,10 +3082,9 @@ Returns: ``boolean``
 .. NOTE::
 
     The main usage of the ``ignore3vl`` function is in the ``WHERE`` clause
-    when a ``NOT`` operator is involved. Such filtering, with
-    `3-valued logic`_, cannot be translated to an optimized query in the
-    internal storage engine, and therefore can result into slow performance.
-    E.g.::
+    when a ``NOT`` operator is involved. Such filtering, with `3-valued
+    logic`_, cannot be translated to an optimized query in the internal storage
+    engine, and therefore can degrade performance. E.g.::
 
       SELECT * FROM t
       WHERE NOT 5 = ANY(t.int_array_col);
@@ -3091,33 +3096,33 @@ Returns: ``boolean``
 
     which will yield better performance (in execution time) than before.
 
-    .. CAUTION::
+.. CAUTION::
 
-      If there are NULL values in the `long_array_col`, in the case that
-      `5 = ANY(t.long_array_col)` evaluates to ``NULL``, without the
-      ``ignore3vl``, it would be evaluated as ``NOT NULL`` => ``NULL``,
-      resulting to zero matched rows. With the ``IGNORE3VL`` in place it will
-      be evaluated as ``NOT FALSE`` => ``TRUE`` resulting to all rows matching
-      the filter. E.g::
+    If there are ``NULL`` values in the ``long_array_col``, in the case that
+    ``5 = ANY(t.long_array_col)`` evaluates to ``NULL``, without the
+    ``ignore3vl``, it would be evaluated as ``NOT NULL`` => ``NULL``,
+    resulting to zero matched rows. With the ``IGNORE3VL`` in place it will
+    be evaluated as ``NOT FALSE`` => ``TRUE`` resulting to all rows matching
+    the filter. E.g::
 
-        cr> SELECT * FROM t
-        ... WHERE NOT 5 = ANY(t.int_array_col);
-        +---------------+
-        | int_array_col |
-        +---------------+
-        +---------------+
-        SELECT 0 rows in set (... sec)
+      cr> SELECT * FROM t
+      ... WHERE NOT 5 = ANY(t.int_array_col);
+      +---------------+
+      | int_array_col |
+      +---------------+
+      +---------------+
+      SELECT 0 rows in set (... sec)
 
-      ::
+    ::
 
-        cr> SELECT * FROM t
-        ... WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
-        +-----------------+
-        | int_array_col   |
-        +-----------------+
-        | [1, 2, 3, null] |
-        +-----------------+
-        SELECT 1 row in set (... sec)
+      cr> SELECT * FROM t
+      ... WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
+      +-----------------+
+      | int_array_col   |
+      +-----------------+
+      | [1, 2, 3, null] |
+      +-----------------+
+      SELECT 1 row in set (... sec)
 
 .. hide:
 
@@ -3143,11 +3148,12 @@ Example::
 
 .. [#MySQL-Docs] https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 
-.. _`formatter`: https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
-.. _Java Regular Expressions: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
-.. _`MySQL date_format`: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
-.. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
-.. _`CrateDB PDO`: https://crate.io/docs/pdo/en/latest/connect.html
+
 .. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
+.. _`CrateDB PDO`: https://crate.io/docs/pdo/en/latest/connect.html
+.. _`formatter`: https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+.. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
+.. _`MySQL date_format`: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 .. _Java DateTimeFormatter: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
 .. _Java DecimalFormat: https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
+.. _Java Regular Expressions: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html

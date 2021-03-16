@@ -89,7 +89,8 @@ Changes
 
 - Added support for the :ref:`CREATE TABLE AS <ref-create-table-as>` statement.
 
-- Added :ref:`CURDATE` and :ref:`CURRENT_DATE` :ref:`scalar` functions.
+- Added :ref:`CURDATE` and :ref:`CURRENT_DATE` :ref:`scalar functions
+  <scalar-functions>`.
 
 Fixes
 =====

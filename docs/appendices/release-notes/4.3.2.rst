@@ -64,5 +64,5 @@ Fixes
   Can't handle Symbol [ParameterSymbol: $1]`` if using ``INSERT INTO`` with a
   query that contains parameter place holders and a ``LIMIT`` clause.
 
-- Fixed an issue that led to an error when nesting multiple table
-  functions.
+- Fixed an issue that led to an error when nesting multiple :ref:`table
+  functions <table-functions>`.

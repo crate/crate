@@ -14,8 +14,8 @@ Released on 2018/05/16.
     We recommend that you upgrade to the latest 2.3 release before moving to
     3.0.0.
 
-    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-    version will require a `full restart upgrade`_.
+    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to
+    this version will require a `full restart upgrade`_.
 
     When restarting, CrateDB will migrate indexes to a newer format. Depending
     on the amount of data, this may delay node start-up time.
@@ -41,8 +41,10 @@ Released on 2018/05/16.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Breaking Changes
 ----------------
@@ -83,7 +85,7 @@ Breaking Changes
 - EC2 ``cloud.aws.*`` settings have been renamed to ``discovery.ec2.*``.
 
 - The setting that controls system call filters ``bootstrap.seccomp`` has been
-  has been renamed to  ``bootstrap.system_call_filter``.
+  has been renamed to ``bootstrap.system_call_filter``.
 
 - The columns ``number_of_shards``, ``number_of_replicas``, and
   ``self_referencing_column_name`` in ``information_schema.tables`` changed to
@@ -104,6 +106,7 @@ Breaking Changes
   renamed to ``node``, is now visible by default and has been trimmed to only
   include ``node['id']`` and ``node['name']``. In order to get all information
   a join query can be used with ``sys.nodes``.
+
 
 Changes
 -------
@@ -139,11 +142,11 @@ Changes
 - Added support for ``INSERT INTO ... ON CONFLICT DO NOTHING``. The statement
   ignores insert values which would cause duplicate keys.
 
-- Added support for ON CONFLICT clause in insert statements.  ``INSERT INTO ...
-  ON CONFLICT (pk_col) DO UPDATE SET col = val`` is identical to ``INSERT INTO
-  ... ON DUPLICATE KEY UPDATE col = val``.  The special EXCLUDED table can be
-  used to refer to the insert values: ``INSERT INTO ... ON CONFLICT (pk_col) DO
-  UPDATE SET col = EXCLUDED.col``
+- Added support for ``ON CONFLICT`` clause in insert statements.  ``INSERT INTO
+  ...  ON CONFLICT (pk_col) DO UPDATE SET col = val`` is identical to ``INSERT
+  INTO ... ON DUPLICATE KEY UPDATE col = val``.  The special ``EXCLUDED`` table
+  can be used to refer to the insert values: ``INSERT INTO ... ON CONFLICT
+  (pk_col) DO UPDATE SET col = EXCLUDED.col``
 
 - DEPRECATED: The ``ON DUPLICATE KEY UPDATE`` clause has been deprecated in
   favor of the ``ON CONFLICT DO UPDATE SET`` clause.
@@ -199,8 +202,8 @@ Changes
 - Changed ``BEGIN`` and ``SET SESSION`` to no longer require ``DQL``
   permissions on the ``CLUSTER`` level.
 
-- Added ``epoch`` argument to the extract function which returns the number of
-  seconds since Jan 1, 1970. For example: ``extract(epoch from
+- Added ``epoch`` argument to the ``EXTRACT`` function which returns the number
+  of seconds since Jan 1, 1970. For example: ``extract(epoch from
   '1970-01-01T00:00:01')`` returns ``1.0`` seconds.
 
 - Enable logging of JVM garbage collection times that help to debug memory
@@ -230,16 +233,19 @@ Changes
 - The first argument (``field``) of the ``EXTRACT`` function has been limited
   to string literals and identifiers, as it was documented.
 
+
 .. _version_3.0.0_upgrade_notes:
 
 Upgrade Notes
 =============
+
 
 Configuration Changes
 ---------------------
 
 There are a few configuration changes that you should be aware of before
 restarting the nodes.
+
 
 Removed Settings
 ................
@@ -250,32 +256,35 @@ Removed Settings
 - Similarly, the ``recovery.initial_shards`` configuration option has been
   removed, and should also be removed from your configuration.
 
+
 Renamed Settings
 ................
 
 - The ``discovery.type`` setting which was previously used to specify whether a
-  cluster should use DNS discovery or the EC2 API, has been removed. Configuring
-  the use of the EC2 API has now been moved to the
+  cluster should use DNS discovery or the EC2 API, has been
+  removed. Configuring the use of the EC2 API has now been moved to the
   ``discovery.zen.hosts_provider`` setting.
 
 - The ``bootstrap.seccomp`` setting, which controls system call filters, has
   been renamed to ``bootstrap.system_call_filter``.
 
+
 Altered Settings
 ................
 
-- The ``path.data`` setting specifies the path or paths where the
-  CrateDB node should store its table data and cluster metadata.
+- The ``path.data`` setting specifies the path or paths where the CrateDB node
+  should store its table data and cluster metadata.
 
-  In CrateDB 3.0.0 and later, this path must *not* contain the cluster name
-  as a directory. For example, if you have set ``cluster.name: abcdef``,
-  the setting ``path.data: /mnt/abcdef/data`` would be incompatible. Moving
-  or renaming the directory, such as to ``/mnt/data``, and altering your
+  In CrateDB 3.0.0 and later, this path must *not* contain the cluster name as
+  a directory. For example, if you have set ``cluster.name: abcdef``, the
+  setting ``path.data: /mnt/abcdef/data`` would be incompatible. Moving or
+  renaming the directory, such as to ``/mnt/data``, and altering your
   ``path.data`` setting accordingly will allow you to continue using the node's
   data.
 
   Data paths that are incompatible with 3.0.0 will be indicated visually in the
   `admin UI`_ if you are running the latest 2.2.x or 2.3.x release.
+
 
 Other Changes
 -------------
@@ -293,7 +302,7 @@ Other Changes
   This head is now deprecated in favour of the standard `HTTP Authorization
   header`_.
 
-- The ``_node`` column in  the ``sys.shards`` and ``sys.operations`` tables has
+- The ``_node`` column in the ``sys.shards`` and ``sys.operations`` tables has
   been renamed to ``node``.
 
   Additionally, ``node`` object now only includes ``id`` and ``name`` of the
@@ -301,6 +310,7 @@ Other Changes
 
   To get the full node information, use ``node['id']`` to join the
   ``sys.nodes`` table.
+
 
 .. _admin UI: https://crate.io/docs/clients/admin-ui/en/latest/
 .. _backup: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html

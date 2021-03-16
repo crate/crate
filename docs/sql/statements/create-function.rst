@@ -1,16 +1,18 @@
 .. highlight:: psql
+
 .. _ref-create-function:
 
 ===================
 ``CREATE FUNCTION``
 ===================
 
-Create a new function.
+Create a new :ref:`function <user-defined-functions>`.
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
 
 Synopsis
 ========
@@ -23,10 +25,12 @@ Synopsis
     LANGUAGE language_name
     AS 'definition'
 
+
 Description
 ===========
 
-``CREATE FUNCTION`` creates a new user defined function.
+``CREATE FUNCTION`` creates a new :ref:`user-defined function
+<user-defined-functions>`.
 
 ``CREATE OR REPLACE FUNCTION`` will either create a new function, or replace an
 existing function.
@@ -37,6 +41,7 @@ arguments.
 You can overload functions by defining two functions of the same name, but with
 a different set of input arguments.
 
+
 Parameters
 ==========
 
@@ -44,15 +49,11 @@ Parameters
   The name of the function to create.
 
 :arg_name:
-  The optional name given to an argument. Function arguments do not
-  retain names, but you can name them in your query for documentation
-  purposes.
+  The optional name given to an argument. Function arguments do not retain
+  names, but you can name them in your query for documentation purposes.
 
 :arg_type:
-  The data type of a given argument.
-
-  See :ref:`data-types` for more detailed information about the
-  supported types.
+  The :ref:`data type <data-types>` of a given argument.
 
 :return_type:
   The returned data type of the function. The return type can be any
@@ -62,6 +63,4 @@ Parameters
   The registered language which should be used for the function.
 
 :definition:
-  A string defining the body of the function.
-
-  See :ref:`string_literal` for more details.
+  A :ref:`string <string_literal>` defining the body of the function.

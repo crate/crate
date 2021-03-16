@@ -9,11 +9,11 @@ Released on 2019/09/19.
 .. NOTE::
 
     Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
-    CrateDB 3.x or earlier.
-    Before upgrading to 4.0.5 you should be running a CrateDB cluster that is
-    at least on 3.0.7.
+    CrateDB 3.x or earlier.  Before upgrading to 4.0.5 you should be running a
+    CrateDB cluster that is at least on 3.0.7.
 
-    We recommend that you upgrade to the latest 3.3 release before moving to 4.0.5.
+    We recommend that you upgrade to the latest 3.3 release before moving to
+    4.0.5.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
     number must be at least :ref:`version_4.0.2`. Any upgrade from a version
@@ -24,8 +24,8 @@ Released on 2019/09/19.
 
 .. WARNING::
 
-    Tables that were created prior CrateDB 3.x will not function with 4.x
-    and must be recreated before moving to 4.x.x.
+    Tables that were created prior CrateDB 3.x will not function with 4.x and
+    must be recreated before moving to 4.x.x.
 
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
@@ -56,7 +56,7 @@ Fixes
   generated columns in the table/column view section.
 
 - Fixed an issue introduced in CrateDB 4.0 resulting in dysfunctional
-  disk-based :ref:`allocation <gloss-shard-allocation>`  thresholds.
+  disk-based :ref:`allocation <gloss-shard-allocation>` thresholds.
 
 - Fixed an issue resulting in ``pg_catalog.pg_attribute.attnum`` and
   ``information_schema.columns.ordinal_position`` being ``NULL`` on tables

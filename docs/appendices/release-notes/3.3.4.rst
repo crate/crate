@@ -44,8 +44,10 @@ Released on 2019/06/19.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Fixes
 -----
@@ -68,10 +70,10 @@ Fixes
   return the results over ``JDBC``. ``collection_count`` and ``collection_avg``
   are also changed to receive ``arrays`` as arguments, instead of ``sets``.
 
-- Fixed an issue that caused an error when trying to create a table with
-  a column definition that contains a predefined array data type and generated
-  expression. For instance, a statement like
-  ``CREATE TABLE foo (col ARRAY(TEXT) AS ['bar'])`` would fail.
+- Fixed an issue that caused an error when trying to create a table with a
+  column definition that contains a predefined array data type and generated
+  expression. For instance, a statement like ``CREATE TABLE foo (col
+  ARRAY(TEXT) AS ['bar'])`` would fail.
 
-- Fixed a bug that led to failures of group by a single text column queries
-  on columns with the cardinality ration lower than ``0.5``.
+- Fixed a bug that led to failures of group by a single text column queries on
+  columns with the cardinality ration lower than ``0.5``.

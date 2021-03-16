@@ -743,7 +743,7 @@ Queries
 
 .. _conf-node-lang-js:
 
-Javascript language
+JavaScript language
 ===================
 
 .. _lang.js.enabled:
@@ -752,7 +752,7 @@ Javascript language
   | *Default:*  ``true``
   | *Runtime:*  ``no``
 
-  Setting to enable or disable :ref:`JavaScript UDF support <udf_lang_js>`.
+  Setting to enable or disable :ref:`JavaScript UDF <udf-js>` support.
 
 
 .. _conf-node-attributes:

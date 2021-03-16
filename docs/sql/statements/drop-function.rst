@@ -1,16 +1,18 @@
 .. highlight:: psql
+
 .. _ref-drop-function:
 
 =================
 ``DROP FUNCTION``
 =================
 
-Drop a function.
+Drop a :ref:`function <user-defined-functions>`.
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
 
 Synopsis
 ========
@@ -20,11 +22,14 @@ Synopsis
     DROP FUNCTION [ IF EXISTS ] function_name
         ( [ [ arg_name ] arg_type [, ...] ] )
 
+
 Description
 ===========
 
-``DROP FUNCTION`` drops a function. A function name and argument types must be
-specified.
+``DROP FUNCTION`` drops a :ref:`user-defined function
+<user-defined-functions>`. The ``function_name`` and respective ``arg_type``
+variables must be specified.
+
 
 Parameters
 ==========
@@ -38,12 +43,10 @@ Parameters
 :arg_name:
   The name given to an argument.
 
-  Function arguments do not retain names, but you can name them in your
-  query for documentation purposes. Note that ``DROP FUNCTION`` will
-  ignore argument names, since only the argument data types are needed
-  to identify the function.
+  Function arguments do not retain names, but you can name them in your query
+  for documentation purposes. Note that ``DROP FUNCTION`` will ignore argument
+  names, since only the argument data types are needed to identify the
+  function.
 
 :arg_type:
-  The data type of an argument, if any.
-
-  See :ref:`data-types` for more information about the supported types.
+  The :ref:`data type <data-types>` of an argument, if any.

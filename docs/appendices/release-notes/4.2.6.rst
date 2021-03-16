@@ -43,11 +43,12 @@ Fixes
   the minimal supported ``REAL`` number ``-3.4028235e38``.
 
 - Fixed an issue that prevented an access to the properties of object type
-  arguments in JavaScript user defined functions.
+  arguments in JavaScript :ref:`user-defined functions
+  <user-defined-functions>`.
 
 - Fixed a regression introduced in 4.2 that could cause subscript expressions
-  to fail with a ``Base argument to subscript must be an object, not null``
-  or ``Can't handle Symbol`` error.
+  to fail with a ``Base argument to subscript must be an object, not null`` or
+  ``Can't handle Symbol`` error.
 
 - Fixed an issue causing a node crash due to OOM when running the ``analyze``
   on large tables.

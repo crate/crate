@@ -33,11 +33,11 @@ Released on 2019/02/05.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
 
 Changelog
 =========
@@ -54,5 +54,6 @@ Fixes
   larger than the available rows would result in ``OutOfMemoryError`` even
   though the number of available rows could fit in memory.
 
-- Fixed a ``NullPointerException`` that occurs on ``OUTER`` joins which can
-  be rewritten to ``INNER`` joins and uses a function as a select item.
+- Fixed a ``NullPointerException`` that occurs on ``OUTER`` joins which can be
+  rewritten to ``INNER`` joins and uses a :ref:`function <gloss-function>` as a
+  select item.
