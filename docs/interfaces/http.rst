@@ -455,7 +455,7 @@ Code   Error
 ------ ---------------------------------------------------------------------
 4048   Unknown Snapshot.
 ------ ---------------------------------------------------------------------
-4049   Unknown user-defined function.
+4049   Unknown :ref:`user-defined function <user-defined-functions>`.
 ------ ---------------------------------------------------------------------
 40410  Unknown user.
 ------ ---------------------------------------------------------------------
@@ -526,5 +526,6 @@ error::
    Every bulk operation will be executed, independent if one of the operation
    fails.
 
-.. _prepared statement: https://en.wikipedia.org/wiki/Prepared_statement
+
 .. _here documents: https://en.wikipedia.org/wiki/Here_document
+.. _prepared statement: https://en.wikipedia.org/wiki/Prepared_statement

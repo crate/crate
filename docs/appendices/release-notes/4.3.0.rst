@@ -31,10 +31,10 @@ Released on 2020-10-16.
 Breaking Changes
 ================
 
-- Added support for flag ``g`` to function
-  :ref:`regexp_matches <table-functions-regexp-matches>` and changed
-  its type from ``scalar`` to ``table`` type. It now returns a table where each
-  row contains a single column ``groups`` of type ``array(text)``.
+- Added support for the ``g`` flag to function :ref:`regexp_matches
+  <table-functions-regexp-matches>` and changed its type from :ref:`scalar
+  <scalar-functions>` to :ref:`table <table-functions>`. It now returns a table
+  where each row contains a single column ``groups`` of type ``array(text)``.
 
 - Changed values of ``information_schema.columns.ordinal_position`` and
   ``pg_catalog.pg_attribute.attnum`` for ``object`` data type sub-columns from
@@ -57,6 +57,7 @@ Deprecations
 
 Changes
 =======
+
 
 Performance improvements
 ------------------------
@@ -82,7 +83,8 @@ SQL Standard and PostgreSQL compatibility improvements
 
 - Added scalar function :ref:`pg_function_is_visible <pg_function_is_visible>`.
 
-- Added table function :ref:`generate_subscripts <table-functions-generate-subscripts>`
+- Added table function :ref:`generate_subscripts
+  <table-functions-generate-subscripts>`
 
 - Added the `pg_catalog.pg_roles table <postgres_pg_catalog>`
 
@@ -133,8 +135,8 @@ Error handling improvements
   - a relation does not exist to ``42P01`` ``undefined_table``
   - a document exists already to ``23505`` ``unique_violation``
 
-- Changed the error code for dropping a missing view from the undefined 4040
-  to 4041.
+- Changed the error code for dropping a missing view from the undefined 4040 to
+  4041.
 
 - Changed the error handling so it returns the error message and the related
   exception without being wrapped in a ``SqlActionException``. Error codes

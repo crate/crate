@@ -141,5 +141,5 @@ shows whether the user has superuser privileges or not.
 .. NOTE::
 
     CrateDB also supports retrieving the current connected user using the
-    system information functions: :ref:`CURRENT_USER <current_user>`,
-    :ref:`USER <user>` and :ref:`SESSION_USER <session_user>`.
+    :ref:`system information functions <scalar-sysinfo>`: :ref:`CURRENT_USER
+    <current_user>`, :ref:`USER <user>` and :ref:`SESSION_USER <session_user>`.

@@ -13,8 +13,9 @@ Released on 2018/01/17.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
     number must be :ref:`version_2.2.0`.  If you want to upgrade from a version
-    prior to this, the upgrade will introduce all of the breaking changes listed
-    for :ref:`version_2.2.0`, and will require a `full restart upgrade`_.
+    prior to this, the upgrade will introduce all of the breaking changes
+    listed for :ref:`version_2.2.0`, and will require a `full restart
+    upgrade`_.
 
 .. WARNING::
 
@@ -29,16 +30,18 @@ Released on 2018/01/17.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Fixes
 -----
 
 - Fixed a race condition that caused ``DELETE`` or ``UPDATE`` statements to
-  result in an error if a shard was being relocated or in a `RECOVERY` state.
+  result in an error if a shard was being relocated or in a ``RECOVERY`` state.
 
-- Improved error message when using the `DISTINCT` clause on unsupported data
+- Improved error message when using the ``DISTINCT`` clause on unsupported data
   types. Also improved documentation to note the data type restriction.
 
 - Fix log verbosity by only logging the HTTP SSL enabled/disabled message once
@@ -48,15 +51,16 @@ Fixes
   tables to not work correctly. This only occurred if a ``query`` instead of
   the ``VALUES`` clause was used.
 
-- Fixed the evaluation of JavaScript user defined functions that caused CrateDB
-  to crash because of an unhandled assertion when providing the UDF with
-  EcmaScript 6 arrow function syntax (``var f = (x) => x;``).
+- Fixed the evaluation of JavaScript :ref:`user-defined functions
+  <user-defined-functions>` that caused CrateDB to crash because of an
+  unhandled assertion when providing the UDF with EcmaScript 6 arrow function
+  syntax (``var f = (x) => x;``).
 
 - Fixed an issue where batch operations executed using the PosgreSQL wire
   protocol returned 0 as row count, even though the actual row count was
   different.
 
-- Fixed a bug which could cause job entries in `sys.jobs` not being removed
+- Fixed a bug which could cause job entries in ``sys.jobs`` not being removed
   when a connection error occurred while sending the results of the job
   execution to the client.
 

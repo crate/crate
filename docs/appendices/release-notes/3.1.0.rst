@@ -14,8 +14,8 @@ Released on 2018/08/28.
     We recommend that you upgrade to the latest 3.0 release before moving to
     3.1.0.
 
-    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-    version will require a `full restart upgrade`_.
+    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to
+    this version will require a `full restart upgrade`_.
 
     When restarting, CrateDB will migrate indexes to a newer format. Depending
     on the amount of data, this may delay node start-up time.
@@ -35,19 +35,21 @@ Released on 2018/08/28.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of contents
 
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Breaking Changes
 ----------------
 
-- ``crash`` is no longer bundled with the ``CrateDB`` tarball distribution.
+- `Crash`_ is no longer bundled with the ``CrateDB`` tarball distribution.
+
 
 Changes
 -------
@@ -55,16 +57,16 @@ Changes
 - Improved performance and memory utilisation for queries against the ``sys``
   tables.
 
-- Improved performance and memory utilisation for unsorted distributed
-  ``GROUP BY`` and aggregations statements by executing the reduce operation
-  in an incremental way.
+- Improved performance and memory utilisation for unsorted distributed ``GROUP
+  BY`` and aggregations statements by executing the reduce operation in an
+  incremental way.
 
 - Improved performance and memory utilisation of ``GROUP BY`` statements when
   the key column is a single ``string``, ``byte``, ``short``, ``int`` or
   ``long``.
 
-- Added a new ``CircuitBreakers`` MXBean for JMX which exposes statistics of all
-  availabel circuit breakers.
+- Added a new ``CircuitBreakers`` MXBean for JMX which exposes statistics of
+  all availabel circuit breakers.
 
 - Exposed the cluster state version in the ``sys.nodes`` table under the
   ``cluster_state_version`` column and under the ``NodeInfo`` MXBean in JMX.
@@ -81,8 +83,8 @@ Changes
 - Improved performance of queries using an array access inside the ``WHERE``
   clause. E.g.::
 
-    SELECT * FROM t
-    WHERE int_array_col[1] = 123
+      SELECT * FROM t
+      WHERE int_array_col[1] = 123
 
 - Added the full PostgreSQL syntax of the ``BEGIN`` statement and the
   ``COMMIT`` statement. This improves the support for clients that are based on
@@ -90,14 +92,14 @@ Changes
   clients. The ``BEGIN`` and ``COMMIT`` statements and any of their parameters
   are simply ignored.
 
-- Added a new scalar function ``ignore3vl`` which eliminates the 3-valued logic
-  of null handling for every logical expression beneath it. If 3-valued logic
-  is not required, the use of this function in the ``WHERE`` clause beneath a
-  ``NOT`` :ref:`operator <gloss-operator>` can boost the query performance
-  significantly. E.g.::
+- Added a new :ref:`scalar function <scalar-functions>` ``ignore3vl`` which
+  eliminates the 3-valued logic of null handling for every logical expression
+  beneath it. If 3-valued logic is not required, the use of this :ref:`function
+  <gloss-function>` in the ``WHERE`` clause beneath a ``NOT`` :ref:`operator
+  <gloss-operator>` can boost the query performance significantly. E.g.::
 
-    SELECT * FROM t
-    WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col))
+      SELECT * FROM t
+      WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col))
 
 - Added a new ``Connections`` MBean for JMX which exposes the number of open
   connections per protocol.
@@ -110,8 +112,8 @@ Changes
   set with detailed error reporting of imported rows.
 
 - Added a new ``stats.jobs_log_filter`` setting which can be used to control
-  what kind of entries are recorded into the ``sys.jobs_log`` table.
-  In addition there is a new ``stats.jobs_log_persistent_filter`` setting which
+  what kind of entries are recorded into the ``sys.jobs_log`` table.  In
+  addition there is a new ``stats.jobs_log_persistent_filter`` setting which
   can be used to record entries also in the regular CrateDB log file.
 
 - Exposed statement classification in ``sys.jobs_log`` table.
@@ -120,8 +122,8 @@ Changes
 
 - The setting ``es.api.enabled`` has been marked as deprecated and will be
   removed in a future version. Once removed it will no longer be possible to
-  use the ES API. Please create a feature request if you're using the ES API and
-  cannot use the SQL interface as substitute.
+  use the Elasticsearch API. Please create a feature request if you're using
+  the ES API and cannot use the SQL interface as substitute.
 
 - Introduced the ``EXPLAIN ANALYZE`` statement for query profiling.
 
@@ -129,7 +131,10 @@ Changes
 
 - Added support for the ``SHOW TRANSACTION_ISOLATION`` statement.
 
-- Added TimeZone parameter response to PostgreSQL Wire Protocol.
+- Added ``TimeZone`` parameter response to PostgreSQL Wire Protocol.
 
 - Extended syntax support for certain ``ALTER BLOB TABLE RENAME``, ``REROUTE``
   and ``OPEN/CLOSE`` queries.
+
+
+.. _Crash: https://crate.io/docs/crate/crash/en/latest/

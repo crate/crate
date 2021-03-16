@@ -160,7 +160,7 @@ The table also contains additional information such as the specified
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``reference_generation``         | Specifies how values in the self-referencing column are generated                  | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``routing_hash_function``        | The name of the hash function used for internal :ref:`routing <routing>`           | ``TEXT``    |
+| ``routing_hash_function``        | The name of the hash function used for internal :ref:`routing <sharding-routing>`  | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``self_referencing_column_name`` | The name of the column that uniquely identifies each row (always ``_id``)          | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
@@ -602,8 +602,8 @@ instead of ``4``::
 
 The routines table contains tokenizers, token-filters, char-filters, custom
 analyzers created by ``CREATE ANALYZER`` statements (see
-:ref:`sql-ddl-custom-analyzer`), and functions created by ``CREATE FUNCTION``
-statements::
+:ref:`sql-ddl-custom-analyzer`), and :ref:`functions <user-defined-functions>`
+created by ``CREATE FUNCTION`` statements::
 
     cr> select routine_name, routine_type
     ... from information_schema.routines

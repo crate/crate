@@ -45,6 +45,5 @@ be an integer with the fractional part truncated::
 
 .. NOTE::
 
-    The same restrictions that apply to :ref:`scalar functions <scalar>` also
-    apply to arithmetic operators.
-
+    The same restrictions that apply to :ref:`scalar functions
+    <scalar-functions>` also apply to arithmetic operators.

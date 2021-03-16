@@ -1,4 +1,4 @@
-.. _sql_administration_udf:
+.. _user-defined-functions:
 
 ======================
 User-defined functions
@@ -9,11 +9,14 @@ User-defined functions
 .. contents::
    :local:
 
+
+.. _udf-create-replace:
+
 ``CREATE OR REPLACE``
 =====================
 
-CrateDB supports user-defined functions. See :ref:`ref-create-function` for a
-full syntax description.
+CrateDB supports user-defined :ref:`functions <gloss-function>`. See
+:ref:`ref-create-function` for a full syntax description.
 
 ``CREATE FUNCTION`` defines a new function::
 
@@ -102,18 +105,24 @@ schema, the current session schema is used::
    :ref:`snapshot-restore` can't be used to backup functions, because snapshots
    contain table data only.
 
+
+.. _udf-supported-types:
+
 Supported types
 ===============
 
-Function arguments and return values can be any supported :ref:`data-types`.
-The values passed into a function must strictly correspond to the specified
-argument data types.
+Function arguments and return values can be any supported :ref:`data types
+<data-types>`.  The values passed into a function must strictly correspond to
+the specified argument data types.
 
 .. NOTE::
 
     The value returned by the function will be casted to the return type
     provided in the definition if required. An exception will be thrown if the
     cast is not successful.
+
+
+.. _udf-overloading:
 
 Overloading
 ===========
@@ -160,6 +169,8 @@ This would overload the ``my_multiply`` function with more arguments::
     arguments!** However, such functions can still be called if the schema name
     is explicitly provided.
 
+.. _udf-determinism:
+
 Determinism
 ===========
 
@@ -169,6 +180,9 @@ Determinism
     always return the same result value when called with the same argument
     values, because CrateDB might cache the returned values and reuse the value
     if the function is called multiple times with the same arguments.
+
+
+.. _udf-drop-function:
 
 ``DROP FUNCTION``
 =================
@@ -194,12 +208,16 @@ Optionally, you can provide a schema::
      cr> DROP FUNCTION my_schema.log10(bigint);
      DROP OK, 1 row affected  (... sec)
 
+
+.. _udf-supported-languages:
+
 Supported languages
 ===================
 
-CrateDB currently only supports the ``JavaScript`` user-defined functions.
+Currently, CrateDB only supports JavaScript user-defined functions.
 
-.. _udf_lang_js:
+
+.. _udf-js:
 
 JavaScript
 ----------
@@ -230,8 +248,10 @@ JavaScript, objects that are normally accessible with a web browser
 (e.g. ``window``, ``console``, and so on) are not available.
 
 
-Supported Types
-...............
+.. _udf-js-supported-types:
+
+JavaSript supported types
+.........................
 
 JavaScript functions can handle all CrateDB data types. However, for some
 return types the function output must correspond to the certain format.
@@ -283,8 +303,11 @@ the JavaScript function should return a ``GeoJson`` object or ``WKT`` string::
    If the return value of the JavaScript function is ``undefined``, it is
    converted to ``NULL``.
 
+
+.. _udf-js-numbers:
+
 Working with ``NUMBERS``
-------------------------
+........................
 
 The JavaScript engine interprets numbers as ``java.lang.Double``,
 ``java.lang.Long``, or ``java.lang.Integer``, depending on the computation
@@ -374,13 +397,17 @@ is returned::
     cr> DROP FUNCTION utc(bigint, bigint, bigint);
     DROP OK, 1 row affected  (... sec)
 
+
+.. _udf-js-array-methods:
+
 Working with ``Array`` methods
-------------------------------
+..............................
 
 The JavaScript ``Array`` object has a number of prototype methods you can
 use, such as `join`_, `map`_, `sort`_, `slice`_, `reduce`_, and so on.
 
-Normally, you can call these methods directly from an ``Array`` object, like so:
+Normally, you can call these methods directly from an ``Array`` object, like
+so:
 
 .. code-block:: js
 
@@ -401,14 +428,14 @@ You must do it like this because arguments are not passed as ``Array`` objects,
 and so do not have the associated prototype methods available. Arguments are instead
 passed as array-like objects.
 
-.. _join: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
-.. _map: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
-.. _sort: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
-.. _slice: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
-.. _reduce: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
 
 .. _ECMAScript 2019: https://262.ecma-international.org/10.0/index.html
 .. _GraalVM JavaScript: https://www.graalvm.org/docs/reference-manual/languages/js/
 .. _GraalVM Polyglot API: https://www.graalvm.org/docs/reference-manual/polyglot/
-.. _stock host Java VM JIT compilers: https://www.graalvm.org/reference-manual/js/RunOnJDK/
 .. _GraalVM Security Guide: https://www.graalvm.org/docs/security-guide/
+.. _join: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
+.. _map: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+.. _reduce: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
+.. _slice: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
+.. _sort: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
+.. _stock host Java VM JIT compilers: https://www.graalvm.org/reference-manual/js/RunOnJDK/

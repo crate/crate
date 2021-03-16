@@ -1,3 +1,5 @@
+.. highlight:: psql
+
 .. _appendix-glossary:
 
 ========
@@ -42,6 +44,41 @@ C
 .. _gloss-f:
 
 
+F
+-
+
+.. _gloss-function:
+
+**Function**
+    A token (e.g., :ref:`replace <scalar-replace>`) that takes zero or more
+    arguments (e.g., three :ref:`strings <character-data-types>`), performs a
+    specific task, and may return one or more values (e.g., a modified
+    string). Functions that return more than one value are called
+    :ref:`multi-valued functions <gloss-multi-valued-functions>`.
+
+    Functions may be :ref:`called <sql-function-call>` in an SQL statement,
+    like so::
+
+        cr> SELECT replace('Hello world!', 'world', 'friend') as result;
+        +---------------+
+        | result        |
+        +---------------+
+        | Hello friend! |
+        +---------------+
+        SELECT 1 row in set (... sec)
+
+    .. SEEALSO::
+
+        :ref:`scalar-functions`
+
+        :ref:`aggregation-functions`
+
+        :ref:`table-functions`
+
+        :ref:`window-functions`
+
+        :ref:`user-defined-functions`
+
 .. _gloss-g:
 
 
@@ -76,6 +113,16 @@ M
 
          :ref:`Cluster configuration: Metadata gateway <metadata_gateway>`
 
+.. _gloss-multi-valued-functions:
+
+**Multi-valued function**
+    A :ref:`function <gloss-function>` that returns two or more values.
+
+    .. SEEALSO::
+
+        :ref:`table-functions`
+
+        :ref:`window-functions`
 
 .. _gloss-n:
 
@@ -226,7 +273,7 @@ R
         :ref:`Storage and consistency: Addressing documents
         <concepts_addressing_documents>`
 
-        :ref:`Sharding: Routing <routing>`
+        :ref:`Sharding: Routing <sharding-routing>`
 
         :ref:`CREATE TABLE: CLUSTERED clause <sql-create-table-clustered>`
 
@@ -266,7 +313,7 @@ S
 
         :ref:`Cluster configuration: Routing allocation <conf_routing>`
 
-        :ref:`Sharding: Number of shards <number-of-shards>`
+        :ref:`Sharding: Number of shards <sharding-number>`
 
         :ref:`Altering tables: Changing the number of shards
         <alter-shard-number>`

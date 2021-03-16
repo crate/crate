@@ -38,14 +38,15 @@ Released on 2019/05/23.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of contents
 
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Fixes
 -----
@@ -79,5 +80,6 @@ Fixes
   startup while a trial license is generated concurrently and such may used
   instead of the user given license.
 
-- Improve error message for the unsupported :ref:`window-definition` ordered or
-  partitioned by an array column type in the context of :ref:`window-functions`
+- Improve error message for the unsupported :ref:`window definition
+  <window-definition>` ordered or partitioned by an array column type in the
+  context of :ref:`window functions <window-functions>`

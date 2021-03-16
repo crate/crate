@@ -1,27 +1,30 @@
 .. highlight:: psql
+
 .. _window-functions:
 
 ================
 Window functions
 ================
 
+Window functions are :ref:`functions <gloss-function>` which perform a
+computation across a set of rows which are related to the current row. This is
+comparable to :ref:`aggregation functions <aggregation-functions>`, but window
+functions do not cause multiple rows to be grouped into a single row.
+
+
 .. rubric:: Table of contents
 
 .. contents::
    :local:
 
-Introduction
-============
-
-Window functions are functions which perform a computation across a set of rows
-which are related to the current row. This is comparable to aggregation
-functions, but window functions do not cause multiple rows to be grouped
-into a single row.
 
 .. _window-function-call:
 
-Window Function Call
+Window function call
 ====================
+
+
+.. _window-call-synopsis:
 
 Synopsis
 --------
@@ -35,30 +38,35 @@ The synopsis of a window function call is one of the following
                  over_clause
    function_name ( * ) [ FILTER ( WHERE condition ) ] over_clause
 
-where ``function_name`` is a name of
-a :ref:`general-purpose window <general-purpose-window-functions>` or
-:ref:`aggregate <aggregation-functions>` function
-and ``expression`` is a column reference, scalar function or literal.
+where ``function_name`` is a name of a :ref:`general-purpose window
+<window-functions-general-purpose>` or :ref:`aggregate <aggregation-functions>`
+function and ``expression`` is a column reference, scalar function or literal.
 
-If ``FILTER`` is specified, then only the rows that met the
-:ref:`sql_dql_where_clause` condition are supplied to the window
-function. Only window functions that are :ref:`aggregates <aggregation>`
-accept the ``FILTER`` clause.
+If ``FILTER`` is specified, then only the rows that met the :ref:`WHERE
+<sql-select-where>` condition are supplied to the window function. Only window
+functions that are :ref:`aggregates <aggregation>` accept the ``FILTER``
+clause.
 
-The :ref:`over` clause is what declares a function to be a window function.
+The :ref:`window-definition-over` clause is what declares a function to be a
+window function.
 
-The window function call that uses a ``wildcard`` instead of an ``expression`` as
-a function argument is supported only by the ``count(*)`` aggregate function.
+The window function call that uses a ``wildcard`` instead of an ``expression``
+as a function argument is supported only by the ``count(*)`` aggregate
+function.
+
 
 .. _window-definition:
 
-Window Definition
+Window definition
 =================
 
-.. _over:
+
+.. _window-definition-over:
 
 OVER
 ----
+
+.. _window-definition-over-synopsis:
 
 Synopsis
 ........
@@ -78,7 +86,7 @@ where ``window_definition`` has the syntax
       [ { RANGE | ROWS } BETWEEN frame_start AND frame_end ]
 
 The ``window_name`` refers to ``window_definition`` defined in the
-:ref:`sql_reference_window` clause.
+:ref:`WINDOW <sql-select-window>` clause.
 
 The ``frame_start`` and ``frame_end`` can be one of
 
@@ -106,21 +114,21 @@ In ``ROWS`` mode ``CURRENT_ROW`` means the current row.
 The ``offset PRECEDING`` and ``offset FOLLOWING`` options vary in meaning
 depending on the frame mode. In ``ROWS`` mode, the ``offset`` is an integer
 indicating that the frame start or end is offsetted by that many rows before or
-after the current row. In ``RANGE`` mode, the use of a custom ``offset``
-option requires that there is exactly one ``ORDER BY`` column in the window
+after the current row. In ``RANGE`` mode, the use of a custom ``offset`` option
+requires that there is exactly one ``ORDER BY`` column in the window
 definition. The frame contains those rows whose ordering column value is no
-more than ``offset`` minus (for PRECEDING) or plus (for FOLLOWING) the current
-row's ordering column value. Because the value of ``offset`` is substracted/added
-to the values of the ordering column, only type combinations that support
-addition/substraction operations are allowed. For instance, when the ordering
-column is of type :ref:`timestamp <timestamp_data_type>`, the ``offset``
-expression can be an :ref:`interval <interval_data_type>`.
+more than ``offset`` minus (for ``PRECEDING``) or plus (for ``FOLLOWING``) the
+current row's ordering column value. Because the value of ``offset`` is
+substracted/added to the values of the ordering column, only type combinations
+that support addition/substraction operations are allowed. For instance, when
+the ordering column is of type :ref:`timestamp <timestamp_data_type>`, the
+``offset`` expression can be an :ref:`interval <interval_data_type>`.
 
-The ``OVER`` clause defines the ``window`` containing the appropriate rows
-which will take part in the ``window function`` computation.
+The :ref:`window-definition-over` clause defines the ``window`` containing the
+appropriate rows which will take part in the ``window function`` computation.
 
-An empty ``OVER`` clause defines a ``window`` containing all the rows in the
-result set.
+An empty :ref:`window-definition-over` clause defines a ``window`` containing
+all the rows in the result set.
 
 Example::
 
@@ -219,17 +227,19 @@ Example::
    +---------+-----+-----+
    SELECT 18 rows in set (... sec)
 
-.. note::
+.. NOTE::
 
    Taking into account the ``peers`` concept mentioned above, for an empty
-   ``OVER`` clause all the rows in the result set are ``peers``.
+   :ref:`window-definition-over` clause all the rows in the result set are
+   ``peers``.
 
-.. note::
+.. NOTE::
 
-   :ref:`Aggregation functions <aggregation>` will be treated as
-   ``window functions`` when used in conjunction with the ``OVER`` clause.
+   :ref:`Aggregation functions <aggregation>` will be treated as ``window
+   functions`` when used in conjunction with the :ref:`window-definition-over`
+   clause.
 
-.. note::
+.. NOTE::
 
    Window definitions order or partitioned by an array column type are
    currently not supported.
@@ -276,17 +286,18 @@ Example::
    +---------+-----+---------------------------+
    SELECT 18 rows in set (... sec)
 
-.. _named-windows:
+
+.. _window-definition-named-windows:
 
 Named windows
 -------------
 
 It is possible to define a list of named window definitions that can be
-referenced in :ref:`over` clauses. To do this, use the
-:ref:`sql_reference_window` clause in the :ref:`sql_reference_select` clause.
+referenced in :ref:`window-definition-over` clauses. To do this, use the
+:ref:`sql-select-window` clause in the :ref:`sql-select` clause.
 
 Named windows are particularly useful when the same window definition
-could be used in multiple :ref:`over` clauses. For instance
+could be used in multiple :ref:`window-definition-over` clauses. For instance
 
 ::
 
@@ -306,13 +317,15 @@ could be used in multiple :ref:`over` clauses. For instance
    +---+-------+------+
    SELECT 4 rows in set (... sec)
 
-If a ``window_name`` is specified in the window definition of the :ref:`over`
-clause, then there must be a named window entry that matches the ``window_name``
-in the window definition list of the :ref:`sql_reference_window` clause.
+If a ``window_name`` is specified in the window definition of the
+:ref:`window-definition-over` clause, then there must be a named window entry
+that matches the ``window_name`` in the window definition list of the
+:ref:`sql-select-window` clause.
 
-If the :ref:`over` clause has its own non-empty window definition and
-references a window definition from the :ref:`sql_reference_window` clause,
-then it can only add clauses from the referenced window, but not overwrite them.
+If the :ref:`window-definition-over` clause has its own non-empty window
+definition and references a window definition from the :ref:`sql-select-window`
+clause, then it can only add clauses from the referenced window, but not
+overwrite them.
 
 ::
 
@@ -335,8 +348,9 @@ then it can only add clauses from the referenced window, but not overwrite them.
    +---+---+
    SELECT 4 rows in set (... sec)
 
-Otherwise, an attempt to override the clauses of the referenced window
-by the window definition of the :ref:`OVER` clause will result in failure.
+Otherwise, an attempt to override the clauses of the referenced window by the
+window definition of the :ref:`window-definition-over` clause will result in
+failure.
 
 ::
 
@@ -347,18 +361,19 @@ by the window definition of the :ref:`OVER` clause will result in failure.
    SQLParseException[Cannot override ORDER BY clause of window w]
 
 It is not possible to define the ``PARTITION BY`` clause in the window
-definition of the :ref:`OVER` clause if it references a window definition
-from the :ref:`sql_reference_window` clause.
+definition of the :ref:`window-definition-over` clause if it references a
+window definition from the :ref:`sql-select-window` clause.
 
-The window definitions in the :ref:`sql_reference_window` clause cannot define
+The window definitions in the :ref:`sql-select-window` clause cannot define
 its own window frames, if they are referenced by non-empty window definitions
-of the :ref:`OVER` clauses.
+of the :ref:`window-definition-over` clauses.
 
-The definition of the named window can itself begin with a ``window_name``.
-In this case all the elements of inter-connected named windows will be copied
-to the window definition of the :ref:`OVER` clause if it references the named
-window definition that has subsequent window references. The window definitions
-in the ``WINDOW`` clause permits only backward references.
+The definition of the named window can itself begin with a ``window_name``.  In
+this case all the elements of inter-connected named windows will be copied to
+the window definition of the :ref:`window-definition-over` clause if it
+references the named window definition that has subsequent window
+references. The window definitions in the ``WINDOW`` clause permits only
+backward references.
 
 ::
 
@@ -380,10 +395,12 @@ in the ``WINDOW`` clause permits only backward references.
    +---+---+
    SELECT 3 rows in set (... sec)
 
-.. _general-purpose-window-functions:
 
-General-Purpose Window Functions
+.. _window-functions-general-purpose:
+
+General-purpose window functions
 ================================
+
 
 ``row_number()``
 ----------------
@@ -405,7 +422,8 @@ Example::
    +------+---------+
    SELECT 3 rows in set (... sec)
 
-.. _window-function-firstvalue:
+
+.. _window-functions-first-value:
 
 ``first_value(arg)``
 --------------------
@@ -430,7 +448,8 @@ Example::
    +------+-------+
    SELECT 4 rows in set (... sec)
 
-.. _window-function-lastvalue:
+
+.. _window-functions-last-value:
 
 ``last_value(arg)``
 -------------------
@@ -455,7 +474,8 @@ Example::
    +------+-------+
    SELECT 4 rows in set (... sec)
 
-.. _window-function-nthvalue:
+
+.. _window-functions-nth-value:
 
 ``nth_value(arg, number)``
 --------------------------
@@ -481,11 +501,14 @@ Example::
    +------+------+
    SELECT 4 rows in set (... sec)
 
-.. _window-function-lag:
+
+.. _window-functions-lag:
 
 ``lag(arg [, offset [, default] ])``
 ------------------------------------
 
+
+.. _window-functions-lag-synopsis:
 
 Synopsis
 ........
@@ -531,11 +554,14 @@ Example::
    +---------+------+--------+-------------+
    SELECT 5 rows in set (... sec)
 
-.. _window-function-lead:
+
+.. _window-functions-lead:
 
 ``lead(arg [, offset [, default] ])``
 -------------------------------------
 
+
+.. _window-functions-lead-synopsis:
 
 Synopsis
 ........
@@ -544,13 +570,13 @@ Synopsis
 
    lead(argument any [, offset integer [, default any]])
 
-The ``lead`` function is the counterpart of the
-:ref:`lag window function <window-function-lag>` as it allows the evaluation of
-the argument at rows that follow the current row. ``lead`` returns the argument
-value evaluated at the row that follows the current row by the offset within
-the partition. If there is no such row, the return value is ``default``.
-If ``offset`` or ``default`` arguments are missing, they default to ``1`` and
-``null``, respectively.
+The ``lead`` function is the counterpart of the :ref:`lag window function
+<window-functions-lag>` as it allows the evaluation of the argument at rows
+that follow the current row. ``lead`` returns the argument value evaluated at
+the row that follows the current row by the offset within the partition. If
+there is no such row, the return value is ``default``.  If ``offset`` or
+``default`` arguments are missing, they default to ``1`` and ``null``,
+respectively.
 
 Both ``offset`` and ``default`` are evaluated with respect to the current row.
 
@@ -585,11 +611,13 @@ Example::
    SELECT 5 rows in set (... sec)
 
 
-.. _window-function-rank:
+.. _window-functions-rank:
 
 ``rank()``
 ----------
 
+
+.. _window-functions-rank-synopsis:
 
 Synopsis
 ........
@@ -632,11 +660,13 @@ Example::
     SELECT 6 rows in set (... sec)
 
 
-.. _window-function-dense_rank:
+.. _window-functions-dense-rank:
 
 ``dense_rank()``
 ----------------
 
+
+.. _window-functions-dense-rank-synopsis:
 
 Synopsis
 ........
@@ -680,7 +710,9 @@ Example::
     SELECT 6 rows in set (... sec)
 
 
-Aggregate Window Functions
+.. _window-aggregate-functions:
+
+Aggregate window functions
 ==========================
 
 See :ref:`aggregation`.

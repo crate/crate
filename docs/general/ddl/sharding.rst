@@ -1,4 +1,4 @@
-.. _sql_ddl_sharding:
+.. _ddl-sharding:
 
 ========
 Sharding
@@ -9,18 +9,21 @@ Sharding
 .. contents::
    :local:
 
+
+.. _sharding-intro:
+
 Introduction
 ============
 
-Every table partition (see :ref:`partitioned-tables`) is split into a
-configured number of shards. Shards are then distributed across the cluster. As
-nodes are added to the cluster, CrateDB will move shards around to achieve
-maximum possible distribution.
+Every :ref:`table partition <partitioned-tables>` is split into a configured
+number of shards. Shards are then distributed across the cluster. As nodes are
+added to the cluster, CrateDB will move shards around to achieve maximum
+possible distribution.
 
 .. TIP::
 
-   Non-partitioned tables function as a single partition, so non-partitioned tables
-   are still split into the configured number of shards.
+   Non-partitioned tables function as a single partition, so non-partitioned
+   tables are still split into the configured number of shards.
 
 Shards are transparent at the table-level. You do not need to know about or
 think about shards when querying a table.
@@ -29,7 +32,7 @@ Read requests are broken down and executed in parallel across multiple shards
 on multiple nodes, massively improving read performance.
 
 
-.. _number-of-shards:
+.. _sharding-number:
 
 Number of shards
 ================
@@ -45,7 +48,11 @@ Example::
     CREATE OK, 1 row affected (... sec)
 
 If the number of shards is not defined explicitly, the sensible default value
-is applied, (see :ref:`sql-create-table-clustered`).
+is applied.
+
+.. SEEALSO::
+
+    :ref:`CREATER TABLE: CLUSTERED <sql-create-table-clustered>`
 
 .. NOTE::
 
@@ -57,14 +64,12 @@ is applied, (see :ref:`sql-create-table-clustered`).
 
 .. CAUTION::
 
-   Well tuned :ref:`shard allocation <sql_ddl_sharding>` is vital. Read the
+   Well tuned :ref:`shard allocation <ddl_shard_allocation>` is vital. Read the
    `Sharding Guide`_ to make sure you're getting the best performance out ot
    CrateDB.
 
-.. _Sharding Guide: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html
 
-
-.. _routing:
+.. _sharding-routing:
 
 Routing
 =======
@@ -116,3 +121,6 @@ Example for combining custom routing and shard definition::
     ...   third_column text
     ... ) clustered by (first_column) into 10 shards;
     CREATE OK, 1 row affected (... sec)
+
+
+.. _Sharding Guide: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html

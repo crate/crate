@@ -1,4 +1,5 @@
 .. highlight:: psql
+
 .. _sql_lexical:
 
 =================
@@ -17,6 +18,7 @@ character symbol.
 .. contents::
    :local:
 
+
 .. _string_literal:
 
 String literal
@@ -26,18 +28,20 @@ String literals are defined as an arbitrary sequence of characters that are
 delimited with single quotes ``'`` as defined in ANSI SQL, for example
 ``'This is a string'``.
 
+
 Escape strings
 --------------
 
 The escape character in CrateDB is the single-quote ``'``. A character gets
 escaped when adding a single-quote before it. For example a single quote
 character within a string literal can be included by writing two adjacent
-single quotes, e.g. ``'Jack''s car'``.
+single quotes, e.g., ``'Jack''s car'``.
 
 .. NOTE::
 
    Two adjacent single quotes are **not** equivalent to the double-quote
    character ``"``.
+
 
 .. _sql_escape_string_literals:
 
@@ -62,8 +66,9 @@ Escape Sequence                                       Interpretation
 ``\uxxxx``, ``\Uxxxxxxxx`` (``x`` = [0-9,A-F,a-f])    16 or 32-bit hexadecimal Unicode character value
 ==================================================   ================
 
-For instance, the escape string literal ``e'\u0061\x61\141'``
-is equivalent to the ``'aaa'`` string literal.
+For instance, the escape string literal ``e'\u0061\x61\141'`` is equivalent to
+the ``'aaa'`` string literal.
+
 ::
 
     cr> select e'\u0061\x61\141' as col1;
@@ -77,6 +82,7 @@ is equivalent to the ``'aaa'`` string literal.
 Any other character following a backslash is taken literally. Thus, to include
 a backslash character ``\``, two adjacent backslashes need to be used
 (i.e. ``\\``).
+
 ::
 
     cr> select e'aa\\nbb' as col1;
@@ -87,9 +93,10 @@ a backslash character ``\``, two adjacent backslashes need to be used
     +--------+
     SELECT 1 row in set (... sec)
 
-Finally, a single quote can be included in an escape string literal
-by also using the escape backslash character: ``\'``, in addition to the
-single-quote described in :ref:`String Literals <string_literal>`.
+Finally, a single quote can be included in an escape string literal by also
+using the escape backslash character: ``\'``, in addition to the single-quote
+described in the :ref:`string literals <string_literal>` section.
+
 ::
 
     cr> select e'aa\'bb' as col1;
@@ -100,12 +107,13 @@ single-quote described in :ref:`String Literals <string_literal>`.
     +-------+
     SELECT 1 row in set (... sec)
 
+
 .. _sql_lexical_keywords_identifiers:
 
 Key words and identifiers
 =========================
 
-The table bellow lists all **reserved key words** in CrateDB. These need to be
+The table bellow lists all *reserved key words* in CrateDB. These need to be
 quoted if used as identifiers::
 
     cr> SELECT word FROM pg_catalog.pg_get_keywords() WHERE catcode = 'R' ORDER BY 1;
@@ -210,10 +218,9 @@ quoted if used as identifiers::
     +-------------------+
     SELECT 95 rows in set (... sec)
 
-
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example below
-are **identifiers**, which identify names of tables, columns, and other
-database objects.
+are *identifiers*, which identify names of tables, columns, and other database
+objects.
 
 Example::
 
@@ -254,6 +261,7 @@ Quoted identifiers can contain an arbitrary sequence of characters enclosed by
 double quotes (``"``). Quoted identifiers are never keywords, so you can use
 ``"update"`` as a table or column name.
 
+
 .. _sql_lexical_special_chars:
 
 Special characters
@@ -278,12 +286,14 @@ described.
 
 :Asterisk:
     The asterisk (``*``) is used in some contexts to denote all columns of a
-    table. As an argument in global aggregate functions it has the meaning of
-    *any field*, e.g. ``COUNT(*)``.
+    table. As an argument in global :ref:`aggregate functions
+    <aggregation-functions>` it has the meaning of *any field*,
+    e.g. ``COUNT(*)``.
 
 :Period:
     The period (``.``) is used for numeric values and to separate schema and
     table names, e.g. ``blob.my_blob_table``.
+
 
 .. _sql_lexical_comments:
 
@@ -302,5 +312,3 @@ Example::
   SELECT *
     FROM information_schema.tables
     WHERE table_schema = 'doc'; -- query information schema for doc tables
-
-.. _`crash`: https://github.com/crate/crash/

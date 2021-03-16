@@ -20,13 +20,10 @@ Released on 2020-08-26.
 
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 
-
-
 .. rubric:: Table of Contents
 
 .. contents::
    :local:
-
 
 See the :ref:`version_4.2.0` release notes for a full list of changes in the
 4.2 series.
@@ -36,7 +33,7 @@ Fixes
 =====
 
 - Fixed a performance regression that caused ``SELECT`` statements on tables
-  with generated :ref:`partition columns  <gloss-partition-column>` and a
+  with generated :ref:`partition columns <gloss-partition-column>` and a
   predicate that uses a column used to compute the partition column to hit all
   partitions instead of only a subset.
 
@@ -49,16 +46,18 @@ Fixes
 - Fixed an issue that prevented the ``MATCH`` predicate from working in mixed
   clusters running 4.1.8 and 4.2.
 
-- Fixed an issue that prevented user defined functions in a custom schema from
-  working if used in a generated column expression.
+- Fixed an issue that prevented :ref:`user-defined functions
+  <user-defined-functions>` in a custom schema from working if used in a
+  generated column expression.
 
-- Fixed an issue that allowed users to use a function in a generated column
-  that didn't fully match the given arguments, leading to a subsequent runtime
-  failure when trying to access tables.
+- Fixed an issue that allowed users to use a :ref:`function <gloss-function>`
+  in a generated column that didn't fully match the given arguments, leading to
+  a subsequent runtime failure when trying to access tables.
 
 - Fixed exposure of the full qualified name of a sub-script column in
   `information_schema.tables.partitioned_by` and
-  `pg_catalog.pg_attribute.attname` to use the CrateDB SQL compatible identifier.
+  `pg_catalog.pg_attribute.attname` to use the CrateDB SQL compatible
+  identifier.
 
 - Fixed an issue that led to a ``Message not fully read`` error when trying to
   decommission a node using ``ALTER CLUSTER DECOMMISSION``.
