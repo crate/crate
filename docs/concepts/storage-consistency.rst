@@ -107,13 +107,14 @@ Every document has an `internal identifier`_. By default this identifier
 is derived from the primary key. Documents living in tables without a primary
 key are assigned a unique auto-generated ID automatically when created.
 
-Each document is :ref:`routed <routing>` to one specific shard according to the
-:ref:`routing column <gloss-routing-column>`. All rows that have the same
-routing column row value are stored in the same shard. The routing column can
-be specified with the :ref:`CLUSTERED <sql-create-table-clustered>` clause when
-creating the table. If a :ref:`primary key <primary_key_constraint>` has been
-defined, it will be used as the default routing column, otherwise the
-:ref:`internal document ID <sql_administration_system_column_id>` is used.
+Each document is :ref:`routed <sharding-routing>` to one specific shard
+according to the :ref:`routing column <gloss-routing-column>`. All rows that
+have the same routing column row value are stored in the same shard. The
+routing column can be specified with the :ref:`CLUSTERED
+<sql-create-table-clustered>` clause when creating the table. If a
+:ref:`primary key <primary_key_constraint>` has been defined, it will be used
+as the default routing column, otherwise the :ref:`internal document ID
+<sql_administration_system_column_id>` is used.
 
 While transparent to the user, internally there are two ways how CrateDB
 accesses documents:

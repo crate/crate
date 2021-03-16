@@ -34,8 +34,8 @@ See the :ref:`version_4.1.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Improved the resiliency of ``INSERT INTO ..`` queries that have a table
-  function like ``generate_series`` as a source.
+- Improved the resiliency of ``INSERT INTO ..`` queries that have a :ref:`table
+  function <table-functions>` like ``generate_series`` as a source.
 
 - Fixed a regression introduced in 4.1 that led to a ``ClassCastException``
   running queries with ``GROUP BY``, no aggregations, and a ``LIMIT`` clause.

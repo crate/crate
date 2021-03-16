@@ -1,12 +1,14 @@
 .. highlight:: psql
+
 .. _sql_union:
 
 =========
 Union All
 =========
 
-UNION ALL can be used to combine results from multiple ``SELECT`` statements.
-For further information on the syntax and usages see :ref:`sql_reference_union`.
+:ref:`UNION ALL <sql-select-union-all>` can be used to combine results from
+multiple :ref:`SELECT <sql-select>` statements.
+
 ::
 
     cr> select name from photos

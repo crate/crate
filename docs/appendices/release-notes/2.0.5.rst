@@ -13,8 +13,9 @@ Released on 2017/07/11.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
     number must be :ref:`version_2.0.0`. If you want to upgrade from a version
-    prior to this, the upgrade will introduce all of the breaking changes listed
-    for :ref:`version_2.0.0`, and will require a `full restart upgrade`_.
+    prior to this, the upgrade will introduce all of the breaking changes
+    listed for :ref:`version_2.0.0`, and will require a `full restart
+    upgrade`_.
 
     Consult the upgrade notes for :ref:`Version 2.0.0
     <version_2.0.0_upgrade_notes>` when upgrading.
@@ -35,6 +36,7 @@ Released on 2017/07/11.
 .. contents::
    :local:
 
+
 Upgrade Notes
 =============
 
@@ -43,22 +45,24 @@ data, it is necessary to perform a `rolling upgrade`_ if you're running a
 version >= 2.0.0 and < 2.0.4 and using BLOB tables.
 
 Additionally, the number of replicas needs to be set to at least ``1`` for
-**all** blob tables and you need to make sure that data is fully replicated
+*all* blob tables and you need to make sure that data is fully replicated
 before continuing.
 
 Only then you may upgrade one node after each other.
 
+
 Changelog
 =========
+
 
 Fixes
 -----
 
- - Fixed an issue that caused an exception to be thrown when using
-   ``COUNT(*)`` with a ``JOIN`` on 3 or more tables.
+ - Fixed an issue that caused an exception to be thrown when using ``COUNT(*)``
+   with a ``JOIN`` on 3 or more tables.
 
- - Fixed a regression that caused queries with a ``GROUP BY`` on array-columns,
-   which are wrapped in a scalar function, to fail.
+ - Fixed a regression that caused queries with a ``GROUP BY`` on array columns,
+   which are wrapped in a :ref:`scalar function <scalar-functions>` to fail.
 
  - Fixed an issue that caused an exception if a table that has been created
    with CrateDB version <= 1.1 is modified using ``ALTER TABLE``.

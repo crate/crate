@@ -481,7 +481,7 @@ def load_tests(loader, suite, ignore):
                             'general/user-defined-functions.rst',
                             'general/information-schema.rst',
                             'general/builtins/aggregation.rst',
-                            'general/builtins/scalar.rst',
+                            'general/builtins/scalar-functions.rst',
                             'admin/user-management.rst',
                             'admin/system-information.rst',
                             'admin/privileges.rst',

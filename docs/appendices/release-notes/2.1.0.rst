@@ -11,8 +11,8 @@ Released on 2017/07/11.
     If you are upgrading a cluster, you must be running CrateDB
     :ref:`version_1.1.3` or higher before you upgrade to 2.1.0.
 
-    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-    version will require a `full restart upgrade`_.
+    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to
+    this version will require a `full restart upgrade`_.
 
     Consult the upgrade notes for :ref:`Version 2.1.0
     <version_2.1.0_upgrade_notes>` when upgrading.
@@ -30,95 +30,100 @@ Released on 2017/07/11.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Breaking Changes
 ----------------
 
- - ``CURRENT_USER``, ``USER`` and ``SESSION_USER`` are now reserved words as we
-   introduced them as system functions. These terms will not be available to
-   be used as table, and column names and for already existing entities they
-   will have to be quoted when referenced (otherwise the terms will be treated
-   as function calls).
+- ``CURRENT_USER``, ``USER`` and ``SESSION_USER`` are now reserved words as we
+  introduced them as :ref:`system functions <scalar-sysinfo>`. These terms will
+  not be available to be used as table, and column names and for already
+  existing entities they will have to be quoted when referenced (otherwise the
+  terms will be treated as :ref:`function calls <sql-function-call>`).
 
- - ``SELECT`` statements without any ``FROM`` items are no longer executed
-   against the ``sys.cluster`` table, but against a virtual table with no
-   columns. Queries including ``sys.cluster`` columns but no explicit ``FROM``
-   item will now result in a ``ColumnUnknownException``.
+- ``SELECT`` statements without any ``FROM`` items are no longer executed
+  against the ``sys.cluster`` table, but against a virtual table with no
+  columns. Queries including ``sys.cluster`` columns but no explicit ``FROM``
+  item will now result in a ``ColumnUnknownException``.
 
- - The ``onModule()`` method had been removed from ``io.crate.Plugin``
-   interface; ``createGuiceModules()`` must be used instead.
+- The ``onModule()`` method had been removed from ``io.crate.Plugin``
+  interface; ``createGuiceModules()`` must be used instead.
 
- - ``srv`` and ``azure`` are no longer valid configuration options for
-   ``discovery.type``. Instead there is a new ``discovery.zen.hosts_provider``
-   settings which can be set to either ``srv`` or ``azure``.
+- ``srv`` and ``azure`` are no longer valid configuration options for
+  ``discovery.type``. Instead there is a new ``discovery.zen.hosts_provider``
+  settings which can be set to either ``srv`` or ``azure``.
 
- - Duplicate definition of settings is neither allowed in the ``crate.yml``
-   file nor as command line options. However, settings provided via command
-   line arguments can still override the settings defined in th ``crate.yml``
-   file.
+- Duplicate definition of settings is neither allowed in the ``crate.yml`` file
+  nor as command line options. However, settings provided via command line
+  arguments can still override the settings defined in th ``crate.yml`` file.
 
- - The syntax for creating columns on ``Create Table`` and ``Alter Table`` has
-   become more strict.
+- The syntax for creating columns on ``Create Table`` and ``Alter Table`` has
+  become more strict.
 
- - The sigar jar and object files have been moved from ``plugins/sigar`` to
-   ``lib/sigar``.
+- The sigar jar and object files have been moved from ``plugins/sigar`` to
+  ``lib/sigar``.
+
 
 Changes
 -------
 
- - Updated Elasticsearch to ``5.2.2``.
+- Updated Elasticsearch to ``5.2.2``.
 
- - Updated Crash to ``0.21.3``.
+- Updated Crash to ``0.21.3``.
 
- - Updated the Admin UI to ``1.4.1``.
+- Updated the Admin UI to ``1.4.1``.
 
- - The table setting ``recovery.initial_shards`` has been deprecated. You may
-   set ``gateway.local.initial_shards`` per node instead.
-   CrateDB will continue to read the old setting but applications should be
-   migrated to the new setting.
+- The table setting ``recovery.initial_shards`` has been deprecated. You may
+  set ``gateway.local.initial_shards`` per node instead.
+  CrateDB will continue to read the old setting but applications should be
+  migrated to the new setting.
 
- - Added support for ``GRANT`` and ``REVOKE`` privileges for accessing the
-   cluster. Currently supported privilege types: ``DQL``, ``DML`` and ``DDL``.
+- Added support for ``GRANT`` and ``REVOKE`` privileges for accessing the
+  cluster. Currently supported privilege types: ``DQL``, ``DML`` and ``DDL``.
 
- - Added support for ``GRANT``, ``DENY`` and ``REVOKE`` privileges for
-   accessing the tables and schemas.
+- Added support for ``GRANT``, ``DENY`` and ``REVOKE`` privileges for
+  accessing the tables and schemas.
 
- - Added column ``username`` to ``sys.jobs`` and ``sys.jobs_log`` that contains
-   the username under which the job was invoked.
+- Added column ``username`` to ``sys.jobs`` and ``sys.jobs_log`` that contains
+  the username under which the job was invoked.
 
- - Added SSL/TLS support for HTTP endpoints.
+- Added SSL/TLS support for HTTP endpoints.
 
- - Added SSL/TLS support for PostgreSQL Wire Protocol.
+- Added SSL/TLS support for PostgreSQL Wire Protocol.
 
- - Added new HBA setting ``ssl`` which allows to control whether
-   users have to connect with ssl enabled or disabled.
+- Added new HBA setting ``ssl`` which allows to control whether
+  users have to connect with ssl enabled or disabled.
 
- - Added support for client certificate authentication via HBA.
+- Added support for client certificate authentication via HBA.
 
- - Added support for joins on virtual tables.
+- Added support for joins on virtual tables.
 
- - Queries which contain a correlated subquery will now result in an error
-   stating that correlated subqueries are not supported, instead of a more
-   confusing error indicating that a relation is unknown.
+- Queries which contain a correlated subquery will now result in an error
+  stating that correlated subqueries are not supported, instead of a more
+  confusing error indicating that a relation is unknown.
 
- - Extended the output of the ``EXPLAIN`` statement.
+- Extended the output of the ``EXPLAIN`` statement.
+
 
 .. _version_2.1.0_upgrade_notes:
 
 Upgrade Notes
 =============
 
+
 Database User
 -------------
 
 Clients that use the `PostgreSQL Wire Protocol`_ need to connect with a valid
-database user to get access to the server. See the official `Crate JDBC Driver`_
-documentation for further information.
+database user to get access to the server. See the official `Crate JDBC
+Driver`_ documentation for further information.
 
 .. _PostgreSQL Wire Protocol: https://crate.io/docs/crate/reference/en/latest/protocols/postgres.html
 .. _Crate JDBC Driver: https://crate.io/docs/clients/jdbc/
+
 
 Upgrading from version 2.0.x
 ----------------------------
@@ -128,18 +133,20 @@ If you're using CrateDB's BLOB storage and you need to run at least version
 
 Please consult the :ref:`version_2.0.4` release notes for further details.
 
+
 Create columns syntax strictness
 ................................
 
 The syntax strictness when creating new columns has been increased:
 
- - Columns cannot contain a dot when using alter table. Instead, you can still
-   use the subscript pattern to add an object column.
+- Columns cannot contain a dot when using alter table. Instead, you can still
+  use the subscript pattern to add an object column.
 
- - The use of references as a key of a subscript is not possible anymore. E.g.
-   instead of ``col_name[index]``, you'll need to use ``col_name['index']``. Be
-   aware that the use of single quotes will cause the index to be case
-   sensitive.
+- The use of references as a key of a subscript is not possible anymore. E.g.
+  instead of ``col_name[index]``, you'll need to use ``col_name['index']``. Be
+  aware that the use of single quotes will cause the index to be case
+  sensitive.
+
 
 Upgrading from versions prior to 2.0.0
 --------------------------------------

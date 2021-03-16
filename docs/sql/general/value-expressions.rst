@@ -171,17 +171,12 @@ an identifier that must refer to a field of the record.
 Function call
 =============
 
-A function is declared by its name followed by its arguments enclosed in
-parentheses::
+A :ref:`function <gloss-function>` can be invoked with a *function call* (a
+process better known as *calling the function*). The corresponding syntax is
+the function name optionally followed by zero or more arguments (in the form of
+:ref:`value expressions <sql-value-expressions>`) enclosed by parentheses::
 
-    function_name([expression [, expression ... ]])
-      [OVER( [PARTITION BY expression [, ...] ] [ORDER BY expression [, ...] ]) ]
-
-.. SEEALSO::
-
-    - :ref:`scalar`
-    - :ref:`aggregation`
-    - :ref:`window-functions`
+    function_name[([expression [, expression ... ]])]
 
 
 .. _sql-type-cast:
@@ -239,7 +234,7 @@ optionally prefixed with ``ARRAY``::
 .. _sql_expressions_array_subquery:
 
 Another way to construct an array is by using an ``ARRAY(subquery)`` expression
-as part of the :ref:`Select list <sql_reference_select_list>` of a ``SELECT``
+as part of the :ref:`SELECT list <sql-select-list>` of a ``SELECT``
 statement::
 
     ARRAY '(' subquery ')'
@@ -278,6 +273,6 @@ stating that the column is unknown.
 
 .. NOTE::
 
-    Scalar subqueries are restricted to :ref:`SELECT <sql_reference_select>`,
-    :ref:`DELETE <sql_reference_delete>` and :ref:`UPDATE <ref-update>`
-    statements and cannot be used in other statements.
+    Scalar subqueries are restricted to :ref:`SELECT <sql-select>`, :ref:`DELETE
+    <sql_reference_delete>` and :ref:`UPDATE <ref-update>` statements and
+    cannot be used in other statements.

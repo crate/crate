@@ -28,8 +28,10 @@ Released on 2018/01/22.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Changes
 -------
@@ -38,14 +40,15 @@ Changes
   that are part of a composite primary key to the ``WHERE`` clause in order to
   get an execution plan with real-time semantics.
 
-- Greatly improved performance of queries that uses scalar functions inside the
-  ``WHERE`` clause.
+- Greatly improved performance of queries that uses :ref:`scalar functions
+  <scalar-functions>` inside the ``WHERE`` clause.
+
 
 Fixes
 -----
 
-- Avoid downcasts in function expressions which could lead to reduced
-  precision. For example ::
+- Avoid downcasts in :ref:`function expressions <sql-function-call>` which
+  could lead to reduced precision. For example ::
 
     SELECT round(float_col) + 1.1 would result in
       SELECT round(float_col) + 1
@@ -54,8 +57,8 @@ Fixes
 
 - Ensured natural order of config keys for Host Based Authentication.
 
-- Fixed encoding/decoding of ``Timestamp`` type for PostgreSQL wire protocol
-  to support Golang psql drivers.
+- Fixed encoding/decoding of ``Timestamp`` type for PostgreSQL wire protocol to
+  support Golang psql drivers.
 
 - Fixed an Admin UI issue that caused the ``Cluster`` tab to not be loaded
   correctly.

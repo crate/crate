@@ -2,10 +2,10 @@
 Joins
 =====
 
-`JOINs`_ are essential operations in relational databases. They create a link
-between rows based on common values and allow the meaningful combination of
-these rows. CrateDB supports joins and due to its distributed nature allows you
-to work with large amounts of data.
+:ref:`Joins <sql_joins>` are essential operations in relational databases. They
+create a link between rows based on common values and allow the meaningful
+combination of these rows. CrateDB supports joins and due to its distributed
+nature allows you to work with large amounts of data.
 
 In this document we will present the following topics. First, an overview of
 the existing types of joins and algorithms provided. Then a description of how
@@ -16,6 +16,7 @@ to work with huge datasets.
 
 .. contents::
    :local:
+
 
 Types of join
 =============
@@ -31,39 +32,43 @@ elements appear in which join.
 
    Join Types
 
-   From left to right, top to bottom: left join, right join, inner join, outer join, and cross join of a set L and
-   R.
+   From left to right, top to bottom: left join, right join, inner join, outer
+   join, and cross join of a set L and R.
+
 
 Cross join
 ----------
 
-A **cross join** returns the Cartesian product of two or more relations. The
-result of the Cartesian product on the relation *L* and *R* consists of all
-possible permutations of each tuple of the relation *L* with every tuple of the
-relation *R*.
+A :ref:`cross join <cross-joins>` returns the Cartesian product of two or more
+relations. The result of the Cartesian product on the relation *L* and *R*
+consists of all possible permutations of each tuple of the relation *L* with
+every tuple of the relation *R*.
+
 
 Inner join
 ----------
 
-An **inner join** is a join of two or more relations that returns only tuples
-that satisfy the join condition.
+An :ref:`inner join <inner-joins>` is a join of two or more relations that
+returns only tuples that satisfy the join condition.
+
 
 .. _joins_equi_join:
 
 Equi Join
 .........
 
-An **equi join** is a subset of an inner join and a comparison-based join, that
+An *equi join* is a subset of an inner join and a comparison-based join, that
 uses equality comparisons in the join condition. The equi join of the relation
 *L* and *R* combines tuple *l* of relation *L* with a tuple *r* of the relation
 *R* if the join attributes of both tuples are identical.
 
+
 Outer join
 ----------
 
-An **outer join** returns a relation consisting of tuples that satisfy the join
-condition and dangling tuples from both or one of the relations, respectively
-to the outer join type.
+An :ref:`outer join <outer-joins>` returns a relation consisting of tuples that
+satisfy the join condition and dangling tuples from both or one of the
+relations, respectively to the outer join type.
 
 An outer join has following types:
 
@@ -78,15 +83,17 @@ An outer join has following types:
   - **Full** outer join returns matching tuples of both relations and dangling
     tuples produced by left and right outer joins.
 
+
 Joins in CrateDB
 ================
 
 CrateDB supports (a) CROSS JOIN, (b) INNER JOIN, (c) EQUI JOIN, (d) LEFT JOIN,
 (e) RIGHT JOIN and (f) FULL JOIN. All of these join types are executed using
 the :ref:`nested loop join algorithm <joins_nested_loop>` except for the
-:ref:`Equi Joins <joins_equi_join>` which are executed using the
-:ref:`hash join algorithm <joins_hash_join>`. Special optimizations, according
-to the specific use cases, are applied to improve execution performance.
+:ref:`Equi Joins <joins_equi_join>` which are executed using the :ref:`hash
+join algorithm <joins_hash_join>`. Special optimizations, according to the
+specific use cases, are applied to improve execution performance.
+
 
 .. _joins_nested_loop:
 
@@ -106,6 +113,7 @@ are concatenated and added into the returned virtual relation::
 
 *Listing 1. Nested loop join algorithm.*
 
+
 Primitive nested loop
 .....................
 
@@ -115,7 +123,8 @@ on `system tables`_ /`information_schema`_ each shard sends the data to the
 handler node. Afterwards, this node runs the nested loop, applies limits, etc.
 and ultimately returns the results. Similarly, joins can be nested, so instead
 of collecting data from shards the rows can be the result of a previous join or
-`table function`_.
+:ref:`table function <table-functions>`.
+
 
 .. _joins_distributed_nested_loop:
 
@@ -139,6 +148,7 @@ return the results to the requesting client (see :ref:`joins_figure_2`).
    Nodes that are holding the smaller shards broadcast the data to the
    processing nodes which then return the results to the requesting node.
 
+
 Pre-ordering and limits optimization
 ''''''''''''''''''''''''''''''''''''
 
@@ -147,10 +157,12 @@ INNER/EQUI JOIN. In any of these cases, the nested loop can be terminated
 earlier:
 
 - Ordering allows determining whether there are records left
+
 - Limit states the maximum number of rows that are returned
 
 Consequently, the number of rows is significantly reduced allowing the
 operation to complete much faster.
+
 
 .. _joins_hash_join:
 
@@ -159,6 +171,7 @@ Hash join
 
 The Hash Join algorithm is used to execute certains types of joins in a more
 perfomant way than :ref:`Nested Loop <joins_nested_loop>`.
+
 
 Basic algorithm
 ...............
@@ -177,13 +190,13 @@ from the right relation. If an entry is found, the join condition is validated
 (handling hash collisions) and on successful validation the combined tuple of
 left and right relation is returned.
 
-
 .. _joins_figure_3:
 
 .. figure:: hash-join.png
    :align: center
 
    Basic hash join algorithm
+
 
 .. _joins_block_hash_join:
 
@@ -239,13 +252,13 @@ A hashing algorithm is applied on every row of both the left and right
 relations. On the integer value generated by this hash, a modulo, by the number
 of nodes in the cluster, is applied and the resulting number defines the node
 to which this row should be sent. As a result each node of the cluster receives
-a subset of the whole data set which is ensured (by the hashing and modulo)
-to contain all candidate matching rows. Each node in turn performs a
-:ref:`block hash join <joins_block_hash_join>` on this subset and sends its
-result tuples to the handler node (where the client issued the query). Finally,
-the handler node receives those intermediate results, merges them and applies
-any pending ``ORDER BY``, ``LIMIT`` and ``OFFSET`` and sends the final result
-to the client.
+a subset of the whole data set which is ensured (by the hashing and modulo) to
+contain all candidate matching rows. Each node in turn performs a :ref:`block
+hash join <joins_block_hash_join>` on this subset and sends its result tuples
+to the handler node (where the client issued the query). Finally, the handler
+node receives those intermediate results, merges them and applies any pending
+``ORDER BY``, ``LIMIT`` and ``OFFSET`` and sends the final result to the
+client.
 
 This algorithm is used by CrateDB for most cases of hash join execution except
 for joins on complex subqueries that contain ``LIMIT`` and/or ``OFFSET``.
@@ -257,8 +270,10 @@ for joins on complex subqueries that contain ``LIMIT`` and/or ``OFFSET``.
 
    Distributed hash join algorithm
 
+
 Optimizations
 -------------
+
 
 Query then fetch
 ................
@@ -266,12 +281,12 @@ Query then fetch
 Join operations on large relation can be extremely slow especially if the join
 is executed with a :ref:`Nested Loop <joins_nested_loop>`. - which means that
 the runtime complexity grows quadratically (O(n*m)). Specifically for
-`Cross Joins`_ this results in large amounts of data sent over the network and
-loaded into memory at the handler node. CrateDB reduces the volume of data
-transferred by employing Query Then Fetch: First, filtering and ordering are
-applied (if possible where the data is located) to obtain the required document
-IDs. Next, as soon as the final data set is ready, CrateDB fetches the selected
-fields and returns the data to the client.
+:ref:`cross joins <cross-joins>` this results in large amounts of data sent
+over the network and loaded into memory at the handler node. CrateDB reduces
+the volume of data transferred by employing Query Then Fetch: First, filtering
+and ordering are applied (if possible where the data is located) to obtain the
+required document IDs. Next, as soon as the final data set is ready, CrateDB
+fetches the selected fields and returns the data to the client.
 
 
 Push-down query optimization
@@ -308,11 +323,9 @@ optimized.*
    Complex queries are broken down into subqueries that are run on their shards
    before joining.
 
+
 .. _this article: https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins
-.. _table function: https://crate.io/docs/reference/en/latest/sql/table_functions.html
 .. _information_schema: https://crate.io/docs/reference/sql/information_schema.html
 .. _system tables: https://crate.io/docs/reference/sql/system.html
 .. _here: http://www.dcs.ed.ac.uk/home/tz/phd/thesis.pdf
-.. _JOINs: https://crate.io/docs/reference/sql/joins.html
-.. _Cross Joins: https://crate.io/docs/crate/reference/sql/joins.html#cross-joins
 .. _hash table: https://en.wikipedia.org/wiki/Hash_table

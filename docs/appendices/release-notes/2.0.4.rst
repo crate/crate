@@ -13,8 +13,9 @@ Released on 2017/07/06.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
     number must be :ref:`version_2.0.0`. If you want to upgrade from a version
-    prior to this, the upgrade will introduce all of the breaking changes listed
-    for :ref:`version_2.0.0`, and will require a `full restart upgrade`_.
+    prior to this, the upgrade will introduce all of the breaking changes
+    listed for :ref:`version_2.0.0`, and will require a `full restart
+    upgrade`_.
 
     Consult the upgrade notes for :ref:`Version 2.0.0
     <version_2.0.0_upgrade_notes>` when upgrading.
@@ -35,6 +36,7 @@ Released on 2017/07/06.
 .. contents::
    :local:
 
+
 Upgrade Notes
 =============
 
@@ -48,14 +50,17 @@ before continuing.
 
 Only then you may upgrade one node after each other.
 
+
 Changelog
 =========
+
 
 Changes
 -------
 
  - The ``recovery_after_time`` node check now fails if it would prevent the
    ``gateway.expected_nodes`` setting from having any effect.
+
 
 Fixes
 -----
@@ -65,13 +70,14 @@ Fixes
 
  - Fixed an issue that caused blob data to be deleted upon node shutdown.
 
- - Fix thread-safety issue for scalar functions ``md5`` and ``sha1``.
+ - Fix thread-safety issue for :ref:`scalar functions <scalar-functions>`
+   ``md5`` and ``sha1``.
 
  - ``information.schema.tables`` now returns the default routing hash function
    if none is present in the table metadata.
 
- - Fixed an issue that caused an exception to be thrown when using
-   ``COUNT(*)`` with subselects that return one row, e.g.::
+ - Fixed an issue that caused an exception to be thrown when using ``COUNT(*)``
+   with subselects that return one row, e.g.::
 
      SELECT count(*) FROM t1 WHERE id > (SELECT max(col1) FROM t2)
 

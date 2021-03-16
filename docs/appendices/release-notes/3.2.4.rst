@@ -38,22 +38,22 @@ Released on 2019/02/25.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of contents
 
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Fixes
 -----
 
 - Fixed an issue that would cause the results of a nested loop join statement
-  ordered by fields from a single relation, in the form of
-  ``SELECT t1.x, t2.x FROM t2 INNER JOIN t1 ON t1.x = t2.x ORDER BY t2.y``, to
-  be out of order.
+  ordered by fields from a single relation, in the form of ``SELECT t1.x, t2.x
+  FROM t2 INNER JOIN t1 ON t1.x = t2.x ORDER BY t2.y``, to be out of order.
 
 - Fixed an issue that caused the Admin UI monitoring graphs to be cut off.
 

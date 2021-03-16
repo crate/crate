@@ -89,7 +89,7 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
 Character types
 ===============
 
-These are general purpose character data types available in CrateDB.
+Character types are general purpose strings of character data.
 
 Only character data types without specified length can be analyzed.
 By default the :ref:`plain <plain-analyzer>` analyzer is used. See
@@ -237,14 +237,22 @@ CrateDB supports a set of the following numeric data types:
 Floating-Point Types
 --------------------
 
-The ``real`` and ``double precision`` data types are inexact, variable-precision
-numeric types. It means that these types are stored as an approximation.
-Therefore, storage, calculation, and retrieval of the value will not always
-result in an exact representation of the actual floating-point value.
+The ``real`` and ``double precision`` data types are inexact,
+variable-precision numeric types. It means that these types are stored as an
+approximation.  Therefore, storage, calculation, and retrieval of the value
+will not always result in an exact representation of the actual floating-point
+value.
 
-For instance, the result of applying ``sum`` or ``avg`` aggregate functions may
-slightly vary between query executions or comparing floating-point values for
-equality might not always be correct.
+For instance, the result of applying ``sum`` or ``avg`` :ref:`aggregate
+functions <aggregation-functions>` may slightly vary between query executions
+or comparing floating-point values for equality might not always match.
+
+.. SEEALSO::
+
+    `Wikipedia: Single-precision floating-point format`_
+
+    `Wikipedia: Double-precision floating-point format`_
+
 
 Special floating point values
 .............................
@@ -332,9 +340,9 @@ more detailed information about its behaviour, see `BigDecimal documentation`_.
 ``ip``
 ======
 
-The ``ip`` type allows to store IPv4 and IPv6 addresses by inserting their string
-representation. Internally ips are stored as ``bigint`` allowing expected sorting,
-filtering and aggregation.
+The ``ip`` type allows to store IPv4 and IPv6 addresses by inserting their
+string representation. Internally IP addresses are stored as ``bigint``
+allowing expected sorting, filtering and aggregation.
 
 Example::
 
@@ -509,8 +517,9 @@ time zone. It has the following variants:
 In these expressions, the desired time zone is specified as a string
 (e.g., 'Europe/Madrid', '+02:00'). See :ref:`Timezone <date-format-timezone>`.
 
-The scalar function :ref:`TIMEZONE <scalar-timezone>` (zone, timestamp) is
-equivalent to the SQL-conforming construct timestamp AT TIME ZONE zone.
+The :ref:`scalar function <scalar-functions>` :ref:`TIMEZONE <scalar-timezone>`
+(zone, timestamp) is equivalent to the SQL-conforming construct timestamp ``AT
+TIME ZONE zone``.
 
 .. _time-data-type:
 
@@ -535,8 +544,8 @@ and a cast. The syntax for string literal is as follows:
     geo-region:   As defined by ISO 8601.
 
 
-Where `time-only` can contain optional seconds, or optional minutes and seconds,
-and can use `:` as a separator optionally.
+Where ``time-only`` can contain optional seconds, or optional minutes and
+seconds, and can use ``:`` as a separator optionally.
 
 `fraction` accepts up to 6 digits, as precision is in micro seconds.
 
@@ -728,7 +737,8 @@ For example::
 PostgreSQL format
 """""""""""""""""
 
-The ``PostgreSQL`` format describes a duration of time using the `PostgreSQL interval format`_ syntax.
+The ``PostgreSQL`` format describes a duration of time using the `PostgreSQL
+interval format`_ syntax.
 
 For example::
 
@@ -1062,10 +1072,10 @@ subcolumns. One can retrieve them, sort by them and use them in where clauses.
 The third option is ``ignored``. Explicitly defined columns within an
 ``ignored`` object behave the same as those within object columns declared as
 ``dynamic`` or ``strict`` (e.g., column constraints are still enforced, columns
-that would be indexed are still indexed, and so on). The difference is that with
-``ignored``, dynamically added columns do not result in a schema update and the
-values won't be indexed. This allows you to store values with a mixed type under
-the same key.
+that would be indexed are still indexed, and so on). The difference is that
+with ``ignored``, dynamically added columns do not result in a schema update
+and the values won't be indexed. This allows you to store values with a mixed
+type under the same key.
 
 An example:
 ::
@@ -1166,8 +1176,8 @@ Synopsis::
 
 Here, ``ident`` is the key and ``expr`` is the value. The key must be a
 lowercase column identifier or a quoted mixed-case column identifier. The value
-must be a value literal (object literals are permitted and can be nested in this
-way).
+must be a value literal (object literals are permitted and can be nested in
+this way).
 
 Empty object literal::
 
@@ -1392,12 +1402,12 @@ Object Identifier Types
 Regproc
 -------
 
-The object identifier alias type that is used in the
-:ref:`postgres_pg_catalog` tables for referencing functions.
-For more information, see PostgreSQL :ref:`postgres_pg_oid`.
+The object identifier alias type that is used in the :ref:`postgres_pg_catalog`
+tables for referencing :ref:`functions <user-defined-functions>`.  For more
+information, see PostgreSQL :ref:`postgres_pg_oid`.
 
-Casting a column of the ``regproc`` alias data type to ``text`` or
-``integer`` results in a function name or its ``oid``, respectively.
+Casting a column of the ``regproc`` alias data type to ``text`` or ``integer``
+results in a function name or its ``oid``, respectively.
 
 
 .. _oid_regclass:
@@ -1419,8 +1429,9 @@ oidvector
 
 This is a system type used to represent one or more OID values.
 
-It looks similar to an array of integers, but doesn't support any of the scalar
-functions or expressions that can be used on regular arrays.
+It looks similar to an array of integers, but doesn't support any of the
+:ref:`scalar functions <scalar-functions>` or expressions that can be used on
+regular arrays.
 
 
 .. _type_conversion:
@@ -1616,21 +1627,23 @@ See the table below for a full list of aliases:
 
 .. NOTE::
 
-   The :ref:`PG_TYPEOF <pg_typeof>` system function can be used to resolve the
-   data type of any expression.
+   The :ref:`PG_TYPEOF <pg_typeof>` system :ref:`function <gloss-function>` can
+   be used to resolve the data type of any expression.
 
-.. _pattern letters and symbols:
-    https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/time/format/DateTimeFormatter.html
-.. _WKT: https://en.wikipedia.org/wiki/Well-known_text
-.. _GeoJSON: https://geojson.org/
-.. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1
+
+.. _BigDecimal documentation: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/math/BigDecimal.html
+.. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
 .. _Geohash: https://en.wikipedia.org/wiki/Geohash
+.. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1
+.. _GeoJSON: https://geojson.org/
+.. _IEEE 754: https://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
+.. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
+.. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
+.. _pattern letters and symbols: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/time/format/DateTimeFormatter.html
+.. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
 .. _Quadtree: https://en.wikipedia.org/wiki/Quadtree
 .. _Trie: https://en.wikipedia.org/wiki/Trie
 .. _Tries: https://en.wikipedia.org/wiki/Trie
-.. _IEEE 754: https://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
-.. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
-.. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
-.. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
-.. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
-.. _BigDecimal documentation: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/math/BigDecimal.html
+.. _Wikipedia\: Double-precision floating-point format: https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+.. _Wikipedia\: Single-precision floating-point format: https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+.. _WKT: https://en.wikipedia.org/wiki/Well-known_text

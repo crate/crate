@@ -53,8 +53,8 @@ Privilege types
 
 Granting ``Data Query Language (DQL)`` privilege to a user, indicates that this
 user is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH`` and ``COPY TO``
-statements, as well as using the available user defined functions, on the
-object for which the privilege applies.
+statements, as well as using the available :ref:`user-defined functions
+<user-defined-functions>`, on the object for which the privilege applies.
 
 
 ``DML``
@@ -141,7 +141,7 @@ those from a higher level:
   table view
 
 This statement will grant ``DQL`` privilege to user riley on all the tables
-and functions of the ``doc`` schema::
+and :ref:`functions <gloss-function>` of the ``doc`` schema::
 
     cr> GRANT DQL ON SCHEMA doc TO riley;
     GRANT OK, 1 row affected (... sec)

@@ -45,8 +45,10 @@ Released on 2018/09/25.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Breaking Changes
 ----------------
@@ -59,11 +61,13 @@ Breaking Changes
   This bug has been fixed in 3.0.7. Due to this, ``CREATE REPOSITORY`` queries
   that were accepted (erroneously) in 3.0.6 may no longer work in 3.0.7.
 
+
 Fixes
 -----
 
-- Calling an unknown user defined function now results in an appropriate error
-  message instead of a ``NullPointerException``.
+- Calling an unknown :ref:`user-defined function <user-defined-functions>` now
+  results in an appropriate error message instead of a
+  ``NullPointerException``.
 
 - Trying to create a table with a generated column inside an object column now
   results in a friendly error message instead of a ``NullPointerException``.
