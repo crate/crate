@@ -1689,6 +1689,17 @@ public class TestStatementBuilder {
         printStatement("create table test(col character varying(2))");
     }
 
+    @Test
+    public void test_restore_snapshot() {
+        printStatement("RESTORE SNAPSHOT repo1.snap1 ALL");
+        printStatement("RESTORE SNAPSHOT repo1.snap1 ALL WITH (wait_for_completion = true)");
+        printStatement("RESTORE SNAPSHOT repo1.snap1 TABLE t PARTITION (parted_col = ?)");
+        printStatement("RESTORE SNAPSHOT repo1.snap1 METADATA");
+        printStatement("RESTORE SNAPSHOT repo1.snap1 USERS WITH (some_option = true)");
+        printStatement("RESTORE SNAPSHOT repo1.snap1 USERS, PRIVILEGES");
+        printStatement("RESTORE SNAPSHOT repo1.snap1 TABLES, PRIVILEGES");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");

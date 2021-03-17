@@ -92,8 +92,13 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
                                    final ActionListener<RestoreSnapshotResponse> listener) {
         RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(request.repository(), request.snapshot(),
                 request.indices(), request.templates(), request.indicesOptions(), request.renamePattern(), request.renameReplacement(),
-                request.settings(), request.masterNodeTimeout(), request.includeGlobalState(), request.partial(), request.includeAliases(),
-                request.indexSettings(), request.ignoreIndexSettings(), "restore_snapshot[" + request.snapshot() + "]");
+                request.settings(), request.masterNodeTimeout(), request.partial(), request.includeAliases(),
+                request.indexSettings(), request.ignoreIndexSettings(), "restore_snapshot[" + request.snapshot() + "]",
+                request.includeIndices(),
+                request.includeCustomMetadata(),
+                request.customMetadataTypes(),
+                request.includeGlobalSettings(),
+                request.globalSettings());
 
         restoreService.restoreSnapshot(restoreRequest, new ActionListener<RestoreCompletionResponse>() {
             @Override

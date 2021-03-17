@@ -111,7 +111,7 @@ public class RestoreSnapshotPlan implements Plan {
             .whenComplete((ResolveIndicesAndTemplatesContext ctx, Throwable t) -> {
                 if (t == null) {
                     String[] indexNames = ctx.resolvedIndices().toArray(new String[0]);
-                    String[] templateNames = stmt.restoreTables().isEmpty()
+                    String[] templateNames = stmt.includeTables() && stmt.restoreTables().isEmpty()
                         ? new String[]{ALL_TEMPLATES}
                         : ctx.resolvedTemplates().toArray(new String[0]);
 
@@ -131,8 +131,12 @@ public class RestoreSnapshotPlan implements Plan {
                         .indicesOptions(indicesOptions)
                         .settings(settings)
                         .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
-                        .includeGlobalState(false)
-                        .includeAliases(true);
+                        .includeIndices(stmt.includeTables())
+                        .includeAliases(stmt.includeTables())
+                        .includeCustomMetadata(stmt.includeCustomMetadata())
+                        .customMetadataTypes(stmt.customMetadataTypes())
+                        .includeGlobalSettings(stmt.includeGlobalSettings())
+                        .globalSettings(stmt.globalSettings());
                     transportActionProvider.transportRestoreSnapshotAction().execute(
                         request,
                         new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
@@ -195,7 +199,13 @@ public class RestoreSnapshotPlan implements Plan {
             restoreSnapshot.repository(),
             restoreSnapshot.snapshot(),
             restoreTables,
-            settings);
+            restoreSnapshot.includeTables(),
+            restoreSnapshot.includeCustomMetadata(),
+            restoreSnapshot.customMetadataTypes(),
+            restoreSnapshot.includeGlobalSettings(),
+            restoreSnapshot.globalSettings(),
+            settings
+        );
     }
 
     @VisibleForTesting

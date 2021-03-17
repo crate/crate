@@ -78,7 +78,9 @@ statement
     | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
         onConflict?
         returning?                                                                   #insert
-    | RESTORE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?       #restore
+    | RESTORE SNAPSHOT qname
+        (ALL | METADATA | TABLE tableWithPartitions | metatypes=idents)
+        withProperties?                                                              #restore
     | COPY tableWithPartition FROM path=expr withProperties? (RETURN SUMMARY)?       #copyFrom
     | COPY tableWithPartition columns? where?
         TO DIRECTORY? path=expr withProperties?                                      #copyTo
@@ -682,7 +684,7 @@ nonReserved
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN | PRECISION
     | REPLACE | RETURNING | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM
     | CURRENT_SCHEMA | PROMOTE | CHARACTER | VARYING
-    | DISCARD | PLANS | SEQUENCES | TEMPORARY | TEMP
+    | DISCARD | PLANS | SEQUENCES | TEMPORARY | TEMP | METADATA
     ;
 
 AUTHORIZATION: 'AUTHORIZATION';
@@ -947,6 +949,8 @@ SCHEMA: 'SCHEMA';
 
 RETURN: 'RETURN';
 SUMMARY: 'SUMMARY';
+
+METADATA: 'METADATA';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

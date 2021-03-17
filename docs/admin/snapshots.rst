@@ -112,6 +112,12 @@ Restore
    If you are restoring a snapshot into a newer version of CrateDB, be sure to
    check the :ref:`release_notes` for upgrade instructions.
 
+.. CAUTION::
+
+   If you try to restore a table that already exists, CrateDB will return an
+   error. However, if you try to restore metadata or cluster settings that
+   already exist, they will be overwritten.
+
 Once a snapshot is created, it can be used to restore its tables to the state
 when the snapshot was created.
 
@@ -143,8 +149,7 @@ Restoring a snapshot using the :ref:`sql-restore-snapshot` statement.::
     RESTORE OK, 1 row affected (... sec)
 
 In this case only the ``quotes`` table from snapshot
-``where_my_snapshots_go.snapshot2`` is restored. Using ``ALL`` instead of
-listing all tables restores the whole snapshot.
+``where_my_snapshots_go.snapshot2`` is restored.
 
 It's not possible to restore tables that exist in the current cluster::
 
@@ -182,15 +187,36 @@ restore.
     When using CrateDB prior to 0.55.5 you will have to create the table schema
     first before restoring.
 
-::
+.. Hidden: drop partition::
 
     cr> DROP TABLE parted_table;
     DROP OK, 1 row affected (... sec)
+
+::
 
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
     ...    parted_table PARTITION (date=0)
     ... WITH (wait_for_completion=true);
     RESTORE OK, 1 row affected (... sec)
+
+Restore data granularity
+........................
+
+You are not limited to only being able to restore individual tables (or table
+partitions). For example:
+
+- You can use ``ALL`` instead of listing all tables to restore the whole
+  snapshot, including all metadata and settings.
+
+- You can use ``TABLES`` to restore all tables but no metadata or settings.
+  On the other hand, you can use ``METADATA`` to restore *everything but*
+  tables.
+
+- You can use ``USERS`` to restore database users only.  Or, you can
+  use ``USERS, PRIVILIGES`` to restore both database users and privileges.
+
+See the :ref:`sql-restore-snapshot` documentation for all possible options.
+
 
 Cleanup
 -------

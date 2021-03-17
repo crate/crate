@@ -24,10 +24,11 @@ package io.crate.analyze;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class BoundRestoreSnapshot {
@@ -35,15 +36,30 @@ public class BoundRestoreSnapshot {
     private final String repository;
     private final String snapshot;
     private final HashSet<RestoreTableInfo> restoreTables;
+    private final boolean includeTables;
+    private final boolean includeCustomMetadata;
+    private final Set<String> customMetadataTypes;
+    private final boolean includeGlobalSettings;
+    private final List<String> globalSettings;
     private final Settings settings;
 
     public BoundRestoreSnapshot(String repository,
                                 String snapshot,
                                 HashSet<RestoreTableInfo> restoreTables,
+                                boolean includeTables,
+                                boolean includeCustomMetadata,
+                                Set<String> customMetadataTypes,
+                                boolean includeGlobalSettings,
+                                List<String> globalSettings,
                                 Settings settings) {
         this.repository = repository;
         this.snapshot = snapshot;
         this.restoreTables = restoreTables;
+        this.includeTables = includeTables;
+        this.includeCustomMetadata = includeCustomMetadata;
+        this.customMetadataTypes = customMetadataTypes;
+        this.includeGlobalSettings = includeGlobalSettings;
+        this.globalSettings = globalSettings;
         this.settings = settings;
     }
 
@@ -61,6 +77,26 @@ public class BoundRestoreSnapshot {
 
     public Set<RestoreTableInfo> restoreTables() {
         return restoreTables;
+    }
+
+    public boolean includeTables() {
+        return includeTables;
+    }
+
+    public boolean includeCustomMetadata() {
+        return includeCustomMetadata;
+    }
+
+    public Set<String> customMetadataTypes() {
+        return customMetadataTypes;
+    }
+
+    public boolean includeGlobalSettings() {
+        return includeGlobalSettings;
+    }
+
+    public List<String> globalSettings() {
+        return globalSettings;
     }
 
     public static class RestoreTableInfo {

@@ -28,6 +28,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class AnalyzedRestoreSnapshot implements DDLStatement {
@@ -35,15 +36,30 @@ public class AnalyzedRestoreSnapshot implements DDLStatement {
     private final String repository;
     private final String snapshot;
     private final List<Table<Symbol>> tables;
+    private final boolean includeTables;
+    private final boolean includeCustomMetadata;
+    private final Set<String> customMetadataTypes;
+    private final boolean includeGlobalSettings;
+    private final List<String> globalSettings;
     private final GenericProperties<Symbol> properties;
 
     AnalyzedRestoreSnapshot(String repository,
                             String snapshot,
                             List<Table<Symbol>> tables,
+                            boolean includeTables,
+                            boolean includeCustomMetadata,
+                            Set<String> customMetadataTypes,
+                            boolean includeGlobalSettings,
+                            List<String> globalSettings,
                             GenericProperties<Symbol> properties) {
         this.repository = repository;
         this.snapshot = snapshot;
         this.tables = tables;
+        this.includeTables = includeTables;
+        this.includeCustomMetadata = includeCustomMetadata;
+        this.customMetadataTypes = customMetadataTypes;
+        this.includeGlobalSettings = includeGlobalSettings;
+        this.globalSettings = globalSettings;
         this.properties = properties;
     }
 
@@ -57,6 +73,26 @@ public class AnalyzedRestoreSnapshot implements DDLStatement {
 
     public List<Table<Symbol>> tables() {
         return tables;
+    }
+
+    public boolean includeTables() {
+        return includeTables;
+    }
+
+    public boolean includeCustomMetadata() {
+        return includeCustomMetadata;
+    }
+
+    public Set<String> customMetadataTypes() {
+        return customMetadataTypes;
+    }
+
+    public boolean includeGlobalSettings() {
+        return includeGlobalSettings;
+    }
+
+    public List<String> globalSettings() {
+        return globalSettings;
     }
 
     public GenericProperties<Symbol> properties() {

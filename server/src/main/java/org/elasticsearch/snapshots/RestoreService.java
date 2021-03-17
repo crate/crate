@@ -203,10 +203,15 @@ public class RestoreService implements ClusterStateApplier {
             validateSnapshotRestorable(request.repositoryName, snapshotInfo);
 
             // Resolve the indices from the snapshot that need to be restored
-            final List<String> indicesInSnapshot = filterIndices(snapshotInfo.indices(), request.indices(), request.indicesOptions());
+            final List<String> indicesInSnapshot = request.includeIndices()
+                ? filterIndices(snapshotInfo.indices(), request.indices(), request.indicesOptions())
+                : List.of();
 
             final Metadata.Builder metadataBuilder;
-            if (request.includeGlobalState() || request.allTemplates() || (request.templates() != null && request.templates().length > 0)) {
+            if (request.includeCustomMetadata()
+                || request.includeGlobalSettings()
+                || request.allTemplates()
+                || (request.templates() != null && request.templates().length > 0)) {
                 metadataBuilder = Metadata.builder(repository.getSnapshotGlobalMetadata(snapshotId));
             } else {
                 metadataBuilder = Metadata.builder();
@@ -362,24 +367,32 @@ public class RestoreService implements ClusterStateApplier {
                     // Restore templates (but do NOT overwrite existing templates)
                     restoreTemplates(mdBuilder, currentState);
 
-                    // Restore global state if needed
-                    if (request.includeGlobalState()) {
-                        if (metadata.persistentSettings() != null) {
-                            Settings settings = metadata.persistentSettings();
-                            clusterSettings.validateUpdate(settings);
-                            mdBuilder.persistentSettings(settings);
-                        }
-                        if (metadata.templates() != null) {
-                            // TODO: Should all existing templates be deleted first?
-                            for (ObjectCursor<IndexTemplateMetadata> cursor : metadata.templates().values()) {
-                                mdBuilder.put(cursor.value);
+                    if (request.includeGlobalSettings() && metadata.persistentSettings() != null) {
+                        Settings settings = metadata.persistentSettings();
+
+                        // CrateDB patch to only restore defined settings
+                        if (request.globalSettings().length > 0) {
+                            var filteredSettingBuilder = Settings.builder();
+                            for (String prefix : request.globalSettings()) {
+                                filteredSettingBuilder.put(settings.filter(s -> s.startsWith(prefix)));
                             }
+                            settings = filteredSettingBuilder.build();
                         }
-                        if (metadata.customs() != null) {
-                            for (ObjectObjectCursor<String, Metadata.Custom> cursor : metadata.customs()) {
-                                if (!RepositoriesMetadata.TYPE.equals(cursor.key)) {
-                                    // Don't restore repositories while we are working with them
-                                    // TODO: Should we restore them at the end?
+
+                        clusterSettings.validateUpdate(settings);
+                        mdBuilder.persistentSettings(settings);
+                    }
+                    if (request.includeCustomMetadata() && metadata.customs() != null) {
+                        // CrateDB patch to only restore defined custom metadata types
+                        List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
+                        boolean includeAll = customMetadataTypes.size() == 0;
+
+                        for (ObjectObjectCursor<String, Metadata.Custom> cursor : metadata.customs()) {
+                            if (!RepositoriesMetadata.TYPE.equals(cursor.key)) {
+                                // Don't restore repositories while we are working with them
+                                // TODO: Should we restore them at the end?
+
+                                if (includeAll || customMetadataTypes.contains(cursor.key)) {
                                     mdBuilder.putCustom(cursor.key, cursor.value);
                                 }
                             }
@@ -942,8 +955,6 @@ public class RestoreService implements ClusterStateApplier {
 
         private final TimeValue masterNodeTimeout;
 
-        private final boolean includeGlobalState;
-
         private final boolean partial;
 
         private final boolean includeAliases;
@@ -951,6 +962,16 @@ public class RestoreService implements ClusterStateApplier {
         private final Settings indexSettings;
 
         private final String[] ignoreIndexSettings;
+
+        private final boolean includeIndices;
+
+        private final boolean includeCustomMetadata;
+
+        private final String[] customMetadataTypes;
+
+        private final boolean includeGlobalSettings;
+
+        private final String[] globalSettings;
 
         /**
          * Constructs new restore request
@@ -964,16 +985,25 @@ public class RestoreService implements ClusterStateApplier {
          * @param renameReplacement  replacement for renamed indices
          * @param settings           repository specific restore settings
          * @param masterNodeTimeout  master node timeout
-         * @param includeGlobalState include global state into restore
          * @param partial            allow partial restore
          * @param indexSettings      index settings that should be changed on restore
          * @param ignoreIndexSettings index settings that shouldn't be restored
          * @param cause              cause for restoring the snapshot
+         * @param includeIndices     include any index on restore
+         * @param includeCustomMetadata include custom metadata types
+         * @param customMetadataTypes custom metadata types to restore
+         * @param includeGlobalSettings include any cluster settings on restore
+         * @param globalSettings     global settings to restore
          */
         public RestoreRequest(String repositoryName, String snapshotName, String[] indices, String[] templates, IndicesOptions indicesOptions,
                               String renamePattern, String renameReplacement, Settings settings,
-                              TimeValue masterNodeTimeout, boolean includeGlobalState, boolean partial, boolean includeAliases,
-                              Settings indexSettings, String[] ignoreIndexSettings, String cause) {
+                              TimeValue masterNodeTimeout, boolean partial, boolean includeAliases,
+                              Settings indexSettings, String[] ignoreIndexSettings, String cause,
+                              boolean includeIndices,
+                              boolean includeCustomMetadata,
+                              String[] customMetadataTypes,
+                              boolean includeGlobalSettings,
+                              String[] globalSettings) {
             this.repositoryName = Objects.requireNonNull(repositoryName);
             this.snapshotName = Objects.requireNonNull(snapshotName);
             this.indices = indices;
@@ -983,12 +1013,16 @@ public class RestoreService implements ClusterStateApplier {
             this.indicesOptions = indicesOptions;
             this.settings = settings;
             this.masterNodeTimeout = masterNodeTimeout;
-            this.includeGlobalState = includeGlobalState;
             this.partial = partial;
             this.includeAliases = includeAliases;
             this.indexSettings = indexSettings;
             this.ignoreIndexSettings = ignoreIndexSettings;
             this.cause = cause;
+            this.includeIndices = includeIndices;
+            this.includeCustomMetadata = includeCustomMetadata;
+            this.customMetadataTypes = customMetadataTypes;
+            this.includeGlobalSettings = includeGlobalSettings;
+            this.globalSettings = globalSettings;
         }
 
         /**
@@ -1072,15 +1106,6 @@ public class RestoreService implements ClusterStateApplier {
         }
 
         /**
-         * Returns true if global state should be restore during this restore operation
-         *
-         * @return restore global state flag
-         */
-        public boolean includeGlobalState() {
-            return includeGlobalState;
-        }
-
-        /**
          * Returns true if incomplete indices will be restored
          *
          * @return partial indices restore flag
@@ -1116,6 +1141,44 @@ public class RestoreService implements ClusterStateApplier {
             return ignoreIndexSettings;
         }
 
+        /**
+         * Returns true if any index should be restored
+         */
+        public boolean includeIndices() {
+            return includeIndices;
+        }
+
+        /**
+         * Returns true if custom metadata should be restored
+         */
+        public boolean includeCustomMetadata() {
+            return includeCustomMetadata;
+        }
+
+        /**
+         * Returns custom metadata types that should be restored
+         *
+         * @return  List of custom metadata types
+         */
+        public String[] customMetadataTypes() {
+            return customMetadataTypes;
+        }
+
+        /**
+         * Returns true if global cluster settings should be restored
+         */
+        public boolean includeGlobalSettings() {
+            return includeGlobalSettings;
+        }
+
+        /**
+         * Returns global state setting prefixes to include during the restore operation
+
+         * @return  List of setting prefix to include
+         */
+        public String[] globalSettings() {
+            return globalSettings;
+        }
 
         /**
          * Return master node timeout
