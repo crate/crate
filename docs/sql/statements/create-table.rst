@@ -516,7 +516,8 @@ the Translog equivalent and is faster.
 Soft deletes can only be configured when a table is created. This setting
 cannot be changed using ``ALTER TABLE``.
 
-Soft deletes will become mandatory in CrateDB 5.0.
+This setting is deprecated and soft deletes will become mandatory in CrateDB
+5.0.
 
 :value:
   Defaults to ``true``. Set to ``false`` to disable soft deletes.
