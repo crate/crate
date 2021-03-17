@@ -388,10 +388,16 @@ public abstract class ESTestCase extends LuceneTestCase {
                 DeprecationLogger.getRecentWarnings(),
                 anyOf(
                     Matchers.emptyIterable(),
-                    // As long as index.soft_deletes.enabled settings are deprecated but still used in
+                    // As long as these settings are deprecated but still used in
                     // tests we need to exclude them from the warning here.
                     hasItem(
                         containsString(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey())
+                    ),
+                    hasItem(
+                        containsString(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey())
+                    ),
+                    hasItem(
+                        containsString(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey())
                     )
                 )
             );
