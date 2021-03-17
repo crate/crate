@@ -34,7 +34,7 @@ Synopsis
 
 where ``relation`` is::
 
-    relation_reference | joined_relation | table_function | sub_select
+    relation_reference | joined_relation | table_function | subselect
 
 
 .. _sql-select-description:
@@ -235,17 +235,17 @@ rows and has columns.
 
 .. _sql-select-sub-select:
 
-Sub-select
+Subselect
 ''''''''''
 
-A ``sub_select`` is another ``SELECT`` statement surrounded by parentheses with
+A ``subselect`` is another ``SELECT`` statement surrounded by parentheses with
 an alias:
 
 ::
 
     ( select_stmt ) [ AS ] alias
 
-The sub-select behaves like a temporary table that is evaluated at runtime. The
+The subselect behaves like a temporary table that is evaluated at runtime. The
 clauses of the surrounding ``SELECT`` statements are applied on the result of
 the inner ``SELECT`` statement.
 
@@ -253,7 +253,7 @@ the inner ``SELECT`` statement.
   A ``SELECT`` statement.
 
 :alias:
-  An :ref:`alias <sql_reference_relation_alias>` for the sub-select.
+  An :ref:`alias <sql_reference_relation_alias>` for the subselect.
 
 
 .. _sql-select-where:
