@@ -53,6 +53,8 @@ None
 Changes
 =======
 
+- Updated the bundled JDK to 16+36
+
 - Optimized how ``NULL`` values are stored, reducing the amount of disk space
   required. This can also improve the performance of value lookups on tables
   with a lot of null values.
