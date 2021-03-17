@@ -48,7 +48,9 @@ None
 Deprecations
 ============
 
-None
+- The table setting :ref:`sql-create-table-soft-deletes-enabled` has been
+  marked as deprecated and will be removed in a future version. Soft deletes
+  will become mandatory in CrateDB 5.0.
 
 Changes
 =======
