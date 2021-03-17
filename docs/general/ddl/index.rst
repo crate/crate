@@ -1,5 +1,6 @@
 .. highlight:: psql
-.. _sql_ddl:
+
+.. _ddl:
 
 ===============
 Data definition

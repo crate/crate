@@ -6,9 +6,8 @@
 Value expressions
 =================
 
-Value expressions are expressions which return a single value.
-
-They can be used in many contexts of many statements.
+A value :ref:`expression <gloss-expression>` is a combination of one or more
+values, operators, and functions that *evaluates* to a single value.
 
 .. rubric:: Table of contents
 
@@ -260,8 +259,9 @@ Example::
 Scalar subquery
 ===============
 
-A :ref:`scalar <gloss-scalar>` subquery is a subquery that returns a single
-value (i.e., one row with one column).
+A scalar subquery (also known as a :ref:`subquery expression
+<sql_subquery_expressions>`) is a subquery that returns a single value (i.e.,
+one row with one column).
 
 If zero rows are returned, it will be treated as null value. In the case that
 more than one row (or more than one column) is returned, CrateDB will treat it

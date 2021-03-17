@@ -2384,6 +2384,7 @@ null_string
 If the ``null_string`` argument is omitted or NULL, none of the substrings of
 the input will be replaced by NULL.
 
+.. _scalar-conditional-functions-expressions:
 
 Conditional functions and expressions
 =====================================
