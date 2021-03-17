@@ -167,12 +167,13 @@ CrateDB supports a variety of :ref:`comparison operators
 and so on).
 
 
-.. _sql_ddl_regexp:
+.. _sql_dql_regexp:
 
 Regular expressions
 -------------------
 
-:ref:`Operators <gloss-operator>` for matching using regular expressions:
+:ref:`Comparison operators <comparison-operators-where>` for matching using
+regular expressions:
 
 .. list-table::
    :widths: 5 20 15

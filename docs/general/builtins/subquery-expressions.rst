@@ -11,7 +11,7 @@ returns a boolean value (i.e., ``true`` or ``false``) or ``NULL``.
 
 .. SEEALSO::
 
-    :ref:`sql_array_comparisons`
+    :ref:`sql-scalar-subquery`
 
 .. rubric:: Table of contents
 
