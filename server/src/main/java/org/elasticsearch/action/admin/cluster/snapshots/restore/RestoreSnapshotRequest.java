@@ -20,33 +20,32 @@
 package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
 import org.elasticsearch.ElasticsearchGenerationException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 
 /**
  * Restore snapshot request
  */
-public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotRequest> implements ToXContentObject {
+public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotRequest> {
 
     private String snapshot;
     private String repository;
@@ -62,6 +61,12 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     private Settings settings = EMPTY_SETTINGS;
     private Settings indexSettings = EMPTY_SETTINGS;
     private String[] ignoreIndexSettings = Strings.EMPTY_ARRAY;
+
+    private boolean includeIndices = true;
+    private boolean includeCustomMetadata = false;
+    private String[] customMetadataTypes = Strings.EMPTY_ARRAY;
+    private boolean includeGlobalSettings = false;
+    private String[] globalSettings = Strings.EMPTY_ARRAY;
 
     public RestoreSnapshotRequest() {
     }
@@ -365,28 +370,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     }
 
     /**
-     * If set to true the restore procedure will restore global cluster state.
-     * <p>
-     * The global cluster state includes persistent settings and index template definitions.
-     *
-     * @param includeGlobalState true if global state should be restored from the snapshot
-     * @return this request
-     */
-    public RestoreSnapshotRequest includeGlobalState(boolean includeGlobalState) {
-        this.includeGlobalState = includeGlobalState;
-        return this;
-    }
-
-    /**
-     * Returns true if global state should be restored from this snapshot
-     *
-     * @return true if global state should be restored
-     */
-    public boolean includeGlobalState() {
-        return includeGlobalState;
-    }
-
-    /**
      * If set to true the restore procedure will restore aliases
      *
      * @param includeAliases true if aliases should be restored from the snapshot
@@ -451,111 +434,49 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         return this.indexSettings;
     }
 
-    /**
-     * Parses restore definition
-     *
-     * @param source restore definition
-     * @return this request
-     */
-    @SuppressWarnings("unchecked")
-    public RestoreSnapshotRequest source(Map<String, Object> source) {
-        for (Map.Entry<String, Object> entry : source.entrySet()) {
-            String name = entry.getKey();
-            if (name.equals("indices")) {
-                if (entry.getValue() instanceof String) {
-                    indices(Strings.splitStringByCommaToArray((String) entry.getValue()));
-                } else if (entry.getValue() instanceof ArrayList) {
-                    indices((ArrayList<String>) entry.getValue());
-                } else {
-                    throw new IllegalArgumentException("malformed indices section, should be an array of strings");
-                }
-            } else if (name.equals("partial")) {
-                partial(nodeBooleanValue(entry.getValue(), "partial"));
-            } else if (name.equals("settings")) {
-                if (!(entry.getValue() instanceof Map)) {
-                    throw new IllegalArgumentException("malformed settings section");
-                }
-                settings((Map<String, Object>) entry.getValue());
-            } else if (name.equals("include_global_state")) {
-                includeGlobalState = nodeBooleanValue(entry.getValue(), "include_global_state");
-            } else if (name.equals("include_aliases")) {
-                includeAliases = nodeBooleanValue(entry.getValue(), "include_aliases");
-            } else if (name.equals("rename_pattern")) {
-                if (entry.getValue() instanceof String) {
-                    renamePattern((String) entry.getValue());
-                } else {
-                    throw new IllegalArgumentException("malformed rename_pattern");
-                }
-            } else if (name.equals("rename_replacement")) {
-                if (entry.getValue() instanceof String) {
-                    renameReplacement((String) entry.getValue());
-                } else {
-                    throw new IllegalArgumentException("malformed rename_replacement");
-                }
-            } else if (name.equals("index_settings")) {
-                if (!(entry.getValue() instanceof Map)) {
-                    throw new IllegalArgumentException("malformed index_settings section");
-                }
-                indexSettings((Map<String, Object>) entry.getValue());
-            } else if (name.equals("ignore_index_settings")) {
-                if (entry.getValue() instanceof String) {
-                    ignoreIndexSettings(Strings.splitStringByCommaToArray((String) entry.getValue()));
-                } else if (entry.getValue() instanceof List) {
-                    ignoreIndexSettings((List<String>) entry.getValue());
-                } else {
-                    throw new IllegalArgumentException("malformed ignore_index_settings section, should be an array of strings");
-                }
-            } else {
-                if (IndicesOptions.isIndicesOptions(name) == false) {
-                    throw new IllegalArgumentException("Unknown parameter " + name);
-                }
-            }
-        }
-        indicesOptions(IndicesOptions.fromMap(source, indicesOptions));
+    public RestoreSnapshotRequest includeIndices(boolean includeIndices) {
+        this.includeIndices = includeIndices;
         return this;
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.startArray("indices");
-        for (String index : indices) {
-            builder.value(index);
-        }
-        builder.endArray();
-        if (indicesOptions != null) {
-            indicesOptions.toXContent(builder, params);
-        }
-        if (renamePattern != null) {
-            builder.field("rename_pattern", renamePattern);
-        }
-        if (renameReplacement != null) {
-            builder.field("rename_replacement", renameReplacement);
-        }
-        builder.field("include_global_state", includeGlobalState);
-        builder.field("partial", partial);
-        builder.field("include_aliases", includeAliases);
-        if (settings != null) {
-            builder.startObject("settings");
-            if (settings.isEmpty() == false) {
-                settings.toXContent(builder, params);
-            }
-            builder.endObject();
-        }
-        if (indexSettings != null) {
-            builder.startObject("index_settings");
-            if (indexSettings.isEmpty() == false) {
-                indexSettings.toXContent(builder, params);
-            }
-            builder.endObject();
-        }
-        builder.startArray("ignore_index_settings");
-        for (String ignoreIndexSetting : ignoreIndexSettings) {
-            builder.value(ignoreIndexSetting);
-        }
-        builder.endArray();
-        builder.endObject();
-        return builder;
+    public boolean includeIndices() {
+        return includeIndices;
+    }
+
+    public RestoreSnapshotRequest includeCustomMetadata(boolean includeCustomMetadata) {
+        this.includeCustomMetadata = includeCustomMetadata;
+        return this;
+    }
+
+    public boolean includeCustomMetadata() {
+        return includeCustomMetadata;
+    }
+
+    public RestoreSnapshotRequest customMetadataTypes(Set<String> types) {
+        this.customMetadataTypes = types.toArray(new String[0]);
+        return this;
+    }
+
+    public String[] customMetadataTypes() {
+        return customMetadataTypes;
+    }
+
+    public RestoreSnapshotRequest includeGlobalSettings(boolean includeGlobalSettings) {
+        this.includeGlobalSettings = includeGlobalSettings;
+        return this;
+    }
+
+    public boolean includeGlobalSettings() {
+        return includeGlobalSettings;
+    }
+
+    public RestoreSnapshotRequest globalSettings(List<String> globalSettings) {
+        this.globalSettings = globalSettings.toArray(new String[0]);
+        return this;
+    }
+
+    public String[] globalSettings() {
+        return globalSettings;
     }
 
     public RestoreSnapshotRequest(StreamInput in) throws IOException {
@@ -567,13 +488,23 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         renamePattern = in.readOptionalString();
         renameReplacement = in.readOptionalString();
         waitForCompletion = in.readBoolean();
-        includeGlobalState = in.readBoolean();
+        if (in.getVersion().before(Version.V_4_5_0)) {
+            // ensure streaming BWC, read in unused `includeGlobalState`
+            in.readBoolean();
+        }
         partial = in.readBoolean();
         includeAliases = in.readBoolean();
         settings = readSettingsFromStream(in);
         indexSettings = readSettingsFromStream(in);
         ignoreIndexSettings = in.readStringArray();
         templates = in.readStringArray();
+        if (in.getVersion().onOrAfter(Version.V_4_5_0)) {
+            includeIndices = in.readBoolean();
+            includeCustomMetadata = in.readBoolean();
+            customMetadataTypes = in.readStringArray();
+            includeGlobalSettings = in.readBoolean();
+            globalSettings = in.readStringArray();
+        }
     }
 
     @Override
@@ -586,13 +517,23 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         out.writeOptionalString(renamePattern);
         out.writeOptionalString(renameReplacement);
         out.writeBoolean(waitForCompletion);
-        out.writeBoolean(includeGlobalState);
+        if (out.getVersion().before(Version.V_4_5_0)) {
+            // streaming BWC, write remmoved `includeGlobalState`
+            out.writeBoolean(false);
+        }
         out.writeBoolean(partial);
         out.writeBoolean(includeAliases);
         writeSettingsToStream(settings, out);
         writeSettingsToStream(indexSettings, out);
         out.writeStringArray(ignoreIndexSettings);
         out.writeStringArray(templates);
+        if (out.getVersion().onOrAfter(Version.V_4_5_0)) {
+            out.writeBoolean(includeIndices);
+            out.writeBoolean(includeCustomMetadata);
+            out.writeStringArray(customMetadataTypes);
+            out.writeBoolean(includeGlobalSettings);
+            out.writeStringArray(globalSettings);
+        }
     }
 
     @Override
@@ -617,20 +558,23 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             Objects.equals(renameReplacement, that.renameReplacement) &&
             Objects.equals(settings, that.settings) &&
             Objects.equals(indexSettings, that.indexSettings) &&
-            Arrays.equals(ignoreIndexSettings, that.ignoreIndexSettings);
+            Arrays.equals(ignoreIndexSettings, that.ignoreIndexSettings) &&
+            includeIndices == that.includeIndices &&
+            includeCustomMetadata == that.includeCustomMetadata &&
+            Arrays.equals(customMetadataTypes, that.customMetadataTypes) &&
+            includeGlobalSettings == that.includeGlobalSettings &&
+            Arrays.equals(globalSettings, that.globalSettings);
     }
 
     @Override
     public int hashCode() {
         int result = Objects.hash(snapshot, repository, indicesOptions, renamePattern, renameReplacement, waitForCompletion,
-            includeGlobalState, partial, includeAliases, settings, indexSettings);
+            includeGlobalState, partial, includeAliases, settings, indexSettings,
+            includeIndices, includeCustomMetadata, includeGlobalSettings);
         result = 31 * result + Arrays.hashCode(indices);
         result = 31 * result + Arrays.hashCode(ignoreIndexSettings);
+        result = 31 * result + Arrays.hashCode(customMetadataTypes);
+        result = 31 * result + Arrays.hashCode(globalSettings);
         return result;
-    }
-
-    @Override
-    public String toString() {
-        return Strings.toString(this);
     }
 }

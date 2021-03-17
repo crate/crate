@@ -32,6 +32,7 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
 import io.crate.planner.node.ddl.RestoreSnapshotPlan;
@@ -53,11 +54,15 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import static io.crate.analyze.RestoreSnapshotAnalyzer.METADATA_CUSTOM_TYPE_MAP;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
+import static io.crate.testing.Asserts.assertThrows;
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -276,6 +281,9 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(statement.repository(), is("my_repo"));
         assertThat(statement.snapshot(), is("my_snapshot"));
         assertThat(statement.restoreTables().isEmpty(), is(true));
+        assertThat(statement.includeTables(), is(true));
+        assertThat(statement.includeCustomMetadata(), is(true));
+        assertThat(statement.includeGlobalSettings(), is(true));
     }
 
     @Test
@@ -286,6 +294,9 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var table = statement.restoreTables().iterator().next();
         assertThat(table.tableIdent(), is(new RelationName("custom", "restoreme")));
         assertThat(table.partitionName(), is(nullValue()));
+        assertThat(statement.includeTables(), is(true));
+        assertThat(statement.includeCustomMetadata(), is(false));
+        assertThat(statement.includeGlobalSettings(), is(false));
     }
 
     @Test
@@ -313,6 +324,9 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var table = statement.restoreTables().iterator().next();
         assertThat(table.partitionName(), is(partition));
         assertThat(table.tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted")));
+        assertThat(statement.includeTables(), is(true));
+        assertThat(statement.includeCustomMetadata(), is(false));
+        assertThat(statement.includeGlobalSettings(), is(false));
     }
 
     @Test
@@ -340,5 +354,103 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expect(RepositoryUnknownException.class);
         expectedException.expectMessage("Repository 'unknown_repo' unknown");
         analyze(e, "RESTORE SNAPSHOT unknown_repo.my_snapshot ALL");
+    }
+
+    @Test
+    public void test_restore_all_tables() {
+        BoundRestoreSnapshot statement =
+            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLES");
+        assertThat(statement.repository(), is("my_repo"));
+        assertThat(statement.snapshot(), is("my_snapshot"));
+        assertThat(statement.restoreTables().isEmpty(), is(true));
+        assertThat(statement.includeTables(), is(true));
+        assertThat(statement.includeCustomMetadata(), is(false));
+        assertThat(statement.customMetadataTypes().isEmpty(), is(true));
+        assertThat(statement.includeGlobalSettings(), is(false));
+        assertThat(statement.globalSettings().isEmpty(), is(true));
+    }
+
+    @Test
+    public void test_restore_all_metadata() {
+        BoundRestoreSnapshot statement =
+            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot METADATA");
+        assertThat(statement.repository(), is("my_repo"));
+        assertThat(statement.snapshot(), is("my_snapshot"));
+        assertThat(statement.restoreTables().isEmpty(), is(true));
+        assertThat(statement.includeTables(), is(false));
+        assertThat(statement.includeCustomMetadata(), is(true));
+        assertThat(statement.customMetadataTypes().isEmpty(), is(true));
+        assertThat(statement.includeGlobalSettings(), is(true));
+        assertThat(statement.globalSettings(), contains(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX));
+    }
+
+    @Test
+    public void test_restore_analyzers() {
+        BoundRestoreSnapshot statement =
+            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot ANALYZERS");
+        assertThat(statement.repository(), is("my_repo"));
+        assertThat(statement.snapshot(), is("my_snapshot"));
+        assertThat(statement.restoreTables().isEmpty(), is(true));
+        assertThat(statement.includeTables(), is(false));
+        assertThat(statement.includeCustomMetadata(), is(false));
+        assertThat(statement.customMetadataTypes().isEmpty(), is(true));
+        assertThat(statement.includeGlobalSettings(), is(true));
+        assertThat(statement.globalSettings(), contains(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX));
+    }
+
+    @Test
+    public void test_restore_custom_metadata() {
+        for (var entry : METADATA_CUSTOM_TYPE_MAP.entrySet()) {
+            BoundRestoreSnapshot statement =
+                analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot " + entry.getKey());
+            assertThat(statement.repository(), is("my_repo"));
+            assertThat(statement.snapshot(), is("my_snapshot"));
+            assertThat(statement.restoreTables().isEmpty(), is(true));
+            assertThat(statement.includeTables(), is(false));
+            assertThat(statement.includeCustomMetadata(), is(true));
+            assertThat(statement.customMetadataTypes(), contains(entry.getValue()));
+            assertThat(statement.includeGlobalSettings(), is(false));
+            assertThat(statement.globalSettings().isEmpty(), is(true));
+        }
+    }
+
+    @Test
+    public void test_restore_multiple_metadata() {
+        BoundRestoreSnapshot statement =
+            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot USERS, PRIVILEGES");
+        assertThat(statement.repository(), is("my_repo"));
+        assertThat(statement.snapshot(), is("my_snapshot"));
+        assertThat(statement.includeTables(), is(false));
+        assertThat(statement.includeCustomMetadata(), is(true));
+        assertThat(statement.customMetadataTypes(),
+                   containsInAnyOrder(
+                       METADATA_CUSTOM_TYPE_MAP.get("USERS"),
+                       METADATA_CUSTOM_TYPE_MAP.get("PRIVILEGES")
+                   )
+        );
+        assertThat(statement.includeGlobalSettings(), is(false));
+        assertThat(statement.globalSettings().isEmpty(), is(true));
+    }
+
+    @Test
+    public void test_restore_tables_and_custom_metadata() {
+        BoundRestoreSnapshot statement =
+            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLES, VIEWS");
+        assertThat(statement.repository(), is("my_repo"));
+        assertThat(statement.snapshot(), is("my_snapshot"));
+        assertThat(statement.includeTables(), is(true));
+        assertThat(statement.includeCustomMetadata(), is(true));
+        assertThat(statement.customMetadataTypes(), contains(METADATA_CUSTOM_TYPE_MAP.get("VIEWS")));
+        assertThat(statement.includeGlobalSettings(), is(false));
+        assertThat(statement.globalSettings().isEmpty(), is(true));
+    }
+
+    @Test
+    public void test_restore_unknown_metadata() {
+        assertThrows(
+            () -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot UNKNOWN_META"),
+            IllegalArgumentException.class,
+            "Unknown metadata type 'UNKNOWN_META'"
+        );
     }
 }

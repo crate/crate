@@ -21,26 +21,45 @@
 
 package io.crate.sql.tree;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 public class RestoreSnapshot<T> extends Statement {
 
+    public enum Mode {
+        ALL,
+        TABLE,
+        METADATA,
+        CUSTOM
+    }
+
     private final QualifiedName name;
     private final GenericProperties<T> properties;
+    private final Mode mode;
+    private final List<String> types;
     private final List<Table<T>> tables;
 
-    public RestoreSnapshot(QualifiedName name, GenericProperties<T> properties) {
-        this.name = name;
-        this.properties = properties;
-        this.tables = Collections.emptyList();
+    public RestoreSnapshot(QualifiedName name,
+                           Mode mode,
+                           GenericProperties<T> properties) {
+        this(name, mode, properties, List.of(), List.of());
     }
 
     public RestoreSnapshot(QualifiedName name,
-                           List<Table<T>> tables,
-                           GenericProperties<T> properties) {
+                           Mode mode,
+                           GenericProperties<T> properties,
+                           List<String> types) {
+        this(name, mode, properties, types, List.of());
+    }
+
+    public RestoreSnapshot(QualifiedName name,
+                           Mode mode,
+                           GenericProperties<T> properties,
+                           List<String> types,
+                           List<Table<T>> tables) {
         this.name = name;
+        this.mode = mode;
+        this.types = types;
         this.tables = tables;
         this.properties = properties;
     }
@@ -51,6 +70,14 @@ public class RestoreSnapshot<T> extends Statement {
 
     public GenericProperties<T> properties() {
         return properties;
+    }
+
+    public Mode mode() {
+        return mode;
+    }
+
+    public List<String> types() {
+        return types;
     }
 
     public List<Table<T>> tables() {

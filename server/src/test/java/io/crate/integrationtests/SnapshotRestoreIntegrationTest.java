@@ -22,26 +22,9 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-
+import io.crate.common.unit.TimeValue;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.testing.SQLResponse;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -49,6 +32,7 @@ import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
@@ -56,15 +40,37 @@ import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
+import org.elasticsearch.test.MockKeywordPlugin;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -83,8 +89,17 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
             .build();
     }
 
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        var plugins = new ArrayList<>(super.nodePlugins());
+        plugins.add(MockKeywordPlugin.class);
+        return plugins;
+    }
+
+    @Override
     @Before
-    public void createRepository() throws Exception {
+    public void setUp() throws Exception {
+        super.setUp();
         defaultRepositoryLocation = TEMPORARY_FOLDER.newFolder();
         execute("CREATE REPOSITORY " + REPOSITORY_NAME + " TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{defaultRepositoryLocation.getAbsolutePath()});
@@ -93,6 +108,32 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
             "CREATE REPOSITORY my_repo_ro TYPE \"fs\" with (location=?, compress=true, readonly=true)",
             new Object[]{defaultRepositoryLocation.getAbsolutePath()}
         );
+
+        var dummyLang = new UserDefinedFunctionsIntegrationTest.DummyLang();
+        Iterable<UserDefinedFunctionService> udfServices = internalCluster().getInstances(UserDefinedFunctionService.class);
+        for (UserDefinedFunctionService udfService : udfServices) {
+            udfService.registerLanguage(dummyLang);
+        }
+    }
+
+    @After
+    public void cleanUp() {
+        var stmts = List.of(
+            "REVOKE ALL FROM my_user",
+            "DROP ANALYZER a1",
+            "DROP FUNCTION custom(string)"
+        );
+        for (var stmt : stmts) {
+            try {
+                execute(stmt);
+            } catch (Exception e) {
+                // pass, exception may raise cause entity does not exist
+            }
+        }
+
+        execute("DROP USER IF EXISTS my_user");
+        execute("DROP VIEW IF EXISTS my_view");
+        execute("DROP TABLE IF EXISTS my_table");
     }
 
     private void createTableAndSnapshot(String tableName, String snapshotName) {
@@ -171,8 +212,8 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertThat(response.rowCount(), is(1L));
 
         execute("select name, \"repository\", concrete_indices, state from sys.snapshots order by 2");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is(String.format(
+        assertThat(printedTable(response.rows()),
+                   is(String.format(
                 "my_snapshot| my_repo| [%s.backmeup]| SUCCESS\n" +
                 // shows up twice because both repos have the same data path
                 "my_snapshot| my_repo_ro| [%s.backmeup]| SUCCESS\n",
@@ -217,8 +258,8 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertThat(response.rowCount(), is(1L));
 
         execute("select name, \"repository\", concrete_indices, state from sys.snapshots order by 2");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| SUCCESS\n" +
+        assertThat(printedTable(response.rows()),
+                   is("my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| SUCCESS\n" +
                // shows up twice because the repos have the same fs path.
                "my_snapshot| my_repo_ro| [custom..partitioned.backmeup.04130]| SUCCESS\n"));
     }
@@ -287,7 +328,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("restore snapshot " + snapshotName() + " ALL with (wait_for_completion=true)");
 
         execute("select * from survivor order by bla");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "bar| 1.4\n" +
             "baz| 1.2\n" +
             "foo| 1.2\n"));
@@ -370,7 +411,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "wait_for_completion=true)");
 
         execute("select date from my_parted_table");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("0\n"));
+        assertThat(printedTable(response.rows()), is("0\n"));
     }
 
     @Test
@@ -384,7 +425,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "ignore_unavailable=false, " +
                 "wait_for_completion=true)");
         execute("select date from parted_table order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("0\n1445941740000\n626572800000\n"));
+        assertThat(printedTable(response.rows()), is("0\n1445941740000\n626572800000\n"));
     }
 
     @Test
@@ -398,7 +439,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "ignore_unavailable=false, " +
                 "wait_for_completion=true)");
         execute("select date from parted_table order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("0\n"));
+        assertThat(printedTable(response.rows()), is("0\n"));
     }
 
     @Test
@@ -412,7 +453,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "wait_for_completion=true)");
 
         execute("select date from my_parted_table");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("0\n"));
+        assertThat(printedTable(response.rows()), is("0\n"));
     }
 
     @Test
@@ -426,7 +467,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "wait_for_completion=true)");
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("my_table") + "\n"));
+        assertThat(printedTable(response.rows()), is(getFqn("my_table") + "\n"));
     }
 
     @Test
@@ -443,7 +484,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ? order by 1",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("my_table_1") + "\n" + getFqn("my_table_2") + "\n"));
+        assertThat(printedTable(response.rows()), is(getFqn("my_table_1") + "\n" + getFqn("my_table_2") + "\n"));
     }
 
     @Test
@@ -465,7 +506,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "select table_name from information_schema.tables where table_schema = ? order by 1",
                 new Object[] { sqlExecutor.getCurrentSchema() }
             );
-            assertThat(TestingHelpers.printedTable(response.rows()), is(
+            assertThat(printedTable(response.rows()), is(
                 "my_table_1\n" +
                 "my_table_2\n"
             ));
@@ -491,7 +532,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "wait_for_completion=true)");
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("my_parted_1") + "\n"));
+        assertThat(printedTable(response.rows()), is(getFqn("my_parted_1") + "\n"));
     }
 
     @Test
@@ -506,7 +547,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         ensureYellow();
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("employees") + "\n"));
+        assertThat(printedTable(response.rows()), is(getFqn("employees") + "\n"));
     }
 
     @Test
@@ -521,7 +562,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         ensureYellow();
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("employees") + "\n"));
+        assertThat(printedTable(response.rows()), is(getFqn("employees") + "\n"));
     }
 
     @Test
@@ -593,6 +634,124 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("CREATE SNAPSHOT " + fullSnapShotName2 + " ALL WITH (wait_for_completion=true)");
         assertSnapShotState(snapShotName2, SnapshotState.PARTIAL);
+    }
+
+    @Test
+    public void test_restore_all_restores_complete_state() throws Exception {
+        createSnapshotWithTablesAndMetadata();
+
+        // restore ALL
+        execute("RESTORE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+        waitNoPendingTasksOnAll();
+
+        execute("select table_name from information_schema.tables where table_name = 'my_table'");
+        assertThat(printedTable(response.rows()), is("my_table\n"));
+
+        execute("SELECT table_name FROM information_schema.views WHERE table_name = 'my_view'");
+        assertThat(printedTable(response.rows()), is("my_view\n"));
+
+        execute("select name from sys.users where name = 'my_user'");
+        assertThat(printedTable(response.rows()), is("my_user\n"));
+
+        execute("SELECT type FROM sys.privileges WHERE grantee = 'my_user'");
+        assertThat(printedTable(response.rows()), is("DQL\n"));
+
+        execute("SELECT routine_name, routine_type FROM information_schema.routines WHERE" +
+                " routine_name IN ('a1', 'custom') ORDER BY 1");
+        assertThat(printedTable(response.rows()), is("a1| ANALYZER\n" +
+                                                     "custom| FUNCTION\n"));
+    }
+
+    @Test
+    public void test_restore_all_tables_only() throws Exception {
+        createTable("t2", true);
+        createSnapshotWithTablesAndMetadata();
+        execute("drop table t2");
+
+        // restore all tables
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLES WITH (wait_for_completion=true)");
+        waitNoPendingTasksOnAll();
+
+        execute("select table_name from information_schema.tables where table_schema = ? order by 1",
+                $(sqlExecutor.getCurrentSchema()));
+        assertThat(printedTable(response.rows()), is("my_table\n" +
+                                                     "t2\n"));
+    }
+
+    @Test
+    public void test_restore_metadata_only_does_not_restore_tables() throws Exception {
+        createSnapshotWithTablesAndMetadata();
+
+        // restore METADATA only
+        execute("RESTORE SNAPSHOT " + snapshotName() + " METADATA WITH (wait_for_completion=true)");
+        waitNoPendingTasksOnAll();
+
+        execute("SELECT table_name FROM information_schema.views WHERE table_name = 'my_view'");
+        assertThat(printedTable(response.rows()), is("my_view\n"));
+
+        execute("SELECT name FROM sys.users WHERE name = 'my_user'");
+        assertThat(printedTable(response.rows()), is("my_user\n"));
+
+        execute("SELECT type FROM sys.privileges WHERE grantee = 'my_user'");
+        assertThat(printedTable(response.rows()), is("DQL\n"));
+
+        execute("SELECT routine_name, routine_type FROM information_schema.routines WHERE" +
+                " routine_name IN ('a1', 'custom') ORDER BY 1");
+        assertThat(printedTable(response.rows()), is("a1| ANALYZER\n" +
+                                                     "custom| FUNCTION\n"));
+
+        // NO tables must be restored
+        execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'my_table'");
+        assertThat(response.rowCount(), is(0L));
+
+    }
+
+    @Test
+    public void test_restore_analyzers_only() throws Exception {
+        createSnapshotWithTablesAndMetadata();
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " ANALYZERS WITH (wait_for_completion=true)");
+        waitNoPendingTasksOnAll();
+
+        execute("SELECT routine_name, routine_type FROM information_schema.routines WHERE" +
+                " routine_name IN ('a1', 'custom') ORDER BY 1");
+        assertThat(printedTable(response.rows()), is("a1| ANALYZER\n"));
+
+        // All other MUST NOT be restored
+        execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'my_table'");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("SELECT table_name FROM information_schema.views WHERE table_name = 'my_view'");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("SELECT name FROM sys.users WHERE name = 'my_user'");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("SELECT type FROM sys.privileges WHERE grantee = 'my_user'");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    private void createSnapshotWithTablesAndMetadata() throws Exception {
+        createTable("my_table", false);
+        // creates custom metadata
+        execute("CREATE USER my_user");
+        execute("GRANT DQL TO my_user");
+        execute("CREATE VIEW my_view AS SELECT * FROM my_table LIMIT 1");
+        execute("CREATE FUNCTION custom(string) RETURNS STRING LANGUAGE dummy_lang AS '42'");
+        // creates persistent cluster settings
+        execute("CREATE ANALYZER a1 (TOKENIZER keyword)");
+
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+        assertThat(response.rowCount(), is(1L));
+        waitNoPendingTasksOnAll();
+
+        // drop all created
+        execute("REVOKE ALL FROM my_user");
+        execute("DROP USER my_user");
+        execute("DROP VIEW my_view");
+        execute("DROP TABLE my_table");
+        execute("DROP ANALYZER a1");
+        execute("DROP FUNCTION custom(string)");
     }
 
     private void assertSnapShotState(String snapShotName, SnapshotState state) {
