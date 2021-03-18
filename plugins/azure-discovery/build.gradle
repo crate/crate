@@ -42,6 +42,7 @@ dependencies {
         exclude group: 'commons-codec', module: 'commons-codec'
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+        exclude group: 'org.bouncycastle', module: 'bcpkix-jdk15on'
     }
     testImplementation "org.mockito:mockito-core:${versions.mockito}"
     testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"

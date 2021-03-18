@@ -78,7 +78,7 @@ dependencies {
     }
 
     // Required to use SelfSignedCertificate from netty
-    testCompile "org.bouncycastle:bcpkix-jdk15on:1.68"
+    testCompile "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
 }
 
 //noinspection GroovyAssignabilityCheck
