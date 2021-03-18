@@ -39,8 +39,9 @@ The synopsis of a window function call is one of the following
    function_name ( * ) [ FILTER ( WHERE condition ) ] over_clause
 
 where ``function_name`` is a name of a :ref:`general-purpose window
-<window-functions-general-purpose>` or :ref:`aggregate <aggregation-functions>`
-function and ``expression`` is a column reference, scalar function or literal.
+<window-functions-general-purpose>` or :ref:`aggregate function
+<aggregation-functions>` and ``expression`` is a column reference, :ref:`scalar
+function <scalar-functions>` or literal.
 
 If ``FILTER`` is specified, then only the rows that met the :ref:`WHERE
 <sql-select-where>` condition are supplied to the window function. Only window
@@ -106,8 +107,9 @@ ROW``. If ``frame_end`` is omitted it defaults to ``CURRENT ROW``.
 
 In ``RANGE`` mode if the ``frame_start`` is ``CURRENT ROW`` the frame starts
 with the current row's first peer (a row that the window's ``ORDER BY``
-expression sorts as equal to the current row), while a ``frame_end`` of
-``CURRENT ROW`` means the frame will end with the current's row last peer row.
+:ref:`expression <gloss-expression>` sorts as equal to the current row), while
+a ``frame_end`` of ``CURRENT ROW`` means the frame will end with the current's
+row last peer row.
 
 In ``ROWS`` mode ``CURRENT_ROW`` means the current row.
 

@@ -44,7 +44,7 @@ values for the configured :ref:`partition columns <gloss-partition-column>` is
 inserted, a new partition is created and the document will be inserted into
 this partition.
 
-A partitioned table can be queried like a regular table. 
+A partitioned table can be queried like a regular table.
 
 Partitioned tables have the following advantages:
 
@@ -268,8 +268,8 @@ not be atomic and could lead to inconsistent state::
     ColumnValidationException[Validation failed for day: Updating a partitioned-by column is not supported]
 
 When using a :ref:`generated column <sql-create-table-generated-columns>` as
-partition column all the columns referenced in its *generation expression*
-cannot be updated either::
+partition column all the columns referenced in its :ref:`generation expression
+<ddl-generated-columns-expressions>` cannot be updated either::
 
     cr> UPDATE computed_parted_table set created_at='1970-01-01'
     ... WHERE id = 1;

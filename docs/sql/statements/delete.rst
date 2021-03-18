@@ -35,10 +35,10 @@ Parameters
 
 :table_alias:
   A substitute name for the target table. When an alias is provided, it
-  completely hides the actual name of the table. For example, given
-  ``DELETE FROM foo AS f``, the remainder of the ``DELETE`` statement must
-  refer to this table as ``f`` not ``foo``.
+  completely hides the actual name of the table. For example, given ``DELETE
+  FROM foo AS f``, the remainder of the ``DELETE`` statement must refer to this
+  table as ``f`` not ``foo``.
 
 :condition:
-  An expression that returns a value of type boolean. Only rows for
-  which this expression returns true will be deleted.
+  An expression that returns a value of type boolean. Only rows for which this
+  expression returns true will be deleted.

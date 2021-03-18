@@ -167,8 +167,8 @@ Removed Settings
 - Removed the deprecated ``license.enterprise`` setting. To use CrateDB without
   any enterprise features one should use the community edition instead.
 
-- Removed the experimental `enable_semijoin` session setting. As this defaulted
-  to false, this execution strategy cannot be used anymore.
+- Removed the experimental ``enable_semijoin`` session setting. As this
+  defaulted to false, this execution strategy cannot be used anymore.
 
 - Removed the possibility of configuring the AWS S3 repository client via the
   ``crate.yaml`` configuration file and command line arguments. Please, use the
@@ -427,7 +427,7 @@ Others
 - Added a new ``_docid`` :ref:`system column
   <sql_administration_system_columns>`.
 
-- Added support for subscript expressions on an object column of a
-  sub-relation.  Examples: ``select a['b'] from (select a from t1)`` or
-  ``select a['b'] from my_view`` where ``my_view`` is defined as ``select a
-  from t1``.
+- Added support for :ref:`subscript expressions <sql-subscripts>` on an object
+  column of a sub-relation.  Examples: ``select a['b'] from (select a from
+  t1)`` or ``select a['b'] from my_view`` where ``my_view`` is defined as
+  ``select a from t1``.

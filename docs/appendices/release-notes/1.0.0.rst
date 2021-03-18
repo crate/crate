@@ -76,9 +76,9 @@ Changes
 - Nested numeric factors do not require brackets any more; e.g. ``SELECT + -
   10`` is now supported.
 
-- Added subscript support for ``cast`` and ``try_cast`` expressions. e.g.:
-  ``select cast(coordinates as array(double))[1] from sys.summits`` is now
-  possible
+- Added subscript support for ``cast`` and ``try_cast`` :ref:`expressions
+  <gloss-expression>`. e.g.: ``SELECT cast(coordinates AS array(double))[1]
+  FROM sys.summits`` is now possible
 
 - Upgraded Elasticsearch to 2.4.2.
 

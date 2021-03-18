@@ -105,7 +105,8 @@ SQL Improvements
 
 - Added support for the ``row_number()`` window function.
 
-- Added support for using any expression in the operand of a ``CASE`` clause.
+- Added support for using any :ref:`expression <gloss-expression>` in the
+  operand of a ``CASE`` clause.
 
 - Fix quoting of identifiers that contain leading digits or spaces when
   printing relation or column names.

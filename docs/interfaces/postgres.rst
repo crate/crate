@@ -389,7 +389,8 @@ Accessing arrays
 ................
 
 Fetching arbitrary rectangular slices of an array using
-``lower-bound:upper-bound`` expression in the array subscript is not supported.
+``lower-bound:upper-bound`` :ref:`expression <gloss-expression>` in the array
+subscript is not supported.
 
 .. SEEALSO::
 
@@ -410,8 +411,10 @@ CrateDB and we love to hear feedback.
 Expression evaluation
 ---------------------
 
-Unlike PostgreSQL, expressions are not evaluated if the query results in 0 rows
-either because of the table is empty or by a not matching where clause.
+Unlike PostgreSQL, :ref:`expressions <gloss-expression>` are not evaluated if
+the query results in 0 rows either because of the table is empty or by a not
+matching where clause.
+
 
 .. _GitHub: https://github.com/crate/crate
 .. _pg_am: https://www.postgresql.org/docs/10/catalog-pg-am.html

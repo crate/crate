@@ -777,8 +777,9 @@ If you don't specify a time zone, ``truncate`` uses UTC time::
 ``extract(field from source)``
 ------------------------------
 
-``extract`` is a special expression that translates to a function which
-retrieves subfields such as day, hour or minute from a timestamp.
+``extract`` is a special :ref:`expression <gloss-expression>` that translates
+to a function which retrieves subfields such as day, hour or minute from a
+timestamp.
 
 The return type depends on the used ``field``.
 
@@ -888,10 +889,10 @@ The following fields are supported:
 ``CURRENT_TIME``
 ----------------
 
-The ``CURRENT_TIME`` expression returns the time in microseconds
-since midnight UTC at the time the SQL statement was handled. Clock
-time is looked up at most once within the scope of a single query, to
-ensure that multiple occurrences of ``CURRENT_TIME`` evaluate to the
+The ``CURRENT_TIME`` :ref:`expression <gloss-expression>` returns the time in
+microseconds since midnight UTC at the time the SQL statement was
+handled. Clock time is looked up at most once within the scope of a single
+query, to ensure that multiple occurrences of ``CURRENT_TIME`` evaluate to the
 same value.
 
 synopsis::
@@ -977,8 +978,8 @@ Synopsis
     DATE_FORMAT( [ format_string, [ timezone, ] ] timestamp )
 
 The only mandatory argument is the ``timestamp`` value to format. It can be any
-expression that is safely convertible to timestamp data type with or without
-timezone.
+:ref:`expression <gloss-expression>` that is safely convertible to timestamp
+data type with or without timezone.
 
 Format
 ......
@@ -1159,9 +1160,9 @@ a timezone) or ``interval``.
 Format
 ......
 
-The syntax for the ``format_string`` differs based the type of the expression.
-For ``timestamp`` expressions, the ``format_string`` is a template string
-containing any of the following symbols:
+The syntax for the ``format_string`` differs based the type of the
+:ref:`expression <gloss-expression>`.  For ``timestamp`` expressions, the
+``format_string`` is a template string containing any of the following symbols:
 
 +-------------------------------------------+---------------------------------------------------------------------------+
 | Pattern                                   | Description                                                               |
@@ -1936,14 +1937,15 @@ Returns: ``double precision``
 Regular expression functions
 ============================
 
-The regular expression functions in CrateDB use `Java Regular Expressions`_.
+The :ref:`regular expression <gloss-regular-expression>` functions in CrateDB
+use `Java Regular Expressions`_.
 
 See the API documentation for more details.
 
 .. NOTE::
 
    Be aware that, in contrast to the functions, the :ref:`regular expression
-   operator <sql_ddl_regexp>` uses `Lucene Regular Expressions`_.
+   operator <sql_dql_regexp>` uses `Lucene Regular Expressions`_.
 
 .. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 
@@ -2207,8 +2209,8 @@ It can be used to remove elements from array fields.
 ``array(subquery)``
 -------------------
 
-The ``array(subquery)`` expression is an array constructor function which
-operates on the result of the ``subquery``.
+The ``array(subquery)`` :ref:`expression <gloss-expression>` is an array
+constructor function which operates on the result of the ``subquery``.
 
 Returns: ``array``
 
@@ -2352,9 +2354,9 @@ Conditional functions and expressions
 ``CASE WHEN ... THEN ... END``
 ------------------------------
 
-The ``case`` expression is a generic conditional expression similar to if/else
-statements in other programming languages and can be used wherever an
-expression is valid.
+The ``case`` :ref:`expression <gloss-expression>` is a generic conditional
+expression similar to if/else statements in other programming languages and can
+be used wherever an expression is valid.
 
 ::
 
@@ -2443,12 +2445,12 @@ Example:
 -------------------------------------
 
 The ``if`` function is a conditional function comparing to *if* statements of
-most other programming languages. If the given *condition* expression evaluates
-to `true`, the *result* expression is evaluated and it's value is returned. If
-the *condition* evaluates to `false`, the *result* expression is not evaluated
-and the optional given *default* expression is evaluated instead and it's value
-will be returned. If the *default* argument is omitted, NULL will be returned
-instead.
+most other programming languages. If the given *condition* :ref:`expression
+<gloss-expression>` evaluates to `true`, the *result* expression is evaluated
+and it's value is returned. If the *condition* evaluates to `false`, the
+*result* expression is not evaluated and the optional given *default*
+expression is evaluated instead and it's value will be returned. If the
+*default* argument is omitted, NULL will be returned instead.
 
 .. Hidden: create table if_example
 

@@ -65,7 +65,7 @@ constraint or a table constraint.
 ---------
 
 The ``CHECK`` constraint specifies that the values of certain columns must
-satisfy a boolean expression on insert and update.
+satisfy a :ref:`boolean expression <sql-literal-value>` on insert and update.
 
 Syntax::
 

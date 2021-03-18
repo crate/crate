@@ -75,8 +75,8 @@ Fixes
    aggregation symbol twice as a select item on a join query.
 
  - Fixed an issue that caused wrong results to be returned for global
-   aggregation on ``JOINS`` when literal expression in ``WHERE`` clause is
-   evaluated to false, e.g.::
+   aggregation on ``JOINS`` when :ref:`literal expression <sql-literal-value>`
+   in ``WHERE`` clause is evaluated to false, e.g.::
 
      SELECT COUNT(*) FROM t1, t2 WHERE 1=2
 

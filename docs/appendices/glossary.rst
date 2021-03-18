@@ -72,9 +72,11 @@ E
 
     :ref:`Built-ins: Subquery expressions <sql_subquery_expressions>`
 
-    :ref:`Data definition: Generation expressions <ddl-generated-columns-expressions>`
+    :ref:`Data definition: Generation expressions
+    <ddl-generated-columns-expressions>`
 
-    :ref:`Scalar functions: Conditional functions and expressions <scalar-conditional-functions-expressions>`
+    :ref:`Scalar functions: Conditional functions and expressions
+    <scalar-conditional-functions-expressions>`
 
     :ref:`Aggregation: Aggregation expressions <aggregation-expressions>`
 

@@ -55,16 +55,16 @@ as follows:
 - If the :ref:`GROUP BY <sql-select-group-by>` clause is specified, the output
   is combined into groups of rows that match on one or more values.
 
-- The actual output rows are computed using the ``SELECT`` output expressions
-  for each selected row or row group.
+- The actual output rows are computed using the ``SELECT`` output
+  :ref:`expressions <gloss-expression>` for each selected row or row group.
 
 - If the :ref:`ORDER BY <sql-select-order-by>` clause is specified, the
   returned rows are sorted in the specified order. If ``ORDER BY`` is not
   given, the rows are returned in whatever order the system finds fastest to
   produce.
 
-- If :ref:`DISTINCT <sql-select-list>` is specified, one unique row is
-  kept. All other duplicate rows are removed from the result set.
+- If :ref:`DISTINCT <sql-select-list>` is specified, one unique row is kept.
+  All other duplicate rows are removed from the result set.
 
 - If the :ref:`LIMIT <sql-select-limit>` or :ref:`OFFSET <sql-select-offset>`
   clause is specified, the ``SELECT`` statement only returns a subset of the
@@ -82,9 +82,9 @@ Parameters
 The ``SELECT`` List
 -------------------
 
-The ``SELECT`` list specifies expressions that form the output rows of the
-``SELECT`` statement. The expressions can (and usually do) refer to columns
-computed in the ``FROM`` clause.
+The ``SELECT`` list specifies :ref:`expressions <gloss-expression>` that form
+the output rows of the ``SELECT`` statement. The expressions can (and usually
+do) refer to columns computed in the ``FROM`` clause.
 
 ::
 
@@ -198,8 +198,8 @@ relations together.
   ``INNER``.
 
 :join_condition:
-  An expression which specifies which rows in a join are considered a
-  match.
+  An :ref:`expression <gloss-expression>` which specifies which rows in a join
+  are considered a match.
 
   The ``join_condition`` is not applicable for joins of type ``CROSS`` and must
   have a returning value of type ``boolean``.
@@ -267,8 +267,8 @@ returned::
     WHERE condition
 
 :condition:
-  A where condition is any expression that evaluates to a result of type
-  boolean.
+  A where condition is any :ref:`expression <gloss-expression>` that evaluates
+  to a result of type boolean.
 
   Any row that does not satisfy this condition will be eliminated from the
   output. A row satisfies the condition if it returns true when the actual row
@@ -312,9 +312,9 @@ The optional ``HAVING`` clause defines the condition to be met for values
 within a resulting row of a group by clause.
 
 :condition:
-  A having condition is any expression that evaluates to a result of type
-  boolean. Every row for which the condition is not satisfied will be
-  eliminated from the output.
+  A having condition is any :ref:`expression <sql-literal-value>` that
+  evaluates to a result of type boolean. Every row for which the condition is
+  not satisfied will be eliminated from the output.
 
 .. NOTE::
 
@@ -379,7 +379,8 @@ specified expression(s).
 
 :expression:
   Can be the name or ordinal number of an output column, or it can be an
-  arbitrary expression formed from input-column values.
+  arbitrary :ref:`expression <gloss-expression>` formed from input-column
+  values.
 
 The optional keyword ``ASC`` (ascending) or ``DESC`` (descending) after any
 expression allows to define the direction in which values have are sorted. The

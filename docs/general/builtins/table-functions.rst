@@ -207,7 +207,8 @@ arrays within the same level.
 ``regexp_matches(source, pattern [, flags])``
 =============================================
 
-Uses the regular expression ``pattern`` to match against the ``source`` string.
+Uses the :ref:`regular expression <gloss-regular-expression>` ``pattern`` to
+match against the ``source`` string.
 
 The result rows have one column:
 

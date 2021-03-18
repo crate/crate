@@ -86,11 +86,11 @@ SQL Standard and PostgreSQL compatibility improvements
 - Added table function :ref:`generate_subscripts
   <table-functions-generate-subscripts>`
 
-- Added the `pg_catalog.pg_roles table <postgres_pg_catalog>`
+- Added the :ref:`pg_catalog.pg_roles table <postgres_pg_catalog>`
 
-- Added full support for quoted subscript expressions like ``"myObj['x']"``.
-  This allows to use tools like PowerBI with tables that contain object
-  columns.
+- Added full support for quoted :ref:`subscript expressions <sql-subscripts>`
+  like ``"myObj['x']"``.  This allows to use tools like PowerBI with tables
+  that contain object columns.
 
 
 Administration

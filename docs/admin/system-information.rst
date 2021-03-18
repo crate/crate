@@ -61,8 +61,8 @@ The result has at most 1 row::
 Cluster license
 ---------------
 
-The ``sys.cluster.license`` expression returns information about the currently
-registered license.
+The ``sys.cluster.license`` :ref:`expression <gloss-expression>` returns
+information about the currently registered license.
 
 ``license``
 -----------
@@ -88,8 +88,8 @@ registered license.
 Cluster settings
 ----------------
 
-The ``sys.cluster.settings`` expression returns information about the currently
-applied cluster settings.
+The ``sys.cluster.settings`` :ref:`expression <gloss-expression>` returns
+information about the currently applied cluster settings.
 
 ::
 

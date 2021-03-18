@@ -43,10 +43,10 @@ execution if the statement being explained involves queries which are executed
 using Lucene.
 
 The output includes verbose low level information per queried shard. Since SQL
-query expressions do not always have a direct 1:1 mapping to Lucene queries the
-output may be more complex but in most cases it should still be possible to
-identify the most expensive parts of a query expression.
-Some familiarity with Lucene helps in interpreting the output.
+query :ref:`expressions <gloss-expression>` do not always have a direct 1:1
+mapping to Lucene queries the output may be more complex but in most cases it
+should still be possible to identify the most expensive parts of a query
+expression.  Some familiarity with Lucene helps in interpreting the output.
 
 A short excerpt of a query breakdown looks like this::
 
