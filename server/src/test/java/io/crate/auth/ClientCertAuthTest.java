@@ -28,11 +28,13 @@ import org.elasticsearch.test.ESTestCase;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.elasticsearch.common.network.InetAddresses;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.net.ssl.SSLSession;
 import java.security.cert.Certificate;
 import java.util.Date;
+import java.util.Locale;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -44,6 +46,15 @@ public class ClientCertAuthTest extends ESTestCase {
     // "example.com" is the CN used in SelfSignedCertificate
     private User exampleUser = User.of("example.com");
     private SSLSession sslSession;
+
+    @BeforeClass
+    public static void ensureEnglishLocale() {
+        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
+        // This fails for certain locales, e.g. 'ks'.
+        // Until this is fixed, we force the english locale.
+        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
+        Locale.setDefault(Locale.ENGLISH);
+    }
 
     @Before
     public void setUpSsl() throws Exception {
