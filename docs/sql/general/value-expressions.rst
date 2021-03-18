@@ -80,7 +80,7 @@ Operator invocation
 ===================
 
 An :ref:`operator <gloss-operator>` can be invoked as a value expression in one
-of two way: *binary* or *unary*.
+of two ways: *binary* or *unary*.
 
 The syntax of a binary operator::
 

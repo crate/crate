@@ -29,7 +29,8 @@ Synopsis
 Description
 ===========
 
-``INSERT`` creates one or more rows specified by value expressions.
+``INSERT`` creates one or more rows specified by :ref:`value expressions
+<sql-value-expressions>`.
 
 The target column names can be listed in any order. If the target column names
 are omitted, they default to all columns of the table or up to N columns if

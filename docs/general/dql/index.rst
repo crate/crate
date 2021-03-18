@@ -6,9 +6,13 @@
 Querying
 ========
 
-This section provides an overview on how to query documents using SQL. See
-:ref:`ddl` for information about `Table creation` and other Data Definition
-statements.
+This section provides an overview of how to query CrateDB.
+
+.. SEEALSO::
+
+    :ref:`General use: Data definition <ddl>`
+
+    :ref:`General use: Data manipulation <dml>`
 
 .. rubric:: Table of contents
 

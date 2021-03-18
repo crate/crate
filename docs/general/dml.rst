@@ -6,6 +6,15 @@
 Data manipulation
 =================
 
+This section provides an overview of how to manipulate data (e.g., inserting
+rows) with CrateDB.
+
+.. SEEALSO::
+
+    :ref:`General use: Data definition <ddl>`
+
+    :ref:`General use: Querying <dql>`
+
 .. rubric:: Table of contents
 
 .. contents::

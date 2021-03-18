@@ -360,7 +360,14 @@ Type casts
 ----------
 
 CrateDB accepts the :ref:`type_conversion` syntax for conversion of one data
-type to another (see `Value Expressions`_).
+type to another.
+
+.. SEEALSO::
+
+    `PostgreSQL value expressions`_
+
+    :ref:`CrateDB value expressions <sql-value-expressions>`
+
 
 Arrays
 ------
@@ -433,4 +440,4 @@ either because of the table is empty or by a not matching where clause.
 .. _PostgreSQL JDBC Query docs: https://jdbc.postgresql.org/documentation/head/query.html
 .. _PostgreSQL simple query: https://www.postgresql.org/docs/current/static/protocol-flow.html#id-1.10.5.7.4
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
-.. _Value Expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
+.. _PostgreSQL value expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
