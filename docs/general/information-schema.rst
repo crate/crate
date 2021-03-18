@@ -384,7 +384,8 @@ infinite recursion of your mind, beware!)::
 |                               |                                               |               |
 |                               | For further information see :ref:`data-types` |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``column_default``            | The default expression of the column          | ``TEXT``      |
+| ``column_default``            | The default :ref:`expression                  | ``TEXT``      |
+|                               | <gloss-expression>` of the column             |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``character_maximum_length``  | If the data type is a :ref:`character type    | ``INTEGER``   |
 |                               | <character-data-types>` then return the       |               |

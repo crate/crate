@@ -57,11 +57,11 @@ Use the ``BLOB`` keyword in order to alter a blob table (see
 the ``ADD COLUMN`` keyword won't work.
 
 While altering a partitioned table, using ``ONLY`` will apply changes for the
-table **only** and not for any possible existing partitions. So these changes
+table *only* and not for any possible existing partitions. So these changes
 will only be applied to new partitions. The ``ONLY`` keyword cannot be used
 together with a `PARTITION`_ clause.
 
-See the CREATE TABLE :ref:`sql-create-table-with` for a list of available
+See ``CREATE TABLE`` :ref:`sql-create-table-with` for a list of available
 parameters.
 
 :table_ident:
@@ -137,8 +137,8 @@ Arguments
 ``SET/RESET``
 -------------
 
-Can be used to change a table parameter to a different value.
-Using ``RESET`` will reset the parameter to its default value.
+Can be used to change a table parameter to a different value.  Using ``RESET``
+will reset the parameter to its default value.
 
 :parameter:
   The name of the parameter that is set to a new value or its default.
@@ -159,9 +159,9 @@ Can be used to add an additional column to a table. While columns can be added
 at any time, adding a new :ref:`generated column
 <sql-create-table-generated-columns>` is only possible if the table is empty.
 In addition, adding a base column with :ref:`sql-create-table-default-clause`
-is not supported. It is possible to define a CHECK constraint with the
-restriction that only the column being added may be used in the boolean
-expression.
+is not supported. It is possible to define a ``CHECK`` constraint with the
+restriction that only the column being added may be used in the :ref:`boolean
+expression <sql-literal-value>`.
 
 :data_type:
   Data type of the column which should be added.
@@ -175,11 +175,12 @@ expression.
 ``OPEN/CLOSE``
 --------------
 
-Can be used to open or close the table, respectively. Closing a table prevents
-all operations, except ``ALTER TABLE ... OPEN``, to fail. Operations on closed
-partitions will not produce an exception, but will have no effect. Similarly,
-like ``SELECT`` and ``INSERT`` on partitioned will exclude closed partitions and
-continue working.
+Can be used to open or close the table.
+
+Closing a table means that all operations, except ``ALTER TABLE ... OPEN``,
+will fail. Operations that fail will not return an error, but they will have no
+effect. Operations on tables containing closed partitions won't fail, but those
+operations will exclude all closed partitions.
 
 
 .. _sql-alter-table-rename-to:
@@ -223,7 +224,7 @@ where ``reroute_option`` is::
     }
 
 :shard_id:
-  The shard id. Ranges from 0 up to the specified number of :ref:`sys-shards`
+  The shard ID. Ranges from 0 up to the specified number of :ref:`sys-shards`
   shards of a table.
 
 :node:
@@ -245,11 +246,10 @@ where ``reroute_option`` is::
 
 .. _alter-table-reroute-promote-replica:
 
-**PROMOTE REPLICA**
-  Force promote a stale replica shard to a primary.
-  In case a node holding a primary copy of a shard had a failure and the
-  replica shards are out of sync, the system won't promote the replica to
-  primary automatically, as it would result in a silent data loss.
+**PROMOTE REPLICA** Force promote a stale replica shard to a primary.  In case
+  a node holding a primary copy of a shard had a failure and the replica shards
+  are out of sync, the system won't promote the replica to primary
+  automatically, as it would result in a silent data loss.
 
   Ideally the node holding the primary copy of the shard would be brought back
   into the cluster, but if that is not possible due to a permanent system

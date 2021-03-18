@@ -125,7 +125,8 @@ SQL Improvements
   dimension.
 
 - Added support for the :ref:`ARRAY(subquery) <sql_expressions_array_subquery>`
-  expression, which can turn the result from a subquery into an array.
+  :ref:`expression <gloss-expression>`, which can turn the result from a
+  subquery into an array.
 
 - The :ref:`= ANY <sql_dql_any_array>` :ref:`operator <gloss-operator>` now
   also supports operations on object arrays or nested arrays. This enables
@@ -137,8 +138,8 @@ SQL Improvements
 - Added support for :ref:`INITCAP(string) <scalar-initcap>` which capitalizes
   the first letter of every word while turning all others into lowercase.
 
-- Added the scalar expression :ref:`CURRENT_DATABASE <scalar_current_database>`
-  which returns the current database.
+- Added the :ref:`scalar <gloss-scalar>` expression :ref:`CURRENT_DATABASE
+  <scalar_current_database>` which returns the current database.
 
 - :ref:`Functions <gloss-function>` like :ref:`CURRENT_SCHEMA
   <scalar_current_schema>` and :ref:`CURRENT_USER <current_user>` which depend
@@ -146,7 +147,7 @@ SQL Improvements
   <ddl-generated-columns>`.
 
 - Added support for using :ref:`table functions <table-functions>` in the
-  select list of a query.
+  ``SELECT`` list of a query.
 
 - :ref:`geo_shape <geo_shape_data_type>` columns can now be casted to
   ``object`` with ``cast`` in addition to ``try_cast``.

@@ -71,8 +71,8 @@ Fixes
 - Fixed a memory leak in the ``MQTT`` ingest service.
 
 - Fixed a memory leak that could occur with clients connecting via PostgreSQL
-  protocol and invoking read queries with statements containing expressions
-  that would fail (such as ``1 / 0``).
+  protocol and invoking read queries with statements containing
+  :ref:`expressions <gloss-expression>` that would fail (such as ``1 / 0``).
 
 - Fixed an issue in the PostgreSQL wire protocol that could result in nodes
   crashing with ``OutOfMemoryError`` if clients queried very large tables

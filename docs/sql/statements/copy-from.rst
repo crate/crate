@@ -236,9 +236,9 @@ Parameters
   data should be put.
 
 :uri:
-  An expression which evaluates to a URI as defined in `RFC2396`_. The
-  supported schemes are listed above. The last part of the path may also
-  contain ``*`` wildcards to match multiple files.
+  An :ref:`expression <gloss-expression>` which evaluates to a URI as defined
+  in `RFC2396`_. The supported schemes are listed above. The last part of the
+  path may also contain ``*`` wildcards to match multiple files.
 
 
 .. _sql-copy-from-clauses:
@@ -344,7 +344,8 @@ default for *all* URIs.
 ``node_filters``
 ''''''''''''''''
 
-A filter expression to select the nodes to run the *read* operation.
+A filter :ref:`expression <gloss-expression>` to select the nodes to run the
+*read* operation.
 
 It's an object in the form of::
 
@@ -355,8 +356,9 @@ It's an object in the form of::
 
 Only one of the keys is required.
 
-The ``name`` regular expression is applied on the ``name`` of all execution
-nodes, whereas the ``id`` regex is applied on the ``node id``.
+The ``name`` :ref:`regular expression <gloss-regular-expression>` is applied on
+the ``name`` of all execution nodes, whereas the ``id`` regex is applied on the
+``node id``.
 
 If both keys are set, *both* regular expressions have to match for a node to be
 included.

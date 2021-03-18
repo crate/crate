@@ -172,8 +172,8 @@ SQL Standard and PostgreSQL compatibility improvements
   alternative to the existing :ref:`object subscript <sql-object-subscript>`
   syntax.
 
-- Added support for using columns of type ``long`` inside subscript expressions
-  (e.g., ``array_expr[column]``).
+- Added support for using columns of type ``long`` inside :ref:`subscript
+  expressions <sql-subscripts>` (e.g., ``array_expr[column]``).
 
 - Made :ref:`generate_series <table-functions-generate-series>` addressable by
   specifying the ``pg_catalog`` schema explicitly. So, for example, both
@@ -252,8 +252,8 @@ New statements and clauses
 - Added the :ref:`DISCARD <discard>` statement.
 
 - Added the :ref:`CHECK <check_constraint>` constraint syntax, which specifies
-  that the values of certain columns must satisfy a boolean expression on
-  insert and update.
+  that the values of certain columns must satisfy a :ref:`boolean expression
+  <sql-literal-value>` on insert and update.
 
 - Introduced new optional ``RETURNING`` clause for :ref:`INSERT <ref-insert>`
   and :ref:`UPDATE <ref-update>` to return specified values from each row

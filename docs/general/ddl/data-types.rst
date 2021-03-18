@@ -514,12 +514,11 @@ time zone. It has the following variants:
    "timestamp with time zone AT TIME ZONE zone", "timestamp without time zone", "Convert \
    given time stamp with time zone to the new time zone, with no time zone designation"
 
-In these expressions, the desired time zone is specified as a string
-(e.g., 'Europe/Madrid', '+02:00'). See :ref:`Timezone <date-format-timezone>`.
+In these :ref:`expressions <gloss-expression>`, the desired time zone is
+specified as a string (e.g., 'Europe/Madrid', '+02:00').
 
-The :ref:`scalar function <scalar-functions>` :ref:`TIMEZONE <scalar-timezone>`
-(zone, timestamp) is equivalent to the SQL-conforming construct timestamp ``AT
-TIME ZONE zone``.
+The scalar function :ref:`TIMEZONE <scalar-timezone>` (zone, timestamp) is
+equivalent to the SQL-conforming timestamp construct ``AT TIME ZONE zone``.
 
 .. _time-data-type:
 
@@ -757,7 +756,7 @@ Temporal arithmetic
 -------------------
 
 The following table specifies the declared types of :ref:`arithmetic
-<arithmetic>` expressions that involves temporal :ref:`operands
+expressions <arithmetic>` that involve temporal :ref:`operands
 <gloss-operand>`:
 
 
@@ -1321,8 +1320,9 @@ Array constructor
 -----------------
 
 Arrays can be written using the array constructor ``ARRAY[]`` or short ``[]``.
-The array constructor is an expression that accepts both literals and
-expressions as its parameters. Parameters may contain zero or more elements.
+The array constructor is an :ref:`expression <gloss-expression>` that accepts
+both literals and expressions as its parameters. Parameters may contain zero or
+more elements.
 
 Synopsis::
 
@@ -1430,8 +1430,8 @@ oidvector
 This is a system type used to represent one or more OID values.
 
 It looks similar to an array of integers, but doesn't support any of the
-:ref:`scalar functions <scalar-functions>` or expressions that can be used on
-regular arrays.
+:ref:`scalar functions <scalar-functions>` or :ref:`expressions
+<gloss-expression>` that can be used on regular arrays.
 
 
 .. _type_conversion:
@@ -1445,8 +1445,8 @@ Type conversion
 --------
 
 A type ``cast`` specifies a conversion from one data type to another. It will
-only succeed if the value of the expression is convertible to the desired data
-type, otherwise an error is thrown.
+only succeed if the value of the :ref:`expression <gloss-expression>` is
+convertible to the desired data type, otherwise an error is returned.
 
 CrateDB supports two equivalent syntaxes for type casts:
 
@@ -1628,7 +1628,8 @@ See the table below for a full list of aliases:
 .. NOTE::
 
    The :ref:`PG_TYPEOF <pg_typeof>` system :ref:`function <gloss-function>` can
-   be used to resolve the data type of any expression.
+   be used to resolve the data type of any :ref:`expression
+   <gloss-expression>`.
 
 
 .. _BigDecimal documentation: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/math/BigDecimal.html

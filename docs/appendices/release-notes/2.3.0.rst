@@ -65,14 +65,14 @@ Breaking Changes
 
 - Table ``information_schema.table_constraints`` is now returning
   ``constraint_name`` as type string instead of type array. Constraint type
-  ``PRIMARY_KEY`` has been changed to ``PRIMARY KEY``. Also PRIMARY KEY
+  ``PRIMARY_KEY`` has been changed to ``PRIMARY KEY``. Also ``PRIMARY KEY``
   constraint is not returned when not explicitly defined.
 
-- :ref:Scalar functions <scalar-functions>` are resolved more strictly based on
-  the argument types. This means that built-in functions with the same name as
-  :ref:`user-defined functions <user-defined-functions>` will always "hide" the
-  latter, even if the UDF has a different set of arguments. Using the same name
-  as a built-in function for a user defined function is considered bad
+- :ref:`Scalar functions <scalar-functions>` are resolved more strictly based
+  on the argument types. This means that built-in functions with the same name
+  as :ref:`user-defined functions <user-defined-functions>` will always "hide"
+  the latter, even if the UDF has a different set of arguments. Using the same
+  name as a built-in function for a user defined function is considered bad
   practice.
 
 
@@ -163,8 +163,8 @@ Changes
   conversion is possible through a type precedence list and convertibility
   checks on the data types.
 
-- Functions which accept regular expression flags now throw an error when
-  invalid flags are provided.
+- Functions which accept :ref:`regular expression <gloss-regular-expression>`
+  flags now throw an error when invalid flags are provided.
 
 - Clients using the PostgreSQL wire protocol will now receive an additional
   ``crate_version`` ParameterStatus message when establishing a connection.

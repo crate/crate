@@ -63,12 +63,13 @@ Parameters
   The name (optionally schema-qualified) of the table to be exported.
 
 :column:
-  (optional) A list of column expressions that should be exported.
+  (optional) A list of column :ref:`expressions <gloss-expression>` that should
+  be exported.
 
 .. NOTE::
 
-   Declaring columns changes the output to JSON list format, which is
-   currently not supported by the COPY FROM statement.
+   When declaring columns, this changes the output to JSON list format, which
+   is currently not supported by the ``COPY FROM`` statement.
 
 
 .. _sql-copy-to-clauses:
@@ -154,8 +155,9 @@ The ``TO`` clause allows you to specify an output location.
 :output_uri:
   The output URI.
 
-The output URI can be any expression that evaluates to a string. The string
-must be a valid URI that uses the ``file://`` or ``s3://`` URI scheme.
+The output URI can be any :ref:`expression <gloss-expression>` that evaluates
+to a string. The string must be a valid URI that uses the ``file://`` or
+``s3://`` URI scheme.
 
 For example:
 
@@ -182,8 +184,8 @@ You may have to configure a new `Docker volume`_ to accomplish this.
 Microsoft Windows
 .................
 
-If you are using *Microsoft Windows*, you must include the drive letter in
-the file URI.
+If you are using *Microsoft Windows*, you must include the drive letter in the
+file URI.
 
 For example, the above file URI should instead be written as
 ``file:///C://tmp/import_data/quotes.json``.
@@ -197,8 +199,8 @@ Amazon Web Services
 ...................
 
 A ``secretkey`` provided by *Amazon Web Services* (AWS) can contain characters
-such as '/', '+' or '='. Such characters must be URI encoded. The same encoding
-as in :ref:`sql-copy-from-s3` applies.
+such as ``/``, ``+`` or ``=``. Such characters must be URI encoded. The same
+encoding as in :ref:`sql-copy-from-s3` applies.
 
 Additionally, versions prior to 0.51.x use HTTP for connections to S3. Since
 0.51.x these connections are using the HTTPS protocol. Please make sure you
@@ -244,15 +246,14 @@ Optional parameter to override default output behavior.
 Possible values for the ``format`` settings are:
 
 :json_object:
-  Each row in the result set is serialized as JSON object and written to
-  an output file where one line contains one object. This is the default
-  behavior if no columns are defined. Use this format to import with
+  Each row in the result set is serialized as JSON object and written to an
+  output file where one line contains one object. This is the default behavior
+  if no columns are defined. Use this format to import with
   :ref:`sql-copy-from`.
 
 :json_array:
-  Each row in the result set is serialized as JSON array, storing one
-  array per line in an output file. This is the default behavior if
-  columns are defined.
+  Each row in the result set is serialized as JSON array, storing one array per
+  line in an output file. This is the default behavior if columns are defined.
 
 
 .. _Amazon S3: https://aws.amazon.com/s3/

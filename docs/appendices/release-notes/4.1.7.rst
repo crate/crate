@@ -34,8 +34,8 @@ See the :ref:`version_4.1.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue that caused ``ORDER BY`` expressions referencing table
-  functions used in the ``SELECT`` list to fail.
+- Fixed an issue that caused ``ORDER BY`` :ref:`expressions <gloss-expression>`
+  referencing table functions used in the ``SELECT`` list to fail.
 
 - Fixed an issue that prevented an optimization for ``SELECT DISTINCT
   <single_text_column> FROM <table>`` from working if used within a ``INSERT

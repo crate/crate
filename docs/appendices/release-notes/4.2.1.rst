@@ -33,8 +33,8 @@ Fixes
 =====
 
 - Fixed an issue with the :ref:`quote_ident <scalar-quote-ident>` :ref:`scalar
-  function <scalar-functions>` that caused it to quote subscript expressions
-  like ``"col['x']"`` instead of ``"col"['x']``.
+  function <scalar-functions>` that caused it to quote :ref:`subscript
+  expressions <sql-subscripts>` like ``"col['x']"`` instead of ``"col"['x']``.
 
 - Fixed an issue that prevented the use of subscript expressions as conflict
   target in ``ON CONFLICT`` clauses of ``INSERT`` statements.
