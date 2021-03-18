@@ -1983,7 +1983,7 @@ See the API documentation for more details.
 .. NOTE::
 
    Be aware that, in contrast to the functions, the :ref:`regular expression
-   operator <sql_ddl_regexp>` uses `Lucene Regular Expressions`_.
+   operator <sql_dql_regexp>` uses `Lucene Regular Expressions`_.
 
 .. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 
