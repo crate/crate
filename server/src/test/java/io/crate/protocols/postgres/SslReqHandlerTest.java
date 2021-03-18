@@ -36,7 +36,10 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.Locale;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
@@ -44,6 +47,15 @@ import static org.mockito.Mockito.mock;
 public class SslReqHandlerTest extends ESTestCase {
 
     private EmbeddedChannel channel;
+
+    @BeforeClass
+    public static void ensureEnglishLocale() {
+        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
+        // This fails for certain locales, e.g. 'ks'.
+        // Until this is fixed, we force the english locale.
+        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
+        Locale.setDefault(Locale.ENGLISH);
+    }
 
     @After
     public void dispose() {

@@ -23,7 +23,6 @@
 package io.crate.auth;
 
 import io.crate.protocols.postgres.ConnectionProperties;
-import org.elasticsearch.test.ESTestCase;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
@@ -31,7 +30,9 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -40,6 +41,7 @@ import java.net.InetAddress;
 import java.security.cert.Certificate;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -81,6 +83,15 @@ public class HostBasedAuthenticationTest extends ESTestCase {
     private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
 
     private SSLSession sslSession;
+
+    @BeforeClass
+    public static void ensureEnglishLocale() {
+        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
+        // This fails for certain locales, e.g. 'ks'.
+        // Until this is fixed, we force the english locale.
+        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
+        Locale.setDefault(Locale.ENGLISH);
+    }
 
     @Before
     private void setUpTest() throws Exception {
