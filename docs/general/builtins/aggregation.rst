@@ -58,8 +58,8 @@ Aggregate expressions
 
 An *aggregate expression* represents the application of an :ref:`aggregate
 function <aggregation-functions>` across rows selected by a query. Besides the
-function signature, expressions might contain supplementary clauses and
-keywords.
+function signature, :ref:`expressions <gloss-expression>` might contain
+supplementary clauses and keywords.
 
 The synopsis of an aggregate expression is one of the following::
 

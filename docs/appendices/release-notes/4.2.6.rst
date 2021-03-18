@@ -36,8 +36,9 @@ Fixes
 =====
 
 - Fixed a regression introduced in 4.2 which prevented ``DELETE FROM ...``
-  statements with the subquery expression in the where clause from complete
-  deletion of the matching partitions in partitioned tables.
+  statements with the :ref:`subquery <gloss-subquery>` :ref:`expression
+  <gloss-expression>` in the where clause from complete deletion of the
+  matching partitions in partitioned tables.
 
 - Fixed an issue that prevented casts from ``DOUBLE PRECISION`` to ``REAL`` for
   the minimal supported ``REAL`` number ``-3.4028235e38``.
@@ -46,9 +47,9 @@ Fixes
   arguments in JavaScript :ref:`user-defined functions
   <user-defined-functions>`.
 
-- Fixed a regression introduced in 4.2 that could cause subscript expressions
-  to fail with a ``Base argument to subscript must be an object, not null`` or
-  ``Can't handle Symbol`` error.
+- Fixed a regression introduced in 4.2 that could cause :ref:`subscript
+  expressions <sql-subscripts>` to fail with a ``Base argument to subscript
+  must be an object, not null`` or ``Can't handle Symbol`` error.
 
 - Fixed an issue causing a node crash due to OOM when running the ``analyze``
   on large tables.

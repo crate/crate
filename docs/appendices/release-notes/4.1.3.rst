@@ -34,9 +34,9 @@ See the :ref:`version_4.1.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue that led to more than one expression in the form
-  ``<literalValue> AS <alias>`` to be interpreted as the same column if all
-  ``<literalValue>`` expressions are equal.
+- Fixed an issue that led to more than one :ref:`expression <gloss-expression>`
+  in the form ``<literalValue> AS <alias>`` to be interpreted as the same
+  column if all ``<literalValue>`` expressions are equal.
 
 - Fixed an issue that led to a ``NullPointerException`` when using ``GROUP BY``
   on a nested :ref:`partition column <gloss-partition-column>`.

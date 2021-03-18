@@ -71,7 +71,7 @@ Fixes
    node thread pools.
 
  - Fixed the error message to be more descriptive when the condition in a
-   ``CASE/WHEN`` expression is not a boolean.
+   ``CASE/WHEN`` :ref:`expression <gloss-expression>` is not a boolean.
 
  - Fixed an issue which caused an exception if ``EXPLAIN`` is used on a
    statement that uses the ``ANY (array_expression)`` :ref:`operator
@@ -93,7 +93,7 @@ Fixes
 
      SELECT DISTINCT upper(name) FROM t
 
- - Fixed a null pointer exception when running ``select port from sys.nodes``
+ - Fixed a null pointer exception when running ``SELECT port FROM sys.nodes``
    while ``psql.enabled: false`` was set.
 
  - Implemented ``NOT NULL`` constraint validation for nested object columns,

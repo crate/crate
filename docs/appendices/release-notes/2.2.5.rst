@@ -13,8 +13,9 @@ Released on 2017/12/14.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
     number must be :ref:`version_2.2.0`.  If you want to upgrade from a version
-    prior to this, the upgrade will introduce all of the breaking changes listed
-    for :ref:`version_2.2.0`, and will require a `full restart upgrade`_.
+    prior to this, the upgrade will introduce all of the breaking changes
+    listed for :ref:`version_2.2.0`, and will require a `full restart
+    upgrade`_.
 
 .. WARNING::
 
@@ -66,5 +67,5 @@ Fixes
   statements with ``ORDER BY`` and ``LIMIT`` to execute significantly slower
   than before.
 
-- Fixed support for subscript expressions on the ``values`` column of
-  ``information_schema.table_partitions``.
+- Fixed support for :ref:`subscript expressions <sql-subscripts>` on the
+  ``values`` column of ``information_schema.table_partitions``.

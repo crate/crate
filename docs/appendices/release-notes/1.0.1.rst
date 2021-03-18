@@ -70,7 +70,7 @@ Fixes
    type ``S3`` are now parsed correctly.
 
  - CrateDB no longer throws an error when ``ANY`` or ``ALL`` array comparison
-   expressions are used in ``SELECT`` list. e.g.::
+   :ref:`expressions <gloss-expression>` are used in ``SELECT`` list. e.g.::
 
        select 'foo' = any(some_array)
 

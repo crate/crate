@@ -48,14 +48,15 @@ Fixes
      ON t1.a = t2.b
 
  - Fixed an issue that caused an error when trying to create a table with a
-   generated column expression of type array.
+   :ref:`generated column expression <ddl-generated-columns-expressions>` of
+   type array.
 
  - Fixed an issue that caused the ``account_user``-column to be empty in the
    twitter tutorial plugin of the Admin UI.
 
- - Fixed an issue when using GRANT/REVOKE/DENY statements on a table with a
-   custom schema set. The statements would result in permission changed on the
-   default ``doc`` schema.
+ - Fixed an issue when using ``GRANT``/``REVOKE``/``DENY`` statements on a
+   table with a custom schema set. The statements would result in permission
+   changed on the default ``doc`` schema.
 
  - Fixed an issue with ``INNER`` and ``CROSS JOINS`` on more than 2 tables that
    could result in a ``Iterator is not on a row`` error.

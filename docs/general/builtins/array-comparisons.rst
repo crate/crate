@@ -46,7 +46,7 @@ right-hand values).
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand :ref:`expression <gloss-expression>` evaluates to ``NULL``
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
@@ -79,7 +79,7 @@ Here's an example::
 
 The ``ANY`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
 comparison is ``true`` for any of the values in the right-hand array
-expression.
+:ref:`expression <gloss-expression>`.
 
 The operator returns ``false`` if the comparison returns ``false`` for all
 right-hand values or there are no right-hand values.
@@ -126,7 +126,8 @@ Here's an example::
 
 
 The ``ALL`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
-comparison is ``true`` for all values in the right-hand array expression.
+comparison is ``true`` for all values in the right-hand :ref:`array expression
+<sql-array-constructor>`.
 
 The operator returns ``false`` if the comparison returns ``false`` for all
 right-hand values.

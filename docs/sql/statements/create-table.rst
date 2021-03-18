@@ -125,8 +125,8 @@ The optional default clause defines the default value of the column. The value
 is inserted when the column is a target of a ``INSERT`` statement that doesn't
 contain an explicit value for it.
 
-The default clause expression is variable-free, it means that subqueries and
-cross-references to other columns are not allowed.
+The default clause :ref:`expression <gloss-expression>` is variable-free, it
+means that subqueries and cross-references to other columns are not allowed.
 
 
 .. _sql-create-table-generated-columns:
@@ -204,11 +204,12 @@ Parameters
   object specifiers.
 
 :generation_expression:
-  An expression (usually a :ref:`function call <sql-function-call>`) that is
-  applied in the context of the current row. As such it can reference other
-  base columns of the table. Referencing other generated columns (including
-  itself) is not supported. The generation expression is evaluated each time a
-  row is inserted or the referenced base columns are updated.
+  An :ref:`expression <ddl-generated-columns-expressions>` (usually a
+  :ref:`function call <sql-function-call>`) that is applied in the context of
+  the current row. As such it can reference other base columns of the
+  table. Referencing other generated columns (including itself) is not
+  supported. The generation expression is evaluated each time a row is inserted
+  or the referenced base columns are updated.
 
 
 .. _sql-create-table-if-not-exists:

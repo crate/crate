@@ -174,7 +174,7 @@ Function call
 A :ref:`function <gloss-function>` can be invoked with a *function call* (a
 process better known as *calling the function*). The corresponding syntax is
 the function name optionally followed by zero or more arguments (in the form of
-:ref:`value expressions <sql-value-expressions>`) enclosed by parentheses::
+value expressions) enclosed by parentheses::
 
     function_name[([expression [, expression ... ]])]
 

@@ -25,15 +25,15 @@ Synopsis
 Description
 ===========
 
-UPDATE changes the values of the specified columns in all rows that satisfy
+``UPDATE`` changes the values of the specified columns in all rows that satisfy
 the condition. Only the columns to be modified need be mentioned in the SET
 clause; columns not explicitly modified retain their previous values.
 
-The optional RETURNING clause for UPDATE causes the query to return the
-specified values from each row that was updated. Any expression using the
-table's columns can be computed. The new (post-update) values of the table's
-columns are used. The syntax of the RETURNING list is identical to that of
-the output list of SELECT.
+The optional ``RETURNING`` clause for ``UPDATE`` causes the query to return the
+specified values from each row that was updated. Any :ref:`expression
+<gloss-expression>` using the table's columns can be computed. The new
+(post-update) values of the table's columns are used. The syntax of the
+``RETURNING`` list is identical to that of the output list of ``SELECT``.
 
 Parameters
 ==========
@@ -49,21 +49,21 @@ Parameters
     ``UPDATE`` statement must refer to this table as ``f`` not ``foo``.
 
 :column_ident:
-    The name of a column in the table identified by *table_ident*. Subfields
+    The name of a column in the table identified by ``table_ident``. Subfields
     can also be defined by using the subscript notation with square
     brackets.
 
 :expression:
-    An expression to assign to the column.
+    An :ref:`expression <gloss-expression>` to assign to the column.
 
 :condition:
     An expression that returns a value of type boolean. Only rows for
     which this expression returns true will be updated.
 
 :output_expression:
-    An expression to be computed and returned by the UPDATE command after each
-    row is updated. The expression can use any column names of the table or
-    ``*`` to return all columns. :ref:`System columns
+    An expression to be computed and returned by the ``UPDATE`` command after
+    each row is updated. The expression can use any column names of the table
+    or ``*`` to return all columns. :ref:`System columns
     <sql_administration_system_columns>` can also be returned.
 
 :output_name:

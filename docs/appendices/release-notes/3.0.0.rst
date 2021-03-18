@@ -167,8 +167,8 @@ Changes
 - Add ``max_token_length`` parameter to whitespace tokenizer.
 
 - Added new tokenizers ``simple_pattern`` and ``simple_pattern_split`` which
-  allow to tokenize text for the fulltext index by a regular expression
-  pattern.
+  allow to tokenize text for the fulltext index by a :ref:`regular expression
+  <gloss-regular-expression>` pattern.
 
 - Added support for CSV file inputs in ``COPY FROM`` statements. Input type is
   inferred using the file's extension or can be set using the optional ``WITH``
@@ -261,8 +261,8 @@ Renamed Settings
 ................
 
 - The ``discovery.type`` setting which was previously used to specify whether a
-  cluster should use DNS discovery or the EC2 API, has been
-  removed. Configuring the use of the EC2 API has now been moved to the
+  cluster should use DNS discovery or the EC2 API, has been removed.
+  Configuring the use of the EC2 API has now been moved to the
   ``discovery.zen.hosts_provider`` setting.
 
 - The ``bootstrap.seccomp`` setting, which controls system call filters, has
