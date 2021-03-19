@@ -52,10 +52,10 @@ public class RecoveryTests extends ESIndexLevelReplicationTestCase {
     public void testTranslogHistoryTransferred() throws Exception {
         try (ReplicationGroup shards = createGroup(0)) {
             shards.startPrimary();
-            int docs = shards.indexDocs(10);
+            int docs = shards.indexDocs(1);
             getTranslog(shards.getPrimary()).rollGeneration();
             shards.flush();
-            int moreDocs = shards.indexDocs(randomInt(10));
+            int moreDocs = shards.indexDocs(10);
             shards.addReplica();
             shards.startAll();
             final IndexShard replica = shards.getReplicas().get(0);

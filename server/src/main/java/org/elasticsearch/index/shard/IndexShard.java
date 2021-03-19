@@ -407,6 +407,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                         if (currentRouting.isRelocationTarget() == false) {
                             // the master started a recovering primary, activate primary mode.
                             replicationTracker.activatePrimaryMode(getLocalCheckpoint());
+                            ensurePeerRecoveryRetentionLeasesExist();
                         }
                     }
                 } else {
