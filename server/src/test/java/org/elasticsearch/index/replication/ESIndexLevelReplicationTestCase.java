@@ -139,7 +139,7 @@ public abstract class ESIndexLevelReplicationTestCase extends IndexShardTestCase
         Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, replicas)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), false)
+            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(),
                  randomBoolean() ? IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.get(Settings.EMPTY) : between(0, 1000))
             .build();
@@ -215,7 +215,7 @@ public abstract class ESIndexLevelReplicationTestCase extends IndexShardTestCase
             ShardUpsertRequest shardRequest = shardRequest().newRequest(shardId);
             for (int doc = 0; doc < numOfDoc; doc++) {
                 String id = Integer.toString(docId.incrementAndGet());
-                String source = "{ \"id\":" + id + "}";
+                String source = "{}";
                 final ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(id, null, new Object[]{source}, null, null, null);
                 shardRequest.add(0, item);
             }
