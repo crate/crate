@@ -492,8 +492,9 @@ expression value from a right-hand set equals left-hand operand. Returns
      +---------------------+-------------+
      SELECT 9 rows in set (... sec)
 
-The ``IN`` construct can be used in :ref:`sql_subquery_expressions` or
-:ref:`sql_array_comparisons`.
+The ``IN`` construct can be used in :ref:`subquery expressions
+<sql_subquery_expressions>` or :ref:`array comparisons
+<sql_array_comparisons>`.
 
 
 .. _sql_dql_any_array:
@@ -1128,8 +1129,8 @@ This is useful if used in conjunction with :ref:`aggregation functions
    shadow the table columns are used.
 
    Grouping on array columns doesn't work, but arrays can be unnested in a
-   subquery using :ref:`unnest <unnest>`, it is then possible to use ``GROUP
-   BY`` on the subquery.
+   :ref:`subquery <gloss-subquery>` using :ref:`unnest <unnest>`. It is then
+   possible to use ``GROUP BY`` on the subquery.
 
 
 .. _sql_dql_having:

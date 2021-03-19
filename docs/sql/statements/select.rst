@@ -245,9 +245,9 @@ an alias:
 
     ( select_stmt ) [ AS ] alias
 
-The subselect behaves like a temporary table that is evaluated at runtime. The
-clauses of the surrounding ``SELECT`` statements are applied on the result of
-the inner ``SELECT`` statement.
+The :ref:`subselect <gloss-subquery>` behaves like a temporary table that is
+evaluated at runtime. The clauses of the surrounding ``SELECT`` statements are
+applied on the result of the inner ``SELECT`` statement.
 
 :select_stmt:
   A ``SELECT`` statement.
@@ -353,7 +353,7 @@ types. The result of ``UNION ALL`` may contain duplicate rows. You can find
 ``SELECT`` statement of the ``UNION ALL``, as they are applied to the complete
 result of the ``UNION`` operation. In order to apply an ``ORDER BY`` and/or
 ``LIMIT`` and/or ``OFFSET`` to any of the partial ``SELECT`` statements, those
-statements need to become subqueries.
+statements need to become :ref:`subqueries <gloss-subquery>`.
 
 Column names used in ``ORDER BY`` must be position numbers or refer to the
 outputs of the first ``SELECT`` statement, and no :ref:`functions

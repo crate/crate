@@ -101,9 +101,9 @@ Changes
 
 - Added support for joins on virtual tables.
 
-- Queries which contain a correlated subquery will now result in an error
-  stating that correlated subqueries are not supported, instead of a more
-  confusing error indicating that a relation is unknown.
+- Queries which contain a correlated :ref:`subquery <gloss-subquery>` will now
+  result in an error stating that correlated subqueries are not supported,
+  instead of a more confusing error indicating that a relation is unknown.
 
 - Extended the output of the ``EXPLAIN`` statement.
 

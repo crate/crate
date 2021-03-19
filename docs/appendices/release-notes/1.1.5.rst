@@ -49,7 +49,7 @@ Fixes
    <scalar-functions>` that are applied to an aggregation.
 
  - Fixed an issue that causes aliases used in the select list to get lost on
-   subselect queries.
+   :ref:`subselect <gloss-subquery>` queries.
 
  - The correct error messages and codes are now thrown for REST actions.
 

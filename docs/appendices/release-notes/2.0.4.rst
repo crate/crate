@@ -77,7 +77,7 @@ Fixes
    if none is present in the table metadata.
 
  - Fixed an issue that caused an exception to be thrown when using ``COUNT(*)``
-   with subselects that return one row, e.g.::
+   with :ref:`subselects <gloss-subquery>` that return one row, e.g.::
 
      SELECT count(*) FROM t1 WHERE id > (SELECT max(col1) FROM t2)
 

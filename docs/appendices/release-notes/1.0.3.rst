@@ -89,6 +89,6 @@ Fixes
   backslash before the wildcard.
 
 - Fixed an issue that caused ``ORDER BY`` clause to be ignored if used in
-  combination with ``GROUP BY`` in subselects. e.g.::
+  combination with ``GROUP BY`` in :ref:`subselects <gloss-subquery>`. e.g.::
 
        SELECT x from (SELECT * from t1) as tt GROUP BY x ORDER BY x

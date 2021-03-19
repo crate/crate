@@ -163,7 +163,7 @@ Breaking Changes
 Changes
 -------
 
- - Extended the :ref:`sub-select <sql-select-sub-select>` support.
+ - Extended the :ref:`subselect <sql-select-sub-select>` support.
 
  - Added support for :ref:`host based authentication <admin_hba>` (HBA).
 

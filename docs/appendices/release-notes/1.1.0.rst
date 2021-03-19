@@ -81,9 +81,9 @@ Changes
 
  - Added support for casting JSON strings to object columns.
 
- - The array comparison no longer requires extra parentheses for subselects.
-   Now it's possible to use ``= ANY (SELECT ...)`` instead of ``= ANY ((SELECT
-   ...))``.
+ - The array comparison no longer requires extra parentheses for
+   :ref:`subselects <gloss-subquery>`.  Now it's possible to use ``= ANY
+   (SELECT ...)`` instead of ``= ANY ((SELECT ...))``.
 
  - Allow semi-colon (``;``) in the end of simple SQL statements.
 
