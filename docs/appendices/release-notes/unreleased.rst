@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Improved language selection, translations and general usability at the
+  Admin UI.
+
 - Updated the bundled JDK to 16+36
 
 - Optimized how ``NULL`` values are stored, reducing the amount of disk space
