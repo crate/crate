@@ -92,7 +92,7 @@ Changes
   interval of the table statistics used to create optimal query execution
   plans.
 
-- Added support for global aggregations on subselects.
+- Added support for global aggregations on :ref:`subselects <gloss-subquery>`.
 
 - Added the ``-C`` option for providing CrateDB settings and deprecated usage
   of the ``.es`` prefix with ``-D`` option.

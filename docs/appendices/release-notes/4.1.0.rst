@@ -134,7 +134,7 @@ Functions and operators
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for the :ref:`ALL <all_array_comparison>` operator for array
-  and subquery comparisons.
+  and :ref:`subquery <gloss-subquery>` comparisons.
 
 - Added a :ref:`PG_GET_KEYWORDS <pg_catalog.pg_get_keywords>` table function.
 
@@ -188,7 +188,7 @@ New statements and clauses
   statistical data about the contents of the tables in the CrateDB cluster.
   This data is visible in a newly added :ref:`pg_stats <pg_stats>` table.
 
-- Added a :ref:`PROMOTE REPLICA <sql-alter-table-reroute>` sub command to
+- Added a :ref:`PROMOTE REPLICA <sql-alter-table-reroute>` subcommand to
   :ref:`sql-alter-table`.
 
 - Added support for the filter clause in :ref:`aggregate expressions

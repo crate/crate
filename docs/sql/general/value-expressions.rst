@@ -252,7 +252,8 @@ Example::
 
 .. NOTE::
 
-    Array constructor only supports subqueries returning a single column.
+    Array constructor only supports :ref:`subqueries <gloss-subquery>`
+    returning a single column.
 
 
 .. _sql-scalar-subquery:
@@ -260,9 +261,9 @@ Example::
 Scalar subquery
 ===============
 
-A scalar subquery (also known as a :ref:`subquery expression
-<sql_subquery_expressions>`) is a subquery that returns a single value (i.e.,
-one row with one column).
+A :ref:`scalar <gloss-scalar>` :ref:`subquery <gloss-subquery>` (also known as
+a :ref:`subquery expression <sql_subquery_expressions>`) is a subquery that
+returns a single value (i.e., one row with one column).
 
 If zero rows are returned, it will be treated as null value. In the case that
 more than one row (or more than one column) is returned, CrateDB will treat it
