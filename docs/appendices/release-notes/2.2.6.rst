@@ -77,7 +77,8 @@ Fixes
   exception on partitioned tables created with CrateDB < 1.2.
 
 - Enforce validation of column constraints for ``INSERT`` statements with a
-  subquery as source and in combination with ``ON DUPLICATE KEY UPDATE``.
+  :ref:`subquery <gloss-subquery>` as source and in combination with ``ON
+  DUPLICATE KEY UPDATE``.
 
 - Fixed an issue that caused an error to be thrown when using ``GROUP BY`` or
   ``DISTINCT`` on a column of type ``IP`` in case there are rows with null

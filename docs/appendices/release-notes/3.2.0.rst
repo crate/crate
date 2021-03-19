@@ -126,7 +126,7 @@ SQL Improvements
 
 - Added support for the :ref:`ARRAY(subquery) <sql_expressions_array_subquery>`
   :ref:`expression <gloss-expression>`, which can turn the result from a
-  subquery into an array.
+  :ref:`subquery <gloss-subquery>` into an array.
 
 - The :ref:`= ANY <sql_dql_any_array>` :ref:`operator <gloss-operator>` now
   also supports operations on object arrays or nested arrays. This enables

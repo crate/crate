@@ -82,7 +82,8 @@ Changes
 
  - Added node cluster check for cluster-name folder in data path directory.
 
- - Introduce support for single column subselects in ``ANY`` and ``IN``, e.g.::
+ - Introduce support for single column :ref:`subselects <gloss-subquery>` in
+   ``ANY`` and ``IN``, e.g.::
 
      SELECT * FROM t1 WHERE id = ANY(SELECT id FROM t2)
      SELECT * FROM t1 WHERE id IN (SELECT id FROM t2)

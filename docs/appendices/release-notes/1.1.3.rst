@@ -71,7 +71,7 @@ Fixes
    This now raises a proper error stating that it's not supported.
 
  - Wrong results were returned from queries with more than one level of nested
-   subselects.
+   :ref:`subselects <gloss-subquery>`.
 
  - ``ORDER BY`` on joins caused incorrect order of values when having multiple
    non-distinct values on the left part of the join. Now ``ORDER BY`` is

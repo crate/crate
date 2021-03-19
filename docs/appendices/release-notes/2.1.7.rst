@@ -39,7 +39,8 @@ Fixes
 -----
 
  - Fixed an issue causing global aggregations with ``JOINs`` on virtual tables
-   (sub-selects) which contain ``LIMIT`` to return incorrect results. E.g.::
+   (:ref:`subselects <gloss-subquery>`) which contain ``LIMIT`` to return
+   incorrect results. E.g.::
 
      SELECT COUNT(*) FROM
        (SELECT * FROM t1 ORDER BY a LIMIT 5) t1,

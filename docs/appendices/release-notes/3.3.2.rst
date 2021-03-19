@@ -59,9 +59,9 @@ Fixes
   prohibited. So the query can be written as follows: ``INSERT INTO target
   (SELECT * FROM source LIMIT 10)``.
 
-- Fixed an issue that would cause the wrong evaluation of nested sub-queries in
-  cases where the inner sub-query returns a multi-value and the outer returns a
-  single value result. For instance, the assignment :ref:`subquery
-  <gloss-subquery>` :ref:`expression <gloss-expression>` in the following
+- Fixed an issue that would cause the wrong evaluation of nested
+  :ref:`subqueries <gloss-subquery>` in cases where the inner subquery returns
+  a multi-value and the outer returns a single value result. For instance, the
+  assignment subquery :ref:`expression <gloss-expression>` in the following
   update statement ``UPDATE t1 SET x = (SELECT COUNT(*) FROM t2 WHERE x IN
   (SELECT x FROM t3))")`` might have produced an incorrect result.
