@@ -22,7 +22,6 @@
 
 package io.crate.cluster.gracefulstop;
 
-import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
@@ -38,7 +37,7 @@ public class DecommissionAllocationDecider extends AllocationDecider {
 
     public static final String NAME = "decommission";
 
-    private Set<String> decommissioningNodes = ImmutableSet.of();
+    private Set<String> decommissioningNodes = Set.of();
 
     private DataAvailability dataAvailability;
 

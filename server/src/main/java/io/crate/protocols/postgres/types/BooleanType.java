@@ -22,16 +22,17 @@
 
 package io.crate.protocols.postgres.types;
 
-import com.google.common.collect.ImmutableSet;
-import io.netty.buffer.ByteBuf;
-
-import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+
+import io.netty.buffer.ByteBuf;
 
 class BooleanType extends PGType<Boolean> {
 
-    public static final PGType INSTANCE = new BooleanType();
+    public static final BooleanType INSTANCE = new BooleanType();
     static final int OID = 16;
 
     private static final int TYPE_LEN = 1;
@@ -40,7 +41,7 @@ class BooleanType extends PGType<Boolean> {
     private static final byte[] TEXT_TRUE = new byte[]{'t'};
     private static final byte[] TEXT_FALSE = new byte[]{'f'};
 
-    private static final Collection<ByteBuffer> TRUTH_VALUES = ImmutableSet.of(
+    private static final Collection<ByteBuffer> TRUTH_VALUES = Set.of(
         ByteBuffer.wrap(new byte[]{'1'}),
         ByteBuffer.wrap(new byte[]{'t'}),
         ByteBuffer.wrap(new byte[]{'T'}),

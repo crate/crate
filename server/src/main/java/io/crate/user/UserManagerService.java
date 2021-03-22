@@ -22,19 +22,19 @@
 
 package io.crate.user;
 
-import com.google.common.collect.ImmutableSet;
-import io.crate.action.FutureActionListener;
-import io.crate.action.sql.SessionContext;
-import io.crate.auth.AccessControl;
-import io.crate.auth.AccessControlImpl;
-import io.crate.exceptions.UserAlreadyExistsException;
-import io.crate.exceptions.UserUnknownException;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.user.metadata.SysPrivilegesTableInfo;
-import io.crate.user.metadata.SysUsersTableInfo;
+import static io.crate.user.User.CRATE_USER;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -42,15 +42,18 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-
-import static io.crate.user.User.CRATE_USER;
+import io.crate.action.FutureActionListener;
+import io.crate.action.sql.SessionContext;
+import io.crate.auth.AccessControl;
+import io.crate.auth.AccessControlImpl;
+import io.crate.exceptions.UserAlreadyExistsException;
+import io.crate.exceptions.UserUnknownException;
+import io.crate.execution.engine.collect.sources.SysTableRegistry;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.user.metadata.SysPrivilegesTableInfo;
+import io.crate.user.metadata.SysUsersTableInfo;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
 
 @Singleton
 public class UserManagerService implements UserManager, ClusterStateListener {
@@ -75,7 +78,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     private final TransportDropUserAction transportDropUserAction;
     private final TransportAlterUserAction transportAlterUserAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
-    private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
+    private volatile Set<User> users = Set.of(CRATE_USER);
 
     @Inject
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
@@ -111,7 +114,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     static Set<User> getUsers(@Nullable UsersMetadata metadata,
                               @Nullable UsersPrivilegesMetadata privilegesMetadata) {
-        ImmutableSet.Builder<User> usersBuilder = new ImmutableSet.Builder<User>().add(CRATE_USER);
+        HashSet<User> users = new HashSet<User>();
+        users.add(CRATE_USER);
         if (metadata != null) {
             for (Map.Entry<String, SecureHash> user: metadata.users().entrySet()) {
                 String userName = user.getKey();
@@ -124,10 +128,10 @@ public class UserManagerService implements UserManager, ClusterStateListener {
                         privilegesMetadata.createPrivileges(userName, Set.of());
                     }
                 }
-                usersBuilder.add(User.of(userName, privileges, password));
+                users.add(User.of(userName, privileges, password));
             }
         }
-        return usersBuilder.build();
+        return Collections.unmodifiableSet(users);
     }
 
     @Override
