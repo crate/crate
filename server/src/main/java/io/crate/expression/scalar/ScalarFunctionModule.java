@@ -56,6 +56,7 @@ import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.scalar.postgres.CurrentSettingFunction;
 import io.crate.expression.scalar.postgres.PgBackendPidFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
+import io.crate.expression.scalar.postgres.PgPostmasterStartTime;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.AsciiFunction;
 import io.crate.expression.scalar.string.ChrFunction;
@@ -190,5 +191,6 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         FormatTypeFunction.register(this);
         PgFunctionIsVisibleFunction.register(this);
         PgGetFunctionResultFunction.register(this);
+        PgPostmasterStartTime.register(this);
     }
 }

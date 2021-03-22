@@ -2722,6 +2722,15 @@ Example::
     +-----+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar_pg_postmaster_start_time:
+
+``pg_postmaster_start_time()``
+------------------------------
+
+Returns the server start time as ``timestamp with time zone``.
+
+
 .. _scalar_current_database:
 
 ``current_database()``
