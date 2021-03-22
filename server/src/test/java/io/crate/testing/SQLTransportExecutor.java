@@ -185,9 +185,6 @@ public class SQLTransportExecutor {
                 }
             }
             return execute(stmt, args).actionGet(timeout);
-        } catch (ElasticsearchTimeoutException e) {
-            LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
-            throw e;
         } catch (RuntimeException e) {
             var cause = e.getCause();
             // ActionListener.onFailure takes `Exception` as argument instead of `Throwable`.

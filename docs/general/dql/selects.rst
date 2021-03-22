@@ -466,9 +466,10 @@ CrateDB supports a variety of :ref:`array comparisons <sql_array_comparisons>`.
 ------
 
 CrateDB supports the :ref:`operator <gloss-operator>` ``IN`` which allows you
-to verify the membership of the left-hand operand in a right-hand set of
-expressions. Returns ``true`` if any evaluated expression value from a
-right-hand set equals left-hand operand. Returns ``false`` otherwise::
+to verify the membership of the left-hand :ref:`operator <gloss-operand>`
+operand in a right-hand set of expressions. Returns ``true`` if any evaluated
+expression value from a right-hand set equals left-hand operand. Returns
+``false`` otherwise::
 
     cr> select name, kind from locations
     ... where (kind in ('Star System', 'Planet'))  order by name asc;
@@ -622,9 +623,9 @@ This behaviour applies to:
     <indices.query.bool.max_clause_count>` setting as appropriate on each node.
 
 
-.. _sql_dql_nonscalar:
+.. _sql_dql_container:
 
-Nonscalar data types
+Container data types
 ====================
 
 
@@ -633,8 +634,8 @@ Nonscalar data types
 Arrays
 ------
 
-CrateDB supports nonscalar :ref:`arrays <data-type-array>`. It is possible to
-select and query array elements.
+CrateDB supports :ref:`arrays <data-type-array>`. It is possible to select and
+query array elements.
 
 For example, you might :ref:`insert <inserting_data>` an array like so::
 
@@ -699,8 +700,8 @@ element, see :ref:`sql_dql_any_array`.
 Objects
 -------
 
-CrateDB supports nonscalar :ref:`objects <object_data_type>`. It is possible to
-select and query object properties.
+CrateDB supports :ref:`objects <object_data_type>`. It is possible to select
+and query object properties.
 
 For example, you might insert an object like so::
 

@@ -38,6 +38,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 
@@ -54,8 +55,18 @@ public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
         super(true);
     }
 
+    public static void forceEnglishLocale() {
+        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
+        // This fails for certain locales, e.g. 'ks'.
+        // Until this is fixed, we force the english locale.
+        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
+        Locale.setDefault(Locale.ENGLISH);
+    }
+
     @BeforeClass
     public static void beforeTest() throws Exception {
+        forceEnglishLocale();
+
         trustedCert = new SelfSignedCertificate();
         keyStoreFile = createTempFile().toFile();
 

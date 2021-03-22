@@ -79,20 +79,51 @@ M
 
 .. _gloss-n:
 
+N
+-
+
+.. _gloss-nonscalar:
+
+**Nonscalar**
+    A :ref:`data type <data-types>` that can have more than one value
+    (e.g., :ref:`arrays <data-type-array>` and :ref:`objects
+    <object_data_type>`).
+
+    Contrary to a :ref:`scalar <gloss-scalar>`.
+
+    .. SEEALSO::
+
+        :ref:`sql_ddl_datatypes_geographic`
+
+        :ref:`data-types-container`
+
 
 .. _gloss-o:
 
 O
 -
 
+.. _gloss-operand:
+
+**Operand**
+    See :ref:`operator <gloss-operator>`.
+
+.. _gloss-operation:
+
+**Operation**
+    See :ref:`operator <gloss-operator>`.
+
 .. _gloss-operator:
 
 **Operator**
     A reserved keyword (e.g., :ref:`IN <sql_in_array_comparison>`) or sequence
     of symbols (e.g., :ref:`>= <comparison-operators-basic>`) that can be used
-    in an SQL statement to manipulate one or more expressions and returns a
+    in an SQL statement to manipulate one or more expressions and return a
     result (e.g., ``true`` or ``false``). This process is known as an
-    *operation* and the expressions can be called operands or arguments.
+    *operation* and the expressions can be called *operands* or *arguments*.
+
+    An operator that takes one operand is known as a *unary operator* and an
+    operator that takes two is known as a *binary operator*.
 
     .. SEEALSO::
 
@@ -103,6 +134,7 @@ O
         :ref:`sql_array_comparisons`
 
         :ref:`sql_subquery_expressions`
+
 
 
 .. _gloss-p:
@@ -204,6 +236,19 @@ R
 S
 -
 
+.. _gloss-scalar:
+
+**Scalar**
+    A :ref:`data type <data-types>` with a single value (e.g., :ref:`numbers
+    <data-type-numeric>` and :ref:`strings <data-type-varchar>`).
+
+    Contrary to a :ref:`nonscalar <gloss-nonscalar>`.
+
+    .. SEEALSO::
+
+        :ref:`sql_ddl_datatypes_primitives`
+
+
 .. _gloss-shard-allocation:
 
 **Shard allocation**
@@ -211,8 +256,9 @@ S
 
     .. NOTE::
 
-        Shard allocation is also known as *shard routing*, which is not to be
-        confused with :ref:`row routing <gloss-routing-column>`.
+        Shard allocation is sometimes referred to as :ref:`shard routing
+        <gloss-shard-routing>`, which is not to be confused with :ref:`row
+        routing <gloss-routing-column>`.
 
     .. SEEALSO::
 
@@ -247,6 +293,11 @@ S
 
         :ref:`System information: Checked node settings
         <sys-node-checks-settings>`
+
+.. _gloss-shard-routing:
+
+**Shard routing**
+    Properly known as :ref:`shard allocation <gloss-shard-allocation>`.
 
 
 .. _gloss-t:

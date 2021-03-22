@@ -179,6 +179,9 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
             scheduler.schedule(operationRunnable::run, delay.getMillis(), TimeUnit.MILLISECONDS);
             return operationRunnable;
         } else {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Received a result for job={} but couldn't find a RootTask for it", request.jobId());
+            }
             List<String> excludedNodeIds = Collections.singletonList(clusterService.localNode().getId());
             /* The upstream (DistributingConsumer) forwards failures to other downstreams and eventually considers its job done.
              * But it cannot inform the handler-merge about a failure because the JobResponse is sent eagerly.

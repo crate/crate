@@ -38,12 +38,14 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.net.ssl.SSLSession;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.util.EnumSet;
+import java.util.Locale;
 
 import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
 import static org.hamcrest.core.Is.is;
@@ -64,6 +66,15 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
         assertThat(resp.content().toString(StandardCharsets.UTF_8), is(expectedBody));
         assertThat(resp.headers().get(HttpHeaderNames.WWW_AUTHENTICATE), is(WWW_AUTHENTICATE_REALM_MESSAGE));
+    }
+
+    @BeforeClass
+    public static void forceEnglishLocale() {
+        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
+        // This fails for certain locales, e.g. 'ks'.
+        // Until this is fixed, we force the english locale.
+        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
+        Locale.setDefault(Locale.ENGLISH);
     }
 
     @Test

@@ -40,8 +40,9 @@ Here's an example::
     SELECT 1 row in set (... sec)
 
 The ``IN`` :ref:`operator <gloss-operator>` returns ``true`` if any of the
-right-hand values matches the left-hand operand. Otherwise, it returns
-``false`` (including the case where there are no right-hand values).
+right-hand values matches the left-hand :ref:`operand <gloss-operand>`.
+Otherwise, it returns ``false`` (including the case where there are no
+right-hand values).
 
 The operator returns ``NULL`` if:
 
@@ -64,7 +65,7 @@ Syntax:
 
 Here, ``comparison`` can be any :ref:`basic comparison operator
 <comparison-operators-basic>`. Objects and arrays of objects are not supported
-for either operand.
+for either :ref:`operand <gloss-operand>`.
 
 Here's an example::
 
@@ -111,7 +112,7 @@ Syntax:
 
 Here, ``comparison`` can be any :ref:`basic comparison operator
 <comparison-operators-basic>`. Objects and arrays of objects are not supported
-for either operand.
+for either :ref:`operand <gloss-operand>`.
 
 Here's an example::
 

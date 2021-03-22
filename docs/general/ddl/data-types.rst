@@ -28,10 +28,7 @@ Classification
 Primitive types
 ---------------
 
-Primitive types represent primitive values.
-
-These are values that are atomic, not composed of separate parts, no containers
-or collections.
+Primitive types are :ref:`scalar <gloss-scalar>` values:
 
 * `boolean`_
 * `char <special character types_>`_
@@ -52,18 +49,19 @@ or collections.
 Geographic types
 ----------------
 
-Geographic types represent points or shapes in a 2d world:
+Geographic types are :ref:`nonscalar <gloss-nonscalar>` values representing
+points or shapes in a 2D world:
 
 * `geo_point`_
 * `geo_shape`_
 
-.. _sql_ddl_datatypes_compound:
+.. _data-types-container:
 
-Compound types
---------------
+Container types
+---------------
 
-Compound types represent values that are composed out of distinct parts like
-containers or collections:
+Container types are :ref:`nonscalar <gloss-nonscalar>` values that can contain
+other values:
 
 * `object`_
 * `array`_
@@ -87,7 +85,7 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
 
 .. _character-data-types:
 
-Character Types
+Character types
 ===============
 
 These are general purpose character data types available in CrateDB.
@@ -359,14 +357,15 @@ Example::
     SQLParseException[Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
 
 IP addresses support the :ref:`operator <gloss-operator>` ``<<``, which checks
-for subnet inclusion using `CIDR notation`_. The left-hand operand must be of
-type :ref:`ip <ip-type>` and the right-hand must be of type :ref:`text
-<data-type-text>` (e.g., ``'192.168.1.5' << '192.168.1/24'``).
+for subnet inclusion using `CIDR notation`_. The left-hand :ref:`operand
+<gloss-operand>` must be of type :ref:`ip <ip-type>` and the right-hand must be
+of type :ref:`text <data-type-text>` (e.g., ``'192.168.1.5' <<
+'192.168.1/24'``).
 
 .. _date-time-types:
 
-Date/Time types
-===============
+Date and time types
+===================
 
 +---------------------------------+----------+-------------------------+------------------------+
 | Name                            | Size     | Description             | Range                  |
@@ -716,7 +715,9 @@ Temporal arithmetic
 -------------------
 
 The following table specifies the declared types of :ref:`arithmetic
-<arithmetic>` expressions that involves temporal operands.
+<arithmetic>` expressions that involves temporal :ref:`operands
+<gloss-operand>`:
+
 
 +---------------+----------------+---------------+
 |       Operand | Operator       |       Operand |
@@ -736,7 +737,8 @@ The following table specifies the declared types of :ref:`arithmetic
 ``geo_point``
 =============
 
-The ``geo_point`` type is used to store latitude and longitude geo coordinates.
+A ``geo_point`` is a :ref:`geographic data type <sql_ddl_datatypes_geographic>`
+used to store latitude and longitude coordinates.
 
 Columns with the ``geo_point`` type are represented and inserted using an array
 of doubles in the following format::
@@ -768,12 +770,12 @@ Create table example::
 ``geo_shape``
 =============
 
-The ``geo_shape`` type is used to store geometric shapes defined as `GeoJSON
-geometry objects`_.
+A ``geo_shape`` is a :ref:`geographic data type <sql_ddl_datatypes_geographic>`
+used to store 2D shapes defined as `GeoJSON geometry objects`_.
 
-A geo_shape column can store different kinds of `GeoJSON geometry objects`_.
-Thus it is possible to store e.g. ``LineString`` and ``MultiPolygon`` shapes in
-the same column.
+A ``geo_shape`` column can store different kinds of `GeoJSON geometry
+objects`_.  Thus it is possible to store e.g. ``LineString`` and
+``MultiPolygon`` shapes in the same column.
 
 .. NOTE::
 
@@ -784,7 +786,7 @@ the same column.
 Definition
 ----------
 
-To define a geo_shape column::
+To define a ``geo_shape`` column::
 
     <columnName> geo_shape
 
@@ -796,7 +798,7 @@ The default definition for the column type is::
     <columnName> geo_shape INDEX USING geohash WITH (precision='50m', distance_error_pct=0.025)
 
 There are two geographic index types: ``geohash`` (the default) and
-``quadtree``. These indices are only allowed on geo_shape columns. For more
+``quadtree``. These indices are only allowed on ``geo_shape`` columns. For more
 information, see :ref:`geo_shape_data_type_index`.
 
 Both of these index types accept the following parameters:
@@ -902,12 +904,16 @@ Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
 ``object``
 ==========
 
-The object type allows to define nested documents instead of old-n-busted flat
-tables.
+An object is a :ref:`container data type <data-types-container>` and is
+structured as a collection of key-values.
 
-An ``object`` can contain other fields of any type, even further object
-columns. An ``object`` column can be either schemaless or enforce its defined
-schema. It can even be used as a kind of json-blob.
+An object can contain any other type, including further child objects. An
+``object`` column can be schemaless or can have a defined (i.e., enforced)
+schema.
+
+Objects are not the same as JSON objects, although they share a lot of
+similarities. However, objects can be :ref:`inserted as JSON strings
+<data-type-object-json>`.
 
 Syntax::
 
@@ -969,7 +975,8 @@ Example::
 ``dynamic``
 -----------
 
-Another option is ``dynamic``, which means that new subcolumns can be added in this object.
+Another option is ``dynamic``, which means that new subcolumns can be added in
+this object.
 
 Note that adding new columns to an object with a ``dynamic`` policy will affect
 the schema of the table. Once a column is added, it shows up in the
@@ -1233,18 +1240,17 @@ Nested object::
 ``array``
 =========
 
-CrateDB supports arrays.
+An array is a :ref:`container data type <data-types-container>` and is
+structured as a collection of other data types. Arrays can contain the
+following:
 
-An array is a collection of other data types. These are:
-
-* boolean
-* text
-* ip
-* all numeric types (integer, bigint, smallint, double precision, real)
-* char
-* timestamp with time zone
-* object
-* geo_point
+* :ref:`Booleans <data-type-boolean>`
+* :ref:`Character types <character-data-types>`
+* :ref:`Numeric types <data-type-numeric>`
+* :ref:`IP addresses <ip-type>`
+* :ref:`Date and time types <date-time-types>`
+* :ref:`Geographic types <sql_ddl_datatypes_geographic>`
+* :ref:`Objects <object_data_type>`
 
 Array types are defined as follows::
 
@@ -1264,7 +1270,7 @@ This means ``text[]`` is equivalent to ``array(text)``.
 
 .. NOTE::
 
-    Currently arrays cannot be nested. Something like array(array(text))
+    Currently arrays cannot be nested. Something like ``array(array(text))``
     won't work.
 
 .. _data-type-array-literals:
