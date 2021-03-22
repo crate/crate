@@ -1723,6 +1723,19 @@ Returns: ``double precision``
 
     Every call to ``random`` will yield a new random number.
 
+
+.. _scalar-gen_random_text_uuid:
+
+``gen_random_text_uuid()``
+--------------------------
+
+Returns a random time based UUID as ``text``. The returned ID is similar to
+flake IDs and well suited for use as primary key value.
+
+Note that the ID is opaque (i.e., not to be considered meaningful in any way)
+and the implementation is free to change.
+
+
 .. _scalar-round:
 
 ``round(number)``
