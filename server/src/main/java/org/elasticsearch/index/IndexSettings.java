@@ -170,7 +170,8 @@ public final class IndexSettings {
         "index.soft_deletes.enabled",
         settings -> Boolean.toString(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings).onOrAfter(Version.V_4_3_0)),
         Property.IndexScope,
-        Property.Final
+        Property.Final,
+        Property.Deprecated
     );
 
     /**

@@ -48,7 +48,9 @@ None
 Deprecations
 ============
 
-None
+- The table setting :ref:`sql-create-table-soft-deletes-enabled` has been
+  marked as deprecated and will be removed in a future version. Soft deletes
+  will become mandatory in CrateDB 5.0.
 
 Changes
 =======
@@ -93,6 +95,8 @@ Fixes
   versions.
 
 - Adjusted ``crate.bat`` to work with spaces in directory names.
+
+- Adjusted ``crate-node`` auxiliary program to use the bundled Java runtime.
 
 - Fixed a ``NullPointerException`` when trying to kill a job as normal user
   which is no longer running.
