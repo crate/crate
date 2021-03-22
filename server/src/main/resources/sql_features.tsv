@@ -168,12 +168,12 @@ F041	Basic joined table	5	Outer joins can be nested	YES
 F041	Basic joined table	7	The inner table in a left or right outer join can also be used in an inner join	YES		
 F041	Basic joined table	8	All comparison operators are supported (rather than just =)	YES		
 F051	Basic date and time			NO		only timestamp type
-F051	Basic date and time	1	DATE data type (including support of DATE literal)	NO		
+F051	Basic date and time	1	DATE data type (including support of DATE literal)	YES		
 F051	Basic date and time	2	TIME data type (including support of TIME literal) with fractional seconds precision of at least 0	NO		
 F051	Basic date and time	3	TIMESTAMP data type (including support of TIMESTAMP literal) with fractional seconds precision of at least 0 and 6	YES		
 F051	Basic date and time	4	Comparison predicate on DATE, TIME, and TIMESTAMP data types	YES		
 F051	Basic date and time	5	Explicit CAST between datetime types and character string types	YES		
-F051	Basic date and time	6	CURRENT_DATE	NO		current_timestamp
+F051	Basic date and time	6	CURRENT_DATE	YES		
 F051	Basic date and time	7	LOCALTIME	NO		
 F051	Basic date and time	8	LOCALTIMESTAMP	NO		
 F052	Intervals and datetime arithmetic			YES		

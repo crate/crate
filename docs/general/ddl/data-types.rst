@@ -42,6 +42,7 @@ Primitive types are :ref:`scalar <gloss-scalar>` values:
 * `ip`_
 * `timestamp with time zone <timestamp with time zone_>`_
 * `timestamp without time zone <timestamp without time zone_>`_
+* `date <date_>`_
 * `interval`_
 
 .. _sql_ddl_datatypes_geographic:
@@ -380,6 +381,9 @@ Date and time types
 | ``timetz``                      |          |                         | to ``23:59:59.999999`` |
 |                                 |          |                         | zone: -18:00 to 18:00  |
 +---------------------------------+----------+-------------------------+------------------------+
+| ``date``                        | 8  bytes | date in utc             | ``292275054BC``        |
+|                                 |          |                         | to ``292278993AD``     |
++---------------------------------+----------+-------------------------+------------------------+
 
 .. _timestamp_data_type:
 
@@ -560,6 +564,34 @@ Time zone syntax as defined by `ISO 8601 time zone designators`_.
     +-----------------------+
     SELECT 1 row in set (... sec)
 
+.. _date-data-type:
+
+``date``
+---------
+
+.. NOTE::
+
+    The storage of the ``date`` data type is not supported. Therefore,
+    it is not possible to create tables with ``date`` fields.
+
+The ``date`` data type can be used to represent values with a year, month and a day.
+
+To construct values of the type ``date`` you can cast a string literal
+or a numeric literal to ``date``. If a numeric value is used, it must contain
+the number of milliseconds since ``1970-01-01T00:00:00Z``.
+
+The string format for dates is `YYYY-MM-DD`. For example `2021-03-09`.
+This format is the only currently supported for PostgreSQL clients.
+
+::
+
+    cr> select '2021-03-09'::date as cd;
+    +---------------+
+    |            cd |
+    +---------------+
+    | 1615248000000 |
+    +---------------+
+    SELECT 1 row in set (... sec)
 
 .. _interval_data_type:
 

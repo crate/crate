@@ -184,8 +184,10 @@ table available in CrateDB::
     | 1021 | _float4                      |        0 |     700 |     -1 | b       | A           |
     | 1022 | _float8                      |        0 |     701 |     -1 | b       | A           |
     | 1043 | varchar                      |     1015 |       0 |     -1 | b       | S           |
+    | 1082 | date                         |     1182 |       0 |      8 | b       | D           |
     | 1114 | timestamp without time zone  |     1115 |       0 |      8 | b       | D           |
     | 1115 | _timestamp without time zone |        0 |    1114 |     -1 | b       | A           |
+    | 1182 | _date                        |        0 |    1082 |     -1 | b       | A           |
     | 1184 | timestamptz                  |     1185 |       0 |      8 | b       | D           |
     | 1185 | _timestamptz                 |        0 |    1184 |     -1 | b       | A           |
     | 1186 | interval                     |     1187 |       0 |     16 | b       | T           |
@@ -201,7 +203,7 @@ table available in CrateDB::
     | 2277 | anyarray                     |        0 |    2276 |     -1 | p       | P           |
     | 2287 | _record                      |        0 |    2249 |     -1 | p       | A           |
     +------+------------------------------+----------+---------+--------+---------+-------------+
-    SELECT 43 rows in set (... sec)
+    SELECT 45 rows in set (... sec)
 
 .. NOTE::
 

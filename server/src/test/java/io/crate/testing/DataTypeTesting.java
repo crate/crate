@@ -31,6 +31,7 @@ import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.GeoPointType;
@@ -64,8 +65,13 @@ public class DataTypeTesting {
         ALL_TYPES_EXCEPT_ARRAYS.addAll(DataTypes.PRIMITIVE_TYPES);
         ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.GEO_POINT);
         ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.GEO_SHAPE);
-        ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.INTERVAL);
+        // ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.INTERVAL); Member of DataTypes.STORAGE_UNSUPPORTED
         ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.UNTYPED_OBJECT);
+
+        // DATE type is also not supported, iteration based exclusion is used in case there are new unsupported types in PRIMITIVES or added explicitly like INTERVAL above.
+        ALL_TYPES_EXCEPT_ARRAYS.removeIf(DataTypes.STORAGE_UNSUPPORTED :: contains);
+
+
     }
     public static DataType<?> randomType() {
         return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), ALL_TYPES_EXCEPT_ARRAYS);
@@ -107,6 +113,7 @@ public class DataTypeTesting {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
+            case DateType.ID :
                 return () -> (T) (Long) random.nextLong();
 
             case RegclassType.ID:

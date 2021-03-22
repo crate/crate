@@ -76,6 +76,8 @@ public final class DataTypes {
     public static final TimestampType TIMESTAMPZ = TimestampType.INSTANCE_WITH_TZ;
     public static final TimestampType TIMESTAMP = TimestampType.INSTANCE_WITHOUT_TZ;
 
+    public static final DateType DATE = DateType.INSTANCE;
+
     public static final GeoPointType GEO_POINT = GeoPointType.INSTANCE;
     public static final GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
 
@@ -115,7 +117,8 @@ public final class DataTypes {
         INTERVAL,
         LONG,
         TIMESTAMPZ,
-        TIMESTAMP
+        TIMESTAMP,
+        DATE
     );
 
     private static final Set<Integer> PRIMITIVE_TYPE_IDS =
@@ -128,8 +131,9 @@ public final class DataTypes {
         INTERVAL,
         TIMETZ,
         OIDVECTOR,
-        REGCLASS,
-        NUMERIC
+        NUMERIC,
+        DATE,
+        REGCLASS
     );
 
     public static final List<DataType<?>> NUMERIC_PRIMITIVE_TYPES = List.of(
@@ -175,12 +179,13 @@ public final class DataTypes {
             entry(RowType.ID, RowType::new),
             entry(RegprocType.ID, in -> REGPROC),
             entry(RegclassType.ID, in -> REGCLASS),
-            entry(OidVectorType.ID, in -> OIDVECTOR)
+            entry(OidVectorType.ID, in -> OIDVECTOR),
+            entry(DateType.ID, in -> DATE)
         )
     );
 
     private static final Set<Integer> NUMBER_CONVERSIONS = Stream.concat(
-        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, IP, NUMERIC),
+        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, DATE, IP, NUMERIC),
         NUMERIC_PRIMITIVE_TYPES.stream()
     ).map(DataType::id).collect(toSet());
 
@@ -207,6 +212,7 @@ public final class DataTypes {
         entry(IP.id(), Set.of(STRING.id())),
         entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id())),
         entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id())),
+        entry(DATE.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id())),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
@@ -219,10 +225,10 @@ public final class DataTypes {
      * used to store the value)
      */
     private static final Map<Integer, Set<DataType<?>>> SAFE_CONVERSIONS = Map.of(
-        BYTE.id(), Set.of(SHORT, INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
-        SHORT.id(), Set.of(INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
-        INTEGER.id(), Set.of(LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
-        LONG.id(), Set.of(TIMESTAMPZ, TIMESTAMP, DOUBLE),
+        BYTE.id(), Set.of(SHORT, INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, DATE, FLOAT, DOUBLE),
+        SHORT.id(), Set.of(INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, DATE, FLOAT, DOUBLE),
+        INTEGER.id(), Set.of(LONG, TIMESTAMPZ, TIMESTAMP, DATE, FLOAT, DOUBLE),
+        LONG.id(), Set.of(TIMESTAMPZ, TIMESTAMP, DATE, DOUBLE),
         FLOAT.id(), Set.of(DOUBLE));
 
     public static boolean isArray(DataType<?> type) {
@@ -386,7 +392,8 @@ public final class DataTypes {
         // to warn users about the data type semantic change and give a time
         // to adjust to the change.
         entry("timestamp", TIMESTAMPZ),
-        entry("interval", INTERVAL));
+        entry("interval", INTERVAL),
+        entry(DATE.getName(), DATE));
 
     public static DataType<?> ofName(String typeName) {
         DataType<?> dataType = ofNameOrNull(typeName);
