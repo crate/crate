@@ -20,28 +20,20 @@
  * agreement.
  */
 
-package io.crate.metadata;
+package io.crate.expression.scalar.postgres;
 
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
-@Singleton
-public class NodeContext {
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.metadata.SystemClock;
 
-    private final Functions functions;
-    private final long serverStartTimeInMs;
+public class PgPostmasterStartTimeTest extends AbstractScalarFunctionsTest {
 
-    @Inject
-    public NodeContext(Functions functions) {
-        this.functions = functions;
-        this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();;
-    }
-
-    public Functions functions() {
-        return functions;
-    }
-
-    public long serverStartTimeInMs() {
-        return serverStartTimeInMs;
+    @Test
+    public void test_pg_postmaster_start_time_returns_timestamp() {
+        long now = SystemClock.currentInstant().toEpochMilli();
+        long nodeContextCreation = sqlExpressions.nodeCtx.serverStartTimeInMs();
+        assertEvaluate("pg_postmaster_start_time()", Matchers.allOf(Matchers.greaterThanOrEqualTo(nodeContextCreation), Matchers.lessThanOrEqualTo(now)));
     }
 }

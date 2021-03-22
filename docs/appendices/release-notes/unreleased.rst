@@ -55,6 +55,9 @@ Deprecations
 Changes
 =======
 
+- Added the :ref:`pg_postmaster_start_time() <scalar_pg_postmaster_start_time>`
+  scalar function.
+
 - Improved language selection, translations and general usability at the
   Admin UI.
 
