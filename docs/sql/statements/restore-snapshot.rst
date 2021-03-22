@@ -22,28 +22,56 @@ Synopsis
 ::
 
     RESTORE SNAPSHOT repository_name.snapshot_name
-    { TABLE ( table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) | ALL }
+    { ALL |
+      METADATA |
+      TABLE ( table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) |
+      data_section [, ...] }
     [ WITH (restore_parameter [= value], [, ...]) ]
 
+where ``data_section``::
+
+   {  TABLES |
+      VIEWS |
+      USERS |
+      PRIVILEGES |
+      ANALYZERS |
+      UDFS }
 
 .. _sql-restore-snapshot-description:
 
 Description
 ===========
 
-Restore one or more tables or partitions from an existing snapshot into the
-cluster. The snapshot must be given as fully qualified reference with
+Restore one or more tables, partitions, or metadata from an existing snapshot
+into the cluster. The snapshot must be given as fully qualified reference with
 ``repository_name`` and ``snapshot_name``.
 
-It is possible to restore all tables contained in the snapshot using the
-``ALL`` keyword. Single tables and/or partitions can be selected for restoring
-by giving them as ``table_ident`` or partition reference given the
+To restore everything, use the ``ALL`` keyword.
+
+Single tables (or table partitions) can be restored by using ``TABLE`` together
+with a ``table_ident`` and a optional partition reference given the
 ``partition_column`` values.
 
-Tables that are to be restored must not exist yet.
+It is possible to restore all tables using the ``TABLES`` keyword. This will
+restore all tables but will not restore metadata.
+
+To restore only the metadata (including views, users, privileges, analyzers,
+user-defined-functions, and all cluster settings), instead use the ``METADATA``
+keyword.
+
+A single metadata group can be restored by using the related ``data_section``
+keyword.
+
+Additionally, multiple ``data_section`` keywords can be used to restore
+multiple concrete sections at once.
 
 To cancel a restore operation simply drop the tables that are being restored.
 
+.. CAUTION::
+
+   If you try to restore a table that already exists, CrateDB will return an
+   error. However, if you try to restore metadata or cluster settings that
+   already exist, they will be overwritten.
 
 .. _sql-restore-snapshot-parameters:
 
@@ -60,6 +88,10 @@ Parameters
   The name (optionally schema-qualified) of an existing table that is to be
   restored from the snapshot.
 
+:data_section:
+  The section name of the data to be restored. Multiple sections can be
+  selected.  A section cannot be combined with the ``ALL``, ``METADATA``, or
+  ``TABLE`` keywords.
 
 .. _sql-restore-snapshot-clauses:
 

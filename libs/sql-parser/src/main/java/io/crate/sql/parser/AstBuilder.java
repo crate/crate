@@ -22,27 +22,6 @@
 
 package io.crate.sql.parser;
 
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import io.crate.sql.tree.CreateTableAs;
-import io.crate.sql.tree.SetSessionAuthorizationStatement;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
 import io.crate.common.collections.Lists2;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
@@ -95,6 +74,7 @@ import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
@@ -180,8 +160,10 @@ import io.crate.sql.tree.RevokePrivilege;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.Select;
 import io.crate.sql.tree.SelectItem;
+import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.SetTransactionStatement;
+import io.crate.sql.tree.SetTransactionStatement.TransactionMode;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.ShowSchemas;
@@ -211,7 +193,23 @@ import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
-import io.crate.sql.tree.SetTransactionStatement.TransactionMode;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 
 class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
@@ -515,13 +513,32 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitRestore(SqlBaseParser.RestoreContext context) {
         if (context.ALL() != null) {
-            return new RestoreSnapshot(
+            return new RestoreSnapshot<>(
                 getQualifiedName(context.qname()),
+                RestoreSnapshot.Mode.ALL,
                 extractGenericProperties(context.withProperties()));
         }
-        return new RestoreSnapshot(getQualifiedName(context.qname()),
-            visitCollection(context.tableWithPartitions().tableWithPartition(), Table.class),
-            extractGenericProperties(context.withProperties()));
+        if (context.METADATA() != null) {
+            return new RestoreSnapshot<>(
+                getQualifiedName(context.qname()),
+                RestoreSnapshot.Mode.METADATA,
+                extractGenericProperties(context.withProperties()));
+        }
+        if (context.TABLE() != null) {
+            return new RestoreSnapshot(
+                getQualifiedName(context.qname()),
+                RestoreSnapshot.Mode.TABLE,
+                extractGenericProperties(context.withProperties()),
+                List.of(),
+                visitCollection(context.tableWithPartitions().tableWithPartition(), Table.class)
+            );
+        }
+        return new RestoreSnapshot<>(
+            getQualifiedName(context.qname()),
+            RestoreSnapshot.Mode.CUSTOM,
+            extractGenericProperties(context.withProperties()),
+            identsToStrings(context.metatypes.ident())
+        );
     }
 
     @Override

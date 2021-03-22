@@ -28,16 +28,32 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.collections.Lists2;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.settings.AnalyzerSettings;
+import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 class RestoreSnapshotAnalyzer {
+
+    public static final Map<String, String> METADATA_CUSTOM_TYPE_MAP = Map.of(
+        "VIEWS", ViewsMetadata.TYPE,
+        "USERS", UsersMetadata.TYPE,
+        "PRIVILEGES", UsersPrivilegesMetadata.TYPE,
+        "UDFS", UserDefinedFunctionsMetadata.TYPE
+    );
 
     private final RepositoryService repositoryService;
     private final NodeContext nodeCtx;
@@ -61,16 +77,81 @@ class RestoreSnapshotAnalyzer {
 
         var exprCtx = new ExpressionAnalysisContext();
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-            txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
-        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
-
-        List<Table<Symbol>> tables = Lists2.map(
-            restoreSnapshot.tables(),
-            (table) -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx)));
+            txnCtx,
+            nodeCtx,
+            paramTypeHints,
+            FieldProvider.UNSUPPORTED,
+            null
+        );
         GenericProperties<Symbol> properties = restoreSnapshot.properties()
             .map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx));
 
-        return new AnalyzedRestoreSnapshot(repositoryName, snapshotName, tables, properties);
+        List<Table<Symbol>> tables = List.of();
+        HashSet<String> customMetadataTypes = new HashSet<>();
+        ArrayList<String> globalSettings = new ArrayList<>();
+        boolean includeTables = false;
+        boolean includeCustomMetadata = false;
+        boolean includeGlobalSettings = false;
+
+        switch (restoreSnapshot.mode()) {
+            case ALL -> {
+                includeTables = true;
+                includeCustomMetadata = true;
+                includeGlobalSettings = true;
+            }
+            case METADATA -> {
+                includeCustomMetadata = true;
+                includeGlobalSettings = true;
+                globalSettings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
+            }
+            case TABLE -> {
+                includeTables = true;
+                var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+                    txnCtx,
+                    nodeCtx,
+                    paramTypeHints,
+                    FieldProvider.FIELDS_AS_LITERAL,
+                    null
+                );
+                tables = Lists2.map(
+                    restoreSnapshot.tables(),
+                    (table) -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx))
+                );
+            }
+            case CUSTOM -> {
+                for (String type_name : restoreSnapshot.types()) {
+                    type_name = type_name.toUpperCase(Locale.ENGLISH);
+                    if (type_name.equals("TABLES")) {
+                        includeTables = true;
+                    } else if (type_name.equals("ANALYZERS")) {
+                        // custom analyzers are stored inside persistent cluster settings
+                        globalSettings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
+                        includeGlobalSettings = true;
+                    } else {
+                        var custom_type = METADATA_CUSTOM_TYPE_MAP.get(type_name);
+                        if (custom_type == null) {
+                            throw new IllegalArgumentException("Unknown metadata type '" + type_name + "'");
+                        }
+                        includeCustomMetadata = true;
+                        customMetadataTypes.add(custom_type);
+                    }
+                }
+            }
+            default -> {
+                throw new AssertionError("Unsupported restore mode='" + restoreSnapshot.mode() + "'");
+            }
+        }
+
+        return new AnalyzedRestoreSnapshot(
+            repositoryName,
+            snapshotName,
+            tables,
+            includeTables,
+            includeCustomMetadata,
+            customMetadataTypes,
+            includeGlobalSettings,
+            globalSettings,
+            properties
+        );
     }
 }

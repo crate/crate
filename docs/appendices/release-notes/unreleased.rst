@@ -55,6 +55,11 @@ Deprecations
 Changes
 =======
 
+- Added support for restoring metadata and settings from snapshots.  If ``ALL``
+  is used, everything (tables, settings, views, etc.) will be restored. On the
+  other hand, using ``TABLES`` will only restore tables.  In previous releases,
+  only tables could be restored, even if ``ALL`` was used.
+
 - Added the :ref:`pg_postmaster_start_time() <scalar_pg_postmaster_start_time>`
   scalar function.
 
