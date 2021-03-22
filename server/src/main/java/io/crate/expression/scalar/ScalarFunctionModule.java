@@ -152,6 +152,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         StringRepeatFunction.register(this);
         StringSplitPartFunction.register(this);
         ChrFunction.register(this);
+        GenRandomTextUUIDFunction.register(this);
 
         TranslateFunction.register(this);
         ConcatFunction.register(this);

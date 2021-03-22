@@ -55,6 +55,9 @@ Deprecations
 Changes
 =======
 
+- Added the :ref:`gen_random_text_uuid() <scalar-gen_random_text_uuid>` scalar
+  function.
+
 - Added support for restoring metadata and settings from snapshots.  If ``ALL``
   is used, everything (tables, settings, views, etc.) will be restored. On the
   other hand, using ``TABLES`` will only restore tables.  In previous releases,
