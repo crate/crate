@@ -22,7 +22,11 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import com.google.common.collect.Streams;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -30,12 +34,6 @@ import org.elasticsearch.index.engine.Segment;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Stream;
-
-import static com.google.common.collect.Streams.stream;
 
 @Singleton
 public class ShardSegments implements Iterable<ShardSegment> {
@@ -49,8 +47,8 @@ public class ShardSegments implements Iterable<ShardSegment> {
 
     @Override
     public Iterator<ShardSegment> iterator() {
-        return stream(indicesService)
-            .flatMap(Streams::stream)
+        return StreamSupport.stream(indicesService.spliterator(), false)
+            .flatMap(indexService -> StreamSupport.stream(indexService.spliterator(), false))
             .filter(x -> !x.routingEntry().unassigned())
             .flatMap(this::buildShardSegment)
             .iterator();
