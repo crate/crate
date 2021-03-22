@@ -22,7 +22,6 @@
 
 package io.crate.analyze.ddl;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Settings;
@@ -36,7 +35,7 @@ import java.util.Set;
 
 public class GeoSettingsApplier {
 
-    private static final Set<String> SUPPORTED_OPTIONS = ImmutableSet.of(
+    private static final Set<String> SUPPORTED_OPTIONS = Set.of(
         "precision", "distance_error_pct", "tree_levels");
 
     public static void applySettings(Map<String, Object> mapping, GenericProperties<Object> properties, @Nullable String geoTree) {
