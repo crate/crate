@@ -85,7 +85,10 @@ public class DelayableWriteChannel implements Channel {
     @Override
     public ChannelFuture close() {
         ChannelFuture close = delegate.close();
-        delay.releaseAll();
+        DelayedWrites localDelay = delay;  // 1 volatile read
+        if (localDelay != null) {
+            localDelay.releaseAll();
+        }
         return close;
     }
 

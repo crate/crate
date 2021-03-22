@@ -291,27 +291,24 @@ final class DocValuesGroupByOptimizedIterator {
                                                  BiConsumer<K, Object[]> applyKeyToCells,
                                                  List<DocValueAggregator> aggregators,
                                                  RamAccounting ramAccounting) {
-            return () -> groupedStates.entrySet().stream()
-                .map(new Function<Map.Entry<K, Object[]>, Row>() {
+            return () -> {
+                Object[] cells = new Object[numberOfKeys + aggregators.size()];
+                RowN row = new RowN(cells);
+                Function<Map.Entry<K, Object[]>, Row> mapper = entry -> {
+                    K key = entry.getKey();
+                    applyKeyToCells.accept(key, cells);
 
-                    Object[] cells = new Object[numberOfKeys + aggregators.size()];
-                    RowN row = new RowN(cells);
-
-                    @Override
-                    public Row apply(Map.Entry<K, Object[]> entry) {
-                        K key = entry.getKey();
-                        applyKeyToCells.accept(key, cells);
-
-                        Object[] states = entry.getValue();
-                        int c = numberOfKeys;
-                        for (int i = 0; i < states.length; i++) {
-                            //noinspection unchecked
-                            cells[c] = aggregators.get(i).partialResult(ramAccounting, states[i]);
-                            c++;
-                        }
-                        return row;
+                    Object[] states = entry.getValue();
+                    int c = numberOfKeys;
+                    for (int i = 0; i < states.length; i++) {
+                        //noinspection unchecked
+                        cells[c] = aggregators.get(i).partialResult(ramAccounting, states[i]);
+                        c++;
                     }
-                }).iterator();
+                    return row;
+                };
+                return groupedStates.entrySet().stream().map(mapper).iterator();
+            };
         }
 
         private static <K> Map<K, Object[]> applyAggregatesGroupedByKey(
