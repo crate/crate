@@ -539,20 +539,20 @@ should be crossed out as well.
 - [ ] f4989c54c45 Revert "serialize initial_connect_timeout as xcontent correctly"
 - [ ] ae64eaabdae serialize initial_connect_timeout as xcontent correctly
 - [ ] fa1a7c57b8e Add remote info to the HLRC (#49657)
-- [x ] cec6678587e Use peer recovery retention leases for indices without soft-deletes (#50351)
+- [x] cec6678587e Use peer recovery retention leases for indices without soft-deletes (#50351)
 - [sn] 3b8f5d9ea18 Modify proxy mode to support a single address (#50391)
 - [sn] 342a2920a96 Rename the remote connection mode simple to proxy (#50291)
-- [d ] 2d627ba7574 Add per-field metadata. (#49419)
+- [d] 2d627ba7574 Add per-field metadata. (#49419)
 - [sn] 012746dd816 Send hostname in SNI header in simple remote mode (#50247)
 - [su] ee92253f775 Adapt BWC after backporting #50214
-- [x ] 74ff50f814a Omit loading IndexMetaData when inspecting shards (#50214)
+- [x] 74ff50f814a Omit loading IndexMetaData when inspecting shards (#50214)
 - [sn] 7b863dc25b3 Recovery buffer size 16B smaller (#50100)
-- [  ] 972b81f8a9d Account trimAboveSeqNo in committed translog generation (#50205)
+- [ ] 972b81f8a9d Account trimAboveSeqNo in committed translog generation (#50205)
 - [sn] e0e7f1f89a4 Disk threshold decider is enabled by default (#50222)
 - [su] 34f83904cc8 Adjust bwc for #48430
-- [x ] b9fbc8dc748 Migrate peer recovery from translog to retention lease (#49448)
+- [x] b9fbc8dc748 Migrate peer recovery from translog to retention lease (#49448)
 - [sn] 0cedb9e2517 Update remote cluster stats to support simple mode (#49961)
-- [  ] 70af176dea3 Improve DateFieldMapper `ignore_malformed` handling (#50090)
+- [d] 70af176dea3 Improve DateFieldMapper `ignore_malformed` handling (#50090)
 - [su] c5ecbee224f Update TcpHeader version constant for backport (#50086)
 - [su] 1329acc094c Upgrade to lucene 8.4.0-snapshot-662c455. (#50016)
 - [sn] 0062d5f301a [DOCS] Remove shadow replica reference (#50029)
