@@ -1,0 +1,54 @@
+.. _version_4.4.3:
+
+=============
+Version 4.4.3
+=============
+
+Released on 2021-03-23.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.4.3.
+
+    We recommend that you upgrade to the latest 4.3 release before moving to
+    4.4.3.
+
+    A rolling upgrade from 4.3.0+ to 4.4.3 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_4.4.0` release notes for a full list of changes in the
+4.4 series.
+
+Fixes
+=====
+
+- Fixed an issue that led to a ``CircuitBreakingException`` when using the
+  ``ANALYZE`` statement.
+
+- Fixed an issue that led to ``Values less than -1 bytes`` errors if ``TRACE``
+  logging was activated for the circuit breaker package.
+
+- Fixed :ref:`shard allocation <gloss-shard-allocation>` on downgraded nodes
+  where only the ``HOTFIX`` version part differs to fully support rolling
+  downgrades to same ``MAJOR.MINOR`` versions.
+
+- Fixed an issue that could lead to a stuck ``INNER JOIN`` query involving the
+  ``sys.shards`` table on a cluster without user tables.
+
+- Adjusted ``crate.bat`` to work with spaces in directory names.
+
+- Adjusted ``crate-node`` auxiliary program to use the bundled Java runtime.
+
+- Fixed a ``NullPointerException`` when trying to kill a job as normal user
+  which is no longer running.
