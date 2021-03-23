@@ -26,10 +26,10 @@ Cross joins
 
 Referencing two tables results in a ``CROSS JOIN``.
 
-The result is computed by creating every possible combination (`Cartesian
-Product`_) of their rows (``t1 * t2 * t3 * tn``) and then applying the given
-query operation on it (``WHERE`` clause, ``SELECT`` list, ``ORDER BY`` clause,
-...)::
+The result is computed by creating every possible combination (i.e., a
+`cartesian product`_) of their rows (``t1 * t2 * t3 * tn``) and then applying
+the given query operation on it (e.g., ``WHERE`` clause, ``SELECT`` list,
+``ORDER BY`` clause, and so on)::
 
     cr> select articles.name as article, colors.name as color, price
     ... from articles cross join colors
@@ -105,10 +105,11 @@ Outer joins
 Left outer joins
 ................
 
-Left outer join returns tuples for all matching records of the *left* and
-*right* relation like :ref:`inner joins <inner-joins>`. Additionally it returns
-*tuples* for all other records from *left* that don't match any record on the
-*right* by using null values for the columns of the *right* relation::
+Left outer join returns tuples for all matching records of the left-hand and
+right-hand relation like :ref:`inner joins <inner-joins>`. Additionally it
+returns tuples for all other records from left-hand that don't match any record
+on the right-hand by using ``NULL`` values for the columns of the right-hand
+relation::
 
     cr> select e.name || ' ' || e.surname as employee, coalesce(d.name, '') as manager_of_department
     ... from employees e left join departments d
@@ -142,10 +143,11 @@ Left outer join returns tuples for all matching records of the *left* and
 Right outer joins
 .................
 
-Right outer join returns tuples for all matching records of the *right* and
-*left* relation like :ref:`inner joins <inner-joins>`. Additionally it returns
-tuples for all other records from *right* that don't match any record on the
-*left* by using null values for the columns of the *left* relation::
+Right outer join returns tuples for all matching records of the right-hand and
+left-hand relation like :ref:`inner joins <inner-joins>`. Additionally it
+returns tuples for all other records from right-hand that don't match any
+record on the left-hand by using ``NULL`` values for the columns of the
+left-hand relation::
 
     cr> select e.name || ' ' || e.surname as employee, d.name as manager_of_department
     ... from employees e right join departments d
@@ -167,13 +169,13 @@ tuples for all other records from *right* that don't match any record on the
 Full outer joins
 ................
 
-Full outer join returns tuples for all matching records of the *left* and
-*right* relation like :ref:`inner joins <inner-joins>`. Additionally it returns
-tuples for all other records from *left* that don't match any record on the
-*right* by using null values for the columns of the *right*
-relation. Additionally it returns tuples for all other records from *right*
-that don't match any record on the *left* by using null values for the columns
-of the *left* relation::
+Full outer join returns tuples for all matching records of the left-hand and
+right-hand relation like :ref:`inner joins <inner-joins>`. Additionally it
+returns tuples for all other records from left-hand that don't match any record
+on the right-hand by using ``NULL`` values for the columns of the right-hand
+relation. Additionally it returns tuples for all other records from right-hand
+that don't match any record on the left-hand by using ``NULL`` values for the
+columns of the left-hand relation::
 
     cr> select e.name || ' ' || e.surname as employee, coalesce(d.name, '') as manager_of_department
     ... from employees e full join departments d
@@ -235,10 +237,11 @@ Available join algorithms
 Nested loop join algorithm
 ..........................
 
-The nested loop algorithm evaluates the join conditions on every record of the
-left table with every record of the right table in a distributed manner (for
-each shard of the used tables). The right table is scanned once for every row
-in the left table.
+The nested loop algorithm :ref:`evaluates <gloss-evaluation>` the join
+conditions on every record of the left-hand table with every record of the
+right-hand table in a distributed manner (for each shard of the used
+tables). The right-hand table is scanned once for every row in the left-hand
+table.
 
 This is the default algorithm used for all types of joins.
 
@@ -246,11 +249,11 @@ This is the default algorithm used for all types of joins.
 Block hash join algorithm
 .........................
 
-The performance of `Equi-Joins`_ is substantially improved by using the `Hash
-Join`_ algorithm. At first one relation is scanned and loaded into a hash table
-using the attributes of the join conditions as hash keys. Once the hash table
-is build, the second relation is scanned and the join condition values of every
-row are hashed and matched against the hash table.
+The performance of `equi-joins`_ is substantially improved by using the `hash
+join`_ algorithm. At first, one relation is scanned and loaded into a hash
+table using the attributes of the join conditions as hash keys. Once the hash
+table is built, the second relation is scanned and the join condition values of
+every row are hashed and matched against the hash table.
 
 In order to built a hash table even if the first relation wouldn't fit into the
 available memory, only a certain block size of a relation is loaded at
@@ -267,7 +270,7 @@ the join condition satisfies the following rules:
   - Every argument of a ``EQUAL`` operator can only references fields from one
     relation
 
-The `Hash Join`_ algorithm is faster but has a bigger memory footprint. As such
+The `hash join`_ algorithm is faster but has a bigger memory footprint. As such
 it can explicitly be disabled on demand when memory is scarce using the session
 setting :ref:`enable_hashjoin <conf-session-enable-hashjoin>`::
 

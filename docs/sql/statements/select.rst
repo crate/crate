@@ -246,8 +246,9 @@ an alias:
     ( select_stmt ) [ AS ] alias
 
 The :ref:`subselect <gloss-subquery>` behaves like a temporary table that is
-evaluated at runtime. The clauses of the surrounding ``SELECT`` statements are
-applied on the result of the inner ``SELECT`` statement.
+:ref:`evaluated <gloss-evaluation>` at runtime. The clauses of the surrounding
+``SELECT`` statements are applied on the result of the inner ``SELECT``
+statement.
 
 :select_stmt:
   A ``SELECT`` statement.
@@ -268,7 +269,7 @@ returned::
 
 :condition:
   A ``WHERE`` condition is any :ref:`expression <gloss-expression>` that
-  evaluates to a result of type boolean.
+  :ref:`evaluates <gloss-evaluation>` to a result of type boolean.
 
   Any row that does not satisfy this condition will be eliminated from the
   output. A row satisfies the condition if it returns true when the actual row
@@ -313,8 +314,8 @@ within a resulting row of a ``GROUP BY`` clause.
 
 :condition:
   A ``HAVING`` condition is any :ref:`expression <sql-literal-value>` that
-  evaluates to a result of type boolean. Every row for which the condition is
-  not satisfied will be eliminated from the output.
+  :ref:`evaluates <gloss-evaluation>` to a result of type boolean. Every row
+  for which the condition is not satisfied will be eliminated from the output.
 
 .. NOTE::
 

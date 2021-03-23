@@ -236,9 +236,10 @@ Parameters
   data should be put.
 
 :uri:
-  An :ref:`expression <gloss-expression>` which evaluates to a URI as defined
-  in `RFC2396`_. The supported schemes are listed above. The last part of the
-  path may also contain ``*`` wildcards to match multiple files.
+  An :ref:`expression <gloss-expression>` which :ref:`evaluates
+  <gloss-evaluation>` to a URI as defined in `RFC2396`_. The supported schemes
+  are listed above. The last part of the path may also contain ``*`` wildcards
+  to match multiple files.
 
 
 .. _sql-copy-from-clauses:

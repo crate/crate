@@ -70,8 +70,9 @@ Supported session settings
   | *Modifiable:* ``yes``
 
   An :ref:`experimental <experimental-warning>` setting which enables CrateDB
-  to consider whether a Join operation should be evaluated using the
-  ``HashJoin`` implementation instead of the ``Nested-Loops`` implementation.
+  to consider whether a ``JOIN`` :ref:`operation <gloss-operator>` should be
+  :ref:`evaluated <gloss-evaluation>` using the ``HashJoin`` implementation
+  instead of the ``Nested-Loops`` implementation.
 
   .. NOTE::
 

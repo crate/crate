@@ -892,8 +892,8 @@ The following fields are supported:
 The ``CURRENT_TIME`` :ref:`expression <gloss-expression>` returns the time in
 microseconds since midnight UTC at the time the SQL statement was
 handled. Clock time is looked up at most once within the scope of a single
-query, to ensure that multiple occurrences of ``CURRENT_TIME`` evaluate to the
-same value.
+query, to ensure that multiple occurrences of ``CURRENT_TIME`` :ref:`evaluate
+<gloss-evaluation>` to the same value.
 
 synopsis::
 
@@ -2486,11 +2486,12 @@ Example:
 
 The ``if`` function is a conditional function comparing to *if* statements of
 most other programming languages. If the given *condition* :ref:`expression
-<gloss-expression>` evaluates to ``true``, the *result* expression is evaluated
-and its value is returned. If the *condition* evaluates to ``false``, the
-*result* expression is not evaluated and the optional given *default*
-expression is evaluated instead and its value will be returned. If the
-*default* argument is omitted, ``NULL`` will be returned instead.
+<gloss-expression>` :ref:`evaluates <gloss-evaluation>` to ``true``, the
+*result* expression is evaluated and its value is returned. If the *condition*
+evaluates to ``false``, the *result* expression is not evaluated and the
+optional given *default* expression is evaluated instead and its value will be
+returned. If the *default* argument is omitted, ``NULL`` will be returned
+instead.
 
 .. Hidden: create table if_example
 
@@ -2524,7 +2525,7 @@ expression is evaluated instead and its value will be returned. If the
 
 The ``coalesce`` function takes one or more arguments of the same type and
 returns the first non-null value of these. The result will be NULL only if all
-the arguments evaluate to NULL.
+the arguments :ref:`evaluate <gloss-evaluation>` to NULL.
 
 Returns: same type as arguments
 
@@ -2545,7 +2546,8 @@ Returns: same type as arguments
 
 The ``greatest`` function takes one or more arguments of the same type and will
 return the largest value of these. NULL values in the arguments list are
-ignored. The result will be NULL only if all the arguments evaluate to NULL.
+ignored. The result will be NULL only if all the arguments :ref:`evaluate
+<gloss-evaluation>` to NULL.
 
 Returns: same type as arguments
 
@@ -2564,7 +2566,8 @@ Returns: same type as arguments
 
 The ``least`` function takes one or more arguments of the same type and will
 return the smallest value of these. NULL values in the arguments list are
-ignored. The result will be NULL only if all the arguments evaluate to NULL.
+ignored. The result will be NULL only if all the arguments :ref:`evaluate
+<gloss-evaluation>` to NULL.
 
 Returns: same type as arguments
 
@@ -3063,8 +3066,8 @@ Special functions
 
 The ``ignore3vl`` function operates on a boolean argument and eliminates the
 `3-valued logic`_ on the whole tree of :ref:`operators <gloss-operator>`
-beneath it. More specifically, ``FALSE`` is evaluated to ``FALSE``, ``TRUE`` to
-``TRUE`` and ``NULL`` to ``FALSE``.
+beneath it. More specifically, ``FALSE`` is :ref:`evaluated <gloss-evaluation>`
+to ``FALSE``, ``TRUE`` to ``TRUE`` and ``NULL`` to ``FALSE``.
 
 Returns: ``boolean``
 

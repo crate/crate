@@ -315,8 +315,9 @@ SQL Standard and PostgreSQL compatibility improvements
 - Added the :ref:`pg_get_userbyid` :ref:`scalar function <scalar-functions>` to
   enhance PostgreSQL compatibility.
 
-- Enabled scalar function evaluation when used :ref:`in the query FROM clause
-  in place of a relation<table-functions-scalar>`.
+- Enabled scalar function :ref:`evaluation <gloss-evaluation>` when used
+  :ref:`in the query FROM clause in place of a
+  relation<table-functions-scalar>`.
 
 - Show the session setting description in the output of the ``SHOW ALL``
   statement.
@@ -394,9 +395,9 @@ Performance and resiliency improvements
      <resiliency_replicas_fall_out_of_sync>`
 
 - Predicates like ``abs(x) = 1`` which require a :ref:`scalar function
-  <scalar-functions>` evaluation and cannot operate on table indices directly
-  are now candidates for the query cache. This can result in order of magnitude
-  performance increases on subsequent queries.
+  <scalar-functions>` :ref:`evaluation <gloss-evaluation>` and cannot operate
+  on table indices directly are now candidates for the query cache. This can
+  result in order of magnitude performance increases on subsequent queries.
 
 - Routing awareness attributes are now also taken into consideration for
   primary key lookups. (Queries like ``SELECT * FROM t WHERE pk = 1``)

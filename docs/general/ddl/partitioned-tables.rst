@@ -64,7 +64,8 @@ Partitioned tables have the following advantages:
 - Deleting data from a partitioned table is cheap if full partitions are
   dropped. Full partitions are dropped with ``DELETE`` statements where the
   optimizer can infer from the ``WHERE`` clause and partition columns that all
-  records of a partition match without having to evaluate against the records.
+  records of a partition match without having to :ref:`evaluate
+  <gloss-evaluation>` against the records.
 
 
 Partitioned tables have the following disadvantages:
@@ -364,8 +365,8 @@ For example, the following query will only operate on the partition for
     +----------+
     SELECT 1 row in set (... sec)
 
-Any combination of conditions that can be evaluated to a partition before
-actually executing the query is supported::
+Any combination of conditions that can be :ref:`evaluated <gloss-evaluation>`
+to a partition before actually executing the query is supported::
 
     cr> SELECT id, title FROM parted_table
     ... WHERE date_trunc('year', day) > '1970-01-01'

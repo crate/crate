@@ -176,9 +176,9 @@ Functions and operators
 - Added support for CIDR notation comparisons through special purpose
   :ref:`operator <gloss-operator>` ``<<`` associated with type IP.
 
-  Statements like ``192.168.0.0 << 192.168.0.1/24`` evaluate as true, meaning
-  ``SELECT ip FROM ips_table WHERE ip << 192.168.0.1/24`` returns matching
-  :ref:`ip <ip-type>` addresses.
+  Statements like ``192.168.0.0 << 192.168.0.1/24`` :ref:`evaluate
+  <gloss-evaluation>` as true, meaning ``SELECT ip FROM ips_table WHERE ip <<
+  192.168.0.1/24`` returns matching :ref:`IP addresses <ip-type>`.
 
 
 New statements and clauses

@@ -413,9 +413,9 @@ CrateDB and we love to hear feedback.
 Expression evaluation
 ---------------------
 
-Unlike PostgreSQL, :ref:`expressions <gloss-expression>` are not evaluated if
-the query results in 0 rows either because of the table is empty or by a not
-matching ``WHERE`` clause.
+Unlike PostgreSQL, :ref:`expressions <gloss-expression>` are not
+:ref:`evaluated <gloss-evaluation>` if the query results in 0 rows either
+because of the table is empty or by not matching the ``WHERE`` clause.
 
 
 .. _GitHub: https://github.com/crate/crate
