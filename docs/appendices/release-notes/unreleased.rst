@@ -39,12 +39,6 @@ Unreleased Changes
    :local:
 
 
-Breaking Changes
-================
-
-None
-
-
 Deprecations
 ============
 
