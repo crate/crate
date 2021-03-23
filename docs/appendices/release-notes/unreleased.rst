@@ -48,49 +48,13 @@ None
 Deprecations
 ============
 
-- The table setting :ref:`sql-create-table-soft-deletes-enabled` has been
-  marked as deprecated and will be removed in a future version. Soft deletes
-  will become mandatory in CrateDB 5.0.
+None
+
 
 Changes
 =======
 
-- Added the :ref:`gen_random_text_uuid() <scalar-gen_random_text_uuid>` scalar
-  function.
-
-- Added support for restoring metadata and settings from snapshots.  If ``ALL``
-  is used, everything (tables, settings, views, etc.) will be restored. On the
-  other hand, using ``TABLES`` will only restore tables.  In previous releases,
-  only tables could be restored, even if ``ALL`` was used.
-
-- Added the :ref:`pg_postmaster_start_time() <scalar_pg_postmaster_start_time>`
-  scalar function.
-
-- Improved language selection, translations and general usability at the
-  Admin UI.
-
-- Updated the bundled JDK to 16+36
-
-- Optimized how ``NULL`` values are stored, reducing the amount of disk space
-  required. This can also improve the performance of value lookups on tables
-  with a lot of null values.
-
-- Added the ``regclass`` data type for improved compatibility with PostgreSQL
-  tools.
-
-- Relicensed all enterprise features under the Apache License 2.0 and removed
-  licensing related code. The ``SET LICENSE`` statement can still be used, but
-  it won't have any effect.
-
-- Added an empty ``pg_tablespace`` table in the ``pg_catalog`` schema for
-  improved support for PostgreSQL tools.
-
-- Improved the error messages for cast errors for values of type ``object``.
-
-- Added support for the :ref:`CREATE TABLE AS <ref-create-table-as>` statement.
-
-- Added :ref:`CURDATE` and :ref:`CURRENT_DATE` :ref:`scalar functions
-  <scalar-functions>`.
+None
 
 Fixes
 =====
