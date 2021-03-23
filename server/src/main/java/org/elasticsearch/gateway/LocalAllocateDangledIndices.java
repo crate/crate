@@ -51,6 +51,9 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.isIndexVerifiedBeforeClosed;
+
+
 public class LocalAllocateDangledIndices {
 
     private static final Logger LOGGER = LogManager.getLogger(LocalAllocateDangledIndices.class);
@@ -150,7 +153,7 @@ public class LocalAllocateDangledIndices {
                         }
                         metadata.put(upgradedIndexMetadata, false);
                         blocks.addBlocks(upgradedIndexMetadata);
-                        if (upgradedIndexMetadata.getState() == IndexMetadata.State.OPEN) {
+                        if (upgradedIndexMetadata.getState() == IndexMetadata.State.OPEN || isIndexVerifiedBeforeClosed(indexMetadata)) {
                             routingTableBuilder.addAsFromDangling(upgradedIndexMetadata);
                         }
                         sb.append("[").append(upgradedIndexMetadata.getIndex()).append("/").append(upgradedIndexMetadata.getState())

@@ -51,14 +51,15 @@ public class DanglingIndicesIT extends SQLTransportIntegrationTest {
         final Settings settings = buildSettings(true);
         internalCluster().startNodes(3, settings);
 
-        execute("create table test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
+        execute("create table doc.test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
+        ensureGreen("test");
 
         // Restart node, deleting the index in its absence, so that there is a dangling index to recover
         internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
 
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
-                execute("drop table test");
+                execute("drop table doc.test");
                 return super.onNodeStopped(nodeName);
             }
         });
@@ -66,6 +67,7 @@ public class DanglingIndicesIT extends SQLTransportIntegrationTest {
         assertBusy(() -> assertThat("Expected dangling index test to be recovered",
                                     execute("select 1 from information_schema.tables where table_name='test'").rowCount(),
                                     is((1L))));
+        ensureGreen("test");
     }
 
     /**
