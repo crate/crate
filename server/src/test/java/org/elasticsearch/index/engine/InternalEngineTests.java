@@ -203,6 +203,8 @@ import io.crate.common.unit.TimeValue;
 
 public class InternalEngineTests extends EngineTestCase {
 
+    static final long UNSET_AUTO_GENERATED_TIMESTAMP = -1L;
+
     @Test
     public void testVersionMapAfterAutoIDDocument() throws IOException {
         engine.refresh("warm_up");
@@ -1995,7 +1997,7 @@ public class InternalEngineTests extends EngineTestCase {
                 currentTerm.set(currentTerm.get() + 1L);
                 engine.rollTranslogGeneration();
             }
-            final long correctVersion = docDeleted && randomBoolean() ? Versions.MATCH_DELETED : lastOpVersion;
+            final long correctVersion = docDeleted ? Versions.MATCH_DELETED : lastOpVersion;
             logger.info("performing [{}]{}{}",
                         op.operationType().name().charAt(0),
                         versionConflict ? " (conflict " + conflictingVersion + ")" : "",
@@ -2018,7 +2020,7 @@ public class InternalEngineTests extends EngineTestCase {
                     final Engine.IndexResult result;
                     if (versionedOp) {
                         // TODO: add support for non-existing docs
-                        if (randomBoolean() && lastOpSeqNo != SequenceNumbers.UNASSIGNED_SEQ_NO) {
+                        if (randomBoolean() && lastOpSeqNo != SequenceNumbers.UNASSIGNED_SEQ_NO && docDeleted == false) {
                             result = engine.index(indexWithSeq.apply(lastOpSeqNo, lastOpTerm, index));
                         } else {
                             result = engine.index(indexWithVersion.apply(correctVersion, index));
@@ -2053,8 +2055,9 @@ public class InternalEngineTests extends EngineTestCase {
                     assertThat(result.getFailure(), instanceOf(VersionConflictEngineException.class));
                 } else {
                     final Engine.DeleteResult result;
+                    long correctSeqNo = docDeleted ? UNASSIGNED_SEQ_NO : lastOpSeqNo;
                     if (versionedOp && lastOpSeqNo != UNASSIGNED_SEQ_NO && randomBoolean()) {
-                        result = engine.delete(delWithSeq.apply(lastOpSeqNo, lastOpTerm, delete));
+                        result = engine.delete(delWithSeq.apply(correctSeqNo, lastOpTerm, delete));
                     } else if (versionedOp) {
                         result = engine.delete(delWithVersion.apply(correctVersion, delete));
                     } else {
@@ -4366,6 +4369,36 @@ public class InternalEngineTests extends EngineTestCase {
         try (Engine.GetResult result = engine.get(new Engine.Get("2", uid), searcherFactory)) {
             assertThat(result.docIdAndVersion() != null, equalTo(exists));
         }
+    }
+
+    /**
+     * Test that we do not leak out information on a deleted doc due to it existing in version map. There are at least 2 cases:
+     * <ul>
+     *     <li>Guessing the deleted seqNo makes the operation succeed</li>
+     *     <li>Providing any other seqNo leaks info that the doc was deleted (and its SeqNo)</li>
+     * </ul>
+     */
+    public void testVersionConflictIgnoreDeletedDoc() throws IOException {
+        ParsedDocument doc = testParsedDocument("1", null, testDocument(),
+            new BytesArray("{}".getBytes(Charset.defaultCharset())), null);
+        engine.delete(new Engine.Delete("1", newUid("1"), 1));
+        for (long seqNo : new long[]{0, 1, randomNonNegativeLong()}) {
+            assertDeletedVersionConflict(engine.index(new Engine.Index(newUid("1"), doc, UNASSIGNED_SEQ_NO, 1,
+                    Versions.MATCH_ANY, VersionType.INTERNAL,
+                    PRIMARY, randomNonNegativeLong(), UNSET_AUTO_GENERATED_TIMESTAMP, false, seqNo, 1)),
+                "update: " + seqNo);
+
+            assertDeletedVersionConflict(engine.delete(new Engine.Delete("1", newUid("1"), UNASSIGNED_SEQ_NO, 1,
+                    Versions.MATCH_ANY, VersionType.INTERNAL, PRIMARY, randomNonNegativeLong(), seqNo, 1)),
+                "delete: " + seqNo);
+        }
+    }
+
+    private void assertDeletedVersionConflict(Engine.Result result, String operation) {
+        assertNotNull("Must have failure for " + operation, result.getFailure());
+        assertThat(operation, result.getFailure(), Matchers.instanceOf(VersionConflictEngineException.class));
+        VersionConflictEngineException exception = (VersionConflictEngineException) result.getFailure();
+        assertThat(operation, exception.getMessage(), containsString("but no document was found"));
     }
 
     /*
