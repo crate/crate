@@ -50,13 +50,4 @@ public class Buckets {
             }
         };
     }
-
-    public static Object[][] materialize(Bucket bucket) {
-        Object[][] res = new Object[bucket.size()][];
-        int i = 0;
-        for (Row row : bucket) {
-            res[i++] = row.materialize();
-        }
-        return res;
-    }
 }
