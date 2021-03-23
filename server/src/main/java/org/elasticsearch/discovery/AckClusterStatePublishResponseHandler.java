@@ -56,15 +56,6 @@ public class AckClusterStatePublishResponseHandler extends BlockingClusterStateP
         onNodeAck(ackListener, node, null);
     }
 
-    @Override
-    public void onFailure(DiscoveryNode node, Exception e) {
-        try {
-            super.onFailure(node, e);
-        } finally {
-            onNodeAck(ackListener, node, e);
-        }
-    }
-
     private void onNodeAck(final Discovery.AckListener ackListener, DiscoveryNode node, Exception e) {
         try {
             ackListener.onNodeAck(node, e);
