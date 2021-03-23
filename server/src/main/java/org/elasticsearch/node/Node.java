@@ -504,7 +504,6 @@ public class Node implements Closeable {
             lazilyInitializedRerouteService.setRerouteService(rerouteService);
             final DiscoveryModule discoveryModule = new DiscoveryModule(
                 this.settings,
-                threadPool,
                 transportService,
                 namedWriteableRegistry,
                 networkService,

@@ -52,7 +52,7 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
 
     private AmazonEC2 buildClient(Ec2ClientSettings clientSettings) {
         final AWSCredentialsProvider credentials = buildCredentials(LOGGER, clientSettings);
-        final ClientConfiguration configuration = buildConfiguration(LOGGER, clientSettings);
+        final ClientConfiguration configuration = buildConfiguration(clientSettings);
         final AmazonEC2 client = buildClient(credentials, configuration);
         if (Strings.hasText(clientSettings.endpoint)) {
             LOGGER.debug("using explicit ec2 endpoint [{}]", clientSettings.endpoint);
@@ -74,7 +74,7 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
     }
 
     // pkg private for tests
-    static ClientConfiguration buildConfiguration(Logger logger, Ec2ClientSettings clientSettings) {
+    static ClientConfiguration buildConfiguration(Ec2ClientSettings clientSettings) {
         final ClientConfiguration clientConfiguration = new ClientConfiguration();
         // the response metadata cache is only there for diagnostics purposes,
         // but can force objects from every response to the old generation.
@@ -93,7 +93,7 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
             RetryPolicy.RetryCondition.NO_RETRY_CONDITION,
             (originalRequest, exception, retriesAttempted) -> {
                 // with 10 retries the max delay time is 320s/320000ms (10 * 2^5 * 1 * 1000)
-                logger.warn("EC2 API request failed, retry again. Reason was:", exception);
+                LOGGER.warn("EC2 API request failed, retry again. Reason was:", exception);
                 return 1000L * (long) (10d * Math.pow(2, retriesAttempted / 2.0d) * (1.0d + rand.nextDouble()));
             },
             10,
