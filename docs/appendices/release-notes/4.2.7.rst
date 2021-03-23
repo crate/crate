@@ -39,4 +39,5 @@ Fixes
   broke any further operations accessing table meta data.
 
 - Prevent dropping of a UDF if it is still used inside inside any
-  ``generated column`` expressions, throw an error instead.
+  :ref:`generated column expressions <ddl-generated-columns-expressions>`,
+  throw an error instead.

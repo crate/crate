@@ -93,10 +93,11 @@ Changes
   are simply ignored.
 
 - Added a new :ref:`scalar function <scalar-functions>` ``ignore3vl`` which
-  eliminates the 3-valued logic of null handling for every logical expression
-  beneath it. If 3-valued logic is not required, the use of this :ref:`function
-  <gloss-function>` in the ``WHERE`` clause beneath a ``NOT`` :ref:`operator
-  <gloss-operator>` can boost the query performance significantly. E.g.::
+  eliminates the 3-valued logic of null handling for every logical
+  :ref:`expression <gloss-expression>` beneath it. If 3-valued logic is not
+  required, the use of this :ref:`function <gloss-function>` in the ``WHERE``
+  clause beneath a ``NOT`` :ref:`operator <gloss-operator>` can boost the query
+  performance significantly. E.g.::
 
       SELECT * FROM t
       WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col))

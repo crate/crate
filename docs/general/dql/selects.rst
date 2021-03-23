@@ -163,7 +163,7 @@ Comparison operators
 ====================
 
 CrateDB supports a variety of :ref:`comparison operators
-<comparison-operators>` (including basic operators such as ``=``, ``<``, ``>``,
+<comparison-operators-where>` (including basic operators such as ``=``, ``<``, ``>``,
 and so on).
 
 
@@ -172,8 +172,8 @@ and so on).
 Regular expressions
 -------------------
 
-:ref:`Comparison operators <comparison-operators-where>` for matching using
-regular expressions:
+Comparison operators for matching using :ref:`regular expressions
+<gloss-regular-expression>`:
 
 .. list-table::
    :widths: 5 20 15
@@ -348,7 +348,7 @@ escape them using a backslash::
 ``NOT``
 --------
 
-``NOT`` negates a boolean expression::
+``NOT`` negates a :ref:`boolean expression <sql-literal-value>`::
 
     [ NOT ] boolean_expression
 
@@ -385,7 +385,8 @@ Use this predicate to check for ``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
 :expr:
-  Expression of one of the supported :ref:`data-types` supported by CrateDB.
+  :ref:`Expression <gloss-expression>` of one of the supported
+  :ref:`data types <data-types>` supported by CrateDB.
 
 ::
 
@@ -429,7 +430,8 @@ Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
 :expr:
-  Expression of one of the supported :ref:`data-types` supported by CrateDB.
+  :ref:`Expression <gloss-expression>` of one of the supported
+  :ref:`data types <data-types>` supported by CrateDB.
 
 ::
 
@@ -468,8 +470,8 @@ CrateDB supports a variety of :ref:`array comparisons <sql_array_comparisons>`.
 ------
 
 CrateDB supports the :ref:`operator <gloss-operator>` ``IN`` which allows you
-to verify the membership of the left-hand :ref:`operator <gloss-operand>`
-operand in a right-hand set of expressions. Returns ``true`` if any evaluated
+to verify the membership of the left-hand operator operand in a right-hand set
+of :ref:`expressions <gloss-expression>`. Returns ``true`` if any evaluated
 expression value from a right-hand set equals left-hand operand. Returns
 ``false`` otherwise::
 
@@ -850,9 +852,10 @@ There are two limitations to be aware of:
   is a valid).
 
 * Using the standard syntax, you can only address the elements of one array in
-  a single expression. If you do address the elements of an array, the array
-  index must appear before any object property names (see :ref:`the previous
-  admonition <sql_dql_object_arrays>` for more information).
+  a single :ref:`expression <gloss-expression>`. If you do address the elements
+  of an array, the array index must appear before any object property names
+  (see :ref:`the previous admonition <sql_dql_object_arrays>` for more
+  information).
 
 .. TIP::
 

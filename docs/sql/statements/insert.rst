@@ -46,8 +46,8 @@ the explicit or implicit column list left-to-right.
 Each column not present in the explicit or implicit column list will not be
 filled.
 
-If the expression for any column is not of the correct data type, automatic
-type conversion will be attempted.
+If the :ref:`expression <gloss-expression>` for any column is not of the
+correct data type, automatic type conversion will be attempted.
 
 The optional ``RETURNING`` clause causes ``INSERT`` to compute and return
 values based from each row actually inserted (or updated, if an ``ON
@@ -138,7 +138,8 @@ Parameters
     The name of a column or field in the table pointed to by *table_ident*.
 
 :expression:
-    An expression or value to assign to the corresponding column.
+    An :ref:`expression <gloss-expression>` or value to assign to the
+    corresponding column.
 
 :query:
     A query (``SELECT`` statement) that supplies the rows to be inserted.

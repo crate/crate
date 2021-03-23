@@ -48,7 +48,7 @@ Fixes
 
 - Fixed an issue that prevented :ref:`user-defined functions
   <user-defined-functions>` in a custom schema from working if used in a
-  generated column expression.
+  :ref:`generated column expression <ddl-generated-columns-expressions>`.
 
 - Fixed an issue that allowed users to use a :ref:`function <gloss-function>`
   in a generated column that didn't fully match the given arguments, leading to

@@ -39,7 +39,8 @@ Fixes
  - Admin UI improvements.
 
  - Improved the accuracy of results if :ref:`arithmetic operators <arithmetic>`
-   ``+,-,*,/`` are used in expressions that contain only float-type values.
+   (``+``, ``-``, ``*``, and ``/``) are used in :ref:`expressions
+   <gloss-expression>` that contain only float-type values.
 
  - Fixed ``COPY FROM`` to be able to copy data into a partitioned table with a
    generated column as both the primary key and a :ref:`partition column

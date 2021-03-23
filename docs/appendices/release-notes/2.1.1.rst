@@ -69,8 +69,9 @@ Fixes
 - Fixed an issue that prevented CrateDB from starting when ``path.home`` was
   set via command line argument.
 
-- Fixed an issue causing ``JOINs`` on virtual tables (sub-selects) which
-  contain ``LIMIT`` and/or ``OFFSET`` to return incorrect results.  E.g.::
+- Fixed an issue causing ``JOINs`` on virtual tables (:ref:`subselects
+  <gloss-subquery>`) which contain ``LIMIT`` and/or ``OFFSET`` to return
+  incorrect results. E.g.::
 
       SELECT * FROM
         (SELECT * FROM t1 ORDER BY a LIMIT 5) t1,
@@ -79,7 +80,7 @@ Fixes
       ON t1.a = t2.max
 
 - Fixed an issue causing ``JOINs`` with aggregations on virtual tables
-  (sub-selects) which also contain aggregations to return incorrect results.
+  (subselects) which also contain aggregations to return incorrect results.
   E.g.::
 
       SELECT t1.a, COUNT(*) FROM t1
@@ -88,7 +89,7 @@ Fixes
       GROUP BY t1.id
 
 - Fixed the error message to be more descriptive when the condition in a
-  ``CASE/WHEN`` expression is not a boolean.
+  ``CASE/WHEN`` :ref:`expression <gloss-expression>` is not a boolean.
 
 - Fixed an issue which caused an exception if ``EXPLAIN`` is used on a
   statement that uses the ``ANY (array_expression)`` :ref:`operators

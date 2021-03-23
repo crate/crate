@@ -12,8 +12,8 @@ Released on 2017/06/02.
     before you upgrade to 1.1.4.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
-    number must be :ref:`version_1.1.1` or higher. If you want to upgrade from a
-    version prior to this, the upgrade will introduce all of the breaking
+    number must be :ref:`version_1.1.1` or higher. If you want to upgrade from
+    a version prior to this, the upgrade will introduce all of the breaking
     changes listed for :ref:`version_1.1.0`, and will require a `full restart
     upgrade`_.
 
@@ -82,9 +82,9 @@ Fixes
  - Fix an issued that cause a ``NullPointerException`` when ordering by system
    columns.
 
- - Fixed validation so that ``SELECT DISTINCT`` can be used only if there
-   is no ``GROUP BY`` present or if the set of ``GROUP BY`` expressions is
-   the same as the set ``SELECT`` expressions.
+ - Fixed validation so that ``SELECT DISTINCT`` can be used only if there is no
+   ``GROUP BY`` present or if the set of ``GROUP BY`` :ref:`expressions
+   <gloss-expression>` is the same as the set ``SELECT`` expressions.
 
  - Added validation that ``ORDER BY`` symbols are included in the ``SELECT``
    list when ``DISTINCT`` is used.
