@@ -58,22 +58,4 @@ None
 Fixes
 =====
 
-- Fixed an issue that led to a ``CircuitBreakingException`` when using the
-  ``ANALYZE`` statement.
-
-- Fixed an issue that led to ``Values less than -1 bytes`` errors if ``TRACE``
-  logging was activated for the circuit breaker package.
-
-- Fixed shard allocation on downgraded nodes where only the ``HOTFIX`` version
-  part differs to fully support rolling downgrades to same ``MAJOR.MINOR``
-  versions.
-
-- Fixed an issue that could lead to a stuck ``INNER JOIN`` query involving the
-  ``sys.shards`` table on a cluster without user tables.
-
-- Adjusted ``crate.bat`` to work with spaces in directory names.
-
-- Adjusted ``crate-node`` auxiliary program to use the bundled Java runtime.
-
-- Fixed a ``NullPointerException`` when trying to kill a job as normal user
-  which is no longer running.
+None
