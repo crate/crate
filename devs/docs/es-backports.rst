@@ -526,7 +526,7 @@ should be crossed out as well.
 - [ ] a0513217dba Move metadata storage to Lucene (#50907)
 - [ ] 0510af87868 Do not force refresh when write indexing buffer (#50769)
 - [ ] 40801af8840 Import replicated closed dangling indices (#50649)
-- [ ] fdd413370ef Deleted docs disregarded for if_seq_no check (#50526)
+- [x] fdd413370ef Deleted docs disregarded for if_seq_no check (#50526)
 - [x] 4c1f1b2acab Declare remaining parsers `final` (#50571)
 - [x] 77fd51f30ba Remove some Dead Code from Discovery Plugins (#50592)
 - [x] 671fefaf59e Enhance TransportReplicationAction assertions (#49081)
