@@ -155,9 +155,9 @@ The ``TO`` clause allows you to specify an output location.
 :output_uri:
   The output URI.
 
-The output URI can be any :ref:`expression <gloss-expression>` that evaluates
-to a string. The string must be a valid URI that uses the ``file://`` or
-``s3://`` URI scheme.
+The output URI can be any :ref:`expression <gloss-expression>` that
+:ref:`evaluates <gloss-evaluation>` to a string. The string must be a valid URI
+that uses the ``file://`` or ``s3://`` URI scheme.
 
 For example:
 

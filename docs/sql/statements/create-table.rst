@@ -206,10 +206,10 @@ Parameters
 :generation_expression:
   An :ref:`expression <ddl-generated-columns-expressions>` (usually a
   :ref:`function call <sql-function-call>`) that is applied in the context of
-  the current row. As such it can reference other base columns of the
-  table. Referencing other generated columns (including itself) is not
-  supported. The generation expression is evaluated each time a row is inserted
-  or the referenced base columns are updated.
+  the current row. As such, it can reference other base columns of the table.
+  Referencing other generated columns (including itself) is not supported. The
+  generation expression is :ref:`evaluated <gloss-evaluation>` each time a row
+  is inserted or the referenced base columns are updated.
 
 
 .. _sql-create-table-if-not-exists:

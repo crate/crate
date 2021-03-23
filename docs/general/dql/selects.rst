@@ -378,8 +378,9 @@ null        null
 ``IS NULL``
 -----------
 
-Returns ``TRUE`` if ``expr`` evaluates to ``NULL``. Given a column reference it
-returns ``TRUE`` if the field contains ``NULL`` or is missing.
+Returns ``TRUE`` if ``expr`` :ref:`evaluates <gloss-evaluation>` to
+``NULL``. Given a column reference, it returns ``TRUE`` if the field contains
+``NULL`` or is missing.
 
 Use this predicate to check for ``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
@@ -423,8 +424,9 @@ does always return ``NULL`` when comparing ``NULL``.
 ``IS NOT NULL``
 ---------------
 
-Returns ``TRUE`` if ``expr`` does not evaluate to ``NULL``. Additionally, for
-column references it returns ``FALSE`` if the column does not exist.
+Returns ``TRUE`` if ``expr`` does not :ref:`evaluate <gloss-evaluation>` to
+``NULL``. Additionally, for column references it returns ``FALSE`` if the
+column does not exist.
 
 Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
@@ -471,9 +473,9 @@ CrateDB supports a variety of :ref:`array comparisons <sql_array_comparisons>`.
 
 CrateDB supports the :ref:`operator <gloss-operator>` ``IN`` which allows you
 to verify the membership of the left-hand operator operand in a right-hand set
-of :ref:`expressions <gloss-expression>`. Returns ``true`` if any evaluated
-expression value from a right-hand set equals left-hand operand. Returns
-``false`` otherwise::
+of :ref:`expressions <gloss-expression>`. Returns ``true`` if any
+:ref:`evaluated <gloss-evaluation>` expression value from a right-hand set
+equals left-hand operand. Returns ``false`` otherwise::
 
     cr> select name, kind from locations
     ... where (kind in ('Star System', 'Planet'))  order by name asc;

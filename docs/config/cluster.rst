@@ -96,9 +96,9 @@ Collecting stats
   | *Runtime:* ``yes``
 
   An :ref:expression <gloss-expression>` to determine if a job should be
-  recorded into ``sys.jobs_log``.  The expression must evaluate to a
-  boolean. If it evaluates to ``true`` the statement will show up in
-  ``sys.jobs_log`` until it's evicted due to one of the other
+  recorded into ``sys.jobs_log``.  The expression must :ref:`evaluate
+  <gloss-evaluation>` to a boolean. If it evaluates to ``true`` the statement
+  will show up in ``sys.jobs_log`` until it's evicted due to one of the other
   rules. (expiration or size limit reached).
 
   The expression may reference all columns contained in ``sys.jobs_log``. A

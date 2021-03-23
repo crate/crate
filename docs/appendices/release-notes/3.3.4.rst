@@ -63,8 +63,8 @@ Fixes
   statements`` if the client relied on the behavior that closing prepared
   statements should implicitly close related portals.
 
-- Fixed a bug that led to ``is null`` predicates against ``ignored`` objects
-  fields to always evaluate to true.
+- Fixed a bug that led to ``is null`` predicates against ``ignored`` object
+  fields to always :ref:`evaluate <gloss-evaluation>` to true.
 
 - Fixed ``collect_set`` to return an ``array`` type in order to be able to
   return the results over ``JDBC``. ``collection_count`` and ``collection_avg``

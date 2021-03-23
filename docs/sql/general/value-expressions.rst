@@ -7,7 +7,8 @@ Value expressions
 =================
 
 A value :ref:`expression <gloss-expression>` is a combination of one or more
-values, operators, and functions that *evaluates* to a single value.
+values, :ref:`operators <gloss-operator>`, and functions that :ref:`evaluate
+<gloss-evaluation>` to a single value.
 
 .. rubric:: Table of contents
 

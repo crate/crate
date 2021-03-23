@@ -46,7 +46,8 @@ right-hand values).
 
 The operator returns ``NULL`` if:
 
-- The left-hand :ref:`expression <gloss-expression>` evaluates to ``NULL``
+- The left-hand :ref:`expression <gloss-expression>` :ref:`evaluates
+  <gloss-evaluation>` to ``NULL``
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
@@ -86,7 +87,7 @@ right-hand values or there are no right-hand values.
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
@@ -134,7 +135,7 @@ right-hand values.
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - No comparison returns ``false`` and at least one right-hand value is ``NULL``
 

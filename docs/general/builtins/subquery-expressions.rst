@@ -53,7 +53,7 @@ subquery returns no rows).
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
@@ -103,7 +103,7 @@ result rows of the subquery or if the subquery returns no rows.
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
@@ -150,6 +150,6 @@ result rows of the subquery.
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - No comparison returns ``false`` and at least one right-hand value is ``NULL``
