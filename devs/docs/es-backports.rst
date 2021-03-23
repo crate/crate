@@ -530,15 +530,15 @@ should be crossed out as well.
 - [ ] 4c1f1b2acab Declare remaining parsers `final` (#50571)
 - [ ] 77fd51f30ba Remove some Dead Code from Discovery Plugins (#50592)
 - [ ] 671fefaf59e Enhance TransportReplicationAction assertions (#49081)
-- [ ] 424ed93e38b Always use soft-deletes in InternalEngine (#50415)
+- [d] 424ed93e38b Always use soft-deletes in InternalEngine (#50415)
 - [x] d02afccd983 Ensure relocating shards establish peer recovery retention leases (#50486)
-- [ ] 50bd5842c3c Fix testCancelRecoveryDuringPhase1 (#50449)
-- [ ] 5e0030e1306 Adjust BWC for peer recovery retention leases (#50351)
-- [ ] a48d19d73a8 Add remote info to the HLRC (#50482)
-- [ ] b7ac7324d23 Revert "Add remote info to the HLRC (#49657)"
-- [ ] f4989c54c45 Revert "serialize initial_connect_timeout as xcontent correctly"
-- [ ] ae64eaabdae serialize initial_connect_timeout as xcontent correctly
-- [ ] fa1a7c57b8e Add remote info to the HLRC (#49657)
+- [sa] 50bd5842c3c Fix testCancelRecoveryDuringPhase1 (#50449)
+- [su] 5e0030e1306 Adjust BWC for peer recovery retention leases (#50351)
+- [d] a48d19d73a8 Add remote info to the HLRC (#50482)
+- [d] b7ac7324d23 Revert "Add remote info to the HLRC (#49657)"
+- [sn] f4989c54c45 Revert "serialize initial_connect_timeout as xcontent correctly"
+- [sn] ae64eaabdae serialize initial_connect_timeout as xcontent correctly
+- [d] fa1a7c57b8e Add remote info to the HLRC (#49657)
 - [x] cec6678587e Use peer recovery retention leases for indices without soft-deletes (#50351)
 - [sn] 3b8f5d9ea18 Modify proxy mode to support a single address (#50391)
 - [sn] 342a2920a96 Rename the remote connection mode simple to proxy (#50291)
