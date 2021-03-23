@@ -1,0 +1,107 @@
+.. _version_4.5.0:
+
+=============
+Version 4.5.0
+=============
+
+Released on 2021-03-23.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.5.0.
+
+    We recommend that you upgrade to the latest 4.3 release before moving to
+    4.5.0.
+
+    A rolling upgrade from 4.3.x to 4.5.0 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+Deprecations
+============
+
+- The table setting :ref:`sql-create-table-soft-deletes-enabled` has been
+  marked as deprecated and will be removed in a future version. Soft deletes
+  will become mandatory in CrateDB 5.0.
+
+
+Changes
+=======
+
+
+Licensing
+---------
+
+- Relicensed all enterprise features under the Apache License 2.0 and removed
+  licensing related code. The ``SET LICENSE`` statement can still be used, but
+  it won't have any effect.
+
+  Because of this, all users have now access to features like
+
+  - :ref:`User management <administration_user_management>`.
+  - :ref:`Authentication <admin_auth>` and :ref:`SSL/TLS support <admin_ssl>`.
+  - :ref:`User defined function support <user-defined-functions>`.
+  - :ref:`All window functions <window-functions>`.
+  - :ref:`JMX monitoring features <jmx_monitoring>`.
+  - The :ref:`hyperloglog_distinct aggregation function <aggregation-hyperloglog-distinct>`.
+
+
+Performance improvements
+------------------------
+
+- Optimized how ``NULL`` values are stored, reducing the amount of disk space
+  required. This can also improve the performance of value lookups on tables
+  with a lot of null values.
+
+
+SQL and PostgreSQL compatibility improvements
+---------------------------------------------
+
+
+- Added the ``regclass`` data type for improved compatibility with PostgreSQL
+  tools.
+
+- Added an empty ``pg_tablespace`` table in the ``pg_catalog`` schema for
+  improved support for PostgreSQL tools.
+
+- Improved the error messages for cast errors for values of type ``object``.
+
+- Added support for the :ref:`CREATE TABLE AS <ref-create-table-as>` statement.
+
+
+Administration and Operations
+-----------------------------
+
+- Added support for restoring metadata and settings from snapshots.  If ``ALL``
+  is used, everything (tables, settings, views, etc.) will be restored. On the
+  other hand, using ``TABLES`` will only restore tables.  In previous releases,
+  only tables could be restored, even if ``ALL`` was used.
+
+- Improved language selection, translations and general usability at the
+  Admin UI.
+
+- Updated the bundled JDK to 16+36
+
+
+New scalar and window functions
+-------------------------------
+
+- Added the :ref:`gen_random_text_uuid() <scalar-gen_random_text_uuid>` scalar
+  function.
+
+- Added the :ref:`pg_postmaster_start_time() <scalar_pg_postmaster_start_time>`
+  scalar function.
+
+- Added :ref:`CURDATE` and :ref:`CURRENT_DATE` :ref:`scalar functions
+  <scalar-functions>`.
