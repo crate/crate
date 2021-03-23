@@ -64,6 +64,11 @@ Cluster license
 The ``sys.cluster.license`` :ref:`expression <gloss-expression>` returns
 information about the currently registered license.
 
+.. NOTE::
+
+      Licenses were removed in CrateDB 4.5. Accordingly, these values are
+      deprecated and return `NULL` in CrateDB 4.5 and higher.
+
 ``license``
 -----------
 
