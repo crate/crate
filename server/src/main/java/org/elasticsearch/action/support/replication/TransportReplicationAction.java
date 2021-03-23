@@ -823,7 +823,7 @@ public abstract class TransportReplicationAction<
                 logger.trace(() -> new ParameterizedMessage("operation failed. action [{}], request [{}]", actionName, request), failure);
                 listener.onFailure(failure);
             } else {
-                assert false : "finishAsFailed called but operation is already finished. Error=" + SQLExceptions.unwrap(failure);
+                assert false : new AssertionError("finishAsFailed called but operation is already finished", failure);
             }
         }
 
@@ -835,7 +835,7 @@ public abstract class TransportReplicationAction<
                 setPhase(task, "failed");
                 listener.onFailure(failure);
             } else {
-                assert false : "finishWithUnexpectedFailure called but operation is already finished";
+                assert false : new AssertionError("finishWithUnexpectedFailure called but operation is already finished", failure);
             }
         }
 

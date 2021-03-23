@@ -529,7 +529,7 @@ should be crossed out as well.
 - [ ] fdd413370ef Deleted docs disregarded for if_seq_no check (#50526)
 - [ ] 4c1f1b2acab Declare remaining parsers `final` (#50571)
 - [ ] 77fd51f30ba Remove some Dead Code from Discovery Plugins (#50592)
-- [ ] 671fefaf59e Enhance TransportReplicationAction assertions (#49081)
+- [x] 671fefaf59e Enhance TransportReplicationAction assertions (#49081)
 - [d] 424ed93e38b Always use soft-deletes in InternalEngine (#50415)
 - [x] d02afccd983 Ensure relocating shards establish peer recovery retention leases (#50486)
 - [sa] 50bd5842c3c Fix testCancelRecoveryDuringPhase1 (#50449)
