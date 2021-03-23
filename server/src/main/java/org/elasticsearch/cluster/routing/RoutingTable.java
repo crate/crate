@@ -47,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.isIndexVerifiedBeforeClosed;
+
 /**
  * Represents a global cluster-wide routing table for all indices including the
  * version of the current routing state.
@@ -508,7 +510,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         }
 
         public Builder addAsFromDangling(IndexMetadata indexMetadata) {
-            if (indexMetadata.getState() == IndexMetadata.State.OPEN) {
+            if (indexMetadata.getState() == IndexMetadata.State.OPEN || isIndexVerifiedBeforeClosed(indexMetadata)) {
                 IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
                         .initializeAsFromDangling(indexMetadata);
                 add(indexRoutingBuilder);
@@ -526,7 +528,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         }
 
         public Builder addAsFromOpenToClose(IndexMetadata indexMetadata) {
-            assert IndexMetadata.isIndexVerifiedBeforeClosed(indexMetadata);
+            assert isIndexVerifiedBeforeClosed(indexMetadata);
             IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
                 .initializeAsFromOpenToClose(indexMetadata);
             return add(indexRoutingBuilder);
