@@ -21,8 +21,33 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.collect.ImmutableSet;
+import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableSortedSet;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.mapper.DateFieldMapper;
+import org.elasticsearch.index.mapper.KeywordFieldMapper;
+
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -55,27 +80,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.mapper.DateFieldMapper;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
-import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 public class DocIndexMetadata {
 
@@ -494,7 +498,7 @@ public class DocIndexMetadata {
     private Collection<ColumnIdent> getNotNullColumns() {
         Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");
         if (metaMap != null) {
-            ImmutableSet.Builder<ColumnIdent> builder = ImmutableSet.builder();
+            HashSet<ColumnIdent> builder = new HashSet<ColumnIdent>();
             Map<String, Object> constraintsMap = Maps.get(metaMap, "constraints");
             if (constraintsMap != null) {
                 Object notNullColumnsMeta = constraintsMap.get("not_null");
@@ -504,7 +508,7 @@ public class DocIndexMetadata {
                         for (Object notNullColumn : notNullColumns) {
                             builder.add(ColumnIdent.fromPath(notNullColumn.toString()));
                         }
-                        return builder.build();
+                        return Collections.unmodifiableSet(builder);
                     }
                 }
             }

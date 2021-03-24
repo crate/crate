@@ -23,7 +23,6 @@
 package io.crate.beans;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableSet;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.Plan.StatementType;
@@ -38,7 +37,7 @@ import java.util.function.Supplier;
 public class QueryStats implements QueryStatsMBean {
 
     private static final Set<StatementType> CLASSIFIED_STATEMENT_TYPES =
-        ImmutableSet.of(StatementType.SELECT, StatementType.INSERT, StatementType.UPDATE, StatementType.DELETE,
+        Set.of(StatementType.SELECT, StatementType.INSERT, StatementType.UPDATE, StatementType.DELETE,
             StatementType.MANAGEMENT, StatementType.COPY, StatementType.DDL);
 
     static class Metric {

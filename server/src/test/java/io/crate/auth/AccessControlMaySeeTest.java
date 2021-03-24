@@ -28,8 +28,8 @@ import static org.hamcrest.core.Is.is;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.elasticsearch.test.ESTestCase;
@@ -55,7 +55,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
     @Before
     public void setUpUserAndValidator() {
         validationCallArguments = new ArrayList<>();
-        user = new User("normal", ImmutableSet.of(), ImmutableSet.of(), null) {
+        user = new User("normal", Set.of(), Set.of(), null) {
 
             @Override
             public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {
