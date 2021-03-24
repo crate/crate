@@ -524,7 +524,7 @@ should be crossed out as well.
 - [ ] d1deeaeb74c Allow proxy mode server name to be configured (#50774)
 - [ ] d9528406bf3 Use default profile for remote connections (#50828)
 - [ ] a0513217dba Move metadata storage to Lucene (#50907)
-- [ ] 0510af87868 Do not force refresh when write indexing buffer (#50769)
+- [x] 0510af87868 Do not force refresh when write indexing buffer (#50769)
 - [ ] 40801af8840 Import replicated closed dangling indices (#50649)
 - [ ] fdd413370ef Deleted docs disregarded for if_seq_no check (#50526)
 - [ ] 4c1f1b2acab Declare remaining parsers `final` (#50571)
