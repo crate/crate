@@ -11,7 +11,7 @@ returns a boolean value (i.e., ``true`` or ``false``) or ``NULL``.
 
 .. SEEALSO::
 
-    :ref:`sql_array_comparisons`
+    :ref:`SQL: Value expressions <sql-scalar-subquery>`
 
 .. rubric:: Table of contents
 
@@ -46,13 +46,14 @@ Here's an example::
     +--------+----------+-----+
     SELECT 4 rows in set (... sec)
 
-The ``IN`` :ref:`operator <gloss-operator>` returns ``true`` if any subquery
-row equals the left-hand :ref:`operand <gloss-operand>`. Otherwise, it returns
-``false`` (including the case where the subquery returns no rows).
+The ``IN`` :ref:`operator <gloss-operator>` returns ``true`` if any
+:ref:`subquery <gloss-subquery>` row equals the left-hand :ref:`operand
+<gloss-operand>`. Otherwise, it returns ``false`` (including the case where the
+subquery returns no rows).
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
@@ -94,14 +95,15 @@ Here's an example::
     SELECT 5 rows in set (... sec)
 
 The ``ANY`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
-comparison is ``true`` for any of the result rows of the right-hand subquery.
+comparison is ``true`` for any of the result rows of the right-hand
+:ref:`subquery <gloss-subquery>`.
 
 The operator returns ``false`` if the comparison returns ``false`` for all
 result rows of the subquery or if the subquery returns no rows.
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
@@ -140,13 +142,14 @@ Here's an example::
     SELECT 1 row in set (... sec)
 
 The ``ALL`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
-comparison is ``true`` for all of the result rows of the right-hand subquery.
+comparison is ``true`` for all of the result rows of the right-hand
+:ref:`subquery <gloss-subquery>`.
 
 The operator returns ``false`` if the comparison returns ``false`` for any
 result rows of the subquery.
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - No comparison returns ``false`` and at least one right-hand value is ``NULL``

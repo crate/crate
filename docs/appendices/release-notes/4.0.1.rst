@@ -20,8 +20,8 @@ Released on 2019/07/08.
 
 .. WARNING::
 
-    Tables that were created prior CrateDB 3.x will not function with 4.x
-    and must be recreated before moving to 4.x.x.
+    Tables that were created prior CrateDB 3.x will not function with 4.x and
+    must be recreated before moving to 4.x.x.
 
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
@@ -38,7 +38,6 @@ Released on 2019/07/08.
 .. contents::
    :local:
 
-
 See the :ref:`version_4.0.0` release notes for a full list of changes in the
 4.0 series.
 
@@ -53,13 +52,14 @@ Fixes
   to be recreated in preparation for a CrateDB upgrade towards the next major
   version of CrateDB.
 
-- Fixed an issue that led to DEFAULT constraints of inner columns of object
+- Fixed an issue that led to ``DEFAULT`` constraints of inner columns of object
   columns to be ignored.
 
-- The values provided in INSERT or UPDATE statements for object columns which
-  contain generated expressions are now validated. The computed expression must
-  match the provided value. This makes the behavior consistent with how top
-  level columns of a table are treated.
+- The values provided in ``INSERT`` or ``UPDATE`` statements for object columns
+  which contain :ref:`generated expressions
+  <ddl-generated-columns-expressions>` are now validated. The computed
+  expression must match the provided value. This makes the behavior consistent
+  with how top level columns of a table are treated.
 
-- Fixed support for ordering by literal constants.
-  Example: ``SELECT 1, * FROM t ORDER BY 1"``
+- Fixed support for ordering by literal constants.  Example: ``SELECT 1, * FROM
+  t ORDER BY 1"``

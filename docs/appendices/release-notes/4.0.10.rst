@@ -9,9 +9,8 @@ Released on 2019/12/10.
 .. NOTE::
 
     Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
-    CrateDB 3.x or earlier.
-    Before upgrading to 4.0.10 you should be running a CrateDB cluster that is
-    at least on 3.0.7.
+    CrateDB 3.x or earlier.  Before upgrading to 4.0.10 you should be running a
+    CrateDB cluster that is at least on 3.0.7.
 
     We recommend that you upgrade to the latest 3.3 release before moving to
     4.0.10.
@@ -25,8 +24,8 @@ Released on 2019/12/10.
 
 .. WARNING::
 
-    Tables that were created prior CrateDB 3.x will not function with 4.x
-    and must be recreated before moving to 4.x.x.
+    Tables that were created prior CrateDB 3.x will not function with 4.x and
+    must be recreated before moving to 4.x.x.
 
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
@@ -44,15 +43,15 @@ Released on 2019/12/10.
 .. contents::
    :local:
 
-
 See the :ref:`version_4.0.0` release notes for a full list of changes in the
 4.0 series.
+
 
 Fixes
 =====
 
-- Fixed an issue that would lead to incorrect behaviour of the insert from
-  sub query statement for the scenario when the target table contains a
+- Fixed an issue that would lead to incorrect behaviour of the insert from sub
+  query statement for the scenario when the target table contains a
   :ref:`generated column <ddl-generated-columns>` with the
   :ref:`not_null_constraint` constraint and a value for the :ref:`generated
   column <ddl-generated-columns>` is not provided explicitly. For example, the
@@ -69,15 +68,15 @@ Fixes
 - Improved snapshot error handling by assuring a snapshot is declared as failed
   when a shard or node failure happens during the snapshot process.
 
-- Fixed an issue which may result in an ``ArrayIndexOutOfBoundsException`` while
-  altering an empty partitioned table.
+- Fixed an issue which may result in an ``ArrayIndexOutOfBoundsException``
+  while altering an empty partitioned table.
 
 - Fixed a regression introduced in ``2.3.2`` which optimizes subqueries when
-  used inside multi-value producing functions and :ref:`operators
-  <gloss-operator>` like ``IN()``, ``ANY()`` or ``ARRAY()`` by applying an
-  implicit ordering. When using data types (e.g. like an object: ``select
-  array(select {a = col} from test)`` which do not support ordering, an NPE was
-  raised.
+  used inside :ref:`multi-valued functions <gloss-multi-valued-functions>` and
+  :ref:`operators <gloss-operator>` like ``IN()``, ``ANY()`` or ``ARRAY()`` by
+  applying an implicit ordering. When using data types (e.g. like an object:
+  ``select array(select {a = col} from test)`` which do not support ordering,
+  an NPE was raised.
 
 - Fixed a possible OutOfMemory issue which may happen on ``GROUP BY`` statement
   using a group key of type ``TEXT`` on tables containing at least one shard
@@ -87,11 +86,12 @@ Fixes
   table which contains nested primary key columns.
 
 - Fixed an issue where values of type ``array(varchar)`` were decoded
-  incorrectly if they contained a ``,`` character. This occurred when
-  the PostgreSQL wire protocol was used in ``text`` mode.
+  incorrectly if they contained a ``,`` character. This occurred when the
+  PostgreSQL wire protocol was used in ``text`` mode.
 
-- Improved performance of snapshot finalization as https://github.com/crate/crate/pull/9327
-  introduced a performance regression on the snapshot process.
+- Improved performance of snapshot finalization as
+  https://github.com/crate/crate/pull/9327 introduced a performance regression
+  on the snapshot process.
 
 - Fixed a ``ClassCastException`` that could occur when using ``unnest`` on
   multi dimensional arrays.

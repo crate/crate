@@ -8,8 +8,8 @@ Released on 2017/05/16.
 
 .. WARNING::
 
-    CrateDB 2.x versions prior 2.0.4 (including this version) contain a critical
-    bug which leads to deletion of blob data upon node shutdown. It is
+    CrateDB 2.x versions prior 2.0.4 (including this version) contain a
+    critical bug which leads to deletion of blob data upon node shutdown. It is
     recommended to not install those versions.
 
 .. rubric:: Table of contents
@@ -17,15 +17,17 @@ Released on 2017/05/16.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Breaking Changes
 ----------------
 
- - To accommodate user-defined functions, some new reserved keywords have been
-   added to the CrateDB SQL dialect: ``RETURNS``, ``CALLED``, ``REPLACE``,
-   ``FUNCTION``, ``LANGUAGE``, ``INPUT``
+ - To accommodate :ref:`user-defined functions <user-defined-functions>`, some
+   new reserved keywords have been added to the CrateDB SQL dialect:
+   ``RETURNS``, ``CALLED``, ``REPLACE``, ``FUNCTION``, ``LANGUAGE``, ``INPUT``
 
  - The ``license.enterprise`` setting is set to ``true`` by default. This
    enables the CrateDB Enterprise Edition.
@@ -51,8 +53,8 @@ Breaking Changes
    multiple nodes and ended up thinking they have lost data because the second
    node will start with an empty directory.
 
-   Running multiple nodes on the same data path tends to be an exception,
-   so this is a safer default.
+   Running multiple nodes on the same data path tends to be an exception, so
+   this is a safer default.
 
  - Parsing support of time values has been changed:
 
@@ -127,8 +129,8 @@ Breaking Changes
    snapshots.
 
  - Changed default bind and publish address from ``0.0.0.0`` to the system
-   ``loopback`` addresses which will result in CrateDB listening only to
-   local ports.
+   ``loopback`` addresses which will result in CrateDB listening only to local
+   ports.
 
  - The ``discovery.ec2.ping_timeout`` setting has been removed and the
    ``discovery.zen.ping_timeout`` setting is now also used for EC2 discovery.
@@ -142,8 +144,10 @@ Breaking Changes
 
      - ``indices.recovery.retry_internal_action_timeout`` has been renamed to
        ``indices.recovery.internal_action_timeout``
+
      - ``indices.recovery.retry_internal_long_action_timeout`` has been renamed
        to ``indices.recovery.internal_action_long_timeout``
+
      - ``indices.recovery.retry_activity_timeout`` has been renamed to
        ``indices.recovery.recovery_activity_timeout``
 
@@ -155,14 +159,13 @@ Breaking Changes
 
  - The blobs data directory layout has changed.
 
+
 Changes
 -------
 
- - Extended the subselect support. See :ref:`SELECT Reference
-   <sql_reference_subselect>` for details.
+ - Extended the :ref:`subselect <sql-select-sub-select>` support.
 
- - Added support for host based authentication (HBA).
-   Please see :ref:`Host Based Authentication <admin_hba>`.
+ - Added support for :ref:`host based authentication <admin_hba>` (HBA).
 
  - Added support for renaming tables using the ``ALTER ... RENAME TO ...``
    statement.
@@ -184,16 +187,16 @@ Changes
 
      SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) AS tt GROUP BY x;
 
- - Implemented hash sum scalar functions (MD5, SHA1).
+ - Implemented hash sum :ref:`scalar functions <scalar-functions>` (MD5, SHA1).
    Please see :ref:`sha1 <sha1>`.
 
  - Various admin UI improvements.
 
  - Added support for ``GROUP BY`` on joins.
 
- - Added support for user-defined functions.
+ - Added support for :ref:`user-defined functions <user-defined-functions>`.
 
- - Added JavaScript language for functions.
+ - Added JavaScript language for user-defined functions.
 
  - Added cluster check and warning for unlicensed usage of CrateDB Enterprise.
 
@@ -207,8 +210,7 @@ Changes
  - Improved performance of blob stats computation by calculating them in an
    incremental manner.
 
- - Optimized performance of negation queries on ``NOT NULL`` columns.
-   E.g.::
+ - Optimized performance of negation queries on ``NOT NULL`` columns.  E.g.::
 
      SELECT * FROM t WHERE not_null_col != 10
 
@@ -227,6 +229,7 @@ Changes
  - Added validation that ``ORDER BY`` symbols are included in the ``SELECT``
    list when ``DISTINCT`` is used.
 
+
 Fixes
 -----
 
@@ -239,10 +242,12 @@ Fixes
  - Fixed that ``sys.snapshot`` queries hung instead of throwing an error if
    something went wrong.
 
+
 .. _version_2.0.0_upgrade_notes:
 
 Upgrade Notes
 =============
+
 
 Daemon User
 -----------
@@ -250,11 +255,13 @@ Daemon User
 You can no longer run CrateDB as the superuser on Unix-like systems. You should
 create a new ``crate`` user for running the CrateDB daemon.
 
+
 Logging
 -------
 
 The ``logging.yml`` has been removed. You must migrate your :ref:`conf-logging`
 configuration to the new ``log4j2.properties`` file.
+
 
 System Properties
 -----------------
@@ -274,6 +281,7 @@ You can continue to use the ``JAVA_OPTIONS`` and ``CRATE_JAVA_OPTS``
 environment variables to set general JVM properties and CrateDB specific JVM
 properties, respectively.
 
+
 Configuration Changes
 ---------------------
 
@@ -281,12 +289,14 @@ Many configuration settings and files have been renamed or removed. You must
 review the `Breaking Changes`_ section above and update your setup as
 necessary.
 
+
 SQL Changes
 -----------
 
 Several breaking changes were made to CrateDB's SQL. This includes changes to
 time parsing, syntax changes, and new reserved keywords. You must review the
 `Breaking Changes`_ section above and update your client code as necessary.
+
 
 Bind Address
 ------------
@@ -296,8 +306,7 @@ address (meaning it will only be accessible on ``localhost``). See
 :ref:`conf_hosts` for more.
 
 If you want to keep the original behaviour (i.e. bind to every available
-network interface) you must add the following line to your
-:ref:`config` file::
+network interface) you must add the following line to your :ref:`config` file::
 
     network.host: 0.0.0.0
 
@@ -307,6 +316,7 @@ network interface) you must add the following line to your
    instructions in the new `bootstrap checks`_ guide.
 
 .. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
+
 
 Heap Size
 ---------
@@ -318,6 +328,7 @@ with a single variable ``CRATE_HEAP_SIZE``. The :ref:`CRATE_HEAP_SIZE
 allocate, and should be set to whatever your previous ``CRATE_MAX_MEM`` was set
 to.
 
+
 Cluster name in path data
 -------------------------
 
@@ -325,12 +336,13 @@ The computation of the effective data directory path has changed in a way that
 the cluster name is not part of the path anymore. In previous versions it was
 ``$PATH_DATA_DIR/$CLUSTER_NAME/nodes/`` and now it is
 ``$PATH_DATA_DIR/nodes/``. There's a fallback that still accepts the old data
-structure, which will be removed in future versions of CrateDB.
-It will be required that the data directory is either moved to the new location
-or the ``path.data`` setting gets changed to point to the old location by
-appending the clustername to it (e.g ``/data/`` becomes
+structure, which will be removed in future versions of CrateDB.  It will be
+required that the data directory is either moved to the new location or the
+``path.data`` setting gets changed to point to the old location by appending
+the clustername to it (e.g ``/data/`` becomes
 ``/data/yourclustername``). Therefore it's not possible anymore for multiple
 clusters to share the exact same ``path.data`` directory.
+
 
 Boolean Data Type
 -----------------

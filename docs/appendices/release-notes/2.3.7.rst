@@ -28,14 +28,17 @@ Released on 2018/05/03.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Changes
 -------
 
-- Table functions no longer require any permissions to be used. (Enterprise
-  only.)
+- :ref:`Table functions <table-functions>` no longer require any permissions to
+  be used. (Enterprise only.)
+
 
 Fixes
 -----
@@ -48,17 +51,17 @@ Fixes
   an unnecessary stacktrace.
 
 - Fixed a performance regression which occurred in queries where a literal was
-  compared against an array column of a different type. For example:
-  ``SELECT * FROM t1 WHERE 1 = ANY(int_arr_column)``
-  The array column would have been converted to long although the literal on
-  the left could have been converted to integer.
+  compared against an array column of a different type. For example: ``SELECT *
+  FROM t1 WHERE 1 = ANY(int_arr_column)`` The array column would have been
+  converted to long although the literal on the left could have been converted
+  to integer.
 
 - Fixed an issue where the order of the relations in a ``FROM`` clause would
   expose fields between the relations. An error was thrown during execution of
   the statements.
 
 - Fixed incorrect HTTP responses on the BLOB API of subsequent requests after
-  an error response occurred, e.g. 404 Not Found.
+  an error response occurred, e.g., ``404 Not Found``.
 
 - Fixed an issue that caused ``ANY`` to not work correctly on nested arrays.
 

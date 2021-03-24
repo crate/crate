@@ -1,3 +1,5 @@
+.. _sql-statements:
+
 ==============
 SQL Statements
 ==============

@@ -11,8 +11,8 @@ Released on 2017/12/22.
     If you are upgrading a cluster, you must be running CrateDB
     :ref:`version_1.1.3` or higher before you upgrade to 2.3.0.
 
-    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-    version will require a `full restart upgrade`_.
+    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to
+    this version will require a `full restart upgrade`_.
 
 .. WARNING::
 
@@ -27,8 +27,10 @@ Released on 2017/12/22.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Breaking Changes
 ----------------
@@ -52,31 +54,34 @@ Breaking Changes
   without breaking exising HBA configurations.
 
   An implication of these settings is that whenever Enterprise is enabled
-  (default behaviour) connections from remote hosts *always* require
-  password authentication. Note, that when running CrateDB in Docker, the host
-  of the Docker container is also considered a remote host.
+  (default behaviour) connections from remote hosts *always* require password
+  authentication. Note, that when running CrateDB in Docker, the host of the
+  Docker container is also considered a remote host.
 
 - Columns aren't implicitly cast to a type anymore. Whenever columns are
   compared to Literals (e.g. 'string', 1, 1.2), these literals will be
   converted to the column type but not vice-versa. The column can still be
-  manually cast to a type by using a cast function.
+  manually cast to a type by using a :ref:`cast function <type_cast>`.
 
 - Table ``information_schema.table_constraints`` is now returning
   ``constraint_name`` as type string instead of type array. Constraint type
-  ``PRIMARY_KEY`` has been changed to ``PRIMARY KEY``. Also PRIMARY KEY
+  ``PRIMARY_KEY`` has been changed to ``PRIMARY KEY``. Also ``PRIMARY KEY``
   constraint is not returned when not explicitly defined.
 
-- Scalar functions are resolved more strictly based on the argument types. This
-  means that built-in functions with the same name as user defined functions
-  will always "hide" the latter, even if the UDF has a different set of
-  arguments. Using the same name as a built-in function for a user defined
-  function is considered bad practice.
+- :ref:`Scalar functions <scalar-functions>` are resolved more strictly based
+  on the argument types. This means that built-in functions with the same name
+  as :ref:`user-defined functions <user-defined-functions>` will always "hide"
+  the latter, even if the UDF has a different set of arguments. Using the same
+  name as a built-in function for a user defined function is considered bad
+  practice.
+
 
 Changes
 -------
 
-- Added the ``hyperloglog_distinct`` aggregation function. This feature is only
-  available in the Enterprise Edition.
+- Added the ``hyperloglog_distinct`` :ref:`aggregation function
+  <aggregation-functions>`. This feature is only available in the Enterprise
+  Edition.
 
 - Added a ``os['cpu']['used']`` column to the ``sys.nodes`` table. This
   replaces the deprecated system/user/idle/stolen values.
@@ -134,8 +139,8 @@ Changes
 - Table ``information_schema.table_constraints`` is now also returning the
   ``NOT_NULL`` constraint.
 
-- Added new cluster setting ``routing.rebalance.enable`` that allows to
-  enable or disable shard rebalancing on the cluster.
+- Added new cluster setting ``routing.rebalance.enable`` that allows to enable
+  or disable shard rebalancing on the cluster.
 
 - Added support to manually control the :ref:`allocation of shards
   <gloss-shard-allocation>` using ``ALTER TABLE REROUTE``. Supported
@@ -150,15 +155,16 @@ Changes
 - Added new system table ``sys.allocations`` which lists shards and their
   allocation state including the reasoning why they are in a certain state.
 
-- Function arguments are now linked to each other, where possible. This enables
-  type inference between arguments such that arguments can be converted to
-  match a function's signature. For example, ``coalesce(integer, long)`` would
-  have resulted in an "unknown function" message. We now convert this call into
-  ``coalesce(long, long)``. The conversion is possible through a type
-  precedence list and convertibility checks on the data types.
+- :ref:`Function <gloss-function>` arguments are now linked to each other,
+  where possible. This enables type inference between arguments such that
+  arguments can be converted to match a function's signature. For example,
+  ``coalesce(integer, long)`` would have resulted in an "unknown function"
+  message. We now convert this call into ``coalesce(long, long)``. The
+  conversion is possible through a type precedence list and convertibility
+  checks on the data types.
 
-- Functions which accept regular expression flags now throw an error when
-  invalid flags are provided.
+- Functions which accept :ref:`regular expression <gloss-regular-expression>`
+  flags now throw an error when invalid flags are provided.
 
 - Clients using the PostgreSQL wire protocol will now receive an additional
   ``crate_version`` ParameterStatus message when establishing a connection.
@@ -167,7 +173,8 @@ Changes
 - Added the ``typtype`` column to ``pg_catalog.pg_type`` for better
   compatibility with certain PostgreSQL client libraries.
 
-- Added the ``pg_backend_pid()`` function for enhanced PostgreSQL compatibility.
+- Added the ``pg_backend_pid()`` function for enhanced PostgreSQL
+  compatibility.
 
 - Added support for the PSQL ParameterDescription message which allows to get
   the parameter types in prepared statements up front without specifying the
@@ -176,10 +183,14 @@ Changes
 
 - Upgraded Elasticsearch to version 5.6.3.
 
-- Updated the CrateDB command line shell (crash) to version 0.23.0, which added
-  support for password authentication and pasting multiple statements at once.
+- Updated the `CrateDB command line shell`_ (Crash) to version 0.23.0, which
+  added support for password authentication and pasting multiple statements at
+  once.
 
 - Update the Admin UI to use new CPU metrics for its graphs.
 
 - Hadoop2 dependencies for the HDFS repository plugin have been upgraded to
   version 2.8.1.
+
+
+.. _CrateDB command line shell: https://crate.io/docs/crate/crash/en/latest/

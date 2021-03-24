@@ -29,7 +29,8 @@ Synopsis
 Description
 ===========
 
-``INSERT`` creates one or more rows specified by value expressions.
+``INSERT`` creates one or more rows specified by :ref:`value expressions
+<sql-value-expressions>`.
 
 The target column names can be listed in any order. If the target column names
 are omitted, they default to all columns of the table or up to N columns if
@@ -45,8 +46,8 @@ the explicit or implicit column list left-to-right.
 Each column not present in the explicit or implicit column list will not be
 filled.
 
-If the expression for any column is not of the correct data type, automatic
-type conversion will be attempted.
+If the :ref:`expression <gloss-expression>` for any column is not of the
+correct data type, automatic type conversion will be attempted.
 
 The optional ``RETURNING`` clause causes ``INSERT`` to compute and return
 values based from each row actually inserted (or updated, if an ``ON
@@ -137,7 +138,8 @@ Parameters
     The name of a column or field in the table pointed to by *table_ident*.
 
 :expression:
-    An expression or value to assign to the corresponding column.
+    An :ref:`expression <gloss-expression>` or value to assign to the
+    corresponding column.
 
 :query:
     A query (``SELECT`` statement) that supplies the rows to be inserted.

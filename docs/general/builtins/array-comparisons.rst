@@ -46,7 +46,8 @@ right-hand values).
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand :ref:`expression <gloss-expression>` :ref:`evaluates
+  <gloss-evaluation>` to ``NULL``
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
@@ -79,14 +80,14 @@ Here's an example::
 
 The ``ANY`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
 comparison is ``true`` for any of the values in the right-hand array
-expression.
+:ref:`expression <gloss-expression>`.
 
 The operator returns ``false`` if the comparison returns ``false`` for all
 right-hand values or there are no right-hand values.
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
@@ -96,7 +97,7 @@ The operator returns ``NULL`` if:
     When doing ``NOT <value> = ANY(<array_col>)``, query performance may be
     degraded because special handling is required to implement the `3-valued
     logic`_. To achieve better performance, consider using the :ref:`ignore3vl
-    function<ignore3vl>`.
+    function <ignore3vl>`.
 
 
 .. _all_array_comparison:
@@ -126,14 +127,15 @@ Here's an example::
 
 
 The ``ALL`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
-comparison is ``true`` for all values in the right-hand array expression.
+comparison is ``true`` for all values in the right-hand :ref:`array expression
+<sql-array-constructor>`.
 
 The operator returns ``false`` if the comparison returns ``false`` for all
 right-hand values.
 
 The operator returns ``NULL`` if:
 
-- The left-hand expression evaluates to ``NULL``
+- The left-hand expression :ref:`evaluates <gloss-evaluation>` to ``NULL``
 
 - No comparison returns ``false`` and at least one right-hand value is ``NULL``
 

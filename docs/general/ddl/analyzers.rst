@@ -166,7 +166,7 @@ Creates one single token from the field-contents.
 ``type='pattern'``
 
 An analyzer of type pattern that can flexibly separate text into terms via a
-regular expression.
+:ref:`regular expression <gloss-regular-expression>`.
 
 .. rubric:: Parameters
 
@@ -444,7 +444,8 @@ Pattern tokenizer
 
 ``type='pattern'``
 
-The ``pattern`` tokenizer separates text into terms via a regular expression.
+The ``pattern`` tokenizer separates text into terms via a :ref:`regular
+expression <gloss-regular-expression>`.
 
 .. rubric:: Parameters
 
@@ -472,10 +473,11 @@ Simple pattern tokenizer
 
 ``type='simple_pattern'``
 
-Similar to the ``pattern`` tokenizer, this tokenizer uses a regular expression
-to split matching text into terms, however with a limited, more restrictive
-subset of expressions. This is in general faster than the normal ``pattern``
-tokenizer, but does not support splitting on pattern.
+Similar to the ``pattern`` tokenizer, this tokenizer uses a :ref:`regular
+expression <gloss-regular-expression>` to split matching text into terms,
+however with a limited, more restrictive subset of expressions. This is in
+general faster than the normal ``pattern`` tokenizer, but does not support
+splitting on pattern.
 
 .. rubric:: Parameters
 
@@ -490,8 +492,9 @@ Simple pattern split tokenizer
 ``type='simple_patten_split'``
 
 The ``simple_pattern_split`` tokenizer operates with the same restricted subset
-of regular expressions as the ``simple_pattern`` tokenizer, but it splits the
-input on the pattern, rather than the matching pattern.
+of :ref:`regular expressions <gloss-regular-expression>` as the
+``simple_pattern`` tokenizer, but it splits the input on the pattern, rather
+than the matching pattern.
 
 .. rubric:: Parameters
 
@@ -973,7 +976,8 @@ only_on_same_position
 
 ``type='pattern_capture'``
 
-Emits a token for every capture group in the regular expression
+Emits a token for every capture group in the :ref:`regular expression
+<gloss-regular-expression>`.
 
 .. rubric:: Parameters
 
@@ -987,7 +991,8 @@ preserve_original
 
 ``type='pattern_replace'``
 
-Handle string replacements based on a regular expression.
+Handle string replacements based on a :ref:`regular expression
+<gloss-regular-expression>`.
 
 .. rubric:: Parameters
 

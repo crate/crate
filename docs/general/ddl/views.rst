@@ -1,4 +1,4 @@
-.. _views:
+.. _ddl-views:
 
 =====
 Views
@@ -18,7 +18,7 @@ Creating views
 Views are stored named queries which can be used in place of table names.
 They're resolved at runtime and can be used to simplify common queries.
 
-Views are created using the :ref:`CREATE VIEW statement <ref-create-view>`
+Views are created using the :ref:`CREATE VIEW statement <sql-create-view>`
 
 For example, a common use case is to create a view which queries a table with a
 pre-defined filter::
@@ -75,7 +75,7 @@ be able to query it.
 Dropping views
 ==============
 
-Views can be dropped using the :ref:`DROP VIEW statement <ref-drop-view>`::
+Views can be dropped using the :ref:`DROP VIEW statement <sql-drop-view>`::
 
     cr> DROP VIEW big_mountains;
     DROP OK, 1 row affected (... sec)

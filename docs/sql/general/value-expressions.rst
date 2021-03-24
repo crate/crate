@@ -6,9 +6,9 @@
 Value expressions
 =================
 
-Value expressions are expressions which return a single value.
-
-They can be used in many contexts of many statements.
+A value :ref:`expression <gloss-expression>` is a combination of one or more
+values, :ref:`operators <gloss-operator>`, and functions that :ref:`evaluate
+<gloss-evaluation>` to a single value.
 
 .. rubric:: Table of contents
 
@@ -80,16 +80,17 @@ Parameter references can either be unnumbered or numbered:
 Operator invocation
 ===================
 
-An :ref:`operator <gloss-operator>` can be invoked as a value expression in two
-ways:
+An :ref:`operator <gloss-operator>` can be invoked as a value expression in one
+of two ways: *binary* or *unary*.
 
-- Binary: ``expression operator expression``
+The syntax of a binary operator::
 
-- Unary: ``operator expression``
+    expression operator expression
 
-.. SEEALSO::
+The syntax of a unary operator::
 
-    :ref:`comparison-operators`
+    operator expression
+
 
 .. _sql-subscripts:
 
@@ -171,17 +172,12 @@ an identifier that must refer to a field of the record.
 Function call
 =============
 
-A function is declared by its name followed by its arguments enclosed in
-parentheses::
+A :ref:`function <gloss-function>` can be invoked with a *function call* (a
+process better known as *calling the function*). The corresponding syntax is
+the function name optionally followed by zero or more arguments (in the form of
+value expressions) enclosed by parentheses::
 
-    function_name([expression [, expression ... ]])
-      [OVER( [PARTITION BY expression [, ...] ] [ORDER BY expression [, ...] ]) ]
-
-.. SEEALSO::
-
-    - :ref:`scalar`
-    - :ref:`aggregation`
-    - :ref:`window-functions`
+    function_name[([expression [, expression ... ]])]
 
 
 .. _sql-type-cast:
@@ -239,7 +235,7 @@ optionally prefixed with ``ARRAY``::
 .. _sql_expressions_array_subquery:
 
 Another way to construct an array is by using an ``ARRAY(subquery)`` expression
-as part of the :ref:`Select list <sql_reference_select_list>` of a ``SELECT``
+as part of the :ref:`SELECT list <sql-select-list>` of a ``SELECT``
 statement::
 
     ARRAY '(' subquery ')'
@@ -257,7 +253,8 @@ Example::
 
 .. NOTE::
 
-    Array constructor only supports subqueries returning a single column.
+    Array constructor only supports :ref:`subqueries <gloss-subquery>`
+    returning a single column.
 
 
 .. _sql-scalar-subquery:
@@ -265,8 +262,9 @@ Example::
 Scalar subquery
 ===============
 
-A :ref:`scalar <gloss-scalar>` subquery is a subquery that returns a single
-value (i.e., one row with one column).
+A :ref:`scalar <gloss-scalar>` :ref:`subquery <gloss-subquery>` (also known as
+a :ref:`subquery expression <sql_subquery_expressions>`) is a subquery that
+returns a single value (i.e., one row with one column).
 
 If zero rows are returned, it will be treated as null value. In the case that
 more than one row (or more than one column) is returned, CrateDB will treat it
@@ -278,6 +276,6 @@ stating that the column is unknown.
 
 .. NOTE::
 
-    Scalar subqueries are restricted to :ref:`SELECT <sql_reference_select>`,
-    :ref:`DELETE <sql_reference_delete>` and :ref:`UPDATE <ref-update>`
-    statements and cannot be used in other statements.
+    Scalar subqueries are restricted to :ref:`SELECT <sql-select>`, :ref:`DELETE
+    <sql_reference_delete>` and :ref:`UPDATE <ref-update>` statements and
+    cannot be used in other statements.

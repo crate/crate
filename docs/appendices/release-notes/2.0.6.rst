@@ -13,8 +13,9 @@ Released on 2017/07/19.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
     number must be :ref:`version_2.0.0`.  If you want to upgrade from a version
-    prior to this, the upgrade will introduce all of the breaking changes listed
-    for :ref:`version_2.0.0`, and will require a `full restart upgrade`_.
+    prior to this, the upgrade will introduce all of the breaking changes
+    listed for :ref:`version_2.0.0`, and will require a `full restart
+    upgrade`_.
 
     Consult the upgrade notes for :ref:`Version 2.0.0
     <version_2.0.0_upgrade_notes>` when upgrading.
@@ -35,6 +36,7 @@ Released on 2017/07/19.
 .. contents::
    :local:
 
+
 Upgrade Notes
 =============
 
@@ -43,18 +45,20 @@ data, it is necessary to perform a `rolling upgrade`_ if you're running a
 version >= 2.0.0 and < 2.0.4 and using BLOB tables.
 
 Additionally, the number of replicas needs to be set to at least ``1`` for
-**all** blob tables and you need to make sure that data is fully replicated
+*all* blob tables and you need to make sure that data is fully replicated
 before continuing.
 
 Only then you may upgrade one node after each other.
 
+
 Changelog
 =========
+
 
 Fixes
 -----
 
- - Allow ``GROUP BY`` on any scalar functions, e.g.::
+ - Allow ``GROUP BY`` on any :ref:`scalar functions <scalar-functions>`, e.g.::
 
      SELECT id + 1 FROM t GROUP BY id
 
@@ -71,8 +75,8 @@ Fixes
    aggregation symbol twice as a select item on a join query.
 
  - Fixed an issue that caused wrong results to be returned for global
-   aggregation on ``JOINS`` when literal expression in ``WHERE`` clause is
-   evaluated to false, e.g.::
+   aggregation on ``JOINS`` when :ref:`literal expression <sql-literal-value>`
+   in ``WHERE`` clause is :ref:`evaluated <gloss-evaluation>` to false, e.g.::
 
      SELECT COUNT(*) FROM t1, t2 WHERE 1=2
 

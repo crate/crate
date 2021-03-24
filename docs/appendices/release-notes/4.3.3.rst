@@ -36,14 +36,15 @@ Fixes
   and used the binary serialization format.
 
 - Fixed an issue resulting in an error when using a ``ORDER BY`` clause inside
-  the subquery of a ``INSERT INTO`` statement.
+  the :ref:`subquery <gloss-subquery>` of a ``INSERT INTO`` statement.
 
 - Fixed a regression introduced in CrateDB ``4.2.0`` leading to a NPE when
   copying data from one table to another using ``INSERT INTO ...`` while the
   source table contains more than 128 columns.
 
-- Fixed an issue resulting in the full generated expression as the column name
-  inside data exported by ``COPY TO`` statements.
+- Fixed an issue resulting in the full :ref:`generated expression
+  <ddl-generated-columns-expressions>` as the column name inside data exported
+  by ``COPY TO`` statements.
 
 - Fixed an issue resulting double-quoted column names inside data exported by
   ``COPY TO`` statements.
@@ -51,8 +52,8 @@ Fixes
 - Fixed a memory leak in the DNS discovery seed provider. The memory leak
   occurred if you configured ``discovery.seed_providers=srv``.
 
-- Fixed a regression introduced in CrateDB ``4.0`` preventing the global setting
-  ``cluster.info.update.interval`` to be changed.
+- Fixed a regression introduced in CrateDB ``4.0`` preventing the global
+  setting ``cluster.info.update.interval`` to be changed.
 
-- Fixed handling of spaces in `$CRATE_HOME`. Users would get a `No such file or
-  directory` error if the path set via `$CRATE_HOME` contained spaces.
+- Fixed handling of spaces in ``$CRATE_HOME``. Users would get a ``No such file
+  or directory`` error if the path set via ``$CRATE_HOME`` contained spaces.

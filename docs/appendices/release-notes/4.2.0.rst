@@ -20,8 +20,6 @@ Released on 2020-07-07.
 
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 
-
-
 .. rubric:: Table of Contents
 
 .. contents::
@@ -31,9 +29,9 @@ Released on 2020-07-07.
 Breaking Changes
 ================
 
-- Changed the logic how the ``array_unique`` scalar function infers the
-  argument types.  Previously if the arguments had a different type it used the
-  type of the first argument. For example::
+- Changed the logic how the ``array_unique`` :ref:`scalar function
+  <scalar-functions>` infers the argument types.  Previously if the arguments
+  had a different type it used the type of the first argument. For example::
 
     cr> select array_unique(['1'], [1.0, 2.0]);
     +---------------------------------+
@@ -43,7 +41,7 @@ Breaking Changes
     +---------------------------------+
 
   This logic has been changed to instead use a type precedence logic to be
-  consistent with how other functions behave::
+  consistent with how other :ref:`functions <gloss-function>` behave::
 
     cr> select array_unique(['1'], [1.0, 2.0]);
     +------------+
@@ -55,17 +53,17 @@ Breaking Changes
 - Remap CrateDB :ref:`object_data_type` array data type from the PostgreSQL
   JSON to JSON array type. That might effect some drivers that use the
   PostgreSQL wire protocol to insert data into tables with object array typed
-  columns. For instance,  when using the ``Npgsql`` driver, it is not longer
-  possible to insert an array of objects into a column of the object array
-  data type by using the parameter of a SQL statement that has the JSON data
-  type and an array of CLR as its value. Instead, use a string array with JSON
-  strings that represent the objects. See the ``Npgsql`` documentation for
-  more details.
+  columns. For instance, when using the ``Npgsql`` driver, it is not longer
+  possible to insert an array of objects into a column of the object array data
+  type by using the parameter of a SQL statement that has the JSON data type
+  and an array of CLR as its value. Instead, use a string array with JSON
+  strings that represent the objects. See the ``Npgsql`` documentation for more
+  details.
 
 - Bulk ``INSERT INTO ... VALUES (...)`` statements do not throw an exception
-  any longer when one of the bulk operations fails. The result of the
-  execution is only available via the ``results`` array represented by a
-  row count for each bulk operation.
+  any longer when one of the bulk operations fails. The result of the execution
+  is only available via the ``results`` array represented by a row count for
+  each bulk operation.
 
 - Numeric literals fitting into the ``integer`` range are now treated as
   ``integer`` literals instead of ``bigint`` literals. Thus a statement like
@@ -89,6 +87,7 @@ Breaking Changes
   explicit ``rollback`` call in a client library will result in an unsupported
   ``ROLLBACK`` statement.
 
+
 Deprecations
 ============
 
@@ -103,11 +102,11 @@ Changes
 Administration
 --------------
 
-- The JavaScript user defined function language is now enabled by default in
-  the CrateDB enterprise edition.
+- The JavaScript :ref:`user-defined function <user-defined-functions>` language
+  is now enabled by default in the CrateDB enterprise edition.
 
-- Added the :ref:`optimizer <conf-session-optimizer>` session setting
-  to configure query optimizer rules.
+- Added the :ref:`optimizer <conf-session-optimizer>` session setting to
+  configure query optimizer rules.
 
 - Include the bundled version of ``OpenJDK`` (14.0.1+7) into the ``CrateDB``
   built. It means that ``CrateDB`` doesn't rely on ``JAVA_HOME`` of the host
@@ -120,28 +119,28 @@ Administration
   which lists the fully qualified name of all tables contained within the
   snapshot.
 
-- Limit the output of COPY FROM RETURN SUMMARY in the presence of errors to
-  display up to 50 ``line_numbers`` to avoid buffer pressure at clients and
-  to improve readability.
+- Limit the output of ``COPY FROM RETURN SUMMARY`` in the presence of errors to
+  display up to 50 ``line_numbers`` to avoid buffer pressure at clients and to
+  improve readability.
 
 
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
 
-- Added scalar function :ref:`CURRENT_TIME <current_time>`, that returns
-  the system's time as microseconds since midnight UTC, at the time the SQL
-  statement is handled. The actual return type is the new data type
-  :ref:`timetz <time-data-type>`.
+- Added :ref:`scalar function <scalar-functions>` :ref:`CURRENT_TIME
+  <current_time>`, that returns the system's time as microseconds since
+  midnight UTC, at the time the SQL statement is handled. The actual return
+  type is the new data type :ref:`timetz <time-data-type>`.
 
-- Added new type :ref:`time with time zone <time-data-type>`, a.k.a `timetz`,
-  which is to be used as return type for time related functions such as the
-  future `current_time`.
+- Added new type :ref:`time with time zone <time-data-type>`, a.k.a ``timetz``,
+  which is to be used as return type for :ref:`time related functions
+  <scalar-date-time>` such as the future ``current_time``.
 
 - Added the :ref:`oidvector_type` data type which is used in some
   :ref:`postgres_pg_catalog` tables.
 
 - Added the :ref:`oid_regproc` alias data type that is used to reference
-  functions in the :ref:`postgres_pg_catalog` tables.
+  :ref:`functions <gloss-function>` in the :ref:`postgres_pg_catalog` tables.
 
 - Added the :ref:`varchar(n) and character varying(n) <data-type-varchar>`
   types, where ``n`` is an optional length limit.
@@ -159,9 +158,9 @@ SQL Standard and PostgreSQL compatibility improvements
 - Added the :ref:`information_schema.character_sets <character_sets>` table.
 
 - Added :ref:`postgres_pg_type` columns: ``typbyval``, ``typcategory``,
-  ``typowner``, ``typisdefined``, ``typrelid``, ``typndims``,
-  ``typcollation``, ``typinput``, ``typoutput``, and ``typndefault`` for improved
-  PostgreSQL compatibility.
+  ``typowner``, ``typisdefined``, ``typrelid``, ``typndims``, ``typcollation``,
+  ``typinput``, ``typoutput``, and ``typndefault`` for improved PostgreSQL
+  compatibility.
 
 - Added support for ``JOIN USING``, e.g. ``SELECT * FROM t1 JOIN t2 USING
   (col)``, an alternative to ``JOIN ON``, when the column name(s) are the same
@@ -173,8 +172,8 @@ SQL Standard and PostgreSQL compatibility improvements
   alternative to the existing :ref:`object subscript <sql-object-subscript>`
   syntax.
 
-- Added support for using columns of type ``long`` inside subscript expressions
-  (e.g., ``array_expr[column]``).
+- Added support for using columns of type ``long`` inside :ref:`subscript
+  expressions <sql-subscripts>` (e.g., ``array_expr[column]``).
 
 - Made :ref:`generate_series <table-functions-generate-series>` addressable by
   specifying the ``pg_catalog`` schema explicitly. So, for example, both
@@ -186,6 +185,7 @@ SQL Standard and PostgreSQL compatibility improvements
 - Added support for ``GROUP BY`` operations on analysed columns of type
   ``text``.
 
+
 Functions and operators
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -194,15 +194,16 @@ Functions and operators
   return type.
 
 - Replaced the ``Nashorn`` JavaScript engine with ``GraalVM`` for JavaScript
-  :ref:`user-defined functions <sql_administration_udf>`. This change upgrades
+  :ref:`user-defined functions <user-defined-functions>`. This change upgrades
   ``ECMAScript`` support from ``5.1`` to ``10.0``.
 
-- Added the :ref:`chr <scalar_chr>` scalar function.
+- Added the :ref:`chr <scalar_chr>` :ref:`scalar function <scalar-functions>`.
 
-- Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`
-  scalar functions.
+- Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>` scalar
+  functions.
 
-- Added the :ref:`array_agg <aggregation-array-agg>` aggregation function.
+- Added the :ref:`array_agg <aggregation-array-agg>` :ref:`aggregation function
+  <aggregation-functions>`.
 
 - Added the :ref:`trunc <scalar-trunc>` scalar function.
 
@@ -218,8 +219,8 @@ Functions and operators
 - Added the :ref:`degrees <scalar-degrees>` and :ref:`radians <scalar-radians>`
   scalar functions.
 
-- Added support for using :ref:`table functions <ref-table-functions>` with
-  more than one column within the select list part of a SELECT statement.
+- Added support for using :ref:`table functions <table-functions>` with more
+  than one column within the select list part of a ``SELECT`` statement.
 
 - Added the :ref:`cot <scalar-cot>` trigonometric scalar function.
 
@@ -229,17 +230,17 @@ Functions and operators
   improved PostgreSQL compatibility.
 
 - Added the :ref:`encode(bytea, format) <scalar-encode>` and :ref:`decode(text,
-  format) <scalar-decode>` string functions.
+  format) <scalar-decode>` scalar functions.
 
 - Added the :ref:`ascii <scalar_ascii>` scalar function.
 
 - Added the :ref:`obj_description(integer, text) <obj_description>` scalar
   function for improved PostgreSQL compatibility.
 
-- Added the :ref:`format_type(integer, integer) <format_type>` scalar
-  function for improved PostgreSQL compatibility.
+- Added the :ref:`format_type(integer, integer) <format_type>` scalar function
+  for improved PostgreSQL compatibility.
 
-- Added the :ref:`version() <version>` system information function.
+- Added the :ref:`version() <version>` system information scalar function.
 
 
 New statements and clauses
@@ -251,15 +252,15 @@ New statements and clauses
 - Added the :ref:`DISCARD <discard>` statement.
 
 - Added the :ref:`CHECK <check_constraint>` constraint syntax, which specifies
-  that the values of certain columns must satisfy a boolean expression on
-  insert and update.
+  that the values of certain columns must satisfy a :ref:`boolean expression
+  <sql-literal-value>` on insert and update.
 
 - Introduced new optional ``RETURNING`` clause for :ref:`INSERT <ref-insert>`
   and :ref:`UPDATE <ref-update>` to return specified values from each row
   written.
 
+
 Performance improvements
 ------------------------
 
-- Optimized `<column> IS NOT NULL` queries.
-
+- Optimized ``<column> IS NOT NULL`` queries.

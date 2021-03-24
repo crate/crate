@@ -4,14 +4,6 @@
 PostgreSQL wire protocol
 ========================
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-Introduction
-============
-
 CrateDB contains support for the `PostgreSQL wire protocol v3`_.
 
 If a node is started with postgres support enabled it will bind to port
@@ -31,12 +23,16 @@ which is why clients should generally enable ``autocommit``.
     The client will utilize the fetchSize on SELECT statements and only load up
     to fetchSize rows into memory.
 
-    See `PostgreSQL JDBC Query docs
-    <https://jdbc.postgresql.org/documentation/head/query.html>` for more
-    information.
+    See the `PostgreSQL JDBC Query docs`_ for more information.
 
     Write operations will still behave as if autocommit was enabled and commit
     or rollback calls are ignored.
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
 
 Server compatibility and implementation status
 ==============================================
@@ -75,8 +71,8 @@ Database selection
 
 Since CrateDB uses schemas instead of databases, the ``database`` parameter
 sets the default schema name for future queries. If no schema is specified, the
-schema ``doc`` will be used as default. Additionally, the only supported charset
-is ``UTF8``.
+schema ``doc`` will be used as default. Additionally, the only supported
+charset is ``UTF8``.
 
 Query Modes
 -----------
@@ -84,12 +80,13 @@ Query Modes
 Simple query
 ............
 
-The `Simple Query`_ protocol mode is fully implemented.
+The `PostgreSQL simple query`_ protocol mode is fully implemented.
 
 Extended query
 ..............
 
-The `Extended Query`_ protocol mode is implemented with the following limitations:
+The `PostgreSQL extended query`_ protocol mode is implemented with the
+following limitations:
 
 - The ``ParameterDescription`` message works for the most common use cases
   except for DDL statements.
@@ -105,7 +102,8 @@ CrateDB does not support the ``COPY`` sub-protocol.
 Function call
 -------------
 
-The function call sub-protocol is not supported since it's a legacy feature.
+The :ref:`function call <sql-function-call>` sub-protocol is not supported
+since it's a legacy feature.
 
 Canceling requests
 ------------------
@@ -231,13 +229,13 @@ The ``oid`` type might have the following type aliases:
 .. NOTE::
 
    Currently, casting a string or integer literal to the ``regproc`` type
-   wouldn't result in a function lookup.  Instead, casting the string
-   literal to the ``regproc`` type results in an object of the ``regproc``
-   type that has a name that corresponds to the string literal and the ``oid``
-   hash of the literal as ``oid`` and casting an integer literal to the
-   ``regproc`` type results in an object of the ``regproc`` type that has a
-   name that corresponds to the string representation of the literal and the
-   literal value as ``oid``.
+   wouldn't result in a :ref:`function <user-defined-functions>` lookup.
+   Instead, casting the string literal to the ``regproc`` type results in an
+   object of the ``regproc`` type that has a name that corresponds to the
+   string literal and the ``oid`` hash of the literal as ``oid``. Casting an
+   integer literal to the ``regproc`` type results in an object of the
+   ``regproc`` type that has a name that corresponds to the string
+   representation of the literal and the literal value as ``oid``.
 
 Show transaction isolation
 --------------------------
@@ -362,7 +360,14 @@ Type casts
 ----------
 
 CrateDB accepts the :ref:`type_conversion` syntax for conversion of one data
-type to another (see `Value Expressions`_).
+type to another.
+
+.. SEEALSO::
+
+    `PostgreSQL value expressions`_
+
+    :ref:`CrateDB value expressions <sql-value-expressions>`
+
 
 Arrays
 ------
@@ -386,30 +391,34 @@ Accessing arrays
 ................
 
 Fetching arbitrary rectangular slices of an array using
-``lower-bound:upper-bound`` expression (see `Arrays`_) in the array subscript
-is not supported.
+``lower-bound:upper-bound`` :ref:`expression <gloss-expression>` in the array
+subscript is not supported.
+
+.. SEEALSO::
+
+    `PostgreSQL Arrays`_
 
 Text search functions and operators
 -----------------------------------
 
-The functions and :ref:`operators <gloss-operator>` provided by PostgreSQL for
-full-text search (see `PostgreSQL Fulltext Search`_) are not compatible with
-those provided by CrateDB. For more information about the built-in full-text
-search in CrateDB refer to :ref:`sql_dql_fulltext_search`.
+The :ref:`functions <gloss-function>` and :ref:`operators <gloss-operator>`
+provided by PostgreSQL for :ref:`full-text search <sql_dql_fulltext_search>`
+(see `PostgreSQL Fulltext Search`_) are not compatible with those provided by
+CrateDB.
 
 If you are missing features, functions or dialect improvements and have a great
-use case for it, let us know on `Github`_. We're always improving and extending
-CrateDB, and we love to hear feedback.
+use case for it, let us know on `GitHub`_. We're always improving and extending
+CrateDB and we love to hear feedback.
 
 Expression evaluation
 ---------------------
 
-Unlike PostgreSQL, expressions are not evaluated if the query results in 0 rows
-either because of the table is empty or by a not matching where clause.
+Unlike PostgreSQL, :ref:`expressions <gloss-expression>` are not
+:ref:`evaluated <gloss-evaluation>` if the query results in 0 rows either
+because of the table is empty or by not matching the ``WHERE`` clause.
 
-.. _Arrays: https://www.postgresql.org/docs/current/static/arrays.html
-.. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
-.. _Github: https://github.com/crate/crate
+
+.. _GitHub: https://github.com/crate/crate
 .. _pg_am: https://www.postgresql.org/docs/10/catalog-pg-am.html
 .. _pg_description: https://www.postgresql.org/docs/10/catalog-pg-description.html
 .. _pg_enum: https://www.postgresql.org/docs/10/catalog-pg-enum.html
@@ -427,8 +436,11 @@ either because of the table is empty or by a not matching where clause.
 .. _pgsql_pg_proc: https://www.postgresql.org/docs/10/static/catalog-pg-proc.html
 .. _pgsql_pg_settings: https://www.postgresql.org/docs/10/view-pg-settings.html
 .. _pgsql_pg_type: https://www.postgresql.org/docs/10/static/catalog-pg-type.html
+.. _PostgreSQL Arrays: https://www.postgresql.org/docs/current/static/arrays.html
+.. _PostgreSQL extended query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
 .. _PostgreSQL Fulltext Search: https://www.postgresql.org/docs/current/static/functions-textsearch.html
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
+.. _PostgreSQL JDBC Query docs: https://jdbc.postgresql.org/documentation/head/query.html
+.. _PostgreSQL simple query: https://www.postgresql.org/docs/current/static/protocol-flow.html#id-1.10.5.7.4
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
-.. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#id-1.10.5.7.4
-.. _Value Expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
+.. _PostgreSQL value expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html

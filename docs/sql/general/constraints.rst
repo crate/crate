@@ -10,26 +10,28 @@ Constraints
 .. contents::
    :local:
 
-Tables Constraints
-==================
+
+Table constraints
+=================
 
 Table constraints are constraints that are applied to the table as a whole.
+
 
 .. _primary_key_constraint:
 
 ``PRIMARY KEY``
 ---------------
 
-The PRIMARY KEY constraint specifies that a column or columns of a table can
-contain only unique (non-duplicate), non-null values.
+The ``PRIMARY KEY`` constraint specifies that a column or columns of a table
+can contain only unique (non-duplicate), non-null values.
 
 Using columns of type ``object``, ``geo_point``, ``geo_shape`` or ``array`` as
-PRIMARY KEY is not supported.
+``PRIMARY KEY`` is not supported.
 
-To use a whole ``object`` as PRIMARY KEY each column within the ``object`` can
-be declared as PRIMARY KEY instead.
+To use a whole ``object`` as ``PRIMARY KEY`` each column within the ``object``
+can be declared as ``PRIMARY KEY`` instead.
 
-Adding a PRIMARY KEY column is only possible if the table is empty.
+Adding a ``PRIMARY KEY`` column is only possible if the table is empty.
 
 .. WARNING::
 
@@ -38,38 +40,44 @@ Adding a PRIMARY KEY column is only possible if the table is empty.
     that isn't empty.
 
     If that is the case queries that contain the primary key columns in the
-    WHERE clause will not behave as expected.
+    ``WHERE`` clause will not behave as expected.
+
 
 .. _index-constraint:
 
 ``INDEX``
 ---------
 
-The INDEX constraint specifies a specific index method on one or more columns.
+The ``INDEX`` constraint specifies a specific index method on one or more
+columns.
 
 It is possible to define more than one index per table, whether as a column
 constraint or a table constraint.
 
-For further details about the meaning of the options see
-:ref:`indices_and_fulltext`.
+.. SEEALSO::
+
+    :ref:`indices_and_fulltext`
+
 
 .. _check_constraint:
 
 ``CHECK``
 ---------
 
-The CHECK constraint specifies that the values of certain columns must satisfy
-a boolean expression on insert and update.
+The ``CHECK`` constraint specifies that the values of certain columns must
+satisfy a :ref:`boolean expression <sql-literal-value>` on ``INSERT`` and
+``UPDATE``.
 
 Syntax::
 
   [CONSTRAINT check_name>] CHECK (boolean_expression)
 
-If `CONSTAINT check_name` is omitted, CrateDB generates a unique name automatically.
-This name is visible in :ref:`information_schema_table_constraints` and can be
-used to :ref:`drop-constraint` a constraint.
+If ``CONSTAINT check_name`` is omitted, CrateDB generates a unique name
+automatically.  This name is visible in
+:ref:`information_schema_table_constraints`. This name can be used with
+:ref:`DROP CONSTRAINT <drop-constraint>` to remove the constraint.
 
-The CONSTRAINT definition can either be inline with a column, like this::
+The ``CONSTRAINT`` definition can either be inline with a column, like this::
 
     cr> CREATE TABLE metrics1 (
     ...     weight REAL CONSTRAINT weight_is_positive CHECK (weight >= 0),
@@ -116,15 +124,14 @@ Multiple columns can be referenced::
 
 .. WARNING::
 
-   CHECK constraint conditions must be deterministic, always yielding the same
-   result for the same input.
-   A way to break this is to reference a user-defined function in a CHECK
-   expression, and then change the behavior of that function. Some existing
-   rows in the table could now violate the CHECK constraint. That would
-   cause a subsequent database dump and reload to fail.
+   The ``CHECK`` constraint conditions must be deterministic, always yielding
+   the same result for the same input.
 
-CHECK constaints can be removed :ref:`drop-constraint`.
-
+   A way to break this is to reference a :ref:`user-defined function
+   <user-defined-functions>` in a ``CHECK`` expression, and then change the
+   behavior of that function. Some existing rows in the table could now violate
+   the ``CHECK`` constraint. That would cause a subsequent database dump and
+   reload to fail.
 
 .. hide:
 
@@ -141,9 +148,10 @@ CHECK constaints can be removed :ref:`drop-constraint`.
    cr> drop table metrics6;
    DROP OK, 1 row affected (... sec)
 
+
 .. _column_constraints:
 
-Column Constraints
+Column constraints
 ==================
 
 Column constraints are constraints that are applied on each column of the table
@@ -151,17 +159,20 @@ separately.
 
 The supported column constraints are:
 
- * :ref:`not_null_constraint`
- * :ref:`primary_key_constraint`
- * :ref:`check_constraint`
+- :ref:`not_null_constraint`
+
+- :ref:`primary_key_constraint`
+
+- :ref:`check_constraint`
+
 
 .. _not_null_constraint:
 
 ``NOT NULL``
 ------------
 
-The NOT NULL constraint specifies that a column of a table can contain only
+The ``NOT NULL`` constraint specifies that a column of a table can contain only
 non-null values.
 
-The columns that are part of the primary key of a table are NOT NULL by
+The columns that are part of the primary key of a table are ``NOT NULL`` by
 default.

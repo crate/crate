@@ -20,13 +20,10 @@ Released on 2020-07-14.
 
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 
-
-
 .. rubric:: Table of Contents
 
 .. contents::
    :local:
-
 
 See the :ref:`version_4.2.0` release notes for a full list of changes in the
 4.2 series.
@@ -35,9 +32,9 @@ See the :ref:`version_4.2.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue with the :ref:`quote_ident <scalar-quote-ident>` scalar
-  function that caused it to quote subscript expressions like ``"col['x']"``
-  instead of ``"col"['x']``.
+- Fixed an issue with the :ref:`quote_ident <scalar-quote-ident>` :ref:`scalar
+  function <scalar-functions>` that caused it to quote :ref:`subscript
+  expressions <sql-subscripts>` like ``"col['x']"`` instead of ``"col"['x']``.
 
 - Fixed an issue that prevented the use of subscript expressions as conflict
   target in ``ON CONFLICT`` clauses of ``INSERT`` statements.
@@ -47,4 +44,4 @@ Fixes
   all the related data.
 
 - Fixed an issue that could lead to a ``Field is not streamable`` error message
-  when using window functions.
+  when using :ref:`window functions <window-functions>`.

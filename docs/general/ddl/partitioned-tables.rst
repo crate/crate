@@ -44,7 +44,7 @@ values for the configured :ref:`partition columns <gloss-partition-column>` is
 inserted, a new partition is created and the document will be inserted into
 this partition.
 
-A partitioned table can be queried like a regular table. 
+A partitioned table can be queried like a regular table.
 
 Partitioned tables have the following advantages:
 
@@ -64,7 +64,8 @@ Partitioned tables have the following advantages:
 - Deleting data from a partitioned table is cheap if full partitions are
   dropped. Full partitions are dropped with ``DELETE`` statements where the
   optimizer can infer from the ``WHERE`` clause and partition columns that all
-  records of a partition match without having to evaluate against the records.
+  records of a partition match without having to :ref:`evaluate
+  <gloss-evaluation>` against the records.
 
 
 Partitioned tables have the following disadvantages:
@@ -268,8 +269,8 @@ not be atomic and could lead to inconsistent state::
     ColumnValidationException[Validation failed for day: Updating a partitioned-by column is not supported]
 
 When using a :ref:`generated column <sql-create-table-generated-columns>` as
-partition column all the columns referenced in its *generation expression*
-cannot be updated either::
+partition column, all the columns referenced in its :ref:`generation expression
+<ddl-generated-columns-expressions>` cannot be updated either::
 
     cr> UPDATE computed_parted_table set created_at='1970-01-01'
     ... WHERE id = 1;
@@ -364,8 +365,8 @@ For example, the following query will only operate on the partition for
     +----------+
     SELECT 1 row in set (... sec)
 
-Any combination of conditions that can be evaluated to a partition before
-actually executing the query is supported::
+Any combination of conditions that can be :ref:`evaluated <gloss-evaluation>`
+to a partition before actually executing the query is supported::
 
     cr> SELECT id, title FROM parted_table
     ... WHERE date_trunc('year', day) > '1970-01-01'

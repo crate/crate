@@ -67,7 +67,8 @@ Fixes
 
  - Index columns based on string arrays are correctly populated with values.
 
- - Fixed evaluation on ``UPDATE`` of generated columns without referenced
-   columns, e.g. generated columns with a ``CURRENT_TIMESTAMP`` expression.
+ - Fixed :ref:`evaluation <gloss-evaluation>` on ``UPDATE`` of generated
+   columns without referenced columns, e.g., generated columns with a
+   ``CURRENT_TIMESTAMP`` :ref:`expression <gloss-expression>`.
 
  - Fixed global aggregations on JOINs with 3 or more tables.

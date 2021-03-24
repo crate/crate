@@ -8,12 +8,12 @@ Released on 2017/06/12.
 
 .. NOTE::
 
-    If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
-    before you upgrade to 1.1.5.
+    If you are upgrading a cluster, you must be running CrateDB 0.57.0 or
+    higher before you upgrade to 1.1.5.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
-    number must be :ref:`version_1.1.1` or higher. If you want to upgrade from a
-    version prior to this, the upgrade will introduce all of the breaking
+    number must be :ref:`version_1.1.1` or higher. If you want to upgrade from
+    a version prior to this, the upgrade will introduce all of the breaking
     changes listed for :ref:`version_1.1.0`, and will require a `full restart
     upgrade`_.
 
@@ -30,23 +30,26 @@ Released on 2017/06/12.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Fixes
 -----
 
- - Fixed an issue that leads to an exception if the statement evaluates on
-   arrays that are provided in an aggregation function.
+ - Fixed an issue that leads to an exception if the statement :ref:`evaluates
+   <gloss-evaluation>` on arrays that are provided in an :ref:`aggregation
+   function <aggregation-functions>`.
 
- - Fixed a performance regression that could cause JOIN queries to execute
+ - Fixed a performance regression that could cause ``JOIN`` queries to execute
    slower than they used to.
 
- - Return proper exception when group by is used on scalar functions that are
-   applied to an aggregation.
+ - Return proper exception when group by is used on :ref:`scalar functions
+   <scalar-functions>` that are applied to an aggregation.
 
  - Fixed an issue that causes aliases used in the select list to get lost on
-   subselect queries.
+   :ref:`subselect <gloss-subquery>` queries.
 
  - The correct error messages and codes are now thrown for REST actions.
 

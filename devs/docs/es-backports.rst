@@ -531,7 +531,7 @@ should be crossed out as well.
 - [ ] 77fd51f30ba Remove some Dead Code from Discovery Plugins (#50592)
 - [ ] 671fefaf59e Enhance TransportReplicationAction assertions (#49081)
 - [ ] 424ed93e38b Always use soft-deletes in InternalEngine (#50415)
-- [ ] d02afccd983 Ensure relocating shards establish peer recovery retention leases (#50486)
+- [x] d02afccd983 Ensure relocating shards establish peer recovery retention leases (#50486)
 - [ ] 50bd5842c3c Fix testCancelRecoveryDuringPhase1 (#50449)
 - [ ] 5e0030e1306 Adjust BWC for peer recovery retention leases (#50351)
 - [ ] a48d19d73a8 Add remote info to the HLRC (#50482)
@@ -547,7 +547,7 @@ should be crossed out as well.
 - [su] ee92253f775 Adapt BWC after backporting #50214
 - [x] 74ff50f814a Omit loading IndexMetaData when inspecting shards (#50214)
 - [sn] 7b863dc25b3 Recovery buffer size 16B smaller (#50100)
-- [ ] 972b81f8a9d Account trimAboveSeqNo in committed translog generation (#50205)
+- [x] 972b81f8a9d Account trimAboveSeqNo in committed translog generation (#50205)
 - [sn] e0e7f1f89a4 Disk threshold decider is enabled by default (#50222)
 - [su] 34f83904cc8 Adjust bwc for #48430
 - [x] b9fbc8dc748 Migrate peer recovery from translog to retention lease (#49448)

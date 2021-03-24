@@ -62,12 +62,12 @@ Fixes
   the partition key is an object field of the :ref:`timestamp
   <timestamp_data_type>` data type.
 
-- Fixed an issue that caused subscript expressions on top of child relations in
-  which an object column is selected to fail.
+- Fixed an issue that caused :ref:`subscript expressions <sql-subscripts>` on
+  top of child relations in which an object column is selected to fail.
 
 - Fixed an issue in :ref:`ref-values` that would not allow combining
-  expressions that can be explicitly casted or ``NULL`` literals in the same
-  column.
+  :ref:`expressions <gloss-expression>` that can be explicitly casted or
+  ``NULL`` literals in the same column.
 
 - Fixed a ``ClassCastException`` that occurred when querying certain columns
   from ``information_schema.tables``, ``sys.jobs_log``, or ``sys.jobs_metrics``

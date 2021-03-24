@@ -1,9 +1,20 @@
 .. highlight:: psql
-.. _sql_ddl:
+
+.. _ddl:
 
 ===============
 Data definition
 ===============
+
+This section provides an overview of how to create tables and perform other
+data-definition related operations with CrateDB.
+
+.. SEEALSO::
+
+    :ref:`General use: Data manipulation <dml>`
+
+    :ref:`General use: Querying <dql>`
+
 
 .. rubric:: Table of contents
 

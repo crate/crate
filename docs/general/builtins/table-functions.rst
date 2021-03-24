@@ -1,20 +1,22 @@
 .. highlight:: psql
 
-.. _ref-table-functions:
+.. _table-functions:
 
 ===============
 Table functions
 ===============
 
-Table functions are functions that produce a set of rows.  They can either be
-used in place of a relation in the ``FROM`` clause, or within the select list
-of a query.
+Table functions are :ref:`functions <gloss-function>` that produce a set of
+rows. They can either be used in place of a relation in the ``FROM`` clause, or
+within the select list of a query.
 
-If used within the select list, the table functions will be evaluated
-per row of the relations in the ``FROM`` clause,
-generating one or more rows which are appended to the result set.
-If multiple table functions with different amount of rows are used, ``null``
-values will be returned for the functions that are exhausted. An example::
+If used within the select list, the table functions will be :ref:`evaluated
+<gloss-evaluation>` per row of the relations in the ``FROM`` clause, generating
+one or more rows which are appended to the result set.  If multiple table
+functions with different amounts of rows are used, ``NULL`` values will be
+returned for the functions that are exhausted.
+
+For example::
 
 
     cr> select unnest([1, 2, 3]), unnest([1, 2]);
@@ -33,21 +35,25 @@ values will be returned for the functions that are exhausted. An example::
     Table functions in the select list are executed after aggregations. So
     aggregations can be used as arguments to table functions, but the other way
     around is not allowed, unless sub queries are utilized.
-    (SELECT aggregate_func(col) FROM (SELECT table_func(...) as col) ...)
+
+    For example::
+
+        (SELECT aggregate_func(col) FROM (SELECT table_func(...) AS col) ...)
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
 
+
 .. _table-functions-scalar:
 
 Scalar functions
 ================
 
-:ref:`A scalar function <scalar>`, when used in the ``FROM`` clause in place of
-a relation, will result in a table of one row and one column, containing the
-:ref:`scalar value <gloss-scalar>` returned from the function.
+A :ref:`scalar function <scalar-functions>`, when used in the ``FROM`` clause
+in place of a relation, will result in a table of one row and one column,
+containing the :ref:`scalar value <gloss-scalar>` returned from the function.
 
 ::
 
@@ -62,6 +68,7 @@ a relation, will result in a table of one row and one column, containing the
 
 ``empty_row( )``
 ================
+
 empty_row doesn't take any argument and produces a table with an empty row and
 no column.
 
@@ -79,7 +86,7 @@ no column.
 unnest takes any number of array parameters and produces a table where each
 provided array argument results in a column.
 
-The columns are named ``colN`` where N is a number starting at 1.
+The columns are named ``colN`` where ``N`` is a number starting at 1.
 
 ::
 
@@ -140,6 +147,7 @@ The return value always matches the ``start`` / ``stop`` types.
     +---------------+-----------------------------------+
     SELECT 3 rows in set (... sec)
 
+
 .. _table-functions-generate-subscripts:
 
 ``pg_catalog.generate_subscripts(array, dim, [reverse])``
@@ -147,13 +155,13 @@ The return value always matches the ``start`` / ``stop`` types.
 
 Generate the subscripts for the specified dimension ``dim`` of the given
 ``array``. Zero rows are returned for arrays that do not have the requested
-dimension, or for NULL arrays (but valid subscripts are returned for NULL
-array elements).
+dimension, or for ``NULL`` arrays (but valid subscripts are returned for
+``NULL`` array elements).
 
 If ``reverse`` is ``true`` the subscripts will be returned in reverse order.
 
 This example takes a one dimensional array of four elements, where elements
-at positions 1 and 3 are NULL:
+at positions 1 and 3 are ``NULL``:
 
 ::
 
@@ -184,8 +192,8 @@ This example returns the reversed list of subscripts for the same array:
     SELECT 4 rows in set (... sec)
 
 This example works on an array of three dimensions. Each of the elements within
-a given level must be either NULL, or an array of the same size as the other
-arrays within the same level.
+a given level must be either ``NULL``, or an array of the same size as the
+other arrays within the same level.
 
 ::
 
@@ -198,12 +206,14 @@ arrays within the same level.
     +---+
     SELECT 2 rows in set (... sec)
 
+
 .. _table-functions-regexp-matches:
 
 ``regexp_matches(source, pattern [, flags])``
 =============================================
 
-Uses the regular expression ``pattern`` to match against the ``source`` string.
+Uses the :ref:`regular expression <gloss-regular-expression>` ``pattern`` to
+match against the ``source`` string.
 
 The result rows have one column:
 
@@ -234,7 +244,8 @@ For example matching the regular expression ``([Aa](.+)z)`` against
  * group 1: ``alcatraz`` (from first to last parenthesis or whole pattern)
  * group 2: ``lcatra`` (beginning at second parenthesis)
 
-The ``regexp_matches`` function will return all groups as a ``text`` array::
+The ``regexp_matches`` :ref:`function <gloss-function>` will return all groups
+as a ``text`` array::
 
     cr> select regexp_matches('alcatraz', '(a(.+)z)') as matched;
     +------------------------+
@@ -266,6 +277,7 @@ See :ref:`sql_dql_object_arrays` for details.
     | lcatra       |
     +--------------+
     SELECT 1 row in set (... sec)
+
 
 .. _table-functions-regexp-matches-flags:
 
@@ -342,8 +354,8 @@ arrays, each containing two entries:
     +------------------+
     SELECT 2 rows in set (... sec)
 
-.. _pg_catalog.pg_get_keywords:
 
+.. _pg_catalog.pg_get_keywords:
 
 ``pg_catalog.pg_get_keywords()``
 ================================

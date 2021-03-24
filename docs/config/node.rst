@@ -627,9 +627,10 @@ sharing`_ settings in CrateDB allow for configuring these.
 
   Define allowed origins of a request. ``*`` allows *any* origin (which can be
   a substantial security risk) and by prepending a ``/`` the string will be
-  treated as a regular expression. For example ``/https?:\/\/crate.io/`` will
-  allow requests from ``https://crate.io`` and ``https://crate.io``. This
-  setting disallows any origin by default.
+  treated as a :ref:`regular expression <gloss-regular-expression>`. For
+  example ``/https?:\/\/crate.io/`` will allow requests from
+  ``https://crate.io`` and ``https://crate.io``. This setting disallows any
+  origin by default.
 
 .. _http.cors.max-age:
 
@@ -743,7 +744,7 @@ Queries
 
 .. _conf-node-lang-js:
 
-Javascript language
+JavaScript language
 ===================
 
 .. _lang.js.enabled:
@@ -752,7 +753,7 @@ Javascript language
   | *Default:*  ``true``
   | *Runtime:*  ``no``
 
-  Setting to enable or disable :ref:`JavaScript UDF support <udf_lang_js>`.
+  Setting to enable or disable :ref:`JavaScript UDF <udf-js>` support.
 
 
 .. _conf-node-attributes:

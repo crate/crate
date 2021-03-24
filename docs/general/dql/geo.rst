@@ -1,4 +1,5 @@
 .. highlight:: psql
+
 .. _sql_dql_geo_search:
 
 ==========
@@ -9,6 +10,7 @@ Geo search
 
 .. contents::
    :local:
+
 
 Introduction
 ============
@@ -21,7 +23,7 @@ and so on, making it possible to create apps and services with rich
 geographical features.
 
 :ref:`Geographic shapes <geo_shape_data_type>` are stored using special
-indices. ref:`Geographic points <geo_point_data_type>` are represented by
+indices. :ref:`Geographic points <geo_point_data_type>` are represented by
 their coordinates. They are represented as columns of the respective datatypes.
 
 Geographic indices for :ref:`geo_shape <geo_shape_data_type>` columns are used
@@ -91,11 +93,10 @@ Let's insert Austria::
 
 .. NOTE::
 
-   When using a polygon shape that resembles a rectangle, and that
-   rectangle is wider than 180 degrees the CrateDB geoshape validator
-   will convert it into a multipolygon consisting of 2 rectangular
-   shapes covering the narrower area between the 4 original points split
-   by the dateline (+/- 180deg).
+   When using a polygon shape that resembles a rectangle, and that rectangle is
+   wider than 180 degrees, the CrateDB geoshape validator will convert it into
+   a multipolygon consisting of 2 rectangular shapes covering the narrower area
+   between the 4 original points split by the dateline (+/- 180deg).
 
    This is due to CrateDB operating in the geospatial context of the earth.
 
@@ -104,8 +105,9 @@ Let's insert Austria::
    cr> REFRESH TABLE countries;
    REFRESH OK, 1 row affected  (... sec)
 
-:ref:`Geographic points <geo_point_data_type>` can be inserted as a
-``double precision`` array with lon and lat as seen above or as `WKT`_ string.
+:ref:`Geographic points <geo_point_data_type>` can be inserted as a ``double
+precision`` array with longitude and latitude values as seen above or by using
+a `WKT`_ string.
 
 :ref:`Geographic shapes <geo_shape_data_type>` can be inserted as `GeoJSON`_
 :ref:`object literal <data-type-object-literals>` or parameter as seen above
@@ -117,49 +119,49 @@ CrateDB supports different kinds of geographic queries.
 Fast queries that leverage the geographic index are done using the
 :ref:`sql_dql_geo_match`:
 
+
 .. _sql_dql_geo_match:
 
-Match Predicate
-===============
+``MATCH`` predicate
+===================
 
 The ``MATCH`` predicate can be used to perform multiple kinds of searches on
-indices or indexed columns. While it can be used to perform
-:ref:`fulltext searches <sql_dql_fulltext_search>` on analyzed indices of
-type :ref:`data-type-text`, it is also handy for operating on geographic
-indices, querying for relations between geographical shapes and points.
+indices or indexed columns. While it can be used to perform :ref:`fulltext
+searches <sql_dql_fulltext_search>` on analyzed indices of type
+:ref:`data-type-text`, it is also handy for operating on geographic indices,
+querying for relations between geographical shapes and points.
 
 ::
 
      MATCH (column_ident, query_term) [ using match_type ]
 
-The Match predicate for geographical search supports a single ``column_ident``
-of a geo_shape indexed column as first argument.
+The ``MATCH`` predicate for geographical search supports a single
+``column_ident`` of a ``geo_shape`` indexed column as first argument.
 
 The second argument, the ``query_term`` is taken to match against the indexed
-geo_shape.
+``geo_shape``.
 
 The matching operation is determined by the ``match_type`` which determines the
 spatial relation we want to match. Available ``match_types`` are:
 
 :intersects:
   (Default) If the two shapes share some points and/or area, they are
-  intersecting and considered matching using this ``match_type``. This
-  also precludes containment or complete equality.
+  intersecting and considered matching using this ``match_type``. This also
+  precludes containment or complete equality.
 
 :disjoint:
-  If the two shapes share no single point and not area, they are
-  disjoint. This is the opposite of ``intersects``.
+  If the two shapes share no single point or area, they are disjoint. This is
+  the opposite of ``intersects``.
 
 :within:
-  If the indexed ``column_ident`` shape is completely inside the
-  ``query_term`` shape they are considered matching using this
-  ``match_type``.
+  If the indexed ``column_ident`` shape is completely inside the ``query_term``
+  shape, they are considered matching using this ``match_type``.
 
 .. NOTE::
 
    The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause`
-   and on user-created tables. Using the ``MATCH`` predicate on system
-   tables is not supported.
+   and on user-created tables. Using the ``MATCH`` predicate on system tables
+   is not supported.
 
    One ``MATCH`` predicate cannot combine columns of both relations of a join.
 
@@ -179,8 +181,8 @@ spatial relation we want to match. Available ``match_types`` are:
        WHERE match(t1.shape, 'POINT(1.1 2.2)')
           OR match(t2.shape, 'POINT(3.3 4.4)')``
 
-Having a table ``countries`` with a ``GEO_SHAPE`` column "geo" indexed using
-``geohash`` you can query that column using the ``MATCH`` predicate with
+Having a table ``countries`` with a ``GEO_SHAPE`` column ``geo``, indexed using
+``geohash``, you can query that column using the ``MATCH`` predicate with
 different match types as described above::
 
     cr> SELECT name from countries
@@ -211,13 +213,17 @@ different match types as described above::
     +--------------+
     SELECT 4 rows in set (... sec)
 
-Exact Queries
+
+Exact queries
 =============
 
-*Exact* queries are done using the following scalar functions:
+*Exact* queries are done using the following :ref:`scalar functions
+<scalar-functions>`:
 
  * :ref:`scalar_intersects`
+
  * :ref:`scalar_within`
+
  * :ref:`scalar_distance`
 
 They are exact, but this comes at the price of performance.
@@ -275,6 +281,7 @@ into your geographic data::
 
 Nonetheless these :ref:`scalars <gloss-scalar>` can be used everywhere in a SQL
 query where scalar functions are allowed.
+
 
 .. _GeoJSON: https://geojson.org/
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text

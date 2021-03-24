@@ -1,16 +1,18 @@
 .. highlight:: psql
-.. _ref-drop-view:
+
+.. _sql-drop-view:
 
 =============
 ``DROP VIEW``
 =============
 
-Drop one or more views.
+Drop one or more :ref:`views <ddl-views>`.
 
 .. rubric:: Table of contents
 
 .. contents::
     :local:
+
 
 Synopsis
 ========
@@ -23,11 +25,11 @@ Synopsis
 Description
 ===========
 
-Drop view drops one or more existing views.
+``DROP VIEW`` drops one or more existing views.
 
 If a view doesn't exist an error will be returned, unless ``IF EXISTS`` is
 used, in which case all matching existing views will be dropped.
 
 .. SEEALSO::
 
-    :ref:`ref-create-view`
+    :ref:`SQL syntax: CREATE VIEW <sql-create-view>`

@@ -93,7 +93,7 @@ use when the constraint only affects one column.
 
 .. SEEALSO::
 
-    :ref:`sql_ddl_create`
+    :ref:`Data definition: Creating tables <sql_ddl_create>`
 
 
 .. _sql-create-table-elements:
@@ -125,8 +125,8 @@ The optional default clause defines the default value of the column. The value
 is inserted when the column is a target of a ``INSERT`` statement that doesn't
 contain an explicit value for it.
 
-The default clause expression is variable-free, it means that subqueries and
-cross-references to other columns are not allowed.
+The default clause :ref:`expression <gloss-expression>` is variable-free, it
+means that subqueries and cross-references to other columns are not allowed.
 
 
 .. _sql-create-table-generated-columns:
@@ -147,7 +147,7 @@ The ``GENERATED ALWAYS`` part of the syntax is optional.
 
 .. SEEALSO::
 
-   For more information, see :ref:`ddl-generated-columns`.
+    :ref:`Data definition: Generated columns <ddl-generated-columns>`
 
 
 .. _sql-create-table-table-constraints:
@@ -158,7 +158,9 @@ Table constraints
 Table constraints are constraints that are applied to more than one column or
 to the table as a whole.
 
-For further details see :ref:`table_constraints`.
+.. SEEALSO::
+
+    :ref:`General SQL: Table constraints <table_constraints>`
 
 
 .. _sql-create-table-column-constraints:
@@ -169,7 +171,9 @@ Column constraints
 Column constraints are constraints that are applied on each column of the table
 separately.
 
-For further details see :ref:`column_constraints`.
+.. SEEALSO::
+
+    :ref:`General SQL: Column constraints <column_constraints>`
 
 
 .. _sql-create-table-storage-options:
@@ -179,7 +183,9 @@ Storage options
 
 Storage options can be applied on each column of the table separately.
 
-For further details and available options see :ref:`ddl-storage`.
+.. SEEALSO::
+
+    :ref:`Data definition: Storage <ddl-storage>`
 
 
 .. _sql-create-table-parameters:
@@ -194,15 +200,16 @@ Parameters
   The name of a column to be created in the new table.
 
 :data_type:
-  The data type of the column. This can include array and object specifiers. For
-  more information on the data types supported by CrateDB see :ref:`data-types`.
+  The :ref:`data type <data-types>` of the column. This can include array and
+  object specifiers.
 
 :generation_expression:
-  An expression (usually a function call) that is applied in the context
-  of the current row. As such it can reference other base columns of the
-  table. Referencing other generated columns (including itself) is not
-  supported. The generation expression is evaluated each time a row is
-  inserted or the referenced base columns are updated.
+  An :ref:`expression <ddl-generated-columns-expressions>` (usually a
+  :ref:`function call <sql-function-call>`) that is applied in the context of
+  the current row. As such, it can reference other base columns of the table.
+  Referencing other generated columns (including itself) is not supported. The
+  generation expression is :ref:`evaluated <gloss-evaluation>` each time a row
+  is inserted or the referenced base columns are updated.
 
 
 .. _sql-create-table-if-not-exists:
@@ -210,8 +217,8 @@ Parameters
 ``IF NOT EXISTS``
 =================
 
-If the optional IF NOT EXISTS clause is used this statement won't do anything
-if the table exists already.
+If the optional ``IF NOT EXISTS`` clause is used, this statement won't do
+anything if the table exists already.
 
 
 .. _sql-create-table-clustered:
@@ -219,7 +226,7 @@ if the table exists already.
 ``CLUSTERED``
 =============
 
-The optional CLUSTERED clause specifies how a table should be distributed
+The optional ``CLUSTERED`` clause specifies how a table should be distributed
 accross a cluster.
 
 ::
@@ -227,7 +234,7 @@ accross a cluster.
     [ CLUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
 
 :num_shards:
-  Specifies the number of :ref:`shards <sql_ddl_sharding>` a table is stored
+  Specifies the number of :ref:`shards <ddl-sharding>` a table is stored
   in. Must be greater than 0. If not provided, the number of shards is
   calculated based on the number of currently active data nodes with the
   following formula::
@@ -242,7 +249,7 @@ accross a cluster.
 
 :routing_column:
   Specify a :ref:`routing column <gloss-routing-column>` that :ref:`determines
-  <routing>` how rows are sharded.
+  <sharding-routing>` how rows are sharded.
 
   All rows that have the same ``routing_column`` row value are stored in the
   same shard. If a :ref:`primary key <primary_key_constraint>` has been
@@ -251,7 +258,7 @@ accross a cluster.
 
 .. SEEALSO::
 
-    :ref:`sql_ddl_sharding`
+    :ref:`Data definition: Sharding <ddl-sharding>`
 
 
 .. _sql-create-table-partitioned-by:
@@ -274,14 +281,18 @@ values in the specified :ref:`partition columns <gloss-partition-column>`.
 
 The following restrictions apply:
 
-* Partition columns may not be part of the :ref:`sql-create-table-clustered`
+- Partition columns may not be part of the :ref:`sql-create-table-clustered`
   clause
-* Partition columns must only contain :ref:`primitive types
+
+- Partition columns must only contain :ref:`primitive types
   <sql_ddl_datatypes_primitives>`
-* Partition columns may not be inside an object array
-* Partition columns may not be indexed with a :ref:`fulltext index with
+
+- Partition columns may not be inside an object array
+
+- Partition columns may not be indexed with a :ref:`fulltext index with
   analyzer <sql_ddl_index_fulltext>`
-* If the table has a :ref:`primary_key_constraint` constraint, all of the
+
+- If the table has a :ref:`primary_key_constraint` constraint, all of the
   partition columns must be included in the primary key definition
 
 .. CAUTION::
@@ -295,7 +306,7 @@ The following restrictions apply:
 ``WITH``
 ========
 
-The optional WITH clause can specify parameters for tables.
+The optional ``WITH`` clause can specify parameters for tables.
 
 ::
 
@@ -335,11 +346,13 @@ The number of replicas is defined like this::
 :max_replicas:
   The maximum number of replicas.
 
-  The actual maximum number of replicas is max(num_replicas, N-1), where
-  N is the number of data nodes in the cluster. If ``max_replicas`` is
-  the string ``all`` then it will always be N.
+  The actual maximum number of replicas is max(num_replicas, N-1), where N is
+  the number of data nodes in the cluster. If ``max_replicas`` is the string
+  ``all`` then it will always be N.
 
-For further details and examples see :ref:`replication`.
+.. SEEALSO::
+
+    :ref:`replication`
 
 
 .. _sql-create-table-number-of-routing-shards:
@@ -363,9 +376,9 @@ Specifies the refresh interval of a shard in milliseconds. The default is set
 to 1000 milliseconds.
 
 :value:
-  The refresh interval in milliseconds. A value of smaller or equal than
-  0 turns off the automatic refresh. A value of greater than 0 schedules
-  a periodic refresh of the table.
+  The refresh interval in milliseconds. A value of smaller or equal than 0
+  turns off the automatic refresh. A value of greater than 0 schedules a
+  periodic refresh of the table.
 
 .. NOTE::
 
@@ -373,7 +386,11 @@ to 1000 milliseconds.
    visible to subsequent reads. Only the periodic refresh is disabled. There
    are other internal factors that might trigger a refresh.
 
-For further details see :ref:`refresh_data` or :ref:`sql-refresh`.
+.. SEEALSO::
+
+    :ref:`Querying: Refresh <refresh_data>`
+
+    :ref:`SQL syntax: REFRESH <sql-refresh>`
 
 
 .. _sql-create-table-write-wait:
@@ -388,8 +405,9 @@ operations to proceed. If less shard copies are active the operation must wait
 and retry for up to 30s before timing out.
 
 :value:
-  ``all`` or a positive integer up to the total number of configured shard copies
-  (``number_of_replicas + 1``).
+  ``all`` or a positive integer up to the total number of configured shard
+  copies (``number_of_replicas + 1``).
+
   A value of ``1`` means only the primary has to be active. A value of ``2``
   means the primary plus one replica shard has to be active, and so on.
 
@@ -397,7 +415,6 @@ and retry for up to 30s before timing out.
 
   ``all`` is a special value that means all shards (primary + replicas) must be
   active for write operations to proceed.
-
 
 Increasing the number of shard copies to wait for improves the resiliency of
 the system. It reduces the chance of write operations not writing to the
@@ -434,8 +451,8 @@ enough.
 Allows to have a read only table.
 
 :value:
-  Table is read only if value set to ``true``. Allows writes and table
-  settings changes if set to ``false``.
+  Table is read only if value set to ``true``. Allows writes and table settings
+  changes if set to ``false``.
 
 
 .. _sql-create-table-blocks-read-only-allow-delete:
@@ -457,7 +474,8 @@ Allows to have a read only table that additionally can be deleted.
 
 .. SEEALSO::
 
-    :ref:`Disk-based shard allocation <cluster.routing.allocation.disk>`
+    :ref:`Cluster-wide settings: Disk-based shard allocation
+    <cluster.routing.allocation.disk>`
 
 
 .. _sql-create-table-blocks-read:
@@ -468,8 +486,8 @@ Allows to have a read only table that additionally can be deleted.
 ``disable``/``enable`` all the read operations
 
 :value:
-  Set to ``true`` to disable all read operations for a table, otherwise
-  set ``false``.
+  Set to ``true`` to disable all read operations for a table, otherwise set
+  ``false``.
 
 
 .. _sql-create-table-blocks-write:
@@ -492,8 +510,8 @@ Allows to have a read only table that additionally can be deleted.
 ``disable``/``enable`` the table settings modifications.
 
 :values:
-  Disables the table settings modifications if set to ``true``, if set
-  to ``false`` — table settings modifications are enabled.
+  Disables the table settings modifications if set to ``true``. If set to
+  ``false``, table settings modifications are enabled.
 
 
 .. _sql-create-table-soft-deletes:
@@ -582,37 +600,37 @@ the expense of slower column value lookups.
 ``store.type``
 --------------
 
-The store type setting allows you to control how data is stored
-and accessed on disk. The following storage types are supported:
+The store type setting allows you to control how data is stored and accessed on
+disk. The following storage types are supported:
 
 :fs:
   Default file system implementation. It will pick the best implementation
-  depending on the operating environment, which is currently ``hybridfs``
-  on all supported systems but is subject to change.
+  depending on the operating environment, which is currently ``hybridfs`` on
+  all supported systems but is subject to change.
 
 :simplefs:
-  The ``Simple FS`` type is an implementation of file system storage
-  (Lucene ``SimpleFsDirectory``) using a random access file.
-  This implementation has poor concurrent performance. It is usually
-  better to use the ``niofs`` when you need index persistence.
+  The ``Simple FS`` type is an implementation of file system storage (Lucene
+  ``SimpleFsDirectory``) using a random access file.  This implementation has
+  poor concurrent performance. It is usually better to use the ``niofs`` when
+  you need index persistence.
 
 :niofs:
-  The ``NIO FS`` type stores the shard index on the file system
-  (Lucene ``NIOFSDirectory``) using NIO. It allows multiple threads
-  to read from the same file concurrently.
+  The ``NIO FS`` type stores the shard index on the file system (Lucene
+  ``NIOFSDirectory``) using NIO. It allows multiple threads to read from the
+  same file concurrently.
 
 :mmapfs:
-  The ``MMap FS`` type stores the shard index on the file system
-  (Lucene ``MMapDirectory``) by mapping a file into memory (mmap).
-  Memory mapping uses up a portion of the virtual memory address space
-  in your process equal to the size of the file being mapped. Before
-  using this type, be sure you have allowed plenty of virtual address space.
+  The ``MMap FS`` type stores the shard index on the file system (Lucene
+  ``MMapDirectory``) by mapping a file into memory (mmap).  Memory mapping uses
+  up a portion of the virtual memory address space in your process equal to the
+  size of the file being mapped. Before using this type, be sure you have
+  allowed plenty of virtual address space.
 
 :hybridfs:
-  The ``hybridfs`` type is a hybrid of ``niofs`` and ``mmapfs``, which
-  chooses the best file system type for each type of file based on the
-  read access pattern. Similarly to ``mmapfs`` be sure you have allowed
-  plenty of virtual address space.
+  The ``hybridfs`` type is a hybrid of ``niofs`` and ``mmapfs``, which chooses
+  the best file system type for each type of file based on the read access
+  pattern. Similarly to ``mmapfs`` be sure you have allowed plenty of virtual
+  address space.
 
 It is possible to restrict the use of the ``mmapfs`` and ``hybridfs`` store
 type via the :ref:`node.store.allow_mmap <node.store_allow_mmap>` node setting.
@@ -625,11 +643,12 @@ type via the :ref:`node.store.allow_mmap <node.store_allow_mmap>` node setting.
 ``mapping.total_fields.limit``
 ------------------------------
 
-Sets the maximum number of columns that is allowed for a table. Default is ``1000``.
+Sets the maximum number of columns that is allowed for a table. Default is
+``1000``.
 
 :value:
-  Maximum amount of fields in the Lucene index mapping. This includes
-  both the user facing mapping (columns) and internal fields.
+  Maximum amount of fields in the Lucene index mapping. This includes both the
+  user facing mapping (columns) and internal fields.
 
 
 .. _sql-create-table-translog:
@@ -676,11 +695,11 @@ Sets frequency of flush necessity check.
 ``translog.sync_interval``
 --------------------------
 
-How often the translog is fsynced to disk. Defaults to 5s.
-When setting this interval, please keep in mind that changes logged
-during this interval and not synced to disk may get lost in case of a
-failure. This setting only takes effect if :ref:`translog.durability
-<sql-create-table-translog-durability>` is set to ``ASYNC``.
+How often the translog is fsynced to disk. Defaults to 5s.  When setting this
+interval, please keep in mind that changes logged during this interval and not
+synced to disk may get lost in case of a failure. This setting only takes
+effect if :ref:`translog.durability <sql-create-table-translog-durability>` is
+set to ``ASYNC``.
 
 :value:
   Interval in milliseconds.
@@ -759,7 +778,7 @@ comma-separated values.
 
 .. SEEALSO::
 
-    :ref:`ddl_shard_allocation`
+    :ref:`Data definition: Shard allocation filtering <ddl_shard_allocation>`
 
 
 .. _sql-create-table-routing-allocation-require:
@@ -772,7 +791,7 @@ values.
 
 .. SEEALSO::
 
-    :ref:`ddl_shard_allocation`
+    :ref:`Data definition: Shard allocation filtering <ddl_shard_allocation>`
 
 
 .. _sql-create-table-routing-allocation-exclude:
@@ -785,7 +804,7 @@ comma-separated values.
 
 .. SEEALSO::
 
-    :ref:`ddl_shard_allocation`
+    :ref:`Data definition: Shard allocation filtering <ddl_shard_allocation>`
 
 
 .. _sql-create-table-unassigned:
@@ -818,16 +837,20 @@ The column policy is defined like this::
     WITH ( column_policy = {'dynamic' | 'strict'} )
 
 :strict:
-  Rejecting any column on insert, update or copy from which is not
-  defined in the schema
+  Rejecting any column on insert, update or copy from which is not defined in
+  the schema
 
 :dynamic:
-  New columns can be added using insert, update or copy from. New
+  New columns can be added using ``INSERT``, ``UPDATE`` or ``COPY FROM``. New
   columns added to ``dynamic`` tables are, once added, usable as usual
-  columns. One can retrieve them, sort by them and use them in where
+  columns. One can retrieve them, sort by them and use them in ``WHERE``
   clauses.
 
-For further details and examples see :ref:`column_policy` or :ref:`config`.
+.. SEEALSO::
+
+    :ref:`Data definition: Column policy <column_policy>`
+
+    :ref:`config`
 
 
 .. _sql-create-table-max-ngram-diff:
@@ -835,8 +858,8 @@ For further details and examples see :ref:`column_policy` or :ref:`config`.
 ``max_ngram_diff``
 ------------------
 
-Specifies the maximum difference between max_ngram and min_ngram when using
-the NGramTokenizer or the NGramTokenFilter. The default is 1.
+Specifies the maximum difference between ``max_ngram`` and ``min_ngram`` when
+using the ``NGramTokenizer`` or the ``NGramTokenFilter``. The default is 1.
 
 
 .. _sql-create-table-max-shingle-diff:
@@ -844,8 +867,8 @@ the NGramTokenizer or the NGramTokenFilter. The default is 1.
 ``max_shingle_diff``
 --------------------
 
-Specifies the maximum difference between min_shingle_size and max_shingle_size
-when using the ShingleTokenFilter. The default is 3.
+Specifies the maximum difference between ``min_shingle_size`` and
+``max_shingle_size`` when using the ``ShingleTokenFilter``. The default is 3.
 
 
 .. _sql-create-table-merge:
@@ -858,6 +881,7 @@ when using the ShingleTokenFilter. The default is 3.
 ------------------------------------
 
 The maximum number of threads on a single shard that may be merging at once.
-Defaults to ``Math.max(1, Math.min(4, Runtime.getRuntime().availableProcessors() / 2))``
-which works well for a good solid-state-disk (SSD). If your index is on
-spinning platter drives instead, decrease this to 1.
+Defaults to ``Math.max(1, Math.min(4,
+Runtime.getRuntime().availableProcessors() / 2))`` which works well for a good
+solid-state-disk (SSD). If your index is on spinning platter drives instead,
+decrease this to 1.

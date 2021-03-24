@@ -1,16 +1,19 @@
 .. highlight:: psql
-.. _scalar:
+
+.. _scalar-functions:
 
 ================
 Scalar functions
 ================
 
-Scalar functions return :ref:`scalars <gloss-scalar>`.
+Scalar functions are :ref:`functions <gloss-function>` that return
+:ref:`scalars <gloss-scalar>`.
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
 
 String functions
 ================
@@ -701,6 +704,8 @@ Example::
    SELECT 1 row in set (... sec)
 
 
+.. _scalar-date-time:
+
 Date and time functions
 =======================
 
@@ -736,8 +741,8 @@ Valid values for ``timezone`` are either the name of a time zone (for example
 get a complete overview of all possible values take a look at the `available
 time zones`_ supported by `Joda-Time`_.
 
-The following example shows how to use the date_trunc function to generate a
-day based histogram in the ``Europe/Moscow`` timezone::
+The following example shows how to use the ``date_trunc`` function to generate
+a day based histogram in the ``Europe/Moscow`` timezone::
 
     cr> select
     ... date_trunc('day', 'Europe/Moscow', date) as day,
@@ -772,8 +777,9 @@ If you don't specify a time zone, ``truncate`` uses UTC time::
 ``extract(field from source)``
 ------------------------------
 
-``extract`` is a special expression that translates to a function which
-retrieves subfields such as day, hour or minute from a timestamp.
+``extract`` is a special :ref:`expression <gloss-expression>` that translates
+to a function which retrieves subfields such as day, hour or minute from a
+timestamp.
 
 The return type depends on the used ``field``.
 
@@ -883,11 +889,11 @@ The following fields are supported:
 ``CURRENT_TIME``
 ----------------
 
-The ``CURRENT_TIME`` expression returns the time in microseconds
-since midnight UTC at the time the SQL statement was handled. Clock
-time is looked up at most once within the scope of a single query, to
-ensure that multiple occurrences of ``CURRENT_TIME`` evaluate to the
-same value.
+The ``CURRENT_TIME`` :ref:`expression <gloss-expression>` returns the time in
+microseconds since midnight UTC at the time the SQL statement was
+handled. Clock time is looked up at most once within the scope of a single
+query, to ensure that multiple occurrences of ``CURRENT_TIME`` :ref:`evaluate
+<gloss-evaluation>` to the same value.
 
 synopsis::
 
@@ -999,8 +1005,8 @@ Synopsis
     DATE_FORMAT( [ format_string, [ timezone, ] ] timestamp )
 
 The only mandatory argument is the ``timestamp`` value to format. It can be any
-expression that is safely convertible to timestamp data type with or without
-timezone.
+:ref:`expression <gloss-expression>` that is safely convertible to timestamp
+data type with or without timezone.
 
 Format
 ......
@@ -1181,9 +1187,9 @@ a timezone) or ``interval``.
 Format
 ......
 
-The syntax for the ``format_string`` differs based the type of the expression.
-For ``timestamp`` expressions, the ``format_string`` is a template string
-containing any of the following symbols:
+The syntax for the ``format_string`` differs based the type of the
+:ref:`expression <gloss-expression>`.  For ``timestamp`` expressions, the
+``format_string`` is a template string containing any of the following symbols:
 
 +-------------------------------------------+---------------------------------------------------------------------------+
 | Pattern                                   | Description                                                               |
@@ -1309,7 +1315,6 @@ specified interval added to the timestamp of ``0000/01/01 00:00:00``:
     SELECT 1 row in set (... sec)
 
 
-
 Geo functions
 =============
 
@@ -1344,14 +1349,14 @@ the other argument must be a column reference.
 
 .. NOTE::
 
-   The algorithm of the calculation which is used when the distance
-   function is used as part of the result column list has a different
-   precision than what is stored inside the index which is utilized if
-   the distance function is part of a WHERE clause.
+   The algorithm of the calculation which is used when the distance function is
+   used as part of the result column list has a different precision than what
+   is stored inside the index which is utilized if the distance function is
+   part of a WHERE clause.
 
-   For example if ``select distance(...)`` returns 0.0 an equality check
-   with ``where distance(...) = 0`` might not yield anything at all due
-   to the precision difference.
+   For example if ``select distance(...)`` returns 0.0 an equality check with
+   ``where distance(...) = 0`` might not yield anything at all due to the
+   precision difference.
 
 .. _scalar_within:
 
@@ -1366,8 +1371,8 @@ that is not the case false is returned.
 ``shape1`` can either be a ``geo_shape`` or a ``geo_point``. ``shape2`` must be
 a ``geo_shape``.
 
-Below is an example of the within function which makes use of the implicit type
-casting from strings to geo point and geo shapes::
+Below is an example of the ``within`` function which makes use of the implicit
+type casting from strings in WKT representation to geo point and geo shapes::
 
     cr> select within(
     ...   'POINT (10 10)',
@@ -1419,7 +1424,7 @@ Example::
     SELECT 1 row in set (... sec)
 
 Due to a limitation on the :ref:`geo_shape_data_type` datatype this function
-cannot be used in the :ref:`sql_reference_order_by`.
+cannot be used in the :ref:`ORDER BY <sql-select-order-by>` clause.
 
 ``latitude(geo_point)`` and ``longitude(geo_point)``
 ----------------------------------------------------
@@ -1972,14 +1977,15 @@ Returns: ``double precision``
 Regular expression functions
 ============================
 
-The regular expression functions in CrateDB use `Java Regular Expressions`_.
+The :ref:`regular expression <gloss-regular-expression>` functions in CrateDB
+use `Java Regular Expressions`_.
 
 See the API documentation for more details.
 
 .. NOTE::
 
    Be aware that, in contrast to the functions, the :ref:`regular expression
-   operator <sql_ddl_regexp>` uses `Lucene Regular Expressions`_.
+   operator <sql_dql_regexp>` uses `Lucene Regular Expressions`_.
 
 .. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 
@@ -2243,8 +2249,8 @@ It can be used to remove elements from array fields.
 ``array(subquery)``
 -------------------
 
-The ``array(subquery)`` expression is an array constructor function
-which operates on the result of the ``subquery``.
+The ``array(subquery)`` :ref:`expression <gloss-expression>` is an array
+constructor function which operates on the result of the ``subquery``.
 
 Returns: ``array``
 
@@ -2256,6 +2262,7 @@ Returns: ``array``
 
 ``array_upper(anyarray, dimension)``
 ------------------------------------
+
 The ``array_upper`` function returns the number of elements in the requested
 array dimension (the upper bound of the dimension).
 
@@ -2295,6 +2302,7 @@ Returns: ``integer``
 
 ``array_lower(anyarray, dimension)``
 ------------------------------------
+
 The ``array_lower`` function returns the lower bound of the requested array
 dimension (which is ``1`` if the dimension is valid and has at least one
 element).
@@ -2378,6 +2386,7 @@ null_string
 If the ``null_string`` argument is omitted or NULL, none of the substrings of
 the input will be replaced by NULL.
 
+.. _scalar-conditional-functions-expressions:
 
 Conditional functions and expressions
 =====================================
@@ -2385,9 +2394,9 @@ Conditional functions and expressions
 ``CASE WHEN ... THEN ... END``
 ------------------------------
 
-The ``case`` expression is a generic conditional expression similar to if/else
-statements in other programming languages and can be used wherever an
-expression is valid.
+The ``case`` :ref:`expression <gloss-expression>` is a generic conditional
+expression similar to if/else statements in other programming languages and can
+be used wherever an expression is valid.
 
 ::
 
@@ -2476,11 +2485,12 @@ Example:
 -------------------------------------
 
 The ``if`` function is a conditional function comparing to *if* statements of
-most other programming languages. If the given *condition* expression evaluates
-to `true`, the *result* expression is evaluated and it's value is returned. If
-the *condition* evaluates to `false`, the *result* expression is not evaluated
-and the optional given *default* expression is evaluated instead and it's value
-will be returned. If the *default* argument is omitted, NULL will be returned
+most other programming languages. If the given *condition* :ref:`expression
+<gloss-expression>` :ref:`evaluates <gloss-evaluation>` to ``true``, the
+*result* expression is evaluated and its value is returned. If the *condition*
+evaluates to ``false``, the *result* expression is not evaluated and the
+optional given *default* expression is evaluated instead and its value will be
+returned. If the *default* argument is omitted, ``NULL`` will be returned
 instead.
 
 .. Hidden: create table if_example
@@ -2515,7 +2525,7 @@ instead.
 
 The ``coalesce`` function takes one or more arguments of the same type and
 returns the first non-null value of these. The result will be NULL only if all
-the arguments evaluate to NULL.
+the arguments :ref:`evaluate <gloss-evaluation>` to NULL.
 
 Returns: same type as arguments
 
@@ -2536,7 +2546,8 @@ Returns: same type as arguments
 
 The ``greatest`` function takes one or more arguments of the same type and will
 return the largest value of these. NULL values in the arguments list are
-ignored. The result will be NULL only if all the arguments evaluate to NULL.
+ignored. The result will be NULL only if all the arguments :ref:`evaluate
+<gloss-evaluation>` to NULL.
 
 Returns: same type as arguments
 
@@ -2555,7 +2566,8 @@ Returns: same type as arguments
 
 The ``least`` function takes one or more arguments of the same type and will
 return the smallest value of these. NULL values in the arguments list are
-ignored. The result will be NULL only if all the arguments evaluate to NULL.
+ignored. The result will be NULL only if all the arguments :ref:`evaluate
+<gloss-evaluation>` to NULL.
 
 Returns: same type as arguments
 
@@ -3054,8 +3066,8 @@ Special functions
 
 The ``ignore3vl`` function operates on a boolean argument and eliminates the
 `3-valued logic`_ on the whole tree of :ref:`operators <gloss-operator>`
-beneath it. More specifically, ``FALSE`` is evaluated to ``FALSE``, ``TRUE`` to
-``TRUE`` and ``NULL`` to ``FALSE``.
+beneath it. More specifically, ``FALSE`` is :ref:`evaluated <gloss-evaluation>`
+to ``FALSE``, ``TRUE`` to ``TRUE`` and ``NULL`` to ``FALSE``.
 
 Returns: ``boolean``
 
@@ -3076,10 +3088,9 @@ Returns: ``boolean``
 .. NOTE::
 
     The main usage of the ``ignore3vl`` function is in the ``WHERE`` clause
-    when a ``NOT`` operator is involved. Such filtering, with
-    `3-valued logic`_, cannot be translated to an optimized query in the
-    internal storage engine, and therefore can result into slow performance.
-    E.g.::
+    when a ``NOT`` operator is involved. Such filtering, with `3-valued
+    logic`_, cannot be translated to an optimized query in the internal storage
+    engine, and therefore can degrade performance. E.g.::
 
       SELECT * FROM t
       WHERE NOT 5 = ANY(t.int_array_col);
@@ -3091,33 +3102,33 @@ Returns: ``boolean``
 
     which will yield better performance (in execution time) than before.
 
-    .. CAUTION::
+.. CAUTION::
 
-      If there are NULL values in the `long_array_col`, in the case that
-      `5 = ANY(t.long_array_col)` evaluates to ``NULL``, without the
-      ``ignore3vl``, it would be evaluated as ``NOT NULL`` => ``NULL``,
-      resulting to zero matched rows. With the ``IGNORE3VL`` in place it will
-      be evaluated as ``NOT FALSE`` => ``TRUE`` resulting to all rows matching
-      the filter. E.g::
+    If there are ``NULL`` values in the ``long_array_col``, in the case that
+    ``5 = ANY(t.long_array_col)`` evaluates to ``NULL``, without the
+    ``ignore3vl``, it would be evaluated as ``NOT NULL`` => ``NULL``,
+    resulting to zero matched rows. With the ``IGNORE3VL`` in place it will
+    be evaluated as ``NOT FALSE`` => ``TRUE`` resulting to all rows matching
+    the filter. E.g::
 
-        cr> SELECT * FROM t
-        ... WHERE NOT 5 = ANY(t.int_array_col);
-        +---------------+
-        | int_array_col |
-        +---------------+
-        +---------------+
-        SELECT 0 rows in set (... sec)
+      cr> SELECT * FROM t
+      ... WHERE NOT 5 = ANY(t.int_array_col);
+      +---------------+
+      | int_array_col |
+      +---------------+
+      +---------------+
+      SELECT 0 rows in set (... sec)
 
-      ::
+    ::
 
-        cr> SELECT * FROM t
-        ... WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
-        +-----------------+
-        | int_array_col   |
-        +-----------------+
-        | [1, 2, 3, null] |
-        +-----------------+
-        SELECT 1 row in set (... sec)
+      cr> SELECT * FROM t
+      ... WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
+      +-----------------+
+      | int_array_col   |
+      +-----------------+
+      | [1, 2, 3, null] |
+      +-----------------+
+      SELECT 1 row in set (... sec)
 
 .. hide:
 
@@ -3143,11 +3154,12 @@ Example::
 
 .. [#MySQL-Docs] https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 
-.. _`formatter`: https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
-.. _Java Regular Expressions: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
-.. _`MySQL date_format`: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
-.. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
-.. _`CrateDB PDO`: https://crate.io/docs/pdo/en/latest/connect.html
+
 .. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
+.. _`CrateDB PDO`: https://crate.io/docs/pdo/en/latest/connect.html
+.. _`formatter`: https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+.. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
+.. _`MySQL date_format`: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 .. _Java DateTimeFormatter: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
 .. _Java DecimalFormat: https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
+.. _Java Regular Expressions: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html

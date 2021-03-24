@@ -61,8 +61,13 @@ The result has at most 1 row::
 Cluster license
 ---------------
 
-The ``sys.cluster.license`` expression returns information about the currently
-registered license.
+The ``sys.cluster.license`` :ref:`expression <gloss-expression>` returns
+information about the currently registered license.
+
+.. NOTE::
+
+      Licenses were removed in CrateDB 4.5. Accordingly, these values are
+      deprecated and return `NULL` in CrateDB 4.5 and higher.
 
 ``license``
 -----------
@@ -88,8 +93,8 @@ registered license.
 Cluster settings
 ----------------
 
-The ``sys.cluster.settings`` expression returns information about the currently
-applied cluster settings.
+The ``sys.cluster.settings`` :ref:`expression <gloss-expression>` returns
+information about the currently applied cluster settings.
 
 ::
 

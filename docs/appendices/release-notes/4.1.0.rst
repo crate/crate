@@ -31,8 +31,8 @@ Breaking Changes
 ================
 
 - Changed :ref:`arithmetic operations <arithmetic>` ``*``, ``+``, and ``-`` of
-  types ``integer`` and ``bigint`` to throw an exception instead of rolling over
-  from positive to negative or the other way around.
+  types ``integer`` and ``bigint`` to throw an exception instead of rolling
+  over from positive to negative or the other way around.
 
 - Changed how columns of type :ref:`geo_point_data_type` are being communicated
   to PostgreSQL clients.
@@ -92,18 +92,17 @@ Performance improvements
   rows returned by various parts of a query plan. This should result in more
   efficient execution plans for joins.
 
-- Reduced recovery time by sending file-chunks concurrently. This change
-  only applies when transport communication is secured or compressed. The
-  number of chunks is controlled by the
-  :ref:`indices.recovery.max_concurrent_file_chunks
+- Reduced recovery time by sending file-chunks concurrently. This change only
+  applies when transport communication is secured or compressed. The number of
+  chunks is controlled by the :ref:`indices.recovery.max_concurrent_file_chunks
   <indices.recovery.max_concurrent_file_chunks>` setting.
 
 - Added an optimization that allows ``WHERE`` clauses on top of derived tables
-  containing :ref:`table functions <ref-table-functions>` to run more
-  efficiently in some cases.
+  containing :ref:`table functions <table-functions>` to run more efficiently
+  in some cases.
 
-- Allow user to control how table data is stored and accessed on a disk
-  via the :ref:`store.type <sql-create-table-store-type>` table parameter and
+- Allow user to control how table data is stored and accessed on a disk via the
+  :ref:`store.type <sql-create-table-store-type>` table parameter and
   :ref:`node.store.allow_mmap <node.store_allow_mmap>` node setting.
 
 - Changed the default table data store type from ``mmapfs`` to ``hybridfs``.
@@ -116,26 +115,26 @@ SQL Standard and PostgreSQL compatibility improvements
 Window function extensions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Added support for the :ref:`lag <window-function-lag>` and :ref:`lead
-  <window-function-lead>` window functions as enterprise features.
+- Added support for the :ref:`lag <window-functions-lag>` and :ref:`lead
+  <window-functions-lead>` window functions as enterprise features.
 
 - Added support for ``ROWS`` frame definitions in the context of window
   functions :ref:`window definitions <window-definition>`.
 
-- Added support for the :ref:`named window definition <named-windows>`.
-  This change allows a user to define a list of window definitions in the
-  :ref:`sql_reference_window` clause that can be referenced in :ref:`over`
-  clauses.
+- Added support for the :ref:`named window definition
+  <window-definition-named-windows>`.  This change allows a user to define a
+  list of window definitions in the :ref:`WINDOW <sql-select-window>` clause
+  that can be referenced in :ref:`OVER <sql-select-over>` clauses.
 
-- Added support for ``offset PRECEDING`` and ``offset FOLLOWING``
-  :ref:`window definitions <window-definition>`.
+- Added support for ``offset PRECEDING`` and ``offset FOLLOWING`` :ref:`window
+  definitions <window-definition>`.
 
 
 Functions and operators
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for the :ref:`ALL <all_array_comparison>` operator for array
-  and subquery comparisons.
+  and :ref:`subquery <gloss-subquery>` comparisons.
 
 - Added a :ref:`PG_GET_KEYWORDS <pg_catalog.pg_get_keywords>` table function.
 
@@ -177,9 +176,9 @@ Functions and operators
 - Added support for CIDR notation comparisons through special purpose
   :ref:`operator <gloss-operator>` ``<<`` associated with type IP.
 
-  Statements like ``192.168.0.0 << 192.168.0.1/24`` evaluate as true,
-  meaning ``SELECT ip FROM ips_table WHERE ip << 192.168.0.1/24`` returns
-  matching :ref:`ip <ip-type>` addresses.
+  Statements like ``192.168.0.0 << 192.168.0.1/24`` :ref:`evaluate
+  <gloss-evaluation>` as true, meaning ``SELECT ip FROM ips_table WHERE ip <<
+  192.168.0.1/24`` returns matching :ref:`IP addresses <ip-type>`.
 
 
 New statements and clauses
@@ -189,13 +188,12 @@ New statements and clauses
   statistical data about the contents of the tables in the CrateDB cluster.
   This data is visible in a newly added :ref:`pg_stats <pg_stats>` table.
 
-- Added a :ref:`PROMOTE REPLICA <sql-alter-table-reroute>` sub command to
+- Added a :ref:`PROMOTE REPLICA <sql-alter-table-reroute>` subcommand to
   :ref:`sql-alter-table`.
 
-- Added support for the filter clause in
-  :ref:`aggregate expressions <aggregation-expressions>` and
-  :ref:`window functions <window-function-call>` that are
-  :ref:`aggregates <aggregation>`.
+- Added support for the filter clause in :ref:`aggregate expressions
+  <aggregation-expressions>` and :ref:`window functions <window-function-call>`
+  that are :ref:`aggregates <aggregation>`.
 
 - Added support for using :ref:`ref-values` as a top-level relation.
 
@@ -221,8 +219,9 @@ Observability improvements
 
 - Added a ``node`` column to :ref:`sys.jobs_log <sys-logs>`.
 
-- Statements containing limits, filters, window functions, or table functions
-  will now be labelled accordingly in :ref:`sys-jobs-metrics`.
+- Statements containing limits, filters, :ref:`window functions
+  <window-functions>`, or :ref:`table functions <table-functions>` will now be
+  labelled accordingly in :ref:`sys-jobs-metrics`.
 
 
 Others
@@ -245,9 +244,9 @@ Others
   in the WHERE clause which involve partitioned columns led to a query that
   can't be executed``.
 
-- Support implicit object creation in update statements. For example,
-  ``UPDATE t SET obj['x'] = 10`` will now implicitly set ``obj`` to
-  ``{obj: {x: 10}}`` on rows where ``obj`` was ``null``.
+- Support implicit object creation in update statements. For example, ``UPDATE
+  t SET obj['x'] = 10`` will now implicitly set ``obj`` to ``{obj: {x: 10}}``
+  on rows where ``obj`` was ``null``.
 
 - Added the :ref:`sql-create-table-codec` parameter to :ref:`sql-create-table`
   to control the compression algorithm used to store data.

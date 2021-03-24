@@ -85,9 +85,9 @@ Check
 =====
 
 A check constraint allows you to specify that the values in a certain column
-must satisfy a boolean expression. This can be used to ensure data integrity.
-For example, if you have a table to store metrics from sensors and you want to
-ensure that negative values are rejected::
+must satisfy a :ref:`boolean expression <sql-literal-value>`. This can be used
+to ensure data integrity.  For example, if you have a table to store metrics
+from sensors and you want to ensure that negative values are rejected::
 
      cr> create table metrics (
      ...   id TEXT PRIMARY KEY,

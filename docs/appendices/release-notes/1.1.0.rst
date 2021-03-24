@@ -20,8 +20,10 @@ Released on 2017/03/21.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Breaking Changes
 ----------------
@@ -39,6 +41,7 @@ Breaking Changes
  - Removed deprecated setting ``indices.fielddata.breaker`` that have been used
    as an alias for ``indices.breaker.fielddata``.
 
+
 Changes
 -------
 
@@ -49,8 +52,8 @@ Changes
  - Added cluster checks that warn if some tables need to be recreated or
    upgraded for compatibility with future versions of CrateDB.
 
- - Added functionality to monitor query runtime statistics via JMX. This feature
-   can only be used with an enterprise license.
+ - Added functionality to monitor query runtime statistics via JMX. This
+   feature can only be used with an enterprise license.
 
  - Added a new parameter ``upgrade_segments`` to the ``OPTIMIZE`` statement
    which enables the upgrade of tables and tables partitions to the current
@@ -73,14 +76,14 @@ Changes
    of each node clock at the time of collecting the metric instead of the
    timestamp on the handler node.
 
- - Added scalar function ``geohash`` that returns a GeoHash representation of
-   a ``geo_point``
+ - Added :ref:`scalar function <scalar-functions>` ``geohash`` that returns a
+   GeoHash representation of a ``geo_point``
 
  - Added support for casting JSON strings to object columns.
 
- - The array comparison no longer requires extra parentheses for subselects.
-   Now it's possible to use `` = ANY (SELECT ...)`` instead of
-   `` = ANY ((SELECT ...))``.
+ - The array comparison no longer requires extra parentheses for
+   :ref:`subselects <gloss-subquery>`.  Now it's possible to use ``= ANY
+   (SELECT ...)`` instead of ``= ANY ((SELECT ...))``.
 
  - Allow semi-colon (``;``) in the end of simple SQL statements.
 
@@ -96,8 +99,8 @@ Changes
 
  - Added monitoring plugin for the Enterprise edition in the admin UI.
 
- - Added Lazy loading of the stylesheet and plugins depending on the
-   Enterprise settings.
+ - Added Lazy loading of the stylesheet and plugins depending on the Enterprise
+   settings.
 
  - Added buttons to collapse and expand all schemas in the tables view.
 
@@ -121,6 +124,7 @@ Changes
    human-readable timestamps, Google Maps link on geo-point results & lazy
    loading on result sets larger than 100 rows.
 
+
 Fixes
 -----
 
@@ -138,8 +142,8 @@ Fixes
  - Fixed a console results issue that caused the results table not to be
    visible after horizontal scrolling.
 
- - Fixed styling issue that caused the last element in the side bar list to
-   be hidden.
+ - Fixed styling issue that caused the last element in the side bar list to be
+   hidden.
 
  - Fixed an issue that caused the notification date to be ``null`` in Safari.
 
@@ -148,5 +152,5 @@ Fixes
 
  - Fixed an issue that caused the admin UI to load only one plugin.
 
- - Display warning in the console view when the query result contains an
-   unsafe integer.
+ - Display warning in the console view when the query result contains an unsafe
+   integer.

@@ -14,8 +14,8 @@ Released on 2019/03/27.
     We recommend that you upgrade to the latest 3.2 release before moving to
     3.3.0.
 
-    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-    version will require a `full restart upgrade`_.
+    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to
+    this version will require a `full restart upgrade`_.
 
     When restarting, CrateDB will migrate indexes to a newer format. Depending
     on the amount of data, this may delay node start-up time.
@@ -37,35 +37,36 @@ Released on 2019/03/27.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
 
 .. _version_3.3.0_upgrade_notes:
 
 Upgrade Notes
 =============
 
+
 Deprecated Settings and Features
 --------------------------------
 
-The query frequency and average duration :ref:`query_stats_mbean` metrics
-has now been deprecated, in favour of the new total count and sum of durations
+The query frequency and average duration :ref:`query_stats_mbean` metrics has
+now been deprecated, in favour of the new total count and sum of durations
 metrics.
 
 The ``cluster.graceful_stop.reallocate`` setting has been marked as deprecated.
-This setting was already being ignored, and setting the value to ``false``
-had no effect.
+This setting was already being ignored, and setting the value to ``false`` had
+no effect.
 
 The node decommission using the ``USR2`` :ref:`signals <cli-crate-signals>` has
 now been deprecated in favour of the :ref:`ALTER CLUSTER DECOMMISSION
 <alter_cluster_decommission>` statement.
 
-The ``CREATE INGEST`` and ``DROP INGEST`` rules have been marked
-as deprecated. Given that the only implementation (MQTT) was deprecated
-and will be removed, the framework itself will also be removed.
+The ``CREATE INGEST`` and ``DROP INGEST`` rules have been marked as
+deprecated. Given that the only implementation (MQTT) was deprecated and will
+be removed, the framework itself will also be removed.
 
 
 Changelog
@@ -85,17 +86,18 @@ New Features
   statement type under the ``sum_of_durations``, ``total_count`` and
   ``failed_count`` columns, respectively, in the :ref:`sys-jobs-metrics` table.
 
+
 SQL Improvements
 ~~~~~~~~~~~~~~~~
 
-- Added ``current_schemas(boolean)`` scalar function which will return the
-  names of schemas in the ``search_path``.
+- Added ``current_schemas(boolean)`` :ref:`scalar function <scalar-functions>`
+  which will return the names of schemas in the ``search_path``.
 
 - Added support for the ``first_value``, ``last_value``, and ``nth_value``
-  window functions as enterprise features.
+  :ref:`window functions <window-functions>` as enterprise features.
 
-- Added the ``DROP ANALYZER`` statement to support removal of custom
-  analyzer definitions from the cluster.
+- Added the ``DROP ANALYZER`` statement to support removal of custom analyzer
+  definitions from the cluster.
 
 - Output the custom analyzer, tokenizer, token_filter, and char_filter
   definition inside the ``information_schema.routines.routine_definition``
@@ -103,23 +105,26 @@ SQL Improvements
 
 - Added support for the ``row_number()`` window function.
 
-- Added support for using any expression in the operand of a ``CASE`` clause.
+- Added support for using any :ref:`expression <gloss-expression>` in the
+  operand of a ``CASE`` clause.
 
 - Fix quoting of identifiers that contain leading digits or spaces when
   printing relation or column names.
 
+
 PostgreSQL Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Added ``pg_type`` columns: ``typlen``, ``typarray``, ``typnotnull``,
-  and ``typnamespace`` for improved PostgreSQL compatibility.
+- Added ``pg_type`` columns: ``typlen``, ``typarray``, ``typnotnull``, and
+  ``typnamespace`` for improved PostgreSQL compatibility.
 
 - Added a ``pg_description`` table to the ``pg_catalog`` schema for improved
   PostgreSQL compatibility.
 
-- Fixed function resolution for PostgreSQL functions ``pg_backend_pid``,
-  ``pg_get_expr``, and ``current_database`` when the schema prefix
-  ``pg_catalog`` is included.
+- Fixed :ref:`function <gloss-function>` resolution for PostgreSQL functions
+  ``pg_backend_pid``, ``pg_get_expr``, and ``current_database`` when the schema
+  prefix ``pg_catalog`` is included.
+
 
 Database Administration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -138,23 +143,24 @@ Database Administration
 Deprecations
 ~~~~~~~~~~~~
 
-- The query frequency and average duration :ref:`query_stats_mbean` metrics
-  has been deprecated in favour of the new total count and sum of durations
+- The query frequency and average duration :ref:`query_stats_mbean` metrics has
+  been deprecated in favour of the new total count and sum of durations
   metrics.
 
-- Marked the ``cluster.graceful_stop.reallocate`` setting as deprecated.
-  This setting was already being ignored, setting the value to ``false`` has no effect.
+- Marked the ``cluster.graceful_stop.reallocate`` setting as deprecated.  This
+  setting was already being ignored, setting the value to ``false`` has no
+  effect.
 
 - The node decommission using the ``USR2`` :ref:`signal <cli-crate-signals>`
   has been deprecated in favour of the :ref:`ALTER CLUSTER DECOMMISSION
   <alter_cluster_decommission>` statement.
 
-- Marked ``CREATE INGEST`` and ``DROP INGEST`` as deprecated.
-  Given that the only implementation (MQTT) was deprecated and will be removed,
-  the framework itself will also be removed.
+- Marked ``CREATE INGEST`` and ``DROP INGEST`` as deprecated.  Given that the
+  only implementation (MQTT) was deprecated and will be removed, the framework
+  itself will also be removed.
 
 Other
 ~~~~~
 
-- Buffer the file output of ``COPY TO`` operations to improve performance by not
-  writing to disk on every row.
+- Buffer the file output of ``COPY TO`` operations to improve performance by
+  not writing to disk on every row.

@@ -20,8 +20,8 @@ Released on 2019/07/12.
 
 .. WARNING::
 
-    Tables that were created prior CrateDB 3.x will not function with 4.x
-    and must be recreated before moving to 4.x.x.
+    Tables that were created prior CrateDB 3.x will not function with 4.x and
+    must be recreated before moving to 4.x.x.
 
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
@@ -32,12 +32,10 @@ Released on 2019/07/12.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of Contents
 
 .. contents::
    :local:
-
 
 See the :ref:`version_4.0.0` release notes for a full list of changes in the
 4.0 series.
@@ -52,6 +50,6 @@ Fixes
 - Fixed an issue in the version handling that would prevent rolling upgrades to
   future versions of CrateDB.
 
-- Arithmetic operations now work on expressions of type :ref:`timestamp without
-  time zone <date-time-types>`, to make it consistent with ``timestamp with time
-  zone``.
+- Arithmetic operations now work on :ref:`expressions <gloss-expression>` of
+  type :ref:`timestamp without time zone <date-time-types>`, to make it
+  consistent with ``timestamp with time zone``.

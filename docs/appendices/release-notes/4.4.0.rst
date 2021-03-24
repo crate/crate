@@ -31,12 +31,15 @@ Released on 2021-01-19.
 Deprecations
 ============
 
-- The settings ``discovery.zen.publish_timeout``, ``discovery.zen.commit_timeout``,
-  ``discovery.zen.no_master_block``, ``discovery.zen.publish_diff.enable``
-  have been marked as deprecated and will be removed in a future version.
+- The settings ``discovery.zen.publish_timeout``,
+  ``discovery.zen.commit_timeout``, ``discovery.zen.no_master_block``,
+  ``discovery.zen.publish_diff.enable`` have been marked as deprecated and will
+  be removed in a future version.
+
 
 Changes
 =======
+
 
 Performance improvements
 ------------------------
@@ -53,6 +56,7 @@ Performance improvements
 - Improved the performance for queries which select a subset of the columns
   available in a wide table.
 
+
 SQL and PostgreSQL compatibility improvements
 ---------------------------------------------
 
@@ -60,8 +64,8 @@ SQL and PostgreSQL compatibility improvements
   <numeric_type>` type.
 
 - Added support for the :ref:`numeric <numeric_type>` data type and allow the
-  ``sum`` aggregation on the :ref:`numeric <numeric_type>` type.
-  Note that the storage of the ``numeric`` data type is not supported.
+  ``sum`` aggregation on the :ref:`numeric <numeric_type>` type.  Note that the
+  storage of the ``numeric`` data type is not supported.
 
 - Extended the ``RowDescription`` message that can be sent while communicating
   with PostgreSQL clients to include a ``table_oid`` and a ``attr_num`` based
@@ -99,8 +103,8 @@ New scalar and window functions
 
 - Added the :ref:`split_part <scalar-split_part>` scalar function.
 
-- Added the :ref:`dense_rank <window-function-dense_rank>` window function,
+- Added the :ref:`dense_rank <window-functions-dense-rank>` window function,
   which is available as an enterprise feature.
 
-- Added the :ref:`rank <window-function-rank>` window function, which is
+- Added the :ref:`rank <window-functions-rank>` window function, which is
   available as an enterprise feature.

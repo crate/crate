@@ -14,8 +14,8 @@ Released on 2018/12/19.
     We recommend that you upgrade to the latest 3.1 release before moving to
     3.2.0.
 
-    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-    version will require a `full restart upgrade`_.
+    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to
+    this version will require a `full restart upgrade`_.
 
     When restarting, CrateDB will migrate indexes to a newer format. Depending
     on the amount of data, this may delay node start-up time.
@@ -37,16 +37,17 @@ Released on 2018/12/19.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of contents
 
 .. contents::
    :local:
 
+
 .. _version_3.2.0_upgrade_notes:
 
 Upgrade Notes
 =============
+
 
 Logging Configuration Changes
 -----------------------------
@@ -56,10 +57,11 @@ changed. If you have customised this :ref:`logging configuration
 <conf-logging-log4j>`, you should replace the ``$marker`` entry with
 ``[%node_name] %marker``.
 
+
 Deprecated Settings and Features
 --------------------------------
 
-In previous versions, the CrateDB license was set via the `license.ident`
+In previous versions, the CrateDB license was set via the ``license.ident``
 configuration setting. This has now been deprecated, and going forward the
 CrateDB license should be set using the :ref:`ref-set-license` statement.
 
@@ -73,28 +75,32 @@ The ``delimited_payload_filter`` built-in token filter for fulltext analyzers
 has been renamed to ``delimited_payload``. The ``delimited_payload_filter``
 name can still be used, but is deprecated, and will be removed in the future.
 
+
 Changelog
 =========
+
 
 Breaking Changes
 ----------------
 
-- The ``*`` of ``SELECT *`` statements in the query clause of
-  :ref:`view definitions <views>`
-  is no longer expanded at view creation time but lazy whenever a view is
-  evaluated. That means columns added to a table after the views initial
-  creation will show up in queries on the view. It is generally recommended to
-  avoid using ``*`` in views but always specify columns explicitly.
+- The ``*`` of ``SELECT *`` statements in the query clause of :ref:`view
+  definitions <ddl-views>` is no longer expanded at view creation time but lazy
+  whenever a view is :ref:`evaluated <gloss-evaluation>`. That means columns
+  added to a table after the views initial creation will show up in queries on
+  the view. It is generally recommended to avoid using ``*`` in views but
+  always specify columns explicitly.
+
 
 Changes
 -------
 
+
 New Features
 ~~~~~~~~~~~~
 
-- Added support for executing existing aggregation functions as
-  :ref:`window functions <window-functions>` using the
-  :ref:`OVER <over>` clause.
+- Added support for executing existing :ref:`aggregation functions
+  <aggregation-functions>` as :ref:`window functions <window-functions>` using
+  the :ref:`OVER <sql-select-over>` clause.
 
 - Added support for CrateDB license management enabling users to trial the
   enterprise-features, set a production enterprise license, or continue using
@@ -102,51 +108,53 @@ New Features
   <ref-set-license>` statement has been added for license registration, and the
   ``license.ident`` setting has become ``@deprecated``.
 
+
 SQL Improvements
 ~~~~~~~~~~~~~~~~
 
-- Added the :ref:`REPLACE <scalar-replace>` scalar function replacing
-  substrings in a string with another string.
+- Added the :ref:`REPLACE <scalar-replace>` :ref:`scalar function
+  <scalar-functions>` replacing substrings in a string with another string.
 
-- Added the
-  :ref:`GENERATE_SERIES(start, stop [, step ]) <table-functions-generate-series>`
-  table function which can generate a series of numbers.
+- Added the :ref:`GENERATE_SERIES(start, stop [, step ])
+  <table-functions-generate-series>` :ref:`table function <table-functions>`
+  which can generate a series of numbers.
 
 - Implemented the :ref:`ARRAY_UPPER <scalar-array-upper>`, :ref:`ARRAY_LENGTH
   <scalar-array-length>` and :ref:`ARRAY_LOWER <scalar-array-lower>` scalar
   functions that return the upper and respectively lower bound of a given array
   dimension.
 
-- Added support for the
-  :ref:`ARRAY(subquery) <sql_expressions_array_subquery>` expression,
-  which can turn the result from a subquery into an array.
+- Added support for the :ref:`ARRAY(subquery) <sql_expressions_array_subquery>`
+  :ref:`expression <gloss-expression>`, which can turn the result from a
+  :ref:`subquery <gloss-subquery>` into an array.
 
 - The :ref:`= ANY <sql_dql_any_array>` :ref:`operator <gloss-operator>` now
   also supports operations on object arrays or nested arrays. This enables
   queries like ``WHERE ['foo', 'bar'] = ANY(object_array(string_array))``.
 
-- Added support for :ref:`SHOW parameter_name | ALL <ref-show>` to retrieve
-  one or all session setting value(s).
+- Added support for :ref:`SHOW parameter_name | ALL <ref-show>` to retrieve one
+  or all session setting value(s).
 
-- Added support for :ref:`INITCAP(string) <scalar-initcap>` which
-  capitalizes the first letter of every word while turning all others into
-  lowercase.
+- Added support for :ref:`INITCAP(string) <scalar-initcap>` which capitalizes
+  the first letter of every word while turning all others into lowercase.
 
-- Added the scalar expression :ref:`CURRENT_DATABASE <scalar_current_database>`
-  which returns the current database.
+- Added the :ref:`scalar <gloss-scalar>` expression :ref:`CURRENT_DATABASE
+  <scalar_current_database>` which returns the current database.
 
-- Functions like :ref:`CURRENT_SCHEMA <scalar_current_schema>` and
-  :ref:`CURRENT_USER <current_user>` which depend on the active session can now
-  be used as :ref:`generated columns <ddl-generated-columns>`.
+- :ref:`Functions <gloss-function>` like :ref:`CURRENT_SCHEMA
+  <scalar_current_schema>` and :ref:`CURRENT_USER <current_user>` which depend
+  on the active session can now be used as :ref:`generated columns
+  <ddl-generated-columns>`.
 
-- Added support for using :ref:`table functions <ref-table-functions>` in the
-  select list of a query.
+- Added support for using :ref:`table functions <table-functions>` in the
+  ``SELECT`` list of a query.
 
 - :ref:`geo_shape <geo_shape_data_type>` columns can now be casted to
   ``object`` with ``cast`` in addition to ``try_cast``.
 
-- Improved the handling of function expressions inside subscripts used on
-  object columns. This allows expressions like ``obj['x' || 'x']`` to be used.
+- Improved the handling of :ref:`function expressions <sql-function-call>`
+  inside subscripts used on object columns. This allows expressions like
+  ``obj['x' || 'x']`` to be used.
 
 - ``<object_column> = <object_literal>`` comparisons now try to utilize the
   index for the objects contents and can therefore run much faster.
@@ -156,7 +164,8 @@ SQL Improvements
   since epoch and byte size values are treat as bytes.
 
 - Added support of using units inside byte-size or time bases statement
-  parameters values. E.g. '1mb' for 1 MegaByte or '1s' for 1 Second.
+  parameters values. E.g. ``1mb`` for one megabyte or ``1s`` for one Second.
+
 
 PostgreSQL Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -164,9 +173,8 @@ PostgreSQL Compatibility
 - Added the :ref:`pg_catalog.pg_database <postgres_pg_catalog>` table.
 
 - Added ``pg_class``, ``pg_namespace``, ``pg_attribute``, ``pg_attrdef``,
-  ``pg_index`` and ``pg_constraint`` tables to the
-  :ref:`pg_catalog <postgres_pg_catalog>` schema for
-  improved compatibility with PostgreSQL.
+  ``pg_index`` and ``pg_constraint`` tables to the :ref:`pg_catalog
+  <postgres_pg_catalog>` schema for improved compatibility with PostgreSQL.
 
 - Improved the compatibility with PostgreSQL clients that use the ``text`` type
   for parameter encoding.
@@ -175,12 +183,12 @@ PostgreSQL Compatibility
 
 - Added some type aliases for improved compatibility with PostgreSQL.
 
-- Expand the :ref:`search_path <conf-session-search-path>` setting to
-  accept a list of schemas that will be
-  searched when a relation (table, view or user defined function) is referenced
-  without specifying a schema. The system
-  :ref:`pg_catalog <postgres_pg_catalog>` schema is implicitly
-  included as the first one in the path.
+- Expand the :ref:`search_path <conf-session-search-path>` setting to accept a
+  list of schemas that will be searched when a relation (table, view or
+  :ref:`user-defined function <user-defined-functions>`) is referenced without
+  specifying a schema. The system :ref:`pg_catalog <postgres_pg_catalog>`
+  schema is implicitly included as the first one in the path.
+
 
 Database Administration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -192,8 +200,8 @@ Database Administration
 - Improved resiliency of the :ref:`ALTER TABLE: RENAME TO
   <sql-alter-table-rename-to>` operation by making it an atomic operation.
 
-- Added an :ref:`ALTER CLUSTER SWAP TABLE <alter_cluster_swap_table>`
-  statement that can be used to switch the names of two tables.
+- Added an :ref:`ALTER CLUSTER SWAP TABLE <alter_cluster_swap_table>` statement
+  that can be used to switch the names of two tables.
 
 - Added a :ref:`ALTER CLUSTER GC DANGLING ARTIFACTS
   <alter_cluster_gc_dangling_artifacts>` statement that can be used to clean up
@@ -203,12 +211,13 @@ Database Administration
 - Added support for per-table :ref:`shard allocation filtering
   <ddl_shard_allocation>`.
 
+
 Admin UI Upgrade to 1.11.3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Changed the license information (ident) to be taken from the
-  `sys.cluster.licence` attribute instead of the `license.ident` setting,
-  which is ``@deprecated``.
+  `sys.cluster.licence` attribute instead of the `license.ident` setting, which
+  is ``@deprecated``.
 
 - Addition of French language files and menu options.
 
@@ -218,6 +227,7 @@ Admin UI Upgrade to 1.11.3
 
 - Various other improvements.
 
+
 Deprecations
 ~~~~~~~~~~~~
 
@@ -226,23 +236,23 @@ Deprecations
 
 - Deprecated the ``http.enabled`` setting which will be always on in future.
 
+
 Other
 ~~~~~
 
 - Upgraded to Elasticsearch 6.5.1, which includes changes to the default
   logging configuration.
 
-- Added a :ref:`remove_duplicates <analyzers_remove_duplicates>` token
-  filter.
+- Added a :ref:`remove_duplicates <analyzers_remove_duplicates>` token filter.
 
 - Added a :ref:`char_group <analyzers_char_group>` tokenizer.
 
 - Renamed the ``delimited_payload_filter`` token filter to
-  :ref:`delimited_payload <delimited_payload-tokenfilter>`. The old name
-  can still be used, but is deprecated.
+  :ref:`delimited_payload <delimited_payload-tokenfilter>`. The old name can
+  still be used, but is deprecated.
 
-For further information on CrateDB 3.2.0 see our
-`announcement blogpost <blogpost_>`__.
+For further information on CrateDB 3.2.0 see our `announcement blogpost
+<blogpost_>`__.
 
 
 .. _blogpost: https://crate.io/a/cratedb-3-2-stable-available-now/

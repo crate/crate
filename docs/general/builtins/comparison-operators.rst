@@ -71,9 +71,10 @@ When comparing dates, `ISO date formats`_ can be used::
 .. TIP::
 
     Comparison operators are commonly used to filter rows (e.g., in the
-    ``WHERE`` and ``HAVING`` clauses of a :ref:`sql_reference_select`
-    statement). However, basic comparison operators can be used as :ref:`value
-    expressions <sql-operator-invocation>` in any context. For example::
+    :ref:`WHERE <sql-select-where>` and :ref:`HAVING <sql-select-having>`
+    clauses of a :ref:`SELECT <sql-select>` statement). However, basic
+    comparison operators can be used as :ref:`value expressions
+    <sql-operator-invocation>` in any context. For example::
 
         cr> SELECT 1 < 10 as my_column;
         +--------------+

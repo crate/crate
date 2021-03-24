@@ -33,7 +33,6 @@ Released on 2018/11/19.
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
-
 .. rubric:: Table of contents
 
 .. contents::
@@ -59,10 +58,11 @@ Fixes
 - Fixed a race condition that could allow the creation of partitions with a
   different schema than other partitions within the same partitioned table.
 
-- Changed the ``user`` hdfs repository parameter to ``security.principal``, as that is
-  the parameter used by the underlying repository-hdfs plugin.
+- Changed the ``user`` hdfs repository parameter to ``security.principal``, as
+  that is the parameter used by the underlying repository-hdfs plugin.
 
-- Removed the ``conf_location`` hdfs repository parameter as it is no longer used.
+- Removed the ``conf_location`` hdfs repository parameter as it is no longer
+  used.
 
 - Fixed an issue that caused zombie entries in ``sys.jobs`` if the
   ``fetchSize`` functionality of PostgreSQL wire protocol based clients is
@@ -71,8 +71,8 @@ Fixes
 - Fixed a memory leak in the ``MQTT`` ingest service.
 
 - Fixed a memory leak that could occur with clients connecting via PostgreSQL
-  protocol and invoking read queries with statements containing expressions
-  that would fail (such as ``1 / 0``).
+  protocol and invoking read queries with statements containing
+  :ref:`expressions <gloss-expression>` that would fail (such as ``1 / 0``).
 
 - Fixed an issue in the PostgreSQL wire protocol that could result in nodes
   crashing with ``OutOfMemoryError`` if clients queried very large tables

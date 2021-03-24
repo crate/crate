@@ -1,16 +1,18 @@
 .. highlight:: psql
-.. _ref-create-view:
+
+.. _sql-create-view:
 
 ===============
 ``CREATE VIEW``
 ===============
 
-Define a new view.
+Define a new :ref:`view <ddl-views>`.
 
 .. rubric:: Table of contents
 
 .. contents::
     :local:
+
 
 Synopsis
 ========
@@ -20,13 +22,13 @@ Synopsis
     CREATE [ OR REPLACE ] VIEW view_ident AS query
 
 
-Where ``query`` is a :ref:`SELECT statement <sql_reference_select>`.
+Where ``query`` is a :ref:`SELECT <sql-select>` statement.
 
 
 Description
 ===========
 
-CREATE VIEW creates a named definition of a query. This name can be used in
+``CREATE VIEW`` creates a named definition of a query. This name can be used in
 other statements instead of a table name to reference the saved query
 definition. A view is not materialized, instead the query is run every time a
 view is referenced in a query.
@@ -45,7 +47,7 @@ operations.
 
 .. SEEALSO::
 
-    :ref:`ref-drop-view`
+    :ref:`SQL syntax: DROP VIEW <sql-drop-view>`
 
 .. NOTE::
 

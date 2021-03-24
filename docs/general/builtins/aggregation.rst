@@ -22,9 +22,9 @@ For example::
 Here, the :ref:`count(*) <aggregation-count-star>` function computes the result
 across all rows.
 
-Aggregate functions can be used with the :ref:`sql_dql_group_by` clause. When
-used like this, an aggregate function returns a single summary value for each
-grouped collection of column values.
+Aggregate :ref:`functions <gloss-function>` can be used with the
+:ref:`sql_dql_group_by` clause. When used like this, an aggregate function
+returns a single summary value for each grouped collection of column values.
 
 For example::
 
@@ -56,18 +56,19 @@ For example::
 Aggregate expressions
 =====================
 
-An *aggregate expression* represents the application of an aggregate function
-across rows selected by a query. Besides the function signature, expressions
-might contain supplementary clauses and keywords.
+An *aggregate expression* represents the application of an :ref:`aggregate
+function <aggregation-functions>` across rows selected by a query. Besides the
+function signature, :ref:`expressions <gloss-expression>` might contain
+supplementary clauses and keywords.
 
 The synopsis of an aggregate expression is one of the following::
 
    aggregate_function ( * ) [ FILTER ( WHERE condition ) ]
    aggregate_function ( [ DISTINCT ] expression [ , ... ] ) [ FILTER ( WHERE condition ) ]
 
-Here, ``aggregate_function`` is a name of an :ref:`aggregate function
-<aggregation-functions>` and ``expression`` is a column reference, scalar
-function or literal.
+Here, ``aggregate_function`` is a name of an aggregate function and
+``expression`` is a column reference, :ref:`scalar function <scalar-functions>`
+or literal.
 
 If ``FILTER`` is specified, then only the rows that met the
 :ref:`sql_dql_where_clause` condition are supplied to the aggregate function.
@@ -280,11 +281,10 @@ number of distinct values in this column that are not ``NULL``::
 ``count(*)``
 ~~~~~~~~~~~~
 
-This aggregate function simply returns the number of rows that match the
-query.
+This aggregate function simply returns the number of rows that match the query.
 
-``count(columName)`` is also possible, but currently only works on a primary key
-column. The semantics are the same.
+``count(columName)`` is also possible, but currently only works on a primary
+key column. The semantics are the same.
 
 The return value is always of type ``bigint``.
 
@@ -569,12 +569,13 @@ of the observed values. The result is defined and computed as an interpolated
 weighted average. According to that it allows the median of the input data to
 be defined conveniently as the 50th percentile.
 
-The function expects a single fraction or an array of fractions and a column
-name. Independent of the input column data type the result of ``percentile``
-always returns a ``double precision``. If the value at the specified column is
-``null`` the row is ignored. Fractions must be double precision values between
-0 and 1. When supplied a single fraction, the function will return a single
-value corresponding to the percentile of the specified fraction::
+The :ref:`function <gloss-function>` expects a single fraction or an array of
+fractions and a column name. Independent of the input column data type the
+result of ``percentile`` always returns a ``double precision``. If the value at
+the specified column is ``null`` the row is ignored. Fractions must be double
+precision values between 0 and 1. When supplied a single fraction, the function
+will return a single value corresponding to the percentile of the specified
+fraction::
 
     cr> select percentile(position, 0.95), kind from locations
     ... group by kind order by kind;
@@ -624,7 +625,7 @@ Depending on the argument type a suitable return type is chosen. For ``real``
 and ``double precison`` argument types the return type is equal to the argument
 type. For ``char``, ``smallint``, ``integer`` and ``bigint`` the return type
 changes to ``bigint``. If the range of ``bigint`` values (-2^64 to 2^64-1) gets
-exceeded an `ArithmeticException` will be raised.
+exceeded an ``ArithmeticException`` will be raised.
 
 ::
 
@@ -656,8 +657,8 @@ exceeded an `ArithmeticException` will be raised.
 
 If the ``sum`` aggregation on a numeric data type with the fixed length can
 potentially exceed its range it is possible to handle the overflow by casting
-the function argument to the :ref:`numeric type <numeric_type>` with an
-arbitrary precision.
+the :ref:`function <gloss-function>` argument to the :ref:`numeric type
+<numeric_type>` with an arbitrary precision.
 
 .. Hidden: create user visits table
 
@@ -740,10 +741,10 @@ Limitations
 ===========
 
  - ``DISTINCT`` is not supported with aggregations on :ref:`sql_joins`.
- - Aggregate functions can only be applied to columns with a plain index,
-   which is the default for all :ref:`primitive type
-   <sql_ddl_datatypes_primitives>` columns. For more information, please refer
-   to :ref:`sql_ddl_index_plain`.
+
+ - Aggregate functions can only be applied to columns with a :ref:`plain index
+   <sql_ddl_index_plain>`, which is the default for all :ref:`primitive type
+   <sql_ddl_datatypes_primitives>` columns.
 
 
 .. _Aggregate function: https://en.wikipedia.org/wiki/Aggregate_function

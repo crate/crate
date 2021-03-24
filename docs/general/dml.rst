@@ -6,6 +6,15 @@
 Data manipulation
 =================
 
+This section provides an overview of how to manipulate data (e.g., inserting
+rows) with CrateDB.
+
+.. SEEALSO::
+
+    :ref:`General use: Data definition <ddl>`
+
+    :ref:`General use: Querying <dql>`
+
 .. rubric:: Table of contents
 
 .. contents::
@@ -382,8 +391,8 @@ Updating nested objects is also supported::
     cr> update locations set inhabitants['name'] = 'Human' where name = 'Bartledan';
     UPDATE OK, 1 row affected (... sec)
 
-It's also possible to reference a column within the expression, for example to
-increment a number like this::
+It's also possible to reference a column within the :ref:`expression
+<gloss-expression>`, for example to increment a number like this::
 
     cr> update locations set position = position + 1 where position < 3;
     UPDATE OK, 6 rows affected (... sec)

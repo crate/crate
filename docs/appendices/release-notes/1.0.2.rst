@@ -8,12 +8,12 @@ Released on 2017/01/09.
 
 .. NOTE::
 
-    If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
-    before you upgrade to 1.0.2.
+    If you are upgrading a cluster, you must be running CrateDB 0.57.0 or
+    higher before you upgrade to 1.0.2.
 
     If you want to perform a `rolling upgrade`_, your current CrateDB version
-    number must be :ref:`version_1.0.0` or higher. If you want to upgrade from a
-    version prior to this, the upgrade will introduce all of the breaking
+    number must be :ref:`version_1.0.0` or higher. If you want to upgrade from
+    a version prior to this, the upgrade will introduce all of the breaking
     changes listed for :ref:`version_1.0.0`, and will require a `full restart
     upgrade`_.
 
@@ -30,64 +30,67 @@ Released on 2017/01/09.
 .. contents::
    :local:
 
+
 Changelog
 =========
+
 
 Changes
 -------
 
- - Do not display current statement in ``sys.jobs`` that disabled stats.
+- Do not display current statement in ``sys.jobs`` that disabled stats.
 
- - It is not possible any more to circumvent ``NOT NULL`` column constraint by
-   omitting the column in the ``INSERT`` statement.
+- It is not possible any more to circumvent ``NOT NULL`` column constraint by
+  omitting the column in the ``INSERT`` statement.
 
- - Updated crate-admin to 1.0.3 which includes the following change:
+- Updated crate-admin to 1.0.3 which includes the following change:
 
-    - Added compatibility with future CrateDB versions which will serve the
-      admin-ui from ``/admin/`` instead of ``/_plugins/crate-admin/``.
+  - Added compatibility with future CrateDB versions which will serve the
+    admin-ui from ``/admin/`` instead of ``/_plugins/crate-admin/``.
+
 
 Fixes
 -----
 
- - Fixed a NPE when using a ``percentile`` aggregation in a multi-node
-   environment.
+- Fixed a NPE when using a ``percentile`` aggregation in a multi-node
+  environment.
 
- - Fixed ``INDEX`` constraint validation. Defining it on complex data types
-   like e.g. ``object`` was silently ignored instead of throwing an error.
+- Fixed ``INDEX`` constraint validation. Defining it on complex data types like
+  e.g. ``object`` was silently ignored instead of throwing an error.
 
- - Fixed an issue that causes ``UnsupportedFeatureException`` for operations on
-   a table where array access is used inside generated columns. e.g.::
+- Fixed an issue that causes ``UnsupportedFeatureException`` for operations on
+  a table where array access is used inside generated columns. e.g.::
 
-       CREATE TABLE t1 (cola string, gencola AS (a[1]))
+      CREATE TABLE t1 (cola string, gencola AS (a[1]))
 
-   Error thrown when: ``SELECT * from t1``, ``DROP TABLE t1``, etc.
+  Error thrown when: ``SELECT * from t1``, ``DROP TABLE t1``, etc.
 
- - Fixed an issue that causes hanging queries if a data node disconnects from
-   the cluster.
+- Fixed an issue that causes hanging queries if a data node disconnects from
+  the cluster.
 
- - CrateDB now throws a correct error if a user tries to create a table
-   starting with ``_``.
+- CrateDB now throws a correct error if a user tries to create a table starting
+  with ``_``.
 
- - Fixed an issue that causes ``UnhandledServerException`` on joins when
-   ``WHERE`` clause contains conditions on columns of array type of both tables
-   which are separated with the ``OR`` :ref:`operator <gloss-operator>`. e.g.::
+- Fixed an issue that causes ``UnhandledServerException`` on joins when
+  ``WHERE`` clause contains conditions on columns of array type of both tables
+  which are separated with the ``OR`` :ref:`operator <gloss-operator>`. e.g.::
 
-       SELECT * FROM t1 join t2 ON t1.id = t2.id
-       WHERE 'foo' = ANY(a.strArray) OR 'bar' = ANY(b.strArray)
+      SELECT * FROM t1 join t2 ON t1.id = t2.id
+      WHERE 'foo' = ANY(a.strArray) OR 'bar' = ANY(b.strArray)
 
- - Scalar functions ``longitude`` and ``latitude`` no longer show misleading
-   results.
+- :ref:`Scalar functions <scalar-functions>` ``longitude`` and ``latitude`` no
+  longer show misleading results.
 
- - Fixed an issue that causes ``ClassCastException`` on outer joins when
-   ``WHERE`` clause contains a condition that prevents null values on the
-   relation that may produce nulls. e.g.::
+- Fixed an issue that causes ``ClassCastException`` on outer joins when
+  ``WHERE`` clause contains a condition that prevents null values on the
+  relation that may produce nulls. e.g.::
 
-       SELECT * FROM t1 LEFT JOIN t2 ON t1.id = t2.id WHERE t2.txt = 'foo'
+      SELECT * FROM t1 LEFT JOIN t2 ON t1.id = t2.id WHERE t2.txt = 'foo'
 
- - Fixed NPE that occurred when an ``UPDATE`` statement inserted ``NULL`` value
-   into a column that did not exist before.
+- Fixed NPE that occurred when an ``UPDATE`` statement inserted ``NULL`` value
+  into a column that did not exist before.
 
- - Fixed an issue that causes an error to be thrown if nested method calls are
-   used in ``HAVING`` clause. e.g.::
+- Fixed an issue that causes an error to be thrown if nested method calls are
+  used in ``HAVING`` clause. e.g.::
 
-       having sum(power(power(id, id), id)) > 1
+      having sum(power(power(id, id), id)) > 1
