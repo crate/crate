@@ -58,4 +58,7 @@ None
 Fixes
 =====
 
-None
+- Changed the ``RowDescription`` message that is sent to PostgreSQL clients to
+  avoid that the JDBC client triggers queries against ``pg_catalog`` schema
+  tables each time information from the ``MetaData`` of a ``ResultSet`` is
+  accessed.
