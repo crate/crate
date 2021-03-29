@@ -367,6 +367,10 @@ public class Messages {
         channel.write(buffer);
     }
 
+    private static boolean isRefWithPosition(Symbol symbol) {
+        return symbol instanceof Reference && ((Reference) symbol).position() != null;
+    }
+
     /**
      * RowDescription (B)
      * <p>
@@ -391,7 +395,10 @@ public class Messages {
         buffer.writeInt(0); // will be set at the end
         buffer.writeShort(columns.size());
 
-        int tableOid = relation == null ? 0 : OidHash.relationOid(relation);
+        int tableOid = 0;
+        if (relation != null && columns.stream().allMatch(Messages::isRefWithPosition)) {
+            tableOid = OidHash.relationOid(relation);
+        }
         int idx = 0;
         for (Symbol column : columns) {
             byte[] nameBytes = Symbols.pathFromSymbol(column).sqlFqn().getBytes(StandardCharsets.UTF_8);

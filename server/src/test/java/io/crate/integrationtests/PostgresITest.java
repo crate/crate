@@ -22,45 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.testing.DataTypeTesting;
-import io.crate.testing.UseJdbc;
-import io.crate.types.DataTypes;
-
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
-import org.postgresql.PGProperty;
-import org.postgresql.geometric.PGpoint;
-import org.postgresql.jdbc.PreferQueryMode;
-import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-
-import java.sql.Array;
-import java.sql.BatchUpdateException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.StringJoiner;
-import java.util.UUID;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
@@ -73,6 +34,49 @@ import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
+
+import java.sql.Array;
+import java.sql.BatchUpdateException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.StringJoiner;
+import java.util.UUID;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.postgresql.PGProperty;
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.testing.DataTypeTesting;
+import io.crate.testing.UseJdbc;
+import io.crate.types.DataTypes;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class PostgresITest extends SQLTransportIntegrationTest {
@@ -935,6 +939,43 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void test_metadata_calls_do_not_query_pg_catalog_tables_repeatedly() throws Exception {
+        var properties = new Properties();
+        properties.put("user", "crate");
+        properties.put("password", "");
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            var stmt = conn.createStatement();
+            stmt.execute("create table uservisits (\"adRevenue\" float, \"cCode\" text, \"duration\" float)");
+
+            conn.setAutoCommit(false);
+            stmt = conn.createStatement();
+            stmt.setFetchSize(101);
+            ResultSet result = stmt.executeQuery(
+                    "select avg(\"adRevenue\") from uservisits group by \"cCode\", \"duration\" limit 100");
+
+            long numQueries = getNumQueriesFromJobsLogs();
+            ResultSetMetaData metaData = result.getMetaData();
+            for (int i = 0; i < 50; i++) {
+                // These calls must not invoke extra queries
+                metaData.isAutoIncrement(1);
+            }
+            assertThat(getNumQueriesFromJobsLogs(), is(numQueries));
+            result.close();
+        }
+    }
+
+    private long getNumQueriesFromJobsLogs() {
+        long result = 0;
+        Iterable<JobsLogs> jobLogs = internalCluster().getInstances(JobsLogs.class);
+        for (JobsLogs jobsLogs : jobLogs) {
+            for (var metrics : jobsLogs.metrics()) {
+                result += metrics.totalCount();
+            }
+        }
+        return result;
     }
 
     private void assertSelectNameFromSysClusterWorks(Connection conn) throws SQLException {
