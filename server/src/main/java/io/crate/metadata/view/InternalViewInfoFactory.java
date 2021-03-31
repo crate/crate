@@ -68,13 +68,15 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
                 CoordinatorTxnCtx.systemTransactionContext(),
                 ParamTypeHints.EMPTY);
             final List<Reference> collectedColumns = new ArrayList<>(relation.outputs().size());
-            relation.outputs()
-                .forEach(field -> collectedColumns.add(
+            int position = 1;
+            for (var field : relation.outputs()) {
+                collectedColumns.add(
                     new Reference(new ReferenceIdent(ident, Symbols.pathFromSymbol(field).sqlFqn()),
                                   RowGranularity.DOC,
                                   field.valueType(),
-                                  null,
-                                  null)));
+                                  position++,
+                                  null));
+            }
             columns = collectedColumns;
         } catch (ResourceUnknownException e) {
             // Return ViewInfo with no columns in case the statement could not be analyzed,

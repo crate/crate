@@ -87,14 +87,14 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
-        null,
+        0,
         null
     );
     private static final Reference underscoreIdReference = new Reference(
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
         RowGranularity.DOC,
         DataTypes.STRING,
-        null,
+        0,
         null
     );
 

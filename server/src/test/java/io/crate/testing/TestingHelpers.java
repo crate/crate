@@ -200,7 +200,7 @@ public class TestingHelpers {
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
             RowGranularity.DOC,
             dataType,
-            null,
+            0,
             null
         );
     }
@@ -303,7 +303,7 @@ public class TestingHelpers {
             default:
                 throw new IllegalArgumentException("fqColumnName must contain <table>.<column> or <schema>.<table>.<column>");
         }
-        return new Reference(refIdent, rowGranularity, dataType, null, null);
+        return new Reference(refIdent, rowGranularity, dataType, 0, null);
     }
 
     public static <T> Matcher<T> isSQL(final String stmt) {

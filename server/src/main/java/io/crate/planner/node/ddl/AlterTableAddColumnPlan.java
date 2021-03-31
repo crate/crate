@@ -175,7 +175,7 @@ public class AlterTableAddColumnPlan implements Plan {
             ColumnIdent parent = column.getParent();
             // sort of `columnsToBuildHierarchy` ensures parent would already have been processed and must be present in columns
             AnalyzedColumnDefinition<Object> parentDef = columns.get(parent);
-            AnalyzedColumnDefinition<Object> columnDef = new AnalyzedColumnDefinition<>(null, parentDef);
+            AnalyzedColumnDefinition<Object> columnDef = new AnalyzedColumnDefinition<>(0, parentDef);
             columns.put(column, columnDef);
             columnDef.ident(column);
             if (tableInfo.primaryKey().contains(column)) {

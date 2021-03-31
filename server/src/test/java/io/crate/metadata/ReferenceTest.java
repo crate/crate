@@ -46,8 +46,8 @@ public class ReferenceTest extends ESTestCase {
         DataType<?> dataType2 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         Symbol defaultExpression1 = Literal.of(Map.of("f", 10));
         Symbol defaultExpression2 = Literal.of(Map.of("f", 10));
-        Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1, null, defaultExpression1);
-        Reference reference2 = new Reference(referenceIdent, RowGranularity.DOC, dataType2, null, defaultExpression2);
+        Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1, 1, defaultExpression1);
+        Reference reference2 = new Reference(referenceIdent, RowGranularity.DOC, dataType2, 1, defaultExpression2);
         assertThat(reference1, is(reference2));
     }
 
@@ -62,7 +62,7 @@ public class ReferenceTest extends ESTestCase {
             ColumnPolicy.STRICT,
             Reference.IndexType.ANALYZED,
             false,
-            null,
+            0,
             Literal.of(Map.of("f", 10)
             )
         );

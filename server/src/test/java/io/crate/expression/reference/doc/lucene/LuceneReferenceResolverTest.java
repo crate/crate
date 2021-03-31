@@ -50,7 +50,7 @@ public class LuceneReferenceResolverTest extends ESTestCase {
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {
         Reference arrayRef = new Reference(
-            new ReferenceIdent(name, "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, null, null
+            new ReferenceIdent(name, "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, 0, null
         );
         assertThat(luceneReferenceResolver.getImplementation(arrayRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
@@ -59,7 +59,7 @@ public class LuceneReferenceResolverTest extends ESTestCase {
     @Test
     public void testGetImplementationForSequenceNumber() {
         Reference seqNumberRef = new Reference(
-            new ReferenceIdent(name, "_seq_no"), RowGranularity.DOC, DataTypes.LONG, null, null
+            new ReferenceIdent(name, "_seq_no"), RowGranularity.DOC, DataTypes.LONG, 0, null
         );
         assertThat(luceneReferenceResolver.getImplementation(seqNumberRef), instanceOf(SeqNoCollectorExpression.class));
     }
@@ -67,7 +67,7 @@ public class LuceneReferenceResolverTest extends ESTestCase {
     @Test
     public void testGetImplementationForPrimaryTerm() {
         Reference primaryTerm = new Reference(
-            new ReferenceIdent(name, "_primary_term"), RowGranularity.DOC, DataTypes.LONG, null, null
+            new ReferenceIdent(name, "_primary_term"), RowGranularity.DOC, DataTypes.LONG, 0, null
         );
         assertThat(luceneReferenceResolver.getImplementation(primaryTerm),
                    instanceOf(PrimaryTermCollectorExpression.class));
@@ -76,7 +76,7 @@ public class LuceneReferenceResolverTest extends ESTestCase {
     @Test
     public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
         Reference ignored = new DynamicReference(
-            new ReferenceIdent(name, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED);
+            new ReferenceIdent(name, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED, 0);
 
         assertThat(luceneReferenceResolver.getImplementation(ignored),
                    instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));

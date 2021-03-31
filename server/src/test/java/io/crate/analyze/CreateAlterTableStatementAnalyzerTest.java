@@ -462,8 +462,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         assertThat(mapToSortedString(mappingProperties),
-                   is("details={inner={dynamic=true, position=2, properties={age={type=integer}, name={type=keyword}, " +
-                      "tags={inner={type=keyword}, type=array}}, type=object}, type=array}, " +
+                   is("details={inner={dynamic=true, position=2, properties={age={position=4, type=integer}, " +
+                      "name={position=3, type=keyword}, " +
+                      "tags={inner={position=5, type=keyword}, type=array}}, type=object}, type=array}, " +
                       "id={position=1, type=integer}"));
     }
 
@@ -1174,8 +1175,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "   arr array(long) default [1, 2])");
 
         assertThat(mapToSortedString(analysis.mappingProperties()), is(
-            "arr={inner={position=2, type=long}, type=array}, " +
-            "obj={default_expr={\"key\"=''}, dynamic=true, position=1, properties={key={type=keyword}}, type=object}"));
+            "arr={inner={position=3, type=long}, type=array}, " +
+            "obj={default_expr={\"key\"=''}, dynamic=true, position=1, properties={key={position=2, type=keyword}}, type=object}"));
     }
 
     @Test
@@ -1316,7 +1317,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(c.formattedGeneratedExpression(), is("2"));
         assertThat(AnalyzedTableElements.toMapping(stmt.analyzedTableElements()).toString(),
                    is("{_meta={generated_columns={obj.c=2}}, " +
-                      "properties={obj={dynamic=true, position=1, type=object, properties={c={type=integer}}}}}"));
+                      "properties={obj={dynamic=true, position=1, type=object, properties={c={position=2, type=integer}}}}}"));
     }
 
     @Test

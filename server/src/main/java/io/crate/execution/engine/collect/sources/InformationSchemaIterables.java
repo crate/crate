@@ -21,29 +21,6 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import static java.util.Collections.emptyList;
-import static java.util.stream.Stream.concat;
-import static java.util.stream.StreamSupport.stream;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.PrimitiveIterator;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
@@ -77,6 +54,28 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.PrimitiveIterator;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import static java.util.Collections.emptyList;
+import static java.util.stream.Stream.concat;
+import static java.util.stream.StreamSupport.stream;
 
 public class InformationSchemaIterables implements ClusterStateListener {
 
@@ -429,7 +428,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
         private final Iterator<Reference> columns;
         private final RelationInfo tableInfo;
-        private int ordinal = 0;
 
         ColumnsIterator(RelationInfo tableInfo) {
             columns = stream(tableInfo.spliterator(), false)
@@ -448,21 +446,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
             if (!hasNext()) {
                 throw new NoSuchElementException("Columns iterator exhausted");
             }
-            ordinal++;
-            Reference ref = columns.next();
-
-            // Tables created with CrateDB < 4.0 don't have any positional information stored inside the meta data so
-            // we must fallback to old behaviour which uses a simple increased iterating based var.
-            Integer position = ref.position();
-            if (position == null) {
-                position = ordinal;
-            } else if (position != ordinal) {
-                // Sub-columns of object type columns do not have any positional information stored inside the meta
-                // data. But we do expose one now, by using the internal counter.
-                // Thus follow-up column's position must be adjusted.
-                position = ordinal;
-            }
-            return new ColumnContext(tableInfo, ref, position);
+            return new ColumnContext(tableInfo, columns.next());
         }
     }
 

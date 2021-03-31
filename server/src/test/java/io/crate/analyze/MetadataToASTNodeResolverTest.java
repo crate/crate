@@ -360,13 +360,13 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"col_d\" OBJECT(DYNAMIC) AS (\n" +
                      "      \"a\" TEXT\n" +
                      "   ),\n" +
-                     "   INDEX \"col_a_col_b_ft\" USING FULLTEXT (\"col_b\", \"col_a\") WITH (\n" +
+                     "   INDEX \"col_a_col_b_ft\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
                      "      analyzer = 'english'\n" +
                      "   ),\n" +
                      "   INDEX \"col_d_a_ft\" USING FULLTEXT (\"col_d\"['a']) WITH (\n" +
                      "      analyzer = 'custom_analyzer'\n" +
                      "   ),\n" +
-                     "   INDEX \"col_a_col_b_plain\" USING FULLTEXT (\"col_b\", \"col_a\") WITH (\n" +
+                     "   INDEX \"col_a_col_b_plain\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
                      "      analyzer = 'keyword'\n" +
                      "   )\n" +
                      ")\n" +

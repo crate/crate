@@ -29,6 +29,7 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -46,8 +47,7 @@ public class Reference extends Symbol {
 
     protected DataType<?> type;
 
-    @Nullable
-    private final Integer position;
+    private final int position;
     private final ReferenceIdent ident;
     private final ColumnPolicy columnPolicy;
     private final RowGranularity granularity;
@@ -60,7 +60,12 @@ public class Reference extends Symbol {
 
     public Reference(StreamInput in) throws IOException {
         ident = new ReferenceIdent(in);
-        position = in.readOptionalVInt();
+        if (in.getVersion().before(Version.V_4_6_0)) {
+            Integer pos = in.readOptionalVInt();
+            position = pos == null ? 0 : pos;
+        } else {
+            position = in.readVInt();
+        }
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
@@ -77,7 +82,7 @@ public class Reference extends Symbol {
     public Reference(ReferenceIdent ident,
                      RowGranularity granularity,
                      DataType<?> type,
-                     @Nullable Integer position,
+                     int position,
                      @Nullable Symbol defaultExpression) {
         this(ident,
              granularity,
@@ -95,7 +100,7 @@ public class Reference extends Symbol {
                      ColumnPolicy columnPolicy,
                      IndexType indexType,
                      boolean nullable,
-                     @Nullable Integer position,
+                     int position,
                      @Nullable Symbol defaultExpression) {
         this(ident,
              granularity,
@@ -115,7 +120,7 @@ public class Reference extends Symbol {
                      IndexType indexType,
                      boolean nullable,
                      boolean columnStoreDisabled,
-                     @Nullable Integer position,
+                     int position,
                      @Nullable Symbol defaultExpression) {
         this.position = position;
         this.ident = ident;
@@ -195,8 +200,7 @@ public class Reference extends Symbol {
         return columnStoreDisabled;
     }
 
-    @Nullable
-    public Integer position() {
+    public int position() {
         return position;
     }
 
@@ -244,7 +248,7 @@ public class Reference extends Symbol {
     @Override
     public int hashCode() {
         int result = type.hashCode();
-        result = 31 * result + (position != null ? position.hashCode() : 0);
+        result = 31 * result + Integer.hashCode(position);
         result = 31 * result + ident.hashCode();
         result = 31 * result + columnPolicy.hashCode();
         result = 31 * result + granularity.hashCode();
@@ -258,7 +262,7 @@ public class Reference extends Symbol {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         ident.writeTo(out);
-        out.writeOptionalVInt(position);
+        out.writeVInt(position);
         DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);
 

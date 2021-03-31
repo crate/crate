@@ -34,7 +34,7 @@ public class DocTableInfoTest extends ESTestCase {
                     new ReferenceIdent(relationName, new ColumnIdent("o", List.of())),
                     RowGranularity.DOC,
                     DataTypes.UNTYPED_OBJECT,
-                    null,
+                    1,
                     null
                 )
             ),
@@ -83,7 +83,7 @@ public class DocTableInfoTest extends ESTestCase {
             ColumnPolicy.STRICT,
             Reference.IndexType.NOT_ANALYZED,
             true,
-            null,
+            1,
             null
         );
 

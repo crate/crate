@@ -23,25 +23,15 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.expression.reference.information.ColumnContext;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.SystemTable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -50,7 +40,6 @@ import static io.crate.testing.T3.T1_DEFINITION;
 import static io.crate.testing.T3.T4;
 import static io.crate.testing.T3.T4_DEFINITION;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
 public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
 
@@ -94,41 +83,11 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
 
         // sub columns must have NON-NULL ordinal value
-        assertThat(contexts.get(1).ordinal, is(2));
-        assertThat(contexts.get(2).ordinal, is(3));
+        assertThat(contexts.get(1).info.position(), is(2));
+        assertThat(contexts.get(2).info.position(), is(3));
 
         // array of object sub columns also
-        assertThat(contexts.get(3).ordinal, is(4));
-        assertThat(contexts.get(4).ordinal, is(5));
-    }
-
-    /**
-     * Backward compatible test, indices created with < 4.0 don't store any column positional information.
-     */
-    @Test
-    public void testOrdinalsAreNotNullIfReferencePositionIsNull() {
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "v3table");
-        ColumnIdent columnIdent = new ColumnIdent("a");
-        Reference reference = new Reference(
-            new ReferenceIdent(relationName, columnIdent),
-            RowGranularity.DOC,
-            DataTypes.INTEGER,
-            null,
-            null
-        );
-        SystemTable<Void> v3TableInfo = new SystemTable<>(
-            relationName,
-            Map.of(columnIdent, reference),
-            Map.of(),
-            List.of(),
-            Map.of(),
-            Set.of(),
-            RowGranularity.DOC,
-            null
-        );
-        InformationSchemaIterables.ColumnsIterable columnsIt = new InformationSchemaIterables.ColumnsIterable(v3TableInfo);
-        for (ColumnContext context : columnsIt) {
-            assertThat(context.getOrdinal(), notNullValue());
-        }
+        assertThat(contexts.get(3).info.position(), is(4));
+        assertThat(contexts.get(4).info.position(), is(5));
     }
 }

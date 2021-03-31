@@ -63,7 +63,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
     public void testStreaming() throws Exception {
         ReferenceIdent referenceIdent = new ReferenceIdent(t1Info.ident(), "generated_column");
         String formattedGeneratedExpression = "concat(a, 'bar')";
-        GeneratedReference generatedReferenceInfo = new GeneratedReference(null,
+        GeneratedReference generatedReferenceInfo = new GeneratedReference(1,
             referenceIdent,
             RowGranularity.DOC,
             StringType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.ANALYZED,

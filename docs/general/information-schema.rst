@@ -294,11 +294,11 @@ table::
     | locations         | description                    |   6 | text                     |
     | locations         | id                             |   1 | integer                  |
     | locations         | information                    |  11 | object_array             |
-    | locations         | information['evolution_level'] |  12 | smallint                 |
-    | locations         | information['population']      |  13 | bigint                   |
+    | locations         | information['evolution_level'] |  13 | smallint                 |
+    | locations         | information['population']      |  12 | bigint                   |
     | locations         | inhabitants                    |   7 | object                   |
-    | locations         | inhabitants['description']     |   8 | text                     |
-    | locations         | inhabitants['interests']       |   9 | text_array               |
+    | locations         | inhabitants['description']     |   9 | text                     |
+    | locations         | inhabitants['interests']       |   8 | text_array               |
     | locations         | inhabitants['name']            |  10 | text                     |
     | locations         | kind                           |   4 | text                     |
     | locations         | landmarks                      |  14 | text_array               |
