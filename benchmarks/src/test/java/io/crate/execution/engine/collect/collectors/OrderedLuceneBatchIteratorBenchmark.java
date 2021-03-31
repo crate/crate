@@ -105,7 +105,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
             RowGranularity.DOC,
             DataTypes.INTEGER,
-            null,
+            1,
             null
         );
         orderBy = new OrderBy(

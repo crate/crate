@@ -22,7 +22,6 @@
 
 package io.crate.metadata.doc;
 
-import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -33,6 +32,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -91,14 +91,14 @@ public class DocSysColumns {
         ID, UID.name()
     );
 
-    private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType) {
+    private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
         return new Reference(new ReferenceIdent(table, column),
                              RowGranularity.DOC,
                              dataType,
                              ColumnPolicy.STRICT,
                              Reference.IndexType.NOT_ANALYZED,
                              false,
-                             null,
+                             position,
                              null
         );
     }
@@ -107,18 +107,24 @@ public class DocSysColumns {
      * Calls {@code consumer} for each sys column with a reference containing {@code relationName}
      */
     public static void forTable(RelationName relationName, BiConsumer<ColumnIdent, Reference> consumer) {
+        int position = 1;
         for (Map.Entry<ColumnIdent, DataType<?>> entry : COLUMN_IDENTS.entrySet()) {
             ColumnIdent columnIdent = entry.getKey();
-            consumer.accept(columnIdent, newInfo(relationName, columnIdent, entry.getValue()));
+            consumer.accept(columnIdent, newInfo(relationName, columnIdent, entry.getValue(), position++));
         }
     }
 
     public static List<Reference> forTable(RelationName relationName) {
-        return Lists2.map(COLUMN_IDENTS.entrySet(), e -> newInfo(relationName, e.getKey(), e.getValue()));
+        int position = 1;
+        var columns = new ArrayList<Reference>();
+        for (Map.Entry<ColumnIdent, DataType<?>> entry : COLUMN_IDENTS.entrySet()) {
+            columns.add(newInfo(relationName, entry.getKey(), entry.getValue(), position++));
+        }
+        return columns;
     }
 
     public static Reference forTable(RelationName table, ColumnIdent column) {
-        return newInfo(table, column, COLUMN_IDENTS.get(column));
+        return newInfo(table, column, COLUMN_IDENTS.get(column), 0);
     }
 
     public static String nameForLucene(ColumnIdent ident) {

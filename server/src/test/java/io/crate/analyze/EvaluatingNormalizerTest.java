@@ -48,7 +48,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         Map<ColumnIdent, NestableInput> referenceImplementationMap = new HashMap<>(1, 1);
 
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new RelationName("test", "dummy"), "load");
-        dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, null, null);
+        dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, 0, null);
 
         referenceImplementationMap.put(dummyLoadIdent.columnIdent(), constant(0.08d));
         nodeCtx = createNodeContext();
@@ -77,7 +77,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
             RowGranularity.DOC,
             DataTypes.STRING,
-            null,
+            0,
             null
         );
         Symbol x_literal = Literal.of("x");

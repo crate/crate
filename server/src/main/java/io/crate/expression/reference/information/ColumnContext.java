@@ -24,23 +24,13 @@ package io.crate.expression.reference.information;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 
-import javax.annotation.Nullable;
-
 public class ColumnContext {
 
     public final RelationInfo tableInfo;
     public final Reference info;
-    @Nullable
-    public final Integer ordinal;
 
-    public ColumnContext(RelationInfo tableInfo, Reference ref, @Nullable Integer ordinal) {
+    public ColumnContext(RelationInfo tableInfo, Reference ref) {
         this.tableInfo = tableInfo;
         this.info = ref;
-        this.ordinal = ordinal;
-    }
-
-    @Nullable
-    public Integer getOrdinal() {
-        return ordinal;
     }
 }

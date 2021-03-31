@@ -284,7 +284,7 @@ public abstract class AggregationTest extends ESTestCase {
                         Integer.toString(i)),
                     RowGranularity.DOC,
                     argumentTypes.get(i),
-                    null,
+                    i + 1,
                     null)
             );
         }

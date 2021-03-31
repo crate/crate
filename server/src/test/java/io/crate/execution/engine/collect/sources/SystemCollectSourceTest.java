@@ -64,7 +64,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             new ReferenceIdent(new RelationName("sys", "shards"), "id"),
             RowGranularity.SHARD,
             DataTypes.INTEGER,
-            null,
+            0,
             null
         );
 

@@ -69,7 +69,7 @@ public class TableElementsAnalyzer {
         InnerTableElementsAnalyzer<T> analyzer = new InnerTableElementsAnalyzer<>();
         for (int i = 0; i < tableElements.size(); i++) {
             TableElement<T> tableElement = tableElements.get(i);
-            int position = positionOffset + i + 1;
+            int position = positionOffset + 1;
             ColumnDefinitionContext<T> ctx = new ColumnDefinitionContext<>(
                 position,
                 null,
@@ -82,6 +82,7 @@ public class TableElementsAnalyzer {
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
             }
+            positionOffset = ctx.currentColumnPosition;
         }
         return analyzedTableElements;
     }
@@ -94,8 +95,9 @@ public class TableElementsAnalyzer {
         @Nullable
         final TableInfo tableInfo;
         final boolean logWarnings;
+        int currentColumnPosition;
 
-        ColumnDefinitionContext(Integer position,
+        ColumnDefinitionContext(int position,
                                 @Nullable AnalyzedColumnDefinition<T> parent,
                                 AnalyzedTableElements<T> analyzedTableElements,
                                 RelationName relationName,
@@ -106,6 +108,11 @@ public class TableElementsAnalyzer {
             this.relationName = relationName;
             this.tableInfo = tableInfo;
             this.logWarnings = logWarnings;
+            this.currentColumnPosition = position;
+        }
+
+        public void increaseCurrentPosition() {
+            currentColumnPosition++;
         }
     }
 
@@ -155,16 +162,20 @@ public class TableElementsAnalyzer {
                     // If it is an array, set the collection type to array, or if it's an object keep the object column
                     // policy.
                     Reference parentRef = context.tableInfo.getReference(parent.ident());
+                    int childrenCnt = 0;
                     if (parentRef != null) {
-                        parent.position = parentRef.column().isTopLevel() ? parentRef.position() : null;
+                        parent.position = parentRef.position();
                         if (parentRef.valueType().id() == ArrayType.ID) {
                             parent.collectionType(ArrayType.NAME);
                         } else {
+                            childrenCnt = ((ObjectType) parentRef.valueType()).innerTypes().size();
                             parent.objectType(parentRef.columnPolicy());
                         }
                     }
                     parent.markAsParentColumn();
-                    leaf = new AnalyzedColumnDefinition<>(null, parent);
+                    int position = parent.position + childrenCnt + 1;
+                    context.currentColumnPosition = position;
+                    leaf = new AnalyzedColumnDefinition<>(position, parent);
                     leaf.name(name);
                     parent.addChild(leaf);
                     parent = leaf;
@@ -201,8 +212,9 @@ public class TableElementsAnalyzer {
             context.analyzedColumnDefinition.objectType(objectColumnType.objectType().orElse(ColumnPolicy.DYNAMIC));
             for (int i = 0; i < objectColumnType.nestedColumns().size(); i++) {
                 ColumnDefinition<T> columnDefinition = objectColumnType.nestedColumns().get(i);
+                context.increaseCurrentPosition();
                 ColumnDefinitionContext<T> childContext = new ColumnDefinitionContext<>(
-                    null,
+                    context.currentColumnPosition,
                     context.analyzedColumnDefinition,
                     context.analyzedTableElements,
                     context.relationName,

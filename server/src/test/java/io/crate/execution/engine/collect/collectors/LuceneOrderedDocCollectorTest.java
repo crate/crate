@@ -89,7 +89,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "table"), "value"),
         RowGranularity.DOC,
         DataTypes.LONG,
-        null,
+        0,
         null
     );
     private final NumberFieldMapper.NumberType fieldType = NumberFieldMapper.NumberType.LONG;
@@ -260,7 +260,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             new Reference(
                 new ReferenceIdent(
                     new RelationName(Schemas.DOC_SCHEMA_NAME, "table"),
-                    DocSysColumns.SCORE), RowGranularity.DOC, DataTypes.FLOAT, null, null
+                    DocSysColumns.SCORE), RowGranularity.DOC, DataTypes.FLOAT, 0, null
             );
 
         OrderBy orderBy = new OrderBy(List.of(sysColReference, REFERENCE),

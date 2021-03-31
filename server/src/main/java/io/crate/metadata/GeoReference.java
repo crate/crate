@@ -45,7 +45,7 @@ public class GeoReference extends Reference {
     @Nullable
     private final Double distanceErrorPct;
 
-    public GeoReference(Integer position,
+    public GeoReference(int position,
                         ReferenceIdent ident,
                         @Nullable String tree,
                         @Nullable String precision,

@@ -80,21 +80,21 @@ public class NodeStatsTest extends ESTestCase {
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
             RowGranularity.DOC,
             DataTypes.STRING,
-            null,
+            1,
             null
         );
         nameRef = new Reference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
             RowGranularity.DOC,
             DataTypes.STRING,
-            null,
+            2,
             null
         );
         hostnameRef = new Reference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
             RowGranularity.DOC,
             DataTypes.STRING,
-            null,
+            3,
             null
         );
         collectPhase = mock(RoutedCollectPhase.class);

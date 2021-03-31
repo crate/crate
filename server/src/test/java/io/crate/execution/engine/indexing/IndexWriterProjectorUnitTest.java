@@ -71,7 +71,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
         new ReferenceIdent(BULK_IMPORT_IDENT, "_raw"),
         RowGranularity.DOC,
         DataTypes.STRING,
-        null,
+        0,
         null);
 
     private ExecutorService executor;

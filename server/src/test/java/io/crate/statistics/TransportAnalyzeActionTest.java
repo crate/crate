@@ -57,7 +57,7 @@ public class TransportAnalyzeActionTest extends ESTestCase {
                 new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy"), "dummy"),
                 RowGranularity.DOC,
                 DataTypes.STRING_ARRAY,
-                null,
+                0,
                 null)
         );
         var stats = TransportAnalyzeAction.createTableStats(samples, references);

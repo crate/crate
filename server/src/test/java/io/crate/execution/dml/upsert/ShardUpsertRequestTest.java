@@ -53,13 +53,13 @@ public class ShardUpsertRequestTest extends ESTestCase {
         new ReferenceIdent(CHARACTERS_IDENTS, "id"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
-        null,
+        1,
         null);
     private static final Reference NAME_REF = new Reference(
         new ReferenceIdent(CHARACTERS_IDENTS, "name"),
         RowGranularity.DOC,
         DataTypes.STRING,
-        null,
+        2,
         null);
 
     @Test

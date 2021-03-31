@@ -21,21 +21,6 @@
 
 package io.crate.metadata.doc;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.settings.Settings;
-
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
@@ -58,6 +43,19 @@ import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.settings.Settings;
+
+import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 /**
@@ -411,6 +409,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
         boolean parentIsIgnored = false;
         ColumnPolicy parentPolicy = columnPolicy();
+        int position = 0;
         if (!ident.isTopLevel()) {
             // see if parent is strict object
             ColumnIdent parentIdent = ident.getParent();
@@ -426,6 +425,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
             if (parentInfo != null) {
                 parentPolicy = parentInfo.columnPolicy();
+                position = parentInfo.position();
             }
         }
 
@@ -443,9 +443,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 break;
         }
         if (parentIsIgnored) {
-            return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), ColumnPolicy.IGNORED);
+            return new DynamicReference(
+                new ReferenceIdent(ident(), ident),
+                rowGranularity(),
+                ColumnPolicy.IGNORED,
+                position
+            );
         }
-        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
+        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), position);
     }
 
     @Override
