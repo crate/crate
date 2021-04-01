@@ -87,7 +87,7 @@ public class SslContextProviderTest extends ESTestCase {
         expectedException.expect(SslConfigurationException.class);
         expectedException.expectMessage("Failed to build SSL configuration");
         var sslContextProvider = new SslContextProvider(settings);
-        sslContextProvider.getSslContext();
+        sslContextProvider.getServerContext();
     }
 
     @Test
@@ -102,7 +102,7 @@ public class SslContextProviderTest extends ESTestCase {
             .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();
         var sslContextProvider = new SslContextProvider(settings);
-        SslContext sslContext = sslContextProvider.getSslContext();
+        SslContext sslContext = sslContextProvider.getServerContext();
         assertThat(sslContext, instanceOf(SslContext.class));
         assertThat(sslContext.isServer(), is(true));
         assertThat(sslContext.cipherSuites(), not(empty()));
@@ -118,7 +118,7 @@ public class SslContextProviderTest extends ESTestCase {
             .put(SslSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD)
             .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD)
         .build();
-        SslContext sslContext = new SslContextProvider(settings).getSslContext();
+        SslContext sslContext = new SslContextProvider(settings).getServerContext();
         assertThat(sslContext.isServer(), is(true));
         assertThat(sslContext.cipherSuites(), not(empty()));
         // check that we don't offer NULL ciphers which do not encrypt
