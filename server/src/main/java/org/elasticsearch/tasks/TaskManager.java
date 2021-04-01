@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.logging.log4j.LogManager;
@@ -41,7 +42,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
 import org.elasticsearch.threadpool.ThreadPool;
 
 /**
@@ -55,10 +55,9 @@ public class TaskManager implements ClusterStateApplier {
 
     private final ThreadPool threadPool;
 
-    private final ConcurrentMapLong<Task> tasks = ConcurrentCollections.newConcurrentMapLongWithAggressiveConcurrency();
+    private final ConcurrentMap<Long, Task> tasks = ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
-    private final ConcurrentMapLong<CancellableTaskHolder> cancellableTasks = ConcurrentCollections
-        .newConcurrentMapLongWithAggressiveConcurrency();
+    private final ConcurrentMap<Long, CancellableTaskHolder> cancellableTasks = ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     private final AtomicLong taskIdGenerator = new AtomicLong();
 
