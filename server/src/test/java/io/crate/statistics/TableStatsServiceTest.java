@@ -69,7 +69,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             Mockito.mock(SQLOperations.class, Answers.RETURNS_MOCKS));
 
         Assert.assertThat(statsService.refreshInterval,
-                          Matchers.is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault()));
+                          Matchers.is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY)));
         Assert.assertThat(statsService.scheduledRefresh, Matchers.is(IsNull.notNullValue()));
 
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
@@ -94,7 +94,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         clusterSettings.applySettings(Settings.builder().build());
 
         Assert.assertThat(statsService.refreshInterval,
-                          Matchers.is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault()));
+                          Matchers.is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY)));
         Assert.assertThat(statsService.scheduledRefresh, Matchers.is(IsNull.notNullValue()));
     }
 

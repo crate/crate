@@ -22,7 +22,6 @@
 
 package io.crate.auth;
 
-import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.netty.handler.ssl.ClientAuth;
 
@@ -37,29 +36,29 @@ public final class AuthSettings {
     private AuthSettings() {
     }
 
-    public static final CrateSetting<Boolean> AUTH_HOST_BASED_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
+    public static final Setting<Boolean> AUTH_HOST_BASED_ENABLED_SETTING = Setting.boolSetting(
         "auth.host_based.enabled",
-        false, Setting.Property.NodeScope),
-        DataTypes.BOOLEAN);
+        false,
+        Setting.Property.NodeScope
+    );
 
-    public static final CrateSetting<Settings> AUTH_HOST_BASED_CONFIG_SETTING = CrateSetting.of(Setting.groupSetting(
-        "auth.host_based.config.", Setting.Property.NodeScope), DataTypes.UNTYPED_OBJECT);
+    public static final Setting<Settings> AUTH_HOST_BASED_CONFIG_SETTING = Setting.groupSetting(
+        "auth.host_based.config.", Setting.Property.NodeScope
+    );
 
-    public static final CrateSetting<String> AUTH_TRUST_HTTP_DEFAULT_HEADER = CrateSetting.of(
-        // Explicit generic is required for eclipse JDT, otherwise it won't compile
-        new Setting<String>(
-            "auth.trust.http_default_user",
-            "crate",
-            Function.identity(),
-            Setting.Property.NodeScope
-        ),
-        DataTypes.STRING
+    // Explicit generic is required for eclipse JDT, otherwise it won't compile
+    public static final Setting<String> AUTH_TRUST_HTTP_DEFAULT_HEADER = new Setting<String>(
+        "auth.trust.http_default_user",
+        "crate",
+        Function.identity(),
+        DataTypes.STRING,
+        Setting.Property.NodeScope
     );
 
     public static final String HTTP_HEADER_REAL_IP = "X-Real-Ip";
 
     public static ClientAuth resolveClientAuth(Settings settings) {
-        Settings hbaSettings = AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings);
+        Settings hbaSettings = AUTH_HOST_BASED_CONFIG_SETTING.get(settings);
         int numMethods = 0;
         int numCertMethods = 0;
         for (var entry : hbaSettings.getAsGroups().entrySet()) {

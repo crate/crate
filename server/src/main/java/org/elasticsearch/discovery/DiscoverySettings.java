@@ -26,6 +26,8 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.rest.RestStatus;
 
 import java.util.EnumSet;
@@ -55,10 +57,21 @@ public class DiscoverySettings {
     public static final Setting<TimeValue> COMMIT_TIMEOUT_SETTING =
         new Setting<>("discovery.zen.commit_timeout", (s) -> PUBLISH_TIMEOUT_SETTING.getRaw(s),
             (s) -> TimeValue.parseTimeValue(s, TimeValue.timeValueSeconds(30), "discovery.zen.commit_timeout"),
-            Property.Dynamic, Property.Deprecated, Property.NodeScope);
-    public static final Setting<ClusterBlock> NO_MASTER_BLOCK_SETTING =
-        new Setting<>("discovery.zen.no_master_block", "write", DiscoverySettings::parseNoMasterBlock,
-            Property.Dynamic, Property.Deprecated, Property.NodeScope);
+            DataTypes.STRING,
+            Property.Dynamic,
+            Property.Deprecated,
+            Property.NodeScope);
+
+    public static final Setting<ClusterBlock> NO_MASTER_BLOCK_SETTING = new Setting<>(
+        "discovery.zen.no_master_block",
+        "write",
+        DiscoverySettings::parseNoMasterBlock,
+        DataTypes.STRING,
+        Property.Dynamic,
+        Property.Deprecated,
+        Property.NodeScope
+    );
+
     public static final Setting<Boolean> PUBLISH_DIFF_ENABLE_SETTING =
         Setting.boolSetting("discovery.zen.publish_diff.enable",
                             true,

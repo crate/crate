@@ -23,7 +23,6 @@
 package io.crate.memory;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -62,29 +61,28 @@ public final class MemoryManagerFactory implements Function<RamAccounting, Memor
     }
 
     private static final Set<String> TYPES = Set.of(MemoryType.OFF_HEAP.value(), MemoryType.ON_HEAP.value());
-    public static final CrateSetting<String> MEMORY_ALLOCATION_TYPE = CrateSetting.of(
-        // Explicit generic is required for eclipse JDT, otherwise it won't compile
-        new Setting<String>(
-            "memory.allocation.type",
-            MemoryType.ON_HEAP.value(),
-            input -> {
-                if (TYPES.contains(input)) {
-                    return input;
-                }
-                throw new IllegalArgumentException(
-                    "Invalid argument `" + input + "` for `memory.allocation.type`, valid values are: " + TYPES);
-            },
-            Setting.Property.NodeScope,
-            Setting.Property.Dynamic
-        ),
-        DataTypes.STRING
+
+    // Explicit generic is required for eclipse JDT, otherwise it won't compile
+    public static final Setting<String> MEMORY_ALLOCATION_TYPE = new Setting<String>(
+        "memory.allocation.type",
+        MemoryType.ON_HEAP.value(),
+        input -> {
+            if (TYPES.contains(input)) {
+                return input;
+            }
+            throw new IllegalArgumentException(
+                "Invalid argument `" + input + "` for `memory.allocation.type`, valid values are: " + TYPES);
+        },
+        DataTypes.STRING,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     private volatile MemoryType currentMemoryType = MemoryType.ON_HEAP;
 
     @Inject
     public MemoryManagerFactory(ClusterSettings clusterSettings) {
-        clusterSettings.addSettingsUpdateConsumer(MEMORY_ALLOCATION_TYPE.setting(), newValue -> {
+        clusterSettings.addSettingsUpdateConsumer(MEMORY_ALLOCATION_TYPE, newValue -> {
             currentMemoryType = MemoryType.of(newValue);
         });
     }

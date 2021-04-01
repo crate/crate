@@ -24,11 +24,13 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
+import static io.crate.types.DataTypes.STRING_ARRAY;
 import static java.util.Collections.emptyList;
 import static org.elasticsearch.common.settings.Setting.affixKeySetting;
 import static org.elasticsearch.common.settings.Setting.boolSetting;
@@ -42,23 +44,33 @@ public final class TransportSettings {
     public static final String FEATURE_PREFIX = "transport.features";
 
     public static final Setting<List<String>> HOST =
-        listSetting("transport.host", emptyList(), Function.identity(), Setting.Property.NodeScope);
+        listSetting("transport.host", emptyList(), Function.identity(), STRING_ARRAY, Setting.Property.NodeScope);
     public static final Setting<List<String>> PUBLISH_HOST =
-        listSetting("transport.publish_host", HOST, Function.identity(), Setting.Property.NodeScope);
-    public static final Setting.AffixSetting<List<String>> PUBLISH_HOST_PROFILE =
-        affixKeySetting("transport.profiles.", "publish_host", key -> listSetting(key, PUBLISH_HOST, Function.identity(),
-            Setting.Property.NodeScope));
+        listSetting("transport.publish_host", HOST, Function.identity(), STRING_ARRAY, Setting.Property.NodeScope);
+    public static final Setting.AffixSetting<List<String>> PUBLISH_HOST_PROFILE = affixKeySetting(
+        "transport.profiles.",
+        "publish_host",
+        key -> listSetting(key, PUBLISH_HOST, Function.identity(), STRING_ARRAY, Setting.Property.NodeScope)
+    );
+
     public static final Setting<List<String>> BIND_HOST =
-        listSetting("transport.bind_host", HOST, Function.identity(), Setting.Property.NodeScope);
-    public static final Setting.AffixSetting<List<String>> BIND_HOST_PROFILE = affixKeySetting("transport.profiles.", "bind_host",
-        key -> listSetting(key, BIND_HOST, Function.identity(), Setting.Property.NodeScope));
+        listSetting("transport.bind_host", HOST, Function.identity(), STRING_ARRAY, Setting.Property.NodeScope);
+    public static final Setting.AffixSetting<List<String>> BIND_HOST_PROFILE = affixKeySetting(
+        "transport.profiles.",
+        "bind_host",
+        key -> listSetting(key, BIND_HOST, Function.identity(), STRING_ARRAY, Setting.Property.NodeScope));
+
     // TODO: Deprecate in 7.0
     public static final Setting<String> OLD_PORT =
-        new Setting<>("transport.tcp.port", "4300-4400", Function.identity(), Setting.Property.NodeScope);
+        new Setting<>("transport.tcp.port", "4300-4400", Function.identity(), DataTypes.STRING, Setting.Property.NodeScope);
     public static final Setting<String> PORT =
-        new Setting<>("transport.port", OLD_PORT, Function.identity(), Setting.Property.NodeScope);
-    public static final Setting.AffixSetting<String> PORT_PROFILE = affixKeySetting("transport.profiles.", "port",
-        key -> new Setting<>(key, PORT, Function.identity(), Setting.Property.NodeScope));
+        new Setting<>("transport.port", OLD_PORT, Function.identity(), DataTypes.STRING, Setting.Property.NodeScope);
+
+    public static final Setting.AffixSetting<String> PORT_PROFILE = affixKeySetting(
+        "transport.profiles.",
+        "port",
+        key -> new Setting<>(key, PORT, Function.identity(), DataTypes.STRING, Setting.Property.NodeScope));
+
     public static final Setting<Integer> PUBLISH_PORT =
         intSetting("transport.publish_port", -1, -1, Setting.Property.NodeScope);
     public static final Setting.AffixSetting<Integer> PUBLISH_PORT_PROFILE = affixKeySetting("transport.profiles.", "publish_port",
@@ -152,11 +164,11 @@ public final class TransportSettings {
     // Tracer settings
 
     public static final Setting<List<String>> TRACE_LOG_INCLUDE_SETTING =
-        listSetting("transport.tracer.include", emptyList(), Function.identity(), Setting.Property.Dynamic, Setting.Property.NodeScope);
+        listSetting("transport.tracer.include", emptyList(), Function.identity(), STRING_ARRAY, Setting.Property.Dynamic, Setting.Property.NodeScope);
     public static final Setting<List<String>> TRACE_LOG_EXCLUDE_SETTING =
         listSetting("transport.tracer.exclude",
             Arrays.asList("internal:coordination/fault_detection/*"),
-            Function.identity(), Setting.Property.Dynamic, Setting.Property.NodeScope);
+            Function.identity(), STRING_ARRAY, Setting.Property.Dynamic, Setting.Property.NodeScope);
 
     private TransportSettings() {
     }

@@ -103,6 +103,7 @@ import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.EventLoopGroups;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.http.MainAndStaticFileHandler;
+import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -167,11 +168,11 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             long maxBufferComponents = Math.max(2, Math.min(maxBufferComponentsEstimate, Integer.MAX_VALUE));
             return String.valueOf(maxBufferComponents);
             // Netty's CompositeByteBuf implementation does not allow less than two components.
-        }, s -> Setting.parseInt(s, 2, Integer.MAX_VALUE, SETTING_KEY_HTTP_NETTY_MAX_COMPOSITE_BUFFER_COMPONENTS), Property.NodeScope);
+        }, s -> Setting.parseInt(s, 2, Integer.MAX_VALUE, SETTING_KEY_HTTP_NETTY_MAX_COMPOSITE_BUFFER_COMPONENTS), DataTypes.STRING, Property.NodeScope);
 
     public static final Setting<Integer> SETTING_HTTP_WORKER_COUNT = new Setting<>("http.netty.worker_count",
         (s) -> Integer.toString(EsExecutors.numberOfProcessors(s)),
-        (s) -> Setting.parseInt(s, 1, "http.netty.worker_count"), Property.NodeScope, Property.Deprecated);
+        (s) -> Setting.parseInt(s, 1, "http.netty.worker_count"), DataTypes.INTEGER, Property.NodeScope, Property.Deprecated);
 
     public static final Setting<ByteSizeValue> SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE =
         Setting.byteSizeSetting("http.netty.receive_predictor_size", new ByteSizeValue(64, ByteSizeUnit.KB), Property.NodeScope);

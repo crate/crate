@@ -241,7 +241,7 @@ public class InsertFromValues implements LogicalPlan {
 
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
-            BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
+            BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
@@ -357,7 +357,7 @@ public class InsertFromValues implements LogicalPlan {
 
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
-            BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
+            BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,

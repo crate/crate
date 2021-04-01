@@ -26,7 +26,6 @@ import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.memory.MemoryManagerFactory;
-import io.crate.settings.CrateSetting;
 import io.crate.statistics.TableStatsService;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
@@ -63,7 +62,7 @@ import java.util.stream.Stream;
 
 public final class CrateSettings implements ClusterStateListener {
 
-    public static final List<CrateSetting<?>> CRATE_CLUSTER_SETTINGS = List.of(
+    public static final List<Setting<?>> CRATE_CLUSTER_SETTINGS = List.of(
         // STATS
         JobsLogService.STATS_ENABLED_SETTING,
         JobsLogService.STATS_JOBS_LOG_SIZE_SETTING,
@@ -92,93 +91,93 @@ public final class CrateSettings implements ClusterStateListener {
         MemoryManagerFactory.MEMORY_ALLOCATION_TYPE
     );
 
-    private static final List<CrateSetting<?>> EXPOSED_ES_SETTINGS = List.of(
+    private static final List<Setting<?>> EXPOSED_ES_SETTINGS = List.of(
         // CLUSTER
-        CrateSetting.of(InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING, DataTypes.STRING),
+        InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING,
         // CLUSTER ROUTING
-        CrateSetting.of(EnableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING, DataTypes.STRING),
-        CrateSetting.of(EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING, DataTypes.STRING),
-        CrateSetting.of(ClusterRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ALLOW_REBALANCE_SETTING, DataTypes.STRING),
-        CrateSetting.of(ConcurrentRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING, DataTypes.INTEGER),
-        CrateSetting.of(ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING, DataTypes.INTEGER),
-        CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING, DataTypes.INTEGER),
-        CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING, DataTypes.INTEGER),
+        EnableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING,
+        EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING,
+        ClusterRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ALLOW_REBALANCE_SETTING,
+        ConcurrentRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING,
+        ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING,
+        ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING,
+        ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING,
         HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
         HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
         HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
         HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
         HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
         HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_ip",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_id",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_host",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_name",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_ip",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_id",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_host",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_name",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_ip",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_id",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_host",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(Setting.simpleString(
-                FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_name",
-                Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-        CrateSetting.of(BalancedShardsAllocator.SHARD_BALANCE_FACTOR_SETTING, DataTypes.FLOAT),
-        CrateSetting.of(BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING, DataTypes.FLOAT),
-        CrateSetting.of(BalancedShardsAllocator.THRESHOLD_SETTING, DataTypes.FLOAT),
-        CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING, DataTypes.BOOLEAN),
-        CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING, DataTypes.STRING),
-        CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING, DataTypes.STRING),
-        CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING, DataTypes.STRING),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_ip",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_id",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_host",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_name",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_ip",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_id",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_host",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_name",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_ip",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_id",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_host",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        Setting.simpleString(
+            FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_name",
+            Setting.Property.NodeScope, Setting.Property.Dynamic),
+        BalancedShardsAllocator.SHARD_BALANCE_FACTOR_SETTING,
+        BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING,
+        BalancedShardsAllocator.THRESHOLD_SETTING,
+        DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING,
+        DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING,
+        DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING,
+        DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING,
         // DISCOVERY
-        CrateSetting.of(DiscoverySettings.PUBLISH_TIMEOUT_SETTING, DataTypes.STRING),
+        DiscoverySettings.PUBLISH_TIMEOUT_SETTING,
         // GATEWAY
-        CrateSetting.of(GatewayService.RECOVER_AFTER_NODES_SETTING, DataTypes.INTEGER),
-        CrateSetting.of(GatewayService.RECOVER_AFTER_TIME_SETTING, DataTypes.STRING),
-        CrateSetting.of(GatewayService.EXPECTED_NODES_SETTING, DataTypes.INTEGER),
+        GatewayService.RECOVER_AFTER_NODES_SETTING,
+        GatewayService.RECOVER_AFTER_TIME_SETTING,
+        GatewayService.EXPECTED_NODES_SETTING,
         // INDICES
-        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING, DataTypes.STRING),
-        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC_SETTING, DataTypes.STRING),
-        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING, DataTypes.STRING),
-        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
-        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
-        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_ACTIVITY_TIMEOUT_SETTING, DataTypes.STRING),
-        CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
-        CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_OVERHEAD_SETTING, DataTypes.DOUBLE),
-        CrateSetting.of(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
-        CrateSetting.of(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_OVERHEAD_SETTING, DataTypes.DOUBLE),
-        CrateSetting.of(HierarchyCircuitBreakerService.TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
-        CrateSetting.of(ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE, DataTypes.INTEGER)
+        RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING,
+        RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC_SETTING,
+        RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING,
+        RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING,
+        RecoverySettings.INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT_SETTING,
+        RecoverySettings.INDICES_RECOVERY_ACTIVITY_TIMEOUT_SETTING,
+        HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING,
+        HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+        HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING,
+        HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+        HierarchyCircuitBreakerService.TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING,
+        ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE
     );
 
 
-    public static final List<CrateSetting<?>> BUILT_IN_SETTINGS = Stream.concat(CRATE_CLUSTER_SETTINGS.stream(), EXPOSED_ES_SETTINGS.stream())
+    public static final List<Setting<?>> BUILT_IN_SETTINGS = Stream.concat(CRATE_CLUSTER_SETTINGS.stream(), EXPOSED_ES_SETTINGS.stream())
         .filter(cs -> cs.getKey().startsWith("crate.internal.") == false)  // don't expose internal settings
         .collect(Collectors.toList());
     private static final List<String> BUILT_IN_SETTING_NAMES = BUILT_IN_SETTINGS.stream()
-        .map(CrateSetting::getKey)
+        .map(Setting::getKey)
         .collect(Collectors.toList());
 
     public static boolean isValidSetting(String name) {
@@ -201,8 +200,7 @@ public final class CrateSettings implements ClusterStateListener {
     }
 
     public static void checkIfRuntimeSetting(String name) {
-        for (CrateSetting<?> crateSetting : BUILT_IN_SETTINGS) {
-            Setting<?> setting = crateSetting.setting();
+        for (Setting<?> setting : BUILT_IN_SETTINGS) {
             if (setting.getKey().equals(name) && setting.isDynamic() == false) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "Setting '%s' cannot be set/reset at runtime", name));
@@ -246,8 +244,8 @@ public final class CrateSettings implements ClusterStateListener {
     public CrateSettings(ClusterService clusterService, Settings settings) {
         logger = LogManager.getLogger(this.getClass());
         Settings.Builder defaultsBuilder = Settings.builder();
-        for (CrateSetting<?> builtInSetting : BUILT_IN_SETTINGS) {
-            defaultsBuilder.put(builtInSetting.getKey(), builtInSetting.setting().getDefaultRaw(settings));
+        for (Setting<?> builtInSetting : BUILT_IN_SETTINGS) {
+            defaultsBuilder.put(builtInSetting.getKey(), builtInSetting.getDefaultRaw(settings));
         }
         initialSettings = defaultsBuilder.put(settings).build();
         this.settings = initialSettings;

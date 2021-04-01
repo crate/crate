@@ -49,6 +49,7 @@ import org.elasticsearch.transport.TransportSettings;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.EventLoopGroups;
+import io.crate.types.DataTypes;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.AdaptiveRecvByteBufAllocator;
@@ -86,7 +87,7 @@ public class Netty4Transport extends TcpTransport {
     public static final Setting<Integer> WORKER_COUNT =
         new Setting<>("transport.netty.worker_count",
             (s) -> Integer.toString(EsExecutors.numberOfProcessors(s)),
-            (s) -> Setting.parseInt(s, 1, "transport.netty.worker_count"), Property.NodeScope);
+            (s) -> Setting.parseInt(s, 1, "transport.netty.worker_count"), DataTypes.INTEGER, Property.NodeScope);
 
     public static final Setting<ByteSizeValue> NETTY_RECEIVE_PREDICTOR_SIZE = Setting.byteSizeSetting(
         "transport.netty.receive_predictor_size", new ByteSizeValue(64, ByteSizeUnit.KB), Property.NodeScope);

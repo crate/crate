@@ -61,7 +61,6 @@ import io.crate.netty.CrateChannelBootstrapFactory;
 import io.crate.netty.EventLoopGroups;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -74,14 +73,16 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     private static final Logger LOGGER = LogManager.getLogger(PostgresNetty.class);
 
-    public static final CrateSetting<Boolean> PSQL_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
-        "psql.enabled", true,
-        Setting.Property.NodeScope), DataTypes.BOOLEAN);
+    public static final Setting<Boolean> PSQL_ENABLED_SETTING = Setting.boolSetting(
+        "psql.enabled", true, Setting.Property.NodeScope);
 
     // Explicit generic is required for eclipse JDT, otherwise it won't compile
-    public static final CrateSetting<String> PSQL_PORT_SETTING = CrateSetting.of(new Setting<String>(
-        "psql.port", "5432-5532",
-        Function.identity(), Setting.Property.NodeScope), DataTypes.STRING);
+    public static final Setting<String> PSQL_PORT_SETTING = new Setting<String>(
+        "psql.port",
+        "5432-5532",
+        Function.identity(),
+        DataTypes.STRING,
+        Setting.Property.NodeScope);
 
     private final SQLOperations sqlOperations;
     private final NetworkService networkService;
@@ -134,10 +135,10 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             this.sslContextProvider = null;
         }
 
-        enabled = PSQL_ENABLED_SETTING.setting().get(settings);
+        enabled = PSQL_ENABLED_SETTING.get(settings);
         bindHosts = NetworkService.GLOBAL_NETWORK_BIND_HOST_SETTING.get(settings).toArray(new String[0]);
         publishHosts = NetworkService.GLOBAL_NETWORK_PUBLISH_HOST_SETTING.get(settings).toArray(new String[0]);
-        port = PSQL_PORT_SETTING.setting().get(settings);
+        port = PSQL_PORT_SETTING.get(settings);
     }
 
     @Nullable

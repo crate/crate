@@ -39,7 +39,7 @@ public class UDCPlugin extends Plugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        if (UDCService.UDC_ENABLED_SETTING.setting().get(settings)) {
+        if (UDCService.UDC_ENABLED_SETTING.get(settings)) {
             return Collections.singletonList(UDCService.class);
         }
         return super.getGuiceServiceClasses();

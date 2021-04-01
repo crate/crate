@@ -28,6 +28,7 @@ import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -410,8 +411,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         SQLResponse response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
-        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault()));
+        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
 
         response = execute("set global persistent stats.operations_log_size=1024, stats.enabled=false");
         assertThat(response.rowCount(), is(1L));
@@ -429,8 +430,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
-        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault()));
+        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
     }
 
     @Test
@@ -441,7 +442,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
         SQLResponse response = execute("select settings['stats']['operations_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
+        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
     }
 
     @Test

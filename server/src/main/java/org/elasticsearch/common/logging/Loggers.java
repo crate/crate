@@ -19,6 +19,10 @@
 
 package org.elasticsearch.common.logging;
 
+import static org.elasticsearch.common.util.CollectionUtils.asArrayList;
+
+import java.util.Map;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,9 +35,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.Map;
-
-import static org.elasticsearch.common.util.CollectionUtils.asArrayList;
+import io.crate.types.DataTypes;
 
 /**
  * A set of utilities around Logging.
@@ -43,10 +45,11 @@ public class Loggers {
     public static final String SPACE = " ";
 
     public static final Setting<Level> LOG_DEFAULT_LEVEL_SETTING =
-        new Setting<>("logger.level", Level.INFO.name(), Level::valueOf, Setting.Property.NodeScope);
-    public static final Setting.AffixSetting<Level> LOG_LEVEL_SETTING =
-        Setting.prefixKeySetting("logger.", (key) -> new Setting<>(key, Level.INFO.name(), Level::valueOf, Setting.Property.Dynamic,
-            Setting.Property.NodeScope));
+        new Setting<>("logger.level", Level.INFO.name(), Level::valueOf, DataTypes.STRING, Setting.Property.NodeScope);
+    public static final Setting.AffixSetting<Level> LOG_LEVEL_SETTING = Setting.prefixKeySetting(
+        "logger.",
+        (key) -> new Setting<>(key, Level.INFO.name(), Level::valueOf, DataTypes.STRING, Setting.Property.Dynamic, Setting.Property.NodeScope)
+    );
 
     public static Logger getLogger(Class<?> clazz, ShardId shardId, String... prefixes) {
         return getLogger(clazz, shardId.getIndex(), asArrayList(Integer.toString(shardId.id()), prefixes).toArray(new String[0]));

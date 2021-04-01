@@ -79,6 +79,8 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.plugins.ClusterPlugin;
 
+import io.crate.types.DataTypes;
+
 /**
  * Configures classes and services that affect the entire cluster.
  */
@@ -86,7 +88,7 @@ public class ClusterModule extends AbstractModule {
 
     public static final String BALANCED_ALLOCATOR = "balanced"; // default
     public static final Setting<String> SHARDS_ALLOCATOR_TYPE_SETTING =
-        new Setting<>("cluster.routing.allocation.type", BALANCED_ALLOCATOR, Function.identity(), Property.NodeScope);
+        new Setting<>("cluster.routing.allocation.type", BALANCED_ALLOCATOR, Function.identity(), DataTypes.STRING, Property.NodeScope);
 
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;

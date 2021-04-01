@@ -304,7 +304,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         String username = Headers.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue).v1();
         // Fallback to trusted user from configuration
         if (username == null || username.isEmpty()) {
-            username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+            username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
         }
         return userLookup.findUser(username);
     }

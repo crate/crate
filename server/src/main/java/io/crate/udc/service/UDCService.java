@@ -22,7 +22,6 @@
 package io.crate.udc.service;
 
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.crate.udc.ping.PingTask;
 import org.apache.logging.log4j.LogManager;
@@ -43,21 +42,21 @@ public class UDCService extends AbstractLifecycleComponent {
 
     private static final Logger LOGGER = LogManager.getLogger(UDCService.class);
 
-    public static final CrateSetting<Boolean> UDC_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
-        "udc.enabled", true,
-        Setting.Property.NodeScope), DataTypes.BOOLEAN);
+    public static final Setting<Boolean> UDC_ENABLED_SETTING = Setting.boolSetting(
+        "udc.enabled", true, Setting.Property.NodeScope);
 
     // Explicit generic is required for eclipse JDT, otherwise it won't compile
-    public static final CrateSetting<String> UDC_URL_SETTING = CrateSetting.of(new Setting<String>(
+    public static final Setting<String> UDC_URL_SETTING = new Setting<String>(
         "udc.url", "https://udc.crate.io/",
-        Function.identity(), Setting.Property.NodeScope), DataTypes.STRING);
+        Function.identity(), DataTypes.STRING, Setting.Property.NodeScope);
 
-    public static final CrateSetting<TimeValue> UDC_INITIAL_DELAY_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
+    public static final Setting<TimeValue> UDC_INITIAL_DELAY_SETTING = Setting.positiveTimeSetting(
         "udc.initial_delay", new TimeValue(10, TimeUnit.MINUTES),
-        Setting.Property.NodeScope), DataTypes.STRING);
-    public static final CrateSetting<TimeValue> UDC_INTERVAL_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
+        Setting.Property.NodeScope);
+
+    public static final Setting<TimeValue> UDC_INTERVAL_SETTING = Setting.positiveTimeSetting(
         "udc.interval", new TimeValue(24, TimeUnit.HOURS),
-        Setting.Property.NodeScope),DataTypes.STRING);
+        Setting.Property.NodeScope);
 
     private final Timer timer;
 
@@ -77,9 +76,9 @@ public class UDCService extends AbstractLifecycleComponent {
 
     @Override
     protected void doStart() throws ElasticsearchException {
-        String url = UDC_URL_SETTING.setting().get(settings);
-        TimeValue initialDelay = UDC_INITIAL_DELAY_SETTING.setting().get(settings);
-        TimeValue interval = UDC_INTERVAL_SETTING.setting().get(settings);
+        String url = UDC_URL_SETTING.get(settings);
+        TimeValue initialDelay = UDC_INITIAL_DELAY_SETTING.get(settings);
+        TimeValue interval = UDC_INTERVAL_SETTING.get(settings);
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());

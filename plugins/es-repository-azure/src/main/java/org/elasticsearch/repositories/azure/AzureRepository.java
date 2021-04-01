@@ -48,6 +48,7 @@ import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 /**
  * Azure file system implementation of the BlobStoreRepository
@@ -76,6 +77,7 @@ public class AzureRepository extends BlobStoreRepository {
                 "container",
                 "crate-snapshots",
                 Function.identity(),
+                DataTypes.STRING,
                 Property.NodeScope);
 
         static final Setting<String> BASE_PATH_SETTING =
@@ -85,6 +87,7 @@ public class AzureRepository extends BlobStoreRepository {
             "location_mode",
             s -> LocationMode.PRIMARY_ONLY.toString(),
             s -> LocationMode.valueOf(s.toUpperCase(Locale.ROOT)),
+            DataTypes.STRING,
             Property.NodeScope);
 
         static final Setting<ByteSizeValue> CHUNK_SIZE_SETTING = Setting.byteSizeSetting(
@@ -122,6 +125,7 @@ public class AzureRepository extends BlobStoreRepository {
             "proxy_type",
             "direct",
             s -> Proxy.Type.valueOf(s.toUpperCase(Locale.ROOT)),
+            DataTypes.STRING,
             Property.NodeScope);
 
         /**

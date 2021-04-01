@@ -29,7 +29,6 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
-import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -68,26 +67,24 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     private static final Logger LOGGER = LogManager.getLogger(DecommissioningService.class);
 
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
-    public static final CrateSetting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = CrateSetting.of(Setting.groupSetting(
-        DECOMMISSION_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.UNTYPED_OBJECT);
+    public static final Setting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = Setting.groupSetting(
+        DECOMMISSION_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic);
 
-    public static final CrateSetting<DataAvailability> GRACEFUL_STOP_MIN_AVAILABILITY_SETTING = CrateSetting.of(
-        // Explicit generic is required for eclipse JDT, otherwise it won't compile
-        new Setting<DataAvailability>(
-            "cluster.graceful_stop.min_availability",
-            DataAvailability.PRIMARIES.name(),
-            DataAvailability::of,
-            Setting.Property.Dynamic,
-            Setting.Property.NodeScope
-        ),
-        DataTypes.STRING
+    // Explicit generic is required for eclipse JDT, otherwise it won't compile
+    public static final Setting<DataAvailability> GRACEFUL_STOP_MIN_AVAILABILITY_SETTING = new Setting<DataAvailability>(
+        "cluster.graceful_stop.min_availability",
+        DataAvailability.PRIMARIES.name(),
+        DataAvailability::of,
+        DataTypes.STRING,
+        Setting.Property.Dynamic,
+        Setting.Property.NodeScope
     );
 
-    public static final CrateSetting<Boolean> GRACEFUL_STOP_FORCE_SETTING = CrateSetting.of(Setting.boolSetting(
-        "cluster.graceful_stop.force", false, Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.BOOLEAN);
-    public static final CrateSetting<TimeValue> GRACEFUL_STOP_TIMEOUT_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
-        "cluster.graceful_stop.timeout", new TimeValue(7_200_000), Setting.Property.Dynamic, Setting.Property.NodeScope),
-        DataTypes.STRING);
+    public static final Setting<Boolean> GRACEFUL_STOP_FORCE_SETTING = Setting.boolSetting(
+        "cluster.graceful_stop.force", false, Setting.Property.Dynamic, Setting.Property.NodeScope);
+
+    public static final Setting<TimeValue> GRACEFUL_STOP_TIMEOUT_SETTING = Setting.positiveTimeSetting(
+        "cluster.graceful_stop.timeout", new TimeValue(7_200_000), Setting.Property.Dynamic, Setting.Property.NodeScope);
 
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;
@@ -147,14 +144,14 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
             ? () -> executorService.schedule(this::exit, 5, TimeUnit.SECONDS)
             : safeExitAction;
 
-        gracefulStopTimeout = GRACEFUL_STOP_TIMEOUT_SETTING.setting().get(settings);
-        forceStop = GRACEFUL_STOP_FORCE_SETTING.setting().get(settings);
-        dataAvailability = GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting().get(settings);
+        gracefulStopTimeout = GRACEFUL_STOP_TIMEOUT_SETTING.get(settings);
+        forceStop = GRACEFUL_STOP_FORCE_SETTING.get(settings);
+        dataAvailability = GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.get(settings);
 
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
-        clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_TIMEOUT_SETTING.setting(), this::setGracefulStopTimeout);
-        clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_FORCE_SETTING.setting(), this::setGracefulStopForce);
-        clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting(), this::setDataAvailability);
+        clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_TIMEOUT_SETTING, this::setGracefulStopTimeout);
+        clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_FORCE_SETTING, this::setGracefulStopForce);
+        clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_MIN_AVAILABILITY_SETTING, this::setDataAvailability);
         this.executorService = executorService;
     }
 
@@ -173,7 +170,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     private static Map<String, Object> getRemovedDecommissionedNodes(DiscoveryNodes.Delta nodesDelta, Settings transientSettings) {
         Map<String, Object> toRemove = null;
         for (DiscoveryNode discoveryNode : nodesDelta.removedNodes()) {
-            Settings decommissionSettings = DECOMMISSION_INTERNAL_SETTING_GROUP.setting().get(transientSettings);
+            Settings decommissionSettings = DECOMMISSION_INTERNAL_SETTING_GROUP.get(transientSettings);
             String nodeId = discoveryNode.getId();
             if (decommissionSettings.hasValue(nodeId)) {
                 if (toRemove == null) {

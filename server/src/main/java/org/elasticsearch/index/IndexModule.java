@@ -23,6 +23,7 @@ import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
 import io.crate.common.Booleans;
+import io.crate.types.DataTypes;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -79,20 +80,21 @@ public final class IndexModule {
         new Setting.SimpleKey("node.store.allow_mmap"),
         NODE_STORE_ALLOW_MMAPFS,
         Booleans::parseBoolean,
+        DataTypes.BOOLEAN,
         Property.NodeScope
     );
 
     private static final FsDirectoryFactory DEFAULT_DIRECTORY_FACTORY = new FsDirectoryFactory();
 
     public static final Setting<String> INDEX_STORE_TYPE_SETTING =
-            new Setting<>("index.store.type", "fs", Function.identity(), Property.IndexScope, Property.NodeScope);
+            new Setting<>("index.store.type", "fs", Function.identity(), DataTypes.STRING, Property.IndexScope, Property.NodeScope);
 
     /** On which extensions to load data into the file-system cache upon opening of files.
      *  This only works with the mmap directory, and even in that case is still
      *  best-effort only. */
     public static final Setting<List<String>> INDEX_STORE_PRE_LOAD_SETTING =
             Setting.listSetting("index.store.preload", Collections.emptyList(), Function.identity(),
-                    Property.IndexScope, Property.NodeScope);
+                    DataTypes.STRING_ARRAY, Property.IndexScope, Property.NodeScope);
 
     // whether to use the query cache
     public static final Setting<Boolean> INDEX_QUERY_CACHE_ENABLED_SETTING =

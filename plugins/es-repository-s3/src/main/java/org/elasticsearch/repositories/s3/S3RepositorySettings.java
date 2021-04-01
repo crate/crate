@@ -29,6 +29,8 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
 import java.util.Locale;
@@ -143,6 +145,7 @@ class S3RepositorySettings {
         "endpoint",
         "",
         s -> s.toLowerCase(Locale.ROOT),
+        DataTypes.STRING,
         Setting.Property.NodeScope);
 
     /**
@@ -152,6 +155,7 @@ class S3RepositorySettings {
         "protocol",
         "https",
         s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT)),
+        DataTypes.STRING,
         Setting.Property.NodeScope);
 
     /**

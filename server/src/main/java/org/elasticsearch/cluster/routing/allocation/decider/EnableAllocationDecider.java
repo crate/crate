@@ -27,6 +27,9 @@ import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
+
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
@@ -64,17 +67,27 @@ public class EnableAllocationDecider extends AllocationDecider {
 
     public static final Setting<Allocation> CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING =
         new Setting<>("cluster.routing.allocation.enable", Allocation.ALL.toString(), Allocation::parse,
-            Property.Dynamic, Property.NodeScope);
+            DataTypes.STRING, Property.Dynamic, Property.NodeScope);
     public static final Setting<Allocation> INDEX_ROUTING_ALLOCATION_ENABLE_SETTING =
         new Setting<>("index.routing.allocation.enable", Allocation.ALL.toString(), Allocation::parse,
-            Property.Dynamic, Property.IndexScope);
+            DataTypes.STRING, Property.Dynamic, Property.IndexScope);
 
-    public static final Setting<Rebalance> CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING =
-        new Setting<>("cluster.routing.rebalance.enable", Rebalance.ALL.toString(), Rebalance::parse,
-            Property.Dynamic, Property.NodeScope);
-    public static final Setting<Rebalance> INDEX_ROUTING_REBALANCE_ENABLE_SETTING =
-        new Setting<>("index.routing.rebalance.enable", Rebalance.ALL.toString(), Rebalance::parse,
-            Property.Dynamic, Property.IndexScope);
+    public static final Setting<Rebalance> CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING = new Setting<>(
+        "cluster.routing.rebalance.enable",
+        Rebalance.ALL.toString(),
+        Rebalance::parse,
+        DataTypes.STRING,
+        Property.Dynamic, Property.NodeScope
+    );
+
+    public static final Setting<Rebalance> INDEX_ROUTING_REBALANCE_ENABLE_SETTING = new Setting<>(
+        "index.routing.rebalance.enable",
+        Rebalance.ALL.toString(),
+        Rebalance::parse,
+        DataTypes.STRING,
+        Property.Dynamic,
+        Property.IndexScope
+    );
 
     private volatile Rebalance enableRebalance;
     private volatile Allocation enableAllocation;

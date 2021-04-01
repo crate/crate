@@ -30,6 +30,8 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool.Names;
@@ -58,7 +60,7 @@ import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVE
 public class ClusterBootstrapService {
 
     public static final Setting<List<String>> INITIAL_MASTER_NODES_SETTING =
-        Setting.listSetting("cluster.initial_master_nodes", emptyList(), Function.identity(), Property.NodeScope);
+        Setting.listSetting("cluster.initial_master_nodes", emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
 
     public static final Setting<TimeValue> UNCONFIGURED_BOOTSTRAP_TIMEOUT_SETTING =
         Setting.timeSetting("discovery.unconfigured_bootstrap_timeout",
