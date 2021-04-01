@@ -168,6 +168,7 @@ import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.netty.EventLoopGroups;
 import io.crate.types.DataTypes;
+import io.crate.protocols.ssl.SslContextProvider;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -448,6 +449,7 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
+            final SslContextProvider sslContextProvider = new SslContextProvider(settings);
             final EventLoopGroups eventLoopGroups = new EventLoopGroups();
             final NetworkModule networkModule = new NetworkModule(
                 settings,
@@ -460,6 +462,7 @@ public class Node implements Closeable {
                 xContentRegistry,
                 networkService,
                 eventLoopGroups,
+                sslContextProvider,
                 client);
             Collection<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
@@ -560,6 +563,7 @@ public class Node implements Closeable {
                     b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
                     b.bind(ShardLimitValidator.class).toInstance(shardLimitValidator);
                     b.bind(EventLoopGroups.class).toInstance(eventLoopGroups);
+                    b.bind(SslContextProvider.class).toInstance(sslContextProvider);
                     b.bind(RerouteService.class).toInstance(rerouteService);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }

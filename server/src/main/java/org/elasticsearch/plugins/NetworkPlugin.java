@@ -36,6 +36,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 
 import io.crate.netty.EventLoopGroups;
+import io.crate.protocols.ssl.SslContextProvider;
 
 /**
  * Plugin for extending network and transport related classes
@@ -54,7 +55,8 @@ public interface NetworkPlugin {
                                                            CircuitBreakerService circuitBreakerService,
                                                            NamedWriteableRegistry namedWriteableRegistry,
                                                            NetworkService networkService,
-                                                           EventLoopGroups eventLoopGroups) {
+                                                           EventLoopGroups eventLoopGroups,
+                                                           SslContextProvider sslContextProvider) {
         return Collections.emptyMap();
     }
 
