@@ -49,7 +49,7 @@ import org.junit.Test;
 
 import io.crate.netty.EventLoopGroups;
 import io.crate.plugin.PipelineRegistry;
-import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.ssl.SslHandler;
@@ -76,12 +76,12 @@ public class CrateHttpsTransportTest extends ESTestCase {
     public void testPipelineConfiguration() throws Exception {
         Settings settings = Settings.builder()
             .put(PATH_HOME_SETTING.getKey(), "/tmp")
-            .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
+            .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
+            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();
 
         NetworkService networkService = new NetworkService(Collections.singletonList(new NetworkService.CustomNameResolver() {

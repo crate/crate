@@ -91,7 +91,7 @@ import io.crate.metadata.view.ViewsMetadata;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.settings.CrateSetting;
 import io.crate.user.UserManagementModule;
@@ -126,14 +126,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting());
 
         // Settings for SSL
-        settings.add(SslConfigSettings.SSL_HTTP_ENABLED.setting());
-        settings.add(SslConfigSettings.SSL_PSQL_ENABLED.setting());
-        settings.add(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting());
-        settings.add(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.setting());
-        settings.add(SslConfigSettings.SSL_KEYSTORE_FILEPATH.setting());
-        settings.add(SslConfigSettings.SSL_KEYSTORE_PASSWORD.setting());
-        settings.add(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.setting());
-        settings.add(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.setting());
+        settings.add(SslSettings.SSL_HTTP_ENABLED.setting());
+        settings.add(SslSettings.SSL_PSQL_ENABLED.setting());
+        settings.add(SslSettings.SSL_TRUSTSTORE_FILEPATH.setting());
+        settings.add(SslSettings.SSL_TRUSTSTORE_PASSWORD.setting());
+        settings.add(SslSettings.SSL_KEYSTORE_FILEPATH.setting());
+        settings.add(SslSettings.SSL_KEYSTORE_PASSWORD.setting());
+        settings.add(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.setting());
+        settings.add(SslSettings.SSL_RESOURCE_POLL_INTERVAL.setting());
 
         // also add CrateSettings
         for (CrateSetting<?> crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {

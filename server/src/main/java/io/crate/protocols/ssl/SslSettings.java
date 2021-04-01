@@ -24,8 +24,6 @@ package io.crate.protocols.ssl;
 
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
@@ -33,11 +31,9 @@ import io.crate.common.unit.TimeValue;
 /**
  * Settings for configuring Postgres SSL. Only applicable to the ssl-impl module.
  */
-public final class SslConfigSettings {
+public final class SslSettings {
 
-    private static final Logger LOGGER = LogManager.getLogger(SslConfigSettings.class);
-
-    private SslConfigSettings() {
+    private SslSettings() {
     }
 
     private static final String SSL_HTTP_ENABLED_SETTING_NAME = "ssl.http.enabled";

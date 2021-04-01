@@ -68,7 +68,7 @@ public class SslContextProviderServiceTest extends CrateDummyClusterServiceUnitT
         Files.createSymbolicLink(keystoreLink, keystoreTarget);
 
         Settings settings = Settings.builder()
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keystoreLink.toString())
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keystoreLink.toString())
             .build();
 
         final AtomicBoolean reloadCalled = new AtomicBoolean(false);

@@ -23,7 +23,7 @@
 package io.crate.protocols.http;
 
 import io.crate.integrationtests.SQLHttpIntegrationTest;
-import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.testing.UseJdbc;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -80,12 +80,12 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
+            .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
+            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
+            .put(SslSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
             .build();
     }
 
