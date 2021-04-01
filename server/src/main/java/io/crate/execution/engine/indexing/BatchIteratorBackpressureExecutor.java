@@ -22,15 +22,6 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.data.BatchIterator;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import io.crate.common.unit.TimeValue;
-
-import javax.annotation.Nullable;
-import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -44,6 +35,13 @@ import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.crate.data.BatchIterator;
 
 /**
  * Consumes a BatchIterator, concurrently invoking {@link #execute} on
@@ -64,7 +62,6 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     private final BatchIterator<T> batchIterator;
     private final Function<T, CompletableFuture<R>> execute;
     private final ScheduledExecutorService scheduler;
-    private final Iterator<TimeValue> throttleDelay;
     private final BinaryOperator<R> combiner;
     private final Predicate<T> pauseConsumption;
     private final BiConsumer<R, Throwable> continueConsumptionOrFinish;
@@ -72,9 +69,11 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     private final CompletableFuture<R> resultFuture = new CompletableFuture<>();
     private final Semaphore semaphore = new Semaphore(1);
 
+    private final Function<T, Long> getDelayInMs;
     private final AtomicReference<R> resultRef;
     private final AtomicReference<Throwable> failureRef = new AtomicReference<>(null);
     private volatile boolean consumptionFinished = false;
+
 
     /**
      * @param batchIterator provides the items for {@code execute}
@@ -91,7 +90,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
                                              BinaryOperator<R> combiner,
                                              R identity,
                                              Predicate<T> pauseConsumption,
-                                             BackoffPolicy backoffPolicy) {
+                                             Function<T, Long> getDelayInMs) {
+
         this.jobId = jobId;
         this.executor = executor;
         this.batchIterator = batchIterator;
@@ -99,7 +99,7 @@ public class BatchIteratorBackpressureExecutor<T, R> {
         this.execute = execute;
         this.combiner = combiner;
         this.pauseConsumption = pauseConsumption;
-        this.throttleDelay = backoffPolicy.iterator();
+        this.getDelayInMs = getDelayInMs;
         this.resultRef = new AtomicReference<>(identity);
         this.continueConsumptionOrFinish = this::continueConsumptionOrFinish;
     }
@@ -159,14 +159,17 @@ public class BatchIteratorBackpressureExecutor<T, R> {
             while (batchIterator.moveNext()) {
                 T item = batchIterator.currentElement();
                 if (pauseConsumption.test(item)) {
-                    long delayInMs = throttleDelay.next().getMillis();
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("Pausing consumption jobId={} delayInMs={}", jobId, delayInMs);
+                    long delayInMs = getDelayInMs.apply(item);
+                    if (delayInMs > 0) {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("Pausing consumption jobId={} delayInMs={}", jobId, delayInMs);
+                        }
+                        // release semaphore inside resumeConsumption: after throttle delay has passed
+                        // to make sure callbacks of previously triggered async operations don't resume consumption
+                        scheduler.schedule(this::resumeConsumption, delayInMs, TimeUnit.MILLISECONDS);
+                        return;
                     }
-                    // release semaphore inside resumeConsumption: after throttle delay has passed
-                    // to make sure callbacks of previously triggered async operations don't resume consumption
-                    scheduler.schedule(this::resumeConsumption, delayInMs, TimeUnit.MILLISECONDS);
-                    return;
+                    // fall through to execute
                 }
                 execute(item);
             }
@@ -199,8 +202,11 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     private void resumeConsumption() {
         T item = batchIterator.currentElement();
         if (pauseConsumption.test(item)) {
-            scheduler.schedule(this::resumeConsumption, throttleDelay.next().getMillis(), TimeUnit.MILLISECONDS);
-            return;
+            long delayInMs = getDelayInMs.apply(item);
+            if (delayInMs > 0) {
+                scheduler.schedule(this::resumeConsumption, delayInMs, TimeUnit.MILLISECONDS);
+                return;
+            }
         }
         try {
             executor.execute(() -> doResumeConsumption(item));

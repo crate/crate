@@ -22,17 +22,6 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.BatchSimulatingIterator;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import io.crate.common.unit.TimeValue;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +31,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.testing.BatchSimulatingIterator;
 
 public class BatchIteratorBackpressureExecutorTest extends ESTestCase {
 
@@ -84,7 +83,7 @@ public class BatchIteratorBackpressureExecutorTest extends ESTestCase {
             (a, b) -> a + b,
             0,
             shouldPause,
-            BackoffPolicy.exponentialBackoff(TimeValue.timeValueNanos(10), 1000)
+            ignored -> 1L
         );
         CompletableFuture<Integer> result = executor.consumeIteratorAndExecute();
         result.get(10, TimeUnit.SECONDS);

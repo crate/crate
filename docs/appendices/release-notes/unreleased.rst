@@ -54,7 +54,9 @@ None
 Changes
 =======
 
-None
+- Improved the internal throttling mechanism used for ``INSERT FROM QUERY`` and
+  ``COPY FROM`` operations. This should lead to these queries utilizing more
+  resources if the cluster can spare them.
 
 Fixes
 =====

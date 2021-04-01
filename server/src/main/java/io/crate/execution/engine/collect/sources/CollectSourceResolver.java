@@ -37,7 +37,7 @@ import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.IndexParts;
@@ -74,7 +74,7 @@ public class CollectSourceResolver {
 
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
-                                 NodeJobsCounter nodeJobsCounter,
+                                 NodeLimits nodeJobsCounter,
                                  CircuitBreakerService circuitBreakerService,
                                  NodeContext nodeCtx,
                                  Settings settings,

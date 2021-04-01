@@ -913,12 +913,12 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     @Override
     public void onConnectionClosed(Transport.Connection connection) {
         try {
-            List<Transport.ResponseContext> pruned = responseHandlers.prune(h -> h.connection().getCacheKey().equals(connection
+            List<Transport.ResponseContext<?>> pruned = responseHandlers.prune(h -> h.connection().getCacheKey().equals(connection
                 .getCacheKey()));
             // callback that an exception happened, but on a different thread since we don't
             // want handlers to worry about stack overflows
             getExecutorService().execute(() -> {
-                for (Transport.ResponseContext holderToNotify : pruned) {
+                for (Transport.ResponseContext<?> holderToNotify : pruned) {
                     holderToNotify.handler().handleException(new NodeDisconnectedException(connection.getNode(), holderToNotify.action()));
                 }
             });

@@ -27,7 +27,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.engine.aggregation.GroupingProjector;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.AggregateMode;
@@ -68,7 +68,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
         memoryManager = new OnHeapMemoryManager(bytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            new NodeJobsCounter(),
+            new NodeLimits(),
             new NoneCircuitBreakerService(),
             nodeCtx,
             THREAD_POOL,

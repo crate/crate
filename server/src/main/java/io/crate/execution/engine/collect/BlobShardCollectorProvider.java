@@ -31,7 +31,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.BlobOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.blob.BlobReferenceResolver;
@@ -56,7 +56,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
     public BlobShardCollectorProvider(BlobShard blobShard,
                                       ClusterService clusterService,
                                       Schemas schemas,
-                                      NodeJobsCounter nodeJobsCounter,
+                                      NodeLimits nodeJobsCounter,
                                       CircuitBreakerService circuitBreakerService,
                                       NodeContext nodeCtx,
                                       ThreadPool threadPool,

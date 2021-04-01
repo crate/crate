@@ -33,7 +33,7 @@ import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.pipeline.TableSettingsResolver;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -86,7 +86,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
         IndexWriterProjector writerProjector = new IndexWriterProjector(
             clusterService(),
-            new NodeJobsCounter(),
+            new NodeLimits(),
             new NoopCircuitBreaker("dummy"),
             RamAccounting.NO_ACCOUNTING,
             threadPool.scheduler(),

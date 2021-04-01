@@ -22,8 +22,6 @@ package org.elasticsearch.transport;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -78,10 +76,6 @@ public interface Transport extends LifecycleComponent {
      * Returns a list of all local addresses for this transport
      */
     List<String> getDefaultSeedAddresses();
-
-    default CircuitBreaker getInFlightRequestBreaker() {
-        return new NoopCircuitBreaker("in-flight-noop");
-    }
 
     /**
      * Opens a new connection to the given node. When the connection is fully connected, the listener is called.
@@ -178,7 +172,7 @@ public interface Transport extends LifecycleComponent {
      * This class is a registry that allows
      */
     final class ResponseHandlers {
-        private final ConcurrentMap<Long, ResponseContext> handlers = ConcurrentCollections
+        private final ConcurrentMap<Long, ResponseContext<? extends TransportResponse>> handlers = ConcurrentCollections
             .newConcurrentMapWithAggressiveConcurrency();
         private final AtomicLong requestIdGenerator = new AtomicLong();
 
@@ -193,7 +187,7 @@ public interface Transport extends LifecycleComponent {
          * Removes and return the {@link ResponseContext} for the given request ID or returns
          * <code>null</code> if no context is associated with this request ID.
          */
-        public ResponseContext remove(long requestId) {
+        public ResponseContext<? extends TransportResponse> remove(long requestId) {
             return handlers.remove(requestId);
         }
 
@@ -202,9 +196,9 @@ public interface Transport extends LifecycleComponent {
          * @return the new request ID
          * @see Connection#sendRequest(long, String, TransportRequest, TransportRequestOptions)
          */
-        public long add(ResponseContext holder) {
+        public long add(ResponseContext<? extends TransportResponse> holder) {
             long requestId = newRequestId();
-            ResponseContext existing = handlers.put(requestId, holder);
+            ResponseContext<?> existing = handlers.put(requestId, holder);
             assert existing == null : "request ID already in use: " + requestId;
             return requestId;
         }
@@ -220,12 +214,12 @@ public interface Transport extends LifecycleComponent {
         /**
          * Removes and returns all {@link ResponseContext} instances that match the predicate
          */
-        public List<ResponseContext> prune(Predicate<ResponseContext> predicate) {
-            final List<ResponseContext> holders = new ArrayList<>();
-            for (Map.Entry<Long, ResponseContext> entry : handlers.entrySet()) {
-                ResponseContext holder = entry.getValue();
+        public List<ResponseContext<? extends TransportResponse>> prune(Predicate<ResponseContext> predicate) {
+            final List<ResponseContext<? extends TransportResponse>> holders = new ArrayList<>();
+            for (Map.Entry<Long, ResponseContext<? extends TransportResponse>> entry : handlers.entrySet()) {
+                ResponseContext<?> holder = entry.getValue();
                 if (predicate.test(holder)) {
-                    ResponseContext remove = handlers.remove(entry.getKey());
+                    ResponseContext<?> remove = handlers.remove(entry.getKey());
                     if (remove != null) {
                         holders.add(holder);
                     }
@@ -239,8 +233,8 @@ public interface Transport extends LifecycleComponent {
          * sent request (before any processing or deserialization was done). Returns the appropriate response handler or null if not
          * found.
          */
-        public TransportResponseHandler onResponseReceived(final long requestId, TransportMessageListener listener) {
-            ResponseContext context = handlers.remove(requestId);
+        public TransportResponseHandler<? extends TransportResponse> onResponseReceived(final long requestId, TransportMessageListener listener) {
+            ResponseContext<?> context = handlers.remove(requestId);
             listener.onResponseReceived(requestId, context);
             if (context == null) {
                 return null;

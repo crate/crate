@@ -25,7 +25,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import io.crate.common.unit.TimeValue;
+
 import java.nio.file.Paths;
+
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class ShardingUpsertIntegrationTest extends SQLTransportIntegrationTest {
@@ -54,8 +57,12 @@ public class ShardingUpsertIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         String copyFilePath = Paths.get(getClass().getResource("/essetup/data/best_practice").toURI()).toUri().toString();
-        execute("copy contributors from ? with (bulk_size = 1)", new Object[]{
-            copyFilePath + "data_import.json"});
+        // there 150 entries in the file, so with a bulk size of 25 this will still
+        // require 6 requests, which should trigger the retry logic without running into long retry intervals
+        execute(
+            "copy contributors from ? with (bulk_size = 25)",
+            new Object[]{ copyFilePath + "data_import.json"}
+        );
         assertEquals(150L, response.rowCount());
         refresh();
         execute("select id, day_joined, name from contributors");
