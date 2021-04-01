@@ -106,7 +106,7 @@ public class SslReqHandlerTest extends ESTestCase {
         return new SslContextProvider(Settings.EMPTY) {
 
             @Override
-            public SslContext getSslContext() {
+            public SslContext getServerContext() {
                 try {
                     SelfSignedCertificate ssc = new SelfSignedCertificate();
                     return SslContextBuilder

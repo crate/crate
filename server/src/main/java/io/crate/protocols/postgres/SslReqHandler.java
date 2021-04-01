@@ -82,7 +82,7 @@ public final class SslReqHandler {
         if (buffer.readInt() == SSL_REQUEST_BYTE_LENGTH && buffer.readInt() == SSL_REQUEST_CODE) {
             final SslContext sslContext;
             if (sslContextProvider != null) {
-                sslContext = sslContextProvider.getSslContext();
+                sslContext = sslContextProvider.getServerContext();
             } else {
                 sslContext = null;
             }

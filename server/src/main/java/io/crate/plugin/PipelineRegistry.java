@@ -112,7 +112,7 @@ public class PipelineRegistry {
         }
 
         if (sslContextProvider != null) {
-            SslContext sslContext = sslContextProvider.getSslContext();
+            SslContext sslContext = sslContextProvider.getServerContext();
             if (sslContext != null) {
                 SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
                 pipeline.addFirst(sslHandler);
