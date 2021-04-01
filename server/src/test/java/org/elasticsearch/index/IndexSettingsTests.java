@@ -23,6 +23,8 @@
 package org.elasticsearch.index;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.AbstractScopedSettings;
@@ -156,6 +158,7 @@ public class IndexSettingsTests extends ESTestCase {
             "index.not.updated",
             "",
             Function.identity(),
+            DataTypes.STRING,
             Property.Dynamic,
             Property.IndexScope);
 

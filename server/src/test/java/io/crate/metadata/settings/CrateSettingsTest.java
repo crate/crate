@@ -112,7 +112,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
         CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
         assertThat(
             crateSettings.settings().get(JobsLogService.STATS_ENABLED_SETTING.getKey()),
-            is(JobsLogService.STATS_ENABLED_SETTING.setting().getDefaultRaw(Settings.EMPTY)));
+            is(JobsLogService.STATS_ENABLED_SETTING.getDefaultRaw(Settings.EMPTY)));
     }
 
 

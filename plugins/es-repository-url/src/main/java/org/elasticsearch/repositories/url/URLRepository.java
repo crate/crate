@@ -35,6 +35,8 @@ import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.types.DataTypes;
+
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -60,15 +62,20 @@ public class URLRepository extends BlobStoreRepository {
 
     public static final Setting<List<String>> SUPPORTED_PROTOCOLS_SETTING =
         Setting.listSetting("repositories.url.supported_protocols", Arrays.asList("http", "https", "ftp", "file", "jar"),
-            Function.identity(), Property.NodeScope);
+            Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
 
     public static final Setting<List<URIPattern>> ALLOWED_URLS_SETTING =
-        Setting.listSetting("repositories.url.allowed_urls", Collections.emptyList(), URIPattern::new, Property.NodeScope);
+        Setting.listSetting("repositories.url.allowed_urls", Collections.emptyList(), URIPattern::new, DataTypes.STRING_ARRAY, Property.NodeScope);
 
-    public static final Setting<URL> URL_SETTING = new Setting<>("url", "http:", URLRepository::parseURL, Property.NodeScope);
-    public static final Setting<URL> REPOSITORIES_URL_SETTING =
-        new Setting<>("repositories.url.url", (s) -> s.get("repositories.uri.url", "http:"), URLRepository::parseURL,
-            Property.NodeScope);
+    public static final Setting<URL> URL_SETTING = new Setting<>("url", "http:", URLRepository::parseURL, DataTypes.STRING, Property.NodeScope);
+
+    public static final Setting<URL> REPOSITORIES_URL_SETTING = new Setting<>(
+        "repositories.url.url",
+        (s) -> s.get("repositories.uri.url", "http:"),
+        URLRepository::parseURL,
+        DataTypes.STRING,
+        Property.NodeScope
+        );
 
     public static List<Setting<?>> mandatorySettings() {
         return List.of(URL_SETTING);

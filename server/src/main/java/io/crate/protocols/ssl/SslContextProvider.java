@@ -91,12 +91,12 @@ public class SslContextProvider {
     }
 
     private SslContext buildSslContext() {
-        var keystorePath = SslSettings.SSL_KEYSTORE_FILEPATH.setting().get(settings);
-        var keystorePass = SslSettings.SSL_KEYSTORE_PASSWORD.setting().get(settings).toCharArray();
-        var keystoreKeyPass = SslSettings.SSL_KEYSTORE_KEY_PASSWORD.setting().get(settings).toCharArray();
+        var keystorePath = SslSettings.SSL_KEYSTORE_FILEPATH.get(settings);
+        var keystorePass = SslSettings.SSL_KEYSTORE_PASSWORD.get(settings).toCharArray();
+        var keystoreKeyPass = SslSettings.SSL_KEYSTORE_KEY_PASSWORD.get(settings).toCharArray();
 
-        var trustStorePath = SslSettings.SSL_TRUSTSTORE_FILEPATH.setting().get(settings);
-        var trustStorePass = SslSettings.SSL_TRUSTSTORE_PASSWORD.setting().get(settings).toCharArray();
+        var trustStorePath = SslSettings.SSL_TRUSTSTORE_FILEPATH.get(settings);
+        var trustStorePass = SslSettings.SSL_TRUSTSTORE_PASSWORD.get(settings).toCharArray();
 
         try {
             var keyStore = loadKeyStore(keystorePath, keystorePass);

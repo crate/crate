@@ -65,6 +65,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
 
 import io.crate.common.collections.Tuple;
+import io.crate.types.DataTypes;
 
 public class PluginsService {
 
@@ -78,7 +79,7 @@ public class PluginsService {
      */
     private final List<Tuple<PluginInfo, Plugin>> plugins;
     public static final Setting<List<String>> MANDATORY_SETTING =
-        Setting.listSetting("plugin.mandatory", Collections.emptyList(), Function.identity(), Property.NodeScope);
+        Setting.listSetting("plugin.mandatory", Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
 
     public List<Setting<?>> getPluginSettings() {
         return plugins.stream().flatMap(p -> p.v2().getSettings().stream()).collect(Collectors.toList());

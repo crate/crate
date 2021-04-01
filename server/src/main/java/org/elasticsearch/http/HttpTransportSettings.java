@@ -27,6 +27,7 @@ import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 import java.util.List;
 import java.util.function.Function;
@@ -40,13 +41,13 @@ public final class HttpTransportSettings {
     public static final Setting<Boolean> SETTING_CORS_ENABLED =
         Setting.boolSetting("http.cors.enabled", false, Property.NodeScope);
     public static final Setting<String> SETTING_CORS_ALLOW_ORIGIN =
-        new Setting<>("http.cors.allow-origin", "", (value) -> value, Property.NodeScope);
+        new Setting<>("http.cors.allow-origin", "", (value) -> value, DataTypes.STRING, Property.NodeScope);
     public static final Setting<Integer> SETTING_CORS_MAX_AGE =
         Setting.intSetting("http.cors.max-age", 1728000, Property.NodeScope);
     public static final Setting<String> SETTING_CORS_ALLOW_METHODS =
-        new Setting<>("http.cors.allow-methods", "OPTIONS,HEAD,GET,POST,PUT,DELETE", (value) -> value, Property.NodeScope);
+        new Setting<>("http.cors.allow-methods", "OPTIONS,HEAD,GET,POST,PUT,DELETE", (value) -> value, DataTypes.STRING, Property.NodeScope);
     public static final Setting<String> SETTING_CORS_ALLOW_HEADERS =
-        new Setting<>("http.cors.allow-headers", "X-Requested-With,Content-Type,Content-Length", (value) -> value, Property.NodeScope);
+        new Setting<>("http.cors.allow-headers", "X-Requested-With,Content-Type,Content-Length", (value) -> value, DataTypes.STRING, Property.NodeScope);
     public static final Setting<Boolean> SETTING_CORS_ALLOW_CREDENTIALS =
         Setting.boolSetting("http.cors.allow-credentials", false, Property.NodeScope);
     public static final Setting<Integer> SETTING_PIPELINING_MAX_EVENTS =
@@ -58,14 +59,14 @@ public final class HttpTransportSettings {
     public static final Setting<Integer> SETTING_HTTP_COMPRESSION_LEVEL =
         Setting.intSetting("http.compression_level", 3, Property.NodeScope);
     public static final Setting<List<String>> SETTING_HTTP_HOST =
-        listSetting("http.host", emptyList(), Function.identity(), Property.NodeScope);
+        listSetting("http.host", emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
     public static final Setting<List<String>> SETTING_HTTP_PUBLISH_HOST =
-        listSetting("http.publish_host", SETTING_HTTP_HOST, Function.identity(), Property.NodeScope);
+        listSetting("http.publish_host", SETTING_HTTP_HOST, Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
     public static final Setting<List<String>> SETTING_HTTP_BIND_HOST =
-        listSetting("http.bind_host", SETTING_HTTP_HOST, Function.identity(), Property.NodeScope);
+        listSetting("http.bind_host", SETTING_HTTP_HOST, Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
 
     public static final Setting<PortsRange> SETTING_HTTP_PORT =
-        new Setting<>("http.port", "4200-4300", PortsRange::new, Property.NodeScope);
+        new Setting<>("http.port", "4200-4300", PortsRange::new, DataTypes.STRING, Property.NodeScope);
     public static final Setting<Integer> SETTING_HTTP_PUBLISH_PORT =
         Setting.intSetting("http.publish_port", -1, -1, Property.NodeScope);
     public static final Setting<Boolean> SETTING_HTTP_DETAILED_ERRORS_ENABLED =
@@ -78,7 +79,7 @@ public final class HttpTransportSettings {
                     " upgrade easier");
             }
             return true;
-        }, Property.NodeScope, Property.Deprecated);
+        }, DataTypes.BOOLEAN, Property.NodeScope, Property.Deprecated);
     public static final Setting<ByteSizeValue> SETTING_HTTP_MAX_CONTENT_LENGTH =
         Setting.byteSizeSetting(
             "http.max_content_length",

@@ -25,17 +25,25 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
+import io.crate.types.DataTypes;
+
 import java.io.IOException;
 import java.util.Objects;
 
 public class ClusterName implements Writeable {
 
-    public static final Setting<ClusterName> CLUSTER_NAME_SETTING = new Setting<>("cluster.name", "crate", (s) -> {
-        if (s.isEmpty()) {
-            throw new IllegalArgumentException("[cluster.name] must not be empty");
-        }
-        return new ClusterName(s);
-    }, Setting.Property.NodeScope);
+    public static final Setting<ClusterName> CLUSTER_NAME_SETTING = new Setting<>(
+        "cluster.name",
+        "crate",
+        (s) -> {
+            if (s.isEmpty()) {
+                throw new IllegalArgumentException("[cluster.name] must not be empty");
+            }
+            return new ClusterName(s);
+        },
+        DataTypes.STRING,
+        Setting.Property.NodeScope
+    );
 
     public static final ClusterName DEFAULT = CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY);
 

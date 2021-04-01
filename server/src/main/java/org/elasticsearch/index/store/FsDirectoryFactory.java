@@ -45,6 +45,7 @@ import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.plugins.IndexStorePlugin;
 
 import io.crate.common.io.IOUtils;
+import io.crate.types.DataTypes;
 
 public class FsDirectoryFactory implements IndexStorePlugin.DirectoryFactory {
 
@@ -57,7 +58,7 @@ public class FsDirectoryFactory implements IndexStorePlugin.DirectoryFactory {
             default:
                 throw new IllegalArgumentException("unrecognized [index.store.fs.fs_lock] \"" + s + "\": must be native or simple");
         } // can we set on both - node and index level, some nodes might be running on NFS so they might need simple rather than native
-    }, Property.IndexScope, Property.NodeScope);
+    }, DataTypes.STRING, Property.IndexScope, Property.NodeScope);
 
 
     @Override

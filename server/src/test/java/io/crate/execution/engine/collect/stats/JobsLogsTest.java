@@ -100,10 +100,10 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     public void testDefaultSettings() {
         JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
         assertThat(stats.isEnabled(), is(true));
-        assertThat(stats.jobsLogSize, is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault()));
-        assertThat(stats.operationsLogSize, is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
-        assertThat(stats.jobsLogExpiration, is(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault()));
-        assertThat(stats.operationsLogExpiration, is(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault()));
+        assertThat(stats.jobsLogSize, is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(stats.operationsLogSize, is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(stats.jobsLogExpiration, is(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(stats.operationsLogExpiration, is(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY)));
         assertThat(stats.get().jobsLog(), Matchers.instanceOf(FilteredLogSink.class));
         assertThat(stats.get().operationsLog(), Matchers.instanceOf(QueueSink.class));
     }
@@ -298,7 +298,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         CountDownLatch latch = new CountDownLatch(2);
         AtomicBoolean doInsertJobs = new AtomicBoolean(true);
         AtomicInteger numJobs = new AtomicInteger();
-        int maxQueueSize = JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault();
+        int maxQueueSize = JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY);
 
         try {
             executor.submit(() -> {
@@ -315,7 +315,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 latch.countDown();
             });
             executor.submit(() -> {
-                jobsLogService.updateJobSink(maxQueueSize + 10, JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault());
+                jobsLogService.updateJobSink(maxQueueSize + 10, JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY));
                 doInsertJobs.set(false);
                 latch.countDown();
             });
@@ -343,7 +343,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         CountDownLatch latch = new CountDownLatch(2);
         AtomicBoolean doInsertJobs = new AtomicBoolean(true);
         AtomicInteger numJobs = new AtomicInteger();
-        int maxQueueSize = JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault();
+        int maxQueueSize = JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY);
 
         try {
             executor.submit(() -> {
@@ -356,7 +356,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 latch.countDown();
             });
             executor.submit(() -> {
-                jobsLogService.updateOperationSink(maxQueueSize + 10, JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault());
+                jobsLogService.updateOperationSink(maxQueueSize + 10, JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY));
                 doInsertJobs.set(false);
                 latch.countDown();
             });

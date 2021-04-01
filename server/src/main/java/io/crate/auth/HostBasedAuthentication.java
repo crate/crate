@@ -83,7 +83,7 @@ public class HostBasedAuthentication implements Authentication {
 
     @VisibleForTesting
     SortedMap<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings settings) {
-        Settings hbaSettings = AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings);
+        Settings hbaSettings = AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.get(settings);
         ImmutableSortedMap.Builder<String, Map<String, String>> hostBasedConf = ImmutableSortedMap.naturalOrder();
         for (Map.Entry<String, Settings> entry : hbaSettings.getAsGroups().entrySet()) {
             Settings hbaEntry = entry.getValue();

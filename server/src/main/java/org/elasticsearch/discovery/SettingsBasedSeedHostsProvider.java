@@ -27,6 +27,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.types.DataTypes;
+
 import java.util.List;
 import java.util.function.Function;
 
@@ -45,7 +47,7 @@ public class SettingsBasedSeedHostsProvider implements SeedHostsProvider {
     private static final Logger LOGGER = LogManager.getLogger(SettingsBasedSeedHostsProvider.class);
 
     public static final Setting<List<String>> DISCOVERY_SEED_HOSTS_SETTING =
-        Setting.listSetting("discovery.seed_hosts", emptyList(), Function.identity(), Property.NodeScope);
+        Setting.listSetting("discovery.seed_hosts", emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
 
     private final List<String> configuredHosts;
 

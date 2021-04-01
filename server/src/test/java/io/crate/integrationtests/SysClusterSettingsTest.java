@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.settings.CrateSetting;
 import io.crate.udc.service.UDCService;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.common.settings.Setting;
@@ -66,7 +65,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
         execute("reset global stats.enabled");
         execute("select settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rows()[0][0], is(JobsLogService.STATS_ENABLED_SETTING.getDefault()));
+        assertThat(response.rows()[0][0], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
 
         execute("set global transient stats = { enabled = true, jobs_log_size = 3, operations_log_size = 4 }");
         execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
@@ -79,9 +78,9 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
                 "settings['stats']['operations_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(JobsLogService.STATS_ENABLED_SETTING.getDefault()));
-        assertThat(response.rows()[0][1], is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault()));
-        assertThat(response.rows()[0][2], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
+        assertThat(response.rows()[0][0], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rows()[0][1], is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rows()[0][2], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
 
         execute("set global transient \"indices.breaker.query.limit\" = '20mb'");
         execute("select settings from sys.cluster");
@@ -158,10 +157,10 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertSettingsDefault(UDCService.UDC_ENABLED_SETTING);
         assertSettingsValue(
             UDCService.UDC_INITIAL_DELAY_SETTING.getKey(),
-            UDCService.UDC_INITIAL_DELAY_SETTING.setting().getDefaultRaw(Settings.EMPTY));
+            UDCService.UDC_INITIAL_DELAY_SETTING.getDefaultRaw(Settings.EMPTY));
         assertSettingsValue(
             UDCService.UDC_INTERVAL_SETTING.getKey(),
-            UDCService.UDC_INTERVAL_SETTING.setting().getDefaultRaw(Settings.EMPTY));
+            UDCService.UDC_INTERVAL_SETTING.getDefaultRaw(Settings.EMPTY));
         assertSettingsDefault(UDCService.UDC_URL_SETTING);
     }
 
@@ -171,7 +170,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertSettingsValue(
             HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(),
             MemorySizeValue.parseBytesSizeValueOrHeapRatio(
-                HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting().getDefaultRaw(Settings.EMPTY),
+                HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
                 HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey()).toString());
     }
 
@@ -197,10 +196,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         Field f1 = clusterService.getClass().getDeclaredField("updateFrequency");
         f1.setAccessible(true);
         assertThat(f1.get(clusterService), is(TimeValue.timeValueSeconds(45)));
-    }
-
-    private void assertSettingsDefault(CrateSetting<?> crateSetting) {
-        assertSettingsValue(crateSetting.getKey(), crateSetting.getDefault());
     }
 
     private void assertSettingsDefault(Setting<?> esSetting) {

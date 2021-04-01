@@ -28,6 +28,8 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
+import io.crate.types.DataTypes;
+
 /**
  * A shard in elasticsearch is a Lucene index, and a Lucene index is broken
  * down into segments. Segments are internal storage elements in the index
@@ -130,7 +132,7 @@ public final class MergePolicyConfig {
     public static final double DEFAULT_DELETES_PCT_ALLOWED = 33.0d;
     public static final Setting<Double> INDEX_COMPOUND_FORMAT_SETTING =
         new Setting<>("index.compound_format", Double.toString(TieredMergePolicy.DEFAULT_NO_CFS_RATIO), MergePolicyConfig::parseNoCFSRatio,
-            Property.Dynamic, Property.IndexScope);
+            DataTypes.DOUBLE, Property.Dynamic, Property.IndexScope);
 
     public static final Setting<Double> INDEX_MERGE_POLICY_EXPUNGE_DELETES_ALLOWED_SETTING =
         Setting.doubleSetting("index.merge.policy.expunge_deletes_allowed", DEFAULT_EXPUNGE_DELETES_ALLOWED, 0.0d,

@@ -28,6 +28,9 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
+
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashMap;
@@ -82,8 +85,14 @@ public class AwarenessAllocationDecider extends AllocationDecider {
     public static final String NAME = "awareness";
 
     public static final Setting<List<String>> CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING =
-        Setting.listSetting("cluster.routing.allocation.awareness.attributes", emptyList(), Function.identity(), Property.Dynamic,
+        Setting.listSetting(
+            "cluster.routing.allocation.awareness.attributes",
+            emptyList(),
+            Function.identity(),
+            DataTypes.STRING_ARRAY,
+            Property.Dynamic,
             Property.NodeScope);
+
     public static final Setting<Settings> CLUSTER_ROUTING_ALLOCATION_AWARENESS_FORCE_GROUP_SETTING =
         Setting.groupSetting("cluster.routing.allocation.awareness.force.", Property.Dynamic, Property.NodeScope);
 

@@ -19,6 +19,10 @@
 
 package org.elasticsearch.repositories.fs;
 
+import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Function;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -34,9 +38,7 @@ import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Function;
+import io.crate.types.DataTypes;
 
 /**
  * Shared file system implementation of the BlobStoreRepository
@@ -57,9 +59,9 @@ public class FsRepository extends BlobStoreRepository {
     public static final String TYPE = "fs";
 
     public static final Setting<String> LOCATION_SETTING =
-        new Setting<>("location", "", Function.identity(), Property.NodeScope);
+        new Setting<>("location", "", Function.identity(), DataTypes.STRING, Property.NodeScope);
     public static final Setting<String> REPOSITORIES_LOCATION_SETTING =
-        new Setting<>("repositories.fs.location", LOCATION_SETTING, Function.identity(), Property.NodeScope);
+        new Setting<>("repositories.fs.location", LOCATION_SETTING, Function.identity(), DataTypes.STRING, Property.NodeScope);
     public static final Setting<ByteSizeValue> CHUNK_SIZE_SETTING = Setting.byteSizeSetting("chunk_size",
             new ByteSizeValue(Long.MAX_VALUE), new ByteSizeValue(5), new ByteSizeValue(Long.MAX_VALUE), Property.NodeScope);
     public static final Setting<ByteSizeValue> REPOSITORIES_CHUNK_SIZE_SETTING = Setting.byteSizeSetting("repositories.fs.chunk_size",

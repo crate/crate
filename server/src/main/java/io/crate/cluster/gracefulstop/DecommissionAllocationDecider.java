@@ -42,13 +42,13 @@ public class DecommissionAllocationDecider extends AllocationDecider {
     private DataAvailability dataAvailability;
 
     public DecommissionAllocationDecider(Settings settings, ClusterSettings clusterSettings) {
-        updateDecommissioningNodes(DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP.setting().get(settings));
-        dataAvailability = DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting().get(settings);
+        updateDecommissioningNodes(DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP.get(settings));
+        dataAvailability = DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.get(settings);
 
         clusterSettings.addSettingsUpdateConsumer(
-            DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP.setting(), this::updateDecommissioningNodes);
+            DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP, this::updateDecommissioningNodes);
         clusterSettings.addSettingsUpdateConsumer(
-            DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting(), this::updateMinAvailability);
+            DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING, this::updateMinAvailability);
     }
 
     private void updateDecommissioningNodes(Settings decommissionNodesSettings) {

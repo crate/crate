@@ -29,10 +29,8 @@ import io.crate.action.sql.Session;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
-import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -53,9 +51,8 @@ public class TableStatsService implements Runnable {
 
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
-    public static final CrateSetting<TimeValue> STATS_SERVICE_REFRESH_INTERVAL_SETTING = CrateSetting.of(Setting.timeSetting(
-        "stats.service.interval", TimeValue.timeValueHours(24), Setting.Property.NodeScope, Setting.Property.Dynamic),
-        DataTypes.STRING);
+    public static final Setting<TimeValue> STATS_SERVICE_REFRESH_INTERVAL_SETTING = Setting.timeSetting(
+        "stats.service.interval", TimeValue.timeValueHours(24), Setting.Property.NodeScope, Setting.Property.Dynamic);
 
     static final String STMT = "ANALYZE";
     private static final Statement PARSED_STMT = SqlParser.createStatement(STMT);
@@ -77,12 +74,12 @@ public class TableStatsService implements Runnable {
                              SQLOperations sqlOperations) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting().get(settings);
+        refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);
         scheduledRefresh = scheduleNextRefresh(refreshInterval);
         session = sqlOperations.newSystemSession();
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
-            STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting(), this::setRefreshInterval);
+            STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
     }
 
     @Override

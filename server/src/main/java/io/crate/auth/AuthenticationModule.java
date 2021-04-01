@@ -37,7 +37,7 @@ public class AuthenticationModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings)) {
+        if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)) {
             bind(Authentication.class).to(HostBasedAuthentication.class);
         } else {
             bind(Authentication.class).to(AlwaysOKAuthentication.class);

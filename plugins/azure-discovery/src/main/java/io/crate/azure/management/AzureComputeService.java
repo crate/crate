@@ -27,6 +27,7 @@ import io.crate.azure.discovery.AzureSeedHostsProvider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.settings.Setting;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 import java.util.function.Function;
 
@@ -54,9 +55,9 @@ public interface AzureComputeService extends LifecycleComponent {
             "discovery.azure.refresh_interval", TimeValue.timeValueSeconds(5L), Setting.Property.NodeScope);
         public static final Setting<String> HOST_TYPE = new Setting<>(
             "discovery.azure.host.type", s -> AzureSeedHostsProvider.HostType.PRIVATE_IP.name(),
-            Function.identity(), Setting.Property.NodeScope);
+            Function.identity(), DataTypes.STRING, Setting.Property.NodeScope);
         public static final Setting<String> DISCOVERY_METHOD = new Setting<>(
-            "discovery.azure.method", s -> AzureConfiguration.VNET, Function.identity(), Setting.Property.NodeScope);
+            "discovery.azure.method", s -> AzureConfiguration.VNET, Function.identity(), DataTypes.STRING, Setting.Property.NodeScope);
     }
 
     Configuration configuration();

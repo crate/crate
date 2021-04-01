@@ -22,6 +22,29 @@
 
 package io.crate.execution.engine.collect.stats;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -37,7 +60,6 @@ import io.crate.data.Input;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.job.ContextLog;
 import io.crate.expression.reference.sys.job.JobContextLog;
@@ -45,34 +67,10 @@ import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * The JobsLogService is available on each node and holds the meta data of the cluster, such as active jobs and operations.
@@ -84,42 +82,42 @@ import java.util.function.Supplier;
 @Singleton
 public class JobsLogService extends AbstractLifecycleComponent implements Provider<JobsLogs> {
 
-    public static final CrateSetting<Boolean> STATS_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
-        "stats.enabled", true, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.BOOLEAN);
-    public static final CrateSetting<Integer> STATS_JOBS_LOG_SIZE_SETTING = CrateSetting.of(Setting.intSetting(
-        "stats.jobs_log_size", 10_000, 0, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.INTEGER);
-    public static final CrateSetting<TimeValue> STATS_JOBS_LOG_EXPIRATION_SETTING = CrateSetting.of(Setting.timeSetting(
-        "stats.jobs_log_expiration", TimeValue.timeValueSeconds(0L), Setting.Property.NodeScope, Setting.Property.Dynamic),
-        DataTypes.STRING);
+    public static final Setting<Boolean> STATS_ENABLED_SETTING = Setting.boolSetting(
+        "stats.enabled", true, Setting.Property.NodeScope, Setting.Property.Dynamic);
+    public static final Setting<Integer> STATS_JOBS_LOG_SIZE_SETTING = Setting.intSetting(
+        "stats.jobs_log_size", 10_000, 0, Setting.Property.NodeScope, Setting.Property.Dynamic);
+    public static final Setting<TimeValue> STATS_JOBS_LOG_EXPIRATION_SETTING = Setting.timeSetting(
+        "stats.jobs_log_expiration", TimeValue.timeValueSeconds(0L), Setting.Property.NodeScope, Setting.Property.Dynamic);
 
     private static final FilterValidator FILTER_VALIDATOR = new FilterValidator();
-    public static final CrateSetting<String> STATS_JOBS_LOG_FILTER = CrateSetting.of(
-        // Explicit generic is required for eclipse JDT, otherwise it won't compile
-        new Setting<String>(
-            "stats.jobs_log_filter",
-            "true",
-            Function.identity(),
-            FILTER_VALIDATOR,
-            Setting.Property.NodeScope,
-            Setting.Property.Dynamic),
-        DataTypes.STRING
+
+    // Explicit generic is required for eclipse JDT, otherwise it won't compile
+    public static final Setting<String> STATS_JOBS_LOG_FILTER = new Setting<String>(
+        "stats.jobs_log_filter",
+        "true",
+        Function.identity(),
+        FILTER_VALIDATOR,
+        DataTypes.STRING,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
-    public static final CrateSetting<String> STATS_JOBS_LOG_PERSIST_FILTER = CrateSetting.of(
-        // Explicit generic is required for eclipse JDT, otherwise it won't compile
-        new Setting<String>(
-            "stats.jobs_log_persistent_filter",
-            "false",
-            Function.identity(),
-            FILTER_VALIDATOR,
-            Setting.Property.NodeScope,
-            Setting.Property.Dynamic),
-        DataTypes.STRING
+
+    // Explicit generic is required for eclipse JDT, otherwise it won't compile
+    public static final Setting<String> STATS_JOBS_LOG_PERSIST_FILTER = new Setting<String>(
+        "stats.jobs_log_persistent_filter",
+        "false",
+        Function.identity(),
+        FILTER_VALIDATOR,
+        DataTypes.STRING,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
-    public static final CrateSetting<Integer> STATS_OPERATIONS_LOG_SIZE_SETTING = CrateSetting.of(Setting.intSetting(
-        "stats.operations_log_size", 10_000, 0, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.INTEGER);
-    public static final CrateSetting<TimeValue> STATS_OPERATIONS_LOG_EXPIRATION_SETTING = CrateSetting.of(Setting.timeSetting(
-        "stats.operations_log_expiration", TimeValue.timeValueSeconds(0L), Setting.Property.NodeScope, Setting.Property.Dynamic),
-        DataTypes.STRING);
+
+    public static final Setting<Integer> STATS_OPERATIONS_LOG_SIZE_SETTING = Setting.intSetting(
+        "stats.operations_log_size", 10_000, 0, Setting.Property.NodeScope, Setting.Property.Dynamic);
+
+    public static final Setting<TimeValue> STATS_OPERATIONS_LOG_EXPIRATION_SETTING = Setting.timeSetting(
+        "stats.operations_log_expiration", TimeValue.timeValueSeconds(0L), Setting.Property.NodeScope, Setting.Property.Dynamic);
 
     private static final JobContextLogSizeEstimator JOB_CONTEXT_LOG_ESTIMATOR = new JobContextLogSizeEstimator();
     private static final OperationContextLogSizeEstimator OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR = new OperationContextLogSizeEstimator();
@@ -129,7 +127,6 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     private final InputFactory inputFactory;
     private final StaticTableReferenceResolver<JobContextLog> refResolver;
     private final ExpressionAnalyzer expressionAnalyzer;
-    private final EvaluatingNormalizer normalizer;
     private final CoordinatorTxnCtx systemTransactionCtx;
 
     private JobsLogs jobsLogs;
@@ -181,38 +178,37 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             null,
             Operation.READ
         );
-        normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.DOC, refResolver, sysJobsLogRelation);
         FILTER_VALIDATOR.validate = this::asSymbol;
 
-        isEnabled = STATS_ENABLED_SETTING.setting().get(settings);
+        isEnabled = STATS_ENABLED_SETTING.get(settings);
         jobsLogs = new JobsLogs(this::isEnabled);
         memoryFilter = createFilter(
-            STATS_JOBS_LOG_FILTER.setting().get(settings), STATS_JOBS_LOG_FILTER.getKey());
+            STATS_JOBS_LOG_FILTER.get(settings), STATS_JOBS_LOG_FILTER.getKey());
         persistFilter = createFilter(
-            STATS_JOBS_LOG_PERSIST_FILTER.setting().get(settings), STATS_JOBS_LOG_PERSIST_FILTER.getKey());
+            STATS_JOBS_LOG_PERSIST_FILTER.get(settings), STATS_JOBS_LOG_PERSIST_FILTER.getKey());
 
         setJobsLogSink(
-            STATS_JOBS_LOG_SIZE_SETTING.setting().get(settings),
-            STATS_JOBS_LOG_EXPIRATION_SETTING.setting().get(settings)
+            STATS_JOBS_LOG_SIZE_SETTING.get(settings),
+            STATS_JOBS_LOG_EXPIRATION_SETTING.get(settings)
         );
         setOperationsLogSink(
-            STATS_OPERATIONS_LOG_SIZE_SETTING.setting().get(settings), STATS_OPERATIONS_LOG_EXPIRATION_SETTING.setting().get(settings));
+            STATS_OPERATIONS_LOG_SIZE_SETTING.get(settings), STATS_OPERATIONS_LOG_EXPIRATION_SETTING.get(settings));
 
-        clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_FILTER.setting(), filter -> {
+        clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_FILTER, filter -> {
             JobsLogService.this.memoryFilter = createFilter(filter, STATS_JOBS_LOG_FILTER.getKey());
             updateJobSink(jobsLogSize, jobsLogExpiration);
         });
-        clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_PERSIST_FILTER.setting(), filter -> {
+        clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_PERSIST_FILTER, filter -> {
             JobsLogService.this.persistFilter = createFilter(filter, STATS_JOBS_LOG_PERSIST_FILTER.getKey());
             updateJobSink(jobsLogSize, jobsLogExpiration);
         });
-        clusterSettings.addSettingsUpdateConsumer(STATS_ENABLED_SETTING.setting(), this::setStatsEnabled);
+        clusterSettings.addSettingsUpdateConsumer(STATS_ENABLED_SETTING, this::setStatsEnabled);
         clusterSettings.addSettingsUpdateConsumer(
-            STATS_JOBS_LOG_SIZE_SETTING.setting(),
-            STATS_JOBS_LOG_EXPIRATION_SETTING.setting(),
+            STATS_JOBS_LOG_SIZE_SETTING,
+            STATS_JOBS_LOG_EXPIRATION_SETTING,
             this::setJobsLogSink);
         clusterSettings.addSettingsUpdateConsumer(
-            STATS_OPERATIONS_LOG_SIZE_SETTING.setting(), STATS_OPERATIONS_LOG_EXPIRATION_SETTING.setting(), this::setOperationsLogSink);
+            STATS_OPERATIONS_LOG_SIZE_SETTING, STATS_OPERATIONS_LOG_EXPIRATION_SETTING, this::setOperationsLogSink);
     }
 
     private Symbol asSymbol(String expression) {

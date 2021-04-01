@@ -93,7 +93,6 @@ import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProviderService;
-import io.crate.settings.CrateSetting;
 import io.crate.user.UserManagementModule;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
@@ -117,28 +116,25 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(SQLOperations.NODE_READ_ONLY_SETTING);
 
         // Postgres settings are node settings
-        settings.add(PostgresNetty.PSQL_ENABLED_SETTING.setting());
-        settings.add(PostgresNetty.PSQL_PORT_SETTING.setting());
+        settings.add(PostgresNetty.PSQL_ENABLED_SETTING);
+        settings.add(PostgresNetty.PSQL_PORT_SETTING);
 
         // Authentication settings are node settings
-        settings.add(AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting());
-        settings.add(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting());
-        settings.add(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting());
+        settings.add(AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING);
+        settings.add(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING);
+        settings.add(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER);
 
         // Settings for SSL
-        settings.add(SslSettings.SSL_HTTP_ENABLED.setting());
-        settings.add(SslSettings.SSL_PSQL_ENABLED.setting());
-        settings.add(SslSettings.SSL_TRUSTSTORE_FILEPATH.setting());
-        settings.add(SslSettings.SSL_TRUSTSTORE_PASSWORD.setting());
-        settings.add(SslSettings.SSL_KEYSTORE_FILEPATH.setting());
-        settings.add(SslSettings.SSL_KEYSTORE_PASSWORD.setting());
-        settings.add(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.setting());
-        settings.add(SslSettings.SSL_RESOURCE_POLL_INTERVAL.setting());
+        settings.add(SslSettings.SSL_HTTP_ENABLED);
+        settings.add(SslSettings.SSL_PSQL_ENABLED);
+        settings.add(SslSettings.SSL_TRUSTSTORE_FILEPATH);
+        settings.add(SslSettings.SSL_TRUSTSTORE_PASSWORD);
+        settings.add(SslSettings.SSL_KEYSTORE_FILEPATH);
+        settings.add(SslSettings.SSL_KEYSTORE_PASSWORD);
+        settings.add(SslSettings.SSL_KEYSTORE_KEY_PASSWORD);
+        settings.add(SslSettings.SSL_RESOURCE_POLL_INTERVAL);
 
-        // also add CrateSettings
-        for (CrateSetting<?> crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {
-            settings.add(crateSetting.setting());
-        }
+        settings.addAll(CrateSettings.CRATE_CLUSTER_SETTINGS);
 
         return settings;
     }

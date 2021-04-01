@@ -38,6 +38,8 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import io.crate.common.collections.MapBuilder;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -208,7 +210,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
     public static final String SETTING_INDEX_UUID = "index.uuid";
     public static final String SETTING_DATA_PATH = "index.data_path";
     public static final Setting<String> INDEX_DATA_PATH_SETTING =
-        new Setting<>(SETTING_DATA_PATH, "", Function.identity(), Property.IndexScope);
+        new Setting<>(SETTING_DATA_PATH, "", Function.identity(), DataTypes.STRING, Property.IndexScope);
     public static final String INDEX_UUID_NA_VALUE = "_na_";
 
     public static final String INDEX_ROUTING_REQUIRE_GROUP_PREFIX = "index.routing.allocation.require";
@@ -235,6 +237,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         new Setting<>("index.write.wait_for_active_shards",
                       "1",
                       ActiveShardCount::parseString,
+                      DataTypes.STRING,
                       Setting.Property.Dynamic,
                       Setting.Property.IndexScope);
 
