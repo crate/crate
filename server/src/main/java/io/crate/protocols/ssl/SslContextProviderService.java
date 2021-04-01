@@ -69,7 +69,7 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
         if (filesToWatch.isEmpty()) {
             return;
         }
-        TimeValue pollIntervalSetting = SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.setting().get(settings);
+        TimeValue pollIntervalSetting = SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.get(settings);
         watchRoutine = threadPool.scheduleWithFixedDelay(
             () -> pollForChanges(filesToWatch),
             pollIntervalSetting,
@@ -79,11 +79,11 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
 
     List<FingerPrint> createFilesToWatch() {
         ArrayList<FingerPrint> filesToWatch = new ArrayList<>();
-        var keystorePath = SslConfigSettings.SSL_KEYSTORE_FILEPATH.setting().get(settings);
+        var keystorePath = SslConfigSettings.SSL_KEYSTORE_FILEPATH.get(settings);
         if (!keystorePath.isEmpty()) {
             filesToWatch.add(FingerPrint.create(Paths.get(keystorePath)));
         }
-        var trustStorePath = SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting().get(settings);
+        var trustStorePath = SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.get(settings);
         if (!trustStorePath.isEmpty()) {
             filesToWatch.add(FingerPrint.create(Paths.get(trustStorePath)));
         }

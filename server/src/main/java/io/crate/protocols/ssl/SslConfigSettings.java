@@ -22,20 +22,15 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.settings.CrateSetting;
-import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+
 import io.crate.common.unit.TimeValue;
 
 /**
  * Settings for configuring Postgres SSL. Only applicable to the ssl-impl module.
  */
 public final class SslConfigSettings {
-
-    private static final Logger LOGGER = LogManager.getLogger(SslConfigSettings.class);
 
     private SslConfigSettings() {
     }
@@ -51,45 +46,54 @@ public final class SslConfigSettings {
 
     static final String SSL_RESOURCE_POLL_INTERVAL_NAME = "ssl.resource_poll_interval";
 
-    public static final CrateSetting<Boolean> SSL_HTTP_ENABLED = CrateSetting.of(
-        Setting.boolSetting(SSL_HTTP_ENABLED_SETTING_NAME, false, Setting.Property.NodeScope),
-        DataTypes.BOOLEAN);
-    public static final CrateSetting<Boolean> SSL_PSQL_ENABLED = CrateSetting.of(
-        Setting.boolSetting(SSL_PSQL_ENABLED_SETTING_NAME, false, Setting.Property.NodeScope),
-        DataTypes.BOOLEAN);
+    public static final Setting<Boolean> SSL_HTTP_ENABLED = Setting.boolSetting(
+        SSL_HTTP_ENABLED_SETTING_NAME,
+        false,
+        Setting.Property.NodeScope
+    );
+    public static final Setting<Boolean> SSL_PSQL_ENABLED = Setting.boolSetting(
+        SSL_PSQL_ENABLED_SETTING_NAME,
+        false,
+        Setting.Property.NodeScope
+    );
 
-    public static final CrateSetting<String> SSL_TRUSTSTORE_FILEPATH = CrateSetting.of(
-        Setting.simpleString(SSL_TRUSTSTORE_FILEPATH_SETTING_NAME, Setting.Property.NodeScope),
-        DataTypes.STRING);
+    public static final Setting<String> SSL_TRUSTSTORE_FILEPATH = Setting.simpleString(
+        SSL_TRUSTSTORE_FILEPATH_SETTING_NAME,
+        Setting.Property.NodeScope
+    );
 
-    public static final CrateSetting<String> SSL_TRUSTSTORE_PASSWORD = CrateSetting.of(
-        Setting.simpleString(SSL_TRUSTSTORE_PASSWORD_SETTING_NAME, Setting.Property.NodeScope),
-        DataTypes.STRING);
+    public static final Setting<String> SSL_TRUSTSTORE_PASSWORD = Setting.simpleString(
+        SSL_TRUSTSTORE_PASSWORD_SETTING_NAME,
+        Setting.Property.NodeScope
+    );
 
-    public static final CrateSetting<String> SSL_KEYSTORE_FILEPATH = CrateSetting.of(
-        Setting.simpleString(SSL_KEYSTORE_FILEPATH_SETTING_NAME, Setting.Property.NodeScope),
-        DataTypes.STRING);
+    public static final Setting<String> SSL_KEYSTORE_FILEPATH = Setting.simpleString(
+        SSL_KEYSTORE_FILEPATH_SETTING_NAME,
+        Setting.Property.NodeScope
+    );
 
-    public static final CrateSetting<String> SSL_KEYSTORE_PASSWORD = CrateSetting.of(
-        Setting.simpleString(SSL_KEYSTORE_PASSWORD_SETTING_NAME, "", Setting.Property.NodeScope),
-        DataTypes.STRING);
+    public static final Setting<String> SSL_KEYSTORE_PASSWORD = Setting.simpleString(
+        SSL_KEYSTORE_PASSWORD_SETTING_NAME,
+        "",
+        Setting.Property.NodeScope
+    );
 
-    public static final CrateSetting<String> SSL_KEYSTORE_KEY_PASSWORD = CrateSetting.of(
-        Setting.simpleString(SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, Setting.Property.NodeScope),
-        DataTypes.STRING);
+    public static final Setting<String> SSL_KEYSTORE_KEY_PASSWORD = Setting.simpleString(
+        SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME,
+        Setting.Property.NodeScope
+    );
 
-    public static final CrateSetting<TimeValue> SSL_RESOURCE_POLL_INTERVAL = CrateSetting.of(
-        Setting.positiveTimeSetting(
-            SSL_RESOURCE_POLL_INTERVAL_NAME,
-            TimeValue.timeValueMinutes(5),
-            Setting.Property.NodeScope),
-        DataTypes.STRING);
+    public static final Setting<TimeValue> SSL_RESOURCE_POLL_INTERVAL = Setting.positiveTimeSetting(
+        SSL_RESOURCE_POLL_INTERVAL_NAME,
+        TimeValue.timeValueMinutes(5),
+        Setting.Property.NodeScope
+    );
 
     public static boolean isHttpsEnabled(Settings settings) {
-        return SSL_HTTP_ENABLED.setting().get(settings);
+        return SSL_HTTP_ENABLED.get(settings);
     }
 
     public static boolean isPSQLSslEnabled(Settings settings) {
-        return SSL_PSQL_ENABLED.setting().get(settings);
+        return SSL_PSQL_ENABLED.get(settings);
     }
 }

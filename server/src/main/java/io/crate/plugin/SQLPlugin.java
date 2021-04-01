@@ -126,14 +126,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting());
 
         // Settings for SSL
-        settings.add(SslConfigSettings.SSL_HTTP_ENABLED.setting());
-        settings.add(SslConfigSettings.SSL_PSQL_ENABLED.setting());
-        settings.add(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting());
-        settings.add(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.setting());
-        settings.add(SslConfigSettings.SSL_KEYSTORE_FILEPATH.setting());
-        settings.add(SslConfigSettings.SSL_KEYSTORE_PASSWORD.setting());
-        settings.add(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.setting());
-        settings.add(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.setting());
+        settings.add(SslConfigSettings.SSL_HTTP_ENABLED);
+        settings.add(SslConfigSettings.SSL_PSQL_ENABLED);
+        settings.add(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH);
+        settings.add(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD);
+        settings.add(SslConfigSettings.SSL_KEYSTORE_FILEPATH);
+        settings.add(SslConfigSettings.SSL_KEYSTORE_PASSWORD);
+        settings.add(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD);
+        settings.add(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL);
 
         // also add CrateSettings
         for (CrateSetting<?> crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {

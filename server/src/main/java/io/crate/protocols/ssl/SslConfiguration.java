@@ -163,12 +163,12 @@ public final class SslConfiguration {
     }
 
     public static SslContext buildSslContext(Settings settings) {
-        var keystorePath = SslConfigSettings.SSL_KEYSTORE_FILEPATH.setting().get(settings);
-        var keystorePass = SslConfigSettings.SSL_KEYSTORE_PASSWORD.setting().get(settings).toCharArray();
-        var keystoreKeyPass = SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.setting().get(settings).toCharArray();
+        var keystorePath = SslConfigSettings.SSL_KEYSTORE_FILEPATH.get(settings);
+        var keystorePass = SslConfigSettings.SSL_KEYSTORE_PASSWORD.get(settings).toCharArray();
+        var keystoreKeyPass = SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.get(settings).toCharArray();
 
-        var trustStorePath = SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting().get(settings);
-        var trustStorePass = SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.setting().get(settings).toCharArray();
+        var trustStorePath = SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.get(settings);
+        var trustStorePass = SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.get(settings).toCharArray();
 
         try {
             var keyStore = loadKeyStore(keystorePath, keystorePass);
