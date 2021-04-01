@@ -40,7 +40,7 @@ import java.security.KeyStore;
 import java.security.Security;
 
 import static com.google.common.base.Strings.repeat;
-import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
+import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;

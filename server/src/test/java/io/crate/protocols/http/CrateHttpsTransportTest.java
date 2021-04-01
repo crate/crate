@@ -22,7 +22,7 @@
 
 package io.crate.protocols.http;
 
-import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
+import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
