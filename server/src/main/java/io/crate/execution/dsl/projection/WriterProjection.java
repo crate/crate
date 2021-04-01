@@ -57,21 +57,21 @@ public class WriterProjection extends Projection {
         new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),
         RowGranularity.SHARD,
         IntegerType.INSTANCE,
-        null,
+        0,
         null
     );
     private static final Reference TABLE_NAME_REF = new Reference(
         new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.TABLE_NAME),
         RowGranularity.SHARD,
         StringType.INSTANCE,
-        null,
+        0,
         null
     );
     private static final Reference PARTITION_IDENT_REF = new Reference(
         new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.PARTITION_IDENT),
         RowGranularity.SHARD,
         StringType.INSTANCE,
-        null,
+        0,
         null
     );
 

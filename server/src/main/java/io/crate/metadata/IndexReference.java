@@ -43,7 +43,7 @@ public class IndexReference extends Reference {
         private IndexType indexType = IndexType.ANALYZED;
         private List<Reference> columns = new ArrayList<>();
         private String analyzer = null;
-        private Integer position = null;
+        private int position = 0;
 
         public Builder(ReferenceIdent ident) {
             requireNonNull(ident, "ident is null");
@@ -89,7 +89,7 @@ public class IndexReference extends Reference {
         }
     }
 
-    public IndexReference(Integer position,
+    public IndexReference(int position,
                           ReferenceIdent ident,
                           IndexType indexType,
                           List<Reference> columns,

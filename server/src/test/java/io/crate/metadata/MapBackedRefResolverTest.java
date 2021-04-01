@@ -47,7 +47,7 @@ public class MapBackedRefResolverTest {
                 new ReferenceIdent(USERS_TI, new ColumnIdent("obj", Arrays.asList("x", "z"))),
                 RowGranularity.DOC,
                 DataTypes.STRING,
-                null,
+                0,
                 null
             ));
 

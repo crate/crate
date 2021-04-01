@@ -280,8 +280,8 @@ public final class SystemTable<T> implements TableInfo {
             LinkedHashMap<ColumnIdent, Reference> refByColumns = new LinkedHashMap<>();
             HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions = new HashMap<>();
             columns.sort(Comparator.comparing(x -> x.column));
-            int rootColIdx = 1;
             for (int i = 0; i < columns.size(); i++) {
+                int position = i + 1;     // start at 1
                 Column<T, ?> column = columns.get(i);
                 refByColumns.put(
                     column.column,
@@ -292,18 +292,20 @@ public final class SystemTable<T> implements TableInfo {
                         ColumnPolicy.DYNAMIC,
                         IndexType.NOT_ANALYZED,
                         column.isNullable,
-                        rootColIdx,
+                        position,
                         null
                     )
                 );
                 column.addExpression(expressions);
-                if (column.column.isTopLevel()) {
-                    rootColIdx++;
-                }
                 if (column instanceof DynamicColumn<?>) {
                     final DataType<?> leafType = ((DynamicColumn<?>) column).leafType;
                     dynamicColumns.put(column.column, wanted -> {
-                        var ref = new DynamicReference(new ReferenceIdent(name, wanted), RowGranularity.DOC, ColumnPolicy.DYNAMIC);
+                        var ref = new DynamicReference(
+                            new ReferenceIdent(name, wanted),
+                            RowGranularity.DOC,
+                            ColumnPolicy.DYNAMIC,
+                            position
+                        );
                         ref.valueType(leafType);
                         return ref;
                     });

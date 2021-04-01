@@ -153,7 +153,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
-            null,
+            1,
             null
         );
         assertPrint(r, "sys.\"table\".\"column\"['path']['nested']");
@@ -167,7 +167,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
-            null,
+            0,
             null
         );
         assertPrint(r, "doc.\"table\".\"column\"['path']['nested']");
@@ -177,7 +177,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testDynamicReference() throws Exception {
         Reference r = new DynamicReference(
             new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
-            RowGranularity.DOC);
+            RowGranularity.DOC,
+            0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
     }
 
@@ -188,7 +189,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             new ColumnIdent("colum\"n")),
             RowGranularity.DOC,
             DataTypes.STRING,
-            null,
+            0,
             null
         );
         assertPrint(r, "doc.\"table\".\"colum\"\"n\"");

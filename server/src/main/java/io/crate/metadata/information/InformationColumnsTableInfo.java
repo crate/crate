@@ -59,7 +59,7 @@ public class InformationColumnsTableInfo {
             .addNonNull("table_name", STRING, r -> r.info.ident().tableIdent().name())
             .addNonNull("table_catalog", STRING, r -> r.info.ident().tableIdent().schema())
             .addNonNull("column_name", STRING, r -> r.info.column().sqlFqn())
-            .addNonNull("ordinal_position", INTEGER, ColumnContext::getOrdinal)
+            .addNonNull("ordinal_position", INTEGER, r -> r.info.position())
             .addNonNull("data_type", STRING, r -> r.info.valueType().getName())
             .addNonNull("is_generated", STRING, r -> {
                 if (r.info instanceof GeneratedReference) {

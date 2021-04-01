@@ -54,7 +54,7 @@ public class GeneratedReference extends Reference {
         }
     }
 
-    public GeneratedReference(Integer position,
+    public GeneratedReference(int position,
                               ReferenceIdent ident,
                               RowGranularity granularity,
                               DataType type,
@@ -66,7 +66,7 @@ public class GeneratedReference extends Reference {
         this.formattedGeneratedExpression = formattedGeneratedExpression;
     }
 
-    public GeneratedReference(Integer position,
+    public GeneratedReference(int position,
                               ReferenceIdent ident,
                               RowGranularity granularity,
                               DataType type,

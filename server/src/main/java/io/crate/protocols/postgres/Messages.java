@@ -368,7 +368,7 @@ public class Messages {
     }
 
     private static boolean isRefWithPosition(Symbol symbol) {
-        return symbol instanceof Reference && ((Reference) symbol).position() != null;
+        return symbol instanceof Reference && ((Reference) symbol).position() != 0;
     }
 
     /**

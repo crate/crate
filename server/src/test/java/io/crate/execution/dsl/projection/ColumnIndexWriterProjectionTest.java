@@ -37,7 +37,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -157,10 +156,10 @@ public class ColumnIndexWriterProjectionTest {
     }
 
     private Reference ref(ColumnIdent column, DataType<?> type) {
-        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, null, null);
+        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, 0, null);
     }
 
     private Reference partitionRef(ColumnIdent column, DataType<?> type) {
-        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, null, null);
+        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, 0, null);
     }
 }

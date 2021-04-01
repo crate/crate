@@ -49,7 +49,7 @@ public class PgAttributeTable {
             .add("atttypid", INTEGER, c -> PGTypes.get(c.info.valueType()).oid())
             .add("attstattarget", INTEGER, c -> 0)
             .add("attlen", SHORT, c -> PGTypes.get(c.info.valueType()).typeLen())
-            .add("attnum", INTEGER, c -> c.ordinal)
+            .add("attnum", INTEGER, c -> c.info.position())
             .add("attndims", INTEGER, c -> isArray(c.info.valueType()) ? 1 : 0)
             .add("attcacheoff", INTEGER, c -> -1)
             .add("atttypmod", INTEGER, c -> -1)

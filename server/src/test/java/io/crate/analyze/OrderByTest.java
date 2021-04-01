@@ -40,7 +40,7 @@ public class OrderByTest extends ESTestCase {
     private static final RelationName TI = new RelationName("doc", "people");
 
     private Reference ref(String name) {
-        return new Reference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING, null, null);
+        return new Reference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING, 0, null);
     }
 
     @Test

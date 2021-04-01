@@ -121,7 +121,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 new ReferenceIdent(RelationName.fromIndexName("test"), "y"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
-                null,
+                0,
                 null
             ),
             keyExpressions,
@@ -161,14 +161,14 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 new ReferenceIdent(RelationName.fromIndexName("test"), "x"),
                 RowGranularity.DOC,
                 DataTypes.STRING,
-                null,
+                1,
                 null
             ),
             new Reference(
                 new ReferenceIdent(RelationName.fromIndexName("test"), "y"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
-                null,
+                2,
                 null
             )
         );
