@@ -38,10 +38,11 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.user.User;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.user.User;
 
 /**
  * service that listens to node-disconnected-events and kills jobContexts that were started by the nodes that got disconnected
@@ -50,6 +51,7 @@ import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent implements TransportConnectionListener {
 
     private final TasksService tasksService;
+    private final NodeLimits nodeLimits;
     private final TransportService transportService;
 
     private final TransportKillJobsNodeAction killJobsNodeAction;
@@ -57,9 +59,11 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
 
     @Inject
     public NodeDisconnectJobMonitorService(TasksService tasksService,
+                                           NodeLimits nodeLimits,
                                            TransportService transportService,
                                            TransportKillJobsNodeAction killJobsNodeAction) {
         this.tasksService = tasksService;
+        this.nodeLimits = nodeLimits;
         this.transportService = transportService;
         this.killJobsNodeAction = killJobsNodeAction;
     }
@@ -84,6 +88,7 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
 
     @Override
     public void onNodeDisconnected(DiscoveryNode node, Transport.Connection connection) {
+        nodeLimits.nodeDisconnected(node.getId());
         killJobsCoordinatedBy(node);
         broadcastKillToParticipatingNodes(node);
     }

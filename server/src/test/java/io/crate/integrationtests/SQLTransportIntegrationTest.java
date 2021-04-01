@@ -102,6 +102,7 @@ import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillableCallable;
@@ -318,6 +319,15 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             }
             throw new AssertionError(errorMessageBuilder.toString(), e);
         }
+    }
+
+    @After
+    public void ensureNoInflightRequestsLeft() throws Exception {
+        assertBusy(() -> {
+            for (var nodeLimits : internalCluster().getInstances(NodeLimits.class)) {
+                assertThat(nodeLimits.totalNumInflight(), is(0L));
+            }
+        });
     }
 
     public void waitUntilShardOperationsFinished() throws Exception {

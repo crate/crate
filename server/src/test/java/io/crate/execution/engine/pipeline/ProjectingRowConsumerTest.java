@@ -32,7 +32,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
@@ -85,7 +85,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            new NodeJobsCounter(),
+            new NodeLimits(),
             new NoneCircuitBreakerService(),
             nodeCtx,
             THREAD_POOL,

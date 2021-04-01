@@ -42,6 +42,7 @@ import org.junit.Test;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.DummyTask;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
@@ -63,6 +64,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
 
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             tasksService,
+            new NodeLimits(),
             mock(TransportService.class),
             mock(TransportKillJobsNodeAction.class));
 
@@ -73,6 +75,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
 
         expectedException.expect(TaskMissing.class);
         tasksService.getTask(context.jobId());
+        monitorService.close();
     }
 
     @Test
@@ -105,11 +108,13 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
         };
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             tasksService,
+            new NodeLimits(),
             mock(TransportService.class),
             killAction);
 
         monitorService.onNodeDisconnected(dataNode, mock(Transport.Connection.class));
 
         assertThat(broadcasts.get(), is(1));
+        monitorService.close();
     }
 }

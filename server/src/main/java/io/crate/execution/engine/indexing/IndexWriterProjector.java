@@ -32,7 +32,7 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -67,7 +67,7 @@ public class IndexWriterProjector implements Projector {
     private final ShardingUpsertExecutor shardingUpsertExecutor;
 
     public IndexWriterProjector(ClusterService clusterService,
-                                NodeJobsCounter nodeJobsCounter,
+                                NodeLimits nodeJobsCounter,
                                 CircuitBreaker queryCircuitBreaker,
                                 RamAccounting ramAccounting,
                                 ScheduledExecutorService scheduler,

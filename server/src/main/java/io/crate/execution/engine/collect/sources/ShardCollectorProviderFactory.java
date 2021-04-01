@@ -28,7 +28,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.engine.collect.BlobShardCollectorProvider;
 import io.crate.execution.engine.collect.LuceneShardCollectorProvider;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
@@ -51,7 +51,7 @@ public class ShardCollectorProviderFactory {
 
     private final NodeContext nodeCtx;
     private final LuceneQueryBuilder luceneQueryBuilder;
-    private final NodeJobsCounter nodeJobsCounter;
+    private final NodeLimits nodeJobsCounter;
     private final BigArrays bigArrays;
     private final Settings settings;
     private final CircuitBreakerService circuitBreakerService;
@@ -65,7 +65,7 @@ public class ShardCollectorProviderFactory {
                                   BlobIndicesService blobIndicesService,
                                   NodeContext nodeCtx,
                                   LuceneQueryBuilder luceneQueryBuilder,
-                                  NodeJobsCounter nodeJobsCounter,
+                                  NodeLimits nodeJobsCounter,
                                   BigArrays bigArrays) {
         this.settings = settings;
         this.circuitBreakerService = circuitBreakerService;

@@ -76,7 +76,7 @@ import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
 import io.crate.execution.engine.window.WindowProjector;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.ThreadPools;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
@@ -141,7 +141,7 @@ public class ProjectionToProjectorVisitor
     private static final int UNBOUNDED_COLLECTOR_THRESHOLD = 10_000;
 
     private final ClusterService clusterService;
-    private final NodeJobsCounter nodeJobsCounter;
+    private final NodeLimits nodeJobsCounter;
     private final NodeContext nodeCtx;
     private final ThreadPool threadPool;
     private final Settings settings;
@@ -158,7 +158,7 @@ public class ProjectionToProjectorVisitor
 
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
-                                        NodeJobsCounter nodeJobsCounter,
+                                        NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
@@ -187,7 +187,7 @@ public class ProjectionToProjectorVisitor
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
-                                        NodeJobsCounter nodeJobsCounter,
+                                        NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
