@@ -22,10 +22,13 @@
 
 package io.crate.protocols.ssl;
 
+import java.util.Locale;
+
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 /**
  * Settings for configuring Postgres SSL. Only applicable to the ssl-impl module.
@@ -35,6 +38,7 @@ public final class SslSettings {
     private SslSettings() {
     }
 
+    private static final String SSL_TRANSPORT_MODE_NAME = "ssl.transport.mode";
     private static final String SSL_HTTP_ENABLED_SETTING_NAME = "ssl.http.enabled";
     private static final String SSL_PSQL_ENABLED_SETTING_NAME = "ssl.psql.enabled";
 
@@ -55,6 +59,29 @@ public final class SslSettings {
     public static final Setting<Boolean> SSL_PSQL_ENABLED = Setting.boolSetting(
         SSL_PSQL_ENABLED_SETTING_NAME,
         false,
+        Setting.Property.NodeScope
+    );
+
+    public enum SSLMode {
+        ON,
+        OFF,
+        DUAL;
+
+        static SSLMode parse(String value) {
+            return switch (value.toLowerCase(Locale.ENGLISH)) {
+                case "on" -> ON;
+                case "off" -> OFF;
+                case "dual" -> DUAL;
+                default -> throw new IllegalArgumentException(value + " is not a valid SSL mode setting");
+            };
+        }
+    }
+
+    public static final Setting<SSLMode> SSL_TRANSPORT_MODE = new Setting<SSLMode>(
+        SSL_TRANSPORT_MODE_NAME,
+        settings -> SSLMode.OFF.name(),
+        SSLMode::parse,
+        DataTypes.STRING,
         Setting.Property.NodeScope
     );
 
