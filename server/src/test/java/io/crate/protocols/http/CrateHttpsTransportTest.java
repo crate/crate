@@ -50,7 +50,7 @@ import org.junit.Test;
 import io.crate.netty.EventLoopGroups;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.protocols.ssl.SslContextProviderImpl;
+import io.crate.protocols.ssl.SslContextProvider;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.ssl.SslHandler;
 
@@ -97,7 +97,7 @@ public class CrateHttpsTransportTest extends ESTestCase {
         }));
 
         PipelineRegistry pipelineRegistry = new PipelineRegistry(settings);
-        pipelineRegistry.setSslContextProvider(new SslContextProviderImpl(settings));
+        pipelineRegistry.setSslContextProvider(new SslContextProvider(settings));
 
         Netty4HttpServerTransport transport = new Netty4HttpServerTransport(
             settings,

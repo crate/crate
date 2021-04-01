@@ -26,6 +26,8 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.protocols.ssl.SslContextProvider;
+
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -101,7 +103,7 @@ public class SslReqHandlerTest extends ESTestCase {
      * Uses a simple (and insecure) self-signed certificate.
      */
     private static SslContextProvider getSelfSignedSslContextProvider() {
-        return new SslContextProvider() {
+        return new SslContextProvider(Settings.EMPTY) {
 
             @Override
             public SslContext getSslContext() {
@@ -117,9 +119,6 @@ public class SslReqHandlerTest extends ESTestCase {
                 }
             }
 
-            @Override
-            public void reloadSslContext() {
-            }
         };
     }
 }

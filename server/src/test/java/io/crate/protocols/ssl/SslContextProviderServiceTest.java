@@ -75,12 +75,7 @@ public class SslContextProviderServiceTest extends CrateDummyClusterServiceUnitT
         try (var sslContextProviderService = new SslContextProviderService(
             settings,
             THREAD_POOL,
-            new SslContextProvider() {
-
-                    @Override
-                    public SslContext getSslContext() {
-                        return null;
-                    }
+            new SslContextProvider(Settings.EMPTY) {
 
                     @Override
                     public void reloadSslContext() {

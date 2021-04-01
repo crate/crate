@@ -23,15 +23,43 @@
 package io.crate.protocols.ssl;
 
 import io.netty.handler.ssl.SslContext;
-import javax.annotation.Nullable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
-/**
- * Provides Netty's SslContext.
- */
-public interface SslContextProvider {
+@Singleton
+public class SslContextProvider {
 
-    @Nullable
-    SslContext getSslContext();
+    private static final Logger LOGGER = LogManager.getLogger(SslContextProvider.class);
 
-    void reloadSslContext();
+    private volatile SslContext sslContext;
+
+    private final Settings settings;
+
+    @Inject
+    public SslContextProvider(Settings settings) {
+        this.settings = settings;
+    }
+
+    public SslContext getSslContext() {
+        var localRef = sslContext;
+        if (localRef == null) {
+            synchronized (this) {
+                localRef = sslContext;
+                if (localRef == null) {
+                    sslContext = localRef = SslConfiguration.buildSslContext(this.settings);
+                }
+            }
+        }
+        return localRef;
+    }
+
+    public void reloadSslContext() {
+        synchronized (this) {
+            sslContext = SslConfiguration.buildSslContext(this.settings);
+            LOGGER.info("SSL configuration is reloaded.");
+        }
+    }
 }

@@ -67,7 +67,7 @@ public class SslContextProviderTest extends ESTestCase {
             .build();
         expectedException.expect(SslConfigurationException.class);
         expectedException.expectMessage("Failed to build SSL configuration");
-        var sslContextProvider = new SslContextProviderImpl(settings);
+        var sslContextProvider = new SslContextProvider(settings);
         sslContextProvider.getSslContext();
     }
 
@@ -82,7 +82,7 @@ public class SslContextProviderTest extends ESTestCase {
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();
-        var sslContextProvider = new SslContextProviderImpl(settings);
+        var sslContextProvider = new SslContextProvider(settings);
         SslContext sslContext = sslContextProvider.getSslContext();
         assertThat(sslContext, instanceOf(SslContext.class));
         assertThat(sslContext.isServer(), is(true));
