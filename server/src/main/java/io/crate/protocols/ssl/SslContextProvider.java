@@ -51,6 +51,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import io.crate.auth.AuthSettings;
 import io.crate.common.Optionals;
+import io.crate.common.annotations.VisibleForTesting;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -64,19 +65,32 @@ public class SslContextProvider {
     private volatile SslContext sslContext;
 
     private final Settings settings;
+    private final String keystorePath;
+    private final char[] keystorePass;
+    private final char[] keystoreKeyPass;
+    private final String trustStorePath;
+    private final char[] trustStorePass;
+
+
 
     @Inject
     public SslContextProvider(Settings settings) {
         this.settings = settings;
+        this.keystorePath = SslSettings.SSL_KEYSTORE_FILEPATH.get(settings);
+        this.keystorePass = SslSettings.SSL_KEYSTORE_PASSWORD.get(settings).toCharArray();
+        this.keystoreKeyPass = SslSettings.SSL_KEYSTORE_KEY_PASSWORD.get(settings).toCharArray();
+
+        this.trustStorePath = SslSettings.SSL_TRUSTSTORE_FILEPATH.get(settings);
+        this.trustStorePass = SslSettings.SSL_TRUSTSTORE_PASSWORD.get(settings).toCharArray();
     }
 
-    public SslContext getSslContext() {
+    public SslContext getServerContext() {
         var localRef = sslContext;
         if (localRef == null) {
             synchronized (this) {
                 localRef = sslContext;
                 if (localRef == null) {
-                    sslContext = localRef = buildSslContext();
+                    sslContext = localRef = serverContext();
                 }
             }
         }
@@ -85,19 +99,64 @@ public class SslContextProvider {
 
     public void reloadSslContext() {
         synchronized (this) {
-            sslContext = buildSslContext();
+            sslContext = serverContext();
             LOGGER.info("SSL configuration is reloaded.");
         }
     }
 
-    private SslContext buildSslContext() {
-        var keystorePath = SslSettings.SSL_KEYSTORE_FILEPATH.get(settings);
-        var keystorePass = SslSettings.SSL_KEYSTORE_PASSWORD.get(settings).toCharArray();
-        var keystoreKeyPass = SslSettings.SSL_KEYSTORE_KEY_PASSWORD.get(settings).toCharArray();
+    @VisibleForTesting
+    public SSLContext jdkSSLContext() throws Exception {
+        var keyStore = loadKeyStore(keystorePath, keystorePass);
+        var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);
 
-        var trustStorePath = SslSettings.SSL_TRUSTSTORE_FILEPATH.get(settings);
-        var trustStorePass = SslSettings.SSL_TRUSTSTORE_PASSWORD.get(settings).toCharArray();
+        var trustStore = Optionals.of(() -> loadKeyStore(trustStorePath, trustStorePass)).orElse(keyStore);
+        var trustManagers = createTrustManagers(trustStore);
 
+        // Use the newest SSL standard which is (at the time of writing) TLSv1.2
+        // If we just specify "TLS" here, it depends on the JVM implementation which version we'll get.
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+        sslContext.init(keyManagers, trustManagers, null);
+        return sslContext;
+    }
+
+    public SslContext clientContext() {
+        try {
+            var keyStore = loadKeyStore(keystorePath, keystorePass);
+            var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);
+
+            var trustStore = Optionals.of(() -> loadKeyStore(trustStorePath, trustStorePass));
+            var trustManagers = trustStore
+                .map(SslContextProvider::createTrustManagers)
+                .orElseGet(() -> new TrustManager[0]);
+
+            // Use the newest SSL standard which is (at the time of writing) TLSv1.2
+            // If we just specify "TLS" here, it depends on the JVM implementation which version we'll get.
+            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(keyManagers, trustManagers, null);
+
+            var keyStoreRootCerts = getRootCertificates(keyStore);
+            var trustStoreRootCerts = trustStore
+                .map(SslContextProvider::getRootCertificates)
+                .orElseGet(() -> new X509Certificate[0]);
+            return SslContextBuilder
+                .forClient()
+                .ciphers(List.of(sslContext.createSSLEngine().getEnabledCipherSuites()))
+                .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
+                .clientAuth(AuthSettings.resolveClientAuth(settings))
+                .trustManager(concat(keyStoreRootCerts, trustStoreRootCerts))
+                .sessionCacheSize(0)
+                .sessionTimeout(0)
+                .startTls(false)
+                .sslProvider(SslProvider.JDK)
+                .build();
+        } catch (SslConfigurationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new SslConfigurationException("Failed to build SSL configuration: " + e.getMessage(), e);
+        }
+    }
+
+    private SslContext serverContext() {
         try {
             var keyStore = loadKeyStore(keystorePath, keystorePass);
             var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);

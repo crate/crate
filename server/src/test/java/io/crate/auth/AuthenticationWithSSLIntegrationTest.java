@@ -155,7 +155,7 @@ public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase
         }
     }
 
-    private static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) throws IOException {
+    static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) throws IOException {
         final URL fileUrl = AuthenticationWithSSLIntegrationTest.class.getClassLoader().getResource(fileNameFromClasspath);
         if (fileUrl == null) {
             throw new FileNotFoundException("Resource was not found: " + fileNameFromClasspath);

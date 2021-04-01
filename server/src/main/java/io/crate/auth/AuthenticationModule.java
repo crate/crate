@@ -22,8 +22,6 @@
 
 package io.crate.auth;
 
-import io.crate.protocols.ssl.SslContextProvider;
-
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.Settings;
 
@@ -43,6 +41,5 @@ public class AuthenticationModule extends AbstractModule {
             bind(Authentication.class).to(AlwaysOKAuthentication.class);
         }
         bind(AuthenticationHttpAuthHandlerRegistry.class).asEagerSingleton();
-        bind(SslContextProvider.class).asEagerSingleton();
     }
 }
