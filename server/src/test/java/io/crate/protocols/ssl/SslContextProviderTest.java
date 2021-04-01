@@ -81,8 +81,8 @@ public class SslContextProviderTest extends ESTestCase {
     public void testClassLoadingWithInvalidConfiguration() {
         // empty ssl configuration which is invalid
         Settings settings = Settings.builder()
-            .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
             .build();
         expectedException.expect(SslConfigurationException.class);
         expectedException.expectMessage("Failed to build SSL configuration");
@@ -93,13 +93,13 @@ public class SslContextProviderTest extends ESTestCase {
     @Test
     public void testClassLoadingWithValidConfiguration() {
         Settings settings = Settings.builder()
-            .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
+            .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
+            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();
         var sslContextProvider = new SslContextProvider(settings);
         SslContext sslContext = sslContextProvider.getSslContext();
@@ -112,11 +112,11 @@ public class SslContextProviderTest extends ESTestCase {
     public void test_netty_ssl_context_can_be_built_and_doesnt_override_default_context() throws Exception {
         var defaultSSLContext = SSLContext.getDefault();
         Settings settings = Settings.builder()
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH_SETTING_NAME, trustStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD_SETTING_NAME, TRUSTSTORE_PASSWORD)
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD)
-            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD)
+            .put(SslSettings.SSL_TRUSTSTORE_FILEPATH_SETTING_NAME, trustStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD_SETTING_NAME, TRUSTSTORE_PASSWORD)
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD)
+            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD)
         .build();
         SslContext sslContext = new SslContextProvider(settings).getSslContext();
         assertThat(sslContext.isServer(), is(true));

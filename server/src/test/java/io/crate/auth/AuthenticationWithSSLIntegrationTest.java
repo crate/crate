@@ -23,7 +23,7 @@
 package io.crate.auth;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
@@ -81,12 +81,12 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
+            .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
+            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
+            .put(SslSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
             .put("network.host", "127.0.0.1")
             .put("auth.host_based.enabled", true)
             .put("auth.host_based.config",

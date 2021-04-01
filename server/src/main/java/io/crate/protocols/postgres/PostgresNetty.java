@@ -59,7 +59,7 @@ import io.crate.user.UserManager;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.CrateChannelBootstrapFactory;
 import io.crate.netty.EventLoopGroups;
-import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
@@ -126,7 +126,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.authentication = authentication;
         this.eventLoopGroups = eventLoopGroups;
 
-        if (SslConfigSettings.isPSQLSslEnabled(settings)) {
+        if (SslSettings.isPSQLSslEnabled(settings)) {
             namedLogger.info("PSQL SSL support is enabled.");
             this.sslContextProvider = sslContextProvider;
         } else {

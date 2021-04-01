@@ -23,7 +23,7 @@
 package io.crate.protocols.http;
 
 import io.crate.integrationtests.SQLHttpIntegrationTest;
-import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -120,10 +120,10 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), "2s")
+            .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), "2s")
             .build();
     }
 

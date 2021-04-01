@@ -22,7 +22,7 @@
 
 package io.crate.plugin;
 
-import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
@@ -62,7 +62,7 @@ public class PipelineRegistry {
     }
 
     public void setSslContextProvider(SslContextProvider sslContextProvider) {
-        if (SslConfigSettings.isHttpsEnabled(settings)) {
+        if (SslSettings.isHttpsEnabled(settings)) {
             LOGGER.info("HTTP SSL support is enabled.");
             this.sslContextProvider = sslContextProvider;
         } else {

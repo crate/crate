@@ -23,7 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
@@ -100,9 +100,9 @@ public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), "2s")
+            .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
+            .put(SslSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), "2s")
             .build();
     }
 
