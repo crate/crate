@@ -10,6 +10,15 @@ CrateDB includes support to store `binary large objects`_. By utilizing
 CrateDB's cluster features the files can be replicated and sharded just like
 regular data.
 
+.. CAUTION::
+
+    We are considering to deprecate the support of blobs soon and potentially
+    removing it with CrateDB 5.0.
+
+    We would love to hear your feedback if you currently use blobs or are
+    considering to use it. Please `contact us`_ or add your comment to the
+    relevant `Github issue`_.
+
 .. rubric:: Table of contents
 
 .. contents::
@@ -205,3 +214,5 @@ If the blob doesn't exist a 404 Not Found error is returned::
     DROP OK, 1 row affected (... sec)
 
 .. _binary large objects: https://en.wikipedia.org/wiki/Binary_large_object
+.. _contact us: https://crate.io/contact/
+.. _Github issue: https://github.com/crate/crate/issues/11108
