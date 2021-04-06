@@ -29,6 +29,8 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -190,6 +192,7 @@ public class SettingTests extends ESTestCase {
             "foobar",
             Function.identity(),
             new FooBarValidator(),
+            DataTypes.STRING,
             Property.Dynamic,
             Property.NodeScope);
 
@@ -271,19 +274,19 @@ public class SettingTests extends ESTestCase {
         assertEquals(defaultValue, setting.getDefault(Settings.EMPTY));
 
         Setting<String> secondaryDefault =
-            new Setting<>("foo.bar", (s) -> s.get("old.foo.bar", "some_default"), Function.identity(), Property.NodeScope);
+            new Setting<>("foo.bar", (s) -> s.get("old.foo.bar", "some_default"), Function.identity(), DataTypes.STRING, Property.NodeScope);
         assertEquals("some_default", secondaryDefault.get(Settings.EMPTY));
         assertEquals("42", secondaryDefault.get(Settings.builder().put("old.foo.bar", 42).build()));
 
         Setting<String> secondaryDefaultViaSettings =
-            new Setting<>("foo.bar", secondaryDefault, Function.identity(), Property.NodeScope);
+            new Setting<>("foo.bar", secondaryDefault, Function.identity(), DataTypes.STRING, Property.NodeScope);
         assertEquals("some_default", secondaryDefaultViaSettings.get(Settings.EMPTY));
         assertEquals("42", secondaryDefaultViaSettings.get(Settings.builder().put("old.foo.bar", 42).build()));
 
         // It gets more complicated when there are two settings objects....
         Settings hasFallback = Settings.builder().put("foo.bar", "o").build();
         Setting<String> fallsback =
-                new Setting<>("foo.baz", secondaryDefault, Function.identity(), Property.NodeScope);
+                new Setting<>("foo.baz", secondaryDefault, Function.identity(), DataTypes.STRING, Property.NodeScope);
         assertEquals("o", fallsback.get(hasFallback));
         assertEquals("some_default", fallsback.get(Settings.EMPTY));
         assertEquals("some_default", fallsback.get(Settings.EMPTY, Settings.EMPTY));
@@ -298,7 +301,7 @@ public class SettingTests extends ESTestCase {
     public void testComplexType() {
         AtomicReference<ComplexType> ref = new AtomicReference<>(null);
         Setting<ComplexType> setting = new Setting<>("foo.bar", (s) -> "", (s) -> new ComplexType(s),
-            Property.Dynamic, Property.NodeScope);
+            DataTypes.STRING, Property.Dynamic, Property.NodeScope);
         assertFalse(setting.isGroupSetting());
         ref.set(setting.get(Settings.EMPTY));
         ComplexType type = ref.get();
@@ -490,11 +493,12 @@ public class SettingTests extends ESTestCase {
                         "foo.deprecated",
                         Collections.singletonList("foo.deprecated"),
                         Function.identity(),
+                        DataTypes.STRING_ARRAY,
                         Property.Deprecated,
                         Property.NodeScope);
         final Setting<List<String>> nonDeprecatedListSetting =
                 Setting.listSetting(
-                        "foo.non_deprecated", Collections.singletonList("foo.non_deprecated"), Function.identity(), Property.NodeScope);
+                        "foo.non_deprecated", Collections.singletonList("foo.non_deprecated"), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
         final Settings settings = Settings.builder()
                 .put("foo.deprecated", "foo.deprecated1,foo.deprecated2")
                 .put("foo.deprecated", "foo.non_deprecated1,foo.non_deprecated2")
@@ -507,7 +511,7 @@ public class SettingTests extends ESTestCase {
     @Test
     public void testListSettings() {
         Setting<List<String>> listSetting = Setting.listSetting("foo.bar", Arrays.asList("foo,bar"), (s) -> s.toString(),
-            Property.Dynamic, Property.NodeScope);
+            DataTypes.STRING_ARRAY, Property.Dynamic, Property.NodeScope);
         List<String> value = listSetting.get(Settings.EMPTY);
         assertFalse(listSetting.exists(Settings.EMPTY));
         assertEquals(1, value.size());
@@ -550,7 +554,7 @@ public class SettingTests extends ESTestCase {
         assertEquals("foo,bar", ref.get().get(0));
 
         Setting<List<Integer>> otherSettings = Setting.listSetting("foo.bar", Collections.emptyList(), Integer::parseInt,
-            Property.Dynamic, Property.NodeScope);
+            DataTypes.INTEGER_ARRAY, Property.Dynamic, Property.NodeScope);
         List<Integer> defaultValue = otherSettings.get(Settings.EMPTY);
         assertEquals(0, defaultValue.size());
         List<Integer> intValues = otherSettings.get(Settings.builder().put("foo.bar", "0,1,2,3").build());
@@ -560,7 +564,7 @@ public class SettingTests extends ESTestCase {
         }
 
         Setting<List<String>> settingWithFallback = Setting.listSetting("foo.baz", listSetting, Function.identity(),
-            Property.Dynamic, Property.NodeScope);
+            DataTypes.STRING_ARRAY, Property.Dynamic, Property.NodeScope);
         value = settingWithFallback.get(Settings.EMPTY);
         assertEquals(1, value.size());
         assertEquals("foo,bar", value.get(0));
@@ -584,7 +588,7 @@ public class SettingTests extends ESTestCase {
     @Test
     public void testListSettingAcceptsNumberSyntax() {
         Setting<List<String>> listSetting = Setting.listSetting("foo.bar", Arrays.asList("foo,bar"), (s) -> s.toString(),
-            Property.Dynamic, Property.NodeScope);
+            DataTypes.STRING_ARRAY, Property.Dynamic, Property.NodeScope);
         List<String> input = Arrays.asList("test", "test1, test2", "test", ",,,,");
         Settings.Builder builder = Settings.builder().putList("foo.bar", input.toArray(new String[0]));
         // try to parse this really annoying format
@@ -642,7 +646,7 @@ public class SettingTests extends ESTestCase {
         assertEquals("prefix must end with a '.'", exc.getMessage());
 
         Setting<List<String>> listAffixSetting = Setting.affixKeySetting("foo.", "bar",
-            (key) -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Property.NodeScope));
+            (key) -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope));
 
         assertTrue(listAffixSetting.hasComplexMatcher());
         assertTrue(listAffixSetting.match("foo.test.bar"));
@@ -693,7 +697,7 @@ public class SettingTests extends ESTestCase {
     @Test
     public void testGetAllConcreteSettings() {
         Setting.AffixSetting<List<String>> listAffixSetting = Setting.affixKeySetting("foo.", "bar",
-            (key) -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Property.NodeScope));
+            (key) -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope));
 
         Settings settings = Settings.builder()
             .putList("foo.1.bar", "1", "2")
@@ -713,7 +717,7 @@ public class SettingTests extends ESTestCase {
     @Test
     public void testAffixSettingsFailOnGet() {
         Setting.AffixSetting<List<String>> listAffixSetting = Setting.affixKeySetting("foo.", "bar",
-            (key) -> Setting.listSetting(key, Collections.singletonList("testelement"), Function.identity(), Property.NodeScope));
+            (key) -> Setting.listSetting(key, Collections.singletonList("testelement"), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope));
         expectThrows(UnsupportedOperationException.class, () -> listAffixSetting.get(Settings.EMPTY));
         expectThrows(UnsupportedOperationException.class, () -> listAffixSetting.getRaw(Settings.EMPTY));
         assertEquals(Collections.singletonList("testelement"), listAffixSetting.getDefault(Settings.EMPTY));
@@ -941,11 +945,12 @@ public class SettingTests extends ESTestCase {
         final int count = randomIntBetween(1, 16);
         Setting<String> current = Setting.simpleString("fallback0", Property.NodeScope);
         for (int i = 1; i < count; i++) {
-            final Setting<String> next =
-                    new Setting<>(new Setting.SimpleKey("fallback" + i), current, Function.identity(), Property.NodeScope);
+            final Setting<String> next = new Setting<>(
+                new Setting.SimpleKey("fallback" + i), current, Function.identity(), DataTypes.STRING, Property.NodeScope);
             current = next;
         }
-        final Setting<String> fooSetting = new Setting<>(new Setting.SimpleKey("foo"), current, Function.identity(), Property.NodeScope);
+        final Setting<String> fooSetting = new Setting<>(
+            new Setting.SimpleKey("foo"), current, Function.identity(), DataTypes.STRING, Property.NodeScope);
         assertFalse(fooSetting.exists(Settings.EMPTY));
         if (randomBoolean()) {
             assertTrue(fooSetting.exists(Settings.builder().put("foo", "bar").build()));

@@ -31,6 +31,8 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.MemorySizeValue;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.mapper.ParsedDocument;
@@ -109,7 +111,7 @@ public final class EngineConfig {
                 }
                 return s;
         }
-    }, Property.IndexScope, Property.NodeScope);
+    }, DataTypes.STRING, Property.IndexScope, Property.NodeScope);
 
     private final TranslogConfig translogConfig;
 

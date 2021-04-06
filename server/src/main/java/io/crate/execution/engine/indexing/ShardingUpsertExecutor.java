@@ -70,15 +70,16 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
-import io.crate.settings.CrateSetting;
-import io.crate.types.DataTypes;
 
 public class ShardingUpsertExecutor
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
 
-    public static final CrateSetting<TimeValue> BULK_REQUEST_TIMEOUT_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
-        "bulk.request_timeout", new TimeValue(1, TimeUnit.MINUTES),
-        Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
+    public static final Setting<TimeValue> BULK_REQUEST_TIMEOUT_SETTING = Setting.positiveTimeSetting(
+        "bulk.request_timeout",
+        new TimeValue(1, TimeUnit.MINUTES),
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    );
 
     private static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
     private static final double BREAKER_LIMIT_PERCENTAGE = 0.50d;

@@ -32,6 +32,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.node.Node;
 
@@ -60,7 +62,7 @@ public final class IndexSettings {
         };
 
         DEFAULT_FIELD_SETTING =
-            Setting.listSetting(DEFAULT_FIELD_SETTING_KEY, Function.identity(), defValue, Property.Dynamic, Property.IndexScope);
+            Setting.listSetting(DEFAULT_FIELD_SETTING_KEY, Function.identity(), defValue, DataTypes.STRING_ARRAY, Property.Dynamic, Property.IndexScope);
     }
 
     public static final Setting<Boolean> ALLOW_UNMAPPED =
@@ -73,7 +75,7 @@ public final class IndexSettings {
             TimeValue.timeValueMinutes(0), Property.IndexScope, Property.Dynamic);
     public static final Setting<Translog.Durability> INDEX_TRANSLOG_DURABILITY_SETTING =
         new Setting<>("index.translog.durability", Translog.Durability.REQUEST.name(),
-            (value) -> Translog.Durability.valueOf(value.toUpperCase(Locale.ROOT)), Property.Dynamic, Property.IndexScope);
+            (value) -> Translog.Durability.valueOf(value.toUpperCase(Locale.ROOT)), DataTypes.STRING, Property.Dynamic, Property.IndexScope);
 
     public static final Setting<Boolean> INDEX_WARMER_ENABLED_SETTING =
         Setting.boolSetting("index.warmer.enabled", true, Property.Dynamic, Property.IndexScope, Property.Deprecated);
@@ -88,7 +90,7 @@ public final class IndexSettings {
             default:
                 throw new IllegalArgumentException("unknown value for [index.shard.check_on_startup] must be one of [true, false, fix, checksum] but was: " + s);
         }
-    }, Property.IndexScope);
+    }, DataTypes.STRING, Property.IndexScope);
 
     /**
      * Index setting describing for NGramTokenizer and NGramTokenFilter

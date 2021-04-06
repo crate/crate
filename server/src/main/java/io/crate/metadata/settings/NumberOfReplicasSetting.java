@@ -23,6 +23,8 @@
 package io.crate.metadata.settings;
 
 import io.crate.analyze.NumberOfReplicas;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Setting;
@@ -47,7 +49,7 @@ public class NumberOfReplicasSetting extends Setting<Settings> {
     }
 
     private NumberOfReplicasSetting(Key key, Function<Settings, String> defaultValue, Function<String, Settings> parser, Property... properties) {
-        super(key, defaultValue, parser, properties);
+        super(key, defaultValue, parser, DataTypes.STRING, properties);
     }
 
     private static Settings parseValue(String val) {

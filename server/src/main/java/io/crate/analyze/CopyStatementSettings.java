@@ -24,6 +24,8 @@ package io.crate.analyze;
 
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import io.crate.metadata.settings.Validators;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.settings.Setting;
 
 import java.util.Locale;
@@ -49,6 +51,7 @@ public final class CopyStatementSettings {
         "json",
         (s) -> s,
         Validators.stringValidator("format", "json", "csv"),
+        DataTypes.STRING,
         Setting.Property.Dynamic);
 
     public static final Setting<Boolean> EMPTY_STRING_AS_NULL = Setting.boolSetting(
@@ -66,6 +69,7 @@ public final class CopyStatementSettings {
             }
             return value.charAt(0);
         },
+        DataTypes.STRING,
         Setting.Property.Dynamic
     );
 

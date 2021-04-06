@@ -23,6 +23,8 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import io.crate.common.Booleans;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.settings.Setting;
@@ -45,8 +47,14 @@ public final class AutoExpandReplicas {
 
     private static final AutoExpandReplicas FALSE_INSTANCE = new AutoExpandReplicas(0, 0, false);
 
-    public static final Setting<AutoExpandReplicas> SETTING = new Setting<>(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "0-1",
-                                                                            AutoExpandReplicas::parse, Property.Dynamic, Property.IndexScope);
+    public static final Setting<AutoExpandReplicas> SETTING = new Setting<>(
+        IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS,
+        "0-1",
+        AutoExpandReplicas::parse,
+        DataTypes.STRING,
+        Property.Dynamic,
+        Property.IndexScope
+    );
 
     private static AutoExpandReplicas parse(String value) {
         final int min;

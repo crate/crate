@@ -19,6 +19,23 @@
 
 package org.elasticsearch.discovery;
 
+import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -41,22 +58,7 @@ import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
+import io.crate.types.DataTypes;
 
 /**
  * A module for loading classes for node discovery.
@@ -70,9 +72,9 @@ public class DiscoveryModule {
     public static final String SINGLE_NODE_DISCOVERY_TYPE = "single-node";
 
     public static final Setting<String> DISCOVERY_TYPE_SETTING =
-        new Setting<>("discovery.type", ZEN2_DISCOVERY_TYPE, Function.identity(), Property.NodeScope);
+        new Setting<>("discovery.type", ZEN2_DISCOVERY_TYPE, Function.identity(), DataTypes.STRING, Property.NodeScope);
     public static final Setting<List<String>> DISCOVERY_SEED_PROVIDERS_SETTING =
-        Setting.listSetting("discovery.seed_providers", Collections.emptyList(), Function.identity(),
+        Setting.listSetting("discovery.seed_providers", Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY,
             Property.NodeScope);
 
     private final Discovery discovery;

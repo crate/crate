@@ -25,6 +25,8 @@ import org.elasticsearch.common.unit.SizeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.node.Node;
 
+import io.crate.types.DataTypes;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -67,6 +69,7 @@ public final class FixedExecutorBuilder extends ExecutorBuilder<FixedExecutorBui
             sizeKey,
             s -> Integer.toString(size),
             s -> Setting.parseInt(s, 1, applyHardSizeLimit(settings, name), sizeKey),
+            DataTypes.INTEGER,
             Setting.Property.NodeScope
         );
         final String queueSizeKey = settingsKey(prefix, "queue_size");

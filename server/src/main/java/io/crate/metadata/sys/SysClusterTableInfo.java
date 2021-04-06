@@ -28,6 +28,7 @@ import java.util.function.Function;
 
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.metadata.RelationName;
@@ -35,7 +36,6 @@ import io.crate.metadata.SystemTable;
 import io.crate.metadata.SystemTable.Builder;
 import io.crate.metadata.SystemTable.ObjectBuilder;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.settings.CrateSetting;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -115,18 +115,18 @@ public class SysClusterTableInfo {
 
     private static void addSetting(CrateSettings crateSettings,
                                    ObjectBuilder<Void, ? extends Builder<Void>> settingsBuilder,
-                                   Node<CrateSetting<?>> element) {
+                                   Node<Setting<?>> element) {
         if (element instanceof Leaf<?>) {
-            Leaf<CrateSetting<?>> leaf = (Leaf<CrateSetting<?>>) element;
-            var crateSetting = leaf.value;
+            Leaf<Setting<?>> leaf = (Leaf<Setting<?>>) element;
+            var setting = leaf.value;
             var valueType = (DataType<Object>) leaf.value.dataType();
             settingsBuilder.add(
                 leaf.name,
                 valueType,
-                x -> valueType.implicitCast(crateSetting.setting().get(crateSettings.settings()))
+                x -> valueType.implicitCast(setting.get(crateSettings.settings()))
             );
         } else {
-            var node = (Node<CrateSetting<?>>) element;
+            var node = (Node<Setting<?>>) element;
             var objectSetting = settingsBuilder.startObject(node.name);
             for (var c : node.children) {
                 addSetting(crateSettings, objectSetting, c);
@@ -149,10 +149,10 @@ public class SysClusterTableInfo {
     }
 
 
-    static Node<CrateSetting<?>> toTree(List<CrateSetting<?>> builtInSettings) {
-        Node<CrateSetting<?>> rootNode = new Node<>("root");
-        for (var crateSetting : builtInSettings) {
-            rootNode.add(crateSetting.path(), crateSetting);
+    static Node<Setting<?>> toTree(List<Setting<?>> builtInSettings) {
+        Node<Setting<?>> rootNode = new Node<>("root");
+        for (var setting : builtInSettings) {
+            rootNode.add(setting.path(), setting);
         }
         return rootNode;
     }

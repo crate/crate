@@ -20,12 +20,16 @@
 package org.elasticsearch.env;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
+
+import static io.crate.types.DataTypes.STRING_ARRAY;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -51,12 +55,12 @@ public class Environment {
     private static final Path[] EMPTY_PATH_ARRAY = new Path[0];
 
     public static final Setting<String> PATH_HOME_SETTING = Setting.simpleString("path.home", Property.NodeScope);
-    public static final Setting<List<String>> PATH_DATA_SETTING =
-            Setting.listSetting("path.data", Collections.emptyList(), Function.identity(), Property.NodeScope);
-    public static final Setting<String> PATH_LOGS_SETTING =
-            new Setting<>("path.logs", "", Function.identity(), Property.NodeScope);
+    public static final Setting<List<String>> PATH_DATA_SETTING = Setting.listSetting(
+        "path.data", Collections.emptyList(), Function.identity(), STRING_ARRAY, Property.NodeScope);
+    public static final Setting<String> PATH_LOGS_SETTING = new Setting<>(
+        "path.logs", "", Function.identity(), DataTypes.STRING, Property.NodeScope);
     public static final Setting<List<String>> PATH_REPO_SETTING =
-        Setting.listSetting("path.repo", Collections.emptyList(), Function.identity(), Property.NodeScope);
+        Setting.listSetting("path.repo", Collections.emptyList(), Function.identity(), STRING_ARRAY, Property.NodeScope);
     public static final Setting<String> PATH_SHARED_DATA_SETTING = Setting.simpleString("path.shared_data", Property.NodeScope);
     public static final Setting<String> PIDFILE_SETTING = Setting.simpleString("pidfile", Property.NodeScope);
 

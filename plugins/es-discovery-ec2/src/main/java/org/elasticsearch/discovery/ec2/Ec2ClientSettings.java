@@ -33,6 +33,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 import java.util.Locale;
 
@@ -57,14 +58,20 @@ final class Ec2ClientSettings {
     static final Setting<Integer> PROXY_PORT_SETTING = Setting.intSetting("discovery.ec2.proxy.port", 80, 0, 1 << 16, Property.NodeScope);
 
     /** An override for the ec2 endpoint to connect to. */
-    static final Setting<String> ENDPOINT_SETTING = new Setting<>("discovery.ec2.endpoint", "", s -> s.toLowerCase(Locale.ROOT),
-            Property.NodeScope);
+    static final Setting<String> ENDPOINT_SETTING = new Setting<>(
+        "discovery.ec2.endpoint",
+        "",
+        s -> s.toLowerCase(Locale.ROOT),
+        DataTypes.STRING,
+        Property.NodeScope
+    );
 
     /** The protocol to use to connect to to ec2. */
     static final Setting<Protocol> PROTOCOL_SETTING = new Setting<>(
         "discovery.ec2.protocol",
         "https",
         s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT)),
+        DataTypes.STRING,
         Property.NodeScope
     );
 

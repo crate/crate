@@ -27,6 +27,8 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestStatus;
 
+import io.crate.types.DataTypes;
+
 import java.util.EnumSet;
 
 public class NoMasterBlockService {
@@ -36,9 +38,14 @@ public class NoMasterBlockService {
     public static final ClusterBlock NO_MASTER_BLOCK_ALL = new ClusterBlock(NO_MASTER_BLOCK_ID, "no master", true, true, false,
         RestStatus.SERVICE_UNAVAILABLE, ClusterBlockLevel.ALL);
 
-    public static final Setting<ClusterBlock> NO_MASTER_BLOCK_SETTING =
-        new Setting<>("cluster.no_master_block", "write", NoMasterBlockService::parseNoMasterBlock,
-            Property.Dynamic, Property.NodeScope);
+    public static final Setting<ClusterBlock> NO_MASTER_BLOCK_SETTING = new Setting<>(
+        "cluster.no_master_block",
+        "write",
+        NoMasterBlockService::parseNoMasterBlock,
+        DataTypes.STRING,
+        Property.Dynamic,
+        Property.NodeScope
+    );
 
     private volatile ClusterBlock noMasterBlock;
 

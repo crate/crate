@@ -21,19 +21,10 @@
  */
 package org.elasticsearch.common.settings;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
-import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.transport.TransportSettings;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.hasToString;
+import static org.hamcrest.Matchers.sameInstance;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,10 +43,22 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.hasToString;
-import static org.hamcrest.Matchers.sameInstance;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
+import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.transport.TransportSettings;
+import org.junit.Test;
+
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class ScopedSettingsTests extends ESTestCase {
 
@@ -272,7 +275,7 @@ public class ScopedSettingsTests extends ESTestCase {
         Setting.AffixSetting<Integer> intSetting = Setting.affixKeySetting("foo.", "bar",
             (k) ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
         Setting.AffixSetting<List<Integer>> listSetting = Setting.affixKeySetting("foo.", "list",
-            (k) -> Setting.listSetting(k, Arrays.asList("1"), Integer::parseInt, Property.Dynamic, Property.NodeScope));
+            (k) -> Setting.listSetting(k, Arrays.asList("1"), Integer::parseInt, new ArrayType<>(DataTypes.INTEGER), Property.Dynamic, Property.NodeScope));
         AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY,new HashSet<>(Arrays.asList(intSetting, listSetting)));
         Map<String, List<Integer>> listResults = new HashMap<>();
         Map<String, Integer> intResults = new HashMap<>();
@@ -320,7 +323,7 @@ public class ScopedSettingsTests extends ESTestCase {
         Setting.AffixSetting<Integer> intSetting = Setting.affixKeySetting("foo.", "bar",
             (k) ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
         Setting.AffixSetting<List<Integer>> listSetting = Setting.affixKeySetting("foo.", "list",
-            (k) -> Setting.listSetting(k, Arrays.asList("1"), Integer::parseInt, Property.Dynamic, Property.NodeScope));
+            (k) -> Setting.listSetting(k, Arrays.asList("1"), Integer::parseInt, DataTypes.INTEGER_ARRAY, Property.Dynamic, Property.NodeScope));
         AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY,new HashSet<>(Arrays.asList(intSetting, listSetting)));
         Map<String, List<Integer>> listResults = new HashMap<>();
         Map<String, Integer> intResults = new HashMap<>();
@@ -530,7 +533,7 @@ public class ScopedSettingsTests extends ESTestCase {
         Setting<Boolean> someAffix = Setting.affixKeySetting("some.prefix.", "somekey", (key) -> Setting.boolSetting(key, true,
             Property.NodeScope));
         Setting<List<String>> foorBarQuux =
-                Setting.listSetting("foo.bar.quux", Arrays.asList("a", "b", "c"), Function.identity(), Property.NodeScope);
+                Setting.listSetting("foo.bar.quux", Arrays.asList("a", "b", "c"), Function.identity(), DataTypes.STRING, Property.NodeScope);
         ClusterSettings settings = new ClusterSettings(Settings.EMPTY, new HashSet<>(Arrays.asList(fooBar, fooBarBaz, foorBarQuux,
             someGroup, someAffix)));
         Settings diff = settings.diff(Settings.builder().put("foo.bar", 5).build(), Settings.EMPTY);
@@ -574,7 +577,7 @@ public class ScopedSettingsTests extends ESTestCase {
         Setting<Boolean> someAffix = Setting.affixKeySetting("some.prefix.", "somekey", (key) -> Setting.boolSetting(key, true,
             Property.NodeScope));
         Setting<List<String>> foorBarQuux = Setting.affixKeySetting("foo.", "quux",
-            (key) -> Setting.listSetting(key,  Arrays.asList("a", "b", "c"), Function.identity(), Property.NodeScope));
+            (key) -> Setting.listSetting(key,  Arrays.asList("a", "b", "c"), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope));
         ClusterSettings settings = new ClusterSettings(Settings.EMPTY, new HashSet<>(Arrays.asList(fooBar, fooBarBaz, foorBarQuux,
             someGroup, someAffix)));
         Settings diff = settings.diff(Settings.builder().put("foo.bar", 5).build(), Settings.EMPTY);
@@ -802,7 +805,7 @@ public class ScopedSettingsTests extends ESTestCase {
         final boolean groupFirst = randomBoolean();
         final Setting<?> groupSetting = Setting.groupSetting("foo.", Property.NodeScope);
         final Setting<?> listSetting =
-            Setting.listSetting("foo.bar", Collections.emptyList(), Function.identity(), Property.NodeScope);
+            Setting.listSetting("foo.bar", Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
         settings.add(groupFirst ? groupSetting : listSetting);
         settings.add(groupFirst ? listSetting : groupSetting);
 
@@ -1044,9 +1047,9 @@ public class ScopedSettingsTests extends ESTestCase {
     @Test
     public void testUpgradeListSetting() {
         final Setting<List<String>> oldSetting =
-                Setting.listSetting("foo.old", Collections.emptyList(), Function.identity(), Property.NodeScope);
+                Setting.listSetting("foo.old", Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
         final Setting<List<String>> newSetting =
-                Setting.listSetting("foo.new", Collections.emptyList(), Function.identity(), Property.NodeScope);
+                Setting.listSetting("foo.new", Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
 
         final AbstractScopedSettings service =
                 new ClusterSettings(

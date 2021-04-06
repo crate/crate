@@ -28,6 +28,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 
+import io.crate.types.DataTypes;
+
 import java.util.Arrays;
 import java.util.Locale;
 
@@ -40,7 +42,7 @@ import static org.elasticsearch.common.recycler.Recyclers.none;
 public class PageCacheRecycler {
 
     public static final Setting<Type> TYPE_SETTING =
-        new Setting<>("cache.recycler.page.type", Type.CONCURRENT.name(), Type::parse, Property.NodeScope);
+        new Setting<>("cache.recycler.page.type", Type.CONCURRENT.name(), Type::parse, DataTypes.STRING, Property.NodeScope);
     public static final Setting<ByteSizeValue> LIMIT_HEAP_SETTING =
         Setting.memorySizeSetting("cache.recycler.page.limit.heap", "10%", Property.NodeScope);
     public static final Setting<Double> WEIGHT_BYTES_SETTING =

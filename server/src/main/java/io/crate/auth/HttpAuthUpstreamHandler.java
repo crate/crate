@@ -179,7 +179,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 }
             }
             if (username == null) {
-                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
             }
         }
         return new Tuple<>(username, null);

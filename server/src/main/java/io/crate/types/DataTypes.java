@@ -49,7 +49,11 @@ import static java.util.stream.Collectors.toSet;
 
 public final class DataTypes {
 
-    private static final Logger LOGGER = LogManager.getLogger(DataTypes.class);
+    // DataTypes is initialized early before the Log configuration has been done;
+    // Need to defer the Logger initialized to first use.
+    static class Lazy {
+        private static final Logger LOGGER = LogManager.getLogger(DataTypes.class);
+    }
 
     /**
      * If you add types here make sure to update the SizeEstimatorFactory in the SQL module.
@@ -244,7 +248,7 @@ public final class DataTypes {
         try {
             return TYPE_REGISTRY.get(i).read(in);
         } catch (NullPointerException e) {
-            LOGGER.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
+            Lazy.LOGGER.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
             throw e;
         }
     }

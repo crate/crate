@@ -167,6 +167,7 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.netty.EventLoopGroups;
+import io.crate.types.DataTypes;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -206,6 +207,7 @@ public class Node implements Closeable {
                 }
                 return value;
             },
+            DataTypes.STRING,
             Property.NodeScope
         )
     );

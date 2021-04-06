@@ -30,6 +30,9 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
+
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.settings.Settings;
 
 import static org.elasticsearch.cluster.routing.allocation.decider.Decision.THROTTLE;
@@ -64,6 +67,7 @@ public class ThrottlingAllocationDecider extends AllocationDecider {
         new Setting<>("cluster.routing.allocation.node_concurrent_recoveries",
             Integer.toString(DEFAULT_CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES),
             (s) -> Setting.parseInt(s, 0, "cluster.routing.allocation.node_concurrent_recoveries"),
+            DataTypes.INTEGER,
             Property.Dynamic, Property.NodeScope);
     public static final Setting<Integer> CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING =
         Setting.intSetting("cluster.routing.allocation.node_initial_primaries_recoveries",
@@ -73,11 +77,13 @@ public class ThrottlingAllocationDecider extends AllocationDecider {
         new Setting<>("cluster.routing.allocation.node_concurrent_incoming_recoveries",
             CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING::getRaw,
             (s) -> Setting.parseInt(s, 0, "cluster.routing.allocation.node_concurrent_incoming_recoveries"),
+            DataTypes.INTEGER,
             Property.Dynamic, Property.NodeScope);
     public static final Setting<Integer> CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_OUTGOING_RECOVERIES_SETTING =
         new Setting<>("cluster.routing.allocation.node_concurrent_outgoing_recoveries",
             CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING::getRaw,
             (s) -> Setting.parseInt(s, 0, "cluster.routing.allocation.node_concurrent_outgoing_recoveries"),
+            DataTypes.INTEGER,
             Property.Dynamic, Property.NodeScope);
 
 
