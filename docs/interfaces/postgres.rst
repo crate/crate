@@ -334,7 +334,7 @@ analytic processing (OLAP) and business intelligence (BI) with the benefit of
 the ability to scale horizontally. The use-cases of CrateDB are different than
 those of PostgreSQL, as CrateDB's specialized storage schema and query
 execution engine address different requirements (see :ref:`Clustering
-<clustering>`).
+<concept-clustering>`).
 
 The listed features below cover the main differences in implementation and
 dialect between CrateDB and PostgreSQL. A detailed comparison between CrateDB's

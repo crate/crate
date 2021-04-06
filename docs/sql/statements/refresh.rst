@@ -102,7 +102,7 @@ primary key lookup and the used operator changed to a ``Collect`` operator.
 To avoid the need for manual refreshes it can be useful to make use of primary
 key lookups, as they see the data even if the table hasn't been refreshed yet.
 
-See also :ref:`consistency`.
+See also :ref:`concept-consistency`.
 
 
 .. _sql-refresh-parameters:
