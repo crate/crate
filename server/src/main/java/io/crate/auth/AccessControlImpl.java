@@ -40,6 +40,7 @@ import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
+import io.crate.analyze.AnalyzedCreateTableAs;
 import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeleteStatement;
@@ -302,6 +303,19 @@ public final class AccessControlImpl implements AccessControl {
                 createTable.relationName().schema(),
                 user,
                 defaultSchema);
+            return null;
+        }
+
+        @Override
+        public Void visitCreateTableAs(AnalyzedCreateTableAs createTableAs, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.DDL,
+                Privilege.Clazz.SCHEMA,
+                createTableAs.analyzedCreateTable().relationName().schema(),
+                user,
+                defaultSchema
+            );
+            visitRelation(createTableAs.sourceRelation(), user, Privilege.Type.DQL);
             return null;
         }
 

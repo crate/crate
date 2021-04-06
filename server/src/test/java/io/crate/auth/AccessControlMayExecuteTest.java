@@ -557,4 +557,11 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             ParamTypeHints.EMPTY);
         assertThat(validationCallArguments.size(), is(0));
     }
+
+    @Test
+    public void test_create_table_as_requires_DDL_on_target_and_DQL_on_source() {
+        analyze("create table target_schema.target_table as (select * from sys.cluster)");
+        assertAskedForSchema(Privilege.Type.DDL, "target_schema");
+        assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
+    }
 }
