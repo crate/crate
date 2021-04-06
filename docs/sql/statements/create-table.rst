@@ -528,8 +528,8 @@ index. This information is used for :ref:`shard recovery
 <gloss-shard-recovery>`.
 
 Before the introduction of soft deletes, CrateDB had to retain the information
-in the :ref:`Translog <durability>`. Using soft deletes uses less storage than
-the Translog equivalent and is faster.
+in the :ref:`Translog <concept-durability>`. Using soft deletes uses less
+storage than the Translog equivalent and is faster.
 
 Soft deletes can only be configured when a table is created. This setting
 cannot be changed using ``ALTER TABLE``.

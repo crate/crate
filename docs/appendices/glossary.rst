@@ -325,7 +325,7 @@ R
     .. SEEALSO::
 
         :ref:`Storage and consistency: Addressing documents
-        <concepts_addressing_documents>`
+        <concept-addressing-documents>`
 
         :ref:`Sharding: Routing <sharding-routing>`
 
