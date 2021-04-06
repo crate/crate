@@ -192,6 +192,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/11197")
     public void testSysNodesCgroup() throws Exception {
         if (Constants.LINUX && !"true".equals(System.getenv("SHIPPABLE"))) { // cgroups are only available on Linux
             SQLResponse response = execute("select" +
