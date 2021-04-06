@@ -81,6 +81,14 @@ public final class CreateTableAsAnalyzer {
             GenericProperties.empty(),
             false);
 
+        // This is only a preliminary analysis to to have the source available for privilege checks.
+        // It will be analyzed again with the target columns from the target table once
+        // the table has been created.
+        AnalyzedRelation sourceRelation = relationAnalyzer.analyze(
+            createTableAs.query(),
+            new StatementAnalysisContext(paramTypeHints, Operation.READ, txnCtx)
+        );
+
         //postponing the analysis of the insert statement, since the table has not been created yet.
         Supplier<AnalyzedInsertStatement> postponedInsertAnalysis = () -> {
             Insert<Expression> insert = new Insert<Expression>(
@@ -95,7 +103,9 @@ public final class CreateTableAsAnalyzer {
 
         return new AnalyzedCreateTableAs(
             createTableStatementAnalyzer.analyze(createTable, paramTypeHints, txnCtx),
-            postponedInsertAnalysis);
+            sourceRelation,
+            postponedInsertAnalysis
+        );
     }
 }
 

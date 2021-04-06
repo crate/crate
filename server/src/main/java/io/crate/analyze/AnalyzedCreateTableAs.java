@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
 
 import java.util.function.Consumer;
@@ -31,12 +32,20 @@ public class AnalyzedCreateTableAs implements AnalyzedStatement {
 
     private final AnalyzedCreateTable analyzedCreateTable;
     private final Supplier<AnalyzedInsertStatement> postponedInsertAnalysis;
+    private final AnalyzedRelation sourceRelation;
 
     public AnalyzedCreateTableAs(AnalyzedCreateTable analyzedCreateTable,
+                                 AnalyzedRelation sourceRelation,
                                  Supplier<AnalyzedInsertStatement> postponedInsertAnalysis) {
         this.analyzedCreateTable = analyzedCreateTable;
+        this.sourceRelation = sourceRelation;
         this.postponedInsertAnalysis = postponedInsertAnalysis;
     }
+
+    public AnalyzedRelation sourceRelation() {
+        return sourceRelation;
+    }
+
 
     public AnalyzedCreateTable analyzedCreateTable() {
         return analyzedCreateTable;
