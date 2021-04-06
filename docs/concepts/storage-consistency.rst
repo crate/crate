@@ -1,3 +1,5 @@
+.. _concept-storage-consistency:
+
 =======================
 Storage and consistency
 =======================
@@ -18,7 +20,7 @@ across the cluster and what consistency and durability guarantees are provided.
    :local:
 
 
-.. _concepts_data_storage:
+.. _concept-data-storage:
 
 Data storage
 ============
@@ -63,10 +65,11 @@ synchronous over all active replicas with the following flow:
 Should any replica shard fail to write the data or times out in step 5, it's
 immediately considered as unavailable.
 
-.. _concepts_atomic_document_level:
 
-Atomic on document level
-========================
+.. _concept-atomicity:
+
+Atomicity at document level
+===========================
 
 Each row of a table in CrateDB is a semi structured document which can be
 nested arbitrarily deep through the use of object and array types.
@@ -80,7 +83,8 @@ version number assigned, which gets increased every time a change occurs,
 patterns like `Optimistic Concurrency Control`_ can help to work around that
 limitation.
 
-.. _durability:
+
+.. _concept-durability:
 
 Durability
 ==========
@@ -98,7 +102,8 @@ The translog is also directly transferred when a newly allocated replica
 initializes itself from the primary shard. There is no need to flush segments
 to disc just for replica :ref:`recovery <gloss-shard-recovery>` purposes.
 
-.. _concepts_addressing_documents:
+
+.. _concept-addressing-documents:
 
 Addressing documents
 ====================
@@ -133,7 +138,7 @@ accesses documents:
   the table.
 
 
-.. _consistency:
+.. _concept-consistency:
 
 Consistency
 ===========
@@ -173,10 +178,10 @@ translog.
 .. CAUTION::
 
    Some outage conditions can affect these consistency claims. See the
-   :ref:`resiliency documentation <concepts_resiliency>` for details.
+   :ref:`resiliency documentation <concept-resiliency>` for details.
 
 
-.. _storage_consistency_cluster_meta_data:
+.. _concept-cluster-metadata:
 
 Cluster meta data
 =================
@@ -209,7 +214,7 @@ reason.
   To avoid a scenario where two masters are elected due to network partitioning
   it's required to define a quorum of nodes with which it's possible to elect a
   master. For details in how to do this and further information see
-  :ref:`shared_nothing_master_node_election`.
+  :ref:`concept-master-election`.
 
 To explain the flow of events for any cluster state change, here is an example
 flow for an ``ALTER TABLE`` statement which changes the schema of a table:
