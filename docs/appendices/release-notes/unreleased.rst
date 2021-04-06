@@ -59,6 +59,10 @@ None
 Fixes
 =====
 
+- Allow executing ``CREATE TABEL .. AS`` as a regular user with ``DDL``
+  permission on the target schema, and ``DQL`` permission on the source
+  relations.
+
 - Changed the ``RowDescription`` message that is sent to PostgreSQL clients to
   avoid that the JDBC client triggers queries against ``pg_catalog`` schema
   tables each time information from the ``MetaData`` of a ``ResultSet`` is
