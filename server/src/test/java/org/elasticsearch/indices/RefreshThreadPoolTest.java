@@ -28,7 +28,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 
-public class IndexingMemoryControllerTests extends IndexShardTestCase {
+public class RefreshThreadPoolTest extends IndexShardTestCase {
 
     public void test_refresh_executor_directly() throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.REFRESH);
@@ -53,16 +53,6 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         executor.shutdown();
     }
 
-    ThreadPoolStats.Stats getRefreshThreadPoolStats() {
-        final ThreadPoolStats stats = threadPool.stats();
-        for (ThreadPoolStats.Stats s : stats) {
-            if (s.getName().equals(ThreadPool.Names.REFRESH)) {
-                return s;
-            }
-        }
-        throw new AssertionError("refresh thread pool stats not found [" + stats + "]");
-    }
-
     public void test_refresh_plain() throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
         executor.execute(() -> System.out.println("execute"));
@@ -72,6 +62,16 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         executor.execute(() -> System.out.println("execute"));
         assertThat(executor.getCompletedTaskCount(), equalTo(4L));
         executor.shutdown();
+    }
+
+    ThreadPoolStats.Stats getRefreshThreadPoolStats() {
+        final ThreadPoolStats stats = threadPool.stats();
+        for (ThreadPoolStats.Stats s : stats) {
+            if (s.getName().equals(ThreadPool.Names.REFRESH)) {
+                return s;
+            }
+        }
+        throw new AssertionError("refresh thread pool stats not found [" + stats + "]");
     }
 
 }
