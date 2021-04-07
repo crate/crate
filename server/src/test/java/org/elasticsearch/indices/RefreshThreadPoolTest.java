@@ -33,49 +33,20 @@ public class RefreshThreadPoolTest extends IndexShardTestCase {
 
     public void test_refresh_executor_directly() throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.REFRESH);
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        threadPool.awaitTermination(60, TimeUnit.SECONDS);
-        assertThat(executor.getCompletedTaskCount(), equalTo(5L));
-        executor.shutdown();
-    }
-
-    public void test_refresh_executor() throws Exception {
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.REFRESH);
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
-        threadPool.awaitTermination(60, TimeUnit.SECONDS);
-        assertThat(stats.getCompleted(), greaterThan(5L));
+        for(int i = 5; i > 0; i--) {
+            executor.execute(() -> System.out.println("Execute"));
+        }
+        assertBusy(() -> assertThat(executor.getCompletedTaskCount(), equalTo(5L)));
         executor.shutdown();
     }
 
     public void test_refresh_plain() throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        threadPool.awaitTermination(60, TimeUnit.SECONDS);
-        assertThat(executor.getCompletedTaskCount(), equalTo(5L));
-        executor.shutdown();
-    }
-
-    ThreadPoolStats.Stats getRefreshThreadPoolStats() {
-        final ThreadPoolStats stats = threadPool.stats();
-        for (ThreadPoolStats.Stats s : stats) {
-            if (s.getName().equals(ThreadPool.Names.REFRESH)) {
-                return s;
-            }
+        for (int i = 5; i > 0; i--) {
+            executor.execute(() -> System.out.println("Execute"));
         }
-        throw new AssertionError("refresh thread pool stats not found [" + stats + "]");
+        assertBusy(() -> assertThat(executor.getCompletedTaskCount(), equalTo(5L)));
+        executor.shutdown();
     }
 
 }
