@@ -25,7 +25,7 @@ jobs:
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         with:
-          arguments: :server:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}
+          arguments: :server:test --tests "org.elasticsearch.indices.IndexingMemoryControllerTests"
 
   linkcheck:
     name: Sphinx linkcheck
