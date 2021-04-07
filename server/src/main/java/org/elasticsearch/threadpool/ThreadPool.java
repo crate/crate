@@ -149,6 +149,7 @@ public class ThreadPool implements Scheduler {
 
         final HashMap<String, ExecutorBuilder> builders = new HashMap<>();
         final int availableProcessors = EsExecutors.numberOfProcessors(settings);
+        System.out.println("availableProcessors = " + availableProcessors);
         final int halfProcMaxAt5 = halfNumberOfProcessorsMaxFive(availableProcessors);
         final int halfProcMaxAt10 = halfNumberOfProcessorsMaxTen(availableProcessors);
         final int genericThreadPoolMax = boundedBy(4 * availableProcessors, 128, 512);
