@@ -23,7 +23,7 @@ jobs:
       - name: Run tests on ${{ matrix.os }}
         uses: eskatos/gradle-command-action@v1
         env:
-          CRATE_TESTS_SQL_REQUEST_TIMEOUT: "60"
+          CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         with:
           arguments: :server:test --tests "org.elasticsearch.indices.RefreshThreadPoolTest"
 
