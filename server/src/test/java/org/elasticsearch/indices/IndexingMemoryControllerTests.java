@@ -437,7 +437,8 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         for (int i = 0; i < iterations; i++) {
             controller.forceCheck();
         }
-        threadPool.awaitTermination(10, TimeUnit.SECONDS);
+        
+        threadPool.awaitTermination(60, TimeUnit.SECONDS);
 
         assertBusy(() -> {
             ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
