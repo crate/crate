@@ -149,7 +149,6 @@ public class ThreadPool implements Scheduler {
 
         final HashMap<String, ExecutorBuilder> builders = new HashMap<>();
         final int availableProcessors = EsExecutors.numberOfProcessors(settings);
-        System.out.println("availableProcessors = " + availableProcessors);
         final int halfProcMaxAt5 = halfNumberOfProcessorsMaxFive(availableProcessors);
         final int halfProcMaxAt10 = halfNumberOfProcessorsMaxTen(availableProcessors);
         final int genericThreadPoolMax = boundedBy(4 * availableProcessors, 128, 512);
@@ -162,7 +161,7 @@ public class ThreadPool implements Scheduler {
         // the assumption here is that the listeners should be very lightweight on the listeners side
         builders.put(Names.LISTENER, new FixedExecutorBuilder(settings, Names.LISTENER, halfProcMaxAt10, -1));
         builders.put(Names.FLUSH, new ScalingExecutorBuilder(Names.FLUSH, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)));
-        builders.put(Names.REFRESH,new FixedExecutorBuilder(settings, Names.REFRESH, 2, 100));
+        builders.put(Names.REFRESH, new ScalingExecutorBuilder(Names.REFRESH, 1, halfProcMaxAt10, TimeValue.timeValueMinutes(5)));
         builders.put(Names.WARMER, new ScalingExecutorBuilder(Names.WARMER, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)));
         builders.put(Names.SNAPSHOT, new ScalingExecutorBuilder(Names.SNAPSHOT, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)));
         builders.put(Names.FETCH_SHARD_STARTED,
@@ -383,7 +382,7 @@ public class ThreadPool implements Scheduler {
         return boundedBy((numberOfProcessors + 1) / 2, 1, 5);
     }
 
-    public static int halfNumberOfProcessorsMaxTen(int numberOfProcessors) {
+    static int halfNumberOfProcessorsMaxTen(int numberOfProcessors) {
         return boundedBy((numberOfProcessors + 1) / 2, 1, 10);
     }
 
