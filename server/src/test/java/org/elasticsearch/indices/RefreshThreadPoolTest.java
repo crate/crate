@@ -24,6 +24,7 @@ import org.elasticsearch.threadpool.ThreadPoolStats;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -37,6 +38,7 @@ public class RefreshThreadPoolTest extends IndexShardTestCase {
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
+        threadPool.awaitTermination(10, TimeUnit.SECONDS);
         assertThat(executor.getCompletedTaskCount(), equalTo(4L));
         executor.shutdown();
     }
@@ -49,6 +51,7 @@ public class RefreshThreadPoolTest extends IndexShardTestCase {
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
         ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
+        threadPool.awaitTermination(10, TimeUnit.SECONDS);
         assertThat(stats.getCompleted(), greaterThan(4L));
         executor.shutdown();
     }
@@ -60,6 +63,7 @@ public class RefreshThreadPoolTest extends IndexShardTestCase {
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
+        threadPool.awaitTermination(10, TimeUnit.SECONDS);
         assertThat(executor.getCompletedTaskCount(), equalTo(4L));
         executor.shutdown();
     }
