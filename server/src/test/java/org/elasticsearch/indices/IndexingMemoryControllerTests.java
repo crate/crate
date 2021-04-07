@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -446,4 +447,16 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         });
         closeShards(shard);
     }
+
+    public void test_refresh_executor() throws Exception {
+        Executor executor = threadPool.executor(ThreadPool.Names.REFRESH);
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
+        assertThat(stats.getCompleted(), equalTo(5L));
+    }
+
 }
