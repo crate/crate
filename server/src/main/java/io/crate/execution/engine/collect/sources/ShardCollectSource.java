@@ -489,8 +489,20 @@ public class ShardCollectSource implements CollectSource {
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     shardRowContexts.add(shardCollectorProvider.shardRowContext());
-                } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
+                } catch (IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(index.getName(), shard.value));
+                } catch (ShardNotFoundException e) {
+                    // MapperService is null for closed indices
+                    if (indicesService.indexService(shardId.getIndex()).mapperService() == null) {
+                        IndexShard indexShard = indicesService.getShardOrNull(shardId);
+                        if (indexShard != null) {
+                            ShardCollectorProvider shardCollectorProvider = shardCollectorProviderFactory.create(
+                                indexShard);
+                            shardRowContexts.add(shardCollectorProvider.shardRowContext());
+                        }
+                    } else {
+                        unassignedShards.add(toUnassignedShard(index.getName(), shard.value));
+                    }
                 }
             }
         }
