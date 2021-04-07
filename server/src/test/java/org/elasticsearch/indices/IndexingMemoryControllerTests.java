@@ -22,12 +22,23 @@ import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 
 public class IndexingMemoryControllerTests extends IndexShardTestCase {
+
+    public void test_refresh_executor_directly() throws Exception {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.REFRESH);
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        assertThat(executor.getCompletedTaskCount(), equalTo(4L));
+        executor.shutdown();
+    }
 
     public void test_refresh_executor() throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.REFRESH);
@@ -36,9 +47,8 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
-        ThreadPoolStats.Stats beforeStats = getRefreshThreadPoolStats();
-        assertThat(executor.getCompletedTaskCount(), equalTo(5L));
-        assertThat(beforeStats.getCompleted(), equalTo(5L));
+        ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
+        assertThat(stats.getCompleted(), greaterThan(4L));
         executor.shutdown();
     }
 
@@ -52,15 +62,15 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         throw new AssertionError("refresh thread pool stats not found [" + stats + "]");
     }
 
-    public void test_refresh_plain() throws Exception {
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        executor.execute(() -> System.out.println("execute"));
-        assertThat(executor.getCompletedTaskCount(), equalTo(4L));
-        executor.shutdown();
-    }
+//    public void test_refresh_plain() throws Exception {
+//        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+//        executor.execute(() -> System.out.println("execute"));
+//        executor.execute(() -> System.out.println("execute"));
+//        executor.execute(() -> System.out.println("execute"));
+//        executor.execute(() -> System.out.println("execute"));
+//        executor.execute(() -> System.out.println("execute"));
+//        assertThat(executor.getCompletedTaskCount(), equalTo(4L));
+//        executor.shutdown();
+//    }
 
 }
