@@ -20,21 +20,19 @@ package org.elasticsearch.indices;
 
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.threadpool.ThreadPoolStats;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
 
 public class RefreshThreadPoolTest extends IndexShardTestCase {
 
     public void test_refresh_executor_directly() throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.REFRESH);
         for(int i = 5; i > 0; i--) {
-            executor.execute(() -> System.out.println("Execute"));
+            var msg = "Execute " + i;
+            executor.execute(() -> System.out.println(msg));
         }
         assertBusy(() -> assertThat(executor.getCompletedTaskCount(), equalTo(5L)));
         executor.shutdown();
@@ -43,7 +41,8 @@ public class RefreshThreadPoolTest extends IndexShardTestCase {
     public void test_refresh_plain() throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
         for (int i = 5; i > 0; i--) {
-            executor.execute(() -> System.out.println("Execute"));
+            var msg = "Execute " + i;
+            executor.execute(() -> System.out.println(msg));
         }
         assertBusy(() -> assertThat(executor.getCompletedTaskCount(), equalTo(5L)));
         executor.shutdown();
