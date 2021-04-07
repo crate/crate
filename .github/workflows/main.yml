@@ -18,7 +18,7 @@ jobs:
       - name: Setup Gradle Java
         uses: actions/setup-java@v1
         with:
-          java-version: 16
+          java-version: 11
 
       - name: Run tests on ${{ matrix.os }}
         uses: eskatos/gradle-command-action@v1
