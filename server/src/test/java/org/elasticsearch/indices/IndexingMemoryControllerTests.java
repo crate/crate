@@ -27,6 +27,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.engine.EngineConfig;
@@ -49,6 +50,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -453,14 +456,15 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
     }
 
     public void test_refresh_executor() throws Exception {
-        Executor executor = threadPool.executor(ThreadPool.Names.REFRESH);
+//        ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.REFRESH);
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
-        ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
-        assertThat(stats.getCompleted(), equalTo(5L));
+        assertThat(executor.getCompletedTaskCount(), equalTo(4L));
+        executor.shutdown();
     }
 
 }

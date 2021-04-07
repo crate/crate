@@ -161,7 +161,7 @@ public class ThreadPool implements Scheduler {
         // the assumption here is that the listeners should be very lightweight on the listeners side
         builders.put(Names.LISTENER, new FixedExecutorBuilder(settings, Names.LISTENER, halfProcMaxAt10, -1));
         builders.put(Names.FLUSH, new ScalingExecutorBuilder(Names.FLUSH, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)));
-        builders.put(Names.REFRESH, new ScalingExecutorBuilder(Names.REFRESH, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)));
+        builders.put(Names.REFRESH, new ScalingExecutorBuilder(Names.REFRESH, 1, halfProcMaxAt10, TimeValue.timeValueMinutes(5)));
         builders.put(Names.WARMER, new ScalingExecutorBuilder(Names.WARMER, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)));
         builders.put(Names.SNAPSHOT, new ScalingExecutorBuilder(Names.SNAPSHOT, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)));
         builders.put(Names.FETCH_SHARD_STARTED,
