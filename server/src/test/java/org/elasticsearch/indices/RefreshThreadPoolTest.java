@@ -39,7 +39,7 @@ public class RefreshThreadPoolTest extends IndexShardTestCase {
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
         threadPool.awaitTermination(60, TimeUnit.SECONDS);
-        assertThat(executor.getCompletedTaskCount(), equalTo(4L));
+        assertThat(executor.getCompletedTaskCount(), equalTo(5L));
         executor.shutdown();
     }
 
@@ -52,7 +52,7 @@ public class RefreshThreadPoolTest extends IndexShardTestCase {
         executor.execute(() -> System.out.println("execute"));
         ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
         threadPool.awaitTermination(60, TimeUnit.SECONDS);
-        assertThat(stats.getCompleted(), greaterThan(4L));
+        assertThat(stats.getCompleted(), greaterThan(5L));
         executor.shutdown();
     }
 
@@ -64,7 +64,7 @@ public class RefreshThreadPoolTest extends IndexShardTestCase {
         executor.execute(() -> System.out.println("execute"));
         executor.execute(() -> System.out.println("execute"));
         threadPool.awaitTermination(60, TimeUnit.SECONDS);
-        assertThat(executor.getCompletedTaskCount(), equalTo(4L));
+        assertThat(executor.getCompletedTaskCount(), equalTo(5L));
         executor.shutdown();
     }
 
