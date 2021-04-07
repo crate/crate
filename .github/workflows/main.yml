@@ -12,13 +12,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-18.04, windows-latest]
     steps:
       - uses: actions/checkout@v2
       - name: Setup Gradle Java
         uses: actions/setup-java@v1
         with:
-          java-version: 11
+          java-version: 16
 
       - name: Run tests on ${{ matrix.os }}
         uses: eskatos/gradle-command-action@v1
