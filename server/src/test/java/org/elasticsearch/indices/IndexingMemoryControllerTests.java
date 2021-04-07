@@ -22,6 +22,7 @@ import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -62,15 +63,15 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         throw new AssertionError("refresh thread pool stats not found [" + stats + "]");
     }
 
-//    public void test_refresh_plain() throws Exception {
-//        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-//        executor.execute(() -> System.out.println("execute"));
-//        executor.execute(() -> System.out.println("execute"));
-//        executor.execute(() -> System.out.println("execute"));
-//        executor.execute(() -> System.out.println("execute"));
-//        executor.execute(() -> System.out.println("execute"));
-//        assertThat(executor.getCompletedTaskCount(), equalTo(4L));
-//        executor.shutdown();
-//    }
+    public void test_refresh_plain() throws Exception {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        executor.execute(() -> System.out.println("execute"));
+        assertThat(executor.getCompletedTaskCount(), equalTo(4L));
+        executor.shutdown();
+    }
 
 }
