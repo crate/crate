@@ -19,13 +19,6 @@
 
 package org.elasticsearch.monitor.os;
 
-import io.crate.common.SuppressForbidden;
-import org.elasticsearch.common.io.PathUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.Constants;
-import org.elasticsearch.monitor.Probes;
-
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
@@ -36,6 +29,18 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.Constants;
+import org.elasticsearch.common.io.PathUtils;
+import org.elasticsearch.monitor.Probes;
+import org.elasticsearch.monitor.os.OsStats.Cgroup;
+import org.elasticsearch.monitor.os.OsStats.Cgroup.CpuStat;
+
+import io.crate.common.SuppressForbidden;
+
 
 public class OsProbe {
 
@@ -56,6 +61,24 @@ public class OsProbe {
         GET_SYSTEM_LOAD_AVERAGE = getMethod("getSystemLoadAverage");
         GET_SYSTEM_CPU_LOAD = getMethod("getSystemCpuLoad");
     }
+
+    private static final List<String> V1_FILES = List.of(
+        "/sys/fs/cgroup/cpu",
+        "/sys/fs/cgroup/cpuacct",
+        "/sys/fs/cgroup/memory"
+    );
+
+    private static final List<String> V2_FILES = List.of(
+        "/sys/fs/cgroup/cpu.stat",
+        "/sys/fs/cgroup/memory.stat"
+    );
+
+    enum CGroupHierarchy {
+        V1,
+        V2,
+        UNAVAILABLE;
+    }
+
 
     /**
      * Returns the amount of free physical memory in bytes.
@@ -446,20 +469,18 @@ public class OsProbe {
      * @return {@code true} if the stats are available, otherwise {@code false}
      */
     @SuppressForbidden(reason = "access /proc/self/cgroup, /sys/fs/cgroup/cpu, /sys/fs/cgroup/cpuacct and /sys/fs/cgroup/memory")
-    boolean areCgroupStatsAvailable() {
+    CGroupHierarchy getCgroupHierarchy() {
         if (!Files.exists(PathUtils.get("/proc/self/cgroup"))) {
-            return false;
+            return CGroupHierarchy.UNAVAILABLE;
         }
-        if (!Files.exists(PathUtils.get("/sys/fs/cgroup/cpu"))) {
-            return false;
+        Predicate<? super String> fileExists = x -> Files.exists(PathUtils.get(x));
+        if (V1_FILES.stream().allMatch(fileExists)) {
+            return CGroupHierarchy.V1;
         }
-        if (!Files.exists(PathUtils.get("/sys/fs/cgroup/cpuacct"))) {
-            return false;
+        if (V2_FILES.stream().allMatch(fileExists)) {
+            return CGroupHierarchy.V2;
         }
-        if (!Files.exists(PathUtils.get("/sys/fs/cgroup/memory"))) {
-            return false;
-        }
-        return true;
+        return CGroupHierarchy.UNAVAILABLE;
     }
 
     /**
@@ -469,42 +490,102 @@ public class OsProbe {
      */
     private OsStats.Cgroup getCgroup() {
         try {
-            if (!areCgroupStatsAvailable()) {
-                return null;
-            } else {
-                final Map<String, String> controllerMap = getControlGroups();
-                assert !controllerMap.isEmpty();
-
-                final String cpuAcctControlGroup = controllerMap.get("cpuacct");
-                assert cpuAcctControlGroup != null;
-                final long cgroupCpuAcctUsageNanos = getCgroupCpuAcctUsageNanos(cpuAcctControlGroup);
-
-                final String cpuControlGroup = controllerMap.get("cpu");
-                assert cpuControlGroup != null;
-                final long cgroupCpuAcctCpuCfsPeriodMicros = getCgroupCpuAcctCpuCfsPeriodMicros(cpuControlGroup);
-                final long cgroupCpuAcctCpuCfsQuotaMicros = getCgroupCpuAcctCpuCfsQuotaMicros(cpuControlGroup);
-                final OsStats.Cgroup.CpuStat cpuStat = getCgroupCpuAcctCpuStat(cpuControlGroup);
-
-                final String memoryControlGroup = controllerMap.get("memory");
-                assert memoryControlGroup != null;
-                final String cgroupMemoryLimitInBytes = getCgroupMemoryLimitInBytes(memoryControlGroup);
-                final String cgroupMemoryUsageInBytes = getCgroupMemoryUsageInBytes(memoryControlGroup);
-
-                return new OsStats.Cgroup(
-                    cpuAcctControlGroup,
-                    cgroupCpuAcctUsageNanos,
-                    cpuControlGroup,
-                    cgroupCpuAcctCpuCfsPeriodMicros,
-                    cgroupCpuAcctCpuCfsQuotaMicros,
-                    cpuStat,
-                    memoryControlGroup,
-                    cgroupMemoryLimitInBytes,
-                    cgroupMemoryUsageInBytes);
-            }
+            return switch (getCgroupHierarchy()) {
+                case V1 -> v1Cgroup();
+                case V2 -> v2Cgroup();
+                case UNAVAILABLE -> null;
+            };
         } catch (final IOException e) {
             logger.debug("error reading control group stats", e);
             return null;
         }
+    }
+
+    private static String getProperty(List<String> lines, String property, String defaultValue) {
+        for (String line : lines) {
+            int idxOfWhitespace = line.indexOf(' ');
+            if (idxOfWhitespace >= 0) {
+                String propertyName = line.substring(0, idxOfWhitespace);
+                if (propertyName.equals(property)) {
+                    return line.substring(idxOfWhitespace + 1);
+                }
+            }
+        }
+        return defaultValue;
+    }
+
+    private Cgroup v2Cgroup() throws IOException {
+        // See https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html
+        // for a description of the files in /sys/fs/cgroup
+
+        final Map<String, String> controllerMap = getControlGroups();
+        String cgroupPath = controllerMap.get("");
+        if (cgroupPath == null) {
+            return null;
+        }
+        List<String> cpuStats = Files.readAllLines(PathUtils.get("/sys/fs/cgroup/", cgroupPath, "cpu.stat"));
+        long cpuAcctUsageNanos = Long.parseLong(getProperty(cpuStats, "usage_usec", "0")) * 1000;
+
+        // cpu.stat contains the following properties only if the controller is enabled
+        // - nr_periods
+        // - nr_throttled
+        // - throttled_usec
+        //
+        long throttledUsec = Long.parseLong(getProperty(cpuStats, "throttled_usec", "-1"));
+        CpuStat cpuStat = new CpuStat(
+            Long.parseLong(getProperty(cpuStats, "nr_periods", "-1")),
+            Long.parseLong(getProperty(cpuStats, "nr_throttled", "-1")),
+            // usec -> nanos
+            throttledUsec == -1 ? -1 : throttledUsec * 1000
+        );
+
+        long cpuCfsPeriodMicros = -1;
+        long cpuCfsQuotaMicros = -1;
+        String memoryLimitInBytes = readSingleLine(PathUtils.get("/sys/fs/cgroup/", cgroupPath, "memory.max"));
+        String memoryUsageInBytes = readSingleLine(PathUtils.get("/sys/fs/cgroup/", cgroupPath, "memory.current"));
+        return new Cgroup(
+            cgroupPath,
+            cpuAcctUsageNanos,
+            cgroupPath,
+            cpuCfsPeriodMicros,
+            cpuCfsQuotaMicros,
+            cpuStat,
+            cgroupPath,
+            memoryLimitInBytes,
+            memoryUsageInBytes
+        );
+    }
+
+    private Cgroup v1Cgroup() throws IOException {
+        final Map<String, String> controllerMap = getControlGroups();
+        assert !controllerMap.isEmpty();
+
+        final String cpuAcctControlGroup = controllerMap.get("cpuacct");
+        assert cpuAcctControlGroup != null;
+        final long cgroupCpuAcctUsageNanos = getCgroupCpuAcctUsageNanos(cpuAcctControlGroup);
+
+        final String cpuControlGroup = controllerMap.get("cpu");
+        assert cpuControlGroup != null;
+        final long cgroupCpuAcctCpuCfsPeriodMicros = getCgroupCpuAcctCpuCfsPeriodMicros(cpuControlGroup);
+        final long cgroupCpuAcctCpuCfsQuotaMicros = getCgroupCpuAcctCpuCfsQuotaMicros(cpuControlGroup);
+        final OsStats.Cgroup.CpuStat cpuStat = getCgroupCpuAcctCpuStat(cpuControlGroup);
+
+        final String memoryControlGroup = controllerMap.get("memory");
+        assert memoryControlGroup != null;
+        final String cgroupMemoryLimitInBytes = getCgroupMemoryLimitInBytes(memoryControlGroup);
+        final String cgroupMemoryUsageInBytes = getCgroupMemoryUsageInBytes(memoryControlGroup);
+
+        return new OsStats.Cgroup(
+            cpuAcctControlGroup,
+            cgroupCpuAcctUsageNanos,
+            cpuControlGroup,
+            cgroupCpuAcctCpuCfsPeriodMicros,
+            cgroupCpuAcctCpuCfsQuotaMicros,
+            cpuStat,
+            memoryControlGroup,
+            cgroupMemoryLimitInBytes,
+            cgroupMemoryUsageInBytes
+        );
     }
 
     private static class OsProbeHolder {

@@ -192,7 +192,6 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/11197")
     public void testSysNodesCgroup() throws Exception {
         if (Constants.LINUX && !"true".equals(System.getenv("SHIPPABLE"))) { // cgroups are only available on Linux
             SQLResponse response = execute("select" +
@@ -209,11 +208,11 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
             assertThat(response.rows()[0][0], notNullValue());
             assertThat((long) response.rows()[0][1], greaterThanOrEqualTo(0L));
             assertThat(response.rows()[0][2], notNullValue());
-            assertThat((long) response.rows()[0][3], greaterThanOrEqualTo(0L));
+            assertThat((long) response.rows()[0][3], anyOf(equalTo(-1L), greaterThanOrEqualTo(0L)));
             assertThat((long) response.rows()[0][4], anyOf(equalTo(-1L), greaterThanOrEqualTo(0L)));
-            assertThat((long) response.rows()[0][5], greaterThanOrEqualTo(0L));
-            assertThat((long) response.rows()[0][6], greaterThanOrEqualTo(0L));
-            assertThat((long) response.rows()[0][7], greaterThanOrEqualTo(0L));
+            assertThat((long) response.rows()[0][5], anyOf(equalTo(-1L), greaterThanOrEqualTo(0L)));
+            assertThat((long) response.rows()[0][6], anyOf(equalTo(-1L), greaterThanOrEqualTo(0L)));
+            assertThat((long) response.rows()[0][7], anyOf(equalTo(-1L), greaterThanOrEqualTo(0L)));
         } else {
             // for all other OS cgroup fields should return `null`
             response = execute("select os['cgroup']," +
