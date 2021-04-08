@@ -352,7 +352,10 @@ public class SQLExecutor {
          * Note that these tables are not part of the clusterState and rely on a stubbed getRouting
          * Using {@link #addTable(String)} is preferred for this reason.
          * </p>
+         *
+         * @deprecated Please only add the tables used by a test scenario
          */
+        @Deprecated
         public Builder enableDefaultTables() throws IOException {
             // we should try to reduce the number of tables here eventually...
             addTable(USER_TABLE_DEFINITION);
