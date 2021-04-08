@@ -52,23 +52,9 @@ import static org.hamcrest.core.IsEqual.equalTo;
 public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private PlannerContext plannerContext;
-
-    @Before
-    public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
-            .addTable("create table nested_pks (" +
-                      "     pk object as (a int, b object as (c int))," +
-                      "     primary key (pk['a'], pk['b']['c'])" +
-                      ")")
-            .addTable("create table tbl_index_off (num bigint index off, primary key (num))")
-            .build();
-        plannerContext = e.getPlannerContext(clusterService.state());
-    }
-
 
     private BoundAddColumn analyze(String stmt) {
+        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
         return AlterTableAddColumnPlan.bind(
             e.analyze(stmt),
             plannerContext.transactionContext(),
@@ -80,7 +66,13 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     }
 
     @Test
-    public void test_can_add_column_to_table_with_multiple_nested_pks() {
+    public void test_can_add_column_to_table_with_multiple_nested_pks() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table nested_pks (" +
+                      "     pk object as (a int, b object as (c int))," +
+                      "     primary key (pk['a'], pk['b']['c'])" +
+                      ")")
+            .build();
         BoundAddColumn boundAddColumn = analyze("alter table nested_pks add x int");
         assertThat(
             boundAddColumn.mapping().toString(),
@@ -93,6 +85,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnOnSystemTableIsNotAllowed() throws Exception {
+        e = SQLExecutor.builder(clusterService).build();
+
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow ALTER " +
                                         "operations, as it is read-only.");
@@ -101,6 +95,12 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnOnSinglePartitionNotAllowed() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
+            .build();
+
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Adding a column to a single partition is not supported");
         e.analyze("alter table parted partition (date = 1395874800000) add column foobar string");
@@ -108,6 +108,10 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnWithAnalyzerAndNonStringType() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (name text)")
+            .build();
+
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "Can't use an Analyzer on column foobar['age'] because analyzers are only allowed " +
@@ -117,12 +121,20 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddFulltextIndex() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (name text)")
+            .build();
+
         expectedException.expect(ParsingException.class);
         e.analyze("alter table users add column index ft_foo using fulltext (name)");
     }
 
     @Test
     public void testAddColumnThatExistsAlready() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (name text)")
+            .build();
+
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("The table doc.users already has a column named name");
         analyze("alter table users add column name string");
@@ -130,8 +142,11 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnToATableWithoutPrimaryKey() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint, name text) clustered by (id)")
+            .build();
         BoundAddColumn analysis = analyze(
-            "alter table users_clustered_by_only add column foobar string");
+            "alter table users add column foobar string");
         Map<String, Object> mapping = analysis.mapping();
 
         Object primaryKeys = ((Map) mapping.get("_meta")).get("primary_keys");
@@ -140,6 +155,9 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnAsPrimaryKey() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, name text)")
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column additional_pk string primary key");
 
@@ -167,6 +185,10 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddPrimaryKeyColumnWithArrayTypeUnsupported() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, name text)")
+            .build();
+
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot use columns of type \"array\" as primary key");
         analyze("alter table users add column newpk array(string) primary key");
@@ -174,8 +196,12 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnToATableWithNotNull() throws Exception {
-        BoundAddColumn analysis = analyze("alter table users_clustered_by_only " +
-                                          "add column notnullcol string not null");
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint, name text) clustered by (id)")
+            .build();
+
+        BoundAddColumn analysis = analyze(
+            "alter table users add column notnullcol string not null");
         Map<String, Object> mapping = analysis.mapping();
 
         assertThat((String) ((Set) ((Map) ((Map) mapping.get("_meta")).get("constraints")).get("not_null"))
@@ -184,6 +210,10 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddArrayColumn() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, name text)")
+            .build();
+
         BoundAddColumn analysis = analyze("alter table users add newtags array(string)");
         AnalyzedColumnDefinition<Object> columnDefinition = analysis.analyzedTableElements().columns().get(0);
         assertThat(columnDefinition.name(), Matchers.equalTo("newtags"));
@@ -199,6 +229,9 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     }
 
     public void testAddObjectColumnWithUnderscore() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, name text)")
+            .build();
         BoundAddColumn analysis = analyze("alter table users add column foo['_x'] int");
 
         assertThat(analysis.analyzedTableElements().columns().size(), is(2)); // id pk column is also added
@@ -211,6 +244,9 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedObjectColumn() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, name text)")
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column foo['x']['y'] string");
 
@@ -238,6 +274,17 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedColumnToObjectArray() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table users (
+                    id bigint primary key,
+                    friends array(object as (
+                        id long,
+                        groups array(string)
+                    ))
+                )
+            """)
+            .build();
         BoundAddColumn analysis = analyze("alter table users add friends['is_nice'] BOOLEAN");
 
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
@@ -245,10 +292,10 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         AnalyzedColumnDefinition<Object> friends = columns.get(0);
         assertThat(mapToSortedString(AnalyzedColumnDefinition.toMapping(friends)), is("inner={" +
                                                                 "dynamic=true, " +
-                                                                "position=11, " +
+                                                                "position=2, " +
                                                                 "properties={" +
                                                                     "is_nice={" +
-                                                                      "position=12, " +
+                                                                      "position=3, " +
                                                                       "type=boolean" +
                                                                     "}" +
                                                                 "}, " +
@@ -258,6 +305,16 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnToObjectTypeMaintainsObjectPolicy() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table users (
+                    id bigint primary key,
+                    address object (strict) as (
+                        postcode text
+                    )
+                )
+            """)
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column address['street'] string");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
@@ -268,7 +325,17 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     }
 
     @Test
-    public void testAddColumnToStrictObject() {
+    public void testAddColumnToStrictObject() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table users (
+                    id bigint primary key,
+                    address object (strict) as (
+                        postcode text
+                    )
+                )
+            """)
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column address['street'] string");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
@@ -283,6 +350,9 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedColumnToObjectColumn() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, details object)")
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column details['foo'] object as (score float, name string)");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
@@ -312,15 +382,18 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         Map<String, Object> mapping = analysis.mapping();
         assertThat(mapToSortedString(mapping),
             is("_meta={primary_keys=[id]}, " +
-               "properties={details={dynamic=true, position=6," +
-               " properties={foo={dynamic=true, position=7," +
-               " properties={name={position=9, type=keyword}, score={position=8, type=float}}, type=object}}," +
+               "properties={details={dynamic=true, position=2," +
+               " properties={foo={dynamic=true, position=3," +
+               " properties={name={position=5, type=keyword}, score={position=4, type=float}}, type=object}}," +
                " type=object}, " +
                "id={type=long}}"));
     }
 
     @Test
     public void testAddNewNestedColumnWithArrayToRoot() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key)")
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column new_obj_col object as (a array(long))");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
@@ -332,6 +405,9 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedColumnWithArrayToObjectColumn() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key)")
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column new_obj_col object as (o object as (b array(long)))");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
@@ -343,6 +419,9 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedColumnToNestedObjectColumn() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable(TableDefinitions.DEEPLY_NESTED_TABLE_DEFINITION)
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table deeply_nested add column details['stuff']['foo'] object as (score float, price string)");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
@@ -382,6 +461,9 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddGeneratedColumn() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, name text)")
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column name_generated as concat(name, 'foo')");
 
@@ -402,17 +484,23 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnWithCheckConstraint() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, name text)")
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column bazinga int constraint bazinga_check check(bazinga > 0)");
         assertThat(analysis.analyzedTableElements().getCheckConstraints(), is(Map.of("bazinga_check", "\"bazinga\" > 0")));
         Map<String, Object> mapping = analysis.mapping();
         assertThat(mapToSortedString(mapping),
                    is("_meta={check_constraints={bazinga_check=\"bazinga\" > 0}, primary_keys=[id]}, " +
-                      "properties={bazinga={position=18, type=integer}, id={type=long}}"));
+                      "properties={bazinga={position=3, type=integer}, id={type=long}}"));
     }
 
     @Test
     public void testAddColumnWithCheckConstraintFailsBecauseItRefersToAnotherColumn() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, name text)")
+            .build();
         expectedException.expectMessage("CHECK expressions defined in this context cannot refer to other columns: id");
         BoundAddColumn analysis = analyze(
             "alter table users add column bazinga int constraint bazinga_check check(id > 0)");
@@ -420,17 +508,23 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnWithColumnStoreDisabled() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table users (id bigint primary key, name text)")
+            .build();
         BoundAddColumn analysis = analyze(
             "alter table users add column string_no_docvalues string STORAGE WITH (columnstore = false)");
         Map<String, Object> mapping = analysis.mapping();
         assertThat(mapToSortedString(mapping),
             is("_meta={primary_keys=[id]}, properties={id={type=long}, " +
-               "string_no_docvalues={doc_values=false, position=18, type=keyword}}"));
+               "string_no_docvalues={doc_values=false, position=3, type=keyword}}"));
     }
 
     @Test
     public void test_primary_key_contains_index_definitions_on_alter_table_new_column() throws Exception {
-        BoundAddColumn addColumn = analyze("alter table tbl_index_off add column browser text");
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (num bigint index off, primary key (num))")
+            .build();
+        BoundAddColumn addColumn = analyze("alter table tbl add column browser text");
         Map<String, Object> mapping = (Map<String, Object>) addColumn.mapping().get("properties");
         assertThat(mapping, Matchers.hasEntry(is("num"), is(Map.of("index", false, "type", "long"))));
     }
