@@ -139,10 +139,6 @@ public class MetadataToASTNodeResolver {
             this.tableInfo = tableInfo;
         }
 
-        private Table<Expression> extractTable() {
-            return new Table<>(QualifiedName.of(tableInfo.ident().fqn()), false);
-        }
-
         private List<TableElement<Expression>> extractTableElements() {
             List<TableElement<Expression>> elements = new ArrayList<>();
             // column definitions
@@ -338,7 +334,7 @@ public class MetadataToASTNodeResolver {
 
 
         private CreateTable<Expression> extractCreateTable() {
-            Table<Expression> table = extractTable();
+            Table<Expression> table = new Table<>(QualifiedName.of(tableInfo.ident().fqn()), false);
             List<TableElement<Expression>> tableElements = extractTableElements();
             Optional<PartitionedBy<Expression>> partitionedBy = createPartitionedBy();
             Optional<ClusteredBy<Expression>> clusteredBy = createClusteredBy();
