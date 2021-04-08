@@ -21,6 +21,22 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsEqual.equalTo;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -34,20 +50,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsEqual.equalTo;
 
 public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -426,5 +428,33 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         BoundAddColumn addColumn = analyze("alter table tbl_index_off add column browser text");
         Map<String, Object> mapping = (Map<String, Object>) addColumn.mapping().get("properties");
         assertThat(mapping, Matchers.hasEntry(is("num"), is(Map.of("index", false, "type", "long"))));
+    }
+
+    @Test
+    public void test_adding_a_column_with_constraint_adds_existing_constraints_in_mapping() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (author text CHECK (author != ''))")
+            .build();
+        BoundAddColumn addColumn = analyze("ALTER TABLE tbl ADD COLUMN dummy text CHECK (dummy != '')");
+        Map<String, Object> mapping = (Map<String, Object>) addColumn.mapping();
+        Map<String, Object> meta = (Map<String, Object>) mapping.get("_meta");
+        Map<String, Object> checks = (Map<String, Object>) meta.get("check_constraints");
+
+        // not asserting concrete keys because check names contain random suffixes
+        assertThat(checks.size(), is(2));
+    }
+
+    @Test
+    public void test_adding_not_null_column_only_contains_new_column_names_in_constraints() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (author text NOT NULL)")
+            .build();
+        BoundAddColumn addColumn = analyze("ALTER TABLE tbl ADD COLUMN dummy text NOT NULL");
+        Map<String, Object> mapping = (Map<String, Object>) addColumn.mapping();
+        Map<String, Object> meta = (Map<String, Object>) mapping.get("_meta");
+        Collection<String> notNull = (Collection<String>)
+            ((Map<String, Object>) meta.get("constraints")).get("not_null");
+
+        assertThat(notNull, Matchers.containsInAnyOrder("dummy"));
     }
 }
