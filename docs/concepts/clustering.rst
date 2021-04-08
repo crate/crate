@@ -1,25 +1,26 @@
-.. _clustering:
+.. _concept-clustering:
 
 ==========
 Clustering
 ==========
 
-The aim of this document is to describe, on a high level, how the
-distributed SQL database CrateDB uses a shared nothing architecture to
-form high-availability, resilient database clusters with minimal effort
-of configuration. It will lay out the core concepts of the shared
-nothing architecture at the heart of CrateDB. The main difference to a
-`primary-secondary architecture`_ is that every node in the CrateDB
-cluster can perform every operation - hence all nodes are equal in terms
-of functionality (see :ref:`shared_nothing_components`) and are
-configured the same.
+The aim of this document is to describe, on a high level, how the distributed
+SQL database CrateDB uses a shared nothing architecture to form high-
+availability, resilient database clusters with minimal effort of configuration.
+
+It will lay out the core concepts of the shared nothing architecture at the
+heart of CrateDB. The main difference to a `primary-secondary architecture`_ is
+that every node in the CrateDB cluster can perform every operation - hence all
+nodes are equal in terms of functionality (see
+:ref:`concept-node-components`) and are configured the same.
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
 
-.. _shared_nothing_components:
+
+.. _concept-node-components:
 
 Components of a CrateDB Node
 ============================
@@ -81,7 +82,7 @@ The three main functions of the Cluster State Service are:
 (a) cluster state management,
 (b) election of the master node and
 (c) node discovery, thus being the main component for cluster building (as
-    described in section :ref:`shared_nothing_clusters`).
+    described in section :ref:`concept-clusters`).
 
 It communicates using the Binary Transport Protocol.
 
@@ -96,7 +97,7 @@ divided and (usually) stored across multiple nodes. Each shard is a separate
 Lucene index that is stored physically on the filesystem. Reads and writes are
 operating on a shard level.
 
-.. _shared_nothing_clusters:
+.. _concept-clusters:
 
 Multi-node setup: Clusters
 ==========================
@@ -132,7 +133,7 @@ When the master node updates the cluster state it will publish the new state to 
 nodes in the cluster and wait for all nodes to respond before processing
 the next update.
 
-.. _shared_nothing_master_node_election:
+.. _concept-master-election:
 
 Master Node Election
 --------------------
@@ -180,7 +181,7 @@ network partition would split the cluster into three nodes and two nodes. In
 this scenario, the three node cluster would elect a master node and the two
 node cluster would not.
 
-.. _shared_nothing_discovery:
+.. _concept-discovery:
 
 Discovery
 ---------
@@ -263,8 +264,8 @@ Cluster behavior
 
 The fact that each CrateDB node in a cluster is equal allows applications and
 users to connect to any node and get the same response for the same operations.
-As already described in section :ref:`shared_nothing_components` the SQL
-Handler is responsible handling incoming client SQL requests, either using the
+As already described in section :ref:`concept-node-components`, the SQL
+handler is responsible handling incoming client SQL requests, either using the
 HTTP, transport protocol or PostgreSQL wire protocol. The "handler node" that
 accepts the client request also returns the response to the client. It does
 neither redirect nor delegate the request to a different nodes. The handler
