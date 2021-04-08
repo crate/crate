@@ -22,15 +22,18 @@
 
 package io.crate.common.collections;
 
-import io.crate.common.StringUtils;
-import io.crate.common.TriConsumer;
-
-import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
+import java.util.function.BiFunction;
+
+import javax.annotation.Nullable;
+
+import io.crate.common.StringUtils;
+import io.crate.common.TriConsumer;
 
 public final class Maps {
 
@@ -154,5 +157,38 @@ public final class Maps {
             }
         }
         return root;
+    }
+
+
+    /**
+     * Add entries in `additions` to `map`.
+     * If `map` already contains an entry that is also present in `addition`:
+     *  - It will recurse into it if it is a map
+     *  - Skip the entry otherwise
+     **/
+    public static void extendRecursive(Map<String, Object> map, Map<String, Object> additions) {
+        extendRecursive(map, additions, (oldList, newList) -> Lists2.concatUnique(oldList, newList));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void extendRecursive(Map<String, Object> map,
+                                       Map<String, Object> additions,
+                                       BiFunction<List<Object>, Collection<Object>, List<Object>> mergeLists) {
+        for (Map.Entry<String, Object> additionEntry : additions.entrySet()) {
+            String key = additionEntry.getKey();
+            Object addition = additionEntry.getValue();
+            if (map.containsKey(key)) {
+                Object sourceValue = map.get(key);
+                if (sourceValue instanceof Map && addition instanceof Map) {
+                    //noinspection unchecked
+                    extendRecursive((Map) sourceValue, (Map) addition);
+                }
+                if (sourceValue instanceof List && addition instanceof Collection) {
+                    map.put(key, mergeLists.apply((List<Object>) sourceValue, (List<Object>) addition));
+                }
+            } else {
+                map.put(key, addition);
+            }
+        }
     }
 }
