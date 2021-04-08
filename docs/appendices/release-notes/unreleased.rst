@@ -59,6 +59,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statements to remove
+  constraints like analyzers or ``NOT NULL`` from existing columns in the same
+  table.
+
 - Allow executing ``CREATE TABEL .. AS`` as a regular user with ``DDL``
   permission on the target schema, and ``DQL`` permission on the source
   relations.

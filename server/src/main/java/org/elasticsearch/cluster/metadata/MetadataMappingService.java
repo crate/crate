@@ -240,7 +240,6 @@ public class MetadataMappingService {
 
         public ClusterState applyRequest(ClusterState currentState, PutMappingClusterStateUpdateRequest request,
                                           Map<Index, MapperService> indexMapperServices) throws IOException {
-
             CompressedXContent mappingUpdateSource = new CompressedXContent(request.source());
             final Metadata metadata = currentState.metadata();
             final List<IndexMetadata> updateList = new ArrayList<>();
