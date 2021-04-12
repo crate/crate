@@ -31,7 +31,6 @@ SQL Statements
     deny
     discard
     drop-analyzer
-    drop-constraint
     drop-function
     drop-repository
     drop-snapshot
