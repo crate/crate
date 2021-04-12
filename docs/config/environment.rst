@@ -48,7 +48,7 @@ Application variables
 
   If you are installing manually, in most cases, this should be set to the
   directory from which you would normally execute ``bin/crate``, i.e. the root
-  directory of the `expanded tarball`_.
+  directory of the `basic installation`_.
 
 .. _conf-env-java:
 
@@ -108,7 +108,7 @@ General
 
   Default values are as follows:
 
-  - For `basic installations`_, the process working directory
+  - For a `basic installation`_, the process working directory
 
   - If you have installed `a CrateDB Linux package`_, ``/var/lib/crate``
 
@@ -147,11 +147,9 @@ logging of the JVM.
    The :ref:`logging configuration <conf-logging-gc>` documentation has
    the complete list of garbage collection logging environment variables.
 
-.. _basic installations: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
-.. _a CrateDB Linux package: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/linux.html
-.. _CrateDB on Docker: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/docker.html
-.. _Java options: https://docs.oracle.com/javase/7/docs/technotes/tools/windows/java.html#CBBIJCHG
+.. _basic installation: https://crate.io/docs/crate/tutorials/en/latest/install.html#ad-hoc-unix-windows
+.. _a CrateDB Linux package: https://crate.io/docs/crate/tutorials/en/latest/install.html#linux
+.. _CrateDB on Docker: https://crate.io/docs/crate/tutorials/en/latest/install.html#docker
 .. _environment variables: https://en.wikipedia.org/wiki/Environment_variable
-.. _expanded tarball: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
 .. _Concurrent Mark Sweep: https://docs.oracle.com/javase/10/gctuning/concurrent-mark-sweep-cms-collector.htm
-.. _G1: https://docs.oracle.com/javase/10/gctuning/garbage-first-garbage-collector.htm
+.. _G1: https://docs.oracle.com/en/java/javase/16/gctuning/garbage-first-g1-garbage-collector1.html
