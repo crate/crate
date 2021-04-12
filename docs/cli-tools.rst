@@ -48,7 +48,7 @@ The ``crate`` executable runs the CrateDB daemon.
 .. SEEALSO::
 
     This section is a low-level command reference. For help installing CrateDB
-    for the first time, check out `Getting Started With CrateDB`_.
+    for the first time, check out the `CrateDB installation tutorial`_.
     Alternatively, consult the `deployment guide`_ for help running CrateDB in
     production.
 
@@ -213,7 +213,7 @@ Options
 
 .. _deployment guide: https://crate.io/docs/crate/howtos/en/latest/deployment/index.html
 .. _Detach a node from its cluster: https://crate.io/docs/crate/howtos/en/latest/best-practices/crate-node.html#detach-a-node-from-its-cluster
-.. _Getting Started With CrateDB: https://crate.io/docs/crate/getting-started/en/latest/install/index.html
+.. _CrateDB installation tutorial: https://crate.io/docs/crate/tutorials/en/latest/install.html
 .. _graceful stop: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html#step-2-graceful-stop
 .. _PATH: https://kb.iu.edu/d/acar
 .. _Perform an unsafe cluster bootstrap: https://crate.io/docs/crate/howtos/en/latest/best-practices/crate-node.html#perform-an-unsafe-cluster-bootstrap
