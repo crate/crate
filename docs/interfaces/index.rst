@@ -15,8 +15,8 @@ client implementation perspective.
    `Client Libraries`_ — Officially supported clients and community supported
    clients
 
-.. _Connecting to CrateDB: https://crate.io/docs/crate/getting-started/en/latest/connect/index.html
-.. _Client Libraries: https://crate.io/docs/crate/getting-started/en/latest/clients/index.html
+.. _Connecting to CrateDB: https://crate.io/docs/crate/tutorials/en/latest/first-use.html
+.. _Client Libraries: https://crate.io/docs/crate/clients-tools/en/latest/
 
 .. rubric:: Table of contents
 
