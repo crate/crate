@@ -75,7 +75,7 @@ Syntax::
 If ``CONSTAINT check_name`` is omitted, CrateDB generates a unique name
 automatically.  This name is visible in
 :ref:`information_schema_table_constraints`. This name can be used with
-:ref:`DROP CONSTRAINT <drop-constraint>` to remove the constraint.
+:ref:`DROP CONSTRAINT <sql-alter-drop-constraint>` to remove the constraint.
 
 The ``CONSTRAINT`` definition can either be inline with a column, like this::
 
